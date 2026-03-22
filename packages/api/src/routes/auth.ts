@@ -1,11 +1,31 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { eq, and, gt, desc, sql } from "drizzle-orm";
+import { eq, and, gt, desc, sql, or } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { users, otpCodes, sessions, auditLogs, organizations, roles, bookingPipelineStages } from "@nasaq/db/schema";
 import { nanoid } from "nanoid";
 import { SESSION_DURATION_MS } from "../lib/constants";
 import { DEFAULT_TRIAL_DAYS } from "../lib/constants";
+import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
+
+// ============================================================
+// PASSWORD HELPERS (scrypt — no extra dependency)
+// ============================================================
+
+function hashPassword(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password: string, stored: string): boolean {
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  const inputHash = scryptSync(password, salt, 64);
+  const storedHash = Buffer.from(hash, "hex");
+  if (inputHash.length !== storedHash.length) return false;
+  return timingSafeEqual(inputHash, storedHash);
+}
 
 export const authRouter = new Hono();
 
@@ -16,21 +36,30 @@ export const authRouter = new Hono();
 
 authRouter.post("/register", async (c) => {
   const body = await c.req.json();
-  const { businessName, phone, email, businessType } = body;
+  const { businessName, phone, email, businessType, password } = body;
 
-  if (!businessName || !phone) {
-    return c.json({ error: "اسم النشاط ورقم الجوال مطلوبان" }, 400);
+  if (!businessName || (!phone && !email)) {
+    return c.json({ error: "اسم النشاط مطلوب مع جوال أو إيميل" }, 400);
   }
 
-  const normalizedPhone = normalizePhone(phone);
-  if (!normalizedPhone) {
+  // Email registration requires password
+  if (email && !phone && !password) {
+    return c.json({ error: "كلمة المرور مطلوبة عند التسجيل بالإيميل" }, 400);
+  }
+
+  const normalizedPhone = phone ? normalizePhone(phone) : null;
+  if (phone && !normalizedPhone) {
     return c.json({ error: "رقم الجوال غير صحيح" }, 400);
   }
 
-  // Check if phone already registered
-  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.phone, normalizedPhone));
-  if (existing) {
-    return c.json({ error: "رقم الجوال مسجل مسبقاً — سجّل دخول" }, 409);
+  // Check duplicates
+  if (normalizedPhone) {
+    const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.phone, normalizedPhone));
+    if (existing) return c.json({ error: "رقم الجوال مسجل مسبقاً — سجّل دخول" }, 409);
+  }
+  if (email) {
+    const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email.toLowerCase().trim()));
+    if (existing) return c.json({ error: "الإيميل مسجل مسبقاً — سجّل دخول" }, 409);
   }
 
   // Generate unique slug from businessName
@@ -61,7 +90,8 @@ authRouter.post("/register", async (c) => {
       orgId: org.id,
       name: businessName,
       phone: normalizedPhone,
-      email: email || null,
+      email: email ? email.toLowerCase().trim() : null,
+      passwordHash: password ? hashPassword(password) : null,
       type: "owner",
       status: "active",
     }).returning();
@@ -86,12 +116,39 @@ authRouter.post("/register", async (c) => {
     return { org, owner };
   });
 
-  // Send OTP
+  // Email-only registration → create session immediately (password already verified)
+  if (!normalizedPhone && email && password) {
+    const token = nanoid(64);
+    const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
+    await db.insert(sessions).values({
+      userId: result.owner.id,
+      token,
+      device: c.req.header("User-Agent") || "unknown",
+      ip: c.req.header("X-Forwarded-For") || "unknown",
+      expiresAt,
+    });
+    const [org2] = await db.select({ businessType: organizations.businessType }).from(organizations).where(eq(organizations.id, result.org.id));
+    return c.json({
+      token,
+      expiresAt: expiresAt.toISOString(),
+      user: {
+        id: result.owner.id,
+        orgId: result.org.id,
+        name: result.owner.name,
+        phone: result.owner.phone,
+        email: result.owner.email,
+        type: result.owner.type,
+        businessType: org2?.businessType || "general",
+      },
+    }, 201);
+  }
+
+  // Phone registration → send OTP
   const code = generateOTP();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
   await db.insert(otpCodes).values({
-    phone: normalizedPhone,
+    phone: normalizedPhone!,
     code,
     purpose: "register",
     expiresAt,
@@ -277,6 +334,124 @@ authRouter.post("/otp/verify", async (c) => {
       businessType: org?.businessType || "general",
     },
   });
+});
+
+// ============================================================
+// POST /auth/login — تسجيل دخول بالإيميل وكلمة المرور
+// ============================================================
+
+authRouter.post("/login", async (c) => {
+  const body = await c.req.json();
+  const { email, password } = body;
+
+  if (!email || !password) {
+    return c.json({ error: "الإيميل وكلمة المرور مطلوبان" }, 400);
+  }
+
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email.toLowerCase().trim()));
+
+  if (!user) {
+    return c.json({ error: "الإيميل أو كلمة المرور غير صحيحة" }, 401);
+  }
+
+  if (user.status === "suspended") {
+    return c.json({ error: "الحساب موقوف — تواصل مع المسؤول" }, 403);
+  }
+
+  if (!user.passwordHash) {
+    return c.json({ error: "هذا الحساب يستخدم تسجيل الدخول بالجوال — اختر طريقة الجوال" }, 400);
+  }
+
+  if (!verifyPassword(password, user.passwordHash)) {
+    // Increment failed attempts
+    await db.update(users)
+      .set({ failedLoginAttempts: (user.failedLoginAttempts || 0) + 1 })
+      .where(eq(users.id, user.id));
+    return c.json({ error: "الإيميل أو كلمة المرور غير صحيحة" }, 401);
+  }
+
+  const [org] = await db
+    .select({ businessType: organizations.businessType })
+    .from(organizations)
+    .where(eq(organizations.id, user.orgId));
+
+  const token = nanoid(64);
+  const expiresAt = new Date(Date.now() + SESSION_DURATION_MS);
+
+  await db.insert(sessions).values({
+    userId: user.id,
+    token,
+    device: c.req.header("User-Agent") || "unknown",
+    ip: c.req.header("X-Forwarded-For") || "unknown",
+    expiresAt,
+  });
+
+  await db.update(users)
+    .set({ lastLoginAt: new Date(), failedLoginAttempts: 0 })
+    .where(eq(users.id, user.id));
+
+  await db.insert(auditLogs).values({
+    orgId: user.orgId,
+    userId: user.id,
+    action: "login",
+    resource: "auth",
+    resourceId: user.id,
+    ip: c.req.header("X-Forwarded-For") || "unknown",
+    userAgent: c.req.header("User-Agent") || "unknown",
+  });
+
+  return c.json({
+    token,
+    expiresAt: expiresAt.toISOString(),
+    user: {
+      id: user.id,
+      orgId: user.orgId,
+      name: user.name,
+      phone: user.phone,
+      email: user.email,
+      type: user.type,
+      avatar: user.avatar,
+      businessType: org?.businessType || "general",
+    },
+  });
+});
+
+// ============================================================
+// POST /auth/password/change — تغيير كلمة المرور
+// ============================================================
+
+authRouter.post("/password/change", async (c) => {
+  const authHeader = c.req.header("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return c.json({ error: "غير مصرح" }, 401);
+
+  const token = authHeader.substring(7);
+  const [session] = await db.select({ userId: sessions.userId })
+    .from(sessions).where(and(eq(sessions.token, token), gt(sessions.expiresAt, new Date())));
+  if (!session) return c.json({ error: "الجلسة منتهية" }, 401);
+
+  const { currentPassword, newPassword } = await c.req.json();
+  if (!newPassword || newPassword.length < 8) {
+    return c.json({ error: "كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل" }, 400);
+  }
+
+  const [user] = await db.select().from(users).where(eq(users.id, session.userId));
+  if (!user) return c.json({ error: "المستخدم غير موجود" }, 404);
+
+  // If user already has a password, verify current one
+  if (user.passwordHash && currentPassword) {
+    if (!verifyPassword(currentPassword, user.passwordHash)) {
+      return c.json({ error: "كلمة المرور الحالية غير صحيحة" }, 400);
+    }
+  }
+
+  await db.update(users)
+    .set({ passwordHash: hashPassword(newPassword), updatedAt: new Date() })
+    .where(eq(users.id, user.id));
+
+  return c.json({ message: "تم تغيير كلمة المرور بنجاح" });
 });
 
 // ============================================================

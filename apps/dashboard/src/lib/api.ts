@@ -49,6 +49,11 @@ export const api = {
 export const authApi = {
   requestOtp: (phone: string) => api.post("/auth/otp/request", { phone }),
   verifyOtp: (phone: string, code: string) => api.post<{ token: string; user: any }>("/auth/otp/verify", { phone, code }),
+  loginWithEmail: (email: string, password: string) => api.post<{ token: string; user: any }>("/auth/login", { email, password }),
+  registerWithEmail: (businessName: string, email: string, password: string, businessType?: string) =>
+    api.post<{ token: string; user: any }>("/auth/register", { businessName, email, password, businessType }),
+  changePassword: (currentPassword: string, newPassword: string) =>
+    api.post("/auth/password/change", { currentPassword, newPassword }),
   logout: () => api.post("/auth/logout"),
   me: () => api.get<{ data: any }>("/auth/me"),
   sessions: () => api.get<{ data: any[] }>("/auth/sessions"),
