@@ -325,6 +325,61 @@ export const bundleItems = pgTable("bundle_items", {
 });
 
 // ============================================================
+// SERVICE COMPONENTS
+// مكونات الخدمة — ما تحتاجه الخدمة من أصول أو عمالة أو مواد
+// ============================================================
+
+export const serviceComponents = pgTable("service_components", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  serviceId: uuid("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+
+  // Source type: 'inventory' = أصل من المخزون | 'manual' = عنصر يدوي
+  sourceType: text("source_type").notNull().default("manual"), // 'inventory' | 'manual' | 'flower'
+
+  // For inventory type — points to asset_types.id
+  inventoryItemId: uuid("inventory_item_id"),
+  flowerInventoryId: uuid("flower_inventory_id"),
+
+  name: text("name").notNull(),
+  description: text("description"),
+
+  quantity: numeric("quantity", { precision: 10, scale: 2 }).default("1"),
+  unit: text("unit").default("حبة"),
+  unitCost: numeric("unit_cost", { precision: 10, scale: 2 }).default("0"),
+
+  isOptional: boolean("is_optional").default(false),
+  isUpgradeable: boolean("is_upgradeable").default(false),
+  upgradeOptions: jsonb("upgrade_options").default([]),
+
+  showToCustomer: boolean("show_to_customer").default(true),
+  customerLabel: text("customer_label"),
+
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ============================================================
+// SERVICE COSTS
+// تكاليف الخدمة التشغيلية (عمالة، مصاريف عامة، عمولة)
+// ============================================================
+
+export const serviceCosts = pgTable("service_costs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  serviceId: uuid("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+
+  materialCost: numeric("material_cost", { precision: 10, scale: 2 }).default("0"),
+  laborMinutes: integer("labor_minutes").default(0),
+  laborCostPerMinute: numeric("labor_cost_per_minute", { precision: 10, scale: 2 }).default("0"),
+  overheadPercent: numeric("overhead_percent", { precision: 5, scale: 2 }).default("0"),
+  commissionPercent: numeric("commission_percent", { precision: 5, scale: 2 }).default("0"),
+  notes: text("notes"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ============================================================
 // SEASONS
 // تعريف المواسم على مستوى المشترك
 // ============================================================

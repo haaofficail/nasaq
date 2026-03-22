@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, asc, desc, ilike, sql, count } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { services, serviceMedia, serviceAddons, addons, categories, pricingRules } from "@nasaq/db/schema";
+import { services, serviceMedia, serviceAddons, addons, categories, pricingRules, serviceComponents, serviceCosts, assetTypes } from "@nasaq/db/schema";
 import { generateSlug, getOrgId, validateBody, getPagination, safeSortField } from "../lib/helpers";
 import { SERVICE_SORT_FIELDS, type ServiceSortField } from "../lib/constants";
 
@@ -350,4 +350,169 @@ servicesRouter.post("/:id/duplicate", async (c) => {
   }
 
   return c.json({ data: copy }, 201);
+});
+
+// ============================================================
+// SERVICE COMPONENTS — مكونات الخدمة
+// ============================================================
+
+const createComponentSchema = z.object({
+  sourceType: z.enum(["inventory", "manual", "flower"]).default("manual"),
+  inventoryItemId: z.string().uuid().optional().nullable(),
+  flowerInventoryId: z.string().uuid().optional().nullable(),
+  name: z.string().min(1),
+  description: z.string().optional().nullable(),
+  quantity: z.number().min(0).default(1),
+  unit: z.string().default("حبة"),
+  unitCost: z.number().min(0).default(0),
+  isOptional: z.boolean().default(false),
+  isUpgradeable: z.boolean().default(false),
+  showToCustomer: z.boolean().default(true),
+  customerLabel: z.string().optional().nullable(),
+  sortOrder: z.number().int().default(0),
+});
+
+servicesRouter.get("/:id/components", async (c) => {
+  const orgId = getOrgId(c);
+  const serviceId = c.req.param("id");
+
+  const components = await db
+    .select()
+    .from(serviceComponents)
+    .where(and(
+      eq(serviceComponents.serviceId, serviceId),
+      eq(serviceComponents.orgId, orgId),
+      eq(serviceComponents.isActive, true),
+    ))
+    .orderBy(asc(serviceComponents.sortOrder));
+
+  // Enrich with asset type name for inventory components
+  const assetTypeIds = components
+    .filter(c => c.sourceType === "inventory" && c.inventoryItemId)
+    .map(c => c.inventoryItemId!);
+
+  let assetTypeMap = new Map<string, string>();
+  if (assetTypeIds.length > 0) {
+    const types = await db.select({ id: assetTypes.id, name: assetTypes.name })
+      .from(assetTypes)
+      .where(sql`${assetTypes.id} = ANY(${assetTypeIds})`);
+    assetTypeMap = new Map(types.map(t => [t.id, t.name]));
+  }
+
+  const enriched = components.map(comp => ({
+    ...comp,
+    assetTypeName: comp.inventoryItemId ? (assetTypeMap.get(comp.inventoryItemId) ?? null) : null,
+    totalCost: Number(comp.quantity ?? 1) * Number(comp.unitCost ?? 0),
+  }));
+
+  const totalCost = enriched.reduce((s, c) => s + c.totalCost, 0);
+  return c.json({ data: enriched, totalCost });
+});
+
+servicesRouter.post("/:id/components", async (c) => {
+  const orgId = getOrgId(c);
+  const serviceId = c.req.param("id");
+  const body = createComponentSchema.parse(await c.req.json());
+
+  const [comp] = await db.insert(serviceComponents).values({
+    orgId, serviceId,
+    sourceType: body.sourceType,
+    inventoryItemId: body.inventoryItemId ?? null,
+    flowerInventoryId: body.flowerInventoryId ?? null,
+    name: body.name,
+    description: body.description ?? null,
+    quantity: String(body.quantity),
+    unit: body.unit,
+    unitCost: String(body.unitCost),
+    isOptional: body.isOptional,
+    isUpgradeable: body.isUpgradeable,
+    showToCustomer: body.showToCustomer,
+    customerLabel: body.customerLabel ?? null,
+    sortOrder: body.sortOrder,
+  }).returning();
+
+  return c.json({ data: comp }, 201);
+});
+
+servicesRouter.put("/:id/components/:compId", async (c) => {
+  const orgId = getOrgId(c);
+  const compId = c.req.param("compId");
+  const body = createComponentSchema.partial().parse(await c.req.json());
+
+  const updates: any = {};
+  if (body.name !== undefined) updates.name = body.name;
+  if (body.description !== undefined) updates.description = body.description;
+  if (body.quantity !== undefined) updates.quantity = String(body.quantity);
+  if (body.unit !== undefined) updates.unit = body.unit;
+  if (body.unitCost !== undefined) updates.unitCost = String(body.unitCost);
+  if (body.isOptional !== undefined) updates.isOptional = body.isOptional;
+  if (body.isUpgradeable !== undefined) updates.isUpgradeable = body.isUpgradeable;
+  if (body.showToCustomer !== undefined) updates.showToCustomer = body.showToCustomer;
+  if (body.customerLabel !== undefined) updates.customerLabel = body.customerLabel;
+  if (body.sortOrder !== undefined) updates.sortOrder = body.sortOrder;
+  if (body.inventoryItemId !== undefined) updates.inventoryItemId = body.inventoryItemId;
+  if (body.sourceType !== undefined) updates.sourceType = body.sourceType;
+
+  const [updated] = await db.update(serviceComponents).set(updates)
+    .where(and(eq(serviceComponents.id, compId), eq(serviceComponents.orgId, orgId)))
+    .returning();
+
+  if (!updated) return c.json({ error: "المكون غير موجود" }, 404);
+  return c.json({ data: updated });
+});
+
+servicesRouter.delete("/:id/components/:compId", async (c) => {
+  const orgId = getOrgId(c);
+  const compId = c.req.param("compId");
+
+  const [deleted] = await db.update(serviceComponents)
+    .set({ isActive: false })
+    .where(and(eq(serviceComponents.id, compId), eq(serviceComponents.orgId, orgId)))
+    .returning();
+
+  if (!deleted) return c.json({ error: "المكون غير موجود" }, 404);
+  return c.json({ data: { success: true } });
+});
+
+// ============================================================
+// SERVICE COSTS — تكلفة الخدمة
+// ============================================================
+
+servicesRouter.get("/:id/costs", async (c) => {
+  const orgId = getOrgId(c);
+  const serviceId = c.req.param("id");
+
+  const [costs] = await db.select().from(serviceCosts)
+    .where(and(eq(serviceCosts.serviceId, serviceId), eq(serviceCosts.orgId, orgId)));
+
+  return c.json({ data: costs ?? null });
+});
+
+servicesRouter.put("/:id/costs", async (c) => {
+  const orgId = getOrgId(c);
+  const serviceId = c.req.param("id");
+  const body = await c.req.json();
+
+  const [existing] = await db.select({ id: serviceCosts.id }).from(serviceCosts)
+    .where(and(eq(serviceCosts.serviceId, serviceId), eq(serviceCosts.orgId, orgId)));
+
+  const vals = {
+    materialCost: String(body.materialCost ?? 0),
+    laborMinutes: body.laborMinutes ?? 0,
+    laborCostPerMinute: String(body.laborCostPerMinute ?? 0),
+    overheadPercent: String(body.overheadPercent ?? 0),
+    commissionPercent: String(body.commissionPercent ?? 0),
+    notes: body.notes ?? null,
+    updatedAt: new Date(),
+  };
+
+  if (existing) {
+    const [updated] = await db.update(serviceCosts).set(vals)
+      .where(eq(serviceCosts.id, existing.id)).returning();
+    return c.json({ data: updated });
+  } else {
+    const [created] = await db.insert(serviceCosts)
+      .values({ orgId, serviceId, ...vals }).returning();
+    return c.json({ data: created }, 201);
+  }
 });

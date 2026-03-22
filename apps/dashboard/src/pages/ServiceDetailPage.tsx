@@ -3,14 +3,15 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowRight, Pencil, Trash2, Package, Star, CalendarCheck, Banknote,
   Loader2, AlertCircle, Copy, Eye, Plus, ChevronUp, ChevronDown, Save, HelpCircle, Settings2,
+  Boxes, Wrench, FlaskConical, TrendingUp,
 } from "lucide-react";
 import { clsx } from "clsx";
-import { servicesApi, questionsApi } from "@/lib/api";
+import { servicesApi, questionsApi, inventoryApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { EditServiceForm } from "@/components/services/EditServiceForm";
 import { Modal, Input, TextArea, Select, Button, Toggle, Toast } from "@/components/ui";
 
-type Tab = "info" | "questions" | "booking-settings";
+type Tab = "info" | "questions" | "booking-settings" | "components";
 
 const QUESTION_TYPES = [
   { value: "text", label: "نص قصير" },
@@ -38,11 +39,70 @@ export function ServiceDetailPage() {
 
   const { data: res, loading, error, refetch } = useApi(() => servicesApi.get(id!), [id]);
   const { data: qRes, refetch: refetchQ } = useApi(() => questionsApi.list(id!), [id]);
+  const { data: compRes, refetch: refetchComp } = useApi(() => servicesApi.getComponents(id!), [id]);
+  const { data: assetTypesRes } = useApi(() => inventoryApi.assetTypes());
+  const assetTypes: any[] = assetTypesRes?.data ?? [];
   const { mutate: deleteService, loading: deleting } = useMutation((sid: string) => servicesApi.delete(sid));
   const { mutate: duplicateService } = useMutation((sid: string) => servicesApi.duplicate(sid));
 
   const service = res?.data;
   const questions = qRes?.data || [];
+  const components: any[] = compRes?.data ?? [];
+  const componentsTotalCost: number = compRes?.totalCost ?? 0;
+
+  // Components state
+  const COMP_DEFAULT = { sourceType: "manual", inventoryItemId: "", name: "", description: "", quantity: 1, unit: "حبة", unitCost: 0, isOptional: false, showToCustomer: true };
+  const [compModal, setCompModal] = useState<{ open: boolean; item?: any } | null>(null);
+  const [compForm, setCompForm] = useState<any>(COMP_DEFAULT);
+  const [compSaving, setCompSaving] = useState(false);
+
+  const openAddComp = () => { setCompForm({ ...COMP_DEFAULT }); setCompModal({ open: true }); };
+  const openEditComp = (c: any) => {
+    setCompForm({
+      sourceType: c.sourceType ?? "manual",
+      inventoryItemId: c.inventoryItemId ?? "",
+      name: c.name ?? "",
+      description: c.description ?? "",
+      quantity: Number(c.quantity ?? 1),
+      unit: c.unit ?? "حبة",
+      unitCost: Number(c.unitCost ?? 0),
+      isOptional: c.isOptional ?? false,
+      showToCustomer: c.showToCustomer ?? true,
+    });
+    setCompModal({ open: true, item: c });
+  };
+
+  const handleSaveComp = async () => {
+    if (!compForm.name?.trim()) { setToast({ msg: "الاسم مطلوب", type: "error" }); return; }
+    setCompSaving(true);
+    try {
+      const payload = {
+        ...compForm,
+        inventoryItemId: compForm.inventoryItemId || null,
+        quantity: Number(compForm.quantity),
+        unitCost: Number(compForm.unitCost),
+      };
+      if (compModal?.item) {
+        await servicesApi.updateComponent(id!, compModal.item.id, payload);
+      } else {
+        await servicesApi.addComponent(id!, payload);
+      }
+      setCompModal(null);
+      refetchComp();
+      setToast({ msg: "تم الحفظ", type: "success" });
+    } catch {
+      setToast({ msg: "فشل الحفظ", type: "error" });
+    } finally {
+      setCompSaving(false);
+    }
+  };
+
+  const handleDeleteComp = async (compId: string) => {
+    if (!confirm("حذف هذا المكوّن؟")) return;
+    await servicesApi.deleteComponent(id!, compId);
+    refetchComp();
+    setToast({ msg: "تم الحذف", type: "success" });
+  };
 
   // Custom questions state
   const [showQModal, setShowQModal] = useState(false);
@@ -176,6 +236,7 @@ export function ServiceDetailPage() {
 
   const tabs: { key: Tab; label: string; icon: any }[] = [
     { key: "info", label: "معلومات الخدمة", icon: Package },
+    { key: "components", label: "المكونات والتكاليف", icon: Boxes },
     { key: "questions", label: "أسئلة مخصصة", icon: HelpCircle },
     { key: "booking-settings", label: "إعدادات الحجز", icon: Settings2 },
   ];
@@ -366,6 +427,232 @@ export function ServiceDetailPage() {
             <Button onClick={handleSaveBS} loading={bsSaving} icon={Save}>حفظ الإعدادات</Button>
           </div>
         </div>
+      )}
+
+      {/* Tab: Components */}
+      {activeTab === "components" && (
+        <div className="space-y-4">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">المواد والأصول والعمالة اللازمة لتنفيذ هذه الخدمة</p>
+            <Button icon={Plus} size="sm" onClick={openAddComp}>إضافة مكوّن</Button>
+          </div>
+
+          {/* Summary */}
+          {components.length > 0 && (
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "عدد المكونات", value: components.length, sub: `${components.filter(c => !c.isOptional).length} إلزامي` },
+                { label: "إجمالي التكلفة", value: componentsTotalCost.toLocaleString() + " ر.س", sub: "تكلفة المواد" },
+                {
+                  label: "هامش الربح",
+                  value: service?.basePrice
+                    ? (((Number(service.basePrice) - componentsTotalCost) / Number(service.basePrice)) * 100).toFixed(1) + "%"
+                    : "—",
+                  sub: service?.basePrice ? `${(Number(service.basePrice) - componentsTotalCost).toLocaleString()} ر.س` : "",
+                  highlight: service?.basePrice && Number(service.basePrice) > componentsTotalCost,
+                },
+              ].map(s => (
+                <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-4">
+                  <p className="text-xs text-gray-400 mb-1">{s.label}</p>
+                  <p className={clsx("text-lg font-bold", (s as any).highlight ? "text-green-600" : "text-gray-900")}>{s.value}</p>
+                  {s.sub && <p className="text-xs text-gray-400 mt-0.5">{s.sub}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Components list */}
+          {components.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 py-16 text-center">
+              <Boxes className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+              <p className="text-gray-400 font-medium">لا توجد مكونات</p>
+              <p className="text-sm text-gray-400 mt-1">أضف الأصول والمواد التي تحتاجها هذه الخدمة</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">المكوّن</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">النوع</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">الكمية</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">التكلفة/وحدة</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">الإجمالي</th>
+                    <th className="py-3 px-4 w-20"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {components.map((comp: any) => {
+                    const total = Number(comp.quantity ?? 1) * Number(comp.unitCost ?? 0);
+                    const srcConfig: Record<string, { label: string; cls: string; icon: any }> = {
+                      inventory: { label: "أصل", cls: "bg-blue-50 text-blue-600", icon: Package },
+                      manual:    { label: "يدوي", cls: "bg-gray-100 text-gray-600", icon: Wrench },
+                      flower:    { label: "ورد", cls: "bg-pink-50 text-pink-600", icon: FlaskConical },
+                    };
+                    const src = srcConfig[comp.sourceType] ?? srcConfig.manual;
+                    return (
+                      <tr key={comp.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium text-gray-900">{comp.name}</p>
+                            {comp.isOptional && <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-full font-medium">اختياري</span>}
+                          </div>
+                          {comp.assetTypeName && comp.assetTypeName !== comp.name && (
+                            <p className="text-xs text-gray-400 mt-0.5">{comp.assetTypeName}</p>
+                          )}
+                          {comp.description && <p className="text-xs text-gray-400 truncate max-w-xs">{comp.description}</p>}
+                        </td>
+                        <td className="py-3 px-4">
+                          <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium", src.cls)}>
+                            <src.icon className="w-3 h-3" />
+                            {src.label}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 tabular-nums text-gray-700">{Number(comp.quantity).toLocaleString()} {comp.unit}</td>
+                        <td className="py-3 px-4 tabular-nums text-gray-700">{Number(comp.unitCost).toLocaleString()} ر.س</td>
+                        <td className="py-3 px-4 tabular-nums font-semibold text-gray-900">{total.toLocaleString()} ر.س</td>
+                        <td className="py-3 px-4">
+                          <div className="flex gap-1">
+                            <button onClick={() => openEditComp(comp)} className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors"><Pencil className="w-3.5 h-3.5 text-brand-500" /></button>
+                            <button onClick={() => handleDeleteComp(comp.id)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="bg-gray-50/50 border-t border-gray-200">
+                    <td colSpan={4} className="py-3 px-4 text-sm font-semibold text-gray-700">إجمالي التكلفة</td>
+                    <td className="py-3 px-4 font-bold text-brand-600 tabular-nums">{componentsTotalCost.toLocaleString()} ر.س</td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Component Add/Edit Modal */}
+      {compModal && (
+        <Modal
+          open={true}
+          onClose={() => setCompModal(null)}
+          title={compModal.item ? "تعديل المكوّن" : "إضافة مكوّن جديد"}
+          size="md"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setCompModal(null)}>إلغاء</Button>
+              <Button onClick={handleSaveComp} loading={compSaving}>حفظ</Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            {/* Source type */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-2">نوع المكوّن</label>
+              <div className="flex gap-2">
+                {[
+                  { v: "inventory", label: "أصل من المخزون", icon: Package, cls: "blue" },
+                  { v: "manual",    label: "عنصر يدوي",      icon: Wrench,  cls: "gray" },
+                ].map(opt => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setCompForm((p: any) => ({ ...p, sourceType: opt.v, inventoryItemId: "", name: "" }))}
+                    className={clsx(
+                      "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-medium transition-colors",
+                      compForm.sourceType === opt.v
+                        ? "border-brand-400 bg-brand-50 text-brand-700"
+                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                    )}
+                  >
+                    <opt.icon className="w-4 h-4" />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Asset type selector */}
+            {compForm.sourceType === "inventory" && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">نوع الأصل</label>
+                <select
+                  value={compForm.inventoryItemId}
+                  onChange={e => {
+                    const t = assetTypes.find((a: any) => a.id === e.target.value);
+                    setCompForm((p: any) => ({ ...p, inventoryItemId: e.target.value, name: t?.name ?? p.name }));
+                  }}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
+                >
+                  <option value="">اختر نوع الأصل</option>
+                  {assetTypes.map((t: any) => (
+                    <option key={t.id} value={t.id}>{t.name} ({t.totalAssets ?? 0} وحدة)</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Name */}
+            <Input
+              label="الاسم *"
+              name="name"
+              value={compForm.name}
+              onChange={(e: any) => setCompForm((p: any) => ({ ...p, name: e.target.value }))}
+              placeholder={compForm.sourceType === "inventory" ? "يُملأ تلقائياً من نوع الأصل" : "مثال: عمالة تركيب، تغليف فاخر"}
+              required
+            />
+
+            {/* Quantity + unit */}
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="الكمية"
+                name="quantity"
+                type="number"
+                value={compForm.quantity}
+                onChange={(e: any) => setCompForm((p: any) => ({ ...p, quantity: parseFloat(e.target.value) || 1 }))}
+                min={0}
+              />
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">الوحدة</label>
+                <select
+                  value={compForm.unit}
+                  onChange={e => setCompForm((p: any) => ({ ...p, unit: e.target.value }))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
+                >
+                  {["حبة", "قطعة", "متر", "كيلو", "لتر", "يوم", "ساعة", "طن"].map(u => (
+                    <option key={u} value={u}>{u}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <Input
+              label="التكلفة لكل وحدة (ر.س)"
+              name="unitCost"
+              type="number"
+              value={compForm.unitCost}
+              onChange={(e: any) => setCompForm((p: any) => ({ ...p, unitCost: parseFloat(e.target.value) || 0 }))}
+              min={0}
+              suffix="ر.س"
+              hint={`الإجمالي: ${(Number(compForm.quantity) * Number(compForm.unitCost)).toLocaleString()} ر.س`}
+            />
+
+            <div className="flex gap-4 pt-1">
+              <div className="flex items-center gap-2">
+                <Toggle checked={compForm.isOptional} onChange={(v: boolean) => setCompForm((p: any) => ({ ...p, isOptional: v }))} />
+                <span className="text-sm text-gray-700">مكوّن اختياري</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Toggle checked={compForm.showToCustomer} onChange={(v: boolean) => setCompForm((p: any) => ({ ...p, showToCustomer: v }))} />
+                <span className="text-sm text-gray-700">يظهر للعميل</span>
+              </div>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* Question Modal */}
