@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, asc, desc, ilike, sql, count } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { services, serviceMedia, serviceAddons, addons, categories, pricingRules, serviceComponents, serviceCosts, assetTypes } from "@nasaq/db/schema";
+import { services, serviceMedia, serviceAddons, addons, categories, pricingRules, serviceComponents, serviceCosts, assetTypes, serviceRequirements, users, assets } from "@nasaq/db/schema";
 import { generateSlug, getOrgId, validateBody, getPagination, safeSortField } from "../lib/helpers";
 import { SERVICE_SORT_FIELDS, type ServiceSortField } from "../lib/constants";
 
@@ -515,4 +515,115 @@ servicesRouter.put("/:id/costs", async (c) => {
       .values({ orgId, serviceId, ...vals }).returning();
     return c.json({ data: created }, 201);
   }
+});
+
+// ============================================================
+// SERVICE REQUIREMENTS — متطلبات الخدمة
+// ============================================================
+
+const requirementSchema = z.object({
+  requirementType: z.enum(["employee", "asset", "text"]),
+  userId: z.string().uuid().optional().nullable(),
+  employeeRole: z.string().optional().nullable(),
+  assetId: z.string().uuid().optional().nullable(),
+  assetTypeId: z.string().uuid().optional().nullable(),
+  label: z.string().min(1),
+  quantity: z.number().int().min(1).default(1),
+  notes: z.string().optional().nullable(),
+  isRequired: z.boolean().default(true),
+  sortOrder: z.number().int().default(0),
+});
+
+servicesRouter.get("/:id/requirements", async (c) => {
+  const orgId = getOrgId(c);
+  const serviceId = c.req.param("id");
+
+  const reqs = await db.select().from(serviceRequirements)
+    .where(and(
+      eq(serviceRequirements.serviceId, serviceId),
+      eq(serviceRequirements.orgId, orgId),
+      eq(serviceRequirements.isActive, true)
+    ))
+    .orderBy(asc(serviceRequirements.sortOrder), asc(serviceRequirements.createdAt));
+
+  // Enrich with related data
+  const enriched = await Promise.all(reqs.map(async (req) => {
+    if (req.requirementType === "employee" && req.userId) {
+      const [u] = await db.select({ name: users.name, jobTitle: users.jobTitle, avatar: users.avatar })
+        .from(users).where(eq(users.id, req.userId));
+      return { ...req, userName: u?.name, userJobTitle: u?.jobTitle, userAvatar: u?.avatar };
+    }
+    if (req.requirementType === "asset" && req.assetId) {
+      const [a] = await db.select({ name: assets.name, serialNumber: assets.serialNumber, status: assets.status })
+        .from(assets).where(eq(assets.id, req.assetId));
+      return { ...req, assetName: a?.name, assetSerial: a?.serialNumber, assetStatus: a?.status };
+    }
+    if (req.requirementType === "asset" && req.assetTypeId) {
+      const [at] = await db.select({ name: assetTypes.name }).from(assetTypes).where(eq(assetTypes.id, req.assetTypeId));
+      return { ...req, assetTypeName: at?.name };
+    }
+    return req;
+  }));
+
+  return c.json({ data: enriched });
+});
+
+servicesRouter.post("/:id/requirements", async (c) => {
+  const orgId = getOrgId(c);
+  const serviceId = c.req.param("id");
+  const body = requirementSchema.parse(await c.req.json());
+
+  const [created] = await db.insert(serviceRequirements).values({
+    orgId, serviceId,
+    requirementType: body.requirementType,
+    userId: body.userId ?? null,
+    employeeRole: body.employeeRole ?? null,
+    assetId: body.assetId ?? null,
+    assetTypeId: body.assetTypeId ?? null,
+    label: body.label,
+    quantity: body.quantity,
+    notes: body.notes ?? null,
+    isRequired: body.isRequired,
+    sortOrder: body.sortOrder,
+  }).returning();
+
+  return c.json({ data: created }, 201);
+});
+
+servicesRouter.put("/:id/requirements/:reqId", async (c) => {
+  const orgId = getOrgId(c);
+  const reqId = c.req.param("reqId");
+  const body = requirementSchema.partial().parse(await c.req.json());
+
+  const updates: any = {};
+  if (body.label !== undefined) updates.label = body.label;
+  if (body.requirementType !== undefined) updates.requirementType = body.requirementType;
+  if (body.userId !== undefined) updates.userId = body.userId;
+  if (body.employeeRole !== undefined) updates.employeeRole = body.employeeRole;
+  if (body.assetId !== undefined) updates.assetId = body.assetId;
+  if (body.assetTypeId !== undefined) updates.assetTypeId = body.assetTypeId;
+  if (body.quantity !== undefined) updates.quantity = body.quantity;
+  if (body.notes !== undefined) updates.notes = body.notes;
+  if (body.isRequired !== undefined) updates.isRequired = body.isRequired;
+  if (body.sortOrder !== undefined) updates.sortOrder = body.sortOrder;
+
+  const [updated] = await db.update(serviceRequirements).set(updates)
+    .where(and(eq(serviceRequirements.id, reqId), eq(serviceRequirements.orgId, orgId)))
+    .returning();
+
+  if (!updated) return c.json({ error: "المتطلب غير موجود" }, 404);
+  return c.json({ data: updated });
+});
+
+servicesRouter.delete("/:id/requirements/:reqId", async (c) => {
+  const orgId = getOrgId(c);
+  const reqId = c.req.param("reqId");
+
+  const [deleted] = await db.update(serviceRequirements)
+    .set({ isActive: false })
+    .where(and(eq(serviceRequirements.id, reqId), eq(serviceRequirements.orgId, orgId)))
+    .returning();
+
+  if (!deleted) return c.json({ error: "المتطلب غير موجود" }, 404);
+  return c.json({ data: { success: true } });
 });

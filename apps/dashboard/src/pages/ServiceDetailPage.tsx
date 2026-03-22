@@ -3,15 +3,16 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowRight, Pencil, Trash2, Package, Star, CalendarCheck, Banknote,
   Loader2, AlertCircle, Copy, Eye, Plus, ChevronUp, ChevronDown, Save, HelpCircle, Settings2,
-  Boxes, Wrench, FlaskConical, TrendingUp,
+  Boxes, Wrench, FlaskConical, TrendingUp, Users, Layers, AlignLeft, ClipboardList,
 } from "lucide-react";
 import { clsx } from "clsx";
-import { servicesApi, questionsApi, inventoryApi } from "@/lib/api";
+import { servicesApi, questionsApi, inventoryApi, teamApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { EditServiceForm } from "@/components/services/EditServiceForm";
 import { Modal, Input, TextArea, Select, Button, Toggle, Toast } from "@/components/ui";
 
-type Tab = "info" | "questions" | "booking-settings" | "components";
+type Tab = "info" | "questions" | "booking-settings" | "components" | "requirements";
+type ReqType = "employee" | "asset" | "text";
 
 const QUESTION_TYPES = [
   { value: "text", label: "نص قصير" },
@@ -40,8 +41,13 @@ export function ServiceDetailPage() {
   const { data: res, loading, error, refetch } = useApi(() => servicesApi.get(id!), [id]);
   const { data: qRes, refetch: refetchQ } = useApi(() => questionsApi.list(id!), [id]);
   const { data: compRes, refetch: refetchComp } = useApi(() => servicesApi.getComponents(id!), [id]);
+  const { data: reqRes, refetch: refetchReq } = useApi(() => servicesApi.getRequirements(id!), [id]);
   const { data: assetTypesRes } = useApi(() => inventoryApi.assetTypes());
+  const { data: assetsListRes } = useApi(() => inventoryApi.assets());
+  const { data: membersRes } = useApi(() => teamApi.members());
   const assetTypes: any[] = assetTypesRes?.data ?? [];
+  const assetsList: any[] = assetsListRes?.data ?? [];
+  const membersList: any[] = membersRes?.data ?? [];
   const { mutate: deleteService, loading: deleting } = useMutation((sid: string) => servicesApi.delete(sid));
   const { mutate: duplicateService } = useMutation((sid: string) => servicesApi.duplicate(sid));
 
@@ -49,6 +55,62 @@ export function ServiceDetailPage() {
   const questions = qRes?.data || [];
   const components: any[] = compRes?.data ?? [];
   const componentsTotalCost: number = compRes?.totalCost ?? 0;
+  const requirements: any[] = reqRes?.data ?? [];
+
+  // Requirements state
+  const REQ_DEFAULT = { requirementType: "employee" as ReqType, userId: "", employeeRole: "", assetId: "", assetTypeId: "", label: "", quantity: 1, notes: "", isRequired: true };
+  const [reqModal, setReqModal] = useState<{ open: boolean; item?: any } | null>(null);
+  const [reqForm, setReqForm] = useState<any>(REQ_DEFAULT);
+  const [reqSaving, setReqSaving] = useState(false);
+
+  const openAddReq = (type: ReqType) => { setReqForm({ ...REQ_DEFAULT, requirementType: type }); setReqModal({ open: true }); };
+  const openEditReq = (r: any) => {
+    setReqForm({
+      requirementType: r.requirementType ?? "text",
+      userId: r.userId ?? "",
+      employeeRole: r.employeeRole ?? "",
+      assetId: r.assetId ?? "",
+      assetTypeId: r.assetTypeId ?? "",
+      label: r.label ?? "",
+      quantity: r.quantity ?? 1,
+      notes: r.notes ?? "",
+      isRequired: r.isRequired ?? true,
+    });
+    setReqModal({ open: true, item: r });
+  };
+
+  const handleSaveReq = async () => {
+    if (!reqForm.label?.trim()) { setToast({ msg: "الاسم/الوصف مطلوب", type: "error" }); return; }
+    setReqSaving(true);
+    try {
+      const payload = {
+        ...reqForm,
+        userId: reqForm.userId || null,
+        assetId: reqForm.assetId || null,
+        assetTypeId: reqForm.assetTypeId || null,
+        quantity: Number(reqForm.quantity),
+      };
+      if (reqModal?.item) {
+        await servicesApi.updateRequirement(id!, reqModal.item.id, payload);
+      } else {
+        await servicesApi.addRequirement(id!, payload);
+      }
+      setReqModal(null);
+      refetchReq();
+      setToast({ msg: "تم الحفظ", type: "success" });
+    } catch {
+      setToast({ msg: "فشل الحفظ", type: "error" });
+    } finally {
+      setReqSaving(false);
+    }
+  };
+
+  const handleDeleteReq = async (reqId: string) => {
+    if (!confirm("حذف هذا المتطلب؟")) return;
+    await servicesApi.deleteRequirement(id!, reqId);
+    refetchReq();
+    setToast({ msg: "تم الحذف", type: "success" });
+  };
 
   // Components state
   const COMP_DEFAULT = { sourceType: "manual", inventoryItemId: "", name: "", description: "", quantity: 1, unit: "حبة", unitCost: 0, isOptional: false, showToCustomer: true };
@@ -234,9 +296,10 @@ export function ServiceDetailPage() {
   };
   const sc = statusConfig[service.status] || statusConfig.draft;
 
-  const tabs: { key: Tab; label: string; icon: any }[] = [
+  const tabs: { key: Tab; label: string; icon: any; badge?: number }[] = [
     { key: "info", label: "معلومات الخدمة", icon: Package },
     { key: "components", label: "المكونات والتكاليف", icon: Boxes },
+    { key: "requirements", label: "المتطلبات", icon: ClipboardList, badge: requirements.length || undefined },
     { key: "questions", label: "أسئلة مخصصة", icon: HelpCircle },
     { key: "booking-settings", label: "إعدادات الحجز", icon: Settings2 },
   ];
@@ -271,6 +334,7 @@ export function ServiceDetailPage() {
           >
             <tab.icon className="w-4 h-4" />
             {tab.label}
+            {tab.badge ? <span className="bg-brand-100 text-brand-600 text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{tab.badge}</span> : null}
           </button>
         ))}
       </div>
@@ -533,6 +597,283 @@ export function ServiceDetailPage() {
             </div>
           )}
         </div>
+      )}
+
+      {/* Tab: Requirements */}
+      {activeTab === "requirements" && (() => {
+        const empReqs = requirements.filter(r => r.requirementType === "employee");
+        const assetReqs = requirements.filter(r => r.requirementType === "asset");
+        const textReqs = requirements.filter(r => r.requirementType === "text");
+
+        const ReqSection = ({ title, icon: Icon, color, items, type, emptyMsg }: any) => (
+          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className={clsx("flex items-center justify-between px-5 py-4 border-b border-gray-100")}>
+              <div className="flex items-center gap-2.5">
+                <div className={clsx("w-8 h-8 rounded-lg flex items-center justify-center", color.bg)}>
+                  <Icon className={clsx("w-4 h-4", color.text)} />
+                </div>
+                <h3 className="font-semibold text-gray-900 text-sm">{title}</h3>
+                {items.length > 0 && (
+                  <span className={clsx("text-xs font-bold px-2 py-0.5 rounded-full", color.badge)}>{items.length}</span>
+                )}
+              </div>
+              <button
+                onClick={() => openAddReq(type)}
+                className={clsx("flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg border transition-colors", color.btnBorder, color.btnText, color.btnHover)}
+              >
+                <Plus className="w-3.5 h-3.5" /> إضافة
+              </button>
+            </div>
+            {items.length === 0 ? (
+              <div className="py-8 text-center text-gray-400 text-sm">{emptyMsg}</div>
+            ) : (
+              <div className="divide-y divide-gray-50">
+                {items.map((r: any) => (
+                  <div key={r.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/50">
+                    {type === "employee" && (
+                      <div className={clsx("w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0", color.avatar)}>
+                        {(r.userName || r.label || "م")[0]}
+                      </div>
+                    )}
+                    {type === "asset" && (
+                      <div className={clsx("w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0", color.avatar)}>
+                        <Layers className={clsx("w-4 h-4", color.text)} />
+                      </div>
+                    )}
+                    {type === "text" && (
+                      <div className={clsx("w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0", color.avatar)}>
+                        <AlignLeft className={clsx("w-4 h-4", color.text)} />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {type === "employee" ? (r.userName || r.label) : r.label}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        {type === "employee" && (r.employeeRole || r.userJobTitle || "—")}
+                        {type === "asset" && (r.assetSerial ? `${r.assetName || ""} · ${r.assetSerial}` : (r.assetTypeName || "—"))}
+                        {type === "text" && (r.notes || "")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-xs text-gray-500 tabular-nums">{r.quantity} {type === "employee" ? "شخص" : type === "asset" ? "قطعة" : "بند"}</span>
+                      {!r.isRequired && <span className="text-[10px] bg-amber-50 text-amber-600 px-2 py-0.5 rounded-full font-medium">اختياري</span>}
+                    </div>
+                    <div className="flex gap-1">
+                      <button onClick={() => openEditReq(r)} className="p-1.5 rounded-lg hover:bg-brand-50"><Pencil className="w-3.5 h-3.5 text-brand-500" /></button>
+                      <button onClick={() => handleDeleteReq(r.id)} className="p-1.5 rounded-lg hover:bg-red-50"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">الموظفون والأصول والبنود المطلوبة لتنفيذ هذه الخدمة</p>
+              <div className="flex items-center gap-2 text-xs text-gray-400">
+                <span>{requirements.length} متطلب</span>
+                <span>·</span>
+                <span>{requirements.filter(r => r.isRequired).length} إلزامي</span>
+              </div>
+            </div>
+
+            <ReqSection
+              title="الموظفون المطلوبون"
+              icon={Users}
+              type="employee"
+              items={empReqs}
+              emptyMsg="لم يُحدَّد موظفون لهذه الخدمة بعد"
+              color={{
+                bg: "bg-indigo-50", text: "text-indigo-600", badge: "bg-indigo-100 text-indigo-700",
+                avatar: "bg-indigo-100 text-indigo-700",
+                btnBorder: "border-indigo-200", btnText: "text-indigo-600", btnHover: "hover:bg-indigo-50",
+              }}
+            />
+            <ReqSection
+              title="الأصول المطلوبة"
+              icon={Layers}
+              type="asset"
+              items={assetReqs}
+              emptyMsg="لم تُحدَّد أصول لهذه الخدمة بعد"
+              color={{
+                bg: "bg-blue-50", text: "text-blue-600", badge: "bg-blue-100 text-blue-700",
+                avatar: "bg-blue-50 text-blue-600",
+                btnBorder: "border-blue-200", btnText: "text-blue-600", btnHover: "hover:bg-blue-50",
+              }}
+            />
+            <ReqSection
+              title="متطلبات نصية"
+              icon={AlignLeft}
+              type="text"
+              items={textReqs}
+              emptyMsg="لا توجد متطلبات نصية مضافة"
+              color={{
+                bg: "bg-gray-100", text: "text-gray-600", badge: "bg-gray-200 text-gray-700",
+                avatar: "bg-gray-100 text-gray-600",
+                btnBorder: "border-gray-200", btnText: "text-gray-600", btnHover: "hover:bg-gray-50",
+              }}
+            />
+          </div>
+        );
+      })()}
+
+      {/* Requirements Add/Edit Modal */}
+      {reqModal && (
+        <Modal
+          open={true}
+          onClose={() => setReqModal(null)}
+          title={reqModal.item ? "تعديل المتطلب" : "إضافة متطلب جديد"}
+          size="md"
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setReqModal(null)}>إلغاء</Button>
+              <Button onClick={handleSaveReq} loading={reqSaving}>حفظ</Button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            {/* Type selector */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-2">نوع المتطلب</label>
+              <div className="flex gap-2">
+                {([
+                  { v: "employee", label: "موظف",  icon: Users,     cls: "indigo" },
+                  { v: "asset",    label: "أصل",    icon: Layers,    cls: "blue"   },
+                  { v: "text",     label: "نص حر",  icon: AlignLeft, cls: "gray"   },
+                ] as { v: ReqType; label: string; icon: any; cls: string }[]).map(opt => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setReqForm((p: any) => ({ ...REQ_DEFAULT, requirementType: opt.v }))}
+                    className={clsx(
+                      "flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border text-xs font-medium transition-colors",
+                      reqForm.requirementType === opt.v
+                        ? "border-brand-400 bg-brand-50 text-brand-700"
+                        : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                    )}
+                  >
+                    <opt.icon className="w-4 h-4" />
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Employee selector */}
+            {reqForm.requirementType === "employee" && (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">اختر الموظف</label>
+                  <select
+                    value={reqForm.userId}
+                    onChange={e => {
+                      const m = membersList.find((u: any) => u.id === e.target.value);
+                      setReqForm((p: any) => ({ ...p, userId: e.target.value, label: m?.name ?? p.label }));
+                    }}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
+                  >
+                    <option value="">— اختر موظفاً —</option>
+                    {membersList.map((m: any) => (
+                      <option key={m.id} value={m.id}>{m.name}{m.jobTitle ? ` · ${m.jobTitle}` : ""}</option>
+                    ))}
+                  </select>
+                </div>
+                <Input
+                  label="الدور في هذه الخدمة"
+                  name="employeeRole"
+                  value={reqForm.employeeRole}
+                  onChange={(e: any) => setReqForm((p: any) => ({ ...p, employeeRole: e.target.value }))}
+                  placeholder="مثال: مصور، مرافق، طباخ"
+                />
+              </>
+            )}
+
+            {/* Asset selector */}
+            {reqForm.requirementType === "asset" && (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1.5">اختر أصلاً محدداً</label>
+                  <select
+                    value={reqForm.assetId}
+                    onChange={e => {
+                      const a = assetsList.find((x: any) => x.id === e.target.value);
+                      setReqForm((p: any) => ({ ...p, assetId: e.target.value, assetTypeId: "", label: a ? (a.name || a.serialNumber || a.assetTypeName) : p.label }));
+                    }}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
+                  >
+                    <option value="">— اختر أصلاً بعينه —</option>
+                    {assetsList.map((a: any) => (
+                      <option key={a.id} value={a.id}>
+                        {a.serialNumber && `[${a.serialNumber}] `}{a.name || a.assetTypeName || "أصل"}
+                        {a.status === "available" ? " ✓" : a.status === "in_use" ? " (مستخدم)" : ""}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <span>أو اختر حسب النوع:</span>
+                </div>
+                <div>
+                  <select
+                    value={reqForm.assetTypeId}
+                    onChange={e => {
+                      const t = assetTypes.find((x: any) => x.id === e.target.value);
+                      setReqForm((p: any) => ({ ...p, assetTypeId: e.target.value, assetId: "", label: t?.name ?? p.label }));
+                    }}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
+                  >
+                    <option value="">— اختر نوع أصل —</option>
+                    {assetTypes.map((t: any) => (
+                      <option key={t.id} value={t.id}>{t.name} ({t.totalAssets ?? 0} وحدة)</option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            )}
+
+            {/* Label (always shown) */}
+            <Input
+              label={reqForm.requirementType === "employee" ? "الاسم (يُملأ تلقائياً)" : reqForm.requirementType === "asset" ? "الاسم / الوصف" : "وصف المتطلب *"}
+              name="label"
+              value={reqForm.label}
+              onChange={(e: any) => setReqForm((p: any) => ({ ...p, label: e.target.value }))}
+              placeholder={reqForm.requirementType === "text" ? "مثال: شاشة LED عرض 4m، إضاءة مسرحية" : ""}
+              required
+            />
+
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="الكمية"
+                name="quantity"
+                type="number"
+                value={reqForm.quantity}
+                onChange={(e: any) => setReqForm((p: any) => ({ ...p, quantity: parseInt(e.target.value) || 1 }))}
+                min={1}
+              />
+              <div className="flex flex-col justify-end pb-1">
+                <div className="flex items-center gap-2">
+                  <Toggle checked={reqForm.isRequired} onChange={(v: boolean) => setReqForm((p: any) => ({ ...p, isRequired: v }))} />
+                  <span className="text-sm text-gray-700">إلزامي</span>
+                </div>
+              </div>
+            </div>
+
+            {reqForm.requirementType === "text" && (
+              <TextArea
+                label="ملاحظات"
+                name="notes"
+                value={reqForm.notes}
+                onChange={(e: any) => setReqForm((p: any) => ({ ...p, notes: e.target.value }))}
+                placeholder="تفاصيل إضافية..."
+                rows={2}
+              />
+            )}
+          </div>
+        </Modal>
       )}
 
       {/* Component Add/Edit Modal */}

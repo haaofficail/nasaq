@@ -380,6 +380,35 @@ export const serviceCosts = pgTable("service_costs", {
 });
 
 // ============================================================
+// SERVICE REQUIREMENTS — متطلبات الخدمة (موظفون + أصول + نصي)
+// ============================================================
+
+export const serviceRequirements = pgTable("service_requirements", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  serviceId: uuid("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+
+  requirementType: text("requirement_type").notNull(), // 'employee' | 'asset' | 'text'
+
+  // For employee type
+  userId: uuid("user_id"),                             // references users.id (cross-schema, no FK)
+  employeeRole: text("employee_role"),                 // role override for this service
+
+  // For asset type
+  assetId: uuid("asset_id"),                           // specific asset instance
+  assetTypeId: uuid("asset_type_id"),                  // or by asset type
+
+  // Common
+  label: text("label").notNull(),
+  quantity: integer("quantity").default(1),
+  notes: text("notes"),
+  isRequired: boolean("is_required").default(true),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ============================================================
 // SEASONS
 // تعريف المواسم على مستوى المشترك
 // ============================================================

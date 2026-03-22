@@ -91,6 +91,11 @@ export const servicesApi = {
   // Costs
   getCosts: (id: string) => api.get<{ data: any }>(`/services/${id}/costs`),
   updateCosts: (id: string, data: any) => api.put<{ data: any }>(`/services/${id}/costs`, data),
+  // Requirements
+  getRequirements: (id: string) => api.get<{ data: any[] }>(`/services/${id}/requirements`),
+  addRequirement: (id: string, data: any) => api.post<{ data: any }>(`/services/${id}/requirements`, data),
+  updateRequirement: (id: string, reqId: string, data: any) => api.put<{ data: any }>(`/services/${id}/requirements/${reqId}`, data),
+  deleteRequirement: (id: string, reqId: string) => api.delete(`/services/${id}/requirements/${reqId}`),
 };
 
 // --- Addons ---
@@ -172,6 +177,7 @@ export const inventoryApi = {
 
 // --- Team ---
 export const teamApi = {
+  members: () => api.get<{ data: any[] }>("/team/members"),
   tasks: (date?: string) => api.get<{ data: any[] }>(`/team/tasks${date ? "?date=" + date : ""}`),
   updateTask: (id: string, data: any) => api.patch<{ data: any }>(`/team/tasks/${id}`, data),
   shifts: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[] }>(`/team/shifts${qs}`); },
