@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum, jsonb, uuid, integer, numeric } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, jsonb, uuid, integer, numeric, date } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 
 // ============================================================
@@ -150,4 +150,31 @@ export const customerSegments = pgTable("customer_segments", {
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ============================================================
+// CUSTOMER SUBSCRIPTIONS
+// اشتراكات العملاء — تُنشأ عند بيع باقة للعميل
+// ============================================================
+
+export const customerSubscriptions = pgTable("customer_subscriptions", {
+  id:         uuid("id").defaultRandom().primaryKey(),
+  orgId:      uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  customerId: uuid("customer_id").notNull(),
+  serviceId:  uuid("service_id"),
+  name:       text("name").notNull(),
+  price:      numeric("price"),
+  interval:   text("interval"),
+  maxUsage:   integer("max_usage"),
+  currentUsage: integer("current_usage").default(0),
+  startDate:  date("start_date"),
+  nextBillingDate: date("next_billing_date"),
+  nextBookingDate: date("next_booking_date"),
+  autoBook:   boolean("auto_book").default(false),
+  preferredDay:        integer("preferred_day"),
+  preferredTime:       text("preferred_time"),
+  preferredProviderId: uuid("preferred_provider_id"),
+  status:     text("status").default("active").notNull(),
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+  createdAt:  timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
