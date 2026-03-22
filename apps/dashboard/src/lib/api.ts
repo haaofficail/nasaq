@@ -152,10 +152,12 @@ export const inventoryApi = {
   updateAssetType: (id: string, data: any) => api.put<{ data: any }>(`/inventory/types/${id}`, data),
   deleteAssetType: (id: string) => api.delete(`/inventory/types/${id}`),
   assets: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[] }>(`/inventory/assets${qs}`); },
+  getAsset: (id: string) => api.get<{ data: any }>(`/inventory/assets/${id}`),
   createAsset: (data: any) => api.post<{ data: any }>("/inventory/assets", data),
   updateAsset: (id: string, data: any) => api.put<{ data: any }>(`/inventory/assets/${id}`, data),
   deleteAsset: (id: string) => api.delete(`/inventory/assets/${id}`),
   updateStatus: (id: string, status: string) => api.patch<{ data: any }>(`/inventory/assets/${id}/status`, { status }),
+  addMaintenance: (data: any) => api.post<{ data: any }>("/inventory/maintenance", data),
   availability: (date: string, typeId?: string) => api.get<{ data: any }>(`/inventory/availability?date=${date}${typeId ? "&typeId=" + typeId : ""}`),
   report: () => api.get<{ data: any }>("/inventory/reports/summary"),
 };

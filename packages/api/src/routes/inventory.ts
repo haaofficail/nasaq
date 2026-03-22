@@ -149,6 +149,13 @@ inventoryRouter.get("/assets/:id", async (c) => {
 inventoryRouter.post("/assets", async (c) => {
   const orgId = getOrgId(c);
   const body = createAssetSchema.parse(await c.req.json());
+
+  // Auto-generate serial number if not provided
+  if (!body.serialNumber) {
+    const [{ cnt }] = await db.select({ cnt: count() }).from(assets).where(eq(assets.orgId, orgId));
+    body.serialNumber = `AST-${new Date().getFullYear()}-${String(Number(cnt) + 1).padStart(4, "0")}`;
+  }
+
   const [asset] = await db.insert(assets).values({ orgId, ...body }).returning();
   return c.json({ data: asset }, 201);
 });
