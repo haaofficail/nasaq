@@ -4,10 +4,10 @@ import {
   LayoutDashboard, Layers, Tag, PlusCircle, CalendarCheck, CalendarDays,
   Users, Monitor, FileText, DollarSign, TrendingDown, BarChart3,
   Package, Truck, UserCog, BadgeCheck, Shield, ClipboardCheck,
-  Globe, Paintbrush, Settings2, ShoppingCart, MessageCircle,
-  Settings, CalendarCog, Building,
+  Globe, ShoppingCart, MessageCircle,
+  Settings, CalendarCog, Building, Landmark, BookOpen, BarChart2, GitMerge,
   UtensilsCrossed, List, ChefHat, Armchair, Clock, Percent,
-  Flower2, Gift, Key, FileSignature, ClipboardList, PartyPopper, Box,
+  Flower2, Gift, Key, FileSignature, ClipboardList, PartyPopper, Box, Database,
   ChevronLeft, ChevronRight, Bell, Search, Plus, LogOut, Menu, X,
   type LucideIcon,
 } from "lucide-react";
@@ -56,7 +56,11 @@ const CORE_GROUPS: NavGroup[] = [
       { name: "الفواتير",  href: "/dashboard/invoices",  icon: FileText },
       { name: "الإيرادات", href: "/dashboard/finance",   icon: DollarSign },
       { name: "المصروفات", href: "/dashboard/expenses",  icon: TrendingDown },
-      { name: "التقارير",  href: "/dashboard/reports",   icon: BarChart3 },
+      { name: "الخزينة",      href: "/dashboard/treasury",             icon: Landmark },
+      { name: "المحاسبة",     href: "/dashboard/accounting",           icon: BookOpen },
+      { name: "القوائم المالية", href: "/dashboard/financial-statements", icon: BarChart2 },
+      { name: "التسويات",    href: "/dashboard/reconciliation",        icon: GitMerge },
+      { name: "التقارير",    href: "/dashboard/reports",               icon: BarChart3 },
     ],
   },
   {
@@ -78,9 +82,7 @@ const CORE_GROUPS: NavGroup[] = [
   {
     label: "القنوات",
     items: [
-      { name: "الموقع العام",      href: "/dashboard/website",          icon: Globe },
-      { name: "منشئ الصفحات",     href: "/dashboard/website/builder",  icon: Paintbrush },
-      { name: "إعدادات الموقع",    href: "/dashboard/website/settings", icon: Settings2 },
+      { name: "موقعي",             href: "/dashboard/website",          icon: Globe },
       { name: "الطلبات الأونلاين", href: "/dashboard/online-orders",    icon: ShoppingCart },
       { name: "الرسائل",           href: "/dashboard/messaging",        icon: MessageCircle },
     ],
@@ -119,8 +121,9 @@ const BUSINESS_GROUPS: Record<string, NavGroup> = {
   flower_shop: {
     label: "متجر الورود",
     items: [
-      { name: "مخزون الورد", href: "/dashboard/flower-inventory", icon: Flower2 },
-      { name: "التنسيقات",   href: "/dashboard/arrangements",     icon: Gift },
+      { name: "مخزون الورد",  href: "/dashboard/flower-inventory", icon: Flower2 },
+      { name: "بيانات الورد", href: "/dashboard/flower-master",    icon: Database },
+      { name: "التنسيقات",    href: "/dashboard/arrangements",     icon: Gift },
     ],
   },
   rental: {
@@ -138,6 +141,18 @@ const BUSINESS_GROUPS: Record<string, NavGroup> = {
       { name: "الباقات",   href: "/dashboard/packages", icon: Box },
     ],
   },
+  hotel: {
+    label: "الفندق",
+    items: [
+      { name: "إدارة الفندق", href: "/dashboard/hotel", icon: Building },
+    ],
+  },
+  car_rental: {
+    label: "تأجير السيارات",
+    items: [
+      { name: "تأجير السيارات", href: "/dashboard/car-rental", icon: Truck },
+    ],
+  },
   // photography, retail, store, services, medical, education, technology,
   // construction, logistics, other — use core groups only (no specialty group needed)
 };
@@ -145,6 +160,7 @@ const BUSINESS_GROUPS: Record<string, NavGroup> = {
 const SYSTEM_GROUP: NavGroup = {
   label: "الإعدادات",
   items: [
+    { name: "التكاملات",       href: "/dashboard/integrations",     icon: Key },
     { name: "إعدادات النظام",  href: "/dashboard/settings",         icon: Settings },
     { name: "إعدادات الحجز",  href: "/dashboard/settings/booking", icon: CalendarCog },
     { name: "الملف التعريفي", href: "/dashboard/settings/profile", icon: Building },

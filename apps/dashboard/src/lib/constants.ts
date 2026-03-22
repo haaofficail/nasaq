@@ -13,4 +13,5 @@ export const STORAGE_KEYS = {
   TOKEN: "nasaq_token",
   ORG_ID: "nasaq_org_id",
   USER_ID: "nasaq_user_id",
+  DASHBOARD_PREFS_KEY: "nasaq_dashboard_prefs",
 } as const;

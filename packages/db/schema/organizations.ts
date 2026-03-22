@@ -62,6 +62,24 @@ export const organizations = pgTable("organizations", {
     weekStartsOn: "sunday",
     vatRate: DEFAULT_VAT_RATE,
     vatInclusive: true,
+    financial: {
+      enable_full_accounting: false,
+      enable_manual_journal_entries: false,
+      enable_bank_reconciliation: false,
+      enable_cashier_shift_closing: true,
+      enable_tax_management: true,
+      enable_advanced_ar_ap: false,
+      enable_branch_level_treasury: false,
+      auto_post_bookings: false,
+      auto_post_expenses: false,
+      fiscal_year_start: "01-01",
+      tax: {
+        vatRate: DEFAULT_VAT_RATE,
+        vatInclusive: true,
+        vatRegistered: false,
+        vatNumber: null,
+      },
+    },
   }),
 
   // Business type — source of truth for vertical specialization

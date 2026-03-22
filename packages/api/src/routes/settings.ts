@@ -139,7 +139,7 @@ settingsRouter.get("/subscription", async (c) => {
 
 settingsRouter.post("/onboard", async (c) => {
   const body = await c.req.json();
-  const { orgName, ownerName, ownerPhone, city } = body;
+  const { orgName, ownerName, ownerPhone, city, industry } = body;
 
   if (!orgName || !ownerName || !ownerPhone) {
     return c.json({ error: "اسم الشركة والمالك والجوال مطلوبين" }, 400);
@@ -154,6 +154,7 @@ settingsRouter.post("/onboard", async (c) => {
   const result = await db.transaction(async (tx) => {
     const [org] = await tx.insert(organizations).values({
       name: orgName, slug, phone: ownerPhone, city,
+      businessType: industry || "general",
       plan: "basic", subscriptionStatus: "trialing",
       trialEndsAt: new Date(Date.now() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000),
     }).returning();

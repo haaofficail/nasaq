@@ -12,6 +12,21 @@ export const serviceStatusEnum = pgEnum("service_status", [
   "archived",    // مؤرشفة — لا تظهر
 ]);
 
+// نوع العنصر المقدَّم — مصدر الحقيقة الوحيد للتمييز بين أنواع الكتالوج
+export const offeringTypeEnum = pgEnum("offering_type", [
+  "service",          // خدمة تقليدية (مساج، حلاقة، تصوير)
+  "product",          // منتج مادي (ورد، معجنات، قهوة)
+  "package",          // باقة مجمعة من خدمات/منتجات
+  "rental",           // تأجير معدات (خيام، كراسي، صوتيات)
+  "room_booking",     // حجز غرفة فندقية
+  "vehicle_rental",   // تأجير سيارة
+  "subscription",     // اشتراك دوري
+  "digital_product",  // منتج رقمي (ملف، كورس)
+  "add_on",           // إضافة مستقلة
+  "reservation",      // حجز طاولة/مقعد
+  "extra_charge",     // رسوم إضافية
+]);
+
 export const mediaTypeEnum = pgEnum("media_type", [
   "image",
   "video",
@@ -75,6 +90,9 @@ export const services = pgTable("services", {
   id: uuid("id").defaultRandom().primaryKey(),
   orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   categoryId: uuid("category_id").references(() => categories.id, { onDelete: "set null" }),
+
+  // Offering type — نوع العنصر المقدَّم
+  offeringType: offeringTypeEnum("offering_type").default("service").notNull(),
 
   // Basic info
   name: text("name").notNull(),                    // خيمة مغربية فاخرة 12×12

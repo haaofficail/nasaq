@@ -12,6 +12,12 @@ export function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
+  const INDUSTRY_LABELS: Record<string, string> = {
+    events: "تجهيزات فعاليات", catering: "ضيافة", photography: "تصوير",
+    decoration: "ديكور", entertainment: "ترفيه", hotel: "فندق وإقامة",
+    car_rental: "تأجير سيارات", other: "أخرى",
+  };
+
   const [form, setForm] = useState({
     orgName: "", city: "الرياض", industry: "events",
     ownerName: "", ownerPhone: "", ownerEmail: "",
@@ -102,7 +108,9 @@ export function OnboardingPage() {
               <div><label className="block text-sm font-medium text-gray-700 mb-1.5">المجال</label>
                 <select value={form.industry} onChange={set("industry")} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none">
                   <option value="events">تجهيزات فعاليات</option><option value="catering">ضيافة</option><option value="photography">تصوير</option>
-                  <option value="decoration">ديكور</option><option value="entertainment">ترفيه</option><option value="other">أخرى</option>
+                  <option value="decoration">ديكور</option><option value="entertainment">ترفيه</option>
+                  <option value="hotel">فندق وإقامة</option><option value="car_rental">تأجير سيارات</option>
+                  <option value="other">أخرى</option>
                 </select></div>
             </div>
           )}
@@ -127,6 +135,7 @@ export function OnboardingPage() {
               <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-gray-500">الشركة</span><span className="font-medium">{form.orgName}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">المدينة</span><span className="font-medium">{form.city}</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">المجال</span><span className="font-medium">{INDUSTRY_LABELS[form.industry] ?? form.industry}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">المالك</span><span className="font-medium">{form.ownerName}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">الجوال</span><span className="font-medium" dir="ltr">{form.ownerPhone}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">الباقة</span><span className="font-medium text-green-600">تجربة مجانية 14 يوم</span></div>

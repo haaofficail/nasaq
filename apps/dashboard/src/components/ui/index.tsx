@@ -50,12 +50,13 @@ export function Modal({
 
 export function Input({
   label, name, type = "text", value, onChange, placeholder, required, error, hint,
-  prefix, suffix, disabled, dir,
+  prefix, suffix, disabled, dir, min, max, step,
 }: {
   label?: string; name: string; type?: string; value: string | number;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string; required?: boolean; error?: string; hint?: string;
   prefix?: string; suffix?: string; disabled?: boolean; dir?: string;
+  min?: number; max?: number; step?: number;
 }) {
   return (
     <div>
@@ -68,7 +69,7 @@ export function Input({
         {prefix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">{prefix}</span>}
         <input
           id={name} name={name} type={type} value={value} onChange={onChange}
-          placeholder={placeholder} disabled={disabled} dir={dir}
+          placeholder={placeholder} disabled={disabled} dir={dir} min={min} max={max} step={step}
           className={clsx(
             "w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors",
             error ? "border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-200" : "border-gray-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-100",

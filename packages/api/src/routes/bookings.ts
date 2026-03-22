@@ -4,9 +4,10 @@ import { eq, and, asc, desc, gte, lte, or, ilike, count, sql, between, inArray }
 import { db } from "@nasaq/db/client";
 import {
   bookings, bookingItems, bookingItemAddons, payments,
-  services, addons, customers, locations, pricingRules,
+  services, addons, customers, locations, pricingRules, organizations,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, generateBookingNumber } from "../lib/helpers";
+import { postCashSale, postDepositReceived, postRefund, isAccountingEnabled } from "../lib/posting-engine";
 import { DEFAULT_VAT_RATE, DEFAULT_DEPOSIT_PERCENT, BOOKING_TRACKING_TOKEN_LENGTH } from "../lib/constants";
 import { insertAuditLog } from "../lib/audit";
 
@@ -538,6 +539,27 @@ bookingsRouter.post("/:id/payments", async (c) => {
     resourceId: payment.id,
     newValue: { bookingId, amount: body.amount, method: body.method, status: body.status },
   });
+
+  // ترحيل محاسبي (غير متزامن — لا يُوقِف الرد)
+  if (payment.status === "completed") {
+    (async () => {
+      try {
+        const [org] = await db.select({ settings: organizations.settings }).from(organizations).where(eq(organizations.id, orgId));
+        if (!isAccountingEnabled((org?.settings as any) ?? {})) return;
+
+        const amount = parseFloat(body.amount);
+        const vatAmount = 0; // الضريبة محسوبة مسبقاً في totalAmount
+
+        if (body.type === "deposit") {
+          await postDepositReceived({ orgId, date: new Date(), amount, description: `عربون حجز ${bookingId}`, sourceId: payment.id, createdBy: userId ?? undefined });
+        } else if (body.type === "refund") {
+          await postRefund({ orgId, date: new Date(), amount, vatAmount, description: `استرداد حجز ${bookingId}`, sourceId: payment.id, createdBy: userId ?? undefined });
+        } else {
+          await postCashSale({ orgId, date: new Date(), amount, vatAmount, description: `تحصيل دفعة حجز ${bookingId}`, sourceType: "booking", sourceId: payment.id, createdBy: userId ?? undefined });
+        }
+      } catch { /* فشل الترحيل لا يُوقف العملية */ }
+    })();
+  }
 
   return c.json({ data: payment }, 201);
 });

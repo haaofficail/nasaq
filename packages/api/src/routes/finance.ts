@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import { eq, and, desc, asc, gte, lte, sql, count, sum } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { invoices, invoiceItems, expenses, vendorCommissions, vendorPayouts, paymentGatewayConfigs, bookings, payments } from "@nasaq/db/schema";
-import { getOrgId, getPagination } from "../lib/helpers";
+import { invoices, invoiceItems, expenses, vendorCommissions, vendorPayouts, paymentGatewayConfigs, bookings, payments, organizations } from "@nasaq/db/schema";
+import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 import { DEFAULT_VAT_RATE } from "@nasaq/db/constants";
+import { postCreditSale, postExpense, isAccountingEnabled, getAccountByKey } from "../lib/posting-engine";
 
 const createExpenseSchema = z.object({
   category: z.string(),
@@ -20,6 +21,7 @@ const createExpenseSchema = z.object({
   receiptNumber: z.string().optional().nullable(),
   isRecurring: z.boolean().optional(),
   recurringFrequency: z.string().optional().nullable(),
+  chartOfAccountId: z.string().uuid().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 
@@ -173,6 +175,25 @@ financeRouter.post("/invoices", async (c) => {
     return inv;
   });
 
+  // ترحيل محاسبي (غير متزامن — لا يُوقِف الرد)
+  const userId = getUserId(c);
+  (async () => {
+    try {
+      const [org] = await db.select({ settings: organizations.settings }).from(organizations).where(eq(organizations.id, orgId));
+      if (!isAccountingEnabled((org?.settings as any) ?? {})) return;
+      await postCreditSale({
+        orgId,
+        date: new Date(),
+        amount: parseFloat(invoice.taxableAmount),
+        vatAmount: parseFloat(invoice.vatAmount),
+        description: `فاتورة ${invoice.invoiceNumber} — ${invoice.buyerName}`,
+        sourceType: "invoice",
+        sourceId: invoice.id,
+        createdBy: userId ?? undefined,
+      });
+    } catch { /* فشل الترحيل لا يُوقف العملية */ }
+  })();
+
   return c.json({ data: invoice }, 201);
 });
 
@@ -198,8 +219,46 @@ financeRouter.get("/expenses", async (c) => {
 
 financeRouter.post("/expenses", async (c) => {
   const orgId = getOrgId(c);
+  const userId = getUserId(c);
   const body = createExpenseSchema.parse(await c.req.json());
-  const [expense] = await db.insert(expenses).values({ orgId, ...body, expenseDate: new Date(body.expenseDate) }).returning();
+  const [expense] = await db.insert(expenses).values({
+    orgId,
+    ...body,
+    expenseDate: new Date(body.expenseDate),
+    chartOfAccountId: body.chartOfAccountId ?? null,
+    createdBy: userId ?? null,
+  }).returning();
+
+  // ترحيل محاسبي (غير متزامن)
+  (async () => {
+    try {
+      const [org] = await db.select({ settings: organizations.settings }).from(organizations).where(eq(organizations.id, orgId));
+      if (!isAccountingEnabled((org?.settings as any) ?? {})) return;
+
+      // جلب حساب المصروف: إما المحدد من المستخدم أو fallback حسب الفئة
+      let expenseAccountId = body.chartOfAccountId ?? null;
+      if (!expenseAccountId) {
+        const categoryKeyMap: Record<string, string> = {
+          salaries: "SALARIES_EXPENSE",
+          rent: "RENT_EXPENSE",
+        };
+        const sysKey = categoryKeyMap[body.category] ?? null;
+        if (sysKey) expenseAccountId = await getAccountByKey(orgId, sysKey as any);
+      }
+      if (!expenseAccountId) return; // لا يمكن الترحيل بدون حساب
+
+      await postExpense({
+        orgId,
+        date: new Date(body.expenseDate),
+        amount: parseFloat(body.amount),
+        expenseAccountId,
+        description: body.description,
+        sourceId: expense.id,
+        createdBy: userId ?? undefined,
+      });
+    } catch { /* فشل الترحيل لا يُوقف العملية */ }
+  })();
+
   return c.json({ data: expense }, 201);
 });
 

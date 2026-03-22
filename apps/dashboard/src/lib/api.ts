@@ -148,6 +148,71 @@ export const financeApi = {
   cashflow: () => api.get<{ data: any }>("/finance/reports/cashflow"),
 };
 
+// --- Treasury ---
+export const treasuryApi = {
+  accounts: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[] }>(`/treasury/accounts${qs}`); },
+  getAccount: (id: string) => api.get<{ data: any }>(`/treasury/accounts/${id}`),
+  createAccount: (data: any) => api.post<{ data: any }>("/treasury/accounts", data),
+  updateAccount: (id: string, data: any) => api.patch<{ data: any }>(`/treasury/accounts/${id}`, data),
+  deleteAccount: (id: string) => api.delete(`/treasury/accounts/${id}`),
+  summary: () => api.get<{ data: any }>("/treasury/accounts/summary"),
+  transactions: (accountId: string, params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[]; pagination: any }>(`/treasury/accounts/${accountId}/transactions${qs}`); },
+  receipt: (data: any) => api.post<{ data: any; voucherNumber: string }>("/treasury/receipt", data),
+  payment: (data: any) => api.post<{ data: any; voucherNumber: string }>("/treasury/payment", data),
+  transfer: (data: any) => api.post<{ data: any }>("/treasury/transfer", data),
+  transfers: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[] }>(`/treasury/transfers${qs}`); },
+  shifts: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[] }>(`/treasury/shifts${qs}`); },
+  openShift: (data: any) => api.post<{ data: any }>("/treasury/shifts/open", data),
+  closeShift: (id: string, data: any) => api.post<{ data: any }>(`/treasury/shifts/${id}/close`, data),
+  dailyReport: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/treasury/reports/daily${qs}`); },
+  cashflow: (months?: number) => api.get<{ data: any[] }>(`/treasury/reports/cashflow?months=${months || 6}`),
+};
+
+// --- Accounting ---
+export const accountingApi = {
+  coa: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[] }>(`/accounting/chart-of-accounts${qs}`); },
+  getAccount: (id: string) => api.get<{ data: any }>(`/accounting/chart-of-accounts/${id}`),
+  createAccount: (data: any) => api.post<{ data: any }>("/accounting/chart-of-accounts", data),
+  updateAccount: (id: string, data: any) => api.patch<{ data: any }>(`/accounting/chart-of-accounts/${id}`, data),
+  deleteAccount: (id: string) => api.delete(`/accounting/chart-of-accounts/${id}`),
+  periods: () => api.get<{ data: any[] }>("/accounting/periods"),
+  createPeriod: (data: any) => api.post<{ data: any }>("/accounting/periods", data),
+  closePeriod: (id: string) => api.post<{ data: any }>(`/accounting/periods/${id}/close`, {}),
+  lockPeriod: (id: string) => api.post<{ data: any }>(`/accounting/periods/${id}/lock`, {}),
+  entries: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[]; pagination: any }>(`/accounting/journal-entries${qs}`); },
+  getEntry: (id: string) => api.get<{ data: any }>(`/accounting/journal-entries/${id}`),
+  createEntry: (data: any) => api.post<{ data: any }>("/accounting/journal-entries", data),
+  postEntry: (id: string) => api.post<{ data: any }>(`/accounting/journal-entries/${id}/post`, {}),
+  reverseEntry: (id: string, reason?: string) => api.post<{ data: any }>(`/accounting/journal-entries/${id}/reverse`, { reason }),
+  trialBalance: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/accounting/reports/trial-balance${qs}`); },
+  ledger: (accountId: string, params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/accounting/reports/ledger/${accountId}${qs}`); },
+  incomeStatement: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/accounting/reports/income-statement${qs}`); },
+  balanceSheet: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/accounting/reports/balance-sheet${qs}`); },
+  arAging: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/accounting/reports/ar-aging${qs}`); },
+  apAging: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/accounting/reports/ap-aging${qs}`); },
+  cashFlow: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/accounting/reports/cash-flow${qs}`); },
+  generateClosingEntries: (periodId: string) => api.post<{ data: any }>(`/accounting/periods/${periodId}/closing-entries`, {}),
+};
+
+// --- Reconciliation ---
+export const reconciliationApi = {
+  list: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[]; pagination: any }>(`/reconciliation${qs}`); },
+  get: (id: string) => api.get<{ data: any }>(`/reconciliation/${id}`),
+  create: (data: any) => api.post<{ data: any }>("/reconciliation", data),
+  update: (id: string, data: any) => api.patch<{ data: any }>(`/reconciliation/${id}`, data),
+  delete: (id: string) => api.delete(`/reconciliation/${id}`),
+  addItem: (statementId: string, data: any) => api.post<{ data: any }>(`/reconciliation/${statementId}/items`, data),
+  updateItem: (statementId: string, itemId: string, data: any) => api.patch<{ data: any }>(`/reconciliation/${statementId}/items/${itemId}`, data),
+  deleteItem: (statementId: string, itemId: string) => api.delete(`/reconciliation/${statementId}/items/${itemId}`),
+  complete: (id: string) => api.post<{ data: any }>(`/reconciliation/${id}/complete`, {}),
+};
+
+// --- Audit Log ---
+export const auditLogApi = {
+  list: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[]; pagination: any }>(`/audit-log${qs}`); },
+  get: (id: string) => api.get<{ data: any }>(`/audit-log/${id}`),
+};
+
 export const bundlesApi = {
   list: () => api.get<{ data: any[]; total: number }>("/bundles"),
   get: (id: string) => api.get<{ data: any }>(`/bundles/${id}`),
@@ -431,16 +496,21 @@ export const settingsApi = {
 // --- Website ---
 export const websiteApi = {
   pages: () => api.get<{ data: any[] }>("/website/pages"),
+  getPage: (slug: string) => api.get<{ data: any }>(`/website/pages/${slug}`),
   createPage: (data: any) => api.post<{ data: any }>("/website/pages", data),
   updatePage: (id: string, data: any) => api.put<{ data: any }>(`/website/pages/${id}`, data),
+  deletePage: (id: string) => api.delete(`/website/pages/${id}`),
   config: () => api.get<{ data: any }>("/website/config"),
   updateConfig: (data: any) => api.put<{ data: any }>("/website/config", data),
   blog: () => api.get<{ data: any[] }>("/website/blog"),
   createPost: (data: any) => api.post<{ data: any }>("/website/blog", data),
+  updatePost: (id: string, data: any) => api.put<{ data: any }>(`/website/blog/${id}`, data),
+  deletePost: (id: string) => api.delete(`/website/blog/${id}`),
   contacts: () => api.get<{ data: any[] }>("/website/contacts"),
+  markContactRead: (id: string) => api.patch(`/website/contacts/${id}/read`, {}),
   // Public (no auth)
   publicSite: (orgSlug: string) => fetch(`/api/v1/website/public/${orgSlug}`).then(r => r.json()),
-  publicService: (orgSlug: string, serviceId: string) => fetch(`/api/v1/website/public/${orgSlug}/services/${serviceId}`).then(r => r.json()),
+  publicPage: (orgSlug: string, pageSlug: string) => fetch(`/api/v1/website/public/${orgSlug}/page/${pageSlug}`).then(r => r.json()),
   publicBook: (orgSlug: string, data: any) => fetch(`/api/v1/website/public/${orgSlug}/book`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
 };
 
@@ -493,4 +563,212 @@ export const messagingApi = {
     api.post<{ data: any }>("/messaging/send-bulk", { phones, message, category }),
   schedule: (phone: string, message: string, scheduledAt: string) =>
     api.post<{ data: any }>("/messaging/schedule", { phone, message, scheduledAt }),
+};
+
+// --- Hotel ---
+export const hotelApi = {
+  // Room types
+  roomTypes: () => api.get<{ data: any[] }>("/hotel/room-types"),
+  createRoomType: (data: any) => api.post<{ data: any }>("/hotel/room-types", data),
+  updateRoomType: (id: string, data: any) => api.put<{ data: any }>(`/hotel/room-types/${id}`, data),
+  deleteRoomType: (id: string) => api.delete(`/hotel/room-types/${id}`),
+
+  // Room units
+  rooms: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return api.get<{ data: any[] }>(`/hotel/rooms${qs}`);
+  },
+  getRoom: (id: string) => api.get<{ data: any }>(`/hotel/rooms/${id}`),
+  createRoom: (data: any) => api.post<{ data: any }>("/hotel/rooms", data),
+  updateRoom: (id: string, data: any) => api.put<{ data: any }>(`/hotel/rooms/${id}`, data),
+  updateRoomStatus: (id: string, data: any) => api.patch<{ data: any }>(`/hotel/rooms/${id}/status`, data),
+  deleteRoom: (id: string) => api.delete(`/hotel/rooms/${id}`),
+
+  // Availability
+  availability: (checkIn: string, checkOut: string, roomTypeId?: string) => {
+    const qs = new URLSearchParams({ checkIn, checkOut });
+    if (roomTypeId) qs.set("roomTypeId", roomTypeId);
+    return api.get<{ data: any[] }>(`/hotel/availability?${qs}`);
+  },
+
+  // Reservations
+  reservations: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return api.get<{ data: any[]; total: number }>(`/hotel/reservations${qs}`);
+  },
+  getReservation: (id: string) => api.get<{ data: any }>(`/hotel/reservations/${id}`),
+  createReservation: (data: any) => api.post<{ data: any }>("/hotel/reservations", data),
+  updateReservation: (id: string, data: any) => api.put<{ data: any }>(`/hotel/reservations/${id}`, data),
+  checkIn: (id: string) => api.patch<{ data: any }>(`/hotel/reservations/${id}/checkin`, {}),
+  checkOut: (id: string, data?: any) => api.patch<{ data: any }>(`/hotel/reservations/${id}/checkout`, data ?? {}),
+  cancelReservation: (id: string, reason?: string) => api.patch<{ data: any }>(`/hotel/reservations/${id}/cancel`, { reason }),
+
+  // Housekeeping
+  housekeeping: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return api.get<{ data: any[] }>(`/hotel/housekeeping${qs}`);
+  },
+  createHousekeeping: (data: any) => api.post<{ data: any }>("/hotel/housekeeping", data),
+  updateHousekeepingStatus: (id: string, data: any) => api.patch<{ data: any }>(`/hotel/housekeeping/${id}/status`, data),
+
+  // Seasonal pricing
+  seasonalPricing: () => api.get<{ data: any[] }>("/hotel/seasonal-pricing"),
+  createSeasonalPricing: (data: any) => api.post<{ data: any }>("/hotel/seasonal-pricing", data),
+  updateSeasonalPricing: (id: string, data: any) => api.put<{ data: any }>(`/hotel/seasonal-pricing/${id}`, data),
+  deleteSeasonalPricing: (id: string) => api.delete(`/hotel/seasonal-pricing/${id}`),
+
+  // Stats
+  dashboardStats: () => api.get<{ data: any }>("/hotel/dashboard-stats"),
+};
+
+// --- Car Rental ---
+export const carRentalApi = {
+  // Categories
+  categories: () => api.get<{ data: any[] }>("/car-rental/categories"),
+  createCategory: (data: any) => api.post<{ data: any }>("/car-rental/categories", data),
+  updateCategory: (id: string, data: any) => api.put<{ data: any }>(`/car-rental/categories/${id}`, data),
+  deleteCategory: (id: string) => api.delete(`/car-rental/categories/${id}`),
+
+  // Vehicles (fleet)
+  vehicles: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return api.get<{ data: any[] }>(`/car-rental/vehicles${qs}`);
+  },
+  getVehicle: (id: string) => api.get<{ data: any }>(`/car-rental/vehicles/${id}`),
+  createVehicle: (data: any) => api.post<{ data: any }>("/car-rental/vehicles", data),
+  updateVehicle: (id: string, data: any) => api.put<{ data: any }>(`/car-rental/vehicles/${id}`, data),
+  updateVehicleStatus: (id: string, data: any) => api.patch<{ data: any }>(`/car-rental/vehicles/${id}/status`, data),
+  deleteVehicle: (id: string) => api.delete(`/car-rental/vehicles/${id}`),
+
+  // Availability
+  availability: (pickupDate: string, returnDate: string, categoryId?: string) => {
+    const qs = new URLSearchParams({ pickupDate, returnDate });
+    if (categoryId) qs.set("categoryId", categoryId);
+    return api.get<{ data: any[] }>(`/car-rental/availability?${qs}`);
+  },
+
+  // Reservations
+  reservations: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return api.get<{ data: any[]; total: number }>(`/car-rental/reservations${qs}`);
+  },
+  getReservation: (id: string) => api.get<{ data: any }>(`/car-rental/reservations/${id}`),
+  createReservation: (data: any) => api.post<{ data: any }>("/car-rental/reservations", data),
+  updateReservation: (id: string, data: any) => api.put<{ data: any }>(`/car-rental/reservations/${id}`, data),
+  pickup: (id: string) => api.patch<{ data: any }>(`/car-rental/reservations/${id}/pickup`, {}),
+  return: (id: string, data?: any) => api.patch<{ data: any }>(`/car-rental/reservations/${id}/return`, data ?? {}),
+  cancelReservation: (id: string, reason?: string) => api.patch<{ data: any }>(`/car-rental/reservations/${id}/cancel`, { reason }),
+
+  // Inspections
+  inspections: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return api.get<{ data: any[] }>(`/car-rental/inspections${qs}`);
+  },
+  createInspection: (data: any) => api.post<{ data: any }>("/car-rental/inspections", data),
+  updateInspection: (id: string, data: any) => api.put<{ data: any }>(`/car-rental/inspections/${id}`, data),
+
+  // Stats
+  dashboardStats: () => api.get<{ data: any }>("/car-rental/dashboard-stats"),
+};
+
+// --- Flower Master Data ---
+export const flowerMasterApi = {
+  // Variants
+  variants: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return api.get<{ data: any[]; total: number }>(`/flower-master/variants${qs}`);
+  },
+  getVariant: (id: string, mode?: string) => {
+    const qs = mode ? `?mode=${mode}` : "";
+    return api.get<{ data: any }>(`/flower-master/variants/${id}${qs}`);
+  },
+  createVariant: (data: any) => api.post<{ data: any }>("/flower-master/variants", data),
+  updateVariant: (id: string, data: any) => api.put<{ data: any }>(`/flower-master/variants/${id}`, data),
+  toggleVariant: (id: string) => api.patch<{ data: any }>(`/flower-master/variants/${id}/toggle`, {}),
+
+  // Enums (for dropdowns)
+  enums: () => api.get<{ data: any }>("/flower-master/enums"),
+
+  // Batches
+  batches: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return api.get<{ data: any[]; total: number }>(`/flower-master/batches${qs}`);
+  },
+  expiringBatches: (days?: number) => {
+    const qs = days ? `?days=${days}` : "";
+    return api.get<{ data: any[] }>(`/flower-master/batches/expiring${qs}`);
+  },
+  batchesExpiring: (days?: number) => {
+    const qs = days ? `?days=${days}` : "";
+    return api.get<{ data: any[] }>(`/flower-master/batches/expiring${qs}`);
+  },
+  fefoBatches: (variantId: string) =>
+    api.get<{ data: any[] }>(`/flower-master/batches/fefo/${variantId}`),
+  receiveBatch: (data: any) => api.post<{ data: any }>("/flower-master/batches", data),
+  updateBatch: (id: string, data: any) => api.patch<{ data: any }>(`/flower-master/batches/${id}`, data),
+  consumeBatch: (data: { variantId: string; quantity: number; reason?: string }) =>
+    api.post<{ data: any }>("/flower-master/batches/consume", data),
+
+  // Pricing
+  pricing: (variantId?: string) => {
+    const qs = variantId ? `?variantId=${variantId}` : "";
+    return api.get<{ data: any[] }>(`/flower-master/pricing${qs}`);
+  },
+  setPrice: (data: any) => api.post<{ data: any }>("/flower-master/pricing", data),
+  deletePrice: (id: string) => api.delete(`/flower-master/pricing/${id}`),
+
+  // Substitutions
+  substitutions: (variantId?: string) => {
+    const qs = variantId ? `?variantId=${variantId}` : "";
+    return api.get<{ data: any[] }>(`/flower-master/substitutions${qs}`);
+  },
+  createSubstitution: (data: any) => api.post<{ data: any }>("/flower-master/substitutions", data),
+  deleteSubstitution: (id: string) => api.delete(`/flower-master/substitutions/${id}`),
+
+  // Recipes
+  recipes: (serviceId?: string) => {
+    const qs = serviceId ? `?serviceId=${serviceId}` : "";
+    return api.get<{ data: any[] }>(`/flower-master/recipes${qs}`);
+  },
+  createRecipe: (data: any) => api.post<{ data: any }>("/flower-master/recipes", data),
+  deleteRecipe: (id: string) => api.delete(`/flower-master/recipes/${id}`),
+
+  // Reports
+  stockReport: () => api.get<{ data: any[] }>("/flower-master/reports/stock"),
+  originsReport: () => api.get<{ data: any[] }>("/flower-master/reports/origins"),
+  gradesReport: () => api.get<{ data: any[] }>("/flower-master/reports/grades"),
+  consumptionReport: () => api.get<{ data: any[] }>("/flower-master/reports/consumption"),
+  reportStock: () => api.get<{ data: any[] }>("/flower-master/reports/stock"),
+  reportOrigins: () => api.get<{ data: any[] }>("/flower-master/reports/origins"),
+  reportGrades: () => api.get<{ data: any[] }>("/flower-master/reports/grades"),
+};
+
+// --- Integrations ---
+export const integrationsApi = {
+  // Provider registry (static)
+  providers: (type?: string) => {
+    const qs = type ? `?type=${type}` : "";
+    return api.get<{ data: any[] }>(`/integrations/providers${qs}`);
+  },
+
+  // Configs
+  configs: () => api.get<{ data: any[] }>("/integrations/configs"),
+  getConfig: (id: string) => api.get<{ data: any }>(`/integrations/configs/${id}`),
+  createConfig: (data: any) => api.post<{ data: any }>("/integrations/configs", data),
+  updateConfig: (id: string, data: any) => api.put<{ data: any }>(`/integrations/configs/${id}`, data),
+  updateConfigStatus: (id: string, status: string) => api.patch<{ data: any }>(`/integrations/configs/${id}/status`, { status }),
+  deleteConfig: (id: string) => api.delete(`/integrations/configs/${id}`),
+
+  // Webhook logs
+  webhookLogs: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return api.get<{ data: any[]; total: number }>(`/integrations/webhook-logs${qs}`);
+  },
+
+  // Sync jobs
+  syncJobs: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return api.get<{ data: any[]; total: number }>(`/integrations/sync-jobs${qs}`);
+  },
+  triggerSync: (data: any) => api.post<{ data: any }>("/integrations/sync-jobs", data),
 };

@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Banknote, FileText, TrendingUp, TrendingDown, Plus, Download, Loader2, AlertCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Banknote, FileText, TrendingUp, TrendingDown, Plus, Download, Loader2, Landmark, BookOpen, BookOpenCheck, BarChart2, GitMerge, ArrowLeft } from "lucide-react";
 import { clsx } from "clsx";
 import { financeApi, settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Modal, Input, Select, TextArea } from "@/components/ui";
 
 export function FinancePage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
   const [showExpense, setShowExpense] = useState(false);
   const [expenseForm, setExpenseForm] = useState({ description: "", amount: "", category: "", date: new Date().toISOString().split("T")[0] });
@@ -48,6 +50,32 @@ export function FinancePage() {
           <Button variant="secondary" icon={Plus} onClick={() => setShowExpense(true)}>مصروف جديد</Button>
           <Button variant="secondary" icon={Download}>تصدير</Button>
         </div>
+      </div>
+
+      {/* Finance module quick-links */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        {[
+          { label: "الخزينة",        desc: "إيصالات، سندات صرف، ورديات الكاشير",  icon: Landmark,      href: "/dashboard/treasury",              bg: "bg-blue-50",    iconColor: "text-blue-500" },
+          { label: "المحاسبة",       desc: "دليل الحسابات وقيود اليومية",          icon: BookOpen,      href: "/dashboard/accounting",            bg: "bg-violet-50",  iconColor: "text-violet-500" },
+          { label: "قيود اليومية",   desc: "عرض وترحيل القيود المحاسبية",          icon: BookOpenCheck, href: "/dashboard/accounting/journal-entries", bg: "bg-emerald-50", iconColor: "text-emerald-600" },
+          { label: "القوائم المالية", desc: "قائمة الدخل، الميزانية، ميزان المراجعة", icon: BarChart2,   href: "/dashboard/financial-statements",  bg: "bg-amber-50",   iconColor: "text-amber-600" },
+          { label: "التسويات",       desc: "تسوية بنكية، نقدية، ذمم عملاء وموردين", icon: GitMerge,    href: "/dashboard/reconciliation",        bg: "bg-rose-50",    iconColor: "text-rose-500" },
+        ].map((m) => (
+          <button
+            key={m.href}
+            onClick={() => navigate(m.href)}
+            className="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-4 hover:border-brand-200 hover:shadow-sm transition-all text-right group"
+          >
+            <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", m.bg)}>
+              <m.icon className={clsx("w-5 h-5", m.iconColor)} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-gray-900">{m.label}</p>
+              <p className="text-xs text-gray-400 truncate">{m.desc}</p>
+            </div>
+            <ArrowLeft className="w-4 h-4 text-gray-300 group-hover:text-brand-400 transition-colors shrink-0" />
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

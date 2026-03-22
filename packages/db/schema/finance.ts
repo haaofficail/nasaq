@@ -3,6 +3,7 @@ import { organizations } from "./organizations";
 import { bookings } from "./bookings";
 import { customers } from "./customers";
 import { users } from "./auth";
+import { chartOfAccounts } from "./accounting";
 
 // ============================================================
 // ENUMS
@@ -165,6 +166,10 @@ export const expenses = pgTable("expenses", {
   approvedBy: uuid("approved_by").references(() => users.id),
   approvedAt: timestamp("approved_at", { withTimezone: true }),
   
+  // ربط بدليل الحسابات (للترحيل المحاسبي)
+  chartOfAccountId: uuid("chart_of_account_id").references(() => chartOfAccounts.id),
+  journalEntryId: uuid("journal_entry_id"),
+
   notes: text("notes"),
   createdBy: uuid("created_by").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

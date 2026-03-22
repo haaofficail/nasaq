@@ -36,6 +36,11 @@ import { FinancePage } from "./pages/FinancePage";
 import { InvoicesPage } from "./pages/InvoicesPage";
 import { ExpensesPage } from "./pages/ExpensesPage";
 import { ReportsPage } from "./pages/ReportsPage";
+import { TreasuryPage } from "./pages/TreasuryPage";
+import { AccountingPage } from "./pages/AccountingPage";
+import { JournalEntriesPage } from "./pages/JournalEntriesPage";
+import { FinancialStatementsPage } from "./pages/FinancialStatementsPage";
+import { ReconciliationPage } from "./pages/ReconciliationPage";
 
 // ── Operations ────────────────────────────────────────────────────
 import { InventoryPage } from "./pages/InventoryPage";
@@ -47,9 +52,8 @@ import { TeamPage } from "./pages/TeamPage";
 import { AttendancePage } from "./pages/AttendancePage";
 
 // ── Channels ──────────────────────────────────────────────────────
-import { SiteBuilderPage } from "./pages/SiteBuilderPage";
-import { PageBuilderPage } from "./pages/PageBuilderPage";
-import { WebsiteSettingsPage } from "./pages/WebsiteSettingsPage";
+import { StorefrontPage } from "./pages/StorefrontPage";
+import { PublicStorefrontPage } from "./pages/PublicStorefrontPage";
 import { OnlineOrdersPage } from "./pages/OnlineOrdersPage";
 import { AutomationPage } from "./pages/AutomationPage";
 import { MarketingPage } from "./pages/MarketingPage";
@@ -63,6 +67,11 @@ import { CustomizationPage } from "./pages/CustomizationPage";
 import { PlatformPage } from "./pages/PlatformPage";
 import { AuditLogPage } from "./pages/AuditLogPage";
 
+// ── New verticals ─────────────────────────────────────────────────
+import HotelPage from "./pages/HotelPage";
+import CarRentalPage from "./pages/CarRentalPage";
+import IntegrationsPage from "./pages/IntegrationsPage";
+
 // ── Business-type specific ────────────────────────────────────────
 import { MenuPage } from "./pages/MenuPage";
 import { MenuCategoriesPage } from "./pages/MenuCategoriesPage";
@@ -71,6 +80,7 @@ import { ReservationsPage } from "./pages/ReservationsPage";
 import { SchedulePage } from "./pages/SchedulePage";
 import { CommissionsPage } from "./pages/CommissionsPage";
 import { FlowerInventoryPage } from "./pages/FlowerInventoryPage";
+import { FlowerMasterPage } from "./pages/FlowerMasterPage";
 import { ArrangementsPage } from "./pages/ArrangementsPage";
 import { AssetsPage } from "./pages/AssetsPage";
 import { ContractsPage } from "./pages/ContractsPage";
@@ -102,11 +112,12 @@ export default function App() {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/onboarding" element={<OnboardingPage />} />
 
-      {/* Public booking / tracking */}
+      {/* Public booking / tracking / storefront */}
       <Route path="/book/:slug" element={<PublicBookingPage />} />
       <Route path="/track/:token" element={<PublicTrackingPage />} />
       <Route path="/marketplace" element={<MarketplaceBrowsePage />} />
       <Route path="/flowers/:slug" element={<PublicFlowerPage />} />
+      <Route path="/s/:orgSlug" element={<PublicStorefrontPage />} />
 
       {/* ── Dashboard (auth required) ── */}
       <Route path="/dashboard" element={<RequireAuth><Layout /></RequireAuth>}>
@@ -138,6 +149,11 @@ export default function App() {
         <Route path="invoices" element={<InvoicesPage />} />
         <Route path="expenses" element={<ExpensesPage />} />
         <Route path="reports" element={<ReportsPage />} />
+        <Route path="treasury" element={<TreasuryPage />} />
+        <Route path="accounting" element={<AccountingPage />} />
+        <Route path="accounting/journal-entries" element={<JournalEntriesPage />} />
+        <Route path="financial-statements" element={<FinancialStatementsPage />} />
+        <Route path="reconciliation" element={<ReconciliationPage />} />
 
         {/* Operations */}
         <Route path="inventory" element={<InventoryPage />} />
@@ -149,19 +165,24 @@ export default function App() {
         <Route path="attendance" element={<AttendancePage />} />
 
         {/* Channels */}
-        <Route path="website" element={<SiteBuilderPage />} />
-        <Route path="website/builder" element={<PageBuilderPage />} />
-        <Route path="website/settings" element={<WebsiteSettingsPage />} />
-        <Route path="site-builder" element={<SiteBuilderPage />} />     {/* legacy alias */}
+        <Route path="website" element={<StorefrontPage />} />
         <Route path="online-orders" element={<OnlineOrdersPage />} />
         <Route path="automation" element={<AutomationPage />} />
         <Route path="marketing" element={<MarketingPage />} />
         <Route path="messaging" element={<MessagingSettingsPage />} />
 
+        {/* Hotel */}
+        <Route path="hotel" element={<HotelPage />} />
+
+        {/* Car Rental */}
+        <Route path="car-rental" element={<CarRentalPage />} />
+
+        {/* Integrations */}
+        <Route path="integrations" element={<IntegrationsPage />} />
+
         {/* Settings */}
         <Route path="settings" element={<SettingsPage />} />
         <Route path="settings/booking" element={<BookingSettingsPage />} />
-        <Route path="settings/website" element={<WebsiteSettingsPage />} />
         <Route path="settings/profile" element={<ProfileSettingsPage />} />
         <Route path="settings/roles" element={<RolesPage />} />
         <Route path="settings/staff" element={<StaffPage />} />
@@ -181,6 +202,7 @@ export default function App() {
 
         {/* Flower shop */}
         <Route path="flower-inventory" element={<FlowerInventoryPage />} />
+        <Route path="flower-master" element={<FlowerMasterPage />} />
         <Route path="arrangements" element={<ArrangementsPage />} />
 
         {/* Rental */}

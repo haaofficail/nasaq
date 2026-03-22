@@ -43,6 +43,14 @@ import { arrangementsRouter } from "./routes/arrangements";
 import { messagingRouter } from "./routes/messaging";
 import { flowerBuilderRouter } from "./routes/flower-builder";
 import { attendanceRouter } from "./routes/attendance";
+import { hotelRouter } from "./routes/hotel";
+import { carRentalRouter } from "./routes/car-rental";
+import { integrationsRouter } from "./routes/integrations";
+import { flowerMasterRouter } from "./routes/flower-master";
+import { treasuryRouter } from "./routes/treasury";
+import { accountingRouter } from "./routes/accounting";
+import { reconciliationRouter } from "./routes/reconciliation";
+import { auditLogRouter } from "./routes/audit-log";
 
 // ============================================================
 // APP
@@ -246,6 +254,57 @@ app.route("/flower-builder", flowerBuilderRouter);
 // --- Attendance Engine ---
 app.use("/attendance/*", authMiddleware);
 app.route("/attendance", attendanceRouter);
+
+// --- Hotel ---
+app.use("/hotel/*", authMiddleware);
+app.use("/hotel/*", methodGuard("bookings"));
+app.route("/hotel", hotelRouter);
+
+// --- Car Rental ---
+app.use("/car-rental/*", authMiddleware);
+app.use("/car-rental/*", methodGuard("bookings"));
+app.route("/car-rental", carRentalRouter);
+
+// --- Integrations ---
+app.use("/integrations/*", async (c, next) => {
+  // Public: inbound webhooks from providers
+  if (c.req.path.includes("/integrations/webhook/inbound/")) return next();
+  return authMiddleware(c, next);
+});
+app.use("/integrations/*", async (c, next) => {
+  if (c.req.path.includes("/integrations/webhook/inbound/")) return next();
+  return methodGuard("settings")(c, next);
+});
+app.route("/integrations", integrationsRouter);
+
+// --- Treasury ---
+app.use("/treasury/*", authMiddleware);
+app.use("/treasury/*", methodGuard("finance"));
+app.route("/treasury", treasuryRouter);
+
+// --- Accounting ---
+app.use("/accounting/*", authMiddleware);
+app.use("/accounting/*", methodGuard("finance"));
+app.route("/accounting", accountingRouter);
+
+// --- Reconciliation ---
+app.use("/reconciliation/*", authMiddleware);
+app.use("/reconciliation/*", methodGuard("finance"));
+app.route("/reconciliation", reconciliationRouter);
+
+// --- Audit Log ---
+app.use("/audit-log/*", authMiddleware);
+app.use("/audit-log/*", methodGuard("finance"));
+app.route("/audit-log", auditLogRouter);
+
+// --- Flower Master Data ---
+app.use("/flower-master/*", authMiddleware);
+app.use("/flower-master/*", async (c, next) => {
+  // Variant list & enums are read-only — allow even without full services perm
+  if (c.req.method === "GET") return next();
+  return methodGuard("services")(c, next);
+});
+app.route("/flower-master", flowerMasterRouter);
 
 // ============================================================
 // ERROR HANDLING

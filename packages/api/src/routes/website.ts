@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq, and, desc, asc, count, sql } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { sitePages, siteConfig, blogPosts, contactSubmissions, services, categories, reviews, organizations } from "@nasaq/db/schema";
+import { sitePages, siteConfig, blogPosts, contactSubmissions, services, categories, addons, serviceAddons, reviews, organizations, locations } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, generateSlug } from "../lib/helpers";
 import { z } from "zod";
 
@@ -221,7 +221,14 @@ websiteRouter.get("/public/:orgSlug", async (c) => {
 
   const activeServices = await db.select().from(services)
     .where(and(eq(services.orgId, org.id), eq(services.status, "active")))
-    .orderBy(asc(services.sortOrder)).limit(20);
+    .orderBy(asc(services.sortOrder)).limit(24);
+
+  const activeCategories = await db.select().from(categories)
+    .where(and(eq(categories.orgId, org.id), eq(categories.isActive, true)))
+    .orderBy(asc(categories.sortOrder));
+
+  const branchList = await db.select().from(locations)
+    .where(and(eq(locations.orgId, org.id), eq(locations.isActive, true)));
 
   const recentPosts = await db.select().from(blogPosts)
     .where(and(eq(blogPosts.orgId, org.id), eq(blogPosts.status, "published")))
@@ -231,14 +238,35 @@ websiteRouter.get("/public/:orgSlug", async (c) => {
     .where(and(eq(reviews.orgId, org.id), eq(reviews.isPublished, true)))
     .orderBy(desc(reviews.createdAt)).limit(6);
 
+  // Compute avg rating
+  const [ratingRow] = await db.select({ avg: sql<string>`AVG(${reviews.rating})`, cnt: count(reviews.id) })
+    .from(reviews).where(and(eq(reviews.orgId, org.id), eq(reviews.isPublished, true)));
+
   return c.json({
     data: {
-      org: { id: org.id, name: org.name, slug: org.slug, phone: org.phone, logo: org.logo, city: org.city, primaryColor: config?.primaryColor || org.primaryColor },
-      config,
+      org: {
+        id: org.id, name: org.name, nameEn: org.nameEn, slug: org.slug,
+        phone: org.phone, email: org.email, logo: org.logo,
+        city: org.city, address: org.address, description: org.description,
+        tagline: org.tagline, coverImage: org.coverImage,
+        instagram: org.instagram, twitter: org.twitter,
+        tiktok: org.tiktok, snapchat: org.snapchat,
+        businessType: org.businessType,
+        primaryColor: config?.primaryColor || org.primaryColor || "#1A56DB",
+        secondaryColor: config?.secondaryColor || org.secondaryColor,
+      },
+      config: config ?? null,
       pages,
       services: activeServices,
+      categories: activeCategories,
+      branches: branchList,
       blog: recentPosts,
       reviews: latestReviews,
+      stats: {
+        avgRating: ratingRow?.avg ? Number(ratingRow.avg).toFixed(1) : null,
+        reviewCount: Number(ratingRow?.cnt ?? 0),
+        serviceCount: activeServices.length,
+      },
     },
   });
 });

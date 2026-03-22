@@ -158,7 +158,7 @@ export function AssetsPage() {
     () => detailId ? inventoryApi.getAsset(detailId) : Promise.resolve(null) as any,
     [detailId],
   );
-  const detail = detailRes?.data;
+  const detail = (detailRes as any)?.data;
 
   // ── mutations
   const saveType    = useMutation((d: any) => d.id ? inventoryApi.updateAssetType(d.id, d) : inventoryApi.createAssetType(d));
