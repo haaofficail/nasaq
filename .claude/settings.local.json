@@ -18,7 +18,8 @@
       "Bash(TOKEN=\"a-vLOgnjGtyTWHRVpuJrqziqUKArXeejTYy8us601kvVYMospKTKdbORja_WNFAf\"\nssh -i ~/.ssh/nasaq_deploy root@187.124.41.239 \"\nTOKEN='$TOKEN'\nINVOICE_ID='b846d371-2711-446c-993f-ae6d3829c1c9'\necho '=== PDF TEST ==='\ncurl -s -o /tmp/test.pdf \\\\\"http://localhost:3000/api/v1/finance/invoices/\\\\$INVOICE_ID/pdf\\\\\" -H \\\\\"Authorization: Bearer \\\\$TOKEN\\\\\"\necho 'Response body:'\ncat /tmp/test.pdf | head -c 500\necho ''\necho '---'\nfile /tmp/test.pdf\n\")",
       "Bash(TOKEN=\"a-vLOgnjGtyTWHRVpuJrqziqUKArXeejTYy8us601kvVYMospKTKdbORja_WNFAf\"\nssh -i ~/.ssh/nasaq_deploy root@187.124.41.239 \"\nPGPASSWORD='Nasaq_DB_2026@secure' psql -h localhost -U nasaq_user -d nasaq -t -c \\\\\"SELECT id, org_id FROM invoices LIMIT 3;\\\\\"\n\")",
       "Bash(TOKEN=\"a-vLOgnjGtyTWHRVpuJrqziqUKArXeejTYy8us601kvVYMospKTKdbORja_WNFAf\"\nssh -i ~/.ssh/nasaq_deploy root@187.124.41.239 \"\necho '=== CONTACT ENDPOINT ==='\ncurl -s -X POST 'http://localhost:3000/api/v1/contact' -H 'Content-Type: application/json' -d '{\\\\\"name\\\\\":\\\\\"Test\\\\\",\\\\\"email\\\\\":\\\\\"test@test.com\\\\\",\\\\\"message\\\\\":\\\\\"Hello\\\\\"}'\n\")",
-      "Bash(pnpm --filter @nasaq/dashboard build)"
+      "Bash(pnpm --filter @nasaq/dashboard build)",
+      "WebFetch(domain:raw.githubusercontent.com)"
     ]
   }
 }
