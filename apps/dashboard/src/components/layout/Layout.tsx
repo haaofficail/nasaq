@@ -7,7 +7,7 @@ import {
   Globe, ShoppingCart, MessageCircle,
   Settings, CalendarCog, Building, Landmark, BookOpen, BarChart2, GitMerge,
   UtensilsCrossed, List, ChefHat, Armchair, Clock, Percent,
-  Flower2, Gift, Key, FileSignature, ClipboardList, PartyPopper, Box, Database,
+  Flower2, Gift, Key, FileSignature, ClipboardList, PartyPopper, Box, Database, Images,
   ChevronLeft, ChevronRight, Bell, Search, Plus, LogOut, Menu, X,
   type LucideIcon,
 } from "lucide-react";
@@ -85,6 +85,12 @@ const CORE_GROUPS: NavGroup[] = [
       { name: "موقعي",             href: "/dashboard/website",          icon: Globe },
       { name: "الطلبات الأونلاين", href: "/dashboard/online-orders",    icon: ShoppingCart },
       { name: "الرسائل",           href: "/dashboard/messaging",        icon: MessageCircle },
+    ],
+  },
+  {
+    label: "الوسائط",
+    items: [
+      { name: "مكتبة الوسائط", href: "/dashboard/media", icon: Images },
     ],
   },
 ];

@@ -1,0 +1,487 @@
+import { Hono } from "hono";
+import { eq, and, desc, ilike, sql, inArray } from "drizzle-orm";
+import { z } from "zod";
+import { nanoid } from "nanoid";
+import { db } from "@nasaq/db/client";
+import { mediaAssets } from "@nasaq/db/schema";
+import { getOrgId, getUserId, getPagination } from "../lib/helpers";
+
+// ── Lazy R2 client — only created when env vars are present ─────────────────
+
+let _s3: any = null;
+
+async function getR2Client() {
+  if (_s3) return _s3;
+  const accountId = process.env.R2_ACCOUNT_ID;
+  const accessKey = process.env.R2_ACCESS_KEY_ID;
+  const secretKey = process.env.R2_SECRET_ACCESS_KEY;
+  if (!accountId || !accessKey || !secretKey) return null;
+
+  const { S3Client } = await import("@aws-sdk/client-s3");
+  _s3 = new S3Client({
+    region: "auto",
+    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },
+  });
+  return _s3;
+}
+
+const R2_BUCKET    = process.env.R2_BUCKET_NAME || "nasaq-files";
+const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL  || "https://files.nasaqpro.tech";
+
+// ── Allowed MIME types ───────────────────────────────────────────────────────
+
+const ALLOWED_TYPES: Record<string, string> = {
+  "image/jpeg":      "image",
+  "image/png":       "image",
+  "image/webp":      "image",
+  "image/gif":       "image",
+  "image/svg+xml":   "image",
+  "video/mp4":       "video",
+  "video/webm":      "video",
+  "video/quicktime": "video",
+  "application/pdf": "document",
+  "application/msword":                                                  "document",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "document",
+  "application/vnd.ms-excel":                                            "document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":  "document",
+};
+
+function mimeToAssetType(mime: string): "image" | "video" | "document" | "logo" {
+  return (ALLOWED_TYPES[mime] as any) || "document";
+}
+
+function maxSizeForMime(mime: string): number {
+  if (mime.startsWith("video/"))    return 200 * 1024 * 1024;  // 200 MB
+  if (mime === "application/pdf")   return 25  * 1024 * 1024;  // 25 MB
+  return 15 * 1024 * 1024;                                      // 15 MB images/docs
+}
+
+// ── Validation schemas ───────────────────────────────────────────────────────
+
+const presignedSchema = z.object({
+  filename:    z.string().min(1),
+  contentType: z.string().min(1),
+  fileType:    z.enum(["image", "video", "document", "logo"]).optional(),
+  category:    z.string().optional(),
+});
+
+const confirmSchema = z.object({
+  r2Key:      z.string().min(1),
+  publicUrl:  z.string().url(),
+  name:       z.string().min(1),
+  mimeType:   z.string().optional(),
+  sizeBytes:  z.number().int().positive().optional(),
+  width:      z.number().int().positive().optional(),
+  height:     z.number().int().positive().optional(),
+  fileType:   z.enum(["image", "video", "document", "logo"]).optional(),
+  tags:       z.array(z.string()).optional(),
+  category:   z.string().optional(),
+  altText:    z.string().optional(),
+  relatedServiceId: z.string().uuid().optional(),
+});
+
+const updateSchema = z.object({
+  name:             z.string().min(1).optional(),
+  tags:             z.array(z.string()).optional(),
+  category:         z.string().optional(),
+  altText:          z.string().optional(),
+  fileType:         z.enum(["image", "video", "document", "logo"]).optional(),
+  relatedServiceId: z.string().uuid().nullable().optional(),
+});
+
+// ── Router ───────────────────────────────────────────────────────────────────
+
+export const mediaRouter = new Hono();
+
+// ============================================================
+// GET /media
+// List assets with filtering, search, pagination
+// ============================================================
+
+mediaRouter.get("/", async (c) => {
+  const orgId = getOrgId(c);
+  const { limit, offset, page } = getPagination(c);
+
+  const q        = c.req.query("q")        || "";
+  const type     = c.req.query("type")     || "";
+  const category = c.req.query("category") || "";
+  const tag      = c.req.query("tag")      || "";
+  const serviceId = c.req.query("serviceId") || "";
+
+  const conditions: any[] = [
+    eq(mediaAssets.orgId, orgId),
+    eq(mediaAssets.isActive, true),
+  ];
+
+  if (q)         conditions.push(ilike(mediaAssets.name, `%${q}%`));
+  if (category)  conditions.push(eq(mediaAssets.category, category));
+  if (serviceId) conditions.push(eq(mediaAssets.relatedServiceId, serviceId));
+  if (type && ["image", "video", "document", "logo"].includes(type)) {
+    conditions.push(eq(mediaAssets.fileType, type as any));
+  }
+  if (tag) {
+    conditions.push(sql`${mediaAssets.tags} @> ARRAY[${tag}]::text[]`);
+  }
+
+  const where = and(...conditions);
+
+  const [rows, countRow] = await Promise.all([
+    db.select().from(mediaAssets)
+      .where(where)
+      .orderBy(desc(mediaAssets.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db.select({ count: sql<number>`COUNT(*)` })
+      .from(mediaAssets)
+      .where(where),
+  ]);
+
+  const total = Number(countRow[0]?.count ?? 0);
+
+  return c.json({
+    data:  rows,
+    total,
+    page,
+    limit,
+    pages: Math.ceil(total / limit),
+  });
+});
+
+// ============================================================
+// GET /media/categories
+// Distinct categories used by this org (for filter dropdown)
+// ============================================================
+
+mediaRouter.get("/categories", async (c) => {
+  const orgId = getOrgId(c);
+  const rows = await db
+    .selectDistinct({ category: mediaAssets.category })
+    .from(mediaAssets)
+    .where(and(eq(mediaAssets.orgId, orgId), eq(mediaAssets.isActive, true)));
+  const categories = rows.map(r => r.category).filter(Boolean);
+  return c.json({ data: categories });
+});
+
+// ============================================================
+// GET /media/tags
+// All distinct tags used by this org
+// ============================================================
+
+mediaRouter.get("/tags", async (c) => {
+  const orgId = getOrgId(c);
+  const rows = await db
+    .select({ tags: mediaAssets.tags })
+    .from(mediaAssets)
+    .where(and(eq(mediaAssets.orgId, orgId), eq(mediaAssets.isActive, true)));
+  const tagSet = new Set<string>();
+  for (const row of rows) {
+    (row.tags || []).forEach((t: string) => tagSet.add(t));
+  }
+  return c.json({ data: Array.from(tagSet).sort() });
+});
+
+// ============================================================
+// POST /media/presigned
+// Get a presigned PUT URL for direct-to-R2 upload
+// ============================================================
+
+mediaRouter.post("/presigned", async (c) => {
+  const orgId = getOrgId(c);
+  const body  = presignedSchema.parse(await c.req.json());
+
+  const { filename, contentType, category } = body;
+
+  if (!ALLOWED_TYPES[contentType]) {
+    return c.json({ error: "نوع الملف غير مدعوم" }, 400);
+  }
+
+  const ext  = filename.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
+  const key  = `${orgId}/${category || "media"}/${nanoid(14)}.${ext}`;
+  const publicUrl = `${R2_PUBLIC_URL}/${key}`;
+
+  const s3 = await getR2Client();
+
+  if (!s3) {
+    // Dev mode — no R2 configured. Return mock data so frontend can skip PUT and
+    // call confirm directly with a placeholder URL.
+    return c.json({
+      data: {
+        uploadUrl:  null,
+        publicUrl,
+        key,
+        maxSize:    maxSizeForMime(contentType),
+        expiresIn:  3600,
+        devMode:    true,
+      },
+    });
+  }
+
+  const { PutObjectCommand } = await import("@aws-sdk/client-s3");
+  const { getSignedUrl }     = await import("@aws-sdk/s3-request-presigner");
+
+  const command = new PutObjectCommand({
+    Bucket:      R2_BUCKET,
+    Key:         key,
+    ContentType: contentType,
+  });
+
+  const uploadUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
+
+  return c.json({
+    data: {
+      uploadUrl,
+      publicUrl,
+      key,
+      maxSize:   maxSizeForMime(contentType),
+      expiresIn: 3600,
+      devMode:   false,
+    },
+  });
+});
+
+// ============================================================
+// POST /media/confirm
+// After successful R2 upload, save metadata to DB
+// ============================================================
+
+mediaRouter.post("/confirm", async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const body   = confirmSchema.parse(await c.req.json());
+
+  const fileType = body.fileType ?? mimeToAssetType(body.mimeType || "");
+
+  const [asset] = await db.insert(mediaAssets).values({
+    orgId,
+    createdBy:        userId || undefined,
+    name:             body.name,
+    fileUrl:          body.publicUrl,
+    r2Key:            body.r2Key,
+    fileType,
+    mimeType:         body.mimeType,
+    sizeBytes:        body.sizeBytes,
+    width:            body.width,
+    height:           body.height,
+    tags:             body.tags             ?? [],
+    category:         body.category,
+    altText:          body.altText,
+    relatedServiceId: body.relatedServiceId,
+  }).returning();
+
+  return c.json({ data: asset }, 201);
+});
+
+// ============================================================
+// GET /media/:id
+// Single asset with version history
+// ============================================================
+
+mediaRouter.get("/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+
+  const [asset] = await db.select().from(mediaAssets)
+    .where(and(eq(mediaAssets.id, id), eq(mediaAssets.orgId, orgId)));
+
+  if (!asset) return c.json({ error: "الملف غير موجود" }, 404);
+
+  // Fetch version history (siblings and self)
+  const rootId = asset.parentId ?? asset.id;
+  const versions = await db.select({
+    id:        mediaAssets.id,
+    version:   mediaAssets.version,
+    fileUrl:   mediaAssets.fileUrl,
+    name:      mediaAssets.name,
+    sizeBytes: mediaAssets.sizeBytes,
+    createdAt: mediaAssets.createdAt,
+  }).from(mediaAssets)
+    .where(
+      and(
+        eq(mediaAssets.orgId, orgId),
+        sql`(${mediaAssets.id} = ${rootId} OR ${mediaAssets.parentId} = ${rootId})`,
+      ),
+    )
+    .orderBy(desc(mediaAssets.version));
+
+  return c.json({ data: { ...asset, versions } });
+});
+
+// ============================================================
+// PATCH /media/:id
+// Update metadata — tags, category, alt text, name, fileType
+// ============================================================
+
+mediaRouter.patch("/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+  const body  = updateSchema.parse(await c.req.json());
+
+  const [existing] = await db.select({ id: mediaAssets.id })
+    .from(mediaAssets)
+    .where(and(eq(mediaAssets.id, id), eq(mediaAssets.orgId, orgId)));
+
+  if (!existing) return c.json({ error: "الملف غير موجود" }, 404);
+
+  const patch: any = { updatedAt: new Date() };
+  if (body.name             !== undefined) patch.name             = body.name;
+  if (body.tags             !== undefined) patch.tags             = body.tags;
+  if (body.category         !== undefined) patch.category         = body.category;
+  if (body.altText          !== undefined) patch.altText          = body.altText;
+  if (body.fileType         !== undefined) patch.fileType         = body.fileType;
+  if (body.relatedServiceId !== undefined) patch.relatedServiceId = body.relatedServiceId;
+
+  const [updated] = await db.update(mediaAssets)
+    .set(patch)
+    .where(and(eq(mediaAssets.id, id), eq(mediaAssets.orgId, orgId)))
+    .returning();
+
+  return c.json({ data: updated });
+});
+
+// ============================================================
+// POST /media/:id/replace
+// Create a new version of an asset.
+// Returns a presigned URL for the replacement file.
+// ============================================================
+
+mediaRouter.post("/:id/replace", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+  const body  = presignedSchema.parse(await c.req.json());
+
+  const [existing] = await db.select().from(mediaAssets)
+    .where(and(eq(mediaAssets.id, id), eq(mediaAssets.orgId, orgId)));
+
+  if (!existing) return c.json({ error: "الملف غير موجود" }, 404);
+
+  const { filename, contentType } = body;
+  if (!ALLOWED_TYPES[contentType]) return c.json({ error: "نوع الملف غير مدعوم" }, 400);
+
+  const ext       = filename.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
+  const key       = `${orgId}/media/v${existing.version + 1}_${nanoid(10)}.${ext}`;
+  const publicUrl = `${R2_PUBLIC_URL}/${key}`;
+
+  // Figure out the root parentId
+  const rootId = existing.parentId ?? existing.id;
+
+  const s3 = await getR2Client();
+
+  let uploadUrl: string | null = null;
+  let devMode = false;
+
+  if (s3) {
+    const { PutObjectCommand } = await import("@aws-sdk/client-s3");
+    const { getSignedUrl }     = await import("@aws-sdk/s3-request-presigner");
+    const command = new PutObjectCommand({ Bucket: R2_BUCKET, Key: key, ContentType: contentType });
+    uploadUrl = await getSignedUrl(s3, command, { expiresIn: 3600 });
+  } else {
+    devMode = true;
+  }
+
+  return c.json({
+    data: {
+      uploadUrl,
+      publicUrl,
+      key,
+      parentId:   rootId,
+      newVersion: existing.version + 1,
+      maxSize:    maxSizeForMime(contentType),
+      expiresIn:  3600,
+      devMode,
+    },
+  });
+});
+
+// ============================================================
+// POST /media/:id/confirm-replace
+// After uploading the replacement file, create new version record
+// ============================================================
+
+mediaRouter.post("/:id/confirm-replace", async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const id     = c.req.param("id");
+
+  const body = confirmSchema.extend({
+    parentId:   z.string().uuid(),
+    newVersion: z.number().int().min(2),
+  }).parse(await c.req.json());
+
+  const [existing] = await db.select({ id: mediaAssets.id, orgId: mediaAssets.orgId })
+    .from(mediaAssets)
+    .where(and(eq(mediaAssets.id, id), eq(mediaAssets.orgId, orgId)));
+
+  if (!existing) return c.json({ error: "الملف غير موجود" }, 404);
+
+  const [newAsset] = await db.insert(mediaAssets).values({
+    orgId,
+    createdBy:        userId || undefined,
+    name:             body.name,
+    fileUrl:          body.publicUrl,
+    r2Key:            body.r2Key,
+    fileType:         body.fileType ?? mimeToAssetType(body.mimeType || ""),
+    mimeType:         body.mimeType,
+    sizeBytes:        body.sizeBytes,
+    width:            body.width,
+    height:           body.height,
+    tags:             body.tags     ?? [],
+    category:         body.category,
+    altText:          body.altText,
+    relatedServiceId: body.relatedServiceId,
+    version:          body.newVersion,
+    parentId:         body.parentId,
+  }).returning();
+
+  return c.json({ data: newAsset }, 201);
+});
+
+// ============================================================
+// DELETE /media/:id
+// Soft-delete the asset; also delete from R2 when available
+// ============================================================
+
+mediaRouter.delete("/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+
+  const [asset] = await db.select().from(mediaAssets)
+    .where(and(eq(mediaAssets.id, id), eq(mediaAssets.orgId, orgId)));
+
+  if (!asset) return c.json({ error: "الملف غير موجود" }, 404);
+
+  // Soft delete
+  await db.update(mediaAssets)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(mediaAssets.id, id));
+
+  // Best-effort R2 deletion — don't fail the request if it errors
+  try {
+    const s3 = await getR2Client();
+    if (s3 && asset.r2Key) {
+      const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+      await s3.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: asset.r2Key }));
+    }
+  } catch {
+    // Non-critical — metadata is already soft-deleted
+  }
+
+  return c.json({ data: { id: asset.id, deleted: true } });
+});
+
+// ============================================================
+// POST /media/bulk-delete
+// Body: { ids: string[] }
+// ============================================================
+
+mediaRouter.post("/bulk-delete", async (c) => {
+  const orgId = getOrgId(c);
+  const body  = z.object({ ids: z.array(z.string().uuid()).min(1).max(50) }).parse(await c.req.json());
+
+  const deleted = await db.update(mediaAssets)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(and(inArray(mediaAssets.id, body.ids), eq(mediaAssets.orgId, orgId)))
+    .returning({ id: mediaAssets.id });
+
+  return c.json({ data: { deleted: deleted.length } });
+});

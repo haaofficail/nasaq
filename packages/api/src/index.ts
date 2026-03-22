@@ -51,6 +51,7 @@ import { treasuryRouter } from "./routes/treasury";
 import { accountingRouter } from "./routes/accounting";
 import { reconciliationRouter } from "./routes/reconciliation";
 import { auditLogRouter } from "./routes/audit-log";
+import { mediaRouter } from "./routes/media";
 
 // ============================================================
 // APP
@@ -296,6 +297,11 @@ app.route("/reconciliation", reconciliationRouter);
 app.use("/audit-log/*", authMiddleware);
 app.use("/audit-log/*", methodGuard("finance"));
 app.route("/audit-log", auditLogRouter);
+
+// --- Media Library (DAM) ---
+app.use("/media/*", authMiddleware);
+app.use("/media/*", methodGuard("services"));
+app.route("/media", mediaRouter);
 
 // --- Flower Master Data ---
 app.use("/flower-master/*", authMiddleware);

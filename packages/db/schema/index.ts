@@ -24,3 +24,4 @@ export * from "./accounting";
 export * from "./treasury";
 export * from "./reconciliation";
 export * from "./audit-log";
+export * from "./media";

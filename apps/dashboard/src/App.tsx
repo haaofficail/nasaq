@@ -87,6 +87,7 @@ import { ContractsPage } from "./pages/ContractsPage";
 import { InspectionsPage } from "./pages/InspectionsPage";
 import { EventsPage } from "./pages/EventsPage";
 import { PackagesPage } from "./pages/PackagesPage";
+import { MediaLibraryPage } from "./pages/MediaLibraryPage";
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const token = localStorage.getItem("nasaq_token");
@@ -213,6 +214,9 @@ export default function App() {
         {/* Events */}
         <Route path="events" element={<EventsPage />} />
         <Route path="packages" element={<PackagesPage />} />
+
+        {/* Media Library */}
+        <Route path="media" element={<MediaLibraryPage />} />
 
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Route>

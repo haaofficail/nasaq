@@ -225,6 +225,22 @@ export const bundlesApi = {
     api.post<{ data: any[]; count: number }>(`/bundles/${bundleId}/sell`, data),
 };
 
+// --- Media Library (DAM) ---
+export const mediaApi = {
+  list:       (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[]; total: number; page: number; pages: number }>(`/media${qs}`); },
+  get:        (id: string)   => api.get<{ data: any }>(`/media/${id}`),
+  categories: ()             => api.get<{ data: string[] }>("/media/categories"),
+  tags:       ()             => api.get<{ data: string[] }>("/media/tags"),
+  presigned:  (data: { filename: string; contentType: string; category?: string }) =>
+    api.post<{ data: any }>("/media/presigned", data),
+  confirm:    (data: any)    => api.post<{ data: any }>("/media/confirm", data),
+  update:     (id: string, data: any) => api.patch<{ data: any }>(`/media/${id}`, data),
+  delete:     (id: string)   => api.delete<{ data: any }>(`/media/${id}`),
+  bulkDelete: (ids: string[]) => api.post<{ data: any }>("/media/bulk-delete", { ids }),
+  replace:    (id: string, data: any) => api.post<{ data: any }>(`/media/${id}/replace`, data),
+  confirmReplace: (id: string, data: any) => api.post<{ data: any }>(`/media/${id}/confirm-replace`, data),
+};
+
 // --- Inventory ---
 export const inventoryApi = {
   assetTypes: () => api.get<{ data: any[] }>("/inventory/types"),
