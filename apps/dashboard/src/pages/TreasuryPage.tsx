@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { clsx } from "clsx";
 import {
   Wallet, Building2, CreditCard, Banknote, ArrowLeftRight,
@@ -243,6 +242,100 @@ function VoucherModal({
 }
 
 // ============================================================
+// CREATE ACCOUNT MODAL
+// ============================================================
+
+function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
+  const [form, setForm] = useState({ name: "", type: "main_cash", openingBalance: "" });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!form.name.trim()) { setError("اسم الحساب مطلوب"); return; }
+    setError("");
+    setSaving(true);
+    try {
+      await treasuryApi.createAccount({
+        name: form.name.trim(),
+        type: form.type,
+        openingBalance: form.openingBalance ? Number(form.openingBalance) : 0,
+      });
+      onSuccess();
+      onClose();
+    } catch (err: any) {
+      setError(err?.message || "فشل إنشاء الحساب");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+          <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+            <Wallet className="w-5 h-5 text-emerald-600" />
+          </div>
+          <h2 className="font-bold text-gray-900">خزينة / صندوق جديد</h2>
+          <button onClick={onClose} className="mr-auto text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+        </div>
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">اسم الحساب *</label>
+            <input
+              type="text"
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              placeholder="مثال: الصندوق الرئيسي"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">نوع الحساب</label>
+            <select
+              value={form.type}
+              onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            >
+              {Object.entries(ACCOUNT_TYPE_CONFIG).map(([k, v]) => (
+                <option key={k} value={k}>{v.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">الرصيد الافتتاحي (اختياري)</label>
+            <input
+              type="number"
+              value={form.openingBalance}
+              onChange={e => setForm(f => ({ ...f, openingBalance: e.target.value }))}
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+              dir="ltr"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            />
+          </div>
+          {error && (
+            <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
+              <AlertCircle className="w-4 h-4 text-red-500 shrink-0" />
+              <p className="text-sm text-red-700">{error}</p>
+            </div>
+          )}
+          <div className="flex gap-3 pt-2">
+            <button type="button" onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">إلغاء</button>
+            <button type="submit" disabled={saving} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2.5 text-sm font-medium flex items-center justify-center gap-2">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "إنشاء الحساب"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
 // ACCOUNT CARD
 // ============================================================
 
@@ -280,6 +373,7 @@ function AccountCard({ account, onSelect, selected }: { account: any; onSelect: 
 export function TreasuryPage() {
   const [selectedAccount, setSelectedAccount] = useState<any>(null);
   const [voucherModal, setVoucherModal] = useState<"receipt" | "payment" | "transfer" | null>(null);
+  const [showCreateAccount, setShowCreateAccount] = useState(false);
 
   const { data: accountsRes, loading: loadingAccounts, refetch: refetchAccounts } = useApi(() => treasuryApi.accounts(), []);
   const { data: summaryRes } = useApi(() => treasuryApi.summary(), []);
@@ -363,10 +457,10 @@ export function TreasuryPage() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-gray-900 text-sm">الصناديق والخزائن</h2>
-            <Link to="/dashboard/treasury/accounts/new" className="text-xs text-brand-500 hover:text-brand-600 flex items-center gap-1">
+            <button onClick={() => setShowCreateAccount(true)} className="text-xs text-brand-500 hover:text-brand-600 flex items-center gap-1">
               <Plus className="w-3 h-3" />
               جديد
-            </Link>
+            </button>
           </div>
           {loadingAccounts ? (
             <div className="space-y-3">
@@ -376,9 +470,9 @@ export function TreasuryPage() {
             <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-6 text-center">
               <Wallet className="w-8 h-8 text-gray-200 mx-auto mb-2" />
               <p className="text-sm text-gray-400">لا يوجد صناديق بعد</p>
-              <Link to="/dashboard/treasury/accounts/new" className="text-xs text-brand-500 mt-1 inline-block">
+              <button onClick={() => setShowCreateAccount(true)} className="text-xs text-brand-500 mt-1 inline-block hover:text-brand-600">
                 أنشئ الصندوق الأول
-              </Link>
+              </button>
             </div>
           ) : (
             accounts.map((acc) => (
@@ -473,6 +567,14 @@ export function TreasuryPage() {
             <button onClick={() => setVoucherModal(null)} className="w-full border border-gray-200 rounded-xl py-2.5 text-sm font-medium">إغلاق</button>
           </div>
         </div>
+      )}
+
+      {/* Create Account Modal */}
+      {showCreateAccount && (
+        <CreateAccountModal
+          onClose={() => setShowCreateAccount(false)}
+          onSuccess={() => { refetchAccounts(); }}
+        />
       )}
     </div>
   );

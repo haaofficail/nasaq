@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Package, Plus, Pencil, Trash2, RefreshCw, Tag, Star, ToggleLeft, ToggleRight, X, ChevronDown } from "lucide-react";
+import { Package, Plus, Pencil, Trash2, RefreshCw, Tag, Star, ToggleLeft, ToggleRight, X, ChevronDown, ShoppingCart } from "lucide-react";
 import { clsx } from "clsx";
-import { bundlesApi, servicesApi } from "@/lib/api";
+import { bundlesApi, servicesApi, customersApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Modal, Input, Select, Toast } from "@/components/ui";
 
@@ -24,6 +24,10 @@ function fmt(n: any) {
 export function PackagesPage() {
   const [showModal, setShowModal]         = useState(false);
   const [showServicesModal, setShowServicesModal] = useState(false);
+  const [showSellModal, setShowSellModal] = useState(false);
+  const [sellBundle, setSellBundle]       = useState<any>(null);
+  const [sellForm, setSellForm]           = useState({ customerId: "", startDate: "" });
+  const [selling, setSelling]             = useState(false);
   const [editing, setEditing]             = useState<any>(null);
   const [manageBundle, setManageBundle]   = useState<any>(null);
   const [form, setForm]                   = useState({ ...EMPTY });
@@ -36,15 +40,18 @@ export function PackagesPage() {
     () => manageBundle ? bundlesApi.get(manageBundle.id) : Promise.resolve(null),
     [manageBundle?.id]
   );
+  const { data: customersRes } = useApi(() => customersApi.list(), []);
 
+  const { mutate: sellBundleMutate } = useMutation(({ id, d }: any) => bundlesApi.sell(id, d));
   const { mutate: createBundle } = useMutation((d: any) => bundlesApi.create(d));
   const { mutate: updateBundle } = useMutation(({ id, d }: any) => bundlesApi.update(id, d));
   const { mutate: deleteBundle } = useMutation((id: string) => bundlesApi.delete(id));
   const { mutate: addItem }      = useMutation(({ id, d }: any) => bundlesApi.addItem(id, d));
   const { mutate: removeItem }   = useMutation(({ bundleId, itemId }: any) => bundlesApi.removeItem(bundleId, itemId));
 
-  const bundles: any[]  = res?.data || [];
-  const services: any[] = servicesRes?.data || [];
+  const bundles: any[]   = res?.data || [];
+  const services: any[]  = servicesRes?.data || [];
+  const customers: any[] = customersRes?.data || [];
   const bundleItems: any[] = bundleDetail?.data?.items || [];
   const addedServiceIds = new Set(bundleItems.map((i: any) => i.serviceId));
 
@@ -93,6 +100,23 @@ export function PackagesPage() {
       await updateBundle({ id: b.id, d: { status: next } });
       refetch();
     } catch { setToast({ msg: "فشل التحديث", type: "error" }); }
+  };
+
+  const openSell = (b: any) => {
+    setSellBundle(b);
+    setSellForm({ customerId: "", startDate: "" });
+    setShowSellModal(true);
+  };
+
+  const handleSell = async () => {
+    if (!sellForm.customerId) return;
+    setSelling(true);
+    try {
+      const res = await sellBundleMutate({ id: sellBundle.id, d: { customerId: sellForm.customerId, startDate: sellForm.startDate || undefined } });
+      setToast({ msg: `تم بيع الباقة بنجاح (${(res as any)?.count || 0} اشتراك)`, type: "success" });
+      setShowSellModal(false);
+    } catch { setToast({ msg: "فشل البيع", type: "error" }); }
+    finally { setSelling(false); }
   };
 
   const handleAddService = async (serviceId: string) => {
@@ -220,6 +244,10 @@ export function PackagesPage() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 pt-1 border-t border-gray-50">
+                  <button onClick={() => openSell(b)}
+                    className="flex-1 py-1.5 rounded-xl bg-brand-500 text-white text-xs font-medium hover:bg-brand-600 transition-colors flex items-center justify-center gap-1">
+                    <ShoppingCart className="w-3.5 h-3.5" /> بيع للعميل
+                  </button>
                   <button onClick={() => { setManageBundle(b); setShowServicesModal(true); }}
                     className="flex-1 py-1.5 rounded-xl border border-brand-200 text-brand-600 text-xs font-medium hover:bg-brand-50 transition-colors">
                     إدارة الخدمات
@@ -325,6 +353,40 @@ export function PackagesPage() {
               )}
             </div>
           </div>
+        </div>
+      </Modal>
+
+      {/* Sell Modal */}
+      <Modal open={showSellModal} onClose={() => setShowSellModal(false)}
+        title={`بيع باقة: ${sellBundle?.name || ""}`}
+        footer={<>
+          <Button variant="secondary" onClick={() => setShowSellModal(false)}>إلغاء</Button>
+          <Button icon={ShoppingCart} onClick={handleSell} loading={selling} disabled={!sellForm.customerId}>
+            تأكيد البيع
+          </Button>
+        </>}>
+        <div className="space-y-4">
+          <div className="bg-brand-50 rounded-xl p-3 border border-brand-100">
+            <p className="text-xs text-brand-700 font-medium">سيتم إنشاء اشتراك لكل خدمة في الباقة تحت حساب هذا العميل</p>
+          </div>
+          <Select
+            label="العميل *"
+            name="customerId"
+            value={sellForm.customerId}
+            onChange={e => setSellForm(p => ({ ...p, customerId: e.target.value }))}
+            options={[
+              { value: "", label: "اختر العميل..." },
+              ...customers.map((c: any) => ({ value: c.id, label: c.name || c.phone || c.id })),
+            ]}
+          />
+          <Input
+            label="تاريخ البداية (اختياري)"
+            name="startDate"
+            type="date"
+            value={sellForm.startDate}
+            onChange={e => setSellForm(p => ({ ...p, startDate: e.target.value }))}
+            dir="ltr"
+          />
         </div>
       </Modal>
 

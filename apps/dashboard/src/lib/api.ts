@@ -221,6 +221,8 @@ export const bundlesApi = {
   delete: (id: string) => api.delete(`/bundles/${id}`),
   addItem: (bundleId: string, data: any) => api.post<{ data: any }>(`/bundles/${bundleId}/items`, data),
   removeItem: (bundleId: string, itemId: string) => api.delete(`/bundles/${bundleId}/items/${itemId}`),
+  sell: (bundleId: string, data: { customerId: string; startDate?: string }) =>
+    api.post<{ data: any[]; count: number }>(`/bundles/${bundleId}/sell`, data),
 };
 
 // --- Inventory ---
