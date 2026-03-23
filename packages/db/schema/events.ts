@@ -100,7 +100,7 @@ export const events = pgTable("events", {
 export const ticketTypes = pgTable("ticket_types", {
   id: uuid("id").defaultRandom().primaryKey(),
   orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
-  eventId: uuid("event_id").notNull().references(() => events.id, { onDelete: "cascade" }),
+  eventId: uuid("event_id_new").notNull().references(() => events.id, { onDelete: "cascade" }),
 
   name: text("name").notNull(),                       // "VIP"، "عادي"، "طفل"
   nameEn: text("name_en"),

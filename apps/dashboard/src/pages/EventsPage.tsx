@@ -51,16 +51,16 @@ export function EventsPage() {
   );
 
   const createEvent   = useMutation((d: any) => eventsApi.create(d));
-  const publishEvent  = useMutation((id: string) => eventsApi.update(id, { status: "published" }));
+  const publishEvent  = useMutation((id: string) => eventsApi.updateStatus(id, "published"));
   const createTT      = useMutation((d: any) => eventsApi.createTicketType(selectedEvent!.id, d));
 
-  const events: any[] = data?.events || [];
+  const events: any[] = data?.data || [];
   const now = new Date();
   const upcoming = events.filter(e => new Date(e.startsAt) >= now).length;
   const ongoing  = events.filter(e => e.status === "ongoing").length;
   const totalSold = events.reduce((s: number, e: any) => s + (e.soldTickets ?? 0), 0);
 
-  const ticketTypes: any[] = detailData?.ticketTypes || [];
+  const ticketTypes: any[] = detailData?.data?.ticketTypes || [];
 
   const saveEvent = async () => {
     if (!form.name.trim() || !form.startsAt || !form.endsAt) return;

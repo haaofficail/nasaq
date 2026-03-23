@@ -205,8 +205,8 @@ eventsRouter.post("/:id/ticket-types", async (c) => {
   // Update event min/max price
   await db.execute(sql`
     UPDATE events SET
-      min_price = (SELECT MIN(price) FROM ticket_types WHERE event_id = ${eventId}),
-      max_price = (SELECT MAX(price) FROM ticket_types WHERE event_id = ${eventId}),
+      min_price = (SELECT MIN(price) FROM ticket_types WHERE event_id_new = ${eventId}),
+      max_price = (SELECT MAX(price) FROM ticket_types WHERE event_id_new = ${eventId}),
       updated_at = NOW()
     WHERE id = ${eventId}
   `);

@@ -1212,10 +1212,11 @@ export const remindersApi = {
 
 // --- Events & Tickets ---
 export const eventsApi = {
-  list:            (params?: Record<string, string>) => { const q = params ? "?" + new URLSearchParams(Object.entries(params).filter(([,v]) => !!v)) : ""; return api.get<{ events: any[]; total: number }>(`/events${q}`); },
-  get:             (id: string)                      => api.get<{ event: any; ticketTypes: any[] }>(`/events/${id}`),
-  create:          (data: any)                       => api.post<{ event: any }>("/events", data),
-  update:          (id: string, data: any)           => api.patch<{ event: any }>(`/events/${id}`, data),
+  list:            (params?: Record<string, string>) => { const q = params ? "?" + new URLSearchParams(Object.entries(params).filter(([,v]) => !!v)) : ""; return api.get<{ data: any[]; pagination: { total: number } }>(`/events${q}`); },
+  get:             (id: string)                      => api.get<{ data: any & { ticketTypes: any[]; sections: any[] } }>(`/events/${id}`),
+  create:          (data: any)                       => api.post<{ data: any }>("/events", data),
+  update:          (id: string, data: any)           => api.put<{ data: any }>(`/events/${id}`, data),
+  updateStatus:    (id: string, status: string)      => api.patch<{ data: any }>(`/events/${id}/status`, { status }),
   stats:           (id: string)                      => api.get<{ occupancyRate: number; revenueByType: any[]; checkedIn: number; total: number }>(`/events/${id}/stats`),
   // Ticket types
   createTicketType: (eventId: string, data: any)    => api.post<{ ticketType: any }>(`/events/${eventId}/ticket-types`, data),
