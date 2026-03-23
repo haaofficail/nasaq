@@ -6,14 +6,12 @@ import { prettyJSON } from "hono/pretty-json";
 import { requestId } from "hono/request-id";
 import "dotenv/config";
 import { db, pool } from "@nasaq/db/client";
-import { organizations } from "@nasaq/db/schema";
+import { platformAuditLog } from "@nasaq/db/schema";
 import { log } from "./lib/logger";
-import { autoCancelOverdueBookings } from "./lib/booking-engine";
-import { refreshAllSegments } from "./lib/segments-engine";
-import { SEGMENT_REFRESH_INTERVAL_MS, AUTO_CANCEL_INTERVAL_MS } from "./lib/constants";
+import { startScheduler } from "./jobs/scheduler";
 
 // Middleware
-import { authMiddleware, requirePermission, locationFilter } from "./middleware/auth";
+import { authMiddleware, requirePermission, requireCapability, locationFilter, superAdminMiddleware } from "./middleware/auth";
 
 // Routes
 import { authRouter } from "./routes/auth";
@@ -52,6 +50,19 @@ import { accountingRouter } from "./routes/accounting";
 import { reconciliationRouter } from "./routes/reconciliation";
 import { auditLogRouter } from "./routes/audit-log";
 import { mediaRouter } from "./routes/media";
+import { salonRouter } from "./routes/salon";
+import { restaurantRouter } from "./routes/restaurant";
+import { rentalRouter } from "./routes/rental";
+import { jobTitlesRouter } from "./routes/job-titles";
+import { membersRouter } from "./routes/members";
+import { deliveryRouter } from "./routes/delivery";
+import { adminRouter } from "./routes/admin";
+import { commercialRouter } from "./routes/commercial";
+import { remindersRouter } from "./routes/reminders";
+import { billingRouter } from "./routes/billing";
+import { marketplaceRouter } from "./routes/marketplace";
+import { eventsRouter } from "./routes/events";
+import { procurementRouter } from "./routes/procurement";
 
 // ============================================================
 // APP
@@ -68,11 +79,55 @@ app.use("*", cors({
 app.use("*", logger());
 app.use("*", prettyJSON());
 
+// Security headers
+app.use("*", async (c, next) => {
+  await next();
+  c.res.headers.set("X-Content-Type-Options", "nosniff");
+  c.res.headers.set("X-Frame-Options", "DENY");
+  c.res.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  c.res.headers.set("Permissions-Policy", "geolocation=(), camera=(), microphone=()");
+  if (process.env.NODE_ENV !== "development") {
+    c.res.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  }
+});
+
 // Propagate request ID to response header (O2)
 app.use("*", async (c, next) => {
   await next();
   const id = c.get("requestId") as string | undefined;
   if (id) c.res.headers.set("X-Request-Id", id);
+});
+
+// Global error handler — يُسجّل كل خطأ 500 في platformAuditLog ويُرجع كوداً
+app.onError((err, c) => {
+  const requestId = (c.get("requestId") as string | undefined) ?? undefined;
+  const url = new URL(c.req.url);
+  const path = url.pathname;
+  const method = c.req.method;
+  const adminId = (c.get("adminId") as string | undefined) ?? "system";
+
+  // log the error for visibility in the admin system tab
+  db.insert(platformAuditLog).values({
+    adminId,
+    action: "srv_error",
+    targetType: "system",
+    targetId: requestId ?? null,
+    details: {
+      code: "SRV_INTERNAL",
+      path,
+      method,
+      message: err.message,
+      requestId,
+    },
+    ip: (c.req.header("CF-Connecting-IP") || c.req.header("X-Real-IP") || (c.req.header("X-Forwarded-For") || "").split(",")[0].trim() || null),
+  }).catch(() => {});
+
+  log.error(`[SRV_INTERNAL] ${method} ${path} rid=${requestId ?? "-"} ${err.message}`);
+
+  return c.json(
+    { error: "خطأ في الخادم، يرجى المحاولة لاحقاً", code: "SRV_INTERNAL", requestId },
+    500,
+  );
 });
 
 // Health check with DB probe (O5)
@@ -118,6 +173,7 @@ app.use("/import/*", authMiddleware);
 app.use("/approvals/*", authMiddleware);
 app.use("/finance/*", authMiddleware);
 app.use("/inventory/*", authMiddleware);
+app.use("/inventory/*", requireCapability("inventory"));
 app.use("/team/*", authMiddleware);
 app.use("/automation/*", authMiddleware);
 app.use("/marketing/*", authMiddleware);
@@ -127,25 +183,47 @@ app.use("/website/*", async (c, next) => {
   if (c.req.path.includes("/website/public/")) return next();
   return authMiddleware(c, next);
 });
+app.use("/website/*", async (c, next) => {
+  if (c.req.path.includes("/website/public/")) return next();
+  return requireCapability("website")(c, next);
+});
 app.use("/settings/*", authMiddleware);
 app.use("/suppliers/*", authMiddleware);
+app.use("/suppliers/*", requireCapability("inventory"));
 app.use("/pos/*", authMiddleware);
+app.use("/pos/*", requireCapability("pos"));
 app.use("/online-orders/*", authMiddleware);
+app.use("/online-orders/*", requireCapability("pos"));
 app.use("/menu/*", authMiddleware);
+app.use("/menu/*", requireCapability("pos"));
 app.use("/arrangements/*", authMiddleware);
+app.use("/arrangements/*", requireCapability("floral"));
 app.use("/messaging/*", authMiddleware);
 app.use("/flower-builder/*", async (c, next) => {
   if (c.req.path.includes("/flower-builder/public/")) return next();
   return authMiddleware(c, next);
 });
+app.use("/flower-builder/*", async (c, next) => {
+  if (c.req.path.includes("/flower-builder/public/")) return next();
+  return requireCapability("floral")(c, next);
+});
 
-// RBAC: permission guards per resource (owners bypass automatically)
-function methodGuard(resource: string) {
+// RBAC: permission guards per resource — maps HTTP method to action
+// GET → view | POST → create | PUT/PATCH → edit | DELETE → delete
+// actionOverrides: optional per-method action name (e.g. { DELETE: "remove" })
+function methodGuard(resource: string, actionOverrides: Partial<Record<string, string>> = {}) {
   return async (c: any, next: any) => {
-    const action = c.req.method === "GET" ? "view" : "edit";
+    const method = c.req.method;
+    let action: string;
+    if (actionOverrides[method])               action = actionOverrides[method]!;
+    else if (method === "GET")                 action = "view";
+    else if (method === "POST")                action = "create";
+    else if (method === "DELETE")              action = "delete";
+    else                                       action = "edit"; // PUT, PATCH
     return requirePermission(resource, action)(c, next);
   };
 }
+
 
 app.use("/categories/*", methodGuard("services"));
 app.use("/services/*", methodGuard("services"));
@@ -252,17 +330,44 @@ app.route("/messaging", messagingRouter);
 // --- Flower Builder ---
 app.route("/flower-builder", flowerBuilderRouter);
 
+// --- Salon Supplies ---
+app.use("/salon/*", authMiddleware);
+app.use("/salon/*", methodGuard("inventory"));
+app.route("/salon", salonRouter);
+
+// --- Restaurant Intelligence ---
+app.use("/restaurant/*", authMiddleware);
+app.use("/restaurant/*", methodGuard("bookings"));
+app.route("/restaurant", restaurantRouter);
+
+// --- Rental (contracts + inspections + analytics) ---
+app.use("/rental/*", authMiddleware);
+app.use("/rental/*", methodGuard("bookings"));
+app.route("/rental", rentalRouter);
+
+// --- Contracts (backward compat alias → rental) ---
+app.use("/contracts/*", authMiddleware);
+app.use("/contracts/*", methodGuard("bookings"));
+app.route("/contracts", rentalRouter);
+
+// --- Inspections (backward compat alias) ---
+app.use("/inspections/*", authMiddleware);
+app.route("/inspections", rentalRouter);
+
 // --- Attendance Engine ---
 app.use("/attendance/*", authMiddleware);
+app.use("/attendance/*", requireCapability("attendance"));
 app.route("/attendance", attendanceRouter);
 
 // --- Hotel ---
 app.use("/hotel/*", authMiddleware);
+app.use("/hotel/*", requireCapability("hotel"));
 app.use("/hotel/*", methodGuard("bookings"));
 app.route("/hotel", hotelRouter);
 
 // --- Car Rental ---
 app.use("/car-rental/*", authMiddleware);
+app.use("/car-rental/*", requireCapability("car_rental"));
 app.use("/car-rental/*", methodGuard("bookings"));
 app.route("/car-rental", carRentalRouter);
 
@@ -280,16 +385,19 @@ app.route("/integrations", integrationsRouter);
 
 // --- Treasury ---
 app.use("/treasury/*", authMiddleware);
+app.use("/treasury/*", requireCapability("accounting"));
 app.use("/treasury/*", methodGuard("finance"));
 app.route("/treasury", treasuryRouter);
 
 // --- Accounting ---
 app.use("/accounting/*", authMiddleware);
+app.use("/accounting/*", requireCapability("accounting"));
 app.use("/accounting/*", methodGuard("finance"));
 app.route("/accounting", accountingRouter);
 
 // --- Reconciliation ---
 app.use("/reconciliation/*", authMiddleware);
+app.use("/reconciliation/*", requireCapability("accounting"));
 app.use("/reconciliation/*", methodGuard("finance"));
 app.route("/reconciliation", reconciliationRouter);
 
@@ -303,12 +411,76 @@ app.use("/media/*", authMiddleware);
 app.use("/media/*", methodGuard("services"));
 app.route("/media", mediaRouter);
 
+// --- RBAC v2: Job Titles ---
+app.use("/job-titles/*", authMiddleware);
+app.use("/job-titles/*", methodGuard("team"));
+app.route("/job-titles", jobTitlesRouter);
+
+// --- RBAC v2: Org Members ---
+app.use("/members/*", authMiddleware);
+app.use("/members/*", methodGuard("team", { DELETE: "remove" }));
+app.route("/members", membersRouter);
+
+// --- Delivery ---
+app.use("/delivery/*", authMiddleware);
+app.use("/delivery/*", methodGuard("team"));
+app.route("/delivery", deliveryRouter);
+
+// --- Billing & Subscription (يعمل حتى عند إيقاف الاشتراك) ---
+// webhook عام بدون auth، status + renew يتطلبان auth لكن يتجاوزان suspension check
+app.use("/billing/*", async (c, next) => {
+  // webhook لا يحتاج auth
+  if (c.req.path.endsWith("/webhook/moyasar")) return next();
+  return authMiddleware(c, next);
+});
+app.route("/billing", billingRouter);
+
+// --- Marketplace (سوق نسق) ---
+// Public: GET /marketplace, GET /marketplace/categories, POST /marketplace/rfp
+// Authenticated: /marketplace/my-listings, /marketplace/listings
+app.use("/marketplace/*", async (c, next) => {
+  const path   = c.req.path;
+  const method = c.req.method;
+  // Allow public read + RFP
+  if (method === "GET"  && (path === "/api/v1/marketplace" || path === "/api/v1/marketplace/categories")) return next();
+  if (method === "POST" && path === "/api/v1/marketplace/rfp") return next();
+  return authMiddleware(c, next);
+});
+app.route("/marketplace", marketplaceRouter);
+
+// --- Super Admin Panel ---
+// Note: admin router has its own super-admin middleware, no outer guards needed
+app.route("/admin", adminRouter);
+
+// --- Commercial Engine (plan builder, features, quotas, add-ons, entitlements) ---
+// Note: commercial router has its own super-admin middleware for write operations
+app.route("/admin", commercialRouter);
+
+// --- Events & Tickets ---
+app.use("/events/*", authMiddleware);
+app.use("/events/*", methodGuard("bookings"));
+app.route("/events", eventsRouter);
+
+// --- Procurement (Suppliers / PO / GR / Invoices) ---
+app.use("/procurement/*", authMiddleware);
+app.use("/procurement/*", requireCapability("inventory"));
+app.use("/procurement/*", methodGuard("inventory"));
+app.route("/procurement", procurementRouter);
+
+// --- Reminders ---
+app.use("/reminders/*", authMiddleware);
+app.route("/reminders", remindersRouter);
+
 // --- Flower Master Data ---
 app.use("/flower-master/*", authMiddleware);
+app.use("/flower-master/*", requireCapability("floral"));
 app.use("/flower-master/*", async (c, next) => {
-  // Variant list & enums are read-only — allow even without full services perm
+  // GET — read-only, no perm check needed
   if (c.req.method === "GET") return next();
-  return methodGuard("services")(c, next);
+  // POST — merchants can add new variants (contribute to shared catalog)
+  if (c.req.method === "POST") return methodGuard("services")(c, next);
+  // PUT / PATCH / DELETE — edit/disable existing global variants → super admin only
+  return superAdminMiddleware(c, next);
 });
 app.route("/flower-master", flowerMasterRouter);
 
@@ -318,36 +490,9 @@ app.route("/flower-master", flowerMasterRouter);
 
 app.notFound((c) => c.json({ error: "Not found", path: c.req.path }, 404));
 
-app.onError((err, c) => {
-  const reqId = c.get("requestId") as string | undefined;
-  log.error({ requestId: reqId, path: c.req.path, method: c.req.method, err }, "unhandled error");
-  return c.json({
-    error: process.env.NODE_ENV === "development" ? err.message : "Internal server error",
-    requestId: reqId,
-    ...(process.env.NODE_ENV === "development" ? { stack: err.stack } : {}),
-  }, 500);
-});
-
 // ============================================================
-// SCHEDULED JOBS (L3/L4)
+// SCHEDULED JOBS — managed by pg-boss (src/jobs/scheduler.ts)
 // ============================================================
-
-async function runForAllOrgs(job: (orgId: string) => Promise<unknown>, label: string) {
-  const start = Date.now();
-  try {
-    const orgs = await db.select({ id: organizations.id }).from(organizations);
-    await Promise.all(orgs.map((org) => job(org.id)));
-    log.info({ label, orgs: orgs.length, durationMs: Date.now() - start }, "scheduler job done");
-  } catch (err) {
-    log.error({ label, err }, "scheduler job error");
-  }
-}
-
-// Refresh customer segments every hour
-const segmentInterval = setInterval(() => runForAllOrgs(refreshAllSegments, "refreshAllSegments"), SEGMENT_REFRESH_INTERVAL_MS);
-
-// Auto-cancel overdue bookings once per day
-const cancelInterval = setInterval(() => runForAllOrgs(autoCancelOverdueBookings, "autoCancelOverdueBookings"), AUTO_CANCEL_INTERVAL_MS);
 
 // ============================================================
 // START
@@ -370,22 +515,25 @@ try {
   process.exit(1);
 }
 
+// Start pg-boss scheduler (creates pgboss schema on first run, resumes on restart)
+const boss = await startScheduler();
+
 const port = parseInt(process.env.PORT || "3000");
 
 log.info({ port, url: `http://localhost:${port}/api/v1` }, "nasaq-api started");
 
 const server = serve({ fetch: app.fetch, port });
 
-// Graceful shutdown — stop schedulers, drain connections, close pool (L1/L2)
+// Graceful shutdown — stop pg-boss, drain connections, close pool
 const shutdown = () => {
-  log.info("shutting down — closing server and DB pool");
-  clearInterval(segmentInterval);
-  clearInterval(cancelInterval);
-  server.close(async () => {
-    await pool.end();
-    log.info("shutdown complete");
-    process.exit(0);
-  });
+  log.info("shutting down — stopping scheduler and DB pool");
+  boss.stop({ graceful: true, timeout: 10_000 }).then(() => {
+    server.close(async () => {
+      await pool.end();
+      log.info("shutdown complete");
+      process.exit(0);
+    });
+  }).catch(() => process.exit(1));
 };
 
 process.on("SIGTERM", shutdown);

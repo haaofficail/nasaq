@@ -26,8 +26,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: "Network error" }));
-    throw new Error(error.error || `HTTP ${res.status}`);
+    const body = await res.json().catch(() => ({ error: "Network error" }));
+    const code = body.code ? `[${body.code}]` : `[HTTP_${res.status}]`;
+    const msg = body.error || `HTTP ${res.status}`;
+    throw new Error(`${code} ${msg}`);
   }
 
   return res.json();
@@ -96,6 +98,11 @@ export const servicesApi = {
   addRequirement: (id: string, data: any) => api.post<{ data: any }>(`/services/${id}/requirements`, data),
   updateRequirement: (id: string, reqId: string, data: any) => api.put<{ data: any }>(`/services/${id}/requirements/${reqId}`, data),
   deleteRequirement: (id: string, reqId: string) => api.delete(`/services/${id}/requirements/${reqId}`),
+  // Staff assignment
+  listStaff:    (id: string) => api.get<{ data: any[] }>(`/services/${id}/staff`),
+  addStaff:     (id: string, data: any) => api.post<{ data: any }>(`/services/${id}/staff`, data),
+  updateStaff:  (id: string, userId: string, data: any) => api.put<{ data: any }>(`/services/${id}/staff/${userId}`, data),
+  removeStaff:  (id: string, userId: string) => api.delete(`/services/${id}/staff/${userId}`),
 };
 
 // --- Addons ---
@@ -116,9 +123,14 @@ export const bookingsApi = {
   create: (data: any) => api.post<{ data: any }>("/bookings", data),
   updateStatus: (id: string, status: string, reason?: string) =>
     api.patch(`/bookings/${id}/status`, { status, reason }),
+  reschedule: (id: string, data: { eventDate: string; eventEndDate?: string; assignedUserId?: string | null; reason?: string; notes?: string }) =>
+    api.patch<{ data: any }>(`/bookings/${id}/reschedule`, data),
   addPayment: (id: string, data: any) => api.post(`/bookings/${id}/payments`, data),
   calendar: (from: string, to: string) => api.get<{ data: any[] }>(`/bookings/calendar/events?from=${from}&to=${to}`),
   stats: (period?: string) => api.get<{ data: any }>(`/bookings/stats/summary?period=${period || "month"}`),
+  trend: (months?: number) => api.get<{ data: any[] }>(`/bookings/stats/trend?months=${months || 6}`),
+  growth: (period?: string) => api.get<{ data: any }>(`/bookings/stats/growth?period=${period || "month"}`),
+  events: (id: string) => api.get<{ data: any[] }>(`/bookings/${id}/events`),
 };
 
 // --- Customers ---
@@ -146,6 +158,7 @@ export const financeApi = {
   deleteExpense: (id: string) => api.delete(`/finance/expenses/${id}`),
   pnl: (period?: string) => api.get<{ data: any }>(`/finance/reports/pnl?period=${period || "month"}`),
   cashflow: () => api.get<{ data: any }>("/finance/reports/cashflow"),
+  commissionSummary: (year: number, month: number) => api.get<{ data: any[] }>(`/finance/commission-summary?year=${year}&month=${month}`),
 };
 
 // --- Treasury ---
@@ -231,6 +244,7 @@ export const mediaApi = {
   get:        (id: string)   => api.get<{ data: any }>(`/media/${id}`),
   categories: ()             => api.get<{ data: string[] }>("/media/categories"),
   tags:       ()             => api.get<{ data: string[] }>("/media/tags"),
+  stats:      () => api.get<{ data: any }>("/media/stats"),
   presigned:  (data: { filename: string; contentType: string; category?: string }) =>
     api.post<{ data: any }>("/media/presigned", data),
   confirm:    (data: any)    => api.post<{ data: any }>("/media/confirm", data),
@@ -239,6 +253,27 @@ export const mediaApi = {
   bulkDelete: (ids: string[]) => api.post<{ data: any }>("/media/bulk-delete", { ids }),
   replace:    (id: string, data: any) => api.post<{ data: any }>(`/media/${id}/replace`, data),
   confirmReplace: (id: string, data: any) => api.post<{ data: any }>(`/media/${id}/confirm-replace`, data),
+  upload: (formData: FormData, onProgress?: (pct: number) => void): Promise<{ data: any }> =>
+    new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `/api/v1/media/upload`);
+      const token  = localStorage.getItem("nasaq_token");
+      const orgId  = localStorage.getItem("nasaq_org_id");
+      const userId = localStorage.getItem("nasaq_user_id");
+      if (token)  xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      if (orgId)  xhr.setRequestHeader("X-Org-Id", orgId);
+      if (userId) xhr.setRequestHeader("X-User-Id", userId);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable && onProgress) onProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => {
+        if (xhr.status < 300) { resolve(JSON.parse(xhr.responseText)); return; }
+        try { const e = JSON.parse(xhr.responseText); reject(new Error(e.error || `HTTP ${xhr.status}`)); }
+        catch { reject(new Error(`HTTP ${xhr.status}`)); }
+      };
+      xhr.onerror = () => reject(new Error("Upload failed"));
+      xhr.send(formData);
+    }),
 };
 
 // --- Inventory ---
@@ -290,13 +325,56 @@ export const marketingApi = {
   abandonedCarts: () => api.get<{ data: any }>("/marketing/abandoned-carts/stats"),
 };
 
-// --- Roles ---
+// --- Roles (legacy) ---
 export const rolesApi = {
   list: () => api.get<{ data: any[] }>("/team/roles"),
   create: (data: any) => api.post<{ data: any }>("/team/roles", data),
   update: (id: string, data: any) => api.put<{ data: any }>(`/team/roles/${id}`, data),
   updatePermissions: (id: string, permissions: string[]) => api.put<{ data: any }>(`/team/roles/${id}/permissions`, { permissions }),
   delete: (id: string) => api.delete(`/team/roles/${id}`),
+};
+
+// --- Job Titles (RBAC v2) ---
+export const jobTitlesApi = {
+  list: () => api.get<{ data: any[] }>("/job-titles"),
+  get: (id: string) => api.get<{ data: any }>(`/job-titles/${id}`),
+  create: (data: any) => api.post<{ data: any }>("/job-titles", data),
+  update: (id: string, data: any) => api.put<{ data: any }>(`/job-titles/${id}`, data),
+  delete: (id: string) => api.delete(`/job-titles/${id}`),
+  reorder: (items: Array<{ id: string; sortOrder: number }>) => api.post("/job-titles/reorder", { items }),
+  getPermissions: (id: string) => api.get<{ data: any }>(`/job-titles/${id}/permissions`),
+  savePermissions: (id: string, permissions: string[]) => api.put(`/job-titles/${id}/permissions`, { permissions }),
+};
+
+// --- Org Members (RBAC v2) ---
+export const membersApi = {
+  list: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return api.get<{ data: any[]; total: number }>(`/members${qs}`);
+  },
+  get: (id: string) => api.get<{ data: any }>(`/members/${id}`),
+  create: (data: any) => api.post<{ data: any }>("/members", data),
+  update: (id: string, data: any) => api.put<{ data: any }>(`/members/${id}`, data),
+  changeStatus: (id: string, status: string) => api.patch(`/members/${id}/status`, { status }),
+  delete: (id: string) => api.delete(`/members/${id}`),
+  available: () => api.get<{ data: any[] }>("/members/available"),
+};
+
+// --- Delivery (RBAC v2) ---
+export const deliveryApi = {
+  partners: (showInactive?: boolean) => api.get<{ data: any[] }>(`/delivery/partners${showInactive ? "?showInactive=true" : ""}`),
+  createPartner: (data: any) => api.post<{ data: any }>("/delivery/partners", data),
+  updatePartner: (id: string, data: any) => api.put<{ data: any }>(`/delivery/partners/${id}`, data),
+  deletePartner: (id: string) => api.delete(`/delivery/partners/${id}`),
+  drivers: () => api.get<{ data: any }>("/delivery/drivers"),
+  assignments: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(params).toString() : "";
+    return api.get<{ data: any[] }>(`/delivery/assignments${qs}`);
+  },
+  createAssignment: (data: any) => api.post<{ data: any }>("/delivery/assignments", data),
+  updateStatus: (id: string, status: string, extra?: any) =>
+    api.patch(`/delivery/assignments/${id}/status`, { status, ...extra }),
+  stats: () => api.get<{ data: any }>("/delivery/stats"),
 };
 
 // --- Attendance (legacy, kept for backwards compat) ---
@@ -493,6 +571,7 @@ export const arrangementsApi = {
 
 // --- Settings ---
 export const settingsApi = {
+  context: () => api.get<{ data: any }>("/settings/context"),
   profile: () => api.get<{ data: any }>("/settings/profile"),
   updateProfile: (data: any) => api.put<{ data: any }>("/settings/profile", data),
   branches: () => api.get<{ data: any[] }>("/settings/locations"),
@@ -509,6 +588,10 @@ export const settingsApi = {
   updateCustomList: (key: string, values: string[]) => api.put<{ data: any }>("/settings/custom-lists", { key, values }),
   bookingSettings: () => api.get<{ data: any }>("/settings/booking"),
   updateBookingSettings: (data: any) => api.put<{ data: any }>("/settings/booking", data),
+  // Onboarding
+  updateOnboardingStep: (step: string) => api.patch<{ data: any }>("/settings/onboarding-step", { step }),
+  seedDemo: () => api.post<{ data: any }>("/settings/seed-demo"),
+  clearDemo: () => api.delete("/settings/demo-data"),
 };
 
 // --- Website ---
@@ -526,6 +609,10 @@ export const websiteApi = {
   deletePost: (id: string) => api.delete(`/website/blog/${id}`),
   contacts: () => api.get<{ data: any[] }>("/website/contacts"),
   markContactRead: (id: string) => api.patch(`/website/contacts/${id}/read`, {}),
+  templates: () => api.get<{ data: any[] }>("/website/templates"),
+  publish: () => api.post("/website/publish", {}),
+  unpublish: () => api.post("/website/unpublish", {}),
+  analytics: () => api.get<{ data: any }>("/website/analytics"),
   // Public (no auth)
   publicSite: (orgSlug: string) => fetch(`/api/v1/website/public/${orgSlug}`).then(r => r.json()),
   publicPage: (orgSlug: string, pageSlug: string) => fetch(`/api/v1/website/public/${orgSlug}/page/${pageSlug}`).then(r => r.json()),
@@ -535,6 +622,27 @@ export const websiteApi = {
 // --- Public tracking (no auth) ---
 export const publicApi = {
   track: (token: string) => fetch(`/api/v1/bookings/track/${token}`).then(r => r.json()),
+};
+
+// --- Marketplace (سوق نسق) ---
+export const marketplaceApi = {
+  // Public (no auth)
+  browse: (params?: Record<string, string>) => {
+    const qs = params ? "?" + new URLSearchParams(Object.entries(params).filter(([, v]) => !!v)).toString() : "";
+    return fetch(`/api/v1/marketplace${qs}`).then(r => r.json()) as Promise<{ data: any[]; total: number }>;
+  },
+  categories: () => fetch("/api/v1/marketplace/categories").then(r => r.json()) as Promise<{ data: string[] }>,
+  submitRfp: (data: any) =>
+    fetch("/api/v1/marketplace/rfp", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
+  // Authenticated
+  myListings:    ()           => api.get<{ data: any[] }>("/marketplace/my-listings"),
+  addListing:    (data: any)  => api.post<{ data: any }>("/marketplace/listings", data),
+  removeListing: (id: string) => api.delete(`/marketplace/listings/${id}`),
+  // RFP
+  listRfp:       (params?: { status?: string; limit?: number; offset?: number }) =>
+    api.get<{ data: any[]; limit: number; offset: number }>(`/marketplace/rfp${params ? "?" + new URLSearchParams(Object.entries(params).filter(([,v]) => v != null).map(([k,v]) => [k, String(v)])).toString() : ""}`),
+  propose:       (rfpId: string, data: any) => api.post<{ data: any }>(`/marketplace/rfp/${rfpId}/propose`, data),
+  myProposals:   ()           => api.get<{ data: any[] }>("/marketplace/rfp/my-proposals"),
 };
 
 // --- Platform ---
@@ -759,6 +867,42 @@ export const flowerMasterApi = {
   reportStock: () => api.get<{ data: any[] }>("/flower-master/reports/stock"),
   reportOrigins: () => api.get<{ data: any[] }>("/flower-master/reports/origins"),
   reportGrades: () => api.get<{ data: any[] }>("/flower-master/reports/grades"),
+  intelligence: () => api.get<{ data: any }>("/flower-master/reports/intelligence"),
+};
+
+// --- Rental ---
+export const rentalApi = {
+  // Contracts
+  contracts: (params?: { status?: string; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.search) q.set("search", params.search);
+    return api.get<{ data: any[] }>(`/rental/contracts?${q}`);
+  },
+  getContract: (id: string) => api.get<{ data: any }>(`/rental/contracts/${id}`),
+  createContract: (data: any) => api.post<{ data: any }>("/rental/contracts", data),
+  updateContract: (id: string, data: any) => api.patch<{ data: any }>(`/rental/contracts/${id}`, data),
+  deleteContract: (id: string) => api.delete(`/rental/contracts/${id}`),
+  contractStats: () => api.get<{ data: any }>("/rental/contracts/stats"),
+
+  // Contract assets
+  addContractAsset: (contractId: string, data: any) =>
+    api.post<{ data: any }>(`/rental/contracts/${contractId}/assets`, data),
+  removeContractAsset: (contractId: string, assetRowId: string) =>
+    api.delete(`/rental/contracts/${contractId}/assets/${assetRowId}`),
+
+  // Inspections
+  inspections: (params?: { contractId?: string; damageOnly?: boolean }) => {
+    const q = new URLSearchParams();
+    if (params?.contractId) q.set("contractId", params.contractId);
+    if (params?.damageOnly) q.set("damageOnly", "true");
+    return api.get<{ data: any[] }>(`/rental/inspections?${q}`);
+  },
+  createInspection: (data: any) => api.post<{ data: any }>("/rental/inspections", data),
+  recoverDamage: (id: string) => api.patch<{ data: any }>(`/rental/inspections/${id}/recover`, {}),
+
+  // Analytics
+  analytics: () => api.get<{ data: any }>("/rental/analytics"),
 };
 
 // --- Integrations ---
@@ -789,4 +933,326 @@ export const integrationsApi = {
     return api.get<{ data: any[]; total: number }>(`/integrations/sync-jobs${qs}`);
   },
   triggerSync: (data: any) => api.post<{ data: any }>("/integrations/sync-jobs", data),
+};
+
+// --- Restaurant Intelligence ---
+export const restaurantApi = {
+  // Tables
+  tables: () => api.get<{ data: any[] }>("/restaurant/tables"),
+  createTable: (data: any) => api.post<{ data: any }>("/restaurant/tables", data),
+  updateTable: (id: string, data: any) => api.put<{ data: any }>(`/restaurant/tables/${id}`, data),
+  deleteTable: (id: string) => api.delete(`/restaurant/tables/${id}`),
+  setTableStatus: (id: string, status: string) => api.patch<{ data: any }>(`/restaurant/tables/${id}/status`, { status }),
+  seatGuests: (tableId: string, data: any) => api.post<{ data: any }>(`/restaurant/tables/${tableId}/seat`, data),
+  closeSession: (sessionId: string) => api.patch<{ data: any }>(`/restaurant/sessions/${sessionId}/close`, {}),
+
+  // Menu 86 toggle
+  toggleAvailability: (itemId: string) => api.patch<{ data: any }>(`/restaurant/menu-items/${itemId}/toggle-availability`, {}),
+
+  // Loyalty
+  loyalty: (search?: string) => api.get<{ data: any[] }>(`/restaurant/loyalty${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+  getLoyalty: (customerId: string) => api.get<{ data: any }>(`/restaurant/loyalty/${customerId}`),
+  addStamp: (customerId: string, count?: number, stampsGoal?: number) =>
+    api.post<{ data: any }>(`/restaurant/loyalty/${customerId}/stamp`, { count: count || 1, stampsGoal }),
+  redeemReward: (customerId: string) => api.post<{ data: any }>(`/restaurant/loyalty/${customerId}/redeem`, {}),
+
+  // Ingredients / cost cards
+  ingredients: (itemId: string) => api.get<{ data: any[] }>(`/restaurant/ingredients/${itemId}`),
+  addIngredient: (itemId: string, data: any) => api.post<{ data: any }>(`/restaurant/ingredients/${itemId}`, data),
+  deleteIngredient: (id: string) => api.delete(`/restaurant/ingredients/${id}`),
+
+  // Analytics
+  analytics: (from?: string, to?: string) => {
+    const q = new URLSearchParams();
+    if (from) q.set("from", from);
+    if (to)   q.set("to", to);
+    return api.get<{ data: any }>(`/restaurant/analytics?${q}`);
+  },
+
+  // Booking settings
+  bookingSettings: () => api.get<{ data: { sections: any[]; config: any } }>("/restaurant/booking-settings"),
+  updateBookingSettings: (data: any) => api.put<{ data: any }>("/restaurant/booking-settings", data),
+  createSection: (data: any) => api.post<{ data: any }>("/restaurant/sections", data),
+  updateSection: (id: string, data: any) => api.put<{ data: any }>(`/restaurant/sections/${id}`, data),
+  toggleSection: (id: string) => api.patch<{ data: any }>(`/restaurant/sections/${id}/toggle`, {}),
+  deleteSection: (id: string) => api.delete(`/restaurant/sections/${id}`),
+};
+
+// --- Salon Intelligence ---
+export const salonApi = {
+  // Supplies
+  supplies: (params?: { category?: string; lowStock?: boolean }) => {
+    const q = new URLSearchParams();
+    if (params?.category) q.set("category", params.category);
+    if (params?.lowStock) q.set("lowStock", "true");
+    return api.get<{ data: any[] }>(`/salon/supplies?${q}`);
+  },
+  lowStock: () => api.get<{ data: any[]; count: number }>("/salon/supplies/low-stock"),
+  getSupply: (id: string) => api.get<{ data: any }>(`/salon/supplies/${id}`),
+  createSupply: (data: any) => api.post<{ data: any }>("/salon/supplies", data),
+  updateSupply: (id: string, data: any) => api.patch<{ data: any }>(`/salon/supplies/${id}`, data),
+  deleteSupply: (id: string) => api.delete(`/salon/supplies/${id}`),
+  adjust: (id: string, delta: string, reason: string, notes?: string) =>
+    api.post<{ data: any }>(`/salon/supplies/${id}/adjust`, { delta, reason, notes }),
+
+  // Service Recipes
+  recipes: (serviceId?: string) =>
+    api.get<{ data: any[] }>(`/salon/recipes${serviceId ? `?serviceId=${serviceId}` : ""}`),
+  addRecipe: (data: { serviceId: string; supplyId: string; quantity: string; notes?: string }) =>
+    api.post<{ data: any }>("/salon/recipes", data),
+  deleteRecipe: (id: string) => api.delete(`/salon/recipes/${id}`),
+
+  // Client Beauty Profile
+  beautyProfile: (customerId: string) =>
+    api.get<{ data: { profile: any; recentVisits: any[] } }>(`/salon/beauty-profile/${customerId}`),
+  saveBeautyProfile: (customerId: string, data: any) =>
+    api.put<{ data: any }>(`/salon/beauty-profile/${customerId}`, data),
+
+  // Visit Notes
+  visitNotes: (bookingId: string) =>
+    api.get<{ data: any[] }>(`/salon/visit-notes/${bookingId}`),
+  saveVisitNote: (bookingId: string, data: any) =>
+    api.post<{ data: any }>(`/salon/visit-notes/${bookingId}`, data),
+
+  // Staff Performance
+  staffPerformance: (from?: string, to?: string) => {
+    const q = new URLSearchParams();
+    if (from) q.set("from", from);
+    if (to)   q.set("to", to);
+    return api.get<{ data: any[] }>(`/salon/staff-performance?${q}`);
+  },
+
+  // Recall Engine
+  recall: (serviceInterval?: number) =>
+    api.get<{ data: any[]; weeks: number }>(`/salon/recall${serviceInterval ? `?serviceInterval=${serviceInterval}` : ""}`),
+};
+
+// --- Super Admin ---
+export const adminApi = {
+  stats: () => api.get<{ data: any }>("/admin/stats"),
+  orgs: (params?: { q?: string; status?: string; plan?: string; businessType?: string; page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.q) q.set("q", params.q);
+    if (params?.status) q.set("status", params.status);
+    if (params?.plan) q.set("plan", params.plan);
+    if (params?.businessType) q.set("businessType", params.businessType);
+    if (params?.page) q.set("page", String(params.page));
+    if (params?.limit) q.set("limit", String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/orgs?${q}`);
+  },
+  getOrg: (id: string) => api.get<{ data: any }>(`/admin/orgs/${id}`),
+  updateOrg: (id: string, data: any) => api.patch<{ data: any }>(`/admin/orgs/${id}`, data),
+  verifyOrg: (id: string) => api.post<{ data: any }>(`/admin/orgs/${id}/verify`),
+  suspendOrg: (id: string, reason?: string) => api.post<{ data: any }>(`/admin/orgs/${id}/suspend`, { reason }),
+  unsuspendOrg: (id: string) => api.post<{ data: any }>(`/admin/orgs/${id}/unsuspend`),
+
+  users: (params?: { q?: string; orgId?: string; page?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.q) q.set("q", params.q);
+    if (params?.orgId) q.set("orgId", params.orgId);
+    if (params?.page) q.set("page", String(params.page));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/users?${q}`);
+  },
+  makeSuperAdmin: (id: string) => api.post<{ data: any }>(`/admin/users/${id}/make-super-admin`),
+  revokeSuperAdmin: (id: string) => api.post<{ data: any }>(`/admin/users/${id}/revoke-super-admin`),
+
+  impersonate: (orgId: string) => api.post<{ data: any }>(`/admin/impersonate/${orgId}`),
+
+  documents: (params?: { status?: string; orgId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.orgId) q.set("orgId", params.orgId);
+    return api.get<{ data: any[] }>(`/admin/documents?${q}`);
+  },
+  createDocument: (data: any) => api.post<{ data: any }>("/admin/documents", data),
+  updateDocument: (id: string, data: any) => api.patch<{ data: any }>(`/admin/documents/${id}`, data),
+
+  tickets: (params?: { status?: string; priority?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.priority) q.set("priority", params.priority);
+    return api.get<{ data: any[] }>(`/admin/tickets?${q}`);
+  },
+  createTicket: (data: any) => api.post<{ data: any }>("/admin/tickets", data),
+  updateTicket: (id: string, data: any) => api.patch<{ data: any }>(`/admin/tickets/${id}`, data),
+
+  announcements: () => api.get<{ data: any[] }>("/admin/announcements"),
+  createAnnouncement: (data: any) => api.post<{ data: any }>("/admin/announcements", data),
+  updateAnnouncement: (id: string, data: any) => api.patch<{ data: any }>(`/admin/announcements/${id}`, data),
+  deleteAnnouncement: (id: string) => api.delete(`/admin/announcements/${id}`),
+
+  auditLog: (params?: { page?: number; action?: string; targetType?: string; adminId?: string; fromDate?: string; toDate?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.set("page", String(params.page));
+    if (params?.action) q.set("action", params.action);
+    if (params?.targetType) q.set("targetType", params.targetType);
+    if (params?.adminId) q.set("adminId", params.adminId);
+    if (params?.fromDate) q.set("fromDate", params.fromDate);
+    if (params?.toDate) q.set("toDate", params.toDate);
+    return api.get<{ data: any[]; pagination: any }>(`/admin/audit-log?${q}`);
+  },
+  debugOtp: (phone?: string) => api.get<{ data: any[]; smsEnabled: boolean }>(`/admin/debug/otp${phone ? `?phone=${encodeURIComponent(phone)}` : ""}`),
+  system: () => api.get<{ data: any }>("/admin/system"),
+  systemErrors: (limit = 50) => api.get<{ data: any[] }>(`/admin/system/errors?limit=${limit}`),
+  diagnostics: () => api.get<{ data: any }>("/admin/system/diagnostics"),
+
+  // Plans
+  plans: () => api.get<{ data: any[] }>("/admin/plans"),
+  updatePlan: (id: string, data: any) => api.put<{ data: any }>(`/admin/plans/${id}`, data),
+
+  // Capabilities
+  getOrgCapabilities: (orgId: string) => api.get<{ data: any }>(`/admin/orgs/${orgId}/capabilities`),
+  setOrgCapabilities: (orgId: string, capabilities: string[]) => api.put<{ data: any }>(`/admin/orgs/${orgId}/capabilities`, { capabilities }),
+
+  // Subscription
+  changePlan: (orgId: string, data: { plan?: string; subscriptionStatus?: string; trialEndsAt?: string; subscriptionEndsAt?: string }) =>
+    api.post<{ data: any }>(`/admin/orgs/${orgId}/change-plan`, data),
+
+  // Create org
+  createOrg: (data: any) => api.post<{ data: any }>("/admin/orgs", data),
+
+  // Org users
+  getOrgUsers: (orgId: string) => api.get<{ data: any[] }>(`/admin/orgs/${orgId}/users`),
+
+  // Account manager
+  setOrgManager: (orgId: string, managerId: string | null) =>
+    api.put<{ data: any }>(`/admin/orgs/${orgId}/manager`, { managerId }),
+
+  // Nasaq staff
+  staff: () => api.get<{ data: any[] }>("/admin/staff"),
+  setStaffRole: (userId: string, role: string | null) =>
+    api.patch<{ data: any }>(`/admin/staff/${userId}/role`, { role }),
+  createStaff: (data: any) => api.post<{ data: any }>("/admin/staff", data),
+  removeStaff: (userId: string) => api.delete(`/admin/staff/${userId}`),
+
+  // Account manager portfolio
+  clients: (managerId?: string) => {
+    const q = managerId ? `?managerId=${managerId}` : "";
+    return api.get<{ data: any[] }>(`/admin/clients${q}`);
+  },
+
+  // Reminders management (admin-level: all orgs)
+  allReminders:          (params?: Record<string, string>) => { const q = params ? "?" + new URLSearchParams(params) : ""; return api.get<{ data: any[] }>(`/admin/reminders${q}`); },
+  reminderCategories:    ()                    => api.get<{ data: any[] }>("/admin/reminder-categories"),
+  createReminderCat:     (d: any)              => api.post<{ data: any }>("/admin/reminder-categories", d),
+  reminderTemplates:     ()                    => api.get<{ data: any[] }>("/admin/reminder-templates"),
+  createReminderTpl:     (d: any)              => api.post<{ data: any }>("/admin/reminder-templates", d),
+  updateReminderTpl:     (id: string, d: any)  => api.patch<{ data: any }>(`/admin/reminder-templates/${id}`, d),
+  deleteReminderTpl:     (id: string)          => api.delete(`/admin/reminder-templates/${id}`),
+};
+
+// --- Commercial Engine (admin only) ---
+export const commercialApi = {
+  // Features
+  features:           ()                    => api.get<{ data: any[] }>("/admin/features"),
+  createFeature:      (d: any)              => api.post<{ data: any }>("/admin/features", d),
+  updateFeature:      (id: string, d: any)  => api.patch<{ data: any }>(`/admin/features/${id}`, d),
+  featureGroups:      ()                    => api.get<{ data: any[] }>("/admin/feature-groups"),
+  createGroup:        (d: any)              => api.post<{ data: any }>("/admin/feature-groups", d),
+  // Quotas
+  quotas:             ()                    => api.get<{ data: any[] }>("/admin/quotas"),
+  createQuota:        (d: any)              => api.post<{ data: any }>("/admin/quotas", d),
+  updateQuota:        (id: string, d: any)  => api.patch<{ data: any }>(`/admin/quotas/${id}`, d),
+  // Plan features/quotas
+  planFeatures:       (planId: string)      => api.get<{ data: any[] }>(`/admin/plans/${planId}/features`),
+  setPlanFeatures:    (planId: string, d: any) => api.put<{ data: any }>(`/admin/plans/${planId}/features`, d),
+  planQuotas:         (planId: string)      => api.get<{ data: any[] }>(`/admin/plans/${planId}/quotas`),
+  setPlanQuotas:      (planId: string, d: any) => api.put<{ data: any }>(`/admin/plans/${planId}/quotas`, d),
+  // Addons
+  addons:             ()                    => api.get<{ data: any[] }>("/admin/addons"),
+  createAddon:        (d: any)              => api.post<{ data: any }>("/admin/addons", d),
+  updateAddon:        (id: string, d: any)  => api.patch<{ data: any }>(`/admin/addons/${id}`, d),
+  orgAddons:          (orgId: string)       => api.get<{ data: any[] }>(`/admin/orgs/${orgId}/addons`),
+  grantOrgAddon:      (orgId: string, d: any) => api.post<{ data: any }>(`/admin/orgs/${orgId}/addons`, d),
+  // Discounts
+  discounts:          ()                    => api.get<{ data: any[] }>("/admin/discounts"),
+  createDiscount:     (d: any)              => api.post<{ data: any }>("/admin/discounts", d),
+  updateDiscount:     (id: string, d: any)  => api.patch<{ data: any }>(`/admin/discounts/${id}`, d),
+  deleteDiscount:     (id: string)          => api.delete(`/admin/discounts/${id}`),
+  // Promotions
+  promotions:         ()                    => api.get<{ data: any[] }>("/admin/promotions"),
+  createPromotion:    (d: any)              => api.post<{ data: any }>("/admin/promotions", d),
+  updatePromotion:    (id: string, d: any)  => api.patch<{ data: any }>(`/admin/promotions/${id}`, d),
+  applyPromotion:     (id: string, orgId: string) => api.post<{ data: any }>(`/admin/promotions/${id}/apply/${orgId}`),
+  // Org entitlements
+  orgEntitlements:    (orgId: string)       => api.get<{ data: any }>(`/admin/orgs/${orgId}/entitlements`),
+  orgFeatureOverride: (orgId: string, fId: string, d: any) => api.put<{ data: any }>(`/admin/orgs/${orgId}/feature-overrides/${fId}`, d),
+  orgGrants:          (orgId: string)       => api.get<{ data: any[] }>(`/admin/orgs/${orgId}/grants`),
+  addOrgGrant:        (orgId: string, d: any) => api.post<{ data: any }>(`/admin/orgs/${orgId}/grants`, d),
+  deleteOrgGrant:     (orgId: string, id: string) => api.delete(`/admin/orgs/${orgId}/grants/${id}`),
+  // Quota overrides per org
+  orgQuotaOverrides:     (orgId: string)                       => api.get<{ data: any[] }>(`/admin/orgs/${orgId}/quota-overrides`),
+  setOrgQuotaOverride:   (orgId: string, quotaId: string, d: any) => api.put<{ data: any }>(`/admin/orgs/${orgId}/quota-overrides/${quotaId}`, d),
+  // Billing override
+  billingOverride:    (orgId: string)       => api.get<{ data: any }>(`/admin/orgs/${orgId}/billing-override`),
+  setBillingOverride: (orgId: string, d: any) => api.put<{ data: any }>(`/admin/orgs/${orgId}/billing-override`, d),
+  // Rules
+  rules:        ()              => api.get<{ data: any[] }>("/admin/rules"),
+  createRule:   (d: any)        => api.post<{ data: any }>("/admin/rules", d),
+  updateRule:   (id: string, d: any) => api.patch<{ data: any }>(`/admin/rules/${id}`, d),
+  // Org addon revoke
+  revokeOrgAddon: (orgId: string, id: string) => api.delete(`/admin/orgs/${orgId}/addons/${id}`),
+  // Pricing
+  orgPricing: (orgId: string) => api.get<{ data: any }>(`/admin/orgs/${orgId}/pricing`),
+};
+
+// --- Reminders ---
+export const remindersApi = {
+  list:         (params?: Record<string, string>) => { const q = params ? "?" + new URLSearchParams(params) : ""; return api.get<{ data: any[] }>(`/reminders${q}`); },
+  upcoming:     (days = 30) => api.get<{ data: any[] }>(`/reminders/upcoming?days=${days}`),
+  categories:   () => api.get<{ data: any[] }>("/reminders/categories"),
+  templates:    () => api.get<{ data: any[] }>("/reminders/templates"),
+  create:       (data: any) => api.post<{ data: any }>("/reminders", data),
+  fromTemplate: (templateId: string, dueDate: string) => api.post<{ data: any }>("/reminders/from-template", { templateId, dueDate }),
+  update:       (id: string, data: any) => api.patch<{ data: any }>(`/reminders/${id}`, data),
+  complete:     (id: string) => api.post<{ data: any }>(`/reminders/${id}/complete`),
+  snooze:       (id: string, until: string) => api.post<{ data: any }>(`/reminders/${id}/snooze`, { until }),
+  delete:       (id: string) => api.delete(`/reminders/${id}`),
+};
+
+// --- Events & Tickets ---
+export const eventsApi = {
+  list:            (params?: Record<string, string>) => { const q = params ? "?" + new URLSearchParams(Object.entries(params).filter(([,v]) => !!v)) : ""; return api.get<{ events: any[]; total: number }>(`/events${q}`); },
+  get:             (id: string)                      => api.get<{ event: any; ticketTypes: any[] }>(`/events/${id}`),
+  create:          (data: any)                       => api.post<{ event: any }>("/events", data),
+  update:          (id: string, data: any)           => api.patch<{ event: any }>(`/events/${id}`, data),
+  stats:           (id: string)                      => api.get<{ occupancyRate: number; revenueByType: any[]; checkedIn: number; total: number }>(`/events/${id}/stats`),
+  // Ticket types
+  createTicketType: (eventId: string, data: any)    => api.post<{ ticketType: any }>(`/events/${eventId}/ticket-types`, data),
+  updateTicketType: (eventId: string, ttId: string, data: any) => api.patch<{ ticketType: any }>(`/events/${eventId}/ticket-types/${ttId}`, data),
+  // Seat sections
+  seatSections:     (eventId: string)                => api.get<{ sections: any[] }>(`/events/${eventId}/seat-sections`),
+  createSeatSection:(eventId: string, data: any)     => api.post<{ section: any }>(`/events/${eventId}/seat-sections`, data),
+  // Issuances
+  issue:           (eventId: string, data: any)      => api.post<{ tickets: any[] }>(`/events/${eventId}/issue`, data),
+  issuances:       (eventId: string, params?: Record<string, string>) => { const q = params ? "?" + new URLSearchParams(Object.entries(params).filter(([,v]) => !!v)) : ""; return api.get<{ tickets: any[]; total: number }>(`/events/${eventId}/issuances${q}`); },
+  checkIn:         (eventId: string, ticketId: string) => api.post<{ ticket: any }>(`/events/${eventId}/issuances/${ticketId}/check-in`),
+  scanQr:          (eventId: string, qrCode: string) => api.get<{ ticket: any }>(`/events/${eventId}/issuances/scan/${qrCode}`),
+};
+
+// --- Procurement (Suppliers / PO / GR / Invoices) ---
+export const procurementApi = {
+  // Suppliers
+  suppliers:       (params?: Record<string, string>) => { const q = params ? "?" + new URLSearchParams(Object.entries(params).filter(([,v]) => !!v)) : ""; return api.get<{ suppliers: any[]; total: number }>(`/procurement/suppliers${q}`); },
+  supplier:        (id: string)                      => api.get<{ supplier: any }>(`/procurement/suppliers/${id}`),
+  createSupplier:  (data: any)                       => api.post<{ supplier: any }>("/procurement/suppliers", data),
+  updateSupplier:  (id: string, data: any)           => api.patch<{ supplier: any }>(`/procurement/suppliers/${id}`, data),
+  deleteSupplier:  (id: string)                      => api.delete(`/procurement/suppliers/${id}`),
+  // Purchase Orders
+  orders:          (params?: Record<string, string>) => { const q = params ? "?" + new URLSearchParams(Object.entries(params).filter(([,v]) => !!v)) : ""; return api.get<{ orders: any[]; total: number }>(`/procurement/orders${q}`); },
+  order:           (id: string)                      => api.get<{ order: any; items: any[]; supplier: any }>(`/procurement/orders/${id}`),
+  createOrder:     (data: any)                       => api.post<{ order: any }>("/procurement/orders", data),
+  updateOrder:     (id: string, data: any)           => api.patch<{ order: any }>(`/procurement/orders/${id}`, data),
+  orderReceipts:   (poId: string)                    => api.get<{ receipts: any[] }>(`/procurement/orders/${poId}/receipts`),
+  // Goods Receipts
+  receipt:         (id: string)                      => api.get<{ receipt: any; items: any[] }>(`/procurement/receipts/${id}`),
+  createReceipt:   (data: any)                       => api.post<{ receipt: any }>("/procurement/receipts", data),
+  approveReceipt:  (id: string, data: { status: "approved" | "rejected"; notes?: string }) => api.patch<{ receipt: any }>(`/procurement/receipts/${id}/approve`, data),
+  // Supplier Invoices
+  invoices:        (params?: Record<string, string>) => { const q = params ? "?" + new URLSearchParams(Object.entries(params).filter(([,v]) => !!v)) : ""; return api.get<{ invoices: any[]; total: number }>(`/procurement/invoices${q}`); },
+  invoice:         (id: string)                      => api.get<{ invoice: any }>(`/procurement/invoices/${id}`),
+  createInvoice:   (data: any)                       => api.post<{ invoice: any }>("/procurement/invoices", data),
+  advanceInvoice:  (id: string, data: any)           => api.patch<{ invoice: any }>(`/procurement/invoices/${id}/status`, data),
+  // Stats
+  stats:           ()                                => api.get<{ orders: any; invoices: any; pendingReceipts: any[]; topSuppliers: any[] }>("/procurement/stats"),
 };
