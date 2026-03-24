@@ -12,6 +12,8 @@ import { PLAN_MAP } from "@/lib/constants";
 import { KPICard } from "./KPICard";
 import { QuickActionsGrid } from "./QuickActionsGrid";
 import { CustomizePanel } from "./CustomizePanel";
+import { CreateBookingForm } from "@/components/bookings/CreateBookingForm";
+import { CreateCustomerForm } from "@/components/customers/CreateCustomerForm";
 
 const sizeClass: Record<WidgetConfig["size"], string> = {
   full:       "col-span-1 lg:col-span-6",
@@ -32,6 +34,8 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
   const orgId = user.orgId || "default";
   const [showCustomize, setShowCustomize] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showNewBooking, setShowNewBooking] = useState(false);
+  const [showNewCustomer, setShowNewCustomer] = useState(false);
 
   const { data: subRes } = useApi(() => orgSubscriptionApi.get(), []);
   const sub = subRes?.data;
@@ -253,15 +257,15 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
             <h3 className="text-sm font-semibold text-gray-800">ابدأ مع نسق</h3>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-gray-100">
-            {[
-              { href: "/dashboard/bookings/new", icon: CalendarCheck, label: "أضف أول حجز",   desc: "سجّل حجزاً جديداً الآن",           color: "text-brand-600",   bg: "bg-brand-50" },
-              { href: "/dashboard/customers/new", icon: UserPlus,      label: "أضف عميل",       desc: "ابنِ قاعدة عملائك",                color: "text-violet-600", bg: "bg-violet-50" },
-              { href: "/dashboard/invoices/new",  icon: Receipt,        label: "أنشئ فاتورة",    desc: "فاتورة احترافية في ثوانٍ",         color: "text-emerald-600", bg: "bg-emerald-50" },
-            ].map((item) => (
-              <Link
-                key={item.href}
-                to={item.href}
-                className="bg-white px-5 py-4 flex items-center gap-3 hover:bg-gray-50/60 transition-colors group"
+            {([
+              { onClick: () => setShowNewBooking(true),   icon: CalendarCheck, label: "أضف أول حجز",  desc: "سجّل حجزاً جديداً الآن",    color: "text-brand-600",   bg: "bg-brand-50"   },
+              { onClick: () => setShowNewCustomer(true),  icon: UserPlus,      label: "أضف عميل",      desc: "ابنِ قاعدة عملائك",          color: "text-violet-600", bg: "bg-violet-50"  },
+              { onClick: () => navigate("/dashboard/finance?tab=invoices"), icon: Receipt, label: "أنشئ فاتورة", desc: "فاتورة احترافية في ثوانٍ", color: "text-emerald-600", bg: "bg-emerald-50" },
+            ] as { onClick: () => void; icon: React.ElementType; label: string; desc: string; color: string; bg: string }[]).map((item) => (
+              <button
+                key={item.label}
+                onClick={item.onClick}
+                className="bg-white px-5 py-4 flex items-center gap-3 hover:bg-gray-50/60 transition-colors group text-right"
               >
                 <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", item.bg)}>
                   <item.icon className={clsx("w-4 h-4", item.color)} />
@@ -270,11 +274,23 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
                   <p className="text-sm font-semibold text-gray-800 group-hover:text-brand-600 transition-colors">{item.label}</p>
                   <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
                 </div>
-              </Link>
+              </button>
             ))}
           </div>
         </div>
       )}
+
+      {/* Modals */}
+      <CreateBookingForm
+        open={showNewBooking}
+        onClose={() => setShowNewBooking(false)}
+        onSuccess={() => { setShowNewBooking(false); }}
+      />
+      <CreateCustomerForm
+        open={showNewCustomer}
+        onClose={() => setShowNewCustomer(false)}
+        onSuccess={() => { setShowNewCustomer(false); }}
+      />
     </div>
   );
 }
