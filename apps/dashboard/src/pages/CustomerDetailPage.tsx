@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { customersApi, bookingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Modal, TextArea, Select } from "@/components/ui";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 
 export function CustomerDetailPage() {
   const { id } = useParams();
@@ -28,7 +29,7 @@ export function CustomerDetailPage() {
     refetch();
   };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-brand-500" /><span className="mr-3 text-gray-500">جاري التحميل...</span></div>;
+  if (loading) return <PageSkeleton />;
   if (error) return <div className="flex flex-col items-center justify-center h-64 gap-3"><AlertCircle className="w-10 h-10 text-red-400" /><p className="text-red-500">{error}</p><button onClick={refetch} className="text-sm text-brand-500 hover:underline">إعادة المحاولة</button></div>;
   if (!customer) return <div className="text-center py-12 text-gray-500">العميل غير موجود</div>;
 

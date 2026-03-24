@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { SkeletonRows } from "@/components/ui/Skeleton";
 import {
   Package, Plus, Wrench, Search, X, Loader2,
-  MapPin, Hash, Edit2, Trash2, Tag, ChevronDown,
+  MapPin, Hash, Edit2, Trash2, Tag, ArrowRightLeft,
+  Warehouse, Building2, User2, ShoppingCart, History,
+  RotateCcw, AlertCircle, Lock,
 } from "lucide-react";
 import { clsx } from "clsx";
-import { inventoryApi, settingsApi } from "@/lib/api";
+import { inventoryApi, settingsApi, teamApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -32,6 +35,23 @@ const MAINT_TYPE: Record<string, string> = {
   inspection:  "فحص",
 };
 
+const LOCATION_TYPE: Record<string, { label: string; icon: any; cls: string }> = {
+  warehouse: { label: "المستودع",      icon: Warehouse,    cls: "text-gray-500" },
+  branch:    { label: "الفرع",          icon: Building2,    cls: "text-blue-500" },
+  rented:    { label: "مؤجَّر",         icon: ShoppingCart, cls: "text-emerald-600" },
+  assigned:  { label: "معيَّن لموظف",  icon: User2,        cls: "text-purple-500" },
+};
+
+const MOVE_REASONS = [
+  "نقل بين الفروع",
+  "إعداد للتأجير",
+  "إرجاع من إيجار",
+  "صيانة دورية",
+  "فحص دوري",
+  "إعادة تخزين",
+  "أخرى",
+];
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtDate(d?: string | null) {
@@ -46,6 +66,17 @@ function StatusBadge({ status }: { status: string }) {
   return (
     <span className={clsx("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium", cfg.cls)}>
       <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0", cfg.dot)} />
+      {cfg.label}
+    </span>
+  );
+}
+
+function LocationTypeBadge({ locationType }: { locationType?: string }) {
+  const cfg = LOCATION_TYPE[locationType ?? "warehouse"] ?? LOCATION_TYPE.warehouse;
+  const Icon = cfg.icon;
+  return (
+    <span className={clsx("inline-flex items-center gap-1 text-xs font-medium", cfg.cls)}>
+      <Icon className="w-3 h-3" />
       {cfg.label}
     </span>
   );
@@ -117,8 +148,9 @@ function Btn({
 
 const ASSET_DEFAULT = {
   assetTypeId: "", name: "", serialNumber: "", condition: "good",
-  status: "available", currentLocationId: "", purchaseDate: "",
-  purchasePrice: "", notes: "",
+  status: "available", locationType: "warehouse", currentLocationId: "",
+  isMovable: true, isRentable: false,
+  purchaseDate: "", purchasePrice: "", notes: "",
 };
 
 const MAINT_DEFAULT = {
@@ -127,31 +159,42 @@ const MAINT_DEFAULT = {
   performedBy: "", conditionAfter: "good",
 };
 
+const MOVE_DEFAULT = {
+  toLocationType: "branch", toLocationId: "", toAssignedUserId: "",
+  toCustomerId: "", reason: "نقل بين الفروع", notes: "",
+};
+
 export function AssetsPage() {
   // ── data
   const { data: typesRes, loading: typesLoading, refetch: refetchTypes } = useApi(() => inventoryApi.assetTypes());
   const { data: assetsRes, loading: assetsLoading, refetch: refetchAssets } = useApi(
     () => inventoryApi.assets({ limit: "500" }),
   );
-  const { data: locRes } = useApi(() => settingsApi.locations());
+  const { data: locRes }  = useApi(() => settingsApi.locations());
+  const { data: teamRes } = useApi(() => teamApi.members());
 
   const types: any[]     = typesRes?.data  ?? [];
   const allAssets: any[] = assetsRes?.data ?? [];
   const locations: any[] = locRes?.data    ?? [];
+  const members: any[]   = teamRes?.data   ?? [];
 
   // ── filters
-  const [filterType,   setFilterType]   = useState("all");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [search,       setSearch]       = useState("");
+  const [filterType,     setFilterType]     = useState("all");
+  const [filterStatus,   setFilterStatus]   = useState("all");
+  const [filterLocation, setFilterLocation] = useState("all");
+  const [search,         setSearch]         = useState("");
 
   // ── modals
   const [typeModal,    setTypeModal]    = useState<{ open: boolean; item?: any }>({ open: false });
   const [assetModal,   setAssetModal]   = useState<{ open: boolean; item?: any }>({ open: false });
   const [detailId,     setDetailId]     = useState<string | null>(null);
   const [maintModal,   setMaintModal]   = useState<{ assetId: string } | null>(null);
+  const [moveModal,    setMoveModal]    = useState<{ asset: any } | null>(null);
+  const [returnModal,  setReturnModal]  = useState<{ asset: any } | null>(null);
   const [confirmDel,   setConfirmDel]   = useState<string | null>(null);
+  const [activeTab,    setActiveTab]    = useState<"info" | "maintenance" | "movements">("info");
 
-  // ── detail fetch (re-runs when detailId changes)
+  // ── detail fetch
   const {
     data: detailRes, loading: detailLoading, refetch: refetchDetail,
   } = useApi(
@@ -165,17 +208,22 @@ export function AssetsPage() {
   const saveAsset   = useMutation((d: any) => d.id ? inventoryApi.updateAsset(d.id, d) : inventoryApi.createAsset(d));
   const doStatus    = useMutation(({ id, status }: any) => inventoryApi.updateStatus(id, status));
   const doMaint     = useMutation((d: any) => inventoryApi.addMaintenance(d));
+  const doMove      = useMutation(({ id, data }: any) => inventoryApi.moveAsset(id, data));
+  const doReturn    = useMutation(({ id, data }: any) => inventoryApi.returnAsset(id, data));
   const doDelete    = useMutation((id: string) => inventoryApi.deleteAsset(id));
 
   // ── forms
   const [typeForm,  setTypeForm]  = useState({ name: "", category: "", minStock: 0 });
   const [assetForm, setAssetForm] = useState<any>(ASSET_DEFAULT);
   const [maintForm, setMaintForm] = useState<any>(MAINT_DEFAULT);
+  const [moveForm,  setMoveForm]  = useState<any>(MOVE_DEFAULT);
+  const [returnLocationId, setReturnLocationId] = useState("");
 
   // ── derived
   const filtered = allAssets.filter(a => {
-    if (filterType !== "all"   && a.assetTypeId !== filterType) return false;
-    if (filterStatus !== "all" && a.status !== filterStatus)    return false;
+    if (filterType !== "all"     && a.assetTypeId !== filterType)         return false;
+    if (filterStatus !== "all"   && a.status !== filterStatus)            return false;
+    if (filterLocation !== "all" && a.locationType !== filterLocation)    return false;
     if (search) {
       const q = search.toLowerCase();
       if (!(a.name?.toLowerCase().includes(q) || a.serialNumber?.toLowerCase().includes(q))) return false;
@@ -187,7 +235,8 @@ export function AssetsPage() {
     total:       allAssets.length,
     available:   allAssets.filter(a => a.status === "available").length,
     maintenance: allAssets.filter(a => a.status === "maintenance").length,
-    damaged:     allAssets.filter(a => a.status === "damaged").length,
+    rented:      allAssets.filter(a => a.locationType === "rented").length,
+    assigned:    allAssets.filter(a => a.locationType === "assigned").length,
   };
 
   // ── handlers
@@ -204,12 +253,29 @@ export function AssetsPage() {
       serialNumber: a.serialNumber ?? "",
       condition: a.condition ?? "good",
       status: a.status ?? "available",
+      locationType: a.locationType ?? "warehouse",
       currentLocationId: a.currentLocationId ?? "",
+      isMovable: a.isMovable ?? true,
+      isRentable: a.isRentable ?? false,
       purchaseDate: a.purchaseDate ? new Date(a.purchaseDate).toISOString().slice(0, 10) : "",
       purchasePrice: a.purchasePrice ?? "",
       notes: a.notes ?? "",
     });
     setAssetModal({ open: true, item: a });
+  };
+
+  const openMoveModal = (asset: any) => {
+    setMoveForm({
+      ...MOVE_DEFAULT,
+      toLocationType: asset.locationType === "warehouse" ? "branch" : "warehouse",
+      toLocationId: "",
+    });
+    setMoveModal({ asset });
+  };
+
+  const openReturnModal = (asset: any) => {
+    setReturnLocationId("");
+    setReturnModal({ asset });
   };
 
   const handleSaveType = async () => {
@@ -229,6 +295,33 @@ export function AssetsPage() {
     await saveAsset.mutate(payload);
     setAssetModal({ open: false });
     refetchAssets();
+  };
+
+  const handleMove = async () => {
+    if (!moveModal) return;
+    const data: any = { ...moveForm };
+    if (!data.toLocationId)     delete data.toLocationId;
+    if (!data.toAssignedUserId) delete data.toAssignedUserId;
+    if (!data.toCustomerId)     delete data.toCustomerId;
+    const result = await doMove.mutate({ id: moveModal.asset.id, data });
+    if (result) {
+      setMoveModal(null);
+      refetchAssets();
+      if (detailId === moveModal.asset.id) refetchDetail();
+    }
+  };
+
+  const handleReturn = async () => {
+    if (!returnModal) return;
+    const result = await doReturn.mutate({
+      id: returnModal.asset.id,
+      data: { toLocationId: returnLocationId || undefined },
+    });
+    if (result) {
+      setReturnModal(null);
+      refetchAssets();
+      if (detailId === returnModal.asset.id) refetchDetail();
+    }
   };
 
   const handleStatusChange = async (assetId: string, status: string) => {
@@ -286,10 +379,10 @@ export function AssetsPage() {
       {/* ── Stats ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "إجمالي الأصول", value: stats.total,       bg: "bg-gray-50",    text: "text-gray-800",   border: "border-gray-200" },
-          { label: "متاح",          value: stats.available,   bg: "bg-green-50",   text: "text-green-700",  border: "border-green-100" },
-          { label: "في الصيانة",   value: stats.maintenance, bg: "bg-orange-50",  text: "text-orange-700", border: "border-orange-100" },
-          { label: "تالف",          value: stats.damaged,     bg: "bg-red-50",     text: "text-red-600",    border: "border-red-100" },
+          { label: "إجمالي الأصول", value: stats.total,       bg: "bg-gray-50",    text: "text-gray-800",     border: "border-gray-200" },
+          { label: "متاح",          value: stats.available,   bg: "bg-green-50",   text: "text-green-700",    border: "border-green-100" },
+          { label: "مؤجَّر",         value: stats.rented,      bg: "bg-emerald-50", text: "text-emerald-700",  border: "border-emerald-100" },
+          { label: "معيَّن لموظف",  value: stats.assigned,    bg: "bg-purple-50",  text: "text-purple-700",   border: "border-purple-100" },
         ].map(s => (
           <div key={s.label} className={clsx("rounded-2xl border p-4", s.bg, s.border)}>
             <p className={clsx("text-2xl font-bold tabular-nums", s.text)}>{s.value}</p>
@@ -321,6 +414,17 @@ export function AssetsPage() {
           ))}
         </select>
 
+        <select
+          value={filterLocation}
+          onChange={e => setFilterLocation(e.target.value)}
+          className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 bg-white"
+        >
+          <option value="all">كل المواقع</option>
+          {Object.entries(LOCATION_TYPE).map(([v, { label }]) => (
+            <option key={v} value={v}>{label}</option>
+          ))}
+        </select>
+
         <div className="flex gap-1.5 flex-wrap">
           <button
             onClick={() => setFilterType("all")}
@@ -348,9 +452,7 @@ export function AssetsPage() {
 
       {/* ── Grid ── */}
       {loading ? (
-        <div className="flex items-center justify-center h-40 gap-2 text-gray-400">
-          <Loader2 className="w-5 h-5 animate-spin" /> جاري التحميل...
-        </div>
+        <SkeletonRows rows={3} />
       ) : filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
           <Package className="w-10 h-10 text-gray-200 mx-auto mb-3" />
@@ -388,17 +490,30 @@ export function AssetsPage() {
                       <span className="font-mono">{asset.serialNumber}</span>
                     </div>
                   )}
-                  {loc && (
-                    <div className="flex items-center gap-1.5">
-                      <MapPin className="w-3.5 h-3.5 shrink-0 text-gray-400" />
-                      <span>{loc.name}</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                    <LocationTypeBadge locationType={asset.locationType} />
+                    {loc && <span className="text-gray-400">— {loc.name}</span>}
+                  </div>
                   {asset.lastMaintenanceAt && (
                     <div className="flex items-center gap-1.5">
                       <Wrench className="w-3.5 h-3.5 shrink-0 text-gray-400" />
                       <span>آخر صيانة: {fmtDate(asset.lastMaintenanceAt)}</span>
                     </div>
+                  )}
+                </div>
+
+                {/* flags */}
+                <div className="flex gap-1.5 mt-2">
+                  {!asset.isMovable && (
+                    <span className="flex items-center gap-0.5 text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded-lg">
+                      <Lock className="w-2.5 h-2.5" /> ثابت
+                    </span>
+                  )}
+                  {asset.isRentable && (
+                    <span className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-lg">
+                      قابل للإيجار
+                    </span>
                   )}
                 </div>
 
@@ -408,6 +523,24 @@ export function AssetsPage() {
                     {cond?.label ?? "—"}
                   </span>
                   <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+                    {asset.isMovable && asset.locationType !== "rented" && asset.status !== "maintenance" && (
+                      <button
+                        onClick={() => openMoveModal(asset)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-colors"
+                        title="نقل الأصل"
+                      >
+                        <ArrowRightLeft className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                    {["rented", "assigned"].includes(asset.locationType) && (
+                      <button
+                        onClick={() => openReturnModal(asset)}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-green-50 text-gray-400 hover:text-green-500 transition-colors"
+                        title="إرجاع الأصل"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     <button
                       onClick={() => openEditAsset(asset)}
                       className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-brand-500 transition-colors"
@@ -545,6 +678,20 @@ export function AssetsPage() {
                   ))}
                 </select>
               </Field>
+              <Field label="نوع الموقع الحالي">
+                <select
+                  value={assetForm.locationType}
+                  onChange={e => setAssetForm((p: any) => ({ ...p, locationType: e.target.value }))}
+                  className={inputCls}
+                >
+                  {Object.entries(LOCATION_TYPE).map(([v, { label }]) => (
+                    <option key={v} value={v}>{label}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+
+            {["branch", "warehouse"].includes(assetForm.locationType) && (
               <Field label="الفرع / الموقع">
                 <select
                   value={assetForm.currentLocationId}
@@ -555,6 +702,27 @@ export function AssetsPage() {
                   {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
                 </select>
               </Field>
+            )}
+
+            <div className="flex items-center gap-6 py-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={assetForm.isMovable}
+                  onChange={e => setAssetForm((p: any) => ({ ...p, isMovable: e.target.checked }))}
+                  className="w-4 h-4 rounded text-brand-500"
+                />
+                <span className="text-sm text-gray-700">أصل متحرك (قابل للنقل)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={assetForm.isRentable}
+                  onChange={e => setAssetForm((p: any) => ({ ...p, isRentable: e.target.checked }))}
+                  className="w-4 h-4 rounded text-brand-500"
+                />
+                <span className="text-sm text-gray-700">قابل للتأجير</span>
+              </label>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -594,13 +762,13 @@ export function AssetsPage() {
           MODAL: Asset Detail
       ══════════════════════════════════════════════════ */}
       {detailId && (
-        <Modal title="تفاصيل الأصل" onClose={() => setDetailId(null)} size="xl">
+        <Modal title="تفاصيل الأصل" onClose={() => { setDetailId(null); setActiveTab("info"); }} size="xl">
           {detailLoading ? (
             <div className="flex items-center justify-center h-40 gap-2 text-gray-400">
               <Loader2 className="w-5 h-5 animate-spin" /> جاري التحميل...
             </div>
           ) : detail ? (
-            <div className="space-y-5">
+            <div className="space-y-4">
 
               {/* Header */}
               <div className="flex items-start justify-between">
@@ -608,108 +776,203 @@ export function AssetsPage() {
                   <h2 className="text-lg font-bold text-gray-900">
                     {detail.name || detail.type?.name || "أصل"}
                   </h2>
-                  {detail.type && <p className="text-sm text-gray-400">{detail.type.name}</p>}
+                  <div className="flex items-center gap-2 mt-0.5">
+                    {detail.type && <p className="text-sm text-gray-400">{detail.type.name}</p>}
+                    <LocationTypeBadge locationType={detail.locationType} />
+                    {!detail.isMovable && (
+                      <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-lg flex items-center gap-0.5">
+                        <Lock className="w-2.5 h-2.5" /> ثابت
+                      </span>
+                    )}
+                    {detail.isRentable && (
+                      <span className="text-xs text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-lg">قابل للإيجار</span>
+                    )}
+                  </div>
                 </div>
                 <StatusBadge status={detail.status} />
               </div>
 
-              {/* Info grid */}
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                {[
-                  { label: "الرقم التسلسلي",         value: detail.serialNumber,   mono: true },
-                  { label: "الحالة الفيزيائية",       value: CONDITION[detail.condition]?.label ?? detail.condition },
-                  { label: "الفرع",                   value: locations.find(l => l.id === detail.currentLocationId)?.name },
-                  { label: "عدد مرات الاستخدام",     value: detail.totalUses ?? 0 },
-                  { label: "تاريخ الشراء",            value: fmtDate(detail.purchaseDate) },
-                  { label: "سعر الشراء",              value: detail.purchasePrice ? `${Number(detail.purchasePrice).toLocaleString()} ر.س` : null },
-                  { label: "آخر صيانة",               value: fmtDate(detail.lastMaintenanceAt) },
-                  { label: "الصيانة القادمة",          value: fmtDate(detail.nextMaintenanceAt) },
-                ].filter(r => r.value != null && r.value !== "" && r.value !== "—").map(row => (
-                  <div key={row.label} className="bg-gray-50 rounded-xl p-3">
-                    <p className="text-xs text-gray-400 mb-0.5">{row.label}</p>
-                    <p className={clsx("font-medium text-gray-900 text-sm", row.mono && "font-mono")}>{String(row.value)}</p>
-                  </div>
-                ))}
-              </div>
-
-              {detail.notes && (
-                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-sm text-amber-800">
-                  <p className="text-xs font-semibold text-amber-600 mb-0.5">ملاحظات</p>
-                  {detail.notes}
-                </div>
-              )}
-
-              {/* Status change */}
-              <div>
-                <p className="text-xs font-semibold text-gray-500 mb-2">تغيير الحالة</p>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(STATUS).map(([v, { label, dot }]) => (
-                    <button
-                      key={v}
-                      onClick={() => handleStatusChange(detail.id, v)}
-                      disabled={detail.status === v || doStatus.loading}
-                      className={clsx(
-                        "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors disabled:opacity-50",
-                        detail.status === v
-                          ? "bg-brand-50 border-brand-200 text-brand-700"
-                          : "bg-white border-gray-200 text-gray-600 hover:border-brand-300 hover:bg-brand-50",
-                      )}
-                    >
-                      <span className={clsx("w-1.5 h-1.5 rounded-full", dot)} />
-                      {label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Maintenance history */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-sm font-semibold text-gray-900">
-                    سجل الصيانة ({detail.maintenanceHistory?.length ?? 0})
-                  </p>
-                  <button
-                    onClick={() => { setMaintForm(MAINT_DEFAULT); setMaintModal({ assetId: detail.id }); }}
-                    className="flex items-center gap-1 text-xs text-brand-500 hover:underline"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> تسجيل صيانة
-                  </button>
-                </div>
-                {detail.maintenanceHistory?.length > 0 ? (
-                  <div className="space-y-2">
-                    {detail.maintenanceHistory.map((m: any) => (
-                      <div key={m.id} className="border border-gray-100 rounded-xl p-3 text-sm">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="font-medium text-gray-900">
-                            {MAINT_TYPE[m.type] ?? m.type}
-                          </span>
-                          <span className="text-xs text-gray-400">{fmtDate(m.startDate)}</span>
-                        </div>
-                        {m.description && <p className="text-gray-500 text-xs mb-1">{m.description}</p>}
-                        <div className="flex flex-wrap gap-3 text-xs text-gray-400">
-                          {m.performedBy  && <span>بواسطة: {m.performedBy}</span>}
-                          {m.cost && Number(m.cost) > 0 && <span>التكلفة: {Number(m.cost).toLocaleString()} ر.س</span>}
-                          {m.conditionAfter && <span>الحالة بعد: {CONDITION[m.conditionAfter]?.label ?? m.conditionAfter}</span>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-400 text-center py-6 bg-gray-50 rounded-xl">
-                    لا يوجد سجل صيانة بعد
-                  </p>
+              {/* Action buttons */}
+              <div className="flex flex-wrap gap-2">
+                {detail.isMovable && detail.locationType !== "rented" && detail.status !== "maintenance" && (
+                  <Btn variant="secondary" onClick={() => { openMoveModal(detail); setDetailId(null); }}>
+                    <ArrowRightLeft className="w-4 h-4" /> نقل الأصل
+                  </Btn>
+                )}
+                {["rented", "assigned"].includes(detail.locationType) && (
+                  <Btn variant="secondary" onClick={() => { openReturnModal(detail); setDetailId(null); }}>
+                    <RotateCcw className="w-4 h-4" /> إرجاع الأصل
+                  </Btn>
+                )}
+                {detail.status === "maintenance" && (
+                  <span className="flex items-center gap-1.5 text-xs text-orange-600 bg-orange-50 border border-orange-100 px-3 py-1.5 rounded-xl">
+                    <AlertCircle className="w-3.5 h-3.5" /> في الصيانة — لا يمكن النقل
+                  </span>
                 )}
               </div>
 
-              {/* Actions */}
-              <div className="flex gap-2 pt-2 border-t border-gray-100">
-                <Btn variant="secondary" onClick={() => { openEditAsset(detail); setDetailId(null); }}>
-                  <Edit2 className="w-4 h-4" /> تعديل
-                </Btn>
-                <Btn variant="danger" onClick={() => setConfirmDel(detail.id)}>
-                  <Trash2 className="w-4 h-4" /> حذف
-                </Btn>
+              {/* Tabs */}
+              <div className="flex gap-1 bg-gray-50 rounded-xl p-1">
+                {[
+                  { key: "info",        label: "المعلومات" },
+                  { key: "maintenance", label: `الصيانة (${detail.maintenanceHistory?.length ?? 0})` },
+                  { key: "movements",   label: `الحركات (${detail.movementHistory?.length ?? 0})` },
+                ].map(t => (
+                  <button
+                    key={t.key}
+                    onClick={() => setActiveTab(t.key as any)}
+                    className={clsx(
+                      "flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                      activeTab === t.key ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700",
+                    )}
+                  >
+                    {t.label}
+                  </button>
+                ))}
               </div>
+
+              {/* Tab: Info */}
+              {activeTab === "info" && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    {[
+                      { label: "الرقم التسلسلي",     value: detail.serialNumber,   mono: true },
+                      { label: "الحالة الفيزيائية",   value: CONDITION[detail.condition]?.label ?? detail.condition },
+                      { label: "الموقع الحالي",       value: locations.find(l => l.id === detail.currentLocationId)?.name },
+                      { label: "عدد مرات الاستخدام", value: detail.totalUses ?? 0 },
+                      { label: "تاريخ الشراء",        value: fmtDate(detail.purchaseDate) },
+                      { label: "سعر الشراء",          value: detail.purchasePrice ? `${Number(detail.purchasePrice).toLocaleString()} ر.س` : null },
+                      { label: "آخر صيانة",           value: fmtDate(detail.lastMaintenanceAt) },
+                      { label: "الصيانة القادمة",      value: fmtDate(detail.nextMaintenanceAt) },
+                    ].filter(r => r.value != null && r.value !== "" && r.value !== "—").map(row => (
+                      <div key={row.label} className="bg-gray-50 rounded-xl p-3">
+                        <p className="text-xs text-gray-400 mb-0.5">{row.label}</p>
+                        <p className={clsx("font-medium text-gray-900 text-sm", row.mono && "font-mono")}>{String(row.value)}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {detail.notes && (
+                    <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-sm text-amber-800">
+                      <p className="text-xs font-semibold text-amber-600 mb-0.5">ملاحظات</p>
+                      {detail.notes}
+                    </div>
+                  )}
+
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 mb-2">تغيير الحالة</p>
+                    <div className="flex flex-wrap gap-2">
+                      {Object.entries(STATUS).map(([v, { label, dot }]) => (
+                        <button
+                          key={v}
+                          onClick={() => handleStatusChange(detail.id, v)}
+                          disabled={detail.status === v || doStatus.loading}
+                          className={clsx(
+                            "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors disabled:opacity-50",
+                            detail.status === v
+                              ? "bg-brand-50 border-brand-200 text-brand-700"
+                              : "bg-white border-gray-200 text-gray-600 hover:border-brand-300 hover:bg-brand-50",
+                          )}
+                        >
+                          <span className={clsx("w-1.5 h-1.5 rounded-full", dot)} />
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2 border-t border-gray-100">
+                    <Btn variant="secondary" onClick={() => { openEditAsset(detail); setDetailId(null); }}>
+                      <Edit2 className="w-4 h-4" /> تعديل
+                    </Btn>
+                    <Btn variant="danger" onClick={() => setConfirmDel(detail.id)}>
+                      <Trash2 className="w-4 h-4" /> حذف
+                    </Btn>
+                  </div>
+                </div>
+              )}
+
+              {/* Tab: Maintenance */}
+              {activeTab === "maintenance" && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold text-gray-900">
+                      سجل الصيانة ({detail.maintenanceHistory?.length ?? 0})
+                    </p>
+                    <button
+                      onClick={() => { setMaintForm(MAINT_DEFAULT); setMaintModal({ assetId: detail.id }); }}
+                      className="flex items-center gap-1 text-xs text-brand-500 hover:underline"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> تسجيل صيانة
+                    </button>
+                  </div>
+                  {detail.maintenanceHistory?.length > 0 ? (
+                    <div className="space-y-2">
+                      {detail.maintenanceHistory.map((m: any) => (
+                        <div key={m.id} className="border border-gray-100 rounded-xl p-3 text-sm">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-medium text-gray-900">{MAINT_TYPE[m.type] ?? m.type}</span>
+                            <span className="text-xs text-gray-400">{fmtDate(m.startDate)}</span>
+                          </div>
+                          {m.description && <p className="text-gray-500 text-xs mb-1">{m.description}</p>}
+                          <div className="flex flex-wrap gap-3 text-xs text-gray-400">
+                            {m.performedBy && <span>بواسطة: {m.performedBy}</span>}
+                            {m.cost && Number(m.cost) > 0 && <span>التكلفة: {Number(m.cost).toLocaleString()} ر.س</span>}
+                            {m.conditionAfter && <span>الحالة بعد: {CONDITION[m.conditionAfter]?.label ?? m.conditionAfter}</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl">
+                      لا يوجد سجل صيانة بعد
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Tab: Movement History */}
+              {activeTab === "movements" && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                      <History className="w-4 h-4 text-gray-400" />
+                      سجل الحركات ({detail.movementHistory?.length ?? 0})
+                    </p>
+                  </div>
+                  {detail.movementHistory?.length > 0 ? (
+                    <div className="space-y-2">
+                      {detail.movementHistory.map((mv: any) => {
+                        const fromCfg = LOCATION_TYPE[mv.fromLocationType ?? "warehouse"];
+                        const toCfg   = LOCATION_TYPE[mv.toLocationType ?? "warehouse"];
+                        const FromIcon = fromCfg?.icon ?? Warehouse;
+                        const ToIcon   = toCfg?.icon ?? Warehouse;
+                        return (
+                          <div key={mv.id} className="border border-gray-100 rounded-xl p-3 text-sm">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={clsx("flex items-center gap-1 text-xs", fromCfg?.cls)}>
+                                <FromIcon className="w-3 h-3" /> {fromCfg?.label ?? "—"}
+                              </span>
+                              <ArrowRightLeft className="w-3 h-3 text-gray-300" />
+                              <span className={clsx("flex items-center gap-1 text-xs font-medium", toCfg?.cls)}>
+                                <ToIcon className="w-3 h-3" /> {toCfg?.label ?? "—"}
+                              </span>
+                              <span className="text-xs text-gray-400 mr-auto">{fmtDate(mv.createdAt)}</span>
+                            </div>
+                            {mv.reason && <p className="text-xs text-gray-500">{mv.reason}</p>}
+                            {mv.notes && <p className="text-xs text-gray-400 mt-0.5">{mv.notes}</p>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl">
+                      لا يوجد سجل حركات بعد
+                    </p>
+                  )}
+                </div>
+              )}
+
             </div>
           ) : (
             <p className="text-center text-gray-400 py-10">الأصل غير موجود</p>
@@ -793,6 +1056,129 @@ export function AssetsPage() {
                 {Object.entries(CONDITION).map(([v, { label }]) => (
                   <option key={v} value={v}>{label}</option>
                 ))}
+              </select>
+            </Field>
+          </div>
+        </Modal>
+      )}
+
+      {/* ══════════════════════════════════════════════════
+          MODAL: Move Asset
+      ══════════════════════════════════════════════════ */}
+      {moveModal && (
+        <Modal
+          title={`نقل الأصل — ${moveModal.asset.name || "أصل"}`}
+          onClose={() => setMoveModal(null)}
+          size="md"
+          footer={
+            <>
+              <Btn variant="secondary" onClick={() => setMoveModal(null)}>إلغاء</Btn>
+              <Btn onClick={handleMove} loading={doMove.loading}>تأكيد النقل</Btn>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-700 flex items-start gap-2">
+              <AlertCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>الموقع الحالي: <LocationTypeBadge locationType={moveModal.asset.locationType} /></span>
+            </div>
+
+            <Field label="نقل إلى *">
+              <select
+                value={moveForm.toLocationType}
+                onChange={e => setMoveForm((p: any) => ({ ...p, toLocationType: e.target.value, toLocationId: "", toAssignedUserId: "" }))}
+                className={inputCls}
+              >
+                {Object.entries(LOCATION_TYPE)
+                  .filter(([v]) => v !== moveModal.asset.locationType)
+                  .map(([v, { label }]) => (
+                    <option key={v} value={v}>{label}</option>
+                  ))}
+              </select>
+            </Field>
+
+            {["branch", "warehouse"].includes(moveForm.toLocationType) && locations.length > 0 && (
+              <Field label="الفرع / الموقع">
+                <select
+                  value={moveForm.toLocationId}
+                  onChange={e => setMoveForm((p: any) => ({ ...p, toLocationId: e.target.value }))}
+                  className={inputCls}
+                >
+                  <option value="">اختر الموقع</option>
+                  {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+                </select>
+              </Field>
+            )}
+
+            {moveForm.toLocationType === "assigned" && (
+              <Field label="الموظف المُعيَّن له *">
+                <select
+                  value={moveForm.toAssignedUserId}
+                  onChange={e => setMoveForm((p: any) => ({ ...p, toAssignedUserId: e.target.value }))}
+                  className={inputCls}
+                >
+                  <option value="">اختر الموظف</option>
+                  {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                </select>
+              </Field>
+            )}
+
+            {moveForm.toLocationType === "rented" && !moveModal.asset.isRentable && (
+              <div className="bg-red-50 border border-red-100 rounded-xl p-3 text-xs text-red-600 flex items-center gap-2">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                هذا الأصل غير محدد كـ "قابل للتأجير"
+              </div>
+            )}
+
+            <Field label="سبب النقل">
+              <select
+                value={moveForm.reason}
+                onChange={e => setMoveForm((p: any) => ({ ...p, reason: e.target.value }))}
+                className={inputCls}
+              >
+                {MOVE_REASONS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </Field>
+
+            <Field label="ملاحظات (اختياري)">
+              <textarea
+                value={moveForm.notes}
+                onChange={e => setMoveForm((p: any) => ({ ...p, notes: e.target.value }))}
+                className={clsx(inputCls, "h-16 resize-none")}
+                placeholder="أي تفاصيل إضافية..."
+              />
+            </Field>
+          </div>
+        </Modal>
+      )}
+
+      {/* ══════════════════════════════════════════════════
+          MODAL: Return Asset
+      ══════════════════════════════════════════════════ */}
+      {returnModal && (
+        <Modal
+          title={`إرجاع الأصل — ${returnModal.asset.name || "أصل"}`}
+          onClose={() => setReturnModal(null)}
+          size="sm"
+          footer={
+            <>
+              <Btn variant="secondary" onClick={() => setReturnModal(null)}>إلغاء</Btn>
+              <Btn onClick={handleReturn} loading={doReturn.loading}>تأكيد الإرجاع</Btn>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            <p className="text-sm text-gray-600">
+              سيتم إرجاع الأصل وتغيير حالته إلى "متاح".
+            </p>
+            <Field label="إرجاع إلى فرع (اختياري)">
+              <select
+                value={returnLocationId}
+                onChange={e => setReturnLocationId(e.target.value)}
+                className={inputCls}
+              >
+                <option value="">المستودع (افتراضي)</option>
+                {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
               </select>
             </Field>
           </div>

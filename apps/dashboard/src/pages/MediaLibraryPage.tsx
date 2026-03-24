@@ -3,7 +3,7 @@ import {
   Images, Video, FileText, Layers, Search, Upload, Grid3X3, List,
   X, Tag, Copy, Trash2, RefreshCw, ChevronRight, CheckSquare,
   Square, Download, Link2, Clock, HardDrive, Plus, AlertCircle,
-  Check, Loader2, ImageIcon, History,
+  Check, Loader2, ImageIcon, History, ArrowUpDown,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { mediaApi } from "@/lib/api";
@@ -100,13 +100,15 @@ function uploadToR2(url: string, file: File, onProgress: (pct: number) => void):
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
-function AssetThumbnail({ asset, selected, onSelect, onClick }: {
+function AssetThumbnail({ asset, selected, onSelect, onClick, onQuickDelete }: {
   asset: Asset;
   selected: boolean;
   onSelect: () => void;
   onClick: () => void;
+  onQuickDelete: () => void;
 }) {
   const [imgErr, setImgErr] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const cfg = TYPE_CONFIG[asset.fileType];
   const Icon = cfg.icon;
 
@@ -116,7 +118,7 @@ function AssetThumbnail({ asset, selected, onSelect, onClick }: {
         "group relative rounded-2xl border-2 overflow-hidden cursor-pointer transition-all bg-white",
         selected ? "border-brand-400 shadow-md" : "border-transparent hover:border-brand-200 hover:shadow-sm",
       )}
-      onClick={onClick}
+      onClick={confirmDelete ? undefined : onClick}
     >
       {/* Thumbnail area */}
       <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
@@ -150,8 +152,43 @@ function AssetThumbnail({ asset, selected, onSelect, onClick }: {
           : <Square className="w-5 h-5 text-white drop-shadow" />}
       </button>
 
+      {/* Quick delete button */}
+      {!confirmDelete && (
+        <button
+          onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
+          className="absolute top-2 left-2 opacity-0 group-hover:opacity-100 transition-opacity w-7 h-7 flex items-center justify-center rounded-lg bg-white/90 shadow-sm text-gray-400 hover:text-red-500 hover:bg-red-50"
+          aria-label="حذف"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
+
+      {/* Inline delete confirmation overlay */}
+      {confirmDelete && (
+        <div
+          className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 p-3 z-10"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <p className="text-white text-xs font-semibold text-center leading-tight">حذف الصورة؟</p>
+          <div className="flex gap-1.5 w-full">
+            <button
+              onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }}
+              className="flex-1 bg-white/20 hover:bg-white/30 text-white text-xs rounded-lg py-1.5 font-medium transition-colors"
+            >
+              إلغاء
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onQuickDelete(); }}
+              className="flex-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-lg py-1.5 font-medium transition-colors"
+            >
+              تأكيد
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Tags */}
-      {asset.tags.length > 0 && (
+      {!confirmDelete && asset.tags.length > 0 && (
         <div className="absolute bottom-0 left-0 right-0 p-1.5 flex gap-1 flex-wrap bg-gradient-to-t from-black/30 to-transparent">
           {asset.tags.slice(0, 2).map(t => (
             <span key={t} className="text-[10px] bg-white/80 text-gray-700 rounded-full px-1.5 py-0.5 font-medium">{t}</span>
@@ -162,9 +199,9 @@ function AssetThumbnail({ asset, selected, onSelect, onClick }: {
         </div>
       )}
 
-      {/* Version badge */}
+      {/* Version badge — shown only when NOT hovering (delete button takes that spot on hover) */}
       {asset.version > 1 && (
-        <div className="absolute top-2 left-2">
+        <div className="absolute top-2 left-2 group-hover:opacity-0 transition-opacity">
           <span className="text-[10px] bg-brand-500 text-white rounded-full px-1.5 py-0.5 font-medium">v{asset.version}</span>
         </div>
       )}
@@ -178,21 +215,23 @@ function AssetThumbnail({ asset, selected, onSelect, onClick }: {
   );
 }
 
-function AssetListRow({ asset, selected, onSelect, onClick }: {
+function AssetListRow({ asset, selected, onSelect, onClick, onQuickDelete }: {
   asset: Asset;
   selected: boolean;
   onSelect: () => void;
   onClick: () => void;
+  onQuickDelete: () => void;
 }) {
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const cfg = TYPE_CONFIG[asset.fileType];
   const Icon = cfg.icon;
   return (
     <div
       className={clsx(
-        "flex items-center gap-3 px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors",
+        "group flex items-center gap-3 px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors",
         selected && "bg-brand-50",
       )}
-      onClick={onClick}
+      onClick={confirmDelete ? undefined : onClick}
     >
       <button onClick={(e) => { e.stopPropagation(); onSelect(); }}>
         {selected
@@ -221,6 +260,34 @@ function AssetListRow({ asset, selected, onSelect, onClick }: {
         <p className="text-xs text-gray-500">{fileSizeLabel(asset.sizeBytes)}</p>
         <p className="text-[11px] text-gray-400">{fmtDate(asset.createdAt)}</p>
       </div>
+
+      {/* Quick delete */}
+      <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+        {!confirmDelete ? (
+          <button
+            onClick={(e) => { e.stopPropagation(); setConfirmDelete(true); }}
+            className="w-8 h-8 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 transition-opacity text-gray-300 hover:text-red-500 hover:bg-red-50"
+            aria-label="حذف"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
+        ) : (
+          <div className="flex items-center gap-1">
+            <button
+              onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }}
+              className="text-[11px] px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
+            >
+              إلغاء
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onQuickDelete(); }}
+              className="text-[11px] px-2 py-1 rounded-lg bg-red-500 text-white hover:bg-red-600"
+            >
+              حذف
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -229,8 +296,15 @@ function UploadQueue({ items, onClear }: {
   items: UploadItem[];
   onClear: () => void;
 }) {
+  const done = items.length > 0 && items.every(i => i.status === "done" || i.status === "error");
+
+  useEffect(() => {
+    if (!done) return;
+    const timer = setTimeout(onClear, 3000);
+    return () => clearTimeout(timer);
+  }, [done, onClear]);
+
   if (items.length === 0) return null;
-  const done = items.every(i => i.status === "done" || i.status === "error");
 
   return (
     <div className="fixed bottom-4 left-4 z-50 bg-white rounded-2xl border border-gray-200 shadow-xl w-80">
@@ -301,6 +375,7 @@ function AssetDetail({
   const [showVersions, setShowVersions] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const cfg = TYPE_CONFIG[asset.fileType];
   const Icon = cfg.icon;
@@ -329,10 +404,15 @@ function AssetDetail({
 
   const handleDelete = async () => {
     setDeleting(true);
+    setDeleteError(null);
     try {
       await mediaApi.delete(asset.id);
       onDelete(asset.id);
-    } catch { setDeleting(false); }
+    } catch (err: any) {
+      setDeleting(false);
+      setConfirmDelete(false);
+      setDeleteError(err.message || "فشل الحذف");
+    }
   };
 
   return (
@@ -512,16 +592,19 @@ function AssetDetail({
             <Download className="w-4 h-4" /> تحميل
           </a>
         </div>
+        {deleteError && (
+          <p className="text-xs text-red-500 text-center mb-1">{deleteError}</p>
+        )}
         {!confirmDelete ? (
           <button
-            onClick={() => setConfirmDelete(true)}
+            onClick={() => { setConfirmDelete(true); setDeleteError(null); }}
             className="w-full flex items-center justify-center gap-1.5 border border-red-100 text-red-500 rounded-xl py-2 text-sm font-medium hover:bg-red-50 transition-colors"
           >
             <Trash2 className="w-4 h-4" /> حذف
           </button>
         ) : (
           <div className="flex gap-2">
-            <button onClick={() => setConfirmDelete(false)} className="flex-1 border border-gray-200 rounded-xl py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">إلغاء</button>
+            <button onClick={() => { setConfirmDelete(false); setDeleteError(null); }} className="flex-1 border border-gray-200 rounded-xl py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">إلغاء</button>
             <button onClick={handleDelete} disabled={deleting} className="flex-1 bg-red-500 text-white rounded-xl py-2 text-sm font-medium hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-1">
               {deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />} تأكيد الحذف
             </button>
@@ -558,6 +641,11 @@ function UploadConfigModal({
         </div>
         <div className="p-5 space-y-4">
           <p className="text-sm text-gray-500">{files.length} ملف جاهز للرفع</p>
+          <div className="bg-gray-50 rounded-xl px-3 py-2 text-xs text-gray-400 space-y-0.5">
+            <p>الحد الأقصى للصور والمستندات: <span className="font-medium text-gray-600">15 MB</span></p>
+            <p>الحد الأقصى لملفات PDF: <span className="font-medium text-gray-600">25 MB</span></p>
+            <p>الحد الأقصى للفيديو: <span className="font-medium text-gray-600">200 MB</span></p>
+          </div>
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1.5">التصنيف (اختياري)</label>
             <input
@@ -628,6 +716,8 @@ export function MediaLibraryPage() {
   const [typeFilter, setTypeFilter] = useState<"all" | AssetType>("all");
   const [category,  setCategory]  = useState("");
   const [tagFilter, setTagFilter] = useState("");
+  const [sortBy,    setSortBy]    = useState("createdAt");
+  const [sortDir,   setSortDir]   = useState("desc");
 
   // ── UI state ──────────────────────────────────────────────
   const [viewMode,  setViewMode]  = useState<"grid" | "list">("grid");
@@ -644,8 +734,10 @@ export function MediaLibraryPage() {
 
   const { data: categoriesRes } = useApi(() => mediaApi.categories(), []);
   const { data: tagsRes }       = useApi(() => mediaApi.tags(), []);
+  const { data: statsRes }      = useApi(() => mediaApi.stats(), []);
   const categories: string[] = (categoriesRes as any)?.data ?? [];
   const allTags:    string[] = (tagsRes as any)?.data ?? [];
+  const storageStats = (statsRes as any)?.data ?? null;
 
   // ── Fetch assets ──────────────────────────────────────────
 
@@ -657,6 +749,8 @@ export function MediaLibraryPage() {
       if (typeFilter !== "all")  params.type     = typeFilter;
       if (category)              params.category = category;
       if (tagFilter)             params.tag      = tagFilter;
+      params.sortBy  = sortBy;
+      params.sortDir = sortDir;
 
       const res = await mediaApi.list(params) as any;
       if (pg === 1) {
@@ -669,7 +763,7 @@ export function MediaLibraryPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, typeFilter, category, tagFilter]);
+  }, [search, typeFilter, category, tagFilter, sortBy, sortDir]);
 
   useEffect(() => { fetchAssets(1); }, [fetchAssets]);
 
@@ -707,7 +801,9 @@ export function MediaLibraryPage() {
 
       updateItem({ status: "uploading" });
       try {
-        // 1. Get presigned URL
+        const assetType = fileType || inferType(item.file.type);
+
+        // 1. Get presigned URL to determine if R2 is configured
         const presigned = await mediaApi.presigned({
           filename:    item.file.name,
           contentType: item.file.type,
@@ -716,28 +812,34 @@ export function MediaLibraryPage() {
 
         const { uploadUrl, publicUrl, key, devMode } = presigned.data;
 
-        // 2. Upload to R2 (skip in dev mode)
-        if (uploadUrl && !devMode) {
-          await uploadToR2(uploadUrl, item.file, (pct) => updateItem({ progress: pct }));
+        let confirmed: any;
+
+        if (devMode) {
+          // No R2 configured — upload directly to server disk
+          const fd = new FormData();
+          fd.append("file",     item.file);
+          fd.append("name",     item.file.name.replace(/\.[^.]+$/, ""));
+          fd.append("category", category || "media");
+          fd.append("fileType", assetType);
+          if (tagList.length) fd.append("tags", tagList.join(","));
+          confirmed = await mediaApi.upload(fd, (pct) => updateItem({ progress: pct }));
         } else {
-          updateItem({ progress: 100 });
+          // 2. Upload to R2 via presigned PUT
+          await uploadToR2(uploadUrl, item.file, (pct) => updateItem({ progress: pct }));
+
+          // 3. Confirm upload
+          updateItem({ status: "confirming" });
+          confirmed = await mediaApi.confirm({
+            r2Key:     key,
+            publicUrl,
+            name:      item.file.name.replace(/\.[^.]+$/, ""),
+            mimeType:  item.file.type,
+            sizeBytes: item.file.size,
+            fileType:  assetType,
+            tags:      tagList,
+            category:  category || undefined,
+          });
         }
-
-        // 3. Confirm upload
-        updateItem({ status: "confirming" });
-
-        const assetType = fileType || inferType(item.file.type);
-
-        const confirmed = await mediaApi.confirm({
-          r2Key:     key,
-          publicUrl,
-          name:      item.file.name.replace(/\.[^.]+$/, ""),
-          mimeType:  item.file.type,
-          sizeBytes: item.file.size,
-          fileType:  assetType,
-          tags:      tagList,
-          category:  category || undefined,
-        }) as any;
 
         updateItem({ status: "done", assetId: confirmed.data?.id });
 
@@ -779,6 +881,15 @@ export function MediaLibraryPage() {
     setTotal(t => t - selected.size);
     clearSelection();
     if (detail && selected.has(detail.id)) setDetail(null);
+  };
+
+  const handleQuickDelete = async (assetId: string) => {
+    try {
+      await mediaApi.delete(assetId);
+      setAssets(prev => prev.filter(a => a.id !== assetId));
+      setTotal(t => t - 1);
+      if (detail?.id === assetId) setDetail(null);
+    } catch { /* ignore */ }
   };
 
   // ── Stats ─────────────────────────────────────────────────
@@ -824,7 +935,20 @@ export function MediaLibraryPage() {
             <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <Images className="w-5 h-5 text-brand-500" /> مكتبة الوسائط
             </h1>
-            <p className="text-sm text-gray-400 mt-0.5">{total} ملف مرفوع</p>
+            <p className="text-sm text-gray-400 mt-0.5">
+              {total} ملف
+              {storageStats?.totalSize > 0 && (
+                <span className="mr-2 text-gray-300">·</span>
+              )}
+              {storageStats?.totalSize > 0 && (
+                <span>
+                  {storageStats.totalSize >= 1024 * 1024 * 1024
+                    ? `${(storageStats.totalSize / (1024 * 1024 * 1024)).toFixed(1)} GB`
+                    : `${(storageStats.totalSize / (1024 * 1024)).toFixed(1)} MB`
+                  } مستخدم
+                </span>
+              )}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => fetchAssets(1)} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500">
@@ -916,8 +1040,28 @@ export function MediaLibraryPage() {
             </div>
           )}
 
+          {/* Sort */}
+          <div className="mr-auto flex items-center gap-1 border border-gray-200 rounded-xl px-2 py-1.5 bg-white">
+            <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
+            <select
+              value={`${sortBy}:${sortDir}`}
+              onChange={e => {
+                const [by, dir] = e.target.value.split(":");
+                setSortBy(by); setSortDir(dir); fetchAssets(1);
+              }}
+              className="text-xs text-gray-600 outline-none bg-transparent"
+            >
+              <option value="createdAt:desc">الأحدث</option>
+              <option value="createdAt:asc">الأقدم</option>
+              <option value="name:asc">الاسم أ-ي</option>
+              <option value="name:desc">الاسم ي-أ</option>
+              <option value="sizeBytes:desc">الحجم ↓</option>
+              <option value="sizeBytes:asc">الحجم ↑</option>
+            </select>
+          </div>
+
           {/* View toggle */}
-          <div className="mr-auto flex border border-gray-200 rounded-xl overflow-hidden">
+          <div className="flex border border-gray-200 rounded-xl overflow-hidden">
             <button
               onClick={() => setViewMode("grid")}
               className={clsx("px-3 py-2 transition-colors", viewMode === "grid" ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-gray-50")}
@@ -985,6 +1129,7 @@ export function MediaLibraryPage() {
                     selected={selected.has(asset.id)}
                     onSelect={() => toggleSelect(asset.id)}
                     onClick={() => setDetail(asset)}
+                    onQuickDelete={() => handleQuickDelete(asset.id)}
                   />
                 ))}
               </div>
@@ -1009,6 +1154,7 @@ export function MediaLibraryPage() {
                   selected={selected.has(asset.id)}
                   onSelect={() => toggleSelect(asset.id)}
                   onClick={() => setDetail(asset)}
+                  onQuickDelete={() => handleQuickDelete(asset.id)}
                 />
               ))}
               {hasMore && (

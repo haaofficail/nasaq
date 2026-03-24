@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { ChefHat, Clock, CheckCircle2, Truck, RefreshCw, Package } from "lucide-react";
+import { ChefHat, Clock, CheckCircle2, Truck, RefreshCw, Package, AlarmClock } from "lucide-react";
 import { clsx } from "clsx";
 import { api } from "@/lib/api";
+import { SkeletonRows } from "@/components/ui/Skeleton";
 
 const kitchenApi = {
   orders: (params?: { status?: string; date?: string }) => {
@@ -30,14 +31,40 @@ const STATUS_LABELS: Record<string, string> = {
 const NEXT_STATUS: Record<string, string> = { pending: "preparing", preparing: "ready", ready: "delivered" };
 const NEXT_LABELS: Record<string, string> = { pending: "ابدأ التحضير", preparing: "جاهز للتسليم", ready: "تم التسليم" };
 
+// Returns elapsed minutes since a timestamp
+function elapsedMin(ts: string): number {
+  return Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+}
+
+function ElapsedBadge({ createdAt }: { createdAt: string }) {
+  const [mins, setMins] = useState(() => elapsedMin(createdAt));
+  useEffect(() => {
+    const t = setInterval(() => setMins(elapsedMin(createdAt)), 30000);
+    return () => clearInterval(t);
+  }, [createdAt]);
+  const color = mins >= 20 ? "bg-red-100 text-red-600" : mins >= 10 ? "bg-amber-100 text-amber-600" : "bg-green-100 text-green-600";
+  return (
+    <span className={clsx("inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-lg", color)}>
+      <AlarmClock className="w-3 h-3" /> {mins} د
+    </span>
+  );
+}
+
 export function KitchenPage() {
   const today = new Date().toISOString().split("T")[0];
   const [date, setDate] = useState(today);
   const [statusFilter, setStatusFilter] = useState("all");
+  const autoRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const { data, loading, refetch } = useApi(() => kitchenApi.orders({ date }), [date]);
   const { data: statsData } = useApi(() => kitchenApi.stats(date), [date]);
   const updateStatus = useMutation(({ id, status }: any) => kitchenApi.updateStatus(id, status));
+
+  // Auto-refresh every 30 seconds for live kitchen view
+  useEffect(() => {
+    autoRefreshRef.current = setInterval(() => refetch(), 30000);
+    return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
+  }, [refetch]);
 
   const allOrders: any[] = data?.data || [];
   const stats = statsData?.data;
@@ -62,7 +89,7 @@ export function KitchenPage() {
         </div>
         <div className="flex items-center gap-2">
           <input type="date" value={date} onChange={e => setDate(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300" />
-          <button onClick={refetch} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
+          <button onClick={refetch} title="تحديث (تلقائي كل 30 ثانية)" className="w-9 h-9 flex items-center justify-center rounded-xl border border-brand-200 bg-brand-50 hover:bg-brand-100 text-brand-500 transition-colors">
             <RefreshCw className="w-4 h-4" />
           </button>
         </div>
@@ -99,7 +126,7 @@ export function KitchenPage() {
 
       {/* Orders */}
       {loading ? (
-        <div className="text-center py-12 text-gray-400 text-sm">جاري التحميل...</div>
+        <SkeletonRows />
       ) : (
         <div className="space-y-2">
           {orders.length === 0 ? (
@@ -115,6 +142,7 @@ export function KitchenPage() {
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-gray-900">طلب #{o.order_number}</p>
                       <span className="text-xs text-gray-400">{new Date(o.created_at).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}</span>
+                      {(o.status === "pending" || o.status === "preparing") && <ElapsedBadge createdAt={o.created_at} />}
                     </div>
                     {o.customer_name && <p className="text-sm text-gray-500 mt-0.5">{o.customer_name}</p>}
                     {o.items && o.items.filter((i: any) => i.name).length > 0 && (

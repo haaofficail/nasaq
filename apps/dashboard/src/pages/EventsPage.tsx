@@ -6,6 +6,7 @@ import {
   Ticket, CheckCircle2, ChevronRight, BarChart2, Tag,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { SkeletonRows } from "@/components/ui/Skeleton";
 
 const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   draft:     { label: "مسودة",    cls: "bg-gray-100 text-gray-500" },
@@ -127,7 +128,7 @@ export function EventsPage() {
         {/* Events list */}
         <div className="flex-1 min-w-0 space-y-2">
           {loading ? (
-            <div className="text-center py-12 text-gray-400 text-sm">جاري التحميل...</div>
+            <SkeletonRows />
           ) : events.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
               <PartyPopper className="w-10 h-10 text-gray-200 mx-auto mb-3" />

@@ -28,7 +28,7 @@ export function POSPage() {
   const [payMethod, setPayMethod] = useState("cash");
   const [done, setDone] = useState(false);
 
-  const { data: svcRes, loading } = useApi(() => servicesApi.list({ status: "active" }), []);
+  const { data: svcRes, loading } = useApi(() => servicesApi.list({ status: "active", visibleInPOS: "true" }), []);
   const services: any[] = svcRes?.data || [];
 
   const filtered = services.filter((s) =>

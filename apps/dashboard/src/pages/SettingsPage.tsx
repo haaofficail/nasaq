@@ -1,9 +1,12 @@
-import { useState } from "react";
-import { Building2, GitBranch, CreditCard, Plus, Trash2, Loader2, CheckCircle2, Zap, Shield, Pencil, User, MapPin, Clock, Star, Warehouse, Briefcase } from "lucide-react";
+import { useState, useRef } from "react";
+import { Building2, GitBranch, CreditCard, Plus, Trash2, Loader2, CheckCircle2, Zap, Shield, Pencil, User, MapPin, Clock, Star, Warehouse, Briefcase, Palette, Upload, ImageIcon } from "lucide-react";
 import { clsx } from "clsx";
 import { settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Input, Select, Modal } from "@/components/ui";
+import { COLORS, SHADOWS, TYPOGRAPHY } from "@/lib/design-tokens";
+
+const FONT = TYPOGRAPHY.family;
 
 const BUSINESS_TYPES = [
   { value: "restaurant",  label: "مطعم" },
@@ -57,13 +60,15 @@ const tabs = [
   { label: "الملف التعريفي", icon: Building2 },
   { label: "الفروع",         icon: GitBranch },
   { label: "الاشتراك",      icon: CreditCard },
+  { label: "الهوية البصرية", icon: Palette },
 ];
 
-const planColors: Record<string, string> = {
-  basic:      "bg-gray-100 text-gray-700",
-  pro:        "bg-brand-50 text-brand-700",
-  enterprise: "bg-amber-50 text-amber-700",
-};
+const BRAND_COLORS = [
+  "#5b9bd5", "#6366f1", "#8b5cf6", "#ec4899",
+  "#10b981", "#f59e0b", "#ef4444", "#06b6d4",
+  "#64748b", "#0f172a",
+];
+
 
 const BRANCH_TYPE_CONFIG: Record<string, { label: string; icon: any; bg: string; text: string }> = {
   branch:    { label: "فرع",     icon: GitBranch, bg: "bg-indigo-50",  text: "text-indigo-600" },
@@ -85,6 +90,10 @@ function BranchTypeIcon({ type }: { type: string }) {
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState(0);
   const [showBranch, setShowBranch] = useState(false);
+  const [uploadingLogo, setUploadingLogo]   = useState(false);
+  const [uploadingFav,  setUploadingFav]    = useState(false);
+  const logoInputRef  = useRef<HTMLInputElement>(null);
+  const faviconInputRef = useRef<HTMLInputElement>(null);
   const [editingBranch, setEditingBranch] = useState<any>(null);
   const [branchForm, setBranchForm] = useState<any>(EMPTY_BRANCH);
   const [saved, setSaved] = useState(false);
@@ -111,6 +120,22 @@ export function SettingsPage() {
     setSaved(true);
     refetchProfile();
     setTimeout(() => setSaved(false), 2500);
+  };
+
+  const handleUploadFile = async (file: File, field: "logo" | "favicon", setLoading: (v: boolean) => void) => {
+    setLoading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const token = localStorage.getItem("nasaq_token") || "";
+      const res = await fetch("/api/uploads", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData });
+      const json = await res.json();
+      if (json?.url) {
+        setForm((prev: any) => ({ ...(prev || org), [field]: json.url }));
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   const openCreate = () => {
@@ -167,31 +192,36 @@ export function SettingsPage() {
   };
 
   if (pLoading || bLoading) return (
-    <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-7 h-7 animate-spin text-brand-500" />
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 256 }}>
+      <Loader2 size={28} style={{ animation: "spin 1s linear infinite", color: COLORS.primary }} />
     </div>
   );
 
   return (
-    <div className="space-y-5">
+    <div style={{ display: "flex", flexDirection: "column", gap: 20, direction: "rtl", fontFamily: FONT }}>
       {/* Header */}
       <div>
-        <h1 className="text-xl font-bold text-gray-900">الإعدادات</h1>
-        <p className="text-sm text-gray-400 mt-0.5">إدارة إعدادات حسابك ومؤسستك</p>
+        <h1 style={{ fontSize: 20, fontWeight: 700, color: COLORS.dark, margin: 0 }}>الإعدادات</h1>
+        <p style={{ fontSize: 13, color: COLORS.muted, margin: "4px 0 0" }}>إدارة إعدادات حسابك ومؤسستك</p>
       </div>
 
       {/* Tab navigation */}
-      <div className="flex gap-1 bg-white border border-gray-100 rounded-2xl p-1 w-fit">
+      <div style={{ display: "flex", gap: 4, background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 4, width: "fit-content" }}>
         {tabs.map((tab, i) => (
           <button
             key={i}
             onClick={() => setActiveTab(i)}
-            className={clsx(
-              "flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all",
-              activeTab === i ? "bg-brand-500 text-white shadow-sm" : "text-gray-500 hover:bg-gray-50"
-            )}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              padding: "8px 16px", borderRadius: 10, border: "none",
+              fontFamily: FONT, fontSize: 13, fontWeight: activeTab === i ? 600 : 400,
+              cursor: "pointer", transition: "all 0.15s",
+              background: activeTab === i ? COLORS.primary : "transparent",
+              color: activeTab === i ? "#fff" : COLORS.muted,
+              boxShadow: activeTab === i ? `0 1px 4px ${COLORS.primary}30` : "none",
+            }}
           >
-            <tab.icon className="w-4 h-4" />
+            <tab.icon size={15} />
             {tab.label}
           </button>
         ))}
@@ -199,9 +229,9 @@ export function SettingsPage() {
 
       {/* ── Profile tab ──────────────────────────────────────── */}
       {activeTab === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h2 className="font-semibold text-gray-900 mb-5 flex items-center gap-2">
-            <Building2 className="w-4 h-4 text-brand-500" />
+        <div style={{ background: COLORS.surface, borderRadius: 14, border: `1px solid ${COLORS.border}`, boxShadow: SHADOWS.card, padding: "24px" }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: COLORS.dark, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+            <Building2 size={16} color={COLORS.primary} />
             معلومات المؤسسة
           </h2>
           <div className="space-y-4 max-w-lg">
@@ -239,50 +269,42 @@ export function SettingsPage() {
       {activeTab === 1 && (
         <div className="space-y-4">
           {/* Stats bar */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
-              <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center">
-                <GitBranch className="w-4.5 h-4.5 text-indigo-600" />
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+            {[
+              { icon: <GitBranch size={17} color="#6366f1" />, bg: "#eef2ff", value: branches.length,                          label: "إجمالي الفروع" },
+              { icon: <CheckCircle2 size={17} color={COLORS.successText} />, bg: COLORS.successBg, value: branches.filter(b => b.isActive).length, label: "فروع نشطة" },
+              { icon: <Star size={17} color={COLORS.warningText} />, bg: COLORS.warningBg, value: null, name: mainBranch?.name || "—", label: "الفرع الرئيسي" },
+            ].map((s, i) => (
+              <div key={i} style={{ background: COLORS.surface, borderRadius: 14, border: `1px solid ${COLORS.border}`, boxShadow: SHADOWS.card, padding: "14px 16px", display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: s.bg, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                  {s.icon}
+                </div>
+                <div>
+                  {s.value != null ? (
+                    <p style={{ fontSize: 22, fontWeight: 700, color: COLORS.dark, margin: 0, lineHeight: 1 }}>{s.value}</p>
+                  ) : (
+                    <p style={{ fontSize: 13, fontWeight: 600, color: COLORS.dark, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 120 }}>{s.name}</p>
+                  )}
+                  <p style={{ fontSize: 11, color: COLORS.muted, margin: "2px 0 0" }}>{s.label}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{branches.length}</p>
-                <p className="text-xs text-gray-400">إجمالي الفروع</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
-              <div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center">
-                <CheckCircle2 className="w-4.5 h-4.5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-gray-900">{branches.filter(b => b.isActive).length}</p>
-                <p className="text-xs text-gray-400">فروع نشطة</p>
-              </div>
-            </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
-              <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center">
-                <Star className="w-4.5 h-4.5 text-amber-500" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-gray-900 truncate">{mainBranch?.name || "—"}</p>
-                <p className="text-xs text-gray-400">الفرع الرئيسي</p>
-              </div>
-            </div>
+            ))}
           </div>
 
           {/* Header action */}
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">{branches.length} {branches.length === 1 ? "فرع" : "فروع"} مضافة</p>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <p style={{ fontSize: 13, color: COLORS.muted, margin: 0 }}>{branches.length} {branches.length === 1 ? "فرع" : "فروع"} مضافة</p>
             <Button icon={Plus} onClick={openCreate}>فرع جديد</Button>
           </div>
 
           {/* Empty state */}
           {branches.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-14 text-center">
-              <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <GitBranch className="w-7 h-7 text-indigo-400" />
+            <div style={{ background: COLORS.surface, borderRadius: 14, border: `1px solid ${COLORS.border}`, padding: "56px 20px", textAlign: "center" }}>
+              <div style={{ width: 56, height: 56, background: "#eef2ff", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 16px" }}>
+                <GitBranch size={28} color="#6366f1" />
               </div>
-              <h3 className="text-base font-semibold text-gray-900 mb-1">لا توجد فروع</h3>
-              <p className="text-sm text-gray-400 mb-5">أضف فروع منشأتك لإدارة الحضور والحجوزات والمخزون لكل فرع</p>
+              <h3 style={{ fontSize: 15, fontWeight: 600, color: COLORS.dark, marginBottom: 6 }}>لا توجد فروع</h3>
+              <p style={{ fontSize: 13, color: COLORS.muted, marginBottom: 20 }}>أضف فروع منشأتك لإدارة الحضور والحجوزات والمخزون لكل فرع</p>
               <Button icon={Plus} onClick={openCreate}>إضافة أول فرع</Button>
             </div>
           ) : (
@@ -290,66 +312,63 @@ export function SettingsPage() {
               {branches.map((branch: any) => (
                 <div
                   key={branch.id}
-                  className={clsx(
-                    "bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all",
-                    branch.isActive ? "border-gray-100" : "border-gray-100 opacity-60"
-                  )}
+                  style={{ background: COLORS.surface, borderRadius: 14, border: `1px solid ${COLORS.border}`, overflow: "hidden", transition: "box-shadow 0.15s", opacity: branch.isActive ? 1 : 0.6 }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = SHADOWS.cardHover; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = "none"; }}
                 >
                   {/* Color bar */}
                   <div className="h-1.5 w-full" style={{ backgroundColor: branch.color || "#6366f1" }} />
 
-                  <div className="p-4">
+                  <div style={{ padding: 16 }}>
                     {/* Title row */}
-                    <div className="flex items-start justify-between gap-2 mb-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <p className="text-sm font-bold text-gray-900 truncate">{branch.name}</p>
+                    <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8, marginBottom: 10 }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                          <p style={{ fontSize: 13, fontWeight: 700, color: COLORS.dark, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{branch.name}</p>
                           {branch.isMainBranch && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-600">
-                              <Star className="w-3 h-3" /> رئيسي
+                            <span style={{ display: "inline-flex", alignItems: "center", gap: 3, padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 500, background: COLORS.warningBg, color: COLORS.warningText }}>
+                              <Star size={10} /> رئيسي
                             </span>
                           )}
                           {!branch.isActive && (
-                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">معطّل</span>
+                            <span style={{ display: "inline-flex", padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 500, background: "#f1f5f9", color: "#64748b" }}>معطّل</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
                           <BranchTypeIcon type={branch.type} />
                           {branch.branchCode && (
-                            <span className="text-xs text-gray-400 font-mono">{branch.branchCode}</span>
+                            <span style={{ fontSize: 11, color: COLORS.muted, fontFamily: "monospace" }}>{branch.branchCode}</span>
                           )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button onClick={() => openEdit(branch)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
-                          <Pencil className="w-3.5 h-3.5" />
+                      <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                        <button onClick={() => openEdit(branch)} style={{ padding: 5, borderRadius: 7, border: "none", background: "none", cursor: "pointer", color: COLORS.muted }}>
+                          <Pencil size={13} />
                         </button>
-                        <button onClick={() => handleDeleteBranch(branch.id, branch.name)} className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
-                          <Trash2 className="w-3.5 h-3.5" />
+                        <button onClick={() => handleDeleteBranch(branch.id, branch.name)} style={{ padding: 5, borderRadius: 7, border: "none", background: "none", cursor: "pointer", color: COLORS.danger }}>
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </div>
 
                     {/* Info rows */}
-                    <div className="space-y-1.5">
+                    <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
                       {branch.city && (
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <MapPin className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                          <span className="truncate">{branch.city}{branch.address ? ` — ${branch.address}` : ""}</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: COLORS.muted }}>
+                          <MapPin size={12} color="#cbd5e1" style={{ flexShrink: 0 }} />
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{branch.city}{branch.address ? ` — ${branch.address}` : ""}</span>
                         </div>
                       )}
                       {branch.managerName && (
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <User className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: COLORS.muted }}>
+                          <User size={12} color="#cbd5e1" style={{ flexShrink: 0 }} />
                           <span>{branch.managerName}</span>
-                          {branch.managerPhone && (
-                            <span className="text-gray-400 font-mono" dir="ltr">{branch.managerPhone}</span>
-                          )}
+                          {branch.managerPhone && <span style={{ fontFamily: "monospace" }} dir="ltr">{branch.managerPhone}</span>}
                         </div>
                       )}
                       {branch.openingHours && (
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <Clock className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, color: COLORS.muted }}>
+                          <Clock size={12} color="#cbd5e1" style={{ flexShrink: 0 }} />
                           <span>
                             {(() => {
                               const activeDays = Object.entries(branch.openingHours as Record<string, any>)
@@ -424,41 +443,31 @@ export function SettingsPage() {
                           key={c}
                           type="button"
                           onClick={() => setBranchForm((p: any) => ({ ...p, color: c }))}
-                          className={clsx(
-                            "w-7 h-7 rounded-full border-2 transition-transform",
-                            branchForm.color === c ? "border-gray-900 scale-110" : "border-transparent hover:scale-105"
-                          )}
-                          style={{ backgroundColor: c }}
+                          style={{ width: 28, height: 28, borderRadius: "50%", border: branchForm.color === c ? `2px solid ${COLORS.dark}` : "2px solid transparent", backgroundColor: c, cursor: "pointer", transform: branchForm.color === c ? "scale(1.1)" : "scale(1)", transition: "transform 0.15s" }}
                         />
                       ))}
                     </div>
                   </div>
                 </div>
                 {/* الفرع الرئيسي toggle */}
-                <div className="mt-3 flex items-center gap-3 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                <div style={{ marginTop: 12, display: "flex", alignItems: "center", gap: 12, padding: 12, background: COLORS.warningBg, borderRadius: 10, border: `1px solid #fde68a` }}>
                   <button
                     type="button"
                     onClick={() => setBranchForm((p: any) => ({ ...p, isMainBranch: !p.isMainBranch }))}
-                    className={clsx("transition-colors", branchForm.isMainBranch ? "text-amber-500" : "text-gray-300")}
+                    style={{ border: "none", background: "none", cursor: "pointer", color: branchForm.isMainBranch ? COLORS.warningText : "#cbd5e1", padding: 0 }}
                   >
-                    <Star className="w-5 h-5 fill-current" />
+                    <Star size={20} style={{ fill: "currentColor" }} />
                   </button>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-800">الفرع الرئيسي</p>
-                    <p className="text-xs text-gray-500">يظهر كفرع افتراضي في الحجوزات والتقارير</p>
+                  <div style={{ flex: 1 }}>
+                    <p style={{ fontSize: 13, fontWeight: 500, color: COLORS.dark, margin: 0 }}>الفرع الرئيسي</p>
+                    <p style={{ fontSize: 11, color: COLORS.muted, margin: "2px 0 0" }}>يظهر كفرع افتراضي في الحجوزات والتقارير</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => setBranchForm((p: any) => ({ ...p, isMainBranch: !p.isMainBranch }))}
-                    className={clsx(
-                      "w-10 h-6 rounded-full transition-colors relative",
-                      branchForm.isMainBranch ? "bg-amber-400" : "bg-gray-200"
-                    )}
+                    style={{ width: 40, height: 24, borderRadius: 12, position: "relative", border: "none", cursor: "pointer", background: branchForm.isMainBranch ? COLORS.warning : "#e2e8f0", transition: "background 0.15s" }}
                   >
-                    <span className={clsx(
-                      "absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-all",
-                      branchForm.isMainBranch ? "right-1" : "left-1"
-                    )} />
+                    <span style={{ position: "absolute", top: 4, width: 16, height: 16, background: "#fff", borderRadius: "50%", boxShadow: "0 1px 3px rgba(0,0,0,0.15)", transition: "right 0.15s, left 0.15s", ...(branchForm.isMainBranch ? { right: 4 } : { left: 4 }) }} />
                   </button>
                 </div>
               </div>
@@ -488,16 +497,16 @@ export function SettingsPage() {
                   {Object.entries(DAYS_AR).map(([day, label], idx) => {
                     const dayData = branchForm.openingHours?.[day] || { open: "09:00", close: "22:00", active: false };
                     return (
-                      <div key={day} className={clsx("flex items-center gap-3 px-4 py-2.5", idx % 2 === 0 ? "bg-gray-50" : "bg-white")}>
+                      <div key={day} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", background: idx % 2 === 0 ? "#f8f9fc" : "#fff" }}>
                         {/* Active toggle */}
                         <button
                           type="button"
                           onClick={() => setDay(day, "active", !dayData.active)}
-                          className={clsx("w-8 h-5 rounded-full relative transition-colors shrink-0", dayData.active ? "bg-brand-500" : "bg-gray-200")}
+                          style={{ width: 32, height: 20, borderRadius: 10, position: "relative", border: "none", cursor: "pointer", flexShrink: 0, background: dayData.active ? COLORS.primary : "#e2e8f0", transition: "background 0.15s" }}
                         >
-                          <span className={clsx("absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all", dayData.active ? "right-0.5" : "left-0.5")} />
+                          <span style={{ position: "absolute", top: 2, width: 16, height: 16, background: "#fff", borderRadius: "50%", boxShadow: "0 1px 3px rgba(0,0,0,0.15)", transition: "right 0.15s, left 0.15s", ...(dayData.active ? { right: 2 } : { left: 2 }) }} />
                         </button>
-                        <span className={clsx("text-sm w-20 shrink-0", dayData.active ? "text-gray-800 font-medium" : "text-gray-400")}>{label}</span>
+                        <span style={{ fontSize: 13, width: 80, flexShrink: 0, fontWeight: dayData.active ? 500 : 400, color: dayData.active ? COLORS.dark : COLORS.muted }}>{label}</span>
                         {dayData.active ? (
                           <div className="flex items-center gap-2 flex-1">
                             <input
@@ -535,58 +544,200 @@ export function SettingsPage() {
         </div>
       )}
 
+      {/* ── Branding tab ─────────────────────────────────────── */}
+      {activeTab === 3 && (
+        <div className="space-y-5 max-w-2xl">
+          {/* Logo */}
+          <div style={{ background: COLORS.surface, borderRadius: 14, border: `1px solid ${COLORS.border}`, boxShadow: SHADOWS.card, padding: 24 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: COLORS.dark, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+              <ImageIcon size={16} color={COLORS.primary} />
+              شعار المنشأة
+            </h2>
+            <div className="flex items-center gap-5">
+              {/* Preview */}
+              <div style={{ width: 80, height: 80, borderRadius: 16, border: `2px dashed ${COLORS.border}`, background: COLORS.light, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+                {f.logo ? (
+                  <img src={f.logo} alt="logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                ) : (
+                  <ImageIcon size={28} color="#cbd5e1" />
+                )}
+              </div>
+              <div className="flex-1 space-y-3">
+                <Input
+                  label="رابط الشعار"
+                  name="logo"
+                  value={f.logo || ""}
+                  onChange={e => setForm({ ...f, logo: e.target.value })}
+                  placeholder="https://..."
+                  dir="ltr"
+                />
+                <div className="flex items-center gap-3">
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={e => { const file = e.target.files?.[0]; if (file) handleUploadFile(file, "logo", setUploadingLogo); e.target.value = ""; }}
+                  />
+                  <Button
+                    variant="secondary"
+                    icon={uploadingLogo ? Loader2 : Upload}
+                    loading={uploadingLogo}
+                    onClick={() => logoInputRef.current?.click()}
+                  >
+                    رفع صورة
+                  </Button>
+                  <p className="text-xs text-gray-400">PNG أو SVG أو WEBP — يُفضل 200×200 أو أكبر</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Favicon */}
+          <div style={{ background: COLORS.surface, borderRadius: 14, border: `1px solid ${COLORS.border}`, boxShadow: SHADOWS.card, padding: 24 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: COLORS.dark, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+              <Palette size={16} color={COLORS.primary} />
+              أيقونة المتصفح (Favicon)
+            </h2>
+            <div className="flex items-center gap-5">
+              {/* Preview */}
+              <div style={{ width: 48, height: 48, borderRadius: 10, border: `2px dashed ${COLORS.border}`, background: COLORS.light, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, overflow: "hidden" }}>
+                {f.favicon ? (
+                  <img src={f.favicon} alt="favicon" style={{ width: 32, height: 32, objectFit: "contain" }} />
+                ) : (
+                  <Palette size={20} color="#cbd5e1" />
+                )}
+              </div>
+              <div className="flex-1 space-y-3">
+                <Input
+                  label="رابط الأيقونة"
+                  name="favicon"
+                  value={f.favicon || ""}
+                  onChange={e => setForm({ ...f, favicon: e.target.value })}
+                  placeholder="https://..."
+                  dir="ltr"
+                />
+                <div className="flex items-center gap-3">
+                  <input
+                    ref={faviconInputRef}
+                    type="file"
+                    accept="image/png,image/svg+xml,image/x-icon,image/ico"
+                    className="hidden"
+                    onChange={e => { const file = e.target.files?.[0]; if (file) handleUploadFile(file, "favicon", setUploadingFav); e.target.value = ""; }}
+                  />
+                  <Button
+                    variant="secondary"
+                    icon={uploadingFav ? Loader2 : Upload}
+                    loading={uploadingFav}
+                    onClick={() => faviconInputRef.current?.click()}
+                  >
+                    رفع أيقونة
+                  </Button>
+                  <p className="text-xs text-gray-400">PNG أو SVG أو ICO — 32×32 أو 64×64 مثالي</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Brand color */}
+          <div style={{ background: COLORS.surface, borderRadius: 14, border: `1px solid ${COLORS.border}`, boxShadow: SHADOWS.card, padding: 24 }}>
+            <h2 style={{ fontSize: 15, fontWeight: 700, color: COLORS.dark, marginBottom: 20, display: "flex", alignItems: "center", gap: 8 }}>
+              <Palette size={16} color={COLORS.primary} />
+              اللون الأساسي للمنشأة
+            </h2>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                {BRAND_COLORS.map(c => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setForm({ ...f, brandColor: c })}
+                    style={{
+                      width: 36, height: 36, borderRadius: "50%", border: (f.brandColor || COLORS.primary) === c ? `3px solid ${COLORS.dark}` : "3px solid transparent",
+                      backgroundColor: c, cursor: "pointer",
+                      transform: (f.brandColor || COLORS.primary) === c ? "scale(1.15)" : "scale(1)",
+                      transition: "transform 0.15s",
+                    }}
+                  />
+                ))}
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="text-xs font-medium text-gray-600">لون مخصص</label>
+                <input
+                  type="color"
+                  value={f.brandColor || COLORS.primary}
+                  onChange={e => setForm({ ...f, brandColor: e.target.value })}
+                  className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer p-0.5"
+                />
+                <span className="text-xs text-gray-400 font-mono">{f.brandColor || COLORS.primary}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Save */}
+          <div className="flex items-center gap-3">
+            <Button onClick={handleSaveProfile} loading={saving}>حفظ الهوية البصرية</Button>
+            {saved && (
+              <span className="flex items-center gap-1.5 text-sm text-emerald-600 font-medium">
+                <CheckCircle2 className="w-4 h-4" /> تم الحفظ
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── Subscription tab ─────────────────────────────────── */}
       {activeTab === 2 && (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-                <Zap className="w-4 h-4 text-amber-500" />
+          <div style={{ background: COLORS.surface, borderRadius: 14, border: `1px solid ${COLORS.border}`, boxShadow: SHADOWS.card, padding: 24 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
+              <h2 style={{ fontSize: 15, fontWeight: 700, color: COLORS.dark, display: "flex", alignItems: "center", gap: 8 }}>
+                <Zap size={16} color={COLORS.warningText} />
                 الباقة الحالية
               </h2>
-              <span className={clsx("px-3 py-1 rounded-full text-sm font-semibold", planColors[sub.plan] || planColors.basic)}>
+              <span style={{ padding: "4px 12px", borderRadius: 20, fontSize: 13, fontWeight: 600, background: COLORS.infoBg, color: COLORS.infoText }}>
                 {sub.plan || "basic"}
               </span>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-xs text-gray-400 mb-1">الحالة</p>
-                <div className="flex items-center gap-1.5">
-                  <span className={clsx("w-2 h-2 rounded-full", sub.status === "active" ? "bg-emerald-500" : sub.status === "trialing" ? "bg-amber-500" : "bg-gray-400")} />
-                  <span className="text-sm font-semibold text-gray-700">
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+              <div style={{ background: COLORS.light, borderRadius: 10, padding: 16 }}>
+                <p style={{ fontSize: 11, color: COLORS.muted, marginBottom: 6 }}>الحالة</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: sub.status === "active" ? COLORS.success : sub.status === "trialing" ? COLORS.warning : COLORS.muted, flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, fontWeight: 600, color: COLORS.dark }}>
                     {sub.status === "active" ? "نشط" : sub.status === "trialing" ? "تجربة مجانية" : sub.status || "—"}
                   </span>
                 </div>
               </div>
               {sub.trialEndsAt && (
-                <div className="bg-amber-50 rounded-xl p-4">
-                  <p className="text-xs text-amber-600 mb-1">تنتهي التجربة</p>
-                  <p className="text-sm font-semibold text-amber-700">{new Date(sub.trialEndsAt).toLocaleDateString("ar-SA")}</p>
+                <div style={{ background: COLORS.warningBg, borderRadius: 10, padding: 16 }}>
+                  <p style={{ fontSize: 11, color: COLORS.warningText, marginBottom: 6 }}>تنتهي التجربة</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: COLORS.warningText }}>{new Date(sub.trialEndsAt).toLocaleDateString("ar-SA")}</p>
                 </div>
               )}
-              <div className="bg-gray-50 rounded-xl p-4">
-                <p className="text-xs text-gray-400 mb-1">التجديد</p>
-                <p className="text-sm font-semibold text-gray-700">
+              <div style={{ background: COLORS.light, borderRadius: 10, padding: 16 }}>
+                <p style={{ fontSize: 11, color: COLORS.muted, marginBottom: 6 }}>التجديد</p>
+                <p style={{ fontSize: 13, fontWeight: 600, color: COLORS.dark }}>
                   {sub.renewalDate ? new Date(sub.renewalDate).toLocaleDateString("ar-SA") : "—"}
                 </p>
               </div>
             </div>
-            <div className="mt-5 pt-5 border-t border-gray-50">
+            <div style={{ marginTop: 20, paddingTop: 20, borderTop: `1px solid ${COLORS.border}` }}>
               <Button variant="secondary" icon={CreditCard}>ترقية الباقة</Button>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
-            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Shield className="w-4 h-4 text-brand-500" />
+          <div style={{ background: COLORS.surface, borderRadius: 14, border: `1px solid ${COLORS.border}`, boxShadow: SHADOWS.card, padding: 24 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, color: COLORS.dark, marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
+              <Shield size={16} color={COLORS.primary} />
               مميزات الباقة
             </h3>
-            <div className="space-y-2.5">
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
               {["إدارة الحجوزات والتقويم","إدارة العملاء والخدمات","التقارير والتحليلات","مزودو الخدمة والفريق","الفوترة والمالية","المخزون والأصول"].map((feat, i) => (
-                <div key={i} className="flex items-center gap-2.5">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
-                  <span className="text-sm text-gray-700">{feat}</span>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <CheckCircle2 size={15} color={COLORS.successText} style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: 13, color: COLORS.dark }}>{feat}</span>
                 </div>
               ))}
             </div>

@@ -2,6 +2,19 @@ import { ReactNode, useEffect, useRef } from "react";
 import { X, Loader2, AlertCircle, Inbox } from "lucide-react";
 import { clsx } from "clsx";
 
+// ── New design system components ──────────────────────────────
+export { TimePicker }     from "./TimePicker";
+export { Calendar }       from "./Calendar";
+export { StatusBadge }    from "./StatusBadge";
+export { ModernSelect }   from "./ModernSelect";
+export { ModernInput }    from "./ModernInput";
+export { StatCard }       from "./StatCard";
+export { BookingCard }    from "./BookingCard";
+export { DataTable }      from "./DataTable";
+export { PageSkeleton, SkeletonRows, SkeletonCards } from "./Skeleton";
+export { Pagination }     from "./Pagination";
+export { Toaster }        from "./Toaster";
+
 // ============================================================
 // MODAL
 // ============================================================
@@ -231,6 +244,59 @@ export function EmptyState({ title, description, action, icon: Icon = Inbox }: {
       <h3 className="text-base font-medium text-gray-900 mb-1">{title}</h3>
       {description && <p className="text-sm text-gray-500 mb-4 max-w-sm">{description}</p>}
       {action}
+    </div>
+  );
+}
+
+// ============================================================
+// PAGE HEADER
+// ============================================================
+
+export function PageHeader({
+  title, description, actions, tabs, activeTab, onTabChange,
+}: {
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+  tabs?: { id: string; label: string; count?: number }[];
+  activeTab?: string;
+  onTabChange?: (id: string) => void;
+}) {
+  return (
+    <div className="mb-6">
+      <div className="flex items-center justify-between gap-4 mb-1">
+        <div>
+          <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+          {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
+        </div>
+        {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+      </div>
+      {tabs && tabs.length > 0 && (
+        <div className="flex items-center gap-1 mt-4 border-b border-gray-100">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => onTabChange?.(tab.id)}
+              className={clsx(
+                "px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors relative",
+                activeTab === tab.id
+                  ? "text-brand-600 after:absolute after:bottom-0 after:inset-x-0 after:h-0.5 after:bg-brand-500"
+                  : "text-gray-500 hover:text-gray-700"
+              )}
+            >
+              {tab.label}
+              {tab.count !== undefined && (
+                <span className={clsx(
+                  "mr-1.5 text-xs rounded-full px-1.5 py-0.5",
+                  activeTab === tab.id ? "bg-brand-100 text-brand-600" : "bg-gray-100 text-gray-500"
+                )}>
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

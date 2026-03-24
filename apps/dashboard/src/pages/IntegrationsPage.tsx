@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { integrationsApi } from "../lib/api";
 import { Button } from "../components/ui";
+import { SkeletonRows } from "@/components/ui/Skeleton";
 
 const TYPE_AR: Record<string, string> = {
   booking_channel: "قناة حجز",
@@ -100,7 +101,7 @@ export default function IntegrationsPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-48 text-gray-400">جاري التحميل...</div>
+        <SkeletonRows />
       ) : (
         <>
           {/* ── Integrations ── */}

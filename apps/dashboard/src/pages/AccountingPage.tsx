@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "@/hooks/useToast";
 import { clsx } from "clsx";
 import {
   BookOpen, ChevronRight, ChevronDown, Plus, Pencil,
@@ -286,7 +287,6 @@ export function AccountingPage() {
   const [editing, setEditing] = useState<any>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const { data: treeRes, loading, refetch } = useApi(() => accountingApi.coa(), []);
   const { data: flatRes } = useApi(() => accountingApi.coa({ flat: "true" }), []);
@@ -300,8 +300,7 @@ export function AccountingPage() {
     .filter((n) => !search || n.name.includes(search) || n.code.includes(search) || n.name_en?.toLowerCase().includes(search.toLowerCase()));
 
   function showToast(msg: string, type: "success" | "error" = "success") {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    type === "error" ? toast.error(msg) : toast.success(msg);
   }
 
   async function handleDelete(account: any) {
@@ -399,12 +398,6 @@ export function AccountingPage() {
         />
       )}
 
-      {toast && (
-        <div className={clsx("fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2 text-sm font-medium z-50", toast.type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white")}>
-          {toast.type === "success" ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-          {toast.msg}
-        </div>
-      )}
     </div>
   );
 }

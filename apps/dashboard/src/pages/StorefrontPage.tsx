@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "@/hooks/useToast";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Globe, Palette, FileText, Rss, Settings2, ExternalLink, Copy, Check,
@@ -9,7 +10,8 @@ import {
 import { clsx } from "clsx";
 import { websiteApi, settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Button, Input, TextArea, Toggle, Toast, Modal } from "@/components/ui";
+import { Button, Input, TextArea, Toggle, Modal } from "@/components/ui";
+import { MediaPickerModal } from "@/components/media/MediaPickerModal";
 
 // ── Block builder (moved from PageBuilderPage) ─────────────────
 
@@ -37,13 +39,37 @@ const BLOCK_DEFAULTS: Record<string, any> = {
   html:         { code: "<p>كود HTML مخصص</p>" },
 };
 
-function BlockEditor({ block, onChange }: { block: any; onChange: (c: any) => void }) {
+function BlockEditor({ block, onChange, onPickImage }: {
+  block: any;
+  onChange: (c: any) => void;
+  onPickImage?: (field: string) => void;
+}) {
   const f = (key: string, val: any) => onChange({ ...block.content, [key]: val });
   const input = (key: string, label: string, type = "text") => (
     <div>
       <label className="block text-xs text-gray-500 mb-1">{label}</label>
       <input type={type} value={block.content?.[key] ?? ""} onChange={e => f(key, e.target.value)}
         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-400" />
+    </div>
+  );
+  const imageField = (key: string, label: string) => (
+    <div>
+      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+      <div className="flex items-center gap-2">
+        {block.content?.[key] && (
+          <img src={block.content[key]} className="w-10 h-10 rounded-lg object-cover border border-gray-100 shrink-0" alt="" />
+        )}
+        <button type="button" onClick={() => onPickImage?.(key)}
+          className="px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors">
+          {block.content?.[key] ? "تغيير الصورة" : "اختر صورة"}
+        </button>
+        {block.content?.[key] && (
+          <button type="button" onClick={() => f(key, "")}
+            className="px-2.5 py-2 rounded-lg border border-red-100 text-xs text-red-400 hover:bg-red-50 transition-colors">
+            ×
+          </button>
+        )}
+      </div>
     </div>
   );
   const toggle = (key: string, label: string) => (
@@ -57,10 +83,10 @@ function BlockEditor({ block, onChange }: { block: any; onChange: (c: any) => vo
   );
 
   switch (block.type) {
-    case "hero": return <div className="space-y-3">{input("title","العنوان")}{input("subtitle","العنوان الفرعي")}{input("buttonText","نص الزر")}{input("imageUrl","رابط الصورة")}{input("bgColor","لون الخلفية","color")}</div>;
+    case "hero": return <div className="space-y-3">{input("title","العنوان")}{input("subtitle","العنوان الفرعي")}{input("buttonText","نص الزر")}{imageField("imageUrl","صورة الخلفية")}{input("bgColor","لون الخلفية","color")}</div>;
     case "services": return <div className="space-y-3">{input("title","العنوان")}{input("subtitle","العنوان الفرعي")}</div>;
     case "text": return <div className="space-y-3">{input("title","العنوان (اختياري)")}<div><label className="block text-xs text-gray-500 mb-1">المحتوى</label><textarea value={block.content?.content ?? ""} onChange={e => f("content", e.target.value)} rows={4} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-400" /></div></div>;
-    case "image": return <div className="space-y-3">{input("url","رابط الصورة")}{input("alt","وصف الصورة")}{input("caption","تعليق الصورة")}</div>;
+    case "image": return <div className="space-y-3">{imageField("url","الصورة")}{input("alt","وصف الصورة")}{input("caption","تعليق الصورة")}</div>;
     case "booking_cta": return <div className="space-y-3">{input("title","العنوان")}{input("subtitle","العنوان الفرعي")}{input("buttonText","نص الزر")}{input("bgColor","لون الخلفية","color")}</div>;
     case "contact": return <div className="space-y-2">{toggle("showPhone","عرض الهاتف")}{toggle("showEmail","عرض الإيميل")}{toggle("showMap","عرض الخريطة")}</div>;
     case "html": return <div><label className="block text-xs text-gray-500 mb-1">كود HTML</label><textarea value={block.content?.code ?? ""} onChange={e => f("code", e.target.value)} rows={5} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-brand-400" /></div>;
@@ -85,9 +111,9 @@ export function StorefrontPage() {
   const [searchParams] = useSearchParams();
   const initialTab = (searchParams.get("tab") as Tab) || "overview";
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
-  const [copied, setCopied] = useState(false);
-
+  const [copied, setCopied]       = useState(false);
+  const [logoPicker, setLogoPicker]   = useState(false);
+  const [imagePicker, setImagePicker] = useState<{ blockId: string; field: string } | null>(null);
   // Data
   const { data: pagesRes, refetch: refetchPages } = useApi(() => websiteApi.pages(), []);
   const { data: configRes, refetch: refetchConfig } = useApi(() => websiteApi.config(), []);
@@ -125,9 +151,9 @@ export function StorefrontPage() {
     try {
       await websiteApi.updateConfig(designForm);
       refetchConfig();
-      setToast({ msg: "تم حفظ التصميم", type: "success" });
+      toast.success("تم حفظ التصميم");
     } catch {
-      setToast({ msg: "فشل الحفظ", type: "error" });
+      toast.error("فشل الحفظ");
     } finally {
       setDesignSaving(false);
     }
@@ -161,9 +187,9 @@ export function StorefrontPage() {
     try {
       await websiteApi.updateConfig(settingsForm);
       refetchConfig();
-      setToast({ msg: "تم حفظ الإعدادات", type: "success" });
+      toast.success("تم حفظ الإعدادات");
     } catch {
-      setToast({ msg: "فشل الحفظ", type: "error" });
+      toast.error("فشل الحفظ");
     } finally {
       setSettingsSaving(false);
     }
@@ -196,10 +222,10 @@ export function StorefrontPage() {
       const blocks = builderBlocks.map(({ id, ...rest }) => rest);
       await websiteApi.updatePage(builderPage.id, { blocks });
       refetchPages();
-      setToast({ msg: "تم حفظ الصفحة", type: "success" });
+      toast.success("تم حفظ الصفحة");
       setBuilderPage(null);
     } catch {
-      setToast({ msg: "فشل الحفظ", type: "error" });
+      toast.error("فشل الحفظ");
     } finally {
       setBuilderSaving(false);
     }
@@ -215,9 +241,9 @@ export function StorefrontPage() {
       }
       setPageModal(null);
       refetchPages();
-      setToast({ msg: pageModal?.item ? "تم التحديث" : "تم إنشاء الصفحة", type: "success" });
+      toast.success(pageModal?.item ? "تم التحديث" : "تم إنشاء الصفحة");
     } catch {
-      setToast({ msg: "فشل الحفظ", type: "error" });
+      toast.error("فشل الحفظ");
     } finally {
       setPageSaving(false);
     }
@@ -227,13 +253,13 @@ export function StorefrontPage() {
     if (!confirm("حذف هذه الصفحة؟")) return;
     await websiteApi.deletePage(id);
     refetchPages();
-    setToast({ msg: "تم الحذف", type: "success" });
+    toast.success("تم الحذف");
   };
 
   const togglePublish = async (page: any) => {
     await websiteApi.updatePage(page.id, { isPublished: !page.isPublished });
     refetchPages();
-    setToast({ msg: page.isPublished ? "أُخفيت الصفحة" : "نُشرت الصفحة", type: "success" });
+    toast.success(page.isPublished ? "أُخفيت الصفحة" : "نُشرت الصفحة");
   };
 
   // ── Blog state ───────────────────────────────────────────────
@@ -251,9 +277,9 @@ export function StorefrontPage() {
       }
       setPostModal(null);
       refetchBlog();
-      setToast({ msg: "تم الحفظ", type: "success" });
+      toast.success("تم الحفظ");
     } catch {
-      setToast({ msg: "فشل الحفظ", type: "error" });
+      toast.error("فشل الحفظ");
     } finally {
       setPostSaving(false);
     }
@@ -263,7 +289,7 @@ export function StorefrontPage() {
     if (!confirm("حذف هذا المقال؟")) return;
     await websiteApi.deletePost(id);
     refetchBlog();
-    setToast({ msg: "تم الحذف", type: "success" });
+    toast.success("تم الحذف");
   };
 
   const copySiteUrl = () => {
@@ -320,7 +346,11 @@ export function StorefrontPage() {
                     <button onClick={() => setBuilderBlocks(prev => prev.filter(b => b.id !== block.id))} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400"><Trash2 className="w-3.5 h-3.5" /></button>
                   </div>
                   <div className="p-4">
-                    <BlockEditor block={block} onChange={(content) => setBuilderBlocks(prev => prev.map(b => b.id === block.id ? { ...b, content } : b))} />
+                    <BlockEditor
+                      block={block}
+                      onChange={(content) => setBuilderBlocks(prev => prev.map(b => b.id === block.id ? { ...b, content } : b))}
+                      onPickImage={(field) => setImagePicker({ blockId: block.id, field })}
+                    />
                   </div>
                 </div>
               );
@@ -566,8 +596,27 @@ export function StorefrontPage() {
                 <p className="text-xs text-gray-400 mt-1.5" style={{ fontFamily: designForm.fontFamily }}>معاينة: نص عربي احترافي</p>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-2">رابط الشعار (Logo URL)</label>
-                <input type="url" value={designForm.logoUrl} onChange={e => d("logoUrl", e.target.value)} placeholder="https://..." className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
+                <label className="block text-xs font-medium text-gray-600 mb-2">شعار الموقع</label>
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                    {designForm.logoUrl
+                      ? <img src={designForm.logoUrl} alt="logo" className="w-full h-full object-contain p-1" />
+                      : <Image className="w-6 h-6 text-gray-300" />
+                    }
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setLogoPicker(true)}
+                      className="px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 transition-colors">
+                      اختر من المكتبة
+                    </button>
+                    {designForm.logoUrl && (
+                      <button onClick={() => d("logoUrl", "")}
+                        className="px-3 py-2 rounded-xl border border-red-100 text-xs text-red-500 hover:bg-red-50 transition-colors">
+                        إزالة
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -791,7 +840,29 @@ export function StorefrontPage() {
         </Modal>
       )}
 
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      {logoPicker && (
+        <MediaPickerModal
+          accept="logo"
+          title="اختر شعار الموقع"
+          onSelect={(asset) => { d("logoUrl", asset.fileUrl); setLogoPicker(false); }}
+          onClose={() => setLogoPicker(false)}
+        />
+      )}
+
+      {imagePicker && (
+        <MediaPickerModal
+          accept="image"
+          title="اختر صورة"
+          onSelect={(asset) => {
+            setBuilderBlocks(prev => prev.map(b =>
+              b.id === imagePicker.blockId
+                ? { ...b, content: { ...b.content, [imagePicker.field]: asset.fileUrl } }
+                : b
+            ));
+            setImagePicker(null);
+          }}
+          onClose={() => setImagePicker(null)}
+        />
+      )}    </div>
   );
 }

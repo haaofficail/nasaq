@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "@/hooks/useToast";
 import { clsx } from "clsx";
 import {
   FileText, Plus, Eye, RotateCcw, CheckCircle2,
@@ -6,6 +7,7 @@ import {
 } from "lucide-react";
 import { accountingApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
+import { Pagination } from "@/components/ui/Pagination";
 
 // ============================================================
 // HELPERS
@@ -154,20 +156,24 @@ function EntryDrawer({ entryId, onClose, onPost, onReverse }: {
 // MAIN PAGE
 // ============================================================
 
+const PAGE_SIZE = 25;
+
 export function JournalEntriesPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sourceFilter, setSourceFilter] = useState("all");
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [selectedEntry, setSelectedEntry] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
-  const params: Record<string, string> = {};
+  const params: Record<string, string> = { page: String(page), limit: String(PAGE_SIZE) };
   if (statusFilter !== "all") params.status = statusFilter;
   if (sourceFilter !== "all") params.sourceType = sourceFilter;
 
+  const handleFilter = (setter: (v: string) => void) => (v: string) => { setter(v); setPage(1); };
+
   const { data: res, loading, refetch } = useApi(
     () => accountingApi.entries(params),
-    [statusFilter, sourceFilter]
+    [statusFilter, sourceFilter, page]
   );
 
   const { mutate: postEntry } = useMutation((id: string) => accountingApi.postEntry(id));
@@ -177,8 +183,7 @@ export function JournalEntriesPage() {
   const pagination = res?.pagination;
 
   function showToast(msg: string, type: "success" | "error" = "success") {
-    setToast({ msg, type });
-    setTimeout(() => setToast(null), 3000);
+    type === "error" ? toast.error(msg) : toast.success(msg);
   }
 
   async function handlePost(id: string) {
@@ -314,6 +319,9 @@ export function JournalEntriesPage() {
             </table>
           </div>
         )}
+        {!loading && pagination && (
+          <Pagination page={page} pageSize={PAGE_SIZE} total={pagination.total ?? 0} onPage={setPage} label="قيد" />
+        )}
       </div>
 
       {selectedEntry && (
@@ -325,12 +333,6 @@ export function JournalEntriesPage() {
         />
       )}
 
-      {toast && (
-        <div className={clsx("fixed bottom-6 left-1/2 -translate-x-1/2 px-4 py-3 rounded-2xl shadow-lg flex items-center gap-2 text-sm font-medium z-50", toast.type === "success" ? "bg-emerald-600 text-white" : "bg-red-600 text-white")}>
-          {toast.type === "success" ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
-          {toast.msg}
-        </div>
-      )}
     </div>
   );
 }

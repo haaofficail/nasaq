@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { hotelApi } from "../lib/api";
+import { toast } from "@/hooks/useToast";
 import { Button } from "../components/ui";
+import { SkeletonRows } from "@/components/ui/Skeleton";
 
 type Tab = "dashboard" | "rooms" | "reservations" | "housekeeping" | "pricing";
 
@@ -116,7 +118,7 @@ export default function HotelPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-48 text-gray-400">جاري التحميل...</div>
+        <SkeletonRows />
       ) : (
         <>
           {/* ── Dashboard ── */}
@@ -403,7 +405,7 @@ export default function HotelPage() {
                   size="sm"
                   onClick={async () => {
                     const room = rooms.find((r) => r.status === "cleaning");
-                    if (!room) return alert("لا توجد غرف قيد التنظيف");
+                    if (!room) { toast.error("لا توجد غرف قيد التنظيف"); return; }
                     await hotelApi.createHousekeeping({
                       roomUnitId: room.id,
                       taskType: "cleaning",

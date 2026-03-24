@@ -3,6 +3,7 @@ import { useApi, useMutation } from "@/hooks/useApi";
 import { bookingsApi, customersApi } from "@/lib/api";
 import { Armchair, Plus, Search, X, CalendarDays, Clock, Users } from "lucide-react";
 import { clsx } from "clsx";
+import { SkeletonRows } from "@/components/ui/Skeleton";
 
 const STATUS_LABELS: Record<string, string> = { pending: "قيد الانتظار", confirmed: "مؤكد", cancelled: "ملغي", completed: "مكتمل" };
 const STATUS_COLORS: Record<string, string> = { pending: "bg-yellow-50 text-yellow-700", confirmed: "bg-green-50 text-green-700", cancelled: "bg-red-50 text-red-600", completed: "bg-gray-100 text-gray-500" };
@@ -118,7 +119,7 @@ export function ReservationsPage() {
 
       {/* Table */}
       {loading ? (
-        <div className="text-center py-12 text-gray-400 text-sm">جاري التحميل...</div>
+        <SkeletonRows />
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           {bookings.length === 0 ? (

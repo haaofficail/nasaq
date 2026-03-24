@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "@/hooks/useToast";
 import {
   ClipboardCheck, UserCheck, UserX, Clock, AlertTriangle, RefreshCw,
   LogIn, LogOut, ChevronLeft, ChevronRight, Plus, Pencil, Trash2,
@@ -8,7 +9,7 @@ import {
 import { clsx } from "clsx";
 import { attendanceEngineApi, staffApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Button, Modal, Input, Select, Toast } from "@/components/ui";
+import { Button, Modal, Input, Select } from "@/components/ui";
 
 // ============================================================
 // STATUS CONFIG
@@ -59,7 +60,6 @@ function DailyTab() {
   const [checkingIn, setCheckingIn] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
   const [manualForm, setManualForm] = useState({ userId: "", checkIn: "", checkOut: "", notes: "" });
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const { data: dailyRes, loading, refetch } = useApi(() => attendanceEngineApi.daily(date), [date]);
   const { data: summaryRes, refetch: refetchSummary } = useApi(() => attendanceEngineApi.summary(date), [date]);
@@ -80,16 +80,16 @@ function DailyTab() {
     setCheckingIn(userId);
     try {
       await doCheckIn({ userId });
-      setToast({ msg: "تم تسجيل الحضور", type: "success" }); refresh();
-    } catch { setToast({ msg: "فشل تسجيل الحضور", type: "error" }); }
+      toast.success("تم تسجيل الحضور"); refresh();
+    } catch { toast.error("فشل تسجيل الحضور"); }
     finally { setCheckingIn(null); }
   };
 
   const handleCheckout = async (shiftId: string) => {
     try {
       await doCheckout({ id: shiftId, data: {} });
-      setToast({ msg: "تم تسجيل الانصراف", type: "success" }); refresh();
-    } catch { setToast({ msg: "فشل تسجيل الانصراف", type: "error" }); }
+      toast.success("تم تسجيل الانصراف"); refresh();
+    } catch { toast.error("فشل تسجيل الانصراف"); }
   };
 
   const handleManual = async () => {
@@ -101,9 +101,9 @@ function DailyTab() {
         checkOut: manualForm.checkOut ? `${date}T${manualForm.checkOut}:00+03:00` : undefined,
         notes: manualForm.notes,
       });
-      setToast({ msg: "تم حفظ السجل اليدوي", type: "success" });
+      toast.success("تم حفظ السجل اليدوي");
       setShowManual(false); setManualForm({ userId: "", checkIn: "", checkOut: "", notes: "" }); refresh();
-    } catch { setToast({ msg: "فشل الحفظ", type: "error" }); }
+    } catch { toast.error("فشل الحفظ"); }
   };
 
   const STAT_CARDS = [
@@ -251,10 +251,7 @@ function DailyTab() {
           <Input label="ملاحظات" name="notes" value={manualForm.notes}
             onChange={e => setManualForm(p => ({ ...p, notes: e.target.value }))} placeholder="سبب الإدخال اليدوي..." />
         </div>
-      </Modal>
-
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      </Modal>    </div>
   );
 }
 
@@ -281,7 +278,6 @@ function SchedulesTab() {
   const [saving, setSaving] = useState(false);
   const [showAssign, setShowAssign] = useState<any>(null);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const { data: schedsRes, loading, refetch } = useApi(() => attendanceEngineApi.schedules(), []);
   const { data: assignRes, refetch: refetchAssign } = useApi(() => attendanceEngineApi.assignments(), []);
@@ -316,25 +312,25 @@ function SchedulesTab() {
       const payload = { ...form, days: days.filter(d => d.active).map(d => ({ dayOfWeek: d.dayOfWeek, startTime: d.startTime, endTime: d.endTime })) };
       if (editing) await updateSched({ id: editing.id, data: payload });
       else await createSched(payload);
-      setToast({ msg: editing ? "تم تحديث الجدول" : "تم إنشاء الجدول", type: "success" });
+      toast.success(editing ? "تم تحديث الجدول" : "تم إنشاء الجدول");
       setShowModal(false); refetch();
-    } catch { setToast({ msg: "فشل الحفظ", type: "error" }); }
+    } catch { toast.error("فشل الحفظ"); }
     finally { setSaving(false); }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("حذف هذا الجدول؟")) return;
-    try { await deleteSched(id); setToast({ msg: "تم الحذف", type: "success" }); refetch(); }
-    catch (e: any) { setToast({ msg: e?.message || "فشل الحذف", type: "error" }); }
+    try { await deleteSched(id); toast.success("تم الحذف"); refetch(); }
+    catch (e: any) { toast.error(e?.message || "فشل الحذف"); }
   };
 
   const handleAssign = async () => {
     if (!selectedUsers.length || !showAssign) return;
     try {
       await assignSched({ id: showAssign.id, data: { userIds: selectedUsers } });
-      setToast({ msg: `تم تعيين ${selectedUsers.length} موظف`, type: "success" });
+      toast.success(`تم تعيين ${selectedUsers.length} موظف`);
       setShowAssign(null); setSelectedUsers([]); refetchAssign();
-    } catch { setToast({ msg: "فشل التعيين", type: "error" }); }
+    } catch { toast.error("فشل التعيين"); }
   };
 
   const setDay = (i: number, field: string, val: any) => setDays(prev => prev.map((d, idx) => idx === i ? { ...d, [field]: val } : d));
@@ -475,10 +471,7 @@ function SchedulesTab() {
             </label>
           ))}
         </div>
-      </Modal>
-
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      </Modal>    </div>
   );
 }
 
@@ -490,7 +483,6 @@ function PoliciesTab() {
   const { data: policyRes, loading, refetch } = useApi(() => attendanceEngineApi.policy(), []);
   const [form, setForm] = useState<any>(null);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const { mutate: savePolicy } = useMutation((d: any) => attendanceEngineApi.updatePolicy(d));
 
   const policy = policyRes?.data;
@@ -507,8 +499,8 @@ function PoliciesTab() {
         autoCloseOpenRecords: form.auto_close_open_records, autoCloseHour: form.auto_close_hour,
         requireGps: form.require_gps, requireQr: form.require_qr,
       });
-      setToast({ msg: "تم حفظ السياسات", type: "success" }); refetch();
-    } catch { setToast({ msg: "فشل الحفظ", type: "error" }); }
+      toast.success("تم حفظ السياسات"); refetch();
+    } catch { toast.error("فشل الحفظ"); }
     finally { setSaving(false); }
   };
 
@@ -566,9 +558,7 @@ function PoliciesTab() {
       </div>
       <div className="flex justify-end">
         <Button onClick={handleSave} loading={saving}>حفظ السياسات</Button>
-      </div>
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      </div>    </div>
   );
 }
 
@@ -591,7 +581,6 @@ function AdjustmentsTab() {
   const [statusFilter, setStatusFilter] = useState("pending");
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState({ userId: "", type: "approve_late", workDate: today(), reason: "" });
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [reviewNote, setReviewNote] = useState("");
 
   const { data: adjRes, loading, refetch } = useApi(() => attendanceEngineApi.adjustments(statusFilter), [statusFilter]);
@@ -604,20 +593,20 @@ function AdjustmentsTab() {
   const allStaff: any[] = staffRes?.data || [];
 
   const handleApprove = async (id: string) => {
-    try { await approve({ id, note: reviewNote }); setToast({ msg: "تمت الموافقة", type: "success" }); refetch(); }
-    catch { setToast({ msg: "فشل", type: "error" }); }
+    try { await approve({ id, note: reviewNote }); toast.success("تمت الموافقة"); refetch(); }
+    catch { toast.error("فشل"); }
   };
   const handleReject = async (id: string) => {
-    try { await reject({ id, note: reviewNote }); setToast({ msg: "تم الرفض", type: "success" }); refetch(); }
-    catch { setToast({ msg: "فشل", type: "error" }); }
+    try { await reject({ id, note: reviewNote }); toast.success("تم الرفض"); refetch(); }
+    catch { toast.error("فشل"); }
   };
   const handleCreate = async () => {
     if (!createForm.userId || !createForm.reason) return;
     try {
       await createAdj({ ...createForm });
-      setToast({ msg: "تم إرسال الطلب", type: "success" });
+      toast.success("تم إرسال الطلب");
       setShowCreate(false); refetch();
-    } catch { setToast({ msg: "فشل", type: "error" }); }
+    } catch { toast.error("فشل"); }
   };
 
   const STATUS_BADGE: Record<string, string> = {
@@ -701,10 +690,7 @@ function AdjustmentsTab() {
           <Input label="السبب" name="reason" value={createForm.reason}
             onChange={e => setCreateForm(p => ({ ...p, reason: e.target.value }))} placeholder="اشرح سبب الطلب..." required />
         </div>
-      </Modal>
-
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      </Modal>    </div>
   );
 }
 

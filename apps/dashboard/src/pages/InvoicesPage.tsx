@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { toast } from "@/hooks/useToast";
 import { FileText, Plus, RefreshCw, CheckCircle2, Clock, XCircle, AlertTriangle, Eye } from "lucide-react";
 import { clsx } from "clsx";
-import { financeApi } from "@/lib/api";
+import { financeApi, settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Button, Modal, Input, Select, Toast } from "@/components/ui";
+import { useOrgContext } from "@/hooks/useOrgContext";
+import { Button, Modal, Input, Select } from "@/components/ui";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
   draft:           { label: "مسودة",      color: "bg-gray-100 text-gray-600 border-gray-200",      icon: Clock },
@@ -42,7 +44,10 @@ export function InvoicesPage() {
   const [viewInvoice, setViewInvoice] = useState<any>(null);
   const [form, setForm]         = useState({ ...EMPTY_INVOICE });
   const [saving, setSaving]     = useState(false);
-  const [toast, setToast]       = useState<{ msg: string; type: "success" | "error" } | null>(null);
+
+  const { context: orgCtx }               = useOrgContext();
+  const { data: profileRes }              = useApi(() => settingsApi.profile(), []);
+  const orgProfile                        = profileRes?.data;
 
   const params: Record<string, string> = {};
   if (tab !== "all") params.status = tab;
@@ -74,29 +79,29 @@ export function InvoicesPage() {
     setSaving(true);
     try {
       await createInv(form);
-      setToast({ msg: "تم إنشاء الفاتورة", type: "success" });
+      toast.success("تم إنشاء الفاتورة");
       setShowModal(false);
       setForm({ ...EMPTY_INVOICE });
       refetch();
-    } catch { setToast({ msg: "فشل إنشاء الفاتورة", type: "error" }); }
+    } catch { toast.error("فشل إنشاء الفاتورة"); }
     finally { setSaving(false); }
   };
 
   const markPaid = async (id: string) => {
     try {
       await updateStatus({ id, s: "paid" });
-      setToast({ msg: "تم تأكيد الدفع", type: "success" });
+      toast.success("تم تأكيد الدفع");
       refetch();
-    } catch { setToast({ msg: "فشل التحديث", type: "error" }); }
+    } catch { toast.error("فشل التحديث"); }
   };
 
   const markCancelled = async (id: string) => {
     if (!confirm("إلغاء هذه الفاتورة؟")) return;
     try {
       await updateStatus({ id, s: "cancelled" });
-      setToast({ msg: "تم الإلغاء", type: "success" });
+      toast.success("تم الإلغاء");
       refetch();
-    } catch { setToast({ msg: "فشل التحديث", type: "error" }); }
+    } catch { toast.error("فشل التحديث"); }
   };
 
   return (
@@ -113,7 +118,14 @@ export function InvoicesPage() {
           <button onClick={refetch} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
             <RefreshCw className="w-4 h-4" />
           </button>
-          <Button icon={Plus} onClick={() => setShowModal(true)}>فاتورة جديدة</Button>
+          <Button icon={Plus} onClick={() => {
+            setForm({
+              ...EMPTY_INVOICE,
+              sellerName: orgProfile?.name || "",
+              sellerVatNumber: orgProfile?.vatNumber || "",
+            });
+            setShowModal(true);
+          }}>فاتورة جديدة</Button>
         </div>
       </div>
 
@@ -302,7 +314,12 @@ export function InvoicesPage() {
             </div>
             <div className="flex justify-between py-2 border-b border-gray-100">
               <span className="text-gray-500">البائع</span>
-              <span className="font-medium">{viewInvoice.sellerName}</span>
+              <div className="text-right">
+                <p className="font-medium">{viewInvoice.sellerName}</p>
+                {orgCtx?.orgCode && (
+                  <p className="text-[11px] font-mono text-gray-400 mt-0.5" dir="ltr">{orgCtx.orgCode}</p>
+                )}
+              </div>
             </div>
             <div className="flex justify-between py-2 border-b border-gray-100">
               <span className="text-gray-500">المشتري</span>
@@ -316,15 +333,31 @@ export function InvoicesPage() {
               <span className="text-gray-500">الضريبة ({viewInvoice.vatRate || 15}%)</span>
               <span className="tabular-nums">{fmt(viewInvoice.vatAmount)} ر.س</span>
             </div>
-            <div className="flex justify-between py-2 font-bold text-base">
+            <div className="flex justify-between py-2 font-bold text-base border-b border-gray-100">
               <span>الإجمالي</span>
               <span className="tabular-nums text-brand-600">{fmt(viewInvoice.totalAmount)} ر.س</span>
             </div>
+
+            {/* ── بصمة نسق ───────────────────────────────────── */}
+            <div className="mt-2 pt-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {/* شعار نسق */}
+                <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
+                  <span className="text-white font-bold text-xs leading-none">ن</span>
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-brand-700 leading-none">نسق</p>
+                  <p className="text-[10px] text-gray-400 leading-none mt-0.5" dir="ltr">nasaqpro.tech</p>
+                </div>
+              </div>
+              {orgCtx?.orgCode && (
+                <span className="font-mono text-xs text-gray-400 bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg" dir="ltr">
+                  {orgCtx.orgCode}
+                </span>
+              )}
+            </div>
           </div>
         </Modal>
-      )}
-
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      )}    </div>
   );
 }

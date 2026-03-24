@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { toast } from "@/hooks/useToast";
 import { TrendingDown, Plus, Pencil, Trash2, RefreshCw, Receipt } from "lucide-react";
 import { clsx } from "clsx";
 import { financeApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Button, Modal, Input, Select, Toast } from "@/components/ui";
+import { Button, Modal, Input, Select } from "@/components/ui";
 
 const CATEGORIES: Record<string, { label: string; color: string; bg: string }> = {
   rent:        { label: "إيجار",     color: "text-violet-700", bg: "bg-violet-50 border-violet-200" },
@@ -35,7 +36,6 @@ export function ExpensesPage() {
   const [editing, setEditing]     = useState<any>(null);
   const [form, setForm]           = useState({ ...EMPTY });
   const [saving, setSaving]       = useState(false);
-  const [toast, setToast]         = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const { data: res, loading, refetch } = useApi(
     () => financeApi.expenses(catFilter !== "all" ? { category: catFilter } : {}),
@@ -84,14 +84,14 @@ export function ExpensesPage() {
       const payload = { ...form, expenseDate: new Date(form.expenseDate).toISOString() };
       if (editing) {
         await updateExp({ id: editing.id, d: payload });
-        setToast({ msg: "تم تحديث المصروف", type: "success" });
+        toast.success("تم تحديث المصروف");
       } else {
         await createExp(payload);
-        setToast({ msg: "تم إضافة المصروف", type: "success" });
+        toast.success("تم إضافة المصروف");
       }
       setShowModal(false);
       refetch();
-    } catch { setToast({ msg: "فشل الحفظ", type: "error" }); }
+    } catch { toast.error("فشل الحفظ"); }
     finally { setSaving(false); }
   };
 
@@ -99,9 +99,9 @@ export function ExpensesPage() {
     if (!confirm("حذف هذا المصروف نهائياً؟")) return;
     try {
       await deleteExp(id);
-      setToast({ msg: "تم الحذف", type: "success" });
+      toast.success("تم الحذف");
       refetch();
-    } catch { setToast({ msg: "فشل الحذف", type: "error" }); }
+    } catch { toast.error("فشل الحذف"); }
   };
 
   return (
@@ -280,9 +280,6 @@ export function ExpensesPage() {
           <Input label="ملاحظات" name="notes" value={form.notes}
             onChange={e => f("notes", e.target.value)} placeholder="أي ملاحظات إضافية..." />
         </div>
-      </Modal>
-
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      </Modal>    </div>
   );
 }

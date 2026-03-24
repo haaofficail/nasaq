@@ -1,10 +1,42 @@
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
-  * { @apply border-gray-200; }
-  body { @apply text-gray-900; }
+  * {
+    @apply border-gray-200;
+    box-sizing: border-box;
+    font-variant-numeric: tabular-nums;
+  }
+  body {
+    @apply text-gray-900;
+    font-family: 'IBM Plex Sans Arabic', 'Tajawal', system-ui, sans-serif;
+  }
+}
+
+/* Focus visible */
+:focus-visible {
+  outline: 2px solid #5b9bd5;
+  outline-offset: 2px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* Design system animations */
+@keyframes dropdownIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
 }
 
 @layer components {

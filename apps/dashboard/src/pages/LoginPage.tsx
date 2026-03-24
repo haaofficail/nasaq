@@ -14,6 +14,11 @@ function saveSession(res: { token: string; user: any }) {
   localStorage.setItem("nasaq_user",    JSON.stringify(res.user));
 }
 
+function getRedirectAfterLogin(user: any): string {
+  if (user?.isSuperAdmin) return "/dashboard/admin";
+  return "/dashboard";
+}
+
 export function LoginPage() {
   const navigate = useNavigate();
 
@@ -53,7 +58,7 @@ export function LoginPage() {
     try {
       const res = await authApi.verifyOtp(phone, code);
       saveSession(res);
-      navigate("/dashboard");
+      navigate(getRedirectAfterLogin(res.user));
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   };
@@ -65,7 +70,7 @@ export function LoginPage() {
     try {
       const res = await authApi.loginWithEmail(email, password);
       saveSession(res);
-      navigate("/dashboard");
+      navigate(getRedirectAfterLogin(res.user));
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   };

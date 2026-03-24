@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { bookingsApi, staffApi } from "@/lib/api";
-import { Clock, CalendarDays, CheckCircle2, XCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Clock, CalendarDays, CheckCircle2, XCircle, ChevronLeft, ChevronRight, LayoutGrid, List } from "lucide-react";
 import { clsx } from "clsx";
+import { SkeletonRows } from "@/components/ui/Skeleton";
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "border-r-yellow-400 bg-yellow-50",
@@ -26,10 +27,130 @@ function formatDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("ar-SA", { weekday: "long", month: "long", day: "numeric" });
 }
 
+// ─── Staff Column View ────────────────────────────────────────────────────────
+// 30-minute slots from 8:00 to 21:00
+const SLOTS = Array.from({ length: 26 }, (_, i) => {
+  const h = Math.floor(i / 2) + 8;
+  const m = i % 2 === 0 ? "00" : "30";
+  return { label: `${h}:${m}`, hour: h, min: Number(m) };
+});
+
+function StaffColumnView({
+  bookings,
+  staffList,
+  onStatusChange,
+}: {
+  bookings: any[];
+  staffList: any[];
+  onStatusChange: (id: string, status: string) => void;
+}) {
+  // Build map: staffId → slot key → booking
+  const byStaff: Record<string, Record<string, any>> = {};
+  staffList.forEach((s) => { byStaff[s.id] = {}; });
+
+  bookings.forEach((b) => {
+    if (!b.scheduledAt) return;
+    const dt  = new Date(b.scheduledAt);
+    const h   = dt.getHours();
+    const m   = dt.getMinutes() < 30 ? 0 : 30;
+    const key = `${h}:${String(m).padStart(2, "0")}`;
+    const sid = b.staffId ?? b.providerId ?? "__unassigned__";
+    if (!byStaff[sid]) byStaff[sid] = {};
+    byStaff[sid][key] = b;
+  });
+
+  const visibleStaff = staffList.filter((s) => s.status === "active" || !s.status);
+
+  if (visibleStaff.length === 0) {
+    return (
+      <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
+        <CalendarDays className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+        <p className="text-gray-400 font-medium">لا يوجد موظفون نشطون</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
+      <table className="min-w-full text-sm">
+        <thead>
+          <tr className="border-b border-gray-100 bg-gray-50/60">
+            <th className="w-16 shrink-0 px-3 py-3 text-xs text-gray-400 font-semibold text-center sticky right-0 bg-gray-50/60 border-l border-gray-100">
+              الوقت
+            </th>
+            {visibleStaff.map((s) => (
+              <th key={s.id} className="min-w-[140px] px-3 py-3 text-right">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-xs shrink-0">
+                    {s.name?.[0] || "م"}
+                  </div>
+                  <span className="text-xs font-semibold text-gray-800 truncate">{s.name}</span>
+                </div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {SLOTS.map(({ label, hour, min }) => {
+            const key = `${hour}:${String(min).padStart(2, "0")}`;
+            const hasAny = visibleStaff.some((s) => byStaff[s.id]?.[key]);
+            return (
+              <tr key={key} className={clsx("border-b border-gray-50 last:border-0", hasAny ? "bg-white" : "bg-gray-50/30")}>
+                <td className="w-16 px-3 py-1.5 text-xs text-gray-400 tabular-nums text-center sticky right-0 bg-inherit border-l border-gray-100">
+                  {label}
+                </td>
+                {visibleStaff.map((s) => {
+                  const b = byStaff[s.id]?.[key];
+                  if (!b) return <td key={s.id} className="min-w-[140px] px-2 py-1.5" />;
+                  const colors: Record<string, string> = {
+                    pending:     "bg-amber-50 border-r-amber-400 text-amber-800",
+                    confirmed:   "bg-blue-50 border-r-blue-400 text-blue-800",
+                    in_progress: "bg-violet-50 border-r-violet-400 text-violet-800",
+                    completed:   "bg-emerald-50 border-r-emerald-400 text-emerald-800",
+                    cancelled:   "bg-red-50 border-r-red-300 text-red-700 opacity-60",
+                  };
+                  return (
+                    <td key={s.id} className="min-w-[140px] px-2 py-1.5">
+                      <div className={clsx("border-r-4 rounded-lg px-2.5 py-1.5", colors[b.status] ?? "bg-gray-50 border-r-gray-300 text-gray-700")}>
+                        <p className="text-xs font-semibold truncate">{b.customerName ?? b.customer?.name ?? "عميل"}</p>
+                        {b.serviceName && <p className="text-[11px] opacity-70 truncate">{b.serviceName}</p>}
+                        <div className="flex gap-1 mt-1">
+                          {b.status === "confirmed" && (
+                            <button
+                              onClick={() => onStatusChange(b.id, "completed")}
+                              className="text-[10px] bg-white/60 hover:bg-white rounded px-1.5 py-0.5 text-emerald-700 transition-colors"
+                            >
+                              مكتمل
+                            </button>
+                          )}
+                          {!["cancelled", "completed"].includes(b.status) && (
+                            <button
+                              onClick={() => onStatusChange(b.id, "cancelled")}
+                              className="text-[10px] bg-white/60 hover:bg-white rounded px-1.5 py-0.5 text-red-600 transition-colors"
+                            >
+                              إلغاء
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 export function SchedulePage() {
   const today = new Date().toISOString().split("T")[0];
   const [currentDate, setCurrentDate] = useState(today);
   const [selectedStaff, setSelectedStaff] = useState("all");
+  const [viewMode, setViewMode] = useState<"list" | "columns">("list");
 
   const { data, loading, refetch } = useApi(
     () => bookingsApi.list({ date: currentDate, limit: "100" }),
@@ -78,6 +199,23 @@ export function SchedulePage() {
           <p className="text-sm text-gray-400 mt-0.5">{formatDate(currentDate)}</p>
         </div>
         <div className="flex items-center gap-2">
+          {/* View mode toggle */}
+          <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
+            <button
+              onClick={() => setViewMode("list")}
+              className={clsx("w-8 h-8 flex items-center justify-center rounded-md transition-colors", viewMode === "list" ? "bg-white shadow-sm text-brand-600" : "text-gray-400 hover:text-gray-600")}
+              title="عرض القائمة"
+            >
+              <List className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setViewMode("columns")}
+              className={clsx("w-8 h-8 flex items-center justify-center rounded-md transition-colors", viewMode === "columns" ? "bg-white shadow-sm text-brand-600" : "text-gray-400 hover:text-gray-600")}
+              title="عرض الكراسي"
+            >
+              <LayoutGrid className="w-4 h-4" />
+            </button>
+          </div>
           <button onClick={() => setCurrentDate(d => addDays(d, -1))} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
             <ChevronRight className="w-4 h-4" />
           </button>
@@ -106,8 +244,8 @@ export function SchedulePage() {
         ))}
       </div>
 
-      {/* Staff filter */}
-      {staffList.length > 0 && (
+      {/* Staff filter — only in list view */}
+      {viewMode === "list" && staffList.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
           <button onClick={() => setSelectedStaff("all")} className={clsx("px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-colors", selectedStaff === "all" ? "bg-brand-500 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50")}>
             الكل
@@ -120,9 +258,16 @@ export function SchedulePage() {
         </div>
       )}
 
-      {/* Schedule */}
-      {loading ? (
-        <div className="text-center py-12 text-gray-400 text-sm">جاري التحميل...</div>
+      {/* Staff column view — shows all chairs/staff in parallel */}
+      {viewMode === "columns" && (
+        loading
+          ? <SkeletonRows />
+          : <StaffColumnView bookings={allBookings} staffList={staffList} onStatusChange={handleStatus} />
+      )}
+
+      {/* List Schedule */}
+      {viewMode === "list" && (loading ? (
+        <SkeletonRows />
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           {bookings.length === 0 ? (
@@ -177,7 +322,7 @@ export function SchedulePage() {
             </div>
           )}
         </div>
-      )}
+      ))}
     </div>
   );
 }

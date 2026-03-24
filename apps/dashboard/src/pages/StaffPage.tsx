@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { toast } from "@/hooks/useToast";
 import { Users, Plus, Pencil, Trash2, AlertCircle, UserCheck, UserX, Shield, Search } from "lucide-react";
 import { clsx } from "clsx";
 import { staffApi, rolesApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Modal, Input, Select, Button, Toggle, Toast } from "@/components/ui";
+import { Modal, Input, Select, Button, Toggle } from "@/components/ui";
 
 const TYPE_CONFIG: Record<string, { label: string; color: string }> = {
   owner:    { label: "مالك",       color: "bg-amber-50 text-amber-700 border-amber-100" },
@@ -21,7 +22,6 @@ export function StaffPage() {
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const { data: res, loading, error, refetch } = useApi(() => staffApi.list(), []);
   const { data: rolesRes } = useApi(() => rolesApi.list(), []);
@@ -47,15 +47,15 @@ export function StaffPage() {
   };
 
   const handleSubmit = async () => {
-    if (!form.name.trim() || !form.phone.trim()) { setToast({ msg: "الاسم والجوال مطلوبان", type: "error" }); return; }
+    if (!form.name.trim() || !form.phone.trim()) { toast.error("الاسم والجوال مطلوبان"); return; }
     setSaving(true);
     try {
       const payload: any = { ...form };
       if (!payload.roleId) delete payload.roleId;
-      if (editing) { await staffApi.update(editing.id, payload); setToast({ msg: "تم التحديث", type: "success" }); }
-      else { await staffApi.create(payload); setToast({ msg: "تمت الإضافة", type: "success" }); }
+      if (editing) { await staffApi.update(editing.id, payload); toast.success("تم التحديث"); }
+      else { await staffApi.create(payload); toast.success("تمت الإضافة"); }
       setShowModal(false); refetch();
-    } catch { setToast({ msg: "فشل الحفظ", type: "error" }); }
+    } catch { toast.error("فشل الحفظ"); }
     finally { setSaving(false); }
   };
 
@@ -67,7 +67,7 @@ export function StaffPage() {
   const handleDelete = async (s: any) => {
     if (!confirm(`تعطيل "${s.name}"؟`)) return;
     await removeStaff(s.id);
-    setToast({ msg: "تم تعطيل الموظف", type: "success" });
+    toast.success("تم تعطيل الموظف");
     refetch();
   };
 
@@ -230,9 +230,6 @@ export function StaffPage() {
               options={[{ value:"active",label:"نشط" }, { value:"inactive",label:"معطّل" }]} />
           )}
         </div>
-      </Modal>
-
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      </Modal>    </div>
   );
 }

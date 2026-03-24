@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { toast } from "@/hooks/useToast";
 import { Package, Plus, Pencil, Trash2, RefreshCw, Tag, Star, ToggleLeft, ToggleRight, X, ChevronDown, ShoppingCart } from "lucide-react";
 import { clsx } from "clsx";
 import { bundlesApi, servicesApi, customersApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Button, Modal, Input, Select, Toast } from "@/components/ui";
+import { Button, Modal, Input, Select } from "@/components/ui";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string }> = {
   active:    { label: "نشطة",   color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -32,7 +33,6 @@ export function PackagesPage() {
   const [manageBundle, setManageBundle]   = useState<any>(null);
   const [form, setForm]                   = useState({ ...EMPTY });
   const [saving, setSaving]               = useState(false);
-  const [toast, setToast]                 = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const { data: res, loading, refetch }   = useApi(() => bundlesApi.list(), []);
   const { data: servicesRes }             = useApi(() => servicesApi.list(), []);
@@ -74,14 +74,14 @@ export function PackagesPage() {
     try {
       if (editing) {
         await updateBundle({ id: editing.id, d: form });
-        setToast({ msg: "تم تحديث الباقة", type: "success" });
+        toast.success("تم تحديث الباقة");
       } else {
         await createBundle(form);
-        setToast({ msg: "تم إنشاء الباقة", type: "success" });
+        toast.success("تم إنشاء الباقة");
       }
       setShowModal(false);
       refetch();
-    } catch { setToast({ msg: "فشل الحفظ", type: "error" }); }
+    } catch { toast.error("فشل الحفظ"); }
     finally { setSaving(false); }
   };
 
@@ -89,9 +89,9 @@ export function PackagesPage() {
     if (!confirm("حذف هذه الباقة نهائياً؟")) return;
     try {
       await deleteBundle(id);
-      setToast({ msg: "تم الحذف", type: "success" });
+      toast.success("تم الحذف");
       refetch();
-    } catch { setToast({ msg: "فشل الحذف", type: "error" }); }
+    } catch { toast.error("فشل الحذف"); }
   };
 
   const toggleStatus = async (b: any) => {
@@ -99,7 +99,7 @@ export function PackagesPage() {
     try {
       await updateBundle({ id: b.id, d: { status: next } });
       refetch();
-    } catch { setToast({ msg: "فشل التحديث", type: "error" }); }
+    } catch { toast.error("فشل التحديث"); }
   };
 
   const openSell = (b: any) => {
@@ -113,9 +113,9 @@ export function PackagesPage() {
     setSelling(true);
     try {
       const res = await sellBundleMutate({ id: sellBundle.id, d: { customerId: sellForm.customerId, startDate: sellForm.startDate || undefined } });
-      setToast({ msg: `تم بيع الباقة بنجاح (${(res as any)?.count || 0} اشتراك)`, type: "success" });
+      toast.success(`تم بيع الباقة بنجاح (${(res as any)?.count || 0} اشتراك)`);
       setShowSellModal(false);
-    } catch { setToast({ msg: "فشل البيع", type: "error" }); }
+    } catch { toast.error("فشل البيع"); }
     finally { setSelling(false); }
   };
 
@@ -124,7 +124,7 @@ export function PackagesPage() {
     try {
       await addItem({ id: manageBundle.id, d: { serviceId, quantity: 1 } });
       refetchDetail();
-    } catch { setToast({ msg: "فشل إضافة الخدمة", type: "error" }); }
+    } catch { toast.error("فشل إضافة الخدمة"); }
   };
 
   const handleRemoveItem = async (itemId: string) => {
@@ -132,7 +132,7 @@ export function PackagesPage() {
     try {
       await removeItem({ bundleId: manageBundle.id, itemId });
       refetchDetail();
-    } catch { setToast({ msg: "فشل الحذف", type: "error" }); }
+    } catch { toast.error("فشل الحذف"); }
   };
 
   const activeCount  = bundles.filter(b => b.status === "active").length;
@@ -388,9 +388,6 @@ export function PackagesPage() {
             dir="ltr"
           />
         </div>
-      </Modal>
-
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      </Modal>    </div>
   );
 }

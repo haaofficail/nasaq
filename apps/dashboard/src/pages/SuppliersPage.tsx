@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { procurementApi } from "@/lib/api";
+import { toast } from "@/hooks/useToast";
 import {
   Truck, Plus, X, ShoppingBag, TrendingUp, Search, Package,
   Pencil, Trash2, ChevronDown, FileText, CheckCircle2, XCircle,
   Receipt, AlertCircle, Clock,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { SkeletonRows } from "@/components/ui/Skeleton";
 
 const PO_STATUS: Record<string, { label: string; cls: string }> = {
   draft:              { label: "مسودة",          cls: "bg-gray-100 text-gray-500" },
@@ -72,14 +74,14 @@ export function SuppliersPage() {
   const { data: poData, refetch: refetchPo }    = useApi(() => procurementApi.orders(), []);
   const { data: invData, refetch: refetchInv }  = useApi(() => procurementApi.invoices(), []);
 
-  const createSup  = useMutation((d: any)          => procurementApi.createSupplier(d));
-  const updateSup  = useMutation(({ id, d }: any)  => procurementApi.updateSupplier(id, d));
-  const deleteSup  = useMutation((id: string)      => procurementApi.deleteSupplier(id));
-  const createPO   = useMutation((d: any)          => procurementApi.createOrder(d));
-  const submitPO   = useMutation((id: string)      => procurementApi.updateOrder(id, { status: "submitted" }));
-  const cancelPO   = useMutation((id: string)      => procurementApi.updateOrder(id, { status: "cancelled" }));
-  const createInv  = useMutation((d: any)          => procurementApi.createInvoice(d));
-  const advInv     = useMutation(({ id, d }: any)  => procurementApi.advanceInvoice(id, d));
+  const createSup  = useMutation((d: any)          => procurementApi.createSupplier(d),  { silent: true });
+  const updateSup  = useMutation(({ id, d }: any)  => procurementApi.updateSupplier(id, d), { silent: true });
+  const deleteSup  = useMutation((id: string)      => procurementApi.deleteSupplier(id),  { silent: true });
+  const createPO   = useMutation((d: any)          => procurementApi.createOrder(d),       { silent: true });
+  const submitPO   = useMutation((id: string)      => procurementApi.updateOrder(id, { status: "submitted" }), { silent: true });
+  const cancelPO   = useMutation((id: string)      => procurementApi.updateOrder(id, { status: "cancelled" }), { silent: true });
+  const createInv  = useMutation((d: any)          => procurementApi.createInvoice(d),     { silent: true });
+  const advInv     = useMutation(({ id, d }: any)  => procurementApi.advanceInvoice(id, d), { silent: true });
 
   const stats = statsData;
   const allSuppliers: any[] = supData?.suppliers || [];
@@ -98,15 +100,17 @@ export function SuppliersPage() {
   };
   const saveSup = async () => {
     if (!supForm.name.trim()) return;
-    if (editingSup) await updateSup.mutate({ id: editingSup.id, d: { ...supForm, paymentTermsDays: parseInt(supForm.paymentTermsDays) || 30 } });
-    else            await createSup.mutate({ ...supForm, paymentTermsDays: parseInt(supForm.paymentTermsDays) || 30 });
-    setSupplierModal(false);
-    refetch();
+    const res = editingSup
+      ? await updateSup.mutate({ id: editingSup.id, d: { ...supForm, paymentTermsDays: parseInt(supForm.paymentTermsDays) || 30 } })
+      : await createSup.mutate({ ...supForm, paymentTermsDays: parseInt(supForm.paymentTermsDays) || 30 });
+    if (res) { toast.success(editingSup ? "تم تحديث المورد" : "تم إضافة المورد"); setSupplierModal(false); refetch(); }
+    else toast.error("حدث خطأ أثناء الحفظ");
   };
   const handleDeleteSup = async (id: string) => {
     if (!confirm("هل تريد حذف هذا المورد؟")) return;
-    await deleteSup.mutate(id);
-    refetch();
+    const res = await deleteSup.mutate(id);
+    if (res !== null) { toast.success("تم حذف المورد"); refetch(); }
+    else toast.error("تعذّر حذف المورد");
   };
 
   // PO items helpers
@@ -117,7 +121,7 @@ export function SuppliersPage() {
 
   const savePO = async () => {
     if (!poForm.supplierId || poForm.items.some(it => !it.itemName || !it.orderedQuantity || !it.unitPrice)) return;
-    await createPO.mutate({
+    const res = await createPO.mutate({
       supplierId: poForm.supplierId,
       expectedDelivery: poForm.expectedDelivery ? new Date(poForm.expectedDelivery).toISOString() : null,
       notes: poForm.notes || null,
@@ -128,14 +132,13 @@ export function SuppliersPage() {
         unitPrice: parseFloat(it.unitPrice),
       })),
     });
-    setPoModal(false);
-    setPoForm({ supplierId: "", expectedDelivery: "", notes: "", items: [{ ...EMPTY_ITEM }] });
-    refetchPo();
+    if (res) { toast.success("تم إنشاء أمر الشراء"); setPoModal(false); setPoForm({ supplierId: "", expectedDelivery: "", notes: "", items: [{ ...EMPTY_ITEM }] }); refetchPo(); }
+    else toast.error("تعذّر إنشاء أمر الشراء");
   };
 
   const saveInv = async () => {
     if (!invForm.supplierId || !invForm.invoiceNumber || !invForm.invoiceDate || !invForm.totalAmount) return;
-    await createInv.mutate({
+    const res = await createInv.mutate({
       supplierId: invForm.supplierId,
       poId: invForm.poId || null,
       invoiceNumber: invForm.invoiceNumber,
@@ -145,9 +148,8 @@ export function SuppliersPage() {
       vatAmount: parseFloat(invForm.vatAmount) || 0,
       totalAmount: parseFloat(invForm.totalAmount),
     });
-    setInvModal(false);
-    setInvForm({ supplierId: "", poId: "", invoiceNumber: "", invoiceDate: "", dueDate: "", subtotal: "", vatAmount: "", totalAmount: "" });
-    refetchInv();
+    if (res) { toast.success("تم إضافة الفاتورة"); setInvModal(false); setInvForm({ supplierId: "", poId: "", invoiceNumber: "", invoiceDate: "", dueDate: "", subtotal: "", vatAmount: "", totalAmount: "" }); refetchInv(); }
+    else toast.error("تعذّر إضافة الفاتورة");
   };
 
   const tabBtns: [Tab, string][] = [["suppliers", "الموردون"], ["orders", "أوامر الشراء"], ["invoices", "الفواتير"]];
@@ -210,7 +212,7 @@ export function SuppliersPage() {
               className="bg-transparent outline-none text-sm text-gray-700 flex-1" />
           </div>
           {loading ? (
-            <div className="text-center py-12 text-gray-400 text-sm">جاري التحميل...</div>
+            <SkeletonRows />
           ) : (
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               {filtered.length === 0 ? (
@@ -296,13 +298,13 @@ export function SuppliersPage() {
                     </span>
                     <span className={clsx("px-2.5 py-1 rounded-lg text-xs font-medium", s.cls)}>{s.label}</span>
                     {o.status === "draft" && (
-                      <button onClick={async () => { await submitPO.mutate(o.id); refetchPo(); }}
+                      <button onClick={async () => { const r = await submitPO.mutate(o.id); if (r) { toast.success("تم إرسال أمر الشراء"); refetchPo(); } else toast.error("تعذّر الإرسال"); }}
                         className="text-xs bg-brand-500 text-white px-2.5 py-1 rounded-lg hover:bg-brand-600">
                         إرسال
                       </button>
                     )}
                     {["draft", "submitted"].includes(o.status) && (
-                      <button onClick={async () => { if (confirm("إلغاء هذا الأمر؟")) { await cancelPO.mutate(o.id); refetchPo(); } }}
+                      <button onClick={async () => { if (confirm("إلغاء هذا الأمر؟")) { const r = await cancelPO.mutate(o.id); if (r) { toast.info("تم إلغاء أمر الشراء"); refetchPo(); } } }}
                         className="p-1 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-400 transition-colors">
                         <XCircle className="w-4 h-4" />
                       </button>
@@ -349,13 +351,13 @@ export function SuppliersPage() {
                   </span>
                   <span className={clsx("px-2.5 py-1 rounded-lg text-xs font-medium", s.cls)}>{s.label}</span>
                   {inv.status === "received" && (
-                    <button onClick={async () => { await advInv.mutate({ id: inv.id, d: { status: "approved" } }); refetchInv(); }}
+                    <button onClick={async () => { const r = await advInv.mutate({ id: inv.id, d: { status: "approved" } }); if (r) { toast.success("تمت الموافقة على الفاتورة"); refetchInv(); } else toast.error("تعذّر التحديث"); }}
                       className="text-xs bg-brand-500 text-white px-2.5 py-1 rounded-lg hover:bg-brand-600">
                       موافقة
                     </button>
                   )}
                   {inv.status === "approved" && (
-                    <button onClick={async () => { await advInv.mutate({ id: inv.id, d: { status: "paid", paidAmount: parseFloat(inv.totalAmount) } }); refetchInv(); }}
+                    <button onClick={async () => { const r = await advInv.mutate({ id: inv.id, d: { status: "paid", paidAmount: parseFloat(inv.totalAmount) } }); if (r) { toast.success("تم تسجيل الدفع"); refetchInv(); } else toast.error("تعذّر التحديث"); }}
                       className="text-xs bg-green-600 text-white px-2.5 py-1 rounded-lg hover:bg-green-700">
                       دفع
                     </button>
@@ -576,13 +578,43 @@ export function SuppliersPage() {
 function POItems({ poId, supplierId, onReceiptCreated }: { poId: string; supplierId: string; onReceiptCreated: () => void }) {
   const { data } = useApi(() => procurementApi.order(poId), [poId]);
   const { data: receiptsData, refetch: refetchReceipts } = useApi(() => procurementApi.orderReceipts(poId), [poId]);
-  const approveGR = useMutation(({ id }: any) => procurementApi.approveReceipt(id, { status: "approved" }));
+  const approveGR  = useMutation(({ id }: any)  => procurementApi.approveReceipt(id, { status: "approved" }), { silent: true });
+  const createGR   = useMutation((d: any)        => procurementApi.createReceipt(d), { silent: true });
+
+  const [showGrForm, setShowGrForm] = useState(false);
+  const [grQuantities, setGrQuantities] = useState<Record<string, string>>({});
+  const [grNotes, setGrNotes] = useState("");
 
   const items: any[]    = data?.items || [];
   const receipts: any[] = receiptsData?.receipts || [];
 
   const order = data?.order;
   const canReceive = order && ["submitted", "acknowledged", "partially_received"].includes(order.status);
+
+  const openGrForm = () => {
+    const init: Record<string, string> = {};
+    items.forEach((it: any) => {
+      const remaining = parseFloat(it.orderedQuantity) - parseFloat(it.receivedQuantity ?? 0);
+      init[it.id] = remaining > 0 ? String(remaining) : "0";
+    });
+    setGrQuantities(init);
+    setGrNotes("");
+    setShowGrForm(true);
+  };
+
+  const submitGR = async () => {
+    const grItems = items
+      .map((it: any) => ({
+        poItemId: it.id,
+        receivedQuantity: parseFloat(grQuantities[it.id] || "0"),
+        acceptedQuantity: parseFloat(grQuantities[it.id] || "0"),
+      }))
+      .filter(gi => gi.receivedQuantity > 0);
+    if (!grItems.length) return;
+    const res = await createGR.mutate({ poId, supplierId, items: grItems, notes: grNotes || null });
+    if (res) { toast.success("تم تسجيل الاستلام"); setShowGrForm(false); refetchReceipts(); onReceiptCreated(); }
+    else toast.error("تعذّر تسجيل الاستلام");
+  };
 
   return (
     <div className="border-t border-gray-50 px-5 pb-4 pt-3 space-y-3">
@@ -613,6 +645,49 @@ function POItems({ poId, supplierId, onReceiptCreated }: { poId: string; supplie
         </tbody>
       </table>
 
+      {/* GR creation form */}
+      {canReceive && !showGrForm && (
+        <button onClick={openGrForm}
+          className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 font-medium">
+          <Plus className="w-3.5 h-3.5" /> تسجيل استلام جديد
+        </button>
+      )}
+
+      {showGrForm && (
+        <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+          <p className="text-xs font-semibold text-gray-600">الكميات المستلمة</p>
+          {items.map((it: any) => {
+            const remaining = parseFloat(it.orderedQuantity) - parseFloat(it.receivedQuantity ?? 0);
+            if (remaining <= 0) return null;
+            return (
+              <div key={it.id} className="flex items-center gap-2">
+                <span className="text-xs text-gray-700 flex-1 truncate">{it.itemName}</span>
+                <span className="text-xs text-gray-400">من {remaining}</span>
+                <input type="number" min="0" max={remaining}
+                  value={grQuantities[it.id] ?? ""}
+                  onChange={e => setGrQuantities(p => ({ ...p, [it.id]: e.target.value }))}
+                  className="w-20 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:border-brand-300" />
+              </div>
+            );
+          })}
+          <div>
+            <input value={grNotes} onChange={e => setGrNotes(e.target.value)}
+              placeholder="ملاحظات الاستلام (اختياري)"
+              className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs outline-none focus:border-brand-300" />
+          </div>
+          <div className="flex gap-2 pt-1">
+            <button onClick={submitGR} disabled={createGR.loading}
+              className="flex-1 bg-brand-500 text-white rounded-lg py-1.5 text-xs font-medium hover:bg-brand-600 disabled:opacity-60">
+              {createGR.loading ? "جاري التسجيل..." : "تسجيل الاستلام"}
+            </button>
+            <button onClick={() => setShowGrForm(false)}
+              className="flex-1 border border-gray-200 text-gray-500 rounded-lg py-1.5 text-xs hover:bg-gray-100">
+              إلغاء
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Receipts */}
       {receipts.length > 0 && (
         <div className="space-y-1.5">
@@ -627,7 +702,7 @@ function POItems({ poId, supplierId, onReceiptCreated }: { poId: string; supplie
                   {r.status === "approved" ? "موافق" : r.status === "rejected" ? "مرفوض" : "قيد المراجعة"}
                 </span>
                 {r.status === "pending" && (
-                  <button onClick={async () => { await approveGR.mutate({ id: r.id }); refetchReceipts(); onReceiptCreated(); }}
+                  <button onClick={async () => { const res = await approveGR.mutate({ id: r.id }); if (res) { toast.success("تمت الموافقة على الاستلام"); refetchReceipts(); onReceiptCreated(); } else toast.error("تعذّر الموافقة"); }}
                     className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700">
                     <CheckCircle2 className="w-3.5 h-3.5" /> موافقة
                   </button>

@@ -1,200 +1,22 @@
-import { useState, useEffect } from "react";
-import { Outlet, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Outlet, NavLink, useLocation, useNavigate, Navigate } from "react-router-dom";
 import {
-  LayoutDashboard, Layers, Tag, PlusCircle, CalendarCheck, CalendarDays,
-  Users, Monitor, FileText, DollarSign, TrendingDown, BarChart3,
-  Package, Truck, UserCog, BadgeCheck, Shield, ClipboardCheck,
-  Globe, ShoppingCart, MessageCircle,
-  Settings, CalendarCog, Building, Landmark, BookOpen, BarChart2, GitMerge,
-  UtensilsCrossed, List, ChefHat, Armchair, Clock, Percent,
-  Flower2, Gift, Key, FileSignature, ClipboardList, PartyPopper, Box, Database, Images,
-  ChevronLeft, ChevronRight, Bell, Search, Plus, LogOut, Menu, X,
-  type LucideIcon,
+  Layers, ChevronLeft, ChevronRight, Bell, Search, Plus, LogOut, Menu, X, User,
 } from "lucide-react";
 import { clsx } from "clsx";
-import { authApi, settingsApi } from "@/lib/api";
+import { authApi } from "@/lib/api";
+import { useOrgContext, invalidateOrgContextCache } from "@/hooks/useOrgContext";
+import { buildVisibleNav, BOTTOM_NAV, SUPER_ADMIN_NAV } from "@/lib/navigationRegistry";
+import { Toaster } from "@/components/ui/Toaster";
 
-interface NavItem {
-  name: string;
-  href: string;
-  icon: LucideIcon;
-  exact?: boolean;
-}
-
-interface NavGroup {
-  label: string;
-  items: NavItem[];
-}
-
-const CORE_GROUPS: NavGroup[] = [
-  {
-    label: "الرئيسية",
-    items: [
-      { name: "الرئيسية", href: "/dashboard", icon: LayoutDashboard, exact: true },
-    ],
-  },
-  {
-    label: "المبيعات",
-    items: [
-      { name: "الحجوزات",   href: "/dashboard/bookings",  icon: CalendarCheck },
-      { name: "التقويم",    href: "/dashboard/calendar",  icon: CalendarDays },
-      { name: "العملاء",    href: "/dashboard/customers", icon: Users },
-      { name: "نقطة البيع", href: "/dashboard/pos",       icon: Monitor },
-    ],
-  },
-  {
-    label: "الكتالوج",
-    items: [
-      { name: "الخدمات",   href: "/dashboard/services",   icon: Layers },
-      { name: "التصنيفات", href: "/dashboard/categories", icon: Tag },
-      { name: "الإضافات",  href: "/dashboard/addons",     icon: PlusCircle },
-    ],
-  },
-  {
-    label: "المالية",
-    items: [
-      { name: "الفواتير",  href: "/dashboard/invoices",  icon: FileText },
-      { name: "الإيرادات", href: "/dashboard/finance",   icon: DollarSign },
-      { name: "المصروفات", href: "/dashboard/expenses",  icon: TrendingDown },
-      { name: "الخزينة",      href: "/dashboard/treasury",             icon: Landmark },
-      { name: "المحاسبة",     href: "/dashboard/accounting",           icon: BookOpen },
-      { name: "القوائم المالية", href: "/dashboard/financial-statements", icon: BarChart2 },
-      { name: "التسويات",    href: "/dashboard/reconciliation",        icon: GitMerge },
-      { name: "التقارير",    href: "/dashboard/reports",               icon: BarChart3 },
-    ],
-  },
-  {
-    label: "الفريق",
-    items: [
-      { name: "الموظفون",      href: "/dashboard/staff",       icon: BadgeCheck },
-      { name: "مقدمو الخدمة",  href: "/dashboard/providers",   icon: UserCog },
-      { name: "الحضور",        href: "/dashboard/attendance",  icon: ClipboardCheck },
-      { name: "الصلاحيات",     href: "/dashboard/permissions", icon: Shield },
-    ],
-  },
-  {
-    label: "المخزون",
-    items: [
-      { name: "المخزون",  href: "/dashboard/inventory", icon: Package },
-      { name: "الموردون", href: "/dashboard/suppliers", icon: Truck },
-    ],
-  },
-  {
-    label: "القنوات",
-    items: [
-      { name: "موقعي",             href: "/dashboard/website",          icon: Globe },
-      { name: "الطلبات الأونلاين", href: "/dashboard/online-orders",    icon: ShoppingCart },
-      { name: "الرسائل",           href: "/dashboard/messaging",        icon: MessageCircle },
-    ],
-  },
-  {
-    label: "الوسائط",
-    items: [
-      { name: "مكتبة الوسائط", href: "/dashboard/media", icon: Images },
-    ],
-  },
-];
-
-// ── Food & Beverage group (shared by restaurant, cafe, catering, bakery)
-const FOOD_GROUP: NavGroup = {
-  label: "المطبخ والقائمة",
-  items: [
-    { name: "قائمة الطعام",    href: "/dashboard/menu",            icon: UtensilsCrossed },
-    { name: "تصنيفات القائمة", href: "/dashboard/menu/categories", icon: List },
-    { name: "المطبخ",          href: "/dashboard/kitchen",         icon: ChefHat },
-    { name: "حجز الطاولات",    href: "/dashboard/reservations",    icon: Armchair },
-  ],
-};
-
-// ── Beauty & Wellness group (shared by salon, barber, spa, fitness)
-const BEAUTY_GROUP: NavGroup = {
-  label: "المواعيد والفريق",
-  items: [
-    { name: "جدول المواعيد", href: "/dashboard/schedule",    icon: Clock },
-    { name: "العمولات",       href: "/dashboard/commissions", icon: Percent },
-  ],
-};
-
-const BUSINESS_GROUPS: Record<string, NavGroup> = {
-  restaurant:  { ...FOOD_GROUP, label: "المطعم" },
-  cafe:        { ...FOOD_GROUP, label: "المقهى" },
-  catering:    { ...FOOD_GROUP, label: "الضيافة" },
-  bakery:      { ...FOOD_GROUP, label: "المخبز" },
-  salon:       { ...BEAUTY_GROUP, label: "الصالون" },
-  barber:      { ...BEAUTY_GROUP, label: "الحلاقة" },
-  spa:         { ...BEAUTY_GROUP, label: "السبا" },
-  fitness:     { ...BEAUTY_GROUP, label: "الصالة الرياضية" },
-  flower_shop: {
-    label: "متجر الورود",
-    items: [
-      { name: "مخزون الورد",  href: "/dashboard/flower-inventory", icon: Flower2 },
-      { name: "بيانات الورد", href: "/dashboard/flower-master",    icon: Database },
-      { name: "التنسيقات",    href: "/dashboard/arrangements",     icon: Gift },
-    ],
-  },
-  rental: {
-    label: "التأجير",
-    items: [
-      { name: "الأصول",   href: "/dashboard/assets",      icon: Key },
-      { name: "العقود",   href: "/dashboard/contracts",   icon: FileSignature },
-      { name: "التفتيش",  href: "/dashboard/inspections", icon: ClipboardList },
-    ],
-  },
-  events: {
-    label: "الفعاليات",
-    items: [
-      { name: "الفعاليات", href: "/dashboard/events",   icon: PartyPopper },
-      { name: "الباقات",   href: "/dashboard/packages", icon: Box },
-    ],
-  },
-  hotel: {
-    label: "الفندق",
-    items: [
-      { name: "إدارة الفندق", href: "/dashboard/hotel", icon: Building },
-    ],
-  },
-  car_rental: {
-    label: "تأجير السيارات",
-    items: [
-      { name: "تأجير السيارات", href: "/dashboard/car-rental", icon: Truck },
-    ],
-  },
-  // photography, retail, store, services, medical, education, technology,
-  // construction, logistics, other — use core groups only (no specialty group needed)
-};
-
-const SYSTEM_GROUP: NavGroup = {
-  label: "الإعدادات",
-  items: [
-    { name: "التكاملات",       href: "/dashboard/integrations",     icon: Key },
-    { name: "إعدادات النظام",  href: "/dashboard/settings",         icon: Settings },
-    { name: "إعدادات الحجز",  href: "/dashboard/settings/booking", icon: CalendarCog },
-    { name: "الملف التعريفي", href: "/dashboard/settings/profile", icon: Building },
-  ],
-};
+const COLLAPSED_KEY = "nasaq_sidebar_collapsed";
 
 export function Layout() {
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === "true");
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [businessType, setBusinessType] = useState(() => {
-    // Fast path: get from cached user object set at login
-    try {
-      const u = JSON.parse(localStorage.getItem("nasaq_user") || "{}");
-      return u.businessType || "";
-    } catch { return ""; }
-  });
+  const { context } = useOrgContext();
   const location = useLocation();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    // Authoritative source: org profile from API
-    settingsApi.profile()
-      .then((res) => {
-        const bt = res?.data?.businessType || res?.data?.business_type || "";
-        if (bt) setBusinessType(bt);
-      })
-      .catch(() => {});
-  }, []);
 
   const user = (() => {
     try { return JSON.parse(localStorage.getItem("nasaq_user") || "{}"); } catch { return {}; }
@@ -202,45 +24,54 @@ export function Layout() {
 
   const handleLogout = async () => {
     try { await authApi.logout(); } catch {}
-    ["nasaq_token", "nasaq_org_id", "nasaq_user_id", "nasaq_user"].forEach((k) =>
-      localStorage.removeItem(k)
-    );
+    ["nasaq_token", "nasaq_org_id", "nasaq_user_id", "nasaq_user"].forEach((k) => localStorage.removeItem(k));
+    invalidateOrgContextCache();
     navigate("/login", { replace: true });
+  };
+
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem(COLLAPSED_KEY, String(next));
   };
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? location.pathname === href : location.pathname.startsWith(href);
 
-  const allGroups: NavGroup[] = [
-    ...CORE_GROUPS,
-    ...(businessType && BUSINESS_GROUPS[businessType] ? [BUSINESS_GROUPS[businessType]] : []),
-    SYSTEM_GROUP,
-  ];
+  const isSuperAdmin = !!user?.isSuperAdmin;
+
+  // Super admins have their own standalone panel — redirect them out of the merchant layout
+  if (isSuperAdmin) return <Navigate to="/admin" replace />;
+
+  const allGroups = isSuperAdmin
+    ? []
+    : buildVisibleNav(
+        context
+          ? { businessType: context.businessType, operatingProfile: context.operatingProfile, capabilities: context.capabilities }
+          : { businessType: "", operatingProfile: "general", capabilities: ["bookings", "customers", "catalog", "media"] }
+      );
 
   const allItems = allGroups.flatMap((g) => g.items);
-  const currentPage = allItems.find((i) =>
-    i.exact ? location.pathname === i.href : location.pathname.startsWith(i.href)
-  );
+  const currentPage =
+    allItems.find((i) => isActive(i.href, i.exact)) ||
+    BOTTOM_NAV.find((i) => isActive(i.href, i.exact)) ||
+    (isSuperAdmin && isActive(SUPER_ADMIN_NAV.href) ? SUPER_ADMIN_NAV : undefined);
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50" dir="rtl">
-      {/* Mobile overlay */}
       {mobileOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
-          onClick={() => setMobileOpen(false)}
-        />
+        <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
-      {/* Sidebar */}
+      {/* ── Sidebar ── */}
       <aside
         className={clsx(
           "fixed inset-y-0 right-0 z-50 flex flex-col bg-white border-l border-gray-100 transition-all duration-300 ease-in-out lg:static shadow-xl lg:shadow-none",
-          collapsed ? "w-[68px]" : "w-60",
+          collapsed ? "w-[68px]" : "w-[220px]",
           mobileOpen ? "translate-x-0" : "translate-x-full lg:translate-x-0"
         )}
       >
-        {/* Logo + Collapse */}
+        {/* Logo */}
         <div className={clsx(
           "flex items-center border-b border-gray-100 h-16 px-4 shrink-0",
           collapsed ? "justify-center" : "justify-between"
@@ -259,94 +90,199 @@ export function Layout() {
             </div>
           )}
           <button
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={toggleCollapsed}
             className="hidden lg:flex w-7 h-7 items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
           >
             {collapsed ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
           </button>
-          <button
-            onClick={() => setMobileOpen(false)}
-            className="lg:hidden w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400"
-          >
+          <button onClick={() => setMobileOpen(false)} className="lg:hidden w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Nav */}
         <nav className="flex-1 overflow-y-auto py-3 px-2 scrollbar-thin">
-          {allGroups.map((group) => (
-            <div key={group.label} className="mb-1">
-              {!collapsed && (
-                <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-2">
-                  {group.label}
-                </p>
-              )}
-              {collapsed && <div className="h-px bg-gray-100 mx-2 my-2" />}
-              <div className="space-y-0.5">
-                {group.items.map((item) => {
-                  const active = isActive(item.href, item.exact);
-                  return (
-                    <NavLink
-                      key={item.href}
-                      to={item.href}
-                      onClick={() => setMobileOpen(false)}
-                      title={collapsed ? item.name : undefined}
-                      className={clsx(
-                        "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
-                        collapsed && "justify-center px-2",
-                        active
-                          ? "bg-brand-50 text-brand-600"
-                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                      )}
-                    >
-                      <item.icon className={clsx("w-4 h-4 shrink-0", active ? "text-brand-500" : "text-gray-400")} />
-                      {!collapsed && <span className="flex-1 truncate">{item.name}</span>}
-                    </NavLink>
-                  );
-                })}
-              </div>
+          {isSuperAdmin ? (
+            // Super admin sees only admin + bottom nav
+            <div className="space-y-0.5">
+              {[SUPER_ADMIN_NAV, ...BOTTOM_NAV].map((item) => {
+                const active = isActive(item.href, item.exact);
+                return (
+                  <NavLink
+                    key={item.href}
+                    to={item.href}
+                    onClick={() => setMobileOpen(false)}
+                    title={collapsed ? item.name : undefined}
+                    className={clsx(
+                      "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+                      collapsed && "justify-center px-2",
+                      active ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    )}
+                  >
+                    <item.icon className={clsx("w-4 h-4 shrink-0", active ? "text-brand-500" : "text-gray-400")} />
+                    {!collapsed && <span className="flex-1 truncate">{item.name}</span>}
+                  </NavLink>
+                );
+              })}
             </div>
-          ))}
+          ) : (
+            <>
+              {/* Regular nav groups */}
+              {allGroups.map((group) => (
+                <div key={group.label} className="mb-1">
+                  {!collapsed && (
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-2">
+                      {group.label}
+                    </p>
+                  )}
+                  {collapsed && <div className="h-px bg-gray-100 mx-2 my-2" />}
+                  <div className="space-y-0.5">
+                    {group.items.map((item) => {
+                      const active = isActive(item.href, item.exact);
+                      return (
+                        <NavLink
+                          key={item.href}
+                          to={item.href}
+                          onClick={() => setMobileOpen(false)}
+                          title={collapsed ? item.name : undefined}
+                          className={clsx(
+                            "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+                            collapsed && "justify-center px-2",
+                            active ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          )}
+                        >
+                          <item.icon className={clsx("w-4 h-4 shrink-0", active ? "text-brand-500" : "text-gray-400")} />
+                          {!collapsed && <span className="flex-1 truncate">{item.name}</span>}
+                        </NavLink>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              {/* Admin link for super admins in merchant context */}
+              {isSuperAdmin && (
+                <div className="mb-1">
+                  {collapsed && <div className="h-px bg-gray-100 mx-2 my-2" />}
+                  <NavLink
+                    to={SUPER_ADMIN_NAV.href}
+                    onClick={() => setMobileOpen(false)}
+                    title={collapsed ? SUPER_ADMIN_NAV.name : undefined}
+                    className={({ isActive: a }) => clsx(
+                      "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+                      collapsed && "justify-center px-2",
+                      a ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    )}
+                  >
+                    {({ isActive: a }) => (
+                      <>
+                        <SUPER_ADMIN_NAV.icon className={clsx("w-4 h-4 shrink-0", a ? "text-brand-500" : "text-gray-400")} />
+                        {!collapsed && <span className="flex-1 truncate">{SUPER_ADMIN_NAV.name}</span>}
+                      </>
+                    )}
+                  </NavLink>
+                </div>
+              )}
+            </>
+          )}
         </nav>
 
+        {/* Bottom nav (always visible) */}
+        <div className="border-t border-gray-100 px-2 pt-2 shrink-0">
+          {collapsed && <div className="h-px bg-gray-100 mx-2 mb-2" />}
+          {!collapsed && (
+            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-1.5">عام</p>
+          )}
+          <div className="space-y-0.5 pb-2">
+            {BOTTOM_NAV.map((item) => {
+              const active = isActive(item.href, item.exact);
+              return (
+                <NavLink
+                  key={item.href}
+                  to={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  title={collapsed ? item.name : undefined}
+                  className={clsx(
+                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+                    collapsed && "justify-center px-2",
+                    active ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  )}
+                >
+                  <item.icon className={clsx("w-4 h-4 shrink-0", active ? "text-brand-500" : "text-gray-400")} />
+                  {!collapsed && <span className="flex-1 truncate">{item.name}</span>}
+                </NavLink>
+              );
+            })}
+          </div>
+        </div>
+
         {/* User footer */}
-        <div className={clsx("border-t border-gray-100 p-2 shrink-0", collapsed && "flex justify-center")}>
-          {!collapsed ? (
-            <button
-              onClick={handleLogout}
-              title="تسجيل الخروج"
-              className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-red-50 group transition-colors"
-            >
-              <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-sm shrink-0">
-                {user?.name?.[0] || "م"}
-              </div>
+        <div className={clsx("border-t border-gray-100 p-2 shrink-0 space-y-1", collapsed && "flex flex-col items-center space-y-1")}>
+          {/* Account link */}
+          <NavLink
+            to="/dashboard/account"
+            title="حسابي"
+            className={({ isActive }) => clsx(
+              "flex items-center gap-3 p-2 rounded-lg transition-colors w-full",
+              collapsed && "justify-center w-auto",
+              isActive ? "bg-brand-50 text-brand-600" : "hover:bg-gray-50 text-gray-700"
+            )}
+          >
+            <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-sm shrink-0 overflow-hidden">
+              {user?.avatar
+                ? <img src={user.avatar} className="w-full h-full object-cover" />
+                : user?.name?.[0] || "م"
+              }
+            </div>
+            {!collapsed && (
               <div className="flex-1 min-w-0 text-right">
                 <p className="text-sm font-medium text-gray-800 truncate">{user?.name || "المستخدم"}</p>
-                <p className="text-xs text-gray-400">تسجيل الخروج</p>
+                <p className="text-xs text-gray-400 flex items-center gap-1"><User className="w-3 h-3" />حسابي</p>
               </div>
-              <LogOut className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors shrink-0" />
-            </button>
-          ) : (
-            <button
-              onClick={handleLogout}
-              title="تسجيل الخروج"
-              className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-sm hover:bg-red-100 transition-colors"
-            >
-              {user?.name?.[0] || "م"}
-            </button>
-          )}
+            )}
+          </NavLink>
+          {/* Logout button */}
+          <button
+            onClick={handleLogout}
+            title="تسجيل الخروج"
+            className={clsx(
+              "flex items-center gap-2 p-2 rounded-lg hover:bg-red-50 group transition-colors text-gray-500 hover:text-red-500 w-full",
+              collapsed && "justify-center w-auto"
+            )}
+          >
+            <LogOut className="w-4 h-4 shrink-0" />
+            {!collapsed && <span className="text-xs">تسجيل الخروج</span>}
+          </button>
         </div>
       </aside>
 
-      {/* Main content */}
+      {/* ── Main content ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Impersonate Banner */}
+        {user?.isImpersonating && (
+          <div className="bg-amber-500 text-white text-xs flex items-center justify-between px-4 py-2 shrink-0">
+            <span>أنت تعمل الآن داخل منشأة: <strong>{user.impersonateOrgName || "غير معروف"}</strong></span>
+            <button
+              onClick={() => {
+                const original = localStorage.getItem("nasaq_impersonate_original_token");
+                if (original) localStorage.setItem("nasaq_token", original);
+                localStorage.removeItem("nasaq_impersonate_original_token");
+                localStorage.removeItem("nasaq_org_id");
+                localStorage.removeItem("nasaq_user_id");
+                localStorage.removeItem("nasaq_user");
+                window.location.href = "/dashboard/admin";
+              }}
+              className="underline font-semibold hover:no-underline"
+            >
+              خروج من الانتحال
+            </button>
+          </div>
+        )}
+
         {/* Header */}
         <header className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 lg:px-5 shrink-0">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => setMobileOpen(true)}
-              className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500"
-            >
+            <button onClick={() => setMobileOpen(true)} className="lg:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500">
               <Menu className="w-5 h-5" />
             </button>
             <nav className="flex items-center gap-1.5 text-sm">
@@ -363,11 +299,7 @@ export function Layout() {
           <div className="flex items-center gap-2">
             <div className="hidden md:flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 w-52 focus-within:border-brand-200 focus-within:bg-white transition-all">
               <Search className="w-4 h-4 text-gray-400 shrink-0" />
-              <input
-                type="text"
-                placeholder="بحث..."
-                className="bg-transparent border-none outline-none text-sm text-gray-600 placeholder-gray-400 w-full"
-              />
+              <input type="text" placeholder="بحث..." className="bg-transparent border-none outline-none text-sm text-gray-600 placeholder-gray-400 w-full" />
             </div>
             <button
               onClick={() => navigate("/dashboard/bookings")}
@@ -391,6 +323,7 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
+      <Toaster />
     </div>
   );
 }

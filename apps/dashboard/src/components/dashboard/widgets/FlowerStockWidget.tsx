@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { clsx } from "clsx";
-import { Flower2, AlertTriangle, ArrowLeft, Package } from "lucide-react";
+import { Flower2, ArrowLeft, Package } from "lucide-react";
 import { flowerMasterApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 
@@ -89,19 +89,6 @@ export function FlowerStockWidget() {
           </p>
         </div>
       </div>
-
-      {/* Expiry alert */}
-      {expiringCount > 0 && (
-        <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5 mb-4">
-          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
-          <p className="text-xs text-amber-700 font-medium">
-            {expiringCount} دفعة تنتهي صلاحيتها خلال 3 أيام
-          </p>
-          <Link to="/dashboard/flower-master" className="text-xs text-amber-600 underline mr-auto shrink-0">
-            عرض
-          </Link>
-        </div>
-      )}
 
       {/* Stock list with visual bars */}
       {loading ? (

@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
+import { toast } from "@/hooks/useToast";
 import { CalendarCog, Save, AlertCircle, Clock, Globe, CreditCard, Shield, Calendar } from "lucide-react";
 import { clsx } from "clsx";
 import { settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Button, Input, Toggle, Toast } from "@/components/ui";
+import { Button, Input, Toggle } from "@/components/ui";
 
 const DAYS = [
   { key: 0, label: "الأحد" },
@@ -63,7 +64,6 @@ export function BookingSettingsPage() {
   const [settings, setSettings] = useState({ ...DEFAULT_SETTINGS });
   const [dirty, setDirty]   = useState(false);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast]   = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   useEffect(() => {
     if (res?.data) {
@@ -91,9 +91,9 @@ export function BookingSettingsPage() {
     setSaving(true);
     try {
       await updateSettings(settings);
-      setToast({ msg: "تم حفظ إعدادات الحجز", type: "success" });
+      toast.success("تم حفظ إعدادات الحجز");
       setDirty(false);
-    } catch { setToast({ msg: "فشل الحفظ", type: "error" }); }
+    } catch { toast.error("فشل الحفظ"); }
     finally { setSaving(false); }
   };
 
@@ -240,9 +240,6 @@ export function BookingSettingsPage() {
           />
           <p className="text-xs text-gray-400">يظهر هذا النص للعملاء في صفحة الحجز وفي رسائل التأكيد</p>
         </div>
-      </Section>
-
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      </Section>    </div>
   );
 }

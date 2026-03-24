@@ -1,9 +1,12 @@
 import { useState, useEffect } from "react";
-import { Building2, Save, RefreshCw, MapPin, Phone, Mail, Globe, Hash, Palette, Crown, AlertCircle } from "lucide-react";
+import { toast } from "@/hooks/useToast";
+import { Building2, Save, RefreshCw, Phone, Globe, Hash, Palette, Crown, AlertCircle, Briefcase, ImageIcon, Upload, X } from "lucide-react";
 import { clsx } from "clsx";
 import { settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Button, Input, Toast } from "@/components/ui";
+import { Button, Input, Select } from "@/components/ui";
+import { invalidateOrgContextCache } from "@/hooks/useOrgContext";
+import { MediaPickerModal } from "@/components/media/MediaPickerModal";
 
 const PLAN_LABELS: Record<string, { label: string; color: string; bg: string }> = {
   basic:      { label: "أساسي",     color: "text-blue-700",    bg: "bg-blue-50 border-blue-200" },
@@ -11,6 +14,45 @@ const PLAN_LABELS: Record<string, { label: string; color: string; bg: string }> 
   pro:        { label: "احترافي",   color: "text-amber-700",   bg: "bg-amber-50 border-amber-200" },
   enterprise: { label: "مؤسسي",     color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
 };
+const BUSINESS_TYPES = [
+  // الطعام والمشروبات
+  { value: "restaurant",      label: "مطعم" },
+  { value: "cafe",            label: "مقهى وكوفي شوب" },
+  { value: "catering",        label: "ضيافة وتقديم طعام" },
+  { value: "bakery",          label: "مخبز وحلويات" },
+  // الجمال والعناية
+  { value: "salon",           label: "صالون تجميل نسائي" },
+  { value: "barber",          label: "حلاقة وتصفيف رجالي" },
+  { value: "spa",             label: "سبا ومساج" },
+  { value: "fitness",         label: "صالة رياضية ولياقة" },
+  // الفعاليات والتصوير
+  { value: "events",          label: "تنظيم فعاليات وأفراح" },
+  { value: "event_organizer", label: "منظم مناسبات متخصص" },
+  { value: "photography",     label: "تصوير وإنتاج إعلامي" },
+  // التجزئة والبيع
+  { value: "retail",          label: "متجر تجزئة عام" },
+  { value: "flower_shop",     label: "متجر ورود وهدايا" },
+  { value: "printing",        label: "مطبعة وتصميم" },
+  { value: "laundry",         label: "غسيل وتنظيف" },
+  // التأجير والضيافة
+  { value: "rental",          label: "تأجير معدات وأصول" },
+  { value: "real_estate",     label: "عقارات وإدارة وحدات" },
+  { value: "hotel",           label: "فندق وضيافة" },
+  { value: "car_rental",      label: "تأجير سيارات" },
+  // الخدمات المهنية
+  { value: "services",        label: "خدمات مهنية وحرة" },
+  { value: "medical",         label: "عيادات ورعاية صحية" },
+  { value: "education",       label: "تعليم وتدريب" },
+  { value: "technology",      label: "تقنية معلومات وبرمجة" },
+  { value: "digital_services", label: "وكالة رقمية وتسويق" },
+  // الإنشاء والصناعة
+  { value: "construction",    label: "مقاولات وبناء" },
+  { value: "maintenance",     label: "صيانة وإصلاح" },
+  { value: "workshop",        label: "ورشة وتصنيع" },
+  { value: "logistics",       label: "شحن ونقل ولوجستيات" },
+  { value: "other",           label: "أخرى" },
+];
+
 const STATUS_LABELS: Record<string, string> = {
   trialing:   "فترة تجريبية",
   active:     "نشط",
@@ -45,10 +87,11 @@ export function ProfileSettingsPage() {
     name: "", nameEn: "", phone: "", email: "", website: "",
     city: "", address: "", commercialRegister: "", vatNumber: "",
     primaryColor: "#1A56DB", secondaryColor: "#C8A951",
+    businessType: "", logo: "",
   });
-  const [dirty, setDirty] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast]   = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  const [dirty, setDirty]           = useState(false);
+  const [saving, setSaving]         = useState(false);
+  const [logoPicker, setLogoPicker] = useState(false);
 
   const org  = profileRes?.data;
   const sub  = subRes?.data;
@@ -68,6 +111,8 @@ export function ProfileSettingsPage() {
         vatNumber: org.vatNumber || "",
         primaryColor: org.primaryColor || "#1A56DB",
         secondaryColor: org.secondaryColor || "#C8A951",
+        businessType: org.businessType || "",
+        logo: org.logo || "",
       });
       setDirty(false);
     }
@@ -80,10 +125,11 @@ export function ProfileSettingsPage() {
     setSaving(true);
     try {
       await updateProfile(form);
-      setToast({ msg: "تم حفظ الإعدادات بنجاح", type: "success" });
+      invalidateOrgContextCache();
+      toast.success("تم حفظ الإعدادات بنجاح");
       setDirty(false);
       refetch();
-    } catch { setToast({ msg: "فشل حفظ الإعدادات", type: "error" }); }
+    } catch { toast.error("فشل حفظ الإعدادات"); }
     finally { setSaving(false); }
   };
 
@@ -146,6 +192,60 @@ export function ProfileSettingsPage() {
             <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl text-xs text-gray-500">
               <Globe className="w-3.5 h-3.5 shrink-0" />
               <span>رابط الحجز: <span className="font-mono text-brand-600 select-all">nasaq.sa/{org.slug}</span></span>
+            </div>
+          )}
+        </div>
+      </Section>
+
+      {/* Logo */}
+      <Section title="شعار المنشأة" subtitle="يظهر في الموقع والفواتير وصفحة الحجز" icon={ImageIcon}>
+        <div className="flex items-start gap-5">
+          {/* Preview */}
+          <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50 shrink-0">
+            {form.logo
+              ? <img src={form.logo} alt="logo" className="w-full h-full object-contain p-1" />
+              : <ImageIcon className="w-8 h-8 text-gray-300" />
+            }
+          </div>
+          {/* Actions */}
+          <div className="space-y-2.5 flex-1">
+            <p className="text-sm text-gray-500">PNG أو SVG أو JPEG — خلفية شفافة مفضّلة</p>
+            <div className="flex gap-2 flex-wrap">
+              <button
+                onClick={() => setLogoPicker(true)}
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                <Upload className="w-3.5 h-3.5" /> اختر من المكتبة
+              </button>
+              {form.logo && (
+                <button
+                  onClick={() => f("logo", "")}
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl border border-red-100 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" /> إزالة
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* Business Type */}
+      <Section title="نوع النشاط التجاري" subtitle="يحدد الأدوات والشاشات التي تظهر في لوحة التحكم" icon={Briefcase}>
+        <div className="space-y-3">
+          <Select
+            label="نوع المنشأة"
+            name="businessType"
+            value={form.businessType}
+            onChange={e => f("businessType", e.target.value)}
+            options={[{ value: "", label: "— اختر نوع النشاط —" }, ...BUSINESS_TYPES]}
+          />
+          {form.businessType && (
+            <div className="flex items-center gap-2 px-3 py-2.5 bg-brand-50 border border-brand-100 rounded-xl text-xs text-brand-700">
+              <Briefcase className="w-3.5 h-3.5 shrink-0" />
+              <span>
+                بعد الحفظ تظهر الأدوات المخصصة لـ <strong>{BUSINESS_TYPES.find(b => b.value === form.businessType)?.label}</strong> في القائمة الجانبية تلقائياً
+              </span>
             </div>
           )}
         </div>
@@ -241,7 +341,13 @@ export function ProfileSettingsPage() {
         </div>
       </Section>
 
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      {logoPicker && (
+        <MediaPickerModal
+          accept="logo"
+          title="اختر شعار المنشأة"
+          onSelect={(asset) => { f("logo", asset.fileUrl); setLogoPicker(false); }}
+          onClose={() => setLogoPicker(false)}
+        />
+      )}    </div>
   );
 }

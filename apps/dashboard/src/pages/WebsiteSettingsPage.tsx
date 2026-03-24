@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import {
-  Loader2, Save, Check, Globe, Building2, Phone, Paintbrush,
+  Loader2, Save, Check, Globe, Building2, Phone, Paintbrush, Upload, X,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { settingsApi, websiteApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button } from "@/components/ui";
+import { MediaPickerModal } from "@/components/media/MediaPickerModal";
 
 const TABS = [
   { key: "identity", label: "الهوية البصرية", icon: Building2 },
@@ -33,8 +34,26 @@ const DAYS = [
 ];
 
 const BUSINESS_LABELS: Record<string, string> = {
-  salon: "الصالون", restaurant: "المطعم", cafe: "المقهى",
-  flower_shop: "متجر الورود", rental: "التأجير", events: "الفعاليات", general: "عام",
+  // الجمال والصحة
+  salon: "الصالون", barber: "الحلاقة", spa: "السبا", fitness: "اللياقة",
+  // الطعام والمشروبات
+  restaurant: "المطعم", cafe: "المقهى", bakery: "المخبز", catering: "الضيافة",
+  // التأجير والأصول
+  rental: "التأجير", hotel: "الفندق", car_rental: "تأجير السيارات",
+  // الفعاليات
+  events: "الفعاليات", event_organizer: "تنظيم الفعاليات",
+  // الزهور
+  flower_shop: "متجر الورود",
+  // الخدمات الميدانية
+  maintenance: "الصيانة", workshop: "الورشة", laundry: "المغسلة", construction: "الإنشاء", logistics: "اللوجستيات",
+  // الخدمات الرقمية
+  digital_services: "الخدمات الرقمية", photography: "التصوير",
+  // التجزئة
+  retail: "التجزئة", printing: "المطبعة",
+  // العقارات
+  real_estate: "العقارات",
+  // عام
+  general: "عام",
 };
 
 const cls = "w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all";
@@ -59,7 +78,9 @@ function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: bool
 }
 
 export function WebsiteSettingsPage() {
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab,    setActiveTab]    = useState(0);
+  const [logoPicker,   setLogoPicker]   = useState(false);
+  const [coverPicker,  setCoverPicker]  = useState(false);
   const { data: profileRes, loading: pLoading } = useApi(() => settingsApi.profile(), []);
   const { data: configRes,  loading: cLoading  } = useApi(() => websiteApi.config(),  []);
   const [profile, setProfile] = useState<any>(null);
@@ -148,13 +169,34 @@ export function WebsiteSettingsPage() {
             </Field>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <Field label="رابط الشعار">
-              <input className={cls} value={profile.logo || config?.logoUrl || ""} onChange={(e) => sp("logo", e.target.value)} placeholder="https://..." dir="ltr" />
-              {(profile.logo || config?.logoUrl) && <img src={profile.logo || config?.logoUrl} alt="logo" className="w-16 h-16 rounded-xl object-contain border border-gray-100 mt-2" />}
+            <Field label="شعار المنشأة">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-xl border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                  {(profile.logo || config?.logoUrl)
+                    ? <img src={profile.logo || config?.logoUrl} alt="logo" className="w-full h-full object-contain p-1" />
+                    : <Upload className="w-5 h-5 text-gray-300" />
+                  }
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => setLogoPicker(true)} className="px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors">اختر من المكتبة</button>
+                  {(profile.logo || config?.logoUrl) && (
+                    <button onClick={() => sp("logo", "")} className="px-2.5 py-2 rounded-xl border border-red-100 text-xs text-red-400 hover:bg-red-50 transition-colors"><X className="w-3 h-3" /></button>
+                  )}
+                </div>
+              </div>
             </Field>
-            <Field label="رابط صورة الغلاف">
-              <input className={cls} value={profile.coverImage || profile.cover_image || ""} onChange={(e) => sp("coverImage", e.target.value)} placeholder="https://..." dir="ltr" />
-              {(profile.coverImage || profile.cover_image) && <img src={profile.coverImage || profile.cover_image} alt="cover" className="w-full h-20 rounded-xl object-cover border border-gray-100 mt-2" />}
+            <Field label="صورة الغلاف">
+              <div className="space-y-2">
+                {(profile.coverImage || profile.cover_image) && (
+                  <img src={profile.coverImage || profile.cover_image} alt="cover" className="w-full h-20 rounded-xl object-cover border border-gray-100" />
+                )}
+                <div className="flex gap-2">
+                  <button onClick={() => setCoverPicker(true)} className="px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors">اختر من المكتبة</button>
+                  {(profile.coverImage || profile.cover_image) && (
+                    <button onClick={() => sp("coverImage", "")} className="px-2.5 py-2 rounded-xl border border-red-100 text-xs text-red-400 hover:bg-red-50 transition-colors"><X className="w-3 h-3" /></button>
+                  )}
+                </div>
+              </div>
             </Field>
           </div>
         </div>
@@ -235,8 +277,8 @@ export function WebsiteSettingsPage() {
             {BUSINESS_LABELS[bType] || bType}
           </div>
 
-          {/* Salon */}
-          {(bType === "salon" || bType === "spa") && (
+          {/* Salon / Beauty */}
+          {(bType === "salon" || bType === "spa" || bType === "barber" || bType === "fitness") && (
             <>
               <SectionTitle>إعدادات الصالون</SectionTitle>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
@@ -307,8 +349,8 @@ export function WebsiteSettingsPage() {
             </>
           )}
 
-          {/* Rental */}
-          {bType === "rental" && (
+          {/* Rental / Real Estate */}
+          {(bType === "rental" || bType === "real_estate") && (
             <>
               <SectionTitle>إعدادات التأجير</SectionTitle>
               <Toggle value={!!bs.enableOnlineBooking} onChange={(v) => sbs("enableOnlineBooking", v)} label="الحجز الأونلاين" />
@@ -323,7 +365,7 @@ export function WebsiteSettingsPage() {
           )}
 
           {/* Events */}
-          {bType === "events" && (
+          {(bType === "events" || bType === "event_organizer") && (
             <>
               <SectionTitle>إعدادات الفعاليات</SectionTitle>
               <Toggle value={!!bs.enableOnlineBooking} onChange={(v) => sbs("enableOnlineBooking", v)} label="الحجز الأونلاين" />
@@ -335,7 +377,7 @@ export function WebsiteSettingsPage() {
             </>
           )}
 
-          {bType === "general" && (
+          {(bType === "general" || bType === "maintenance" || bType === "workshop" || bType === "laundry" || bType === "printing" || bType === "digital_services" || bType === "photography" || bType === "construction" || bType === "logistics") && (
             <>
               <SectionTitle>إعدادات الحجز</SectionTitle>
               <Toggle value={!!bs.enableOnlineBooking}    onChange={(v) => sbs("enableOnlineBooking", v)}    label="تفعيل الحجز الأونلاين" />
@@ -374,6 +416,24 @@ export function WebsiteSettingsPage() {
             </>
           )}
         </div>
+      )}
+
+      {logoPicker && (
+        <MediaPickerModal
+          accept="logo"
+          title="اختر شعار المنشأة"
+          onSelect={(asset) => { sp("logo", asset.fileUrl); setLogoPicker(false); }}
+          onClose={() => setLogoPicker(false)}
+        />
+      )}
+
+      {coverPicker && (
+        <MediaPickerModal
+          accept="image"
+          title="اختر صورة الغلاف"
+          onSelect={(asset) => { sp("coverImage", asset.fileUrl); setCoverPicker(false); }}
+          onClose={() => setCoverPicker(false)}
+        />
       )}
     </div>
   );

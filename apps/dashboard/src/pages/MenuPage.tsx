@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { categoriesApi, servicesApi } from "@/lib/api";
-import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Search, X, UtensilsCrossed } from "lucide-react";
+import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Search, X, UtensilsCrossed, EyeOff } from "lucide-react";
 import { clsx } from "clsx";
+import { SkeletonRows } from "@/components/ui/Skeleton";
 
 interface Category { id: string; name: string; description?: string; }
 interface Service { id: string; name: string; price: number; duration?: number; description?: string; categoryId?: string; isActive?: boolean; }
@@ -87,6 +88,11 @@ export function MenuPage() {
     refetchSvcs();
   };
 
+  const handleToggle86 = async (svc: Service) => {
+    await updateSvc.mutate({ id: svc.id, isActive: !svc.isActive });
+    refetchSvcs();
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
@@ -106,7 +112,7 @@ export function MenuPage() {
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث في التصنيفات..." className="bg-transparent outline-none text-sm text-gray-700 w-full" />
       </div>
 
-      {(catLoading || svcLoading) && <div className="text-center py-12 text-gray-400 text-sm">جاري التحميل...</div>}
+      {(catLoading || svcLoading) && <SkeletonRows />}
 
       <div className="space-y-2">
         {filteredCats.map(cat => {
@@ -138,17 +144,31 @@ export function MenuPage() {
                   <div className="pt-3 space-y-2">
                     {catServices.length === 0 && <p className="text-sm text-gray-400 py-2">لا توجد أصناف في هذا التصنيف</p>}
                     {catServices.map(svc => (
-                      <div key={svc.id} className="flex items-center justify-between py-2.5 px-3 bg-gray-50 rounded-xl">
+                      <div key={svc.id} className={clsx("flex items-center justify-between py-2.5 px-3 rounded-xl", svc.isActive !== false ? "bg-gray-50" : "bg-red-50")}>
                         <div className="flex items-center gap-3">
-                          <div className={clsx("w-2 h-2 rounded-full shrink-0", svc.isActive !== false ? "bg-green-400" : "bg-gray-300")} />
+                          <div className={clsx("w-2 h-2 rounded-full shrink-0", svc.isActive !== false ? "bg-green-400" : "bg-red-400")} />
                           <div>
-                            <p className="text-sm font-medium text-gray-800">{svc.name}</p>
+                            <div className="flex items-center gap-2">
+                              <p className={clsx("text-sm font-medium", svc.isActive !== false ? "text-gray-800" : "text-gray-400 line-through")}>{svc.name}</p>
+                              {svc.isActive === false && (
+                                <span className="text-xs font-bold text-red-500 bg-red-100 px-1.5 py-0.5 rounded">86</span>
+                              )}
+                            </div>
                             {svc.description && <p className="text-xs text-gray-400 truncate max-w-[200px]">{svc.description}</p>}
                           </div>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                           {svc.duration ? <span className="text-xs text-gray-400">{svc.duration} د</span> : null}
                           <span className="text-sm font-semibold text-brand-600 tabular-nums">{svc.price} ر.س</span>
+                          <button
+                            onClick={() => handleToggle86(svc)}
+                            title={svc.isActive !== false ? "تحديد كـ نفذ (86)" : "إعادة الإتاحة"}
+                            className={clsx("w-7 h-7 flex items-center justify-center rounded-lg transition-colors",
+                              svc.isActive !== false ? "hover:bg-red-50 text-gray-400 hover:text-red-500" : "bg-emerald-50 text-emerald-600"
+                            )}
+                          >
+                            <EyeOff className="w-3.5 h-3.5" />
+                          </button>
                           <button onClick={() => openSvcModal(cat.id, svc)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white text-gray-400 hover:text-brand-500 transition-colors">
                             <Edit2 className="w-3.5 h-3.5" />
                           </button>

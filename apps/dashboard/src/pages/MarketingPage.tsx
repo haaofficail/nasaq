@@ -1,14 +1,22 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Megaphone, Tag, Star, ShoppingCart, Loader2 } from "lucide-react";
 import { clsx } from "clsx";
 import { marketingApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Button, Modal, Input, Select } from "@/components/ui";
+import { Button, Modal, Input, Select, PageHeader } from "@/components/ui";
 
-const tabs = ["الحملات", "الكوبونات", "التقييمات", "السلات المتروكة"];
+const MARKETING_TABS = [
+  { id: "campaigns", label: "الحملات" },
+  { id: "coupons",   label: "الكوبونات" },
+  { id: "reviews",   label: "التقييمات" },
+  { id: "abandoned", label: "السلات المتروكة" },
+];
 
 export function MarketingPage() {
-  const [activeTab, setActiveTab] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabId = searchParams.get("tab") || "campaigns";
+  const activeTab = MARKETING_TABS.findIndex(t => t.id === tabId);
   const [showCoupon, setShowCoupon] = useState(false);
   const [couponForm, setCouponForm] = useState({
     code: "",
@@ -47,16 +55,14 @@ export function MarketingPage() {
 
   return (
     <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">التسويق</h1>
-          <p className="text-sm text-gray-400 mt-0.5">الحملات والكوبونات والتقييمات</p>
-        </div>
-        <Button variant="secondary" icon={Tag} onClick={() => setShowCoupon(true)}>
-          كوبون جديد
-        </Button>
-      </div>
+      <PageHeader
+        title="التسويق"
+        description="الحملات والكوبونات والتقييمات"
+        tabs={MARKETING_TABS}
+        activeTab={tabId}
+        onTabChange={(id) => setSearchParams({ tab: id })}
+        actions={<Button variant="secondary" icon={Tag} onClick={() => setShowCoupon(true)}>كوبون جديد</Button>}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -76,24 +82,8 @@ export function MarketingPage() {
         ))}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-white rounded-2xl border border-gray-100 p-1">
-        {tabs.map((t, i) => (
-          <button
-            key={i}
-            onClick={() => setActiveTab(i)}
-            className={clsx(
-              "flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors",
-              activeTab === i ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-gray-50"
-            )}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
       {/* Campaigns */}
-      {activeTab === 0 && (
+      {tabId === "campaigns" && (
         <div className="space-y-3">
           {campaigns.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
@@ -123,7 +113,7 @@ export function MarketingPage() {
       )}
 
       {/* Coupons */}
-      {activeTab === 1 && (
+      {tabId === "coupons" && (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           {coupons.length === 0 ? (
             <div className="p-10 text-center">
@@ -162,7 +152,7 @@ export function MarketingPage() {
       )}
 
       {/* Reviews */}
-      {activeTab === 2 && (
+      {tabId === "reviews" && (
         <div className="space-y-3">
           {reviews.length === 0 ? (
             <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
@@ -192,7 +182,7 @@ export function MarketingPage() {
       )}
 
       {/* Abandoned carts */}
-      {activeTab === 3 && (
+      {tabId === "abandoned" && (
         <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
           <ShoppingCart className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-2xl font-bold tabular-nums text-gray-900 mb-1">{cartStats.total || 0}</p>

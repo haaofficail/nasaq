@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { toast } from "@/hooks/useToast";
 import { clsx } from "clsx";
 import {
   Gift, Plus, Pencil, Trash2, ToggleLeft, ToggleRight, Search, Flower2,
@@ -9,7 +10,7 @@ import {
 } from "lucide-react";
 import { arrangementsApi, flowerBuilderApi, settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Modal, Button, Input, Toggle, Toast } from "@/components/ui";
+import { Modal, Button, Input, Toggle } from "@/components/ui";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -441,7 +442,6 @@ function PackagesTab() {
   const [search, setSearch]   = useState("");
   const [tag, setTag]         = useState("");
   const [modal, setModal]     = useState<{ open: boolean; item?: any }>({ open: false });
-  const [toast, setToast]     = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const all: any[]  = res?.data || [];
   const stats       = statsRes?.data;
@@ -453,19 +453,19 @@ function PackagesTab() {
   const handleSave = async (form: any) => {
     try {
       modal.item ? await update({ ...form, id: modal.item.id }) : await create(form);
-      setToast({ msg: "تم الحفظ", type: "success" });
+      toast.success("تم الحفظ");
       setModal({ open: false });
       refetch();
-    } catch { setToast({ msg: "فشل الحفظ", type: "error" }); }
+    } catch { toast.error("فشل الحفظ"); }
   };
 
   const handleToggle = async (item: any) => {
-    try { await toggle(item.id); refetch(); } catch { setToast({ msg: "فشل التحديث", type: "error" }); }
+    try { await toggle(item.id); refetch(); } catch { toast.error("فشل التحديث"); }
   };
   const handleDelete = async (item: any) => {
     if (!confirm(`حذف "${item.name}"؟`)) return;
-    try { await remove(item.id); setToast({ msg: "تم الحذف", type: "success" }); refetch(); }
-    catch { setToast({ msg: "فشل الحذف", type: "error" }); }
+    try { await remove(item.id); toast.success("تم الحذف"); refetch(); }
+    catch { toast.error("فشل الحذف"); }
   };
 
   return (
@@ -568,9 +568,7 @@ function PackagesTab() {
           ))}
         </div>
       )}
-      {modal.open && <PackageModal item={modal.item} onClose={() => setModal({ open: false })} onSave={handleSave} />}
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      {modal.open && <PackageModal item={modal.item} onClose={() => setModal({ open: false })} onSave={handleSave} />}    </div>
   );
 }
 
@@ -584,7 +582,6 @@ function BuilderConfigTab() {
   const { mutate: deleteItem }          = useMutation((id: string) => flowerBuilderApi.deleteItem(id));
 
   const [modal, setModal]   = useState<{ open: boolean; item?: any }>({ open: false });
-  const [toast, setToast]   = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [activeType, setActiveType] = useState("packaging");
 
   const catalog = res?.data || { packaging: [], gift: [], card: [], delivery: [] };
@@ -594,15 +591,15 @@ function BuilderConfigTab() {
   const handleSave = async (form: any) => {
     try {
       modal.item ? await updateItem({ ...form, id: modal.item.id }) : await createItem(form);
-      setToast({ msg: "تم الحفظ", type: "success" });
+      toast.success("تم الحفظ");
       setModal({ open: false });
       refetch();
-    } catch { setToast({ msg: "فشل الحفظ", type: "error" }); }
+    } catch { toast.error("فشل الحفظ"); }
   };
   const handleDelete = async (id: string) => {
     if (!confirm("حذف هذا العنصر؟")) return;
-    try { await deleteItem(id); setToast({ msg: "تم الحذف", type: "success" }); refetch(); }
-    catch { setToast({ msg: "فشل الحذف", type: "error" }); }
+    try { await deleteItem(id); toast.success("تم الحذف"); refetch(); }
+    catch { toast.error("فشل الحذف"); }
   };
 
   const curType = CATALOG_TYPES.find(t => t.value === activeType)!;
@@ -725,9 +722,7 @@ function BuilderConfigTab() {
           onClose={() => setModal({ open: false })}
           onSave={handleSave}
         />
-      )}
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      )}    </div>
   );
 }
 
@@ -745,7 +740,6 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
   const [cfg, setCfg]   = useState<any>(null);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast]   = useState<{ msg: string; type: "success"|"error" }|null>(null);
   const [newTemplate, setNewTemplate] = useState("");
 
   useEffect(() => {
@@ -770,9 +764,9 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
     setSaving(true);
     try {
       await save(cfg);
-      setToast({ msg: "تم حفظ إعدادات الصفحة", type: "success" });
+      toast.success("تم حفظ إعدادات الصفحة");
       setDirty(false);
-    } catch { setToast({ msg: "فشل الحفظ", type: "error" }); }
+    } catch { toast.error("فشل الحفظ"); }
     finally { setSaving(false); }
   };
 
@@ -976,10 +970,7 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
         <Globe className="w-4 h-4 shrink-0" />
         <span>رابط صفحة العملاء: <a href={publicUrl} target="_blank" rel="noopener noreferrer"
           className="font-mono underline underline-offset-2">{window.location.origin}{publicUrl}</a></span>
-      </div>
-
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      </div>    </div>
   );
 }
 

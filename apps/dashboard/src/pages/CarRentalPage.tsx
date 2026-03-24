@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { carRentalApi } from "../lib/api";
 import { Button } from "../components/ui";
+import { SkeletonRows } from "@/components/ui/Skeleton";
 
 type Tab = "dashboard" | "fleet" | "reservations" | "inspections";
 
@@ -109,7 +110,7 @@ export default function CarRentalPage() {
       </div>
 
       {loading ? (
-        <div className="flex items-center justify-center h-48 text-gray-400">جاري التحميل...</div>
+        <SkeletonRows />
       ) : (
         <>
           {/* ── Dashboard ── */}

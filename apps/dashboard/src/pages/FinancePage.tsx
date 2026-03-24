@@ -1,14 +1,21 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Banknote, FileText, TrendingUp, TrendingDown, Plus, Download, Loader2, Landmark, BookOpen, BookOpenCheck, BarChart2, GitMerge, ArrowLeft } from "lucide-react";
 import { clsx } from "clsx";
 import { financeApi, settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Button, Modal, Input, Select, TextArea } from "@/components/ui";
+import { Button, Modal, Input, Select, TextArea, PageHeader } from "@/components/ui";
 
 export function FinancePage() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get("tab") || "invoices";
+  const tabIndex: Record<string, number> = { invoices: 0, expenses: 1, pnl: 2 };
+  const activeTab = tabIndex[tabParam] ?? 0;
+  const setActiveTab = (i: number) => {
+    const keys = ["invoices", "expenses", "pnl"];
+    setSearchParams({ tab: keys[i] || "invoices" });
+  };
   const [showExpense, setShowExpense] = useState(false);
   const [expenseForm, setExpenseForm] = useState({ description: "", amount: "", category: "", date: new Date().toISOString().split("T")[0] });
 
@@ -41,16 +48,23 @@ export function FinancePage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">المالية</h1>
-          <p className="text-sm text-gray-400 mt-0.5">لمحة مالية عامة</p>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="secondary" icon={Plus} onClick={() => setShowExpense(true)}>مصروف جديد</Button>
-          <Button variant="secondary" icon={Download}>تصدير</Button>
-        </div>
-      </div>
+      <PageHeader
+        title="المالية"
+        description="الفواتير والمصروفات والأرباح والخسائر"
+        tabs={[
+          { id: "invoices", label: "الفواتير",            count: invoices.length },
+          { id: "expenses", label: "المصروفات",           count: expenses.length },
+          { id: "pnl",      label: "الأرباح والخسائر" },
+        ]}
+        activeTab={tabParam}
+        onTabChange={(id) => setSearchParams({ tab: id })}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="secondary" icon={Plus} onClick={() => setShowExpense(true)}>مصروف جديد</Button>
+            <Button variant="secondary" icon={Download}>تصدير</Button>
+          </div>
+        }
+      />
 
       {/* Finance module quick-links */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
@@ -92,14 +106,7 @@ export function FinancePage() {
         ))}
       </div>
 
-      <div className="flex gap-1 bg-white rounded-2xl border border-gray-100 p-1">
-        {tabs.map((t, i) => (
-          <button key={i} onClick={() => setActiveTab(i)}
-            className={clsx("flex-1 py-2 rounded-xl text-sm font-medium transition-all",
-              activeTab === i ? "bg-brand-500 text-white shadow-sm" : "text-gray-500 hover:bg-gray-50")}>{t}
-          </button>
-        ))}
-      </div>
+      {/* tab switcher removed — PageHeader handles it */}
 
       {activeTab === 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">

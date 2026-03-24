@@ -1,10 +1,11 @@
 import { useState } from "react";
+import { toast } from "@/hooks/useToast";
 import { List, Plus, Pencil, Trash2, GripVertical, ToggleLeft, ToggleRight,
          UtensilsCrossed, X, Search, ChevronDown, ChevronRight, DollarSign, Clock } from "lucide-react";
 import { clsx } from "clsx";
 import { menuApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Modal, Button, Input, Toggle, Toast } from "@/components/ui";
+import { Modal, Button, Input, Toggle } from "@/components/ui";
 
 const CATEGORY_ICONS = ["🍕","🍔","🌮","🍜","🍱","🥗","🍣","🍛","🍞","☕","🥤","🍰","🍦","🥩","🍗","🥘","🍲","🫕","🧆","🥙"];
 
@@ -104,7 +105,6 @@ export function MenuCategoriesPage() {
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [catModal, setCatModal] = useState<{ open: boolean; item?: any }>({ open: false });
   const [itemModal, setItemModal] = useState<{ open: boolean; item?: any; categoryId?: string }>({ open: false });
-  const [toast, setToast]       = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const categories: any[] = catData?.data || [];
   const allItems: any[]   = itemData?.data || [];
@@ -126,10 +126,10 @@ export function MenuCategoriesPage() {
   const saveCat = async (form: any) => {
     try {
       catModal.item ? await updateCat({ ...form, id: catModal.item.id }) : await createCat(form);
-      setToast({ msg: "تم حفظ التصنيف", type: "success" });
+      toast.success("تم حفظ التصنيف");
       setCatModal({ open: false });
       refetch();
-    } catch { setToast({ msg: "فشل الحفظ", type: "error" }); }
+    } catch { toast.error("فشل الحفظ"); }
   };
 
   const saveItem = async (form: any) => {
@@ -139,27 +139,27 @@ export function MenuCategoriesPage() {
       } else {
         await createItem({ ...form, categoryId: itemModal.categoryId || form.categoryId });
       }
-      setToast({ msg: "تم حفظ الصنف", type: "success" });
+      toast.success("تم حفظ الصنف");
       setItemModal({ open: false });
       refetchItems();
-    } catch { setToast({ msg: "فشل الحفظ", type: "error" }); }
+    } catch { toast.error("فشل الحفظ"); }
   };
 
   const handleDeleteCat = async (id: string, name: string) => {
     if (!confirm(`حذف تصنيف "${name}"؟ سيتم حذف جميع الأصناف المرتبطة به.`)) return;
-    try { await deleteCat(id); setToast({ msg: "تم الحذف", type: "success" }); refetch(); refetchItems(); }
-    catch { setToast({ msg: "فشل الحذف", type: "error" }); }
+    try { await deleteCat(id); toast.success("تم الحذف"); refetch(); refetchItems(); }
+    catch { toast.error("فشل الحذف"); }
   };
 
   const handleDeleteItem = async (id: string) => {
     if (!confirm("حذف هذا الصنف؟")) return;
-    try { await deleteItem(id); setToast({ msg: "تم الحذف", type: "success" }); refetchItems(); }
-    catch { setToast({ msg: "فشل الحذف", type: "error" }); }
+    try { await deleteItem(id); toast.success("تم الحذف"); refetchItems(); }
+    catch { toast.error("فشل الحذف"); }
   };
 
   const handleToggleCat = async (cat: any) => {
     try { await toggleCat({ id: cat.id, isActive: !cat.isActive }); refetch(); }
-    catch { setToast({ msg: "فشل التحديث", type: "error" }); }
+    catch { toast.error("فشل التحديث"); }
   };
 
   if (loading) return (
@@ -321,8 +321,6 @@ export function MenuCategoriesPage() {
       )}
       {itemModal.open && (
         <ItemModal item={itemModal.item} categories={categories} onClose={() => setItemModal({ open: false })} onSave={saveItem} />
-      )}
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      )}    </div>
   );
 }

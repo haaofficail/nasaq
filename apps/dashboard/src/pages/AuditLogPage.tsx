@@ -3,6 +3,7 @@ import { ClipboardList, Search, Loader2, RefreshCw, ChevronLeft, ChevronRight } 
 import { clsx } from "clsx";
 import { auditApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
+import { Pagination } from "@/components/ui/Pagination";
 
 const RESOURCES = [
   { value: "", label: "الكل" },
@@ -142,20 +143,13 @@ export function AuditLogPage() {
 
         {/* Pagination */}
         {!loading && (
-          <div className="flex items-center justify-between px-5 py-3 border-t border-gray-50 bg-gray-50/30">
-            <span className="text-xs text-gray-400">{filtered.length} نتيجة</span>
-            <div className="flex items-center gap-2">
-              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                <ChevronRight className="w-4 h-4" />
-              </button>
-              <span className="text-xs text-gray-600 min-w-[3rem] text-center">صفحة {page}</span>
-              <button onClick={() => setPage(p => p + 1)} disabled={filtered.length < PAGE_SIZE}
-                className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
+          <Pagination
+            page={page}
+            pageSize={PAGE_SIZE}
+            total={res?.total ?? filtered.length}
+            onPage={setPage}
+            label="سجل"
+          />
         )}
       </div>
     </div>

@@ -1,8 +1,9 @@
 import { useState } from "react";
+import { toast } from "@/hooks/useToast";
 import { Users, Plus, Phone, Mail, Pencil, Trash2, Loader2, AlertCircle, ToggleLeft, ToggleRight } from "lucide-react";
 import { providersApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Modal, Input, TextArea, Select, Button, Toggle, Toast, EmptyState } from "@/components/ui";
+import { Modal, Input, TextArea, Select, Button, Toggle, EmptyState } from "@/components/ui";
 import { clsx } from "clsx";
 
 const DAYS = [
@@ -33,7 +34,6 @@ export function ProvidersPage() {
   const [editing, setEditing] = useState<any>(null);
   const [form, setForm] = useState({ ...EMPTY_FORM });
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const { mutate: deleteProvider, loading: deleting } = useMutation((id: string) => providersApi.delete(id));
 
@@ -60,20 +60,20 @@ export function ProvidersPage() {
   };
 
   const handleSubmit = async () => {
-    if (!form.name.trim()) { setToast({ msg: "الاسم مطلوب", type: "error" }); return; }
+    if (!form.name.trim()) { toast.error("الاسم مطلوب"); return; }
     setSaving(true);
     try {
       if (editing) {
         await providersApi.update(editing.id, form);
-        setToast({ msg: "تم تحديث مزود الخدمة", type: "success" });
+        toast.success("تم تحديث مزود الخدمة");
       } else {
         await providersApi.create(form);
-        setToast({ msg: "تم إضافة مزود الخدمة", type: "success" });
+        toast.success("تم إضافة مزود الخدمة");
       }
       setShowForm(false);
       refetch();
     } catch {
-      setToast({ msg: "فشل الحفظ. حاول مرة أخرى", type: "error" });
+      toast.error("فشل الحفظ. حاول مرة أخرى");
     } finally {
       setSaving(false);
     }
@@ -84,14 +84,14 @@ export function ProvidersPage() {
       await providersApi.update(provider.id, { isActive: !provider.is_active });
       refetch();
     } catch {
-      setToast({ msg: "فشل تغيير الحالة", type: "error" });
+      toast.error("فشل تغيير الحالة");
     }
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("حذف هذا المزود؟")) return;
     await deleteProvider(id);
-    setToast({ msg: "تم الحذف", type: "success" });
+    toast.success("تم الحذف");
     refetch();
   };
 
@@ -300,9 +300,6 @@ export function ProvidersPage() {
             </div>
           </div>
         </div>
-      </Modal>
-
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      </Modal>    </div>
   );
 }

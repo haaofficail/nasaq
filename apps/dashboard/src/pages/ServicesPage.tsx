@@ -6,6 +6,8 @@ import { servicesApi, categoriesApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { CreateServiceForm } from "@/components/services/CreateServiceForm";
 import { EditServiceForm } from "@/components/services/EditServiceForm";
+import { PageHeader, Button } from "@/components/ui";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; class: string }> = {
@@ -18,10 +20,35 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={clsx("px-2 py-0.5 rounded-full text-[10px] font-medium", c.class)}>{c.label}</span>;
 }
 
+const TYPE_META: Record<string, { label: string; icon: string }> = {
+  appointment:      { label: "بموعد",          icon: "🗓️" },
+  execution:        { label: "تنفيذ",          icon: "🔧" },
+  field_service:    { label: "ميداني",         icon: "📍" },
+  rental:           { label: "تأجير",          icon: "🏠" },
+  event_rental:     { label: "تأجير ميداني",   icon: "⛺" },
+  product:          { label: "منتج",           icon: "📦" },
+  product_shipping: { label: "شحن",            icon: "🚚" },
+  food_order:       { label: "طعام",           icon: "🍽️" },
+  package:          { label: "باقة",           icon: "🎁" },
+  add_on:           { label: "إضافة",          icon: "➕" },
+  project:          { label: "مشروع",          icon: "📋" },
+};
+
+function TypeBadge({ type }: { type: string }) {
+  const m = TYPE_META[type];
+  if (!m) return null;
+  return (
+    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[10px] font-medium">
+      <span>{m.icon}</span>{m.label}
+    </span>
+  );
+}
+
 export function ServicesPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("الكل");
+  const [typeFilter, setTypeFilter] = useState("الكل");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showCreate, setShowCreate] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
@@ -38,8 +65,12 @@ export function ServicesPage() {
   const filtered = services.filter((s: any) => {
     if (search && !s.name?.includes(search)) return false;
     if (categoryFilter !== "الكل" && s.categoryName !== categoryFilter) return false;
+    if (typeFilter !== "الكل" && s.serviceType !== typeFilter) return false;
     return true;
   });
+
+  // Unique types present in this org's services
+  const presentTypes: string[] = ["الكل", ...Array.from(new Set(services.map((s: any) => s.serviceType).filter(Boolean) as string[]))];
 
   const handleDelete = async (id: string, name: string) => {
     if (!confirm("حذف \"" + name + "\"؟")) return;
@@ -56,12 +87,7 @@ export function ServicesPage() {
   const handleCreated = () => { setShowCreate(false); refetch(); };
   const handleEdited = () => { setEditId(null); refetch(); };
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-7 h-7 animate-spin text-brand-500" />
-      <span className="mr-3 text-sm text-gray-400">جاري التحميل...</span>
-    </div>
-  );
+  if (loading) return <PageSkeleton />;
 
   if (error) return (
     <div className="flex flex-col items-center justify-center h-64 gap-3">
@@ -73,18 +99,11 @@ export function ServicesPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">الخدمات</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{services.length} خدمة</p>
-        </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-brand-500 text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-brand-600 transition-colors shadow-sm shadow-brand-500/20"
-        >
-          <Plus className="w-4 h-4" /> خدمة جديدة
-        </button>
-      </div>
+      <PageHeader
+        title="الخدمات"
+        description={`${services.length} خدمة`}
+        actions={<Button icon={Plus} onClick={() => setShowCreate(true)}>خدمة جديدة</Button>}
+      />
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -101,6 +120,23 @@ export function ServicesPage() {
               )}>{cat}</button>
           ))}
         </div>
+        {presentTypes.length > 2 && (
+          <div className="flex gap-1.5 overflow-x-auto">
+            {presentTypes.map(t => {
+              const m = t === "الكل" ? null : TYPE_META[t];
+              return (
+                <button key={t} onClick={() => setTypeFilter(t)}
+                  className={clsx(
+                    "flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors",
+                    typeFilter === t ? "bg-gray-800 text-white shadow-sm" : "bg-white border border-gray-100 text-gray-600 hover:bg-gray-50"
+                  )}>
+                  {m && <span>{m.icon}</span>}
+                  {m ? m.label : t}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="flex gap-1 bg-white border border-gray-100 rounded-xl p-1">
           <button onClick={() => setView("grid")} className={clsx("p-2 rounded-lg transition-colors", view === "grid" ? "bg-brand-500 text-white" : "text-gray-400 hover:bg-gray-50")}><Grid3X3 className="w-4 h-4" /></button>
           <button onClick={() => setView("list")} className={clsx("p-2 rounded-lg transition-colors", view === "list" ? "bg-brand-500 text-white" : "text-gray-400 hover:bg-gray-50")}><List className="w-4 h-4" /></button>
@@ -150,7 +186,10 @@ export function ServicesPage() {
                 onClick={() => navigate("/dashboard/services/" + service.id)}
               >
                 <h3 className="text-sm font-semibold text-gray-900 mb-0.5 group-hover:text-brand-600 line-clamp-1 transition-colors">{service.name}</h3>
-                <p className="text-xs text-gray-400 mb-3">{service.categoryName || "بدون تصنيف"}</p>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <p className="text-xs text-gray-400">{service.categoryName || "بدون تصنيف"}</p>
+                  {service.serviceType && <TypeBadge type={service.serviceType} />}
+                </div>
                 <div className="flex items-center justify-between">
                   <span className="text-base font-bold text-brand-600 tabular-nums">
                     {Number(service.basePrice || 0).toLocaleString()}
@@ -240,7 +279,12 @@ export function ServicesPage() {
                       <span className="font-medium text-gray-900 line-clamp-1">{service.name}</span>
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 text-gray-500 text-xs">{service.categoryName || "—"}</td>
+                  <td className="py-3.5 px-4 text-gray-500 text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <span>{service.categoryName || "—"}</span>
+                      {service.serviceType && <TypeBadge type={service.serviceType} />}
+                    </div>
+                  </td>
                   <td className="py-3.5 px-4 font-semibold text-gray-900 tabular-nums">{Number(service.basePrice || 0).toLocaleString()} ر.س</td>
                   <td className="py-3.5 px-4"><StatusBadge status={service.status} /></td>
                   <td className="py-3.5 px-4 text-gray-500 tabular-nums">{service.totalBookings || 0}</td>

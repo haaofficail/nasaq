@@ -5,6 +5,8 @@ import { clsx } from "clsx";
 import { customersApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { CreateCustomerForm } from "@/components/customers/CreateCustomerForm";
+import { PageHeader, Button } from "@/components/ui";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 
 export function CustomersPage() {
   const navigate = useNavigate();
@@ -24,12 +26,7 @@ export function CustomersPage() {
 
   const handleCreated = () => { setShowCreate(false); refetch(); };
 
-  if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-7 h-7 animate-spin text-brand-500" />
-      <span className="mr-3 text-sm text-gray-400">جاري التحميل...</span>
-    </div>
-  );
+  if (loading) return <PageSkeleton />;
 
   if (error) return (
     <div className="flex flex-col items-center justify-center h-64 gap-3">
@@ -41,18 +38,11 @@ export function CustomersPage() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">العملاء</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{customers.length} عميل</p>
-        </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 bg-brand-500 text-white rounded-xl px-4 py-2.5 text-sm font-semibold hover:bg-brand-600 transition-colors shadow-sm shadow-brand-500/20"
-        >
-          <Plus className="w-4 h-4" /> عميل جديد
-        </button>
-      </div>
+      <PageHeader
+        title="العملاء"
+        description={`${customers.length} عميل`}
+        actions={<Button icon={Plus} onClick={() => setShowCreate(true)}>عميل جديد</Button>}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

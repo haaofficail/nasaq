@@ -1,9 +1,12 @@
 import { useState } from "react";
-import { Boxes, Plus, Wrench, CheckCircle2, Package, AlertTriangle, Pencil, Trash2, RefreshCw, ChevronDown } from "lucide-react";
+import { toast } from "@/hooks/useToast";
+import { useSearchParams } from "react-router-dom";
+import { Boxes, Plus, Wrench, CheckCircle2, Package, AlertTriangle, Pencil, Trash2, RefreshCw, ChevronDown, ArrowDown, ArrowUp, BarChart3, TrendingDown } from "lucide-react";
 import { clsx } from "clsx";
 import { inventoryApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Button, Modal, Input, Select, Toast } from "@/components/ui";
+import { Button, Modal, Input, Select, PageHeader } from "@/components/ui";
+import { SuppliersPage } from "./SuppliersPage";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   available:   { label: "متاح",    color: "bg-emerald-50 text-emerald-700 border-emerald-100" },
@@ -20,7 +23,7 @@ function Skeleton({ className }: { className?: string }) {
 
 const EMPTY_TYPE_FORM = { name: "", category: "" };
 
-export function InventoryPage() {
+function AssetsTab() {
   const [showModal, setShowModal]         = useState(false);
   const [editing, setEditing]             = useState<any>(null);
   const [form, setForm]                   = useState({ ...EMPTY_FORM });
@@ -30,7 +33,6 @@ export function InventoryPage() {
   const [typeForm, setTypeForm]           = useState({ ...EMPTY_TYPE_FORM });
   const [savingType, setSavingType]       = useState(false);
   const [statusMenuId, setStatusMenuId]   = useState<string | null>(null);
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   const { data: typesRes,  loading: tLoading, refetch: refetchTypes } = useApi(() => inventoryApi.assetTypes(), []);
   const { data: assetsRes, loading: aLoading, refetch }               = useApi(() => inventoryApi.assets(), []);
@@ -72,15 +74,15 @@ export function InventoryPage() {
     try {
       if (editing) {
         await updateAsset({ id: editing.id, data: form });
-        setToast({ msg: "تم تحديث الأصل", type: "success" });
+        toast.success("تم تحديث الأصل");
       } else {
         await createAsset(form);
-        setToast({ msg: "تمت إضافة الأصل", type: "success" });
+        toast.success("تمت إضافة الأصل");
       }
       setShowModal(false);
       refresh();
     } catch {
-      setToast({ msg: "فشل الحفظ", type: "error" });
+      toast.error("فشل الحفظ");
     } finally {
       setSaving(false);
     }
@@ -92,15 +94,15 @@ export function InventoryPage() {
     try {
       if (editingType) {
         await updateAssetType({ id: editingType.id, data: typeForm });
-        setToast({ msg: "تم تحديث النوع", type: "success" });
+        toast.success("تم تحديث النوع");
       } else {
         await createAssetType(typeForm);
-        setToast({ msg: "تمت إضافة النوع", type: "success" });
+        toast.success("تمت إضافة النوع");
       }
       setShowTypeModal(false);
       refetchTypes();
     } catch {
-      setToast({ msg: "فشل الحفظ", type: "error" });
+      toast.error("فشل الحفظ");
     } finally {
       setSavingType(false);
     }
@@ -110,10 +112,10 @@ export function InventoryPage() {
     if (!confirm("حذف هذا الأصل؟")) return;
     try {
       await deleteAsset(id);
-      setToast({ msg: "تم الحذف", type: "success" });
+      toast.success("تم الحذف");
       refresh();
     } catch {
-      setToast({ msg: "فشل الحذف", type: "error" });
+      toast.error("فشل الحذف");
     }
   };
 
@@ -121,10 +123,10 @@ export function InventoryPage() {
     if (!confirm("حذف هذا النوع؟")) return;
     try {
       await deleteAssetType(id);
-      setToast({ msg: "تم حذف النوع", type: "success" });
+      toast.success("تم حذف النوع");
       refetchTypes();
     } catch (err: any) {
-      setToast({ msg: err?.message || "فشل الحذف", type: "error" });
+      toast.error(err?.message || "فشل الحذف");
     }
   };
 
@@ -132,10 +134,10 @@ export function InventoryPage() {
     setStatusMenuId(null);
     try {
       await updateStatus({ id, status });
-      setToast({ msg: "تم تحديث الحالة", type: "success" });
+      toast.success("تم تحديث الحالة");
       refresh();
     } catch {
-      setToast({ msg: "فشل تحديث الحالة", type: "error" });
+      toast.error("فشل تحديث الحالة");
     }
   };
 
@@ -144,12 +146,9 @@ export function InventoryPage() {
 
   return (
     <div className="space-y-5" onClick={() => setStatusMenuId(null)}>
-      {/* Header */}
+      {/* Actions row */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">المخزون والأصول</h1>
-          <p className="text-sm text-gray-400 mt-0.5">{assets.length} أصل</p>
-        </div>
+        <p className="text-sm text-gray-400">{assets.length} أصل</p>
         <div className="flex items-center gap-2">
           <button onClick={refresh} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
             <RefreshCw className="w-4 h-4" />
@@ -369,9 +368,266 @@ export function InventoryPage() {
           <Input label="التصنيف" name="typeCategory" value={typeForm.category}
             onChange={e => ft("category", e.target.value)} placeholder="مثال: أثاث، معدات، إضاءة" />
         </div>
+      </Modal>    </div>
+  );
+}
+
+// ============================================================
+// CONSUMABLES TAB — inventory_products + stock_movements
+// ============================================================
+
+const EMPTY_PRODUCT = { name: "", nameEn: "", sku: "", category: "", unit: "قطعة", unitCost: "", sellingPrice: "", currentStock: "", minStock: "", notes: "" };
+const ADJUST_TYPES = [
+  { value: "in",         label: "إضافة مخزون" },
+  { value: "out",        label: "استخدام / صرف" },
+  { value: "waste",      label: "هالك / تالف" },
+  { value: "return",     label: "إرجاع للمخزون" },
+  { value: "adjustment", label: "تسوية يدوية" },
+];
+
+function ConsumablesTab() {
+  const [showModal,    setShowModal]    = useState(false);
+  const [editing,      setEditing]      = useState<any>(null);
+  const [form,         setForm]         = useState({ ...EMPTY_PRODUCT });
+  const [saving,       setSaving]       = useState(false);
+  const [adjustItem,   setAdjustItem]   = useState<any>(null);
+  const [adjustForm,   setAdjustForm]   = useState({ type: "in", quantity: "", notes: "" });
+  const [adjusting,    setAdjusting]    = useState(false);
+  const [filterLow,    setFilterLow]    = useState(false);
+  const [filterCat,    setFilterCat]    = useState("");
+
+  const params: Record<string, string> = {};
+  if (filterLow) params.low_stock = "1";
+  if (filterCat) params.category  = filterCat;
+
+  const { data, loading, refetch } = useApi(() => inventoryApi.products(Object.keys(params).length ? params : undefined), [filterLow, filterCat]);
+  const products: any[] = data?.data || [];
+
+  const categories = [...new Set(products.map((p: any) => p.category).filter(Boolean))];
+  const lowCount   = products.filter((p: any) => p.is_low_stock).length;
+  const totalValue = products.reduce((s: number, p: any) => s + parseFloat(p.current_stock || 0) * parseFloat(p.unit_cost || 0), 0);
+
+  const openCreate = () => { setEditing(null); setForm({ ...EMPTY_PRODUCT }); setShowModal(true); };
+  const openEdit   = (p: any) => {
+    setEditing(p);
+    setForm({ name: p.name||"", nameEn: p.name_en||"", sku: p.sku||"", category: p.category||"", unit: p.unit||"قطعة", unitCost: p.unit_cost||"", sellingPrice: p.selling_price||"", currentStock: p.current_stock||"", minStock: p.min_stock||"", notes: p.notes||"" });
+    setShowModal(true);
+  };
+
+  const handleSave = async () => {
+    if (!form.name.trim()) return;
+    setSaving(true);
+    try {
+      if (editing) {
+        await inventoryApi.updateProduct(editing.id, form);
+        toast.success("تم التحديث");
+      } else {
+        await inventoryApi.createProduct(form);
+        toast.success("تمت الإضافة");
+      }
+      setShowModal(false);
+      refetch();
+    } catch { toast.error("فشل الحفظ"); } finally { setSaving(false); }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("حذف هذا المنتج؟")) return;
+    await inventoryApi.deleteProduct(id);
+    toast.success("تم الحذف");
+    refetch();
+  };
+
+  const handleAdjust = async () => {
+    if (!adjustForm.quantity || !adjustItem) return;
+    setAdjusting(true);
+    try {
+      await inventoryApi.adjustStock(adjustItem.id, { type: adjustForm.type, quantity: parseFloat(adjustForm.quantity), notes: adjustForm.notes });
+      toast.success("تم تعديل المخزون");
+      setAdjustItem(null);
+      refetch();
+    } catch (err: any) { toast.error(err?.message || "فشل التعديل"); } finally { setAdjusting(false); }
+  };
+
+  const f = (field: string, val: string) => setForm(p => ({ ...p, [field]: val }));
+
+  return (
+    <div className="space-y-5">
+      {/* Top actions */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => setFilterLow(v => !v)}
+            className={clsx("flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors", filterLow ? "bg-red-50 text-red-600 border-red-200" : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50")}
+          >
+            <TrendingDown className="w-3.5 h-3.5" />
+            مخزون منخفض {lowCount > 0 && <span className="bg-red-100 text-red-600 rounded-full px-1.5 py-0.5">{lowCount}</span>}
+          </button>
+          {categories.length > 0 && (
+            <select value={filterCat} onChange={e => setFilterCat(e.target.value)} className="px-3 py-1.5 border border-gray-200 rounded-xl text-xs text-gray-600 outline-none">
+              <option value="">كل التصنيفات</option>
+              {categories.map((c: string) => <option key={c} value={c}>{c}</option>)}
+            </select>
+          )}
+          <button onClick={refetch} className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-400 transition-colors">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </button>
+        </div>
+        <Button icon={Plus} onClick={openCreate}>مادة جديدة</Button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: "إجمالي المواد",    value: products.length,                        color: "text-brand-600",   bg: "bg-brand-50",   icon: Boxes },
+          { label: "مخزون منخفض",     value: lowCount,                               color: "text-red-500",     bg: "bg-red-50",     icon: AlertTriangle },
+          { label: "قيمة المخزون",     value: `${totalValue.toLocaleString("ar-SA")} ر.س`, color: "text-emerald-600", bg: "bg-emerald-50", icon: BarChart3 },
+          { label: "تصنيفات",         value: categories.length,                      color: "text-purple-600",  bg: "bg-purple-50",  icon: Package },
+        ].map((s, i) => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-2", s.bg)}>
+              <s.icon className={clsx("w-4 h-4", s.color)} />
+            </div>
+            <p className={clsx("text-xl font-bold tabular-nums", s.color)}>{s.value}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
+          </div>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 rounded-xl" />)}</div>
+      ) : products.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+          <Package className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-gray-900 mb-1">لا توجد مواد</h3>
+          <p className="text-sm text-gray-400 mb-4">أضف المواد والمستهلكات المستخدمة في خدماتك</p>
+          <Button icon={Plus} onClick={openCreate}>مادة جديدة</Button>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-gray-100 bg-gray-50/50">
+                <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold">المادة</th>
+                <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden sm:table-cell">التصنيف</th>
+                <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">المخزون</th>
+                <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden md:table-cell">الحد الأدنى</th>
+                <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden lg:table-cell">تكلفة الوحدة</th>
+                <th className="py-3 px-4 w-28"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((p: any) => (
+                <tr key={p.id} className={clsx("border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors", p.is_low_stock && "bg-red-50/30")}>
+                  <td className="py-3.5 px-5">
+                    <div className="flex items-center gap-3">
+                      <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", p.is_low_stock ? "bg-red-50" : "bg-gray-100")}>
+                        <Package className={clsx("w-3.5 h-3.5", p.is_low_stock ? "text-red-400" : "text-gray-400")} />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{p.name}</p>
+                        {p.sku && <p className="text-xs text-gray-400 font-mono">{p.sku}</p>}
+                      </div>
+                    </div>
+                  </td>
+                  <td className="py-3.5 px-4 text-xs text-gray-500 hidden sm:table-cell">{p.category || "—"}</td>
+                  <td className="py-3.5 px-4">
+                    <span className={clsx("font-semibold tabular-nums", p.is_low_stock ? "text-red-600" : "text-gray-900")}>
+                      {parseFloat(p.current_stock).toLocaleString("ar-SA")}
+                    </span>
+                    <span className="text-xs text-gray-400 mr-1">{p.unit}</span>
+                  </td>
+                  <td className="py-3.5 px-4 text-xs text-gray-500 hidden md:table-cell">{parseFloat(p.min_stock).toLocaleString("ar-SA")} {p.unit}</td>
+                  <td className="py-3.5 px-4 text-xs text-gray-500 hidden lg:table-cell">{parseFloat(p.unit_cost || 0).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td>
+                  <td className="py-3.5 px-4">
+                    <div className="flex gap-1">
+                      <button onClick={() => { setAdjustItem(p); setAdjustForm({ type: "in", quantity: "", notes: "" }); }} className="p-1.5 rounded-lg hover:bg-emerald-50 transition-colors" title="تعديل المخزون">
+                        <ArrowDown className="w-3.5 h-3.5 text-emerald-500" />
+                      </button>
+                      <button onClick={() => openEdit(p)} className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors">
+                        <Pencil className="w-3.5 h-3.5 text-brand-400" />
+                      </button>
+                      <button onClick={() => handleDelete(p.id)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors">
+                        <Trash2 className="w-3.5 h-3.5 text-red-400" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Add / Edit Product Modal */}
+      <Modal open={showModal} onClose={() => setShowModal(false)} title={editing ? "تعديل المادة" : "مادة جديدة"} size="sm"
+        footer={<><Button variant="secondary" onClick={() => setShowModal(false)}>إلغاء</Button><Button onClick={handleSave} loading={saving}>{editing ? "حفظ" : "إضافة"}</Button></>}
+      >
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="الاسم" name="name" value={form.name} onChange={e => f("name", e.target.value)} placeholder="مثال: أكياس بلاستيك" required />
+            <Input label="SKU / الكود" name="sku" value={form.sku} onChange={e => f("sku", e.target.value)} dir="ltr" placeholder="PKG-001" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="التصنيف" name="cat" value={form.category} onChange={e => f("category", e.target.value)} placeholder="مثال: تغليف، تنظيف" />
+            <Input label="الوحدة" name="unit" value={form.unit} onChange={e => f("unit", e.target.value)} placeholder="قطعة، كيلو، لتر" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="المخزون الحالي" name="stock" value={form.currentStock} onChange={e => f("currentStock", e.target.value)} dir="ltr" placeholder="0" />
+            <Input label="الحد الأدنى" name="min" value={form.minStock} onChange={e => f("minStock", e.target.value)} dir="ltr" placeholder="0" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input label="تكلفة الوحدة (ر.س)" name="cost" value={form.unitCost} onChange={e => f("unitCost", e.target.value)} dir="ltr" placeholder="0.00" />
+            <Input label="سعر البيع (ر.س)" name="price" value={form.sellingPrice} onChange={e => f("sellingPrice", e.target.value)} dir="ltr" placeholder="0.00" />
+          </div>
+          <Input label="ملاحظات" name="notes" value={form.notes} onChange={e => f("notes", e.target.value)} placeholder="أي ملاحظات..." />
+        </div>
       </Modal>
 
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
+      {/* Stock Adjustment Modal */}
+      {adjustItem && (
+        <Modal open={!!adjustItem} onClose={() => setAdjustItem(null)} title={`تعديل مخزون: ${adjustItem.name}`} size="sm"
+          footer={<><Button variant="secondary" onClick={() => setAdjustItem(null)}>إلغاء</Button><Button onClick={handleAdjust} loading={adjusting}>تأكيد</Button></>}
+        >
+          <div className="space-y-4">
+            <div className="bg-gray-50 rounded-xl px-4 py-3 text-sm">
+              <span className="text-gray-500">المخزون الحالي: </span>
+              <span className="font-bold text-gray-900">{parseFloat(adjustItem.current_stock).toLocaleString("ar-SA")} {adjustItem.unit}</span>
+            </div>
+            <Select label="نوع الحركة" name="adjType" value={adjustForm.type}
+              onChange={e => setAdjustForm(p => ({ ...p, type: e.target.value }))}
+              options={ADJUST_TYPES} />
+            <Input label="الكمية" name="qty" value={adjustForm.quantity}
+              onChange={e => setAdjustForm(p => ({ ...p, quantity: e.target.value }))} dir="ltr" placeholder="0" required />
+            <Input label="ملاحظات (اختياري)" name="adjNotes" value={adjustForm.notes}
+              onChange={e => setAdjustForm(p => ({ ...p, notes: e.target.value }))} placeholder="سبب التعديل..." />
+          </div>
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+const INVENTORY_TABS = [
+  { id: "assets",       label: "الأصول الثابتة" },
+  { id: "consumables",  label: "المواد والمستهلكات" },
+  { id: "suppliers",    label: "الموردون" },
+];
+
+export function InventoryPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") || "assets";
+  return (
+    <div dir="rtl">
+      <PageHeader
+        title="المخزون"
+        description="الأصول والمواد وإدارة الموردين"
+        tabs={INVENTORY_TABS}
+        activeTab={tab}
+        onTabChange={(id) => setSearchParams({ tab: id })}
+      />
+      {tab === "assets"      && <AssetsTab />}
+      {tab === "consumables" && <ConsumablesTab />}
+      {tab === "suppliers"   && <SuppliersPage />}
     </div>
   );
 }

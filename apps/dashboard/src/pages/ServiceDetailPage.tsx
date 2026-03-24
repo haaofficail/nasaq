@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "@/hooks/useToast";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowRight, Pencil, Trash2, Package, Star, CalendarCheck, Banknote,
@@ -6,12 +7,13 @@ import {
   Boxes, Wrench, FlaskConical, TrendingUp, Users, Layers, AlignLeft, ClipboardList,
 } from "lucide-react";
 import { clsx } from "clsx";
-import { servicesApi, questionsApi, inventoryApi, teamApi } from "@/lib/api";
+import { servicesApi, questionsApi, inventoryApi, teamApi, salonApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { EditServiceForm } from "@/components/services/EditServiceForm";
-import { Modal, Input, TextArea, Select, Button, Toggle, Toast } from "@/components/ui";
+import { Modal, Input, TextArea, Select, Button, Toggle } from "@/components/ui";
+import { PageSkeleton } from "@/components/ui/Skeleton";
 
-type Tab = "info" | "questions" | "booking-settings" | "components" | "requirements";
+type Tab = "info" | "questions" | "booking-settings" | "components" | "requirements" | "recipes" | "staff";
 type ReqType = "employee" | "asset" | "text";
 
 const QUESTION_TYPES = [
@@ -45,11 +47,22 @@ export function ServiceDetailPage() {
   const { data: assetTypesRes } = useApi(() => inventoryApi.assetTypes());
   const { data: assetsListRes } = useApi(() => inventoryApi.assets());
   const { data: membersRes } = useApi(() => teamApi.members());
+  const { data: serviceStaffRes, refetch: refetchServiceStaff } = useApi(() => servicesApi.listStaff(id!), [id]);
   const assetTypes: any[] = assetTypesRes?.data ?? [];
   const assetsList: any[] = assetsListRes?.data ?? [];
   const membersList: any[] = membersRes?.data ?? [];
+  const serviceStaff: any[] = serviceStaffRes?.data ?? [];
   const { mutate: deleteService, loading: deleting } = useMutation((sid: string) => servicesApi.delete(sid));
   const { mutate: duplicateService } = useMutation((sid: string) => servicesApi.duplicate(sid));
+
+  // Recipes (salon supplies)
+  const { data: recipesRes, refetch: refetchRecipes } = useApi(() => salonApi.recipes(id!), [id]);
+  const { data: suppliesRes } = useApi(() => salonApi.supplies(), []);
+  const recipes: any[] = recipesRes?.data ?? [];
+  const supplies: any[] = suppliesRes?.data ?? [];
+  const [recipeForm, setRecipeForm] = useState({ supplyId: "", quantity: "1" });
+  const { mutate: addRecipe } = useMutation((data: any) => salonApi.addRecipe(data));
+  const { mutate: deleteRecipe } = useMutation((recipeId: string) => salonApi.deleteRecipe(recipeId));
 
   const service = res?.data;
   const questions = qRes?.data || [];
@@ -80,7 +93,7 @@ export function ServiceDetailPage() {
   };
 
   const handleSaveReq = async () => {
-    if (!reqForm.label?.trim()) { setToast({ msg: "الاسم/الوصف مطلوب", type: "error" }); return; }
+    if (!reqForm.label?.trim()) { toast.error("الاسم/الوصف مطلوب"); return; }
     setReqSaving(true);
     try {
       const payload = {
@@ -97,9 +110,9 @@ export function ServiceDetailPage() {
       }
       setReqModal(null);
       refetchReq();
-      setToast({ msg: "تم الحفظ", type: "success" });
+      toast.success("تم الحفظ");
     } catch {
-      setToast({ msg: "فشل الحفظ", type: "error" });
+      toast.error("فشل الحفظ");
     } finally {
       setReqSaving(false);
     }
@@ -109,7 +122,7 @@ export function ServiceDetailPage() {
     if (!confirm("حذف هذا المتطلب؟")) return;
     await servicesApi.deleteRequirement(id!, reqId);
     refetchReq();
-    setToast({ msg: "تم الحذف", type: "success" });
+    toast.success("تم الحذف");
   };
 
   // Components state
@@ -135,7 +148,7 @@ export function ServiceDetailPage() {
   };
 
   const handleSaveComp = async () => {
-    if (!compForm.name?.trim()) { setToast({ msg: "الاسم مطلوب", type: "error" }); return; }
+    if (!compForm.name?.trim()) { toast.error("الاسم مطلوب"); return; }
     setCompSaving(true);
     try {
       const payload = {
@@ -151,9 +164,9 @@ export function ServiceDetailPage() {
       }
       setCompModal(null);
       refetchComp();
-      setToast({ msg: "تم الحفظ", type: "success" });
+      toast.success("تم الحفظ");
     } catch {
-      setToast({ msg: "فشل الحفظ", type: "error" });
+      toast.error("فشل الحفظ");
     } finally {
       setCompSaving(false);
     }
@@ -163,7 +176,7 @@ export function ServiceDetailPage() {
     if (!confirm("حذف هذا المكوّن؟")) return;
     await servicesApi.deleteComponent(id!, compId);
     refetchComp();
-    setToast({ msg: "تم الحذف", type: "success" });
+    toast.success("تم الحذف");
   };
 
   // Custom questions state
@@ -172,7 +185,6 @@ export function ServiceDetailPage() {
   const [qForm, setQForm] = useState({ ...EMPTY_Q });
   const [optionInput, setOptionInput] = useState("");
   const [qSaving, setQSaving] = useState(false);
-  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
   // Booking settings state
   const [bsForm, setBsForm] = useState<any>(null);
@@ -202,7 +214,7 @@ export function ServiceDetailPage() {
   };
 
   const handleSaveQ = async () => {
-    if (!qForm.question.trim()) { setToast({ msg: "نص السؤال مطلوب", type: "error" }); return; }
+    if (!qForm.question.trim()) { toast.error("نص السؤال مطلوب"); return; }
     setQSaving(true);
     try {
       if (editingQ) {
@@ -212,9 +224,9 @@ export function ServiceDetailPage() {
       }
       setShowQModal(false);
       refetchQ();
-      setToast({ msg: editingQ ? "تم تحديث السؤال" : "تم إضافة السؤال", type: "success" });
+      toast.success(editingQ ? "تم تحديث السؤال" : "تم إضافة السؤال");
     } catch {
-      setToast({ msg: "فشل الحفظ", type: "error" });
+      toast.error("فشل الحفظ");
     } finally {
       setQSaving(false);
     }
@@ -224,7 +236,7 @@ export function ServiceDetailPage() {
     if (!confirm("حذف هذا السؤال؟")) return;
     await questionsApi.delete(qId);
     refetchQ();
-    setToast({ msg: "تم الحذف", type: "success" });
+    toast.success("تم الحذف");
   };
 
   const handleMoveQ = async (idx: number, dir: "up" | "down") => {
@@ -263,10 +275,10 @@ export function ServiceDetailPage() {
     setBsSaving(true);
     try {
       await servicesApi.update(id!, bsForm);
-      setToast({ msg: "تم حفظ الإعدادات", type: "success" });
+      toast.success("تم حفظ الإعدادات");
       refetch();
     } catch {
-      setToast({ msg: "فشل الحفظ", type: "error" });
+      toast.error("فشل الحفظ");
     } finally {
       setBsSaving(false);
     }
@@ -280,7 +292,7 @@ export function ServiceDetailPage() {
 
   const handleDuplicate = async () => { await duplicateService(id!); navigate("/services"); };
 
-  if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="w-8 h-8 animate-spin text-brand-500" /><span className="mr-3 text-gray-500">جاري التحميل...</span></div>;
+  if (loading) return <PageSkeleton />;
   if (error) return <div className="flex flex-col items-center justify-center h-64 gap-3"><AlertCircle className="w-10 h-10 text-red-400" /><p className="text-red-500">{error}</p><button onClick={refetch} className="text-sm text-brand-500 hover:underline">إعادة المحاولة</button></div>;
   if (!service) return <div className="text-center py-12 text-gray-500">الخدمة غير موجودة</div>;
 
@@ -300,6 +312,8 @@ export function ServiceDetailPage() {
     { key: "info", label: "معلومات الخدمة", icon: Package },
     { key: "components", label: "المكونات والتكاليف", icon: Boxes },
     { key: "requirements", label: "المتطلبات", icon: ClipboardList, badge: requirements.length || undefined },
+    { key: "recipes", label: "وصفة المستلزمات", icon: FlaskConical, badge: recipes.length || undefined },
+    { key: "staff", label: "الموظفون", icon: Users, badge: serviceStaff.length || undefined },
     { key: "questions", label: "أسئلة مخصصة", icon: HelpCircle },
     { key: "booking-settings", label: "إعدادات الحجز", icon: Settings2 },
   ];
@@ -721,6 +735,193 @@ export function ServiceDetailPage() {
         );
       })()}
 
+      {/* Tab: Supply Recipes */}
+      {activeTab === "recipes" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">المستلزمات التي تُستهلك تلقائياً عند إتمام هذه الخدمة</p>
+          </div>
+
+          {/* Add recipe row */}
+          {supplies.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs font-semibold text-gray-500 mb-3">إضافة مستلزم للوصفة</p>
+              <div className="flex gap-2 flex-wrap">
+                <select
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white"
+                  value={recipeForm.supplyId}
+                  onChange={e => setRecipeForm(f => ({ ...f, supplyId: e.target.value }))}
+                >
+                  <option value="">— اختر مستلزم —</option>
+                  {supplies.map((s: any) => (
+                    <option key={s.id} value={s.id}>{s.name} ({s.unit})</option>
+                  ))}
+                </select>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  className="w-24 border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                  value={recipeForm.quantity}
+                  onChange={e => setRecipeForm(f => ({ ...f, quantity: e.target.value }))}
+                  placeholder="الكمية"
+                />
+                <Button
+                  size="sm"
+                  disabled={!recipeForm.supplyId}
+                  onClick={async () => {
+                    if (!recipeForm.supplyId) return;
+                    await addRecipe({ serviceId: id!, supplyId: recipeForm.supplyId, quantity: recipeForm.quantity });
+                    setRecipeForm({ supplyId: "", quantity: "1" });
+                    refetchRecipes();
+                  }}
+                >
+                  إضافة
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Recipes list */}
+          {recipes.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 text-center py-12">
+              <FlaskConical className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+              <p className="text-sm text-gray-400">لم تُحدَّد مستلزمات لهذه الخدمة</p>
+              <p className="text-xs text-gray-300 mt-1">أضف مستلزمات لتُخصم تلقائياً عند إتمام الحجز</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-50">
+              {recipes.map((r: any) => {
+                const supply = supplies.find((s: any) => s.id === r.supplyId);
+                return (
+                  <div key={r.id} className="flex items-center justify-between px-5 py-3">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">{supply?.name || r.supplyId.slice(0, 8)}</p>
+                      <p className="text-xs text-gray-400">{supply?.category} · {supply?.unit}</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm font-bold text-gray-700 tabular-nums">{parseFloat(r.quantity).toFixed(2)}</span>
+                      <button
+                        onClick={async () => { await deleteRecipe(r.id); refetchRecipes(); }}
+                        className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-red-50 hover:border-red-200 text-gray-400 hover:text-red-500"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              <div className="px-5 py-3 bg-gray-50/50">
+                <p className="text-xs text-gray-400">
+                  عند إتمام الحجز سيُخصم تلقائياً {recipes.length} مستلزم من المخزون
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Tab: Staff */}
+      {activeTab === "staff" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-500">الموظفون المعيّنون لهذه الخدمة وإعدادات العمولة الخاصة بهم</p>
+          </div>
+
+          {/* Add staff from members not yet assigned */}
+          {membersList.filter(m => !serviceStaff.find(ss => ss.userId === m.id)).length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-4">
+              <p className="text-xs font-semibold text-gray-500 mb-3">إضافة موظف</p>
+              <div className="flex flex-wrap gap-2">
+                {membersList
+                  .filter(m => !serviceStaff.find(ss => ss.userId === m.id))
+                  .map((m: any) => (
+                    <button
+                      key={m.id}
+                      onClick={async () => {
+                        await servicesApi.addStaff(id!, { userId: m.id, commissionMode: "inherit" });
+                        refetchServiceStaff();
+                      }}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-200 hover:border-brand-300 hover:bg-brand-50 text-sm transition-colors"
+                    >
+                      <div className="w-6 h-6 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold shrink-0">
+                        {m.name?.[0] || "م"}
+                      </div>
+                      {m.name}
+                      <Plus className="w-3.5 h-3.5 text-gray-400" />
+                    </button>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Assigned staff list */}
+          {serviceStaff.length === 0 ? (
+            <div className="bg-white rounded-xl border border-gray-200 text-center py-12">
+              <Users className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+              <p className="text-sm text-gray-400">لم يُعيَّن موظفون لهذه الخدمة بعد</p>
+              {service.assignmentMode === "open" && (
+                <p className="text-xs text-gray-300 mt-1">وضع التعيين: مفتوح — أي موظف يمكنه تنفيذ الخدمة</p>
+              )}
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-50">
+              {serviceStaff.map((ss: any) => (
+                <div key={ss.id} className="flex items-center justify-between px-5 py-3 gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold shrink-0">
+                      {ss.userName?.[0] || "م"}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{ss.userName || ss.userId}</p>
+                      <p className="text-xs text-gray-400">{ss.jobTitle || "—"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <select
+                      value={ss.commissionMode}
+                      onChange={async (e) => {
+                        await servicesApi.updateStaff(id!, ss.userId, { commissionMode: e.target.value });
+                        refetchServiceStaff();
+                      }}
+                      className="border border-gray-200 rounded-xl px-2 py-1 text-xs bg-white"
+                    >
+                      <option value="inherit">يرث من الخدمة</option>
+                      <option value="none">بلا عمولة</option>
+                      <option value="percentage">نسبة %</option>
+                      <option value="fixed">مبلغ ثابت</option>
+                    </select>
+                    {(ss.commissionMode === "percentage" || ss.commissionMode === "fixed") && (
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.5"
+                        defaultValue={ss.commissionValue || ""}
+                        onBlur={async (e) => {
+                          await servicesApi.updateStaff(id!, ss.userId, { commissionMode: ss.commissionMode, commissionValue: parseFloat(e.target.value) || 0 });
+                          refetchServiceStaff();
+                        }}
+                        className="w-20 border border-gray-200 rounded-xl px-2 py-1 text-xs"
+                        placeholder={ss.commissionMode === "percentage" ? "%" : "ر.س"}
+                      />
+                    )}
+                    <button
+                      onClick={async () => {
+                        await servicesApi.removeStaff(id!, ss.userId);
+                        refetchServiceStaff();
+                      }}
+                      className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-red-50 hover:border-red-200 text-gray-400 hover:text-red-500 text-sm"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Requirements Add/Edit Modal */}
       {reqModal && (
         <Modal
@@ -1068,9 +1269,6 @@ export function ServiceDetailPage() {
         </div>
       </Modal>
 
-      {showEdit && <EditServiceForm open={showEdit} serviceId={id!} onClose={() => setShowEdit(false)} onSuccess={() => { setShowEdit(false); refetch(); }} />}
-
-      {toast && <Toast message={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
-    </div>
+      {showEdit && <EditServiceForm open={showEdit} serviceId={id!} onClose={() => setShowEdit(false)} onSuccess={() => { setShowEdit(false); refetch(); }} />}    </div>
   );
 }

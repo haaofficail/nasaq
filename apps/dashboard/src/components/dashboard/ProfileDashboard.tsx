@@ -4,6 +4,8 @@ import { clsx } from "clsx";
 import { Plus, Settings2 } from "lucide-react";
 import type { DashboardProfile, Role, WidgetConfig } from "@/lib/dashboardProfiles";
 import { useDashboardPrefs } from "@/hooks/useDashboardPrefs";
+import { passesContextGate } from "@/lib/widgetRegistry";
+import type { OrgContext } from "@/hooks/useOrgContext";
 import { KPICard } from "./KPICard";
 import { QuickActionsGrid } from "./QuickActionsGrid";
 import { CustomizePanel } from "./CustomizePanel";
@@ -18,9 +20,10 @@ const sizeClass: Record<WidgetConfig["size"], string> = {
 interface ProfileDashboardProps {
   profile: DashboardProfile;
   user: { name?: string; role?: string; orgId?: string };
+  context?: OrgContext;
 }
 
-export function ProfileDashboard({ profile, user }: ProfileDashboardProps) {
+export function ProfileDashboard({ profile, user, context }: ProfileDashboardProps) {
   const navigate = useNavigate();
   const currentRole = (user.role || "") as Role;
   const orgId = user.orgId || "default";
@@ -33,10 +36,17 @@ export function ProfileDashboard({ profile, user }: ProfileDashboardProps) {
     (k) => k.allowedRoles.length === 0 || k.allowedRoles.includes(currentRole)
   ).filter((k) => !prefs.hiddenKpis.includes(k.id));
 
-  // Role-filtered widgets, apply prefs order then hide
-  const roleFilteredWidgets = profile.widgets.filter(
-    (w) => w.allowedRoles.length === 0 || w.allowedRoles.includes(currentRole)
-  );
+  // Role-filtered widgets, then context-gated, then apply prefs order + hide
+  const roleFilteredWidgets = profile.widgets
+    .filter((w) => w.allowedRoles.length === 0 || w.allowedRoles.includes(currentRole))
+    .filter((w) =>
+      !context ||
+      passesContextGate(w.id, {
+        businessType: context.businessType,
+        operatingProfile: context.operatingProfile,
+        capabilities: context.capabilities,
+      })
+    );
 
   const orderedWidgets = (() => {
     if (prefs.widgetOrder.length === 0) return roleFilteredWidgets;
