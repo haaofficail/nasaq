@@ -47,10 +47,24 @@ export function OnboardingWizard({ status, onComplete }: Props) {
   const [error, setError]           = useState("");
   const [branchName, setBranchName] = useState("");
   const [branchCity, setBranchCity] = useState("الرياض");
+  const [existingMainBranchId, setExistingMainBranchId] = useState<string | null>(null);
   const [svcName, setSvcName]       = useState("");
   const [svcPrice, setSvcPrice]     = useState("");
   const [demoChoice, setDemoChoice] = useState<"yes" | "no" | null>(null);
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
+
+  // Load existing main branch on mount to avoid duplicate creation
+  useState(() => {
+    settingsApi.branches().then(res => {
+      const branches: any[] = (res as any)?.data ?? [];
+      const main = branches.find((b: any) => b.isMainBranch) ?? branches[0];
+      if (main) {
+        setExistingMainBranchId(main.id);
+        setBranchName(main.name || "");
+        setBranchCity(main.city || "الرياض");
+      }
+    }).catch(() => {});
+  });
 
   const step = STEPS[stepIdx];
   const isLast = stepIdx === STEPS.length - 1;
@@ -61,7 +75,12 @@ export function OnboardingWizard({ status, onComplete }: Props) {
 
     try {
       if (step.id === "branch" && branchName.trim()) {
-        await settingsApi.createBranch({ name: branchName.trim(), city: branchCity, isMainBranch: true });
+        if (existingMainBranchId) {
+          // Update existing main branch instead of creating a duplicate
+          await settingsApi.updateBranch(existingMainBranchId, { name: branchName.trim(), city: branchCity, isMainBranch: true });
+        } else {
+          await settingsApi.createBranch({ name: branchName.trim(), city: branchCity, isMainBranch: true });
+        }
         markDone("branch");
       }
 
