@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  CreditCard, CheckCircle2, Clock, Package, ChevronLeft, Loader2, MessageSquare,
+  CreditCard, CheckCircle2, Clock, Package, Loader2, MessageSquare, History,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { orgSubscriptionApi } from "@/lib/api";
@@ -47,7 +47,9 @@ function DaysBadge({ days }: { days: number | null }) {
 export function SubscriptionPage() {
   const [requestingAddon, setRequestingAddon] = useState<string | null>(null);
   const { data: subRes, loading } = useApi(() => orgSubscriptionApi.get(), []);
+  const { data: historyRes } = useApi(() => orgSubscriptionApi.history(), []);
   const { mutate: requestAddon } = useMutation((key: string) => orgSubscriptionApi.requestAddon(key));
+  const history: any[] = historyRes?.data ?? [];
 
   const sub = subRes?.data;
 
@@ -55,7 +57,7 @@ export function SubscriptionPage() {
     setRequestingAddon(addonKey);
     await requestAddon(addonKey);
     setRequestingAddon(null);
-    toast({ title: "تم إرسال الطلب", description: "سيتواصل معك فريق نسق في أقرب وقت" });
+    toast.success("تم إرسال الطلب — سيتواصل معك فريق نسق في أقرب وقت");
   };
 
   const activeAddonKeys = new Set((sub?.addons ?? []).map((a: any) => a.addonKey));
@@ -217,6 +219,52 @@ export function SubscriptionPage() {
             );
           })}
         </div>
+      </div>
+
+      {/* Subscription history */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-2">
+          <History className="w-4 h-4 text-gray-400" />
+          <h2 className="text-base font-semibold text-gray-800">سجل الاشتراكات</h2>
+        </div>
+        {history.length === 0 ? (
+          <div className="py-10 text-center text-sm text-gray-400">لا يوجد سجل اشتراكات بعد</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-gray-50 text-right text-xs text-gray-500 font-medium">
+                  <th className="px-5 py-3">رقم الاشتراك</th>
+                  <th className="px-5 py-3">الباقة</th>
+                  <th className="px-5 py-3">السعر</th>
+                  <th className="px-5 py-3">تاريخ البداية</th>
+                  <th className="px-5 py-3">تاريخ الانتهاء</th>
+                  <th className="px-5 py-3">الحالة</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {history.map((row: any) => (
+                  <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-5 py-3 font-mono text-xs text-gray-500">{row.subscriptionNumber ?? "—"}</td>
+                    <td className="px-5 py-3 font-medium text-gray-800">{row.planName}</td>
+                    <td className="px-5 py-3 text-gray-600">
+                      {row.planPrice ? `${Number(row.planPrice).toLocaleString("ar-SA")} ر.س` : "—"}
+                    </td>
+                    <td className="px-5 py-3 text-gray-500">
+                      {row.startDate ? new Date(row.startDate).toLocaleDateString("ar-SA") : "—"}
+                    </td>
+                    <td className="px-5 py-3 text-gray-500">
+                      {row.endDate ? new Date(row.endDate).toLocaleDateString("ar-SA") : "—"}
+                    </td>
+                    <td className="px-5 py-3">
+                      <StatusBadge status={row.status ?? "active"} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <p className="text-xs text-gray-400 text-center pb-2">

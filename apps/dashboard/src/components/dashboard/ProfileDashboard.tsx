@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { clsx } from "clsx";
-import { Plus, Settings2, CreditCard, Hash, Clock } from "lucide-react";
+import { Plus, Settings2, CreditCard, Hash, Clock, Users, TrendingUp, CalendarCheck, Copy, Check, ExternalLink, BookOpen, Receipt, UserPlus } from "lucide-react";
 import type { DashboardProfile, Role, WidgetConfig } from "@/lib/dashboardProfiles";
 import { useDashboardPrefs } from "@/hooks/useDashboardPrefs";
 import { passesContextGate } from "@/lib/widgetRegistry";
 import type { OrgContext } from "@/hooks/useOrgContext";
 import { useApi } from "@/hooks/useApi";
-import { orgSubscriptionApi } from "@/lib/api";
+import { orgSubscriptionApi, orgStatsApi, settingsApi } from "@/lib/api";
 import { PLAN_MAP } from "@/lib/constants";
 import { KPICard } from "./KPICard";
 import { QuickActionsGrid } from "./QuickActionsGrid";
@@ -31,11 +31,28 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
   const currentRole = (user.role || "") as Role;
   const orgId = user.orgId || "default";
   const [showCustomize, setShowCustomize] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const { data: subRes } = useApi(() => orgSubscriptionApi.get(), []);
   const sub = subRes?.data;
 
+  const { data: statsRes } = useApi(() => orgStatsApi.summary(), []);
+  const stats = statsRes?.data;
+
+  const { data: profileRes } = useApi(() => settingsApi.profile(), []);
+  const orgSlug: string | null = (profileRes?.data as any)?.slug ?? null;
+
   const { prefs, toggleWidget, toggleKpi, reorderWidgets, pinAction, resetPrefs } = useDashboardPrefs(orgId);
+
+  const bookingLink = orgSlug ? `${window.location.origin}/book/${orgSlug}` : null;
+
+  const handleCopyLink = () => {
+    if (!bookingLink) return;
+    navigator.clipboard.writeText(bookingLink).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   // Role-filtered KPIs
   const visibleKpis = profile.kpis.filter(
@@ -165,6 +182,43 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
         />
       )}
 
+      {/* ── Monthly stats bar ── */}
+      {stats && (
+        <div className="grid grid-cols-3 gap-3">
+          {[
+            { label: "عملاء الشهر",   value: stats.newCustomersThisMonth, icon: Users,         color: "text-violet-600", bg: "bg-violet-50" },
+            { label: "مبيعات الشهر",  value: `${Number(stats.salesThisMonth).toLocaleString("ar-SA")} ر.س`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "حجوزات الشهر",  value: stats.bookingsThisMonth,    icon: CalendarCheck, color: "text-brand-600",   bg: "bg-brand-50" },
+          ].map((s) => (
+            <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3.5 flex items-center gap-3">
+              <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", s.bg)}>
+                <s.icon className={clsx("w-4 h-4", s.color)} />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] text-gray-400 truncate">{s.label}</p>
+                <p className="text-sm font-bold text-gray-800 mt-0.5">{s.value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* ── Booking link ── */}
+      {bookingLink && (
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-3.5 flex items-center gap-3">
+          <ExternalLink className="w-4 h-4 text-brand-400 shrink-0" />
+          <span className="text-xs text-gray-500 ml-1">رابط الحجز:</span>
+          <span className="flex-1 text-xs text-brand-600 font-mono truncate" dir="ltr">{bookingLink}</span>
+          <button
+            onClick={handleCopyLink}
+            className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-brand-50 hover:text-brand-600 text-gray-500 border border-gray-200 hover:border-brand-200 rounded-xl text-xs font-medium transition-all"
+          >
+            {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? "تم النسخ" : "نسخ"}
+          </button>
+        </div>
+      )}
+
       {/* KPI cards */}
       {visibleKpis.length > 0 && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -188,6 +242,37 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* ── Quick-start (shown if < 5 bookings this month) ── */}
+      {stats && stats.bookingsThisMonth < 5 && (
+        <div className="bg-white rounded-2xl border border-brand-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+            <BookOpen className="w-4 h-4 text-brand-400" />
+            <h3 className="text-sm font-semibold text-gray-800">ابدأ مع نسق</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-px bg-gray-100">
+            {[
+              { href: "/dashboard/bookings/new", icon: CalendarCheck, label: "أضف أول حجز",   desc: "سجّل حجزاً جديداً الآن",           color: "text-brand-600",   bg: "bg-brand-50" },
+              { href: "/dashboard/customers/new", icon: UserPlus,      label: "أضف عميل",       desc: "ابنِ قاعدة عملائك",                color: "text-violet-600", bg: "bg-violet-50" },
+              { href: "/dashboard/invoices/new",  icon: Receipt,        label: "أنشئ فاتورة",    desc: "فاتورة احترافية في ثوانٍ",         color: "text-emerald-600", bg: "bg-emerald-50" },
+            ].map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className="bg-white px-5 py-4 flex items-center gap-3 hover:bg-gray-50/60 transition-colors group"
+              >
+                <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", item.bg)}>
+                  <item.icon className={clsx("w-4 h-4", item.color)} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800 group-hover:text-brand-600 transition-colors">{item.label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">{item.desc}</p>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </div>

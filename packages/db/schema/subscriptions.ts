@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, timestamp, jsonb, uuid, index } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, timestamp, jsonb, uuid, integer, index } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 
 // ============================================================
@@ -24,4 +24,29 @@ export const subscriptionAddons = pgTable("subscription_addons", {
 }, (table) => [
   index("subscription_addons_org_idx").on(table.orgId),
   index("subscription_addons_key_idx").on(table.orgId, table.addonKey),
+]);
+
+// ============================================================
+// SUBSCRIPTION HISTORY
+// سجل الاشتراكات لكل منشأة — تجديد / تغيير باقة / …
+// ============================================================
+
+export const subscriptions = pgTable("subscriptions", {
+  id:                 uuid("id").defaultRandom().primaryKey(),
+  orgId:              uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+
+  subscriptionNumber: text("subscription_number").unique(),
+  planKey:            text("plan_key").notNull(),
+  planName:           text("plan_name").notNull(),
+  planPrice:          integer("plan_price").default(0),
+
+  startDate:          timestamp("start_date", { withTimezone: true }),
+  endDate:            timestamp("end_date", { withTimezone: true }),
+  status:             text("status").default("active"),         // active | cancelled | expired
+  notes:              text("notes"),
+
+  createdAt:          timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:          timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("subscriptions_org_idx").on(table.orgId),
 ]);

@@ -617,6 +617,7 @@ export const settingsApi = {
 export const orgSubscriptionApi = {
   get:          ()              => api.get<{ data: any }>("/organization/subscription"),
   addons:       ()              => api.get<{ data: any[] }>("/organization/subscription/addons"),
+  history:      ()              => api.get<{ data: any[] }>("/organization/subscription/history"),
   requestAddon: (addonKey: string) => api.post<{ data: any }>("/organization/subscription/request-addon", { addonKey }),
 };
 

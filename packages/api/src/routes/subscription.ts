@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq, and, desc, gte, sql, count, sum } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { organizations, subscriptionAddons, bookings, customers, invoices } from "@nasaq/db/schema";
+import { organizations, subscriptionAddons, subscriptions, bookings, customers, invoices } from "@nasaq/db/schema";
 import { getOrgId } from "../lib/helpers";
 
 export const subscriptionRouter = new Hono();
@@ -68,6 +68,20 @@ subscriptionRouter.get("/addons", async (c) => {
     .from(subscriptionAddons)
     .where(and(eq(subscriptionAddons.orgId, orgId), eq(subscriptionAddons.isActive, true)))
     .orderBy(desc(subscriptionAddons.createdAt));
+  return c.json({ data: rows });
+});
+
+// ============================================================
+// GET /organization/subscription/history
+// سجل الاشتراكات السابقة
+// ============================================================
+subscriptionRouter.get("/history", async (c) => {
+  const orgId = getOrgId(c);
+  const rows = await db
+    .select()
+    .from(subscriptions)
+    .where(eq(subscriptions.orgId, orgId))
+    .orderBy(desc(subscriptions.createdAt));
   return c.json({ data: rows });
 });
 
