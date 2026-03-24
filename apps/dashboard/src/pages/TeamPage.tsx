@@ -2,8 +2,8 @@ import { useState } from "react";
 import { clsx } from "clsx";
 import { toast } from "@/hooks/useToast";
 import { useSearchParams } from "react-router-dom";
-import { Users, AlertCircle, UserCheck, UserX, Trash2, Save, Phone, Briefcase } from "lucide-react";
-import { membersApi, jobTitlesApi } from "@/lib/api";
+import { Users, AlertCircle, UserCheck, UserX, Trash2, Save, Phone, Briefcase, Plus, UserPlus } from "lucide-react";
+import { membersApi, jobTitlesApi, staffApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { Modal, Input, ModernInput, ModernSelect, PageHeader, Button } from "@/components/ui";
 import { ROLE_COLORS, EMPLOYMENT_TYPE_COLORS } from "@/lib/design-tokens";
@@ -149,6 +149,103 @@ function MemberModal({
 }
 
 // ============================================================
+// CREATE MEMBER MODAL
+// ============================================================
+
+function CreateMemberModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const { data: jtRes } = useApi(() => jobTitlesApi.list(), []);
+  const jobTitles = jtRes?.data || [];
+
+  const [form, setForm] = useState({
+    name: "", phone: "", email: "",
+    jobTitleId: "", employmentType: "internal", status: "active",
+    salary: "", commissionRate: "", hiredAt: "", notes: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+    setForm(f => ({ ...f, [k]: e.target.value }));
+
+  const handleSave = async () => {
+    if (!form.name.trim() || !form.phone.trim()) { setError("الاسم والجوال مطلوبان"); return; }
+    setSaving(true);
+    setError("");
+    try {
+      // 1. Create user account
+      const userRes: any = await staffApi.create({
+        name: form.name.trim(),
+        phone: form.phone.trim(),
+        email: form.email.trim() || null,
+        type: "employee",
+        status: "active",
+      });
+      const userId = userRes?.data?.id;
+      if (!userId) throw new Error("فشل إنشاء الحساب");
+
+      // 2. Create org member record
+      await membersApi.create({
+        userId,
+        jobTitleId: form.jobTitleId || null,
+        employmentType: form.employmentType,
+        status: form.status,
+        salary: form.salary ? Number(form.salary) : null,
+        commissionRate: form.commissionRate ? Number(form.commissionRate) : null,
+        hiredAt: form.hiredAt ? new Date(form.hiredAt).toISOString() : null,
+        notes: form.notes || null,
+      });
+
+      toast.success("تمت إضافة العضو");
+      onSaved();
+      onClose();
+    } catch (e: any) {
+      setError(e?.message || "فشلت الإضافة");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Modal open onClose={onClose} title="إضافة عضو جديد" size="md"
+      footer={<><Button variant="secondary" onClick={onClose}>إلغاء</Button><Button onClick={handleSave} loading={saving} icon={Save}>إضافة</Button></>}
+    >
+      <div className="space-y-4">
+        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="الاسم *" name="name" value={form.name} onChange={set("name")} />
+          <Input label="الجوال *" name="phone" value={form.phone} onChange={set("phone")} dir="ltr" />
+        </div>
+        <Input label="الإيميل (اختياري)" name="email" type="email" value={form.email} onChange={set("email")} dir="ltr" />
+
+        <ModernSelect label="المسمى الوظيفي" value={form.jobTitleId}
+          onChange={v => setForm(f => ({ ...f, jobTitleId: v }))}
+          options={[{ value: "", label: "— بدون مسمى —" }, ...jobTitles.map((jt: any) => ({ value: jt.id, label: jt.name }))]}
+        />
+
+        <div className="grid grid-cols-2 gap-3">
+          <ModernSelect label="نوع التوظيف" value={form.employmentType}
+            onChange={v => setForm(f => ({ ...f, employmentType: v }))}
+            options={[{ value: "internal", label: "موظف داخلي" }, { value: "freelance", label: "مستقل" }, { value: "outsourced", label: "جهة خارجية" }]}
+          />
+          <ModernSelect label="الحالة" value={form.status}
+            onChange={v => setForm(f => ({ ...f, status: v }))}
+            options={[{ value: "active", label: "نشط" }, { value: "inactive", label: "غير نشط" }, { value: "pending", label: "معلق" }]}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="الراتب (ر.س)" name="salary" type="number" value={form.salary} onChange={set("salary")} dir="ltr" />
+          <Input label="نسبة العمولة (%)" name="commissionRate" type="number" value={form.commissionRate} onChange={set("commissionRate")} dir="ltr" />
+        </div>
+
+        <Input label="تاريخ الانضمام" name="hiredAt" type="date" value={form.hiredAt} onChange={set("hiredAt")} dir="ltr" />
+      </div>
+    </Modal>
+  );
+}
+
+// ============================================================
 // MEMBERS TAB (was: main page content)
 // ============================================================
 
@@ -156,6 +253,7 @@ function MembersTab() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [editTarget, setEditTarget] = useState<any>(null);
+  const [showCreate, setShowCreate] = useState(false);
 
   const { data: res, loading, error, refetch } = useApi(
     () => membersApi.list({ ...(search ? { search } : {}), ...(statusFilter ? { status: statusFilter } : {}) }),
@@ -195,6 +293,7 @@ function MembersTab() {
             onChange={setSearch}
           />
         </div>
+        <Button icon={UserPlus} onClick={() => setShowCreate(true)}>إضافة عضو</Button>
         <ModernSelect
           value={statusFilter}
           onChange={setStatusFilter}
@@ -224,7 +323,9 @@ function MembersTab() {
       ) : members.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <Users className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm text-gray-400">لا يوجد أعضاء</p>
+          <p className="text-sm text-gray-500 font-medium mb-1">لا يوجد أعضاء</p>
+          <p className="text-xs text-gray-400 mb-4">أضف أول عضو في فريقك</p>
+          <Button icon={UserPlus} onClick={() => setShowCreate(true)}>إضافة عضو</Button>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -323,6 +424,9 @@ function MembersTab() {
 
       {editTarget && (
         <MemberModal initial={editTarget} onClose={() => setEditTarget(null)} onSaved={refetch} />
+      )}
+      {showCreate && (
+        <CreateMemberModal onClose={() => setShowCreate(false)} onSaved={refetch} />
       )}
     </div>
   );
