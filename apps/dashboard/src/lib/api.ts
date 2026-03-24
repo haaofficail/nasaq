@@ -1118,6 +1118,8 @@ export const adminApi = {
 
   // Create org
   createOrg: (data: any) => api.post<{ data: any }>("/admin/orgs", data),
+  resetOrgPassword: (id: string, data: { password: string }) =>
+    api.patch<{ ok: boolean }>(`/admin/orgs/${id}/reset-password`, data),
 
   // Org users
   getOrgUsers: (orgId: string) => api.get<{ data: any[] }>(`/admin/orgs/${orgId}/users`),

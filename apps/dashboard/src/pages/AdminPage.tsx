@@ -10,7 +10,7 @@ import {
   Crown, Users2, Bell, Filter, Download, ArrowUpRight, Globe,
   UserCheck, Lock, MoreVertical, Calendar, Phone, Mail, MapPin,
   Hash, CreditCard, Building, Clock, ChevronDown,
-  Layers, Tag, Gift, BookOpen, LogOut, BarChart2, Zap, Stethoscope,
+  Layers, Tag, Gift, BookOpen, LogOut, BarChart2, Zap, Stethoscope, KeyRound,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { adminApi, commercialApi } from "@/lib/api";
@@ -664,8 +664,10 @@ function OrgsTab() {
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState({
     name: "", nameEn: "", businessType: "general", plan: "basic",
-    phone: "", email: "", city: "", ownerName: "", ownerPhone: "",
+    phone: "", email: "", city: "", ownerName: "", ownerPhone: "", ownerPassword: "",
   });
+  const [resetPwModal, setResetPwModal] = useState<{ orgId: string; orgName: string } | null>(null);
+  const [resetPw, setResetPw] = useState("");
 
   const { data, loading, refetch } = useApi(
     () => adminApi.orgs({
@@ -765,7 +767,18 @@ function OrgsTab() {
                   <td className="px-4 py-3 text-gray-400 text-xs hidden md:table-cell">
                     {org.createdAt ? new Date(org.createdAt).toLocaleDateString("ar") : "—"}
                   </td>
-                  <td className="px-4 py-3 text-gray-300"><ChevronRight className="w-4 h-4" /></td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => { setResetPwModal({ orgId: org.id, orgName: org.name }); setResetPw(""); }}
+                        className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600 transition-colors"
+                        title="إعادة تعيين كلمة المرور"
+                      >
+                        <KeyRound className="w-3.5 h-3.5" />
+                      </button>
+                      <ChevronRight className="w-4 h-4 text-gray-300" />
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -788,6 +801,53 @@ function OrgsTab() {
             </button>
           </div>
         </div>
+      )}
+
+      {/* Reset Password Modal */}
+      {resetPwModal && (
+        <Modal open onClose={() => setResetPwModal(null)} title={`إعادة تعيين كلمة المرور — ${resetPwModal.orgName}`} width="max-w-sm">
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">كلمة المرور الجديدة</label>
+              <input
+                type="text"
+                value={resetPw}
+                onChange={(e) => setResetPw(e.target.value)}
+                placeholder="أدخل كلمة المرور"
+                dir="ltr"
+                className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 font-mono"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                setResetPw(Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join(""));
+              }}
+              className="w-full py-2 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+            >
+              توليد كلمة مرور عشوائية
+            </button>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setResetPwModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button
+                disabled={!resetPw || resetPw.length < 6}
+                onClick={async () => {
+                  try {
+                    await adminApi.resetOrgPassword(resetPwModal.orgId, { password: resetPw });
+                    setResetPwModal(null);
+                    setResetPw("");
+                  } catch {
+                    alert("فشل إعادة تعيين كلمة المرور");
+                  }
+                }}
+                className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50"
+              >
+                حفظ
+              </button>
+            </div>
+          </div>
+        </Modal>
       )}
 
       {/* Create Org Modal */}
@@ -851,6 +911,12 @@ function OrgsTab() {
                 <input value={createForm.ownerPhone} onChange={(e) => setCreateForm({ ...createForm, ownerPhone: e.target.value })}
                   placeholder="05XXXXXXXX" className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
               </div>
+              <div className="col-span-2">
+                <label className="text-xs text-gray-500 block mb-1">كلمة المرور</label>
+                <input type="password" value={createForm.ownerPassword} onChange={(e) => setCreateForm({ ...createForm, ownerPassword: e.target.value })}
+                  placeholder="سيتم إنشاء كلمة مرور تلقائية إذا تُرك فارغاً" dir="ltr"
+                  className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
+              </div>
             </div>
           </div>
 
@@ -859,7 +925,7 @@ function OrgsTab() {
             <button disabled={creating || !createForm.name} onClick={async () => {
               await createOrg(createForm);
               setShowCreate(false);
-              setCreateForm({ name: "", nameEn: "", businessType: "general", plan: "basic", phone: "", email: "", city: "", ownerName: "", ownerPhone: "" });
+              setCreateForm({ name: "", nameEn: "", businessType: "general", plan: "basic", phone: "", email: "", city: "", ownerName: "", ownerPhone: "", ownerPassword: "" });
               refetch();
             }} className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2">
               {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} إنشاء المنشأة

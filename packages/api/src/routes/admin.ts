@@ -926,7 +926,7 @@ adminRouter.post("/orgs", async (c) => {
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
 
-  const { name, nameEn, businessType, plan, phone, email, city, ownerName, ownerPhone } = body;
+  const { name, nameEn, businessType, plan, phone, email, city, ownerName, ownerPhone, ownerPassword } = body;
   if (!name) return apiErr(c, "ORG_NAME_REQUIRED", 400);
   if (!plan) return apiErr(c, "ORG_PLAN_REQUIRED", 400);
 
@@ -970,10 +970,14 @@ adminRouter.post("/orgs", async (c) => {
 
     // Create owner user if owner details provided
     if (ownerPhone || ownerName) {
+      const rawPass = ownerPassword?.trim()
+        || Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 4).toUpperCase();
+      const finalHash = hashPassword(rawPass);
       await tx.insert(users).values({
         orgId: newOrg.id,
         name: ownerName || name,
         phone: ownerPhone || null,
+        passwordHash: finalHash,
         type: "owner",
         status: "active",
       });
@@ -1003,6 +1007,29 @@ adminRouter.post("/orgs", async (c) => {
   // مزامنة المحرك التجاري للمنشأة الجديدة
   syncOrgEntitlements(org.id).catch(() => {});
   return c.json({ data: org }, 201);
+});
+
+// ── Admin: Reset org owner password ────────────────────────
+adminRouter.patch("/orgs/:id/reset-password", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  const orgId = c.req.param("id");
+  const body = await c.req.json();
+  const password = body.password?.trim();
+  if (!password || password.length < 6) return apiErr(c, "PASSWORD_TOO_SHORT", 400);
+
+  const [owner] = await db.select({ id: users.id, name: users.name })
+    .from(users)
+    .where(and(eq(users.orgId, orgId), eq(users.type, "owner")));
+
+  if (!owner) return apiErr(c, "OWNER_NOT_FOUND", 404);
+
+  await db.update(users)
+    .set({ passwordHash: hashPassword(password) })
+    .where(eq(users.id, owner.id));
+
+  logAdminAction(adminId, "reset_owner_password", "org", orgId, { ownerName: owner.name }, c.req.header("X-Forwarded-For"));
+  return c.json({ ok: true });
 });
 
 // ── Admin: Reminder categories ─────────────────────────────
