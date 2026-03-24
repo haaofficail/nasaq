@@ -38,8 +38,10 @@ type Form = {
   depositPercent: string;
   durationValue: string;
   durationUnit: DurationUnit;
-  bufferBeforeMinutes: string;
-  bufferAfterMinutes: string;
+  bufferBeforeValue: string;
+  bufferBeforeUnit: DurationUnit;
+  bufferAfterValue: string;
+  bufferAfterUnit: DurationUnit;
   assignmentMode: string;
   selectedStaffIds: string[];
   inventoryEnabled: boolean;
@@ -61,7 +63,9 @@ const INITIAL_FORM: Form = {
   name: "", displayName: "", categoryId: "", shortDescription: "", description: "", status: "active",
   servicePricingMode: "fixed", basePrice: "", vatInclusive: true,
   depositEnabled: false, depositPercent: "30",
-  durationValue: "60", durationUnit: "minute", bufferBeforeMinutes: "0", bufferAfterMinutes: "0",
+  durationValue: "60", durationUnit: "minute",
+  bufferBeforeValue: "0", bufferBeforeUnit: "minute",
+  bufferAfterValue: "0", bufferAfterUnit: "minute",
   assignmentMode: "open", selectedStaffIds: [],
   inventoryEnabled: false, components: [],
   commissionMode: "none", commissionValue: "0",
@@ -225,8 +229,16 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
           depositPercent:      s.depositPercent && parseFloat(s.depositPercent) > 0 ? String(s.depositPercent) : "30",
           durationValue:       dur.value,
           durationUnit:        dur.unit,
-          bufferBeforeMinutes: s.bufferBeforeMinutes ? String(s.bufferBeforeMinutes) : "0",
-          bufferAfterMinutes:  s.bufferAfterMinutes  ? String(s.bufferAfterMinutes)  : "0",
+          ...(() => {
+            const before = parseDuration(parseInt(s.bufferBeforeMinutes) || 0);
+            const after  = parseDuration(parseInt(s.bufferAfterMinutes)  || 0);
+            return {
+              bufferBeforeValue: before.value,
+              bufferBeforeUnit:  before.unit,
+              bufferAfterValue:  after.value,
+              bufferAfterUnit:   after.unit,
+            };
+          })(),
           assignmentMode:      s.assignmentMode || "open",
           selectedStaffIds:    [],
           inventoryEnabled:    false,
@@ -328,8 +340,8 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
       const durationPayload = cfg.needsTiming
         ? {
             durationMinutes,
-            bufferBeforeMinutes: parseInt(form.bufferBeforeMinutes) || 0,
-            bufferAfterMinutes:  parseInt(form.bufferAfterMinutes)  || 0,
+            bufferBeforeMinutes: Math.round((parseFloat(form.bufferBeforeValue) || 0) * UNIT_MULTIPLIERS[form.bufferBeforeUnit]),
+            bufferAfterMinutes:  Math.round((parseFloat(form.bufferAfterValue)  || 0) * UNIT_MULTIPLIERS[form.bufferAfterUnit]),
           }
         : {};
 
@@ -454,7 +466,9 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
     setErrors(p => ({ ...p, staff: "" }));
   };
 
-  const totalMinutes = toMinutes() + (parseInt(form.bufferBeforeMinutes) || 0) + (parseInt(form.bufferAfterMinutes) || 0);
+  const bufBeforeMin = Math.round((parseFloat(form.bufferBeforeValue) || 0) * UNIT_MULTIPLIERS[form.bufferBeforeUnit]);
+  const bufAfterMin  = Math.round((parseFloat(form.bufferAfterValue)  || 0) * UNIT_MULTIPLIERS[form.bufferAfterUnit]);
+  const totalMinutes = toMinutes() + bufBeforeMin + bufAfterMin;
   const title = isEdit ? "تعديل الخدمة" : "خدمة جديدة";
 
   // ── Loading / error states ────────────────────────────────────────────────
@@ -789,33 +803,73 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
                 {/* تجهيز قبل + تنظيف بعد — non-rental only */}
                 {!["rental", "event_rental"].includes(form.serviceType) && (
                   <>
+                    {/* تجهيز قبل */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-gray-600">تجهيز قبل</label>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <input
                           type="number"
                           className="w-16 border border-gray-200 rounded-xl px-2.5 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white tabular-nums text-center"
-                          value={form.bufferBeforeMinutes}
-                          onChange={set("bufferBeforeMinutes")}
+                          value={form.bufferBeforeValue}
+                          onChange={set("bufferBeforeValue")}
                           placeholder="0"
                           dir="ltr"
                         />
-                        <span className="text-xs text-gray-400 shrink-0">دقيقة</span>
+                        <div className="flex items-center gap-0.5">
+                          {([
+                            { value: "minute", label: "دق" },
+                            { value: "hour",   label: "س"  },
+                            { value: "day",    label: "ي"  },
+                            { value: "month",  label: "ش"  },
+                            { value: "year",   label: "سن" },
+                          ] as { value: DurationUnit; label: string }[]).map(u => (
+                            <button key={u.value} type="button"
+                              onClick={() => setForm(f => ({ ...f, bufferBeforeUnit: u.value }))}
+                              className={clsx(
+                                "px-1.5 py-1 rounded-md text-[11px] font-semibold transition-colors",
+                                form.bufferBeforeUnit === u.value
+                                  ? "bg-brand-500 text-white"
+                                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                              )}>
+                              {u.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
+                    {/* تنظيف بعد */}
                     <div className="space-y-1.5">
                       <label className="text-xs font-medium text-gray-600">تنظيف بعد</label>
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <input
                           type="number"
                           className="w-16 border border-gray-200 rounded-xl px-2.5 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white tabular-nums text-center"
-                          value={form.bufferAfterMinutes}
-                          onChange={set("bufferAfterMinutes")}
+                          value={form.bufferAfterValue}
+                          onChange={set("bufferAfterValue")}
                           placeholder="0"
                           dir="ltr"
                         />
-                        <span className="text-xs text-gray-400 shrink-0">دقيقة</span>
+                        <div className="flex items-center gap-0.5">
+                          {([
+                            { value: "minute", label: "دق" },
+                            { value: "hour",   label: "س"  },
+                            { value: "day",    label: "ي"  },
+                            { value: "month",  label: "ش"  },
+                            { value: "year",   label: "سن" },
+                          ] as { value: DurationUnit; label: string }[]).map(u => (
+                            <button key={u.value} type="button"
+                              onClick={() => setForm(f => ({ ...f, bufferAfterUnit: u.value }))}
+                              className={clsx(
+                                "px-1.5 py-1 rounded-md text-[11px] font-semibold transition-colors",
+                                form.bufferAfterUnit === u.value
+                                  ? "bg-brand-500 text-white"
+                                  : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                              )}>
+                              {u.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   </>
