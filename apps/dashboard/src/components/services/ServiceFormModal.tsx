@@ -657,6 +657,7 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
       {tab === "pricing" && (
         <div className="space-y-4">
 
+          {/* طريقة التسعير */}
           <F label="طريقة التسعير">
             <select className={cls} value={form.servicePricingMode} onChange={set("servicePricingMode")}>
               <option value="fixed">سعر ثابت</option>
@@ -665,61 +666,170 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
             </select>
           </F>
 
-          {form.servicePricingMode !== "variable" && (
-            <F label={form.servicePricingMode === "from_price" ? "السعر الأدنى (ر.س) *" : "السعر (ر.س) *"} error={errors.basePrice}>
-              <input type="number" className={cls} value={form.basePrice} onChange={set("basePrice")}
-                placeholder="0.00" dir="ltr" />
-            </F>
-          )}
-
-          <Sw value={form.vatInclusive} onChange={sw("vatInclusive")}
-            label="السعر شامل ضريبة القيمة المضافة (15%)" />
-
-          <Sw value={form.depositEnabled} onChange={sw("depositEnabled")}
-            label="تفعيل العربون (مقدم الحجز)"
-            desc="يُطلب من العميل دفع نسبة مئوية مقدماً" />
-          {form.depositEnabled && (
-            <F label="نسبة العربون (%)" error={errors.depositPercent}>
-              <input type="number" className={cls} value={form.depositPercent} onChange={set("depositPercent")}
-                placeholder="30" dir="ltr" min="1" max="100" />
-            </F>
-          )}
-
-          {cfg.needsTiming && (
-            <>
-              <F label={form.serviceType === "rental" || form.serviceType === "event_rental" ? "مدة الإيجار *" : "مدة الخدمة *"} error={errors.durationValue}>
-                <div className="flex gap-2">
-                  <input type="number" className={cls} value={form.durationValue} onChange={set("durationValue")}
-                    placeholder="1" dir="ltr" min="1" />
-                  <select className={clsx(cls, "w-28 shrink-0")} value={form.durationUnit}
-                    onChange={e => setForm(f => ({ ...f, durationUnit: e.target.value as DurationUnit }))}>
-                    <option value="minute">دقيقة</option>
-                    <option value="hour">ساعة</option>
-                    <option value="day">يوم</option>
-                    <option value="month">شهر</option>
-                    <option value="year">سنة</option>
-                  </select>
-                </div>
-              </F>
-
-              {!["rental", "event_rental"].includes(form.serviceType) && (
+          {/* السعر + ضريبة + عربون — section واحد */}
+          <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50/60 rounded-2xl border border-gray-100">
+            {/* يسار: حقل السعر */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-gray-600">
+                {form.servicePricingMode === "from_price" ? "السعر الأدنى *" : "السعر *"}
+              </label>
+              {form.servicePricingMode !== "variable" ? (
                 <>
-                  <div className="grid grid-cols-2 gap-3">
-                    <F label="تجهيز قبل (دقيقة)" hint="وقت الإعداد">
-                      <input type="number" className={cls} value={form.bufferBeforeMinutes}
-                        onChange={set("bufferBeforeMinutes")} placeholder="0" dir="ltr" />
-                    </F>
-                    <F label="تنظيف بعد (دقيقة)" hint="وقت التنظيف">
-                      <input type="number" className={cls} value={form.bufferAfterMinutes}
-                        onChange={set("bufferAfterMinutes")} placeholder="0" dir="ltr" />
-                    </F>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      className="w-28 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white tabular-nums"
+                      value={form.basePrice}
+                      onChange={set("basePrice")}
+                      placeholder="0.00"
+                      dir="ltr"
+                    />
+                    <span className="text-sm text-gray-400 shrink-0">ر.س</span>
                   </div>
-                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-xs text-amber-700">
-                    المدة الكاملة في الجدول = {totalMinutes} دقيقة
-                  </div>
+                  {errors.basePrice && (
+                    <p className="text-xs text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3 shrink-0" />{errors.basePrice}
+                    </p>
+                  )}
                 </>
+              ) : (
+                <p className="text-xs text-gray-400 pt-1">يُحدَّد السعر عند الحجز</p>
               )}
-            </>
+            </div>
+
+            {/* يمين: ضريبة + عربون */}
+            <div className="divide-y divide-gray-100 border border-gray-100 rounded-xl bg-white overflow-hidden">
+              <Sw value={form.vatInclusive} onChange={sw("vatInclusive")} label="شامل ضريبة 15%" />
+              <Sw value={form.depositEnabled} onChange={sw("depositEnabled")} label="عربون مقدم" />
+            </div>
+          </div>
+
+          {/* نسبة العربون — تظهر عند التفعيل */}
+          {form.depositEnabled && (
+            <div className="flex items-center gap-3">
+              <label className="text-xs font-medium text-gray-600 shrink-0">نسبة العربون:</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  className="w-20 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white tabular-nums text-center"
+                  value={form.depositPercent}
+                  onChange={set("depositPercent")}
+                  placeholder="30"
+                  dir="ltr"
+                  min="1"
+                  max="100"
+                />
+                <span className="text-sm text-gray-400">%</span>
+              </div>
+              {errors.depositPercent && (
+                <p className="text-xs text-red-500 flex items-center gap-1">
+                  <AlertCircle className="w-3 h-3 shrink-0" />{errors.depositPercent}
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* توقيت الخدمة */}
+          {cfg.needsTiming && (
+            <div className="space-y-3 pt-3 border-t border-gray-100">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">توقيت الخدمة</p>
+
+              <div className={clsx(
+                "grid gap-3",
+                ["rental", "event_rental"].includes(form.serviceType)
+                  ? "grid-cols-1 max-w-xs"
+                  : "grid-cols-3"
+              )}>
+
+                {/* مدة الخدمة: رقم + button group وحدات */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-gray-600">
+                    {["rental", "event_rental"].includes(form.serviceType) ? "مدة الإيجار *" : "مدة الخدمة *"}
+                  </label>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <input
+                      type="number"
+                      className="w-16 border border-gray-200 rounded-xl px-2.5 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white tabular-nums text-center"
+                      value={form.durationValue}
+                      onChange={set("durationValue")}
+                      dir="ltr"
+                      min="1"
+                    />
+                    <div className="flex items-center gap-0.5">
+                      {([
+                        { value: "minute", label: "دق" },
+                        { value: "hour",   label: "س"  },
+                        { value: "day",    label: "ي"  },
+                        { value: "month",  label: "ش"  },
+                        { value: "year",   label: "سن" },
+                      ] as { value: DurationUnit; label: string }[]).map(u => (
+                        <button
+                          key={u.value}
+                          type="button"
+                          onClick={() => setForm(f => ({ ...f, durationUnit: u.value }))}
+                          className={clsx(
+                            "px-1.5 py-1 rounded-md text-[11px] font-semibold transition-colors",
+                            form.durationUnit === u.value
+                              ? "bg-brand-500 text-white"
+                              : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                          )}
+                        >
+                          {u.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {errors.durationValue && (
+                    <p className="text-xs text-red-500 flex items-center gap-1">
+                      <AlertCircle className="w-3 h-3 shrink-0" />{errors.durationValue}
+                    </p>
+                  )}
+                </div>
+
+                {/* تجهيز قبل + تنظيف بعد — non-rental only */}
+                {!["rental", "event_rental"].includes(form.serviceType) && (
+                  <>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-gray-600">تجهيز قبل</label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          className="w-16 border border-gray-200 rounded-xl px-2.5 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white tabular-nums text-center"
+                          value={form.bufferBeforeMinutes}
+                          onChange={set("bufferBeforeMinutes")}
+                          placeholder="0"
+                          dir="ltr"
+                        />
+                        <span className="text-xs text-gray-400 shrink-0">دقيقة</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-medium text-gray-600">تنظيف بعد</label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="number"
+                          className="w-16 border border-gray-200 rounded-xl px-2.5 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white tabular-nums text-center"
+                          value={form.bufferAfterMinutes}
+                          onChange={set("bufferAfterMinutes")}
+                          placeholder="0"
+                          dir="ltr"
+                        />
+                        <span className="text-xs text-gray-400 shrink-0">دقيقة</span>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* إجمالي المدة */}
+              {!["rental", "event_rental"].includes(form.serviceType) && (
+                <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5 text-xs text-amber-700 flex items-center gap-2">
+                  <span className="font-semibold">المدة الكاملة في الجدول:</span>
+                  <span>{totalMinutes} دقيقة</span>
+                </div>
+              )}
+            </div>
           )}
         </div>
       )}

@@ -20,7 +20,7 @@ import { MarketplaceBrowsePage } from "./pages/MarketplaceBrowsePage";
 
 // ── Core dashboard ────────────────────────────────────────────────
 import { DashboardPage } from "./pages/DashboardPage";
-import { ServicesPage } from "./pages/ServicesPage";
+// ServicesPage imported by CatalogPage directly; /dashboard/services redirects to /dashboard/catalog
 import { ServiceDetailPage } from "./pages/ServiceDetailPage";
 import { CategoriesPage } from "./pages/CategoriesPage";
 import { AddonsPage } from "./pages/AddonsPage";
@@ -161,8 +161,7 @@ export default function App() {
       <Route path="/dashboard" element={<RequireAuth><Layout /></RequireAuth>}>
         <Route index element={<DashboardPage />} />
 
-        {/* Services */}
-        <Route path="services" element={<ServicesPage />} />
+        {/* Services detail — list redirects to /catalog */}
         <Route path="services/:id" element={<ServiceDetailPage />} />
         <Route path="categories" element={<CategoriesPage />} />
         <Route path="addons" element={<AddonsPage />} />

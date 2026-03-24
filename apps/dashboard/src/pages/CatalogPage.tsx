@@ -27,7 +27,7 @@ export function CatalogPage() {
         activeTab={tab}
         onTabChange={(id) => setSearchParams({ tab: id })}
       />
-      {tab === "services"   && <ServicesPage />}
+      {tab === "services"   && <ServicesPage embedded />}
       {tab === "categories" && <CategoriesPage />}
       {tab === "addons"     && <AddonsPage />}
     </div>

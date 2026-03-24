@@ -43,7 +43,7 @@ function TypeBadge({ type }: { type: string }) {
   );
 }
 
-export function ServicesPage() {
+export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("الكل");
@@ -98,11 +98,13 @@ export function ServicesPage() {
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        title="الخدمات"
-        description={`${services.length} خدمة`}
-        actions={<Button icon={Plus} onClick={() => setShowCreate(true)}>خدمة جديدة</Button>}
-      />
+      {!embedded && (
+        <PageHeader
+          title="الخدمات"
+          description={`${services.length} خدمة`}
+          actions={<Button icon={Plus} onClick={() => setShowCreate(true)}>خدمة جديدة</Button>}
+        />
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -140,6 +142,9 @@ export function ServicesPage() {
           <button onClick={() => setView("grid")} className={clsx("p-2 rounded-lg transition-colors", view === "grid" ? "bg-brand-500 text-white" : "text-gray-400 hover:bg-gray-50")}><Grid3X3 className="w-4 h-4" /></button>
           <button onClick={() => setView("list")} className={clsx("p-2 rounded-lg transition-colors", view === "list" ? "bg-brand-500 text-white" : "text-gray-400 hover:bg-gray-50")}><List className="w-4 h-4" /></button>
         </div>
+        {embedded && (
+          <Button icon={Plus} onClick={() => setShowCreate(true)}>خدمة جديدة</Button>
+        )}
       </div>
 
       {filtered.length === 0 && (
