@@ -70,6 +70,7 @@ import { WebsiteSettingsPage } from "./pages/WebsiteSettingsPage";
 import { CustomizationPage } from "./pages/CustomizationPage";
 import { PlatformPage } from "./pages/PlatformPage";
 import { AuditLogPage } from "./pages/AuditLogPage";
+import { SubscriptionPage } from "./pages/SubscriptionPage";
 
 // ── New verticals ─────────────────────────────────────────────────
 import HotelPage from "./pages/HotelPage";
@@ -222,6 +223,7 @@ export default function App() {
         <Route path="account" element={<AccountPage />} />
         <Route path="settings/website" element={<WebsiteSettingsPage />} />
         <Route path="settings/audit-log" element={<AuditLogPage />} />
+        <Route path="subscription" element={<SubscriptionPage />} />
         <Route path="customization" element={<CustomizationPage />} />
         <Route path="platform" element={<PlatformPage />} />
 

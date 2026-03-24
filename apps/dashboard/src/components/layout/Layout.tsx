@@ -4,10 +4,12 @@ import {
   Layers, ChevronLeft, ChevronRight, Bell, Search, Plus, LogOut, Menu, X, User,
 } from "lucide-react";
 import { clsx } from "clsx";
-import { authApi } from "@/lib/api";
+import { authApi, orgSubscriptionApi } from "@/lib/api";
 import { useOrgContext, invalidateOrgContextCache } from "@/hooks/useOrgContext";
 import { buildVisibleNav, BOTTOM_NAV, SUPER_ADMIN_NAV } from "@/lib/navigationRegistry";
 import { Toaster } from "@/components/ui/Toaster";
+import { useApi } from "@/hooks/useApi";
+import { PLAN_MAP } from "@/lib/constants";
 
 const COLLAPSED_KEY = "nasaq_sidebar_collapsed";
 
@@ -39,6 +41,12 @@ export function Layout() {
     exact ? location.pathname === href : location.pathname.startsWith(href);
 
   const isSuperAdmin = !!user?.isSuperAdmin;
+
+  const { data: subRes } = useApi(
+    () => (isSuperAdmin ? Promise.resolve(null) : orgSubscriptionApi.get()),
+    [isSuperAdmin]
+  );
+  const sub = subRes?.data;
 
   // Super admins have their own standalone panel — redirect them out of the merchant layout
   if (isSuperAdmin) return <Navigate to="/admin" replace />;
@@ -218,6 +226,24 @@ export function Layout() {
 
         {/* User footer */}
         <div className={clsx("border-t border-gray-100 p-2 shrink-0 space-y-1", collapsed && "flex flex-col items-center space-y-1")}>
+          {/* Subscription badge */}
+          {!isSuperAdmin && sub && !collapsed && (
+            <NavLink to="/dashboard/subscription" className="block px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-medium text-gray-600">{PLAN_MAP[sub.plan]?.name ?? sub.plan}</span>
+                <span className={clsx(
+                  "text-[10px] font-semibold px-1.5 py-0.5 rounded-md",
+                  (sub.daysRemaining ?? 999) <= 7
+                    ? "bg-red-50 text-red-600"
+                    : (sub.daysRemaining ?? 999) <= 30
+                    ? "bg-amber-50 text-amber-600"
+                    : "bg-emerald-50 text-emerald-600"
+                )}>
+                  {sub.daysRemaining != null ? `${sub.daysRemaining} يوم` : "نشط"}
+                </span>
+              </div>
+            </NavLink>
+          )}
           {/* Account link */}
           <NavLink
             to="/dashboard/account"

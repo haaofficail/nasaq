@@ -65,6 +65,7 @@ import { marketplaceRouter } from "./routes/marketplace";
 import { eventsRouter } from "./routes/events";
 import { procurementRouter } from "./routes/procurement";
 import { fulfillmentsRouter } from "./routes/fulfillments";
+import { subscriptionRouter, orgStatsRouter } from "./routes/subscription";
 
 // ============================================================
 // APP
@@ -456,6 +457,11 @@ app.use("/billing/*", async (c, next) => {
   return authMiddleware(c, next);
 });
 app.route("/billing", billingRouter);
+
+// --- Organization Subscription & Stats ---
+app.use("/organization/*", authMiddleware);
+app.route("/organization/subscription", subscriptionRouter);
+app.route("/organization/stats", orgStatsRouter);
 
 // --- Marketplace (سوق نسق) ---
 // Public: GET /marketplace, GET /marketplace/categories, POST /marketplace/rfp

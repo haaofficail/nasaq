@@ -20,6 +20,7 @@ import {
   organizationCapabilityOverrides,
   reminderCategories, reminderTemplates, orgReminders,
   otpCodes, roles, bookingPipelineStages,
+  subscriptionAddons,
 } from "@nasaq/db/schema";
 import { getPagination, generateSlug } from "../lib/helpers";
 import { superAdminMiddleware } from "../middleware/auth";
@@ -1055,6 +1056,42 @@ adminRouter.patch("/orgs/:id/reset-password", async (c) => {
     .where(eq(users.id, owner.id));
 
   logAdminAction(adminId, "reset_owner_password", "org", orgId, { ownerName: owner.name }, c.req.header("X-Forwarded-For"));
+  return c.json({ ok: true });
+});
+
+// ── Admin: Subscription Add-ons ────────────────────────────
+
+adminRouter.get("/orgs/:id/addons", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const rows = await db.select().from(subscriptionAddons)
+    .where(eq(subscriptionAddons.orgId, c.req.param("id")))
+    .orderBy(asc(subscriptionAddons.createdAt));
+  return c.json({ data: rows });
+});
+
+adminRouter.post("/orgs/:id/addons", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  const { addonKey, addonName, price } = await c.req.json();
+  if (!addonKey || !addonName) return apiErr(c, "SRV_VALIDATION", 400);
+  const [row] = await db.insert(subscriptionAddons).values({
+    orgId: c.req.param("id"),
+    addonKey, addonName,
+    price: String(price ?? 0),
+    isActive: true,
+    activatedAt: new Date(),
+  }).returning();
+  logAdminAction(adminId, "add_addon", "org", c.req.param("id"), { addonKey }, c.req.header("X-Forwarded-For"));
+  return c.json({ data: row }, 201);
+});
+
+adminRouter.delete("/orgs/:id/addons/:addonId", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  await db.update(subscriptionAddons)
+    .set({ isActive: false, deactivatedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(subscriptionAddons.id, c.req.param("addonId")), eq(subscriptionAddons.orgId, c.req.param("id"))));
+  logAdminAction(adminId, "remove_addon", "org", c.req.param("id"), { addonId: c.req.param("addonId") }, c.req.header("X-Forwarded-For"));
   return c.json({ ok: true });
 });
 

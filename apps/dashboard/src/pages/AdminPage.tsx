@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { adminApi, commercialApi } from "@/lib/api";
-import { SAUDI_CITIES } from "@/lib/constants";
+import { SAUDI_CITIES, ADDONS, PLANS, ADDON_MAP } from "@/lib/constants";
 import { useApi, useMutation } from "@/hooks/useApi";
 
 // ════════════════════════════════════════════════════════════
@@ -670,6 +670,17 @@ function OrgsTab() {
   const [resetPwModal, setResetPwModal] = useState<{ orgId: string; orgName: string } | null>(null);
   const [resetPw, setResetPw] = useState("");
   const [credentialsModal, setCredentialsModal] = useState<{ phone: string | null; email: string | null; password: string } | null>(null);
+  const [planModal, setPlanModal] = useState<{ orgId: string; orgName: string; currentPlan: string; currentStatus: string } | null>(null);
+  const [planForm, setPlanForm] = useState({ plan: "", subscriptionStatus: "", subscriptionEndsAt: "" });
+  const [addonsModal, setAddonsModal] = useState<{ orgId: string; orgName: string } | null>(null);
+  const { mutate: changePlan, loading: changingPlan } = useMutation((d: any) => adminApi.changePlan(d.orgId, d.data));
+  const { data: addonsData, refetch: refetchAddons } = useApi(
+    () => addonsModal ? adminApi.getOrgAddons(addonsModal.orgId) : Promise.resolve(null),
+    [addonsModal?.orgId]
+  );
+  const { mutate: addAddon, loading: addingAddon } = useMutation((d: any) => adminApi.addOrgAddon(d.orgId, d.data));
+  const { mutate: removeAddon } = useMutation((d: any) => adminApi.removeOrgAddon(d.orgId, d.addonId));
+  const [newAddonKey, setNewAddonKey] = useState("");
 
   const { data, loading, refetch } = useApi(
     () => adminApi.orgs({
@@ -738,6 +749,7 @@ function OrgsTab() {
                 <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">النوع</th>
                 <th className="text-right px-4 py-3 font-semibold">الباقة</th>
                 <th className="text-right px-4 py-3 font-semibold">الحالة</th>
+                <th className="text-right px-4 py-3 font-semibold hidden lg:table-cell">ينتهي في</th>
                 <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">تاريخ الإنشاء</th>
                 <th className="px-4 py-3"></th>
               </tr>
@@ -766,11 +778,40 @@ function OrgsTab() {
                   </td>
                   <td className="px-4 py-3"><PlanBadge plan={org.plan} /></td>
                   <td className="px-4 py-3"><StatusBadge status={org.subscriptionStatus} /></td>
+                  <td className="px-4 py-3 text-gray-500 text-xs hidden lg:table-cell">
+                    {org.subscriptionEndsAt
+                      ? (() => {
+                          const d = Math.ceil((new Date(org.subscriptionEndsAt).getTime() - Date.now()) / 86400000);
+                          return (
+                            <span className={d <= 7 ? "text-red-500 font-medium" : d <= 30 ? "text-amber-500 font-medium" : "text-gray-500"}>
+                              {d > 0 ? `${d} يوم` : "منتهي"}
+                            </span>
+                          );
+                        })()
+                      : "—"}
+                  </td>
                   <td className="px-4 py-3 text-gray-400 text-xs hidden md:table-cell">
                     {org.createdAt ? new Date(org.createdAt).toLocaleDateString("ar") : "—"}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => { setAddonsModal({ orgId: org.id, orgName: org.name }); }}
+                        className="p-1.5 rounded-lg hover:bg-purple-50 text-gray-400 hover:text-purple-600 transition-colors"
+                        title="إدارة الإضافات"
+                      >
+                        <Package className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          setPlanModal({ orgId: org.id, orgName: org.name, currentPlan: org.plan, currentStatus: org.subscriptionStatus });
+                          setPlanForm({ plan: org.plan, subscriptionStatus: org.subscriptionStatus, subscriptionEndsAt: org.subscriptionEndsAt ? new Date(org.subscriptionEndsAt).toISOString().split("T")[0] : "" });
+                        }}
+                        className="p-1.5 rounded-lg hover:bg-brand-50 text-gray-400 hover:text-brand-600 transition-colors"
+                        title="تغيير الباقة"
+                      >
+                        <CreditCard className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         onClick={() => { setResetPwModal({ orgId: org.id, orgName: org.name }); setResetPw(""); }}
                         className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600 transition-colors"
@@ -878,6 +919,120 @@ function OrgsTab() {
             <button onClick={() => setCredentialsModal(null)}
               className="w-full py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600">
               فهمت — إغلاق
+            </button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Plan Change Modal */}
+      {planModal && (
+        <Modal open onClose={() => setPlanModal(null)} title={`تغيير الباقة — ${planModal.orgName}`} width="max-w-sm">
+          <div className="space-y-4">
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">الباقة</label>
+              <select value={planForm.plan} onChange={e => setPlanForm(p => ({ ...p, plan: e.target.value }))}
+                className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 bg-white">
+                {PLANS.map(p => <option key={p.key} value={p.key}>{p.name} — {p.price > 0 ? `${p.price} ر.س` : "حسب الطلب"}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">الحالة</label>
+              <select value={planForm.subscriptionStatus} onChange={e => setPlanForm(p => ({ ...p, subscriptionStatus: e.target.value }))}
+                className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 bg-white">
+                <option value="trialing">تجربة</option>
+                <option value="active">نشط</option>
+                <option value="past_due">متأخر</option>
+                <option value="cancelled">ملغي</option>
+                <option value="suspended">موقوف</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">تاريخ الانتهاء</label>
+              <input type="date" value={planForm.subscriptionEndsAt}
+                onChange={e => setPlanForm(p => ({ ...p, subscriptionEndsAt: e.target.value }))}
+                className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setPlanModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button
+                disabled={changingPlan}
+                onClick={async () => {
+                  await changePlan({ orgId: planModal.orgId, data: {
+                    plan: planForm.plan || undefined,
+                    subscriptionStatus: planForm.subscriptionStatus || undefined,
+                    subscriptionEndsAt: planForm.subscriptionEndsAt || undefined,
+                  }});
+                  setPlanModal(null);
+                  refetch();
+                }}
+                className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {changingPlan && <Loader2 className="w-4 h-4 animate-spin" />}
+                حفظ
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Addons Modal */}
+      {addonsModal && (
+        <Modal open onClose={() => setAddonsModal(null)} title={`إدارة الإضافات — ${addonsModal.orgName}`} width="max-w-md">
+          <div className="space-y-4">
+            {/* Current addons */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 mb-2">الإضافات المفعّلة</p>
+              {(addonsData?.data ?? []).filter((a: any) => a.isActive).length === 0 ? (
+                <p className="text-xs text-gray-400 py-2">لا توجد إضافات مفعّلة</p>
+              ) : (
+                <div className="space-y-1.5">
+                  {(addonsData?.data ?? []).filter((a: any) => a.isActive).map((a: any) => (
+                    <div key={a.id} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-xl">
+                      <span className="text-sm text-gray-700">{a.addonName}</span>
+                      <button
+                        onClick={async () => {
+                          await removeAddon({ orgId: addonsModal.orgId, addonId: a.id });
+                          refetchAddons();
+                        }}
+                        className="p-1 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Add new addon */}
+            <div className="border-t border-gray-100 pt-4">
+              <p className="text-xs font-semibold text-gray-500 mb-2">إضافة جديدة</p>
+              <div className="flex gap-2">
+                <select value={newAddonKey} onChange={e => setNewAddonKey(e.target.value)}
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 bg-white">
+                  <option value="">اختر الإضافة</option>
+                  {ADDONS.map(a => <option key={a.key} value={a.key}>{a.name}</option>)}
+                </select>
+                <button
+                  disabled={!newAddonKey || addingAddon}
+                  onClick={async () => {
+                    if (!newAddonKey) return;
+                    const addon = ADDON_MAP[newAddonKey];
+                    await addAddon({ orgId: addonsModal.orgId, data: { addonKey: newAddonKey, addonName: addon?.name ?? newAddonKey, price: addon?.price ?? 0 }});
+                    setNewAddonKey("");
+                    refetchAddons();
+                  }}
+                  className="px-4 py-2 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {addingAddon ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                  إضافة
+                </button>
+              </div>
+            </div>
+
+            <button onClick={() => setAddonsModal(null)}
+              className="w-full py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+              إغلاق
             </button>
           </div>
         </Modal>

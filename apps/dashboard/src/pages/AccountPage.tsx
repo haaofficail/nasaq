@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "@/hooks/useToast";
 import {
   User, Lock, Shield, Monitor, Smartphone, Globe, LogOut,
   Save, Eye, EyeOff, CheckCircle2, XCircle, AlertCircle,
-  Upload, X, Clock, MapPin, Key, Trash2,
+  Upload, X, Clock, MapPin, Key, Trash2, CreditCard, Building2,
 } from "lucide-react";
 import { clsx } from "clsx";
-import { authApi } from "@/lib/api";
+import { authApi, settingsApi, orgSubscriptionApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { useOrgContext } from "@/hooks/useOrgContext";
 import { Button, Input } from "@/components/ui";
 import { MediaPickerModal } from "@/components/media/MediaPickerModal";
+import { PLAN_MAP, BUSINESS_TYPE_MAP } from "@/lib/constants";
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -26,9 +28,36 @@ function syncLocalUser(patch: Partial<{ name: string; email: string; avatar: str
 }
 
 function getDeviceIcon(device: string) {
-  if (/mobile|android|iphone/i.test(device)) return Smartphone;
+  if (/mobile|android|iphone|ipad/i.test(device)) return Smartphone;
   if (/postman|curl|api/i.test(device)) return Globe;
   return Monitor;
+}
+
+function parseDevice(ua: string): string {
+  if (!ua) return "جهاز غير معروف";
+  // Mobile OS
+  if (/iphone/i.test(ua)) return "iPhone";
+  if (/ipad/i.test(ua)) return "iPad";
+  if (/android/i.test(ua)) {
+    const m = ua.match(/Android[^;]*;\s*([^)]+)\)/);
+    return m ? m[1].trim() : "Android";
+  }
+  // Desktop OS
+  const os = /Windows NT 10/i.test(ua) ? "Windows 10"
+    : /Windows NT 6\.3/i.test(ua) ? "Windows 8.1"
+    : /Windows/i.test(ua) ? "Windows"
+    : /Mac OS X/i.test(ua) ? "macOS"
+    : /Linux/i.test(ua) ? "Linux"
+    : "";
+  // Browser
+  const br = /Edg\//i.test(ua) ? "Edge"
+    : /Chrome\/(\d+)/i.test(ua) ? "Chrome"
+    : /Firefox\/(\d+)/i.test(ua) ? "Firefox"
+    : /Safari\//i.test(ua) ? "Safari"
+    : /Postman/i.test(ua) ? "Postman"
+    : "";
+  if (os && br) return `${br} — ${os}`;
+  return os || br || ua.slice(0, 40);
 }
 
 function timeAgo(dateStr: string): string {
@@ -136,6 +165,12 @@ export function AccountPage() {
   const [savingPw, setSavingPw] = useState(false);
   const [pwError, setPwError] = useState("");
 
+  // ── org profile & subscription
+  const { data: orgProfileRes } = useApi(() => settingsApi.profile(), []);
+  const { data: subRes } = useApi(() => orgSubscriptionApi.get(), []);
+  const orgProfile = orgProfileRes?.data;
+  const sub = subRes?.data;
+
   // ── sessions
   const { data: sessionsRes, loading: sessionsLoading, refetch: refetchSessions } =
     useApi(() => authApi.sessions(), []);
@@ -232,28 +267,24 @@ export function AccountPage() {
       </div>
 
       {/* ── Profile Card ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {/* Avatar banner */}
-        <div className="h-20 bg-gradient-to-l from-brand-600 to-brand-400 relative" />
-
-        <div className="px-6 pb-6">
-          {/* Avatar */}
-          <div className="flex items-end gap-4 -mt-10 mb-5">
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          {/* Avatar row */}
+          <div className="flex items-center gap-4 mb-5">
             <div className="relative shrink-0">
-              <div className="w-20 h-20 rounded-2xl border-4 border-white bg-brand-100 flex items-center justify-center overflow-hidden shadow-md">
+              <div className="w-16 h-16 rounded-full bg-brand-50 flex items-center justify-center overflow-hidden border border-brand-100">
                 {profile.avatar
                   ? <img src={profile.avatar} alt="avatar" className="w-full h-full object-cover" />
-                  : <span className="text-2xl font-bold text-brand-600">{initials}</span>
+                  : <span className="text-xl font-bold text-brand-600">{initials}</span>
                 }
               </div>
               <button
                 onClick={() => setAvatarPicker(true)}
-                className="absolute -bottom-1 -left-1 w-7 h-7 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors"
+                className="absolute -bottom-0.5 -left-0.5 w-6 h-6 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors"
               >
-                <Upload className="w-3.5 h-3.5 text-gray-500" />
+                <Upload className="w-3 h-3 text-gray-500" />
               </button>
             </div>
-            <div className="pb-1">
+            <div>
               <div className="flex items-center gap-2">
                 <span className="text-base font-bold text-gray-900">{profile.name || "—"}</span>
                 <span className="px-2 py-0.5 rounded-full bg-brand-50 text-brand-600 text-xs font-medium border border-brand-100">
@@ -338,8 +369,66 @@ export function AccountPage() {
               </Button>
             </div>
           </div>
-        </div>
       </div>
+
+      {/* ── Org & Subscription ── */}
+      <Section title="المنشأة والاشتراك" subtitle="بيانات منشأتك وتفاصيل باقتك الحالية" icon={Building2}>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+          {/* Org name */}
+          <div>
+            <p className="text-xs text-gray-400 mb-0.5">اسم المنشأة</p>
+            <p className="text-sm font-medium text-gray-800">{orgProfile?.name || "—"}</p>
+          </div>
+          {/* Business type */}
+          <div>
+            <p className="text-xs text-gray-400 mb-0.5">نوع النشاط</p>
+            <p className="text-sm font-medium text-gray-800">
+              {orgProfile?.businessType ? (BUSINESS_TYPE_MAP[orgProfile.businessType] || orgProfile.businessType) : "—"}
+            </p>
+          </div>
+          {/* City */}
+          <div>
+            <p className="text-xs text-gray-400 mb-0.5">المدينة</p>
+            <p className="text-sm font-medium text-gray-800">{orgProfile?.city || "—"}</p>
+          </div>
+          {/* Org phone */}
+          <div>
+            <p className="text-xs text-gray-400 mb-0.5">جوال المنشأة</p>
+            <p className="text-sm font-medium text-gray-800 dir-ltr" dir="ltr">{orgProfile?.phone || "—"}</p>
+          </div>
+        </div>
+
+        {/* Subscription row */}
+        <div className="mt-5 pt-4 border-t border-gray-50 flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <CreditCard className="w-4 h-4 text-brand-400" />
+              <span className="text-sm font-semibold text-gray-800">
+                {PLAN_MAP[sub?.plan ?? ""]?.name ?? sub?.plan ?? "—"}
+              </span>
+            </div>
+            {sub?.daysRemaining != null && (
+              <span className={clsx(
+                "inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-medium",
+                sub.daysRemaining <= 7
+                  ? "bg-red-50 text-red-600 border-red-100"
+                  : sub.daysRemaining <= 30
+                  ? "bg-amber-50 text-amber-600 border-amber-100"
+                  : "bg-emerald-50 text-emerald-600 border-emerald-100"
+              )}>
+                <Clock className="w-3 h-3" />
+                {sub.daysRemaining} يوم متبقي
+              </span>
+            )}
+          </div>
+          <Link
+            to="/dashboard/subscription"
+            className="text-xs font-medium text-brand-600 hover:text-brand-700 transition-colors"
+          >
+            إدارة الباقة ←
+          </Link>
+        </div>
+      </Section>
 
       {/* ── Change Password ── */}
       <Section title="تغيير كلمة المرور" subtitle="يُنصح بتغييرها دورياً للحفاظ على أمان حسابك" icon={Lock}>
@@ -462,7 +551,9 @@ export function AccountPage() {
         ) : (
           <div className="space-y-2.5">
             {sessions.map((s: any) => {
-              const DeviceIcon = getDeviceIcon(s.device || "");
+              const rawDevice = s.device || s.userAgent || "";
+              const DeviceIcon = getDeviceIcon(rawDevice);
+              const deviceLabel = parseDevice(rawDevice);
               const isCurrent = s.token === currentToken || s.isCurrent;
               return (
                 <div
@@ -484,7 +575,7 @@ export function AccountPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium text-gray-800 truncate max-w-xs">
-                        {s.device || "جهاز غير معروف"}
+                        {deviceLabel}
                       </p>
                       {isCurrent && (
                         <span className="px-2 py-0.5 rounded-full bg-brand-100 text-brand-600 text-xs font-medium shrink-0">

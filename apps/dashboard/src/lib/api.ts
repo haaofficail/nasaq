@@ -613,6 +613,18 @@ export const settingsApi = {
   clearDemo: () => api.delete("/settings/demo-data"),
 };
 
+// --- Organization Subscription & Stats ---
+export const orgSubscriptionApi = {
+  get:          ()              => api.get<{ data: any }>("/organization/subscription"),
+  addons:       ()              => api.get<{ data: any[] }>("/organization/subscription/addons"),
+  requestAddon: (addonKey: string) => api.post<{ data: any }>("/organization/subscription/request-addon", { addonKey }),
+};
+
+export const orgStatsApi = {
+  summary: ()                     => api.get<{ data: any }>("/organization/stats/summary"),
+  sales:   (period?: "today"|"week") => api.get<{ data: any[] }>(`/organization/stats/sales?period=${period ?? "week"}`),
+};
+
 // --- Website ---
 export const websiteApi = {
   pages: () => api.get<{ data: any[] }>("/website/pages"),
@@ -1131,6 +1143,11 @@ export const adminApi = {
   createOrg: (data: any) => api.post<{ data: any }>("/admin/orgs", data),
   resetOrgPassword: (id: string, data: { password: string }) =>
     api.patch<{ ok: boolean }>(`/admin/orgs/${id}/reset-password`, data),
+
+  // Addons
+  getOrgAddons:    (orgId: string)                              => api.get<{ data: any[] }>(`/admin/orgs/${orgId}/addons`),
+  addOrgAddon:     (orgId: string, data: any)                   => api.post<{ data: any }>(`/admin/orgs/${orgId}/addons`, data),
+  removeOrgAddon:  (orgId: string, addonId: string)             => api.delete(`/admin/orgs/${orgId}/addons/${addonId}`),
 
   // Org users
   getOrgUsers: (orgId: string) => api.get<{ data: any[] }>(`/admin/orgs/${orgId}/users`),
