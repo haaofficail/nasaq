@@ -20,8 +20,9 @@ import {
   organizationCapabilityOverrides,
   reminderCategories, reminderTemplates, orgReminders,
   otpCodes, roles, bookingPipelineStages,
-  subscriptionAddons,
+  subscriptionAddons, subscriptionOrders,
 } from "@nasaq/db/schema";
+import { _activateOrder } from "./subscription";
 import { getPagination, generateSlug } from "../lib/helpers";
 import { superAdminMiddleware } from "../middleware/auth";
 import { z } from "zod";
@@ -1146,4 +1147,69 @@ adminRouter.get("/reminders", async (c) => {
   if (status) conditions.push(eq(orgReminders.status, status));
   const rows = await q.where(and(...conditions)).orderBy(asc(orgReminders.dueDate)).limit(200);
   return c.json({ data: rows });
+});
+
+// ============================================================
+// ADMIN: Subscription Orders — إدارة طلبات الشراء
+// ============================================================
+
+// GET /admin/subscription-orders?status=pending_payment
+adminRouter.get("/subscription-orders", async (c) => {
+  const status = c.req.query("status") ?? "pending_payment";
+  const rows = await db
+    .select({
+      id:        subscriptionOrders.id,
+      orgId:     subscriptionOrders.orgId,
+      orgName:   organizations.name,
+      orgCode:   organizations.orgCode,
+      orderType: subscriptionOrders.orderType,
+      itemKey:   subscriptionOrders.itemKey,
+      itemName:  subscriptionOrders.itemName,
+      price:     subscriptionOrders.price,
+      status:    subscriptionOrders.status,
+      paymentRef: subscriptionOrders.paymentRef,
+      expiresAt: subscriptionOrders.expiresAt,
+      createdAt: subscriptionOrders.createdAt,
+    })
+    .from(subscriptionOrders)
+    .innerJoin(organizations, eq(subscriptionOrders.orgId, organizations.id))
+    .where(status === "all" ? sql`1=1` : eq(subscriptionOrders.status, status))
+    .orderBy(desc(subscriptionOrders.createdAt))
+    .limit(200);
+  return c.json({ data: rows });
+});
+
+// POST /admin/subscription-orders/:id/confirm — super_admin only
+adminRouter.post("/subscription-orders/:id/confirm", async (c) => {
+  if (!isSuperAdmin(c)) return c.json({ error: "غير مصرح" }, 403);
+  const orderId = c.req.param("id");
+  const body = await c.req.json().catch(() => ({}));
+  const paymentRef: string | null = body.paymentRef ?? null;
+
+  const [order] = await db.select().from(subscriptionOrders).where(eq(subscriptionOrders.id, orderId));
+  if (!order)                       return c.json({ error: "الطلب غير موجود" }, 404);
+  if (order.status === "paid")      return c.json({ error: "الطلب مدفوع بالفعل" }, 409);
+  if (order.status === "cancelled") return c.json({ error: "الطلب ملغي" }, 409);
+
+  await _activateOrder(order, paymentRef);
+
+  const adminId = c.get("adminId") as string;
+  logAdminAction(adminId, "confirm_payment", "subscription_order", order.id, { paymentRef }, c.req.header("X-Forwarded-For"));
+
+  return c.json({ data: { success: true, orderId } });
+});
+
+// POST /admin/subscription-orders/:id/cancel — super_admin only
+adminRouter.post("/subscription-orders/:id/cancel", async (c) => {
+  if (!isSuperAdmin(c)) return c.json({ error: "غير مصرح" }, 403);
+  const orderId = c.req.param("id");
+  const [order] = await db.select({ id: subscriptionOrders.id, status: subscriptionOrders.status })
+    .from(subscriptionOrders).where(eq(subscriptionOrders.id, orderId));
+  if (!order) return c.json({ error: "الطلب غير موجود" }, 404);
+
+  await db.update(subscriptionOrders)
+    .set({ status: "cancelled", updatedAt: new Date() })
+    .where(eq(subscriptionOrders.id, orderId));
+
+  return c.json({ data: { success: true } });
 });

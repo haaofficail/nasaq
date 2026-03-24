@@ -31,6 +31,33 @@ export const subscriptionAddons = pgTable("subscription_addons", {
 // سجل الاشتراكات لكل منشأة — تجديد / تغيير باقة / …
 // ============================================================
 
+// ============================================================
+// SUBSCRIPTION ORDERS
+// طلبات الشراء (ترقية / تجديد / إضافة) — pending حتى يتم الدفع
+// ============================================================
+
+export const subscriptionOrders = pgTable("subscription_orders", {
+  id:          uuid("id").defaultRandom().primaryKey(),
+  orgId:       uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+
+  orderType:   text("order_type").notNull(),            // upgrade | addon | renewal
+  itemKey:     text("item_key").notNull(),               // planKey or addonKey
+  itemName:    text("item_name").notNull(),
+  price:       integer("price").default(0),
+
+  status:      text("status").default("pending_payment"), // pending_payment | paid | cancelled | expired
+  paymentRef:  text("payment_ref"),                      // filled after payment
+
+  expiresAt:   timestamp("expires_at", { withTimezone: true }), // createdAt + 24h
+  createdAt:   timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:   timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("subscription_orders_org_idx").on(table.orgId),
+  index("subscription_orders_status_idx").on(table.status),
+]);
+
+// ============================================================
+// SUBSCRIPTION HISTORY
 export const subscriptions = pgTable("subscriptions", {
   id:                 uuid("id").defaultRandom().primaryKey(),
   orgId:              uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),

@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import { eq, and, desc, gte, sql, count, sum } from "drizzle-orm";
+import { eq, and, desc, gte, sql, count, sum, or } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { organizations, subscriptionAddons, subscriptions, bookings, customers, invoices } from "@nasaq/db/schema";
+import { organizations, subscriptionAddons, subscriptions, subscriptionOrders, bookings, customers, invoices } from "@nasaq/db/schema";
 import { getOrgId } from "../lib/helpers";
 
 export const subscriptionRouter = new Hono();
@@ -86,16 +86,258 @@ subscriptionRouter.get("/history", async (c) => {
 });
 
 // ============================================================
-// POST /organization/subscription/request-addon
-// طلب تفعيل إضافة (يُسجَّل فقط — لا يُفعَّل تلقائياً)
+// POST /organization/subscription/request-addon  (legacy — kept for compat)
 // ============================================================
 subscriptionRouter.post("/request-addon", async (c) => {
   const orgId = getOrgId(c);
   const { addonKey } = await c.req.json();
   if (!addonKey) return c.json({ error: "addonKey مطلوب" }, 400);
-  // في المرحلة الحالية: نُسجّل الطلب فقط (يُنفَّذ يدوياً من الأدمن)
   return c.json({ data: { requested: true, addonKey } });
 });
+
+// ── Plan & price maps (server-side mirror of frontend constants) ─────────────
+const PLAN_PRICES: Record<string, number> = { basic: 199, advanced: 499, pro: 999, enterprise: 0 };
+const PLAN_NAMES:  Record<string, string> = { basic: "الأساسي", advanced: "المتقدم", pro: "الاحترافي", enterprise: "المؤسسي" };
+const ADDON_PRICES: Record<string, number> = {
+  extra_providers: 890, extra_branches: 1900, hide_branding: 690,
+  loyalty: 1190, booking_sync: 1190, accounting: 1190,
+  business_email: 1190, access_control: 1190, google_boost: 399, custom_domain: 0,
+};
+const ADDON_NAMES: Record<string, string> = {
+  extra_providers: "مقدمو خدمة إضافيون", extra_branches: "فروع إضافية",
+  hide_branding: "إخفاء علامة نسق", loyalty: "برنامج الولاء",
+  booking_sync: "ربط الجدولة", accounting: "ربط المحاسبة",
+  business_email: "بريد الأعمال", access_control: "التحكم بالوصول",
+  google_boost: "تعزيز جوجل", custom_domain: "دومين مخصص",
+};
+
+function makeExpiry() {
+  return new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h from now
+}
+
+// ============================================================
+// GET /organization/subscription/orders
+// ============================================================
+subscriptionRouter.get("/orders", async (c) => {
+  const orgId = getOrgId(c);
+  const rows = await db
+    .select()
+    .from(subscriptionOrders)
+    .where(eq(subscriptionOrders.orgId, orgId))
+    .orderBy(desc(subscriptionOrders.createdAt));
+  return c.json({ data: rows });
+});
+
+// ============================================================
+// POST /organization/subscription/upgrade
+// body: { planKey }
+// ============================================================
+subscriptionRouter.post("/upgrade", async (c) => {
+  const orgId = getOrgId(c);
+  const { planKey } = await c.req.json();
+  if (!planKey || !PLAN_NAMES[planKey]) return c.json({ error: "planKey غير صالح" }, 400);
+
+  const annualPrice = (PLAN_PRICES[planKey] ?? 0) * 12;
+
+  // Expire any existing pending orders for this org
+  await db.update(subscriptionOrders)
+    .set({ status: "expired", updatedAt: new Date() })
+    .where(and(eq(subscriptionOrders.orgId, orgId), eq(subscriptionOrders.status, "pending_payment")));
+
+  const [order] = await db.insert(subscriptionOrders).values({
+    orgId,
+    orderType: "upgrade",
+    itemKey:   planKey,
+    itemName:  PLAN_NAMES[planKey],
+    price:     annualPrice,
+    status:    "pending_payment",
+    expiresAt: makeExpiry(),
+  }).returning();
+
+  return c.json({
+    data: {
+      orderId:   order.id,
+      planName:  PLAN_NAMES[planKey],
+      planPrice: annualPrice,
+      status:    "pending_payment",
+    },
+  });
+});
+
+// ============================================================
+// POST /organization/subscription/renew
+// ============================================================
+subscriptionRouter.post("/renew", async (c) => {
+  const orgId = getOrgId(c);
+
+  const [org] = await db.select({ plan: organizations.plan })
+    .from(organizations).where(eq(organizations.id, orgId));
+  if (!org) return c.json({ error: "المنشأة غير موجودة" }, 404);
+
+  const annualPrice = (PLAN_PRICES[org.plan] ?? 0) * 12;
+
+  // Expire any existing pending orders for this org
+  await db.update(subscriptionOrders)
+    .set({ status: "expired", updatedAt: new Date() })
+    .where(and(eq(subscriptionOrders.orgId, orgId), eq(subscriptionOrders.status, "pending_payment")));
+
+  const [order] = await db.insert(subscriptionOrders).values({
+    orgId,
+    orderType: "renewal",
+    itemKey:   org.plan,
+    itemName:  PLAN_NAMES[org.plan] ?? org.plan,
+    price:     annualPrice,
+    status:    "pending_payment",
+    expiresAt: makeExpiry(),
+  }).returning();
+
+  return c.json({
+    data: {
+      orderId:   order.id,
+      planName:  PLAN_NAMES[org.plan] ?? org.plan,
+      planPrice: annualPrice,
+      status:    "pending_payment",
+    },
+  });
+});
+
+// ============================================================
+// POST /organization/subscription/addons/purchase
+// body: { addonKey }
+// ============================================================
+subscriptionRouter.post("/addons/purchase", async (c) => {
+  const orgId = getOrgId(c);
+  const { addonKey } = await c.req.json();
+  if (!addonKey || !ADDON_NAMES[addonKey]) return c.json({ error: "addonKey غير صالح" }, 400);
+
+  // Check if already active
+  const [existing] = await db.select({ id: subscriptionAddons.id })
+    .from(subscriptionAddons)
+    .where(and(eq(subscriptionAddons.orgId, orgId), eq(subscriptionAddons.addonKey, addonKey), eq(subscriptionAddons.isActive, true)));
+  if (existing) return c.json({ error: "الإضافة مفعّلة بالفعل" }, 409);
+
+  const addonPrice = ADDON_PRICES[addonKey] ?? 0;
+
+  const [order] = await db.insert(subscriptionOrders).values({
+    orgId,
+    orderType: "addon",
+    itemKey:   addonKey,
+    itemName:  ADDON_NAMES[addonKey],
+    price:     addonPrice,
+    status:    "pending_payment",
+    expiresAt: makeExpiry(),
+  }).returning();
+
+  return c.json({
+    data: {
+      orderId:    order.id,
+      addonName:  ADDON_NAMES[addonKey],
+      addonPrice,
+      status:     "pending_payment",
+    },
+  });
+});
+
+// ============================================================
+// POST /organization/subscription/confirm-payment
+// body: { orderId, paymentRef }
+// TODO: هذا الـ endpoint يتم ربطه لاحقاً مع بوابة الدفع (Moyasar)
+// ============================================================
+subscriptionRouter.post("/confirm-payment", async (c) => {
+  const orgId = getOrgId(c);
+  const { orderId, paymentRef } = await c.req.json();
+  if (!orderId) return c.json({ error: "orderId مطلوب" }, 400);
+
+  const [order] = await db.select()
+    .from(subscriptionOrders)
+    .where(and(eq(subscriptionOrders.id, orderId), eq(subscriptionOrders.orgId, orgId)));
+
+  if (!order) return c.json({ error: "الطلب غير موجود" }, 404);
+  if (order.status === "paid")      return c.json({ error: "الطلب مدفوع بالفعل" }, 409);
+  if (order.status === "cancelled") return c.json({ error: "الطلب ملغي" }, 409);
+  if (order.status === "expired")   return c.json({ error: "انتهت صلاحية الطلب" }, 409);
+
+  await _activateOrder(order, paymentRef ?? null);
+  return c.json({ data: { success: true, orderId } });
+});
+
+// ============================================================
+// SHARED: activate order after payment confirmed
+// ============================================================
+export async function _activateOrder(order: any, paymentRef: string | null) {
+  const now = new Date();
+
+  // Mark order as paid
+  await db.update(subscriptionOrders)
+    .set({ status: "paid", paymentRef: paymentRef ?? null, updatedAt: now })
+    .where(eq(subscriptionOrders.id, order.id));
+
+  if (order.orderType === "upgrade") {
+    await db.update(organizations)
+      .set({ plan: order.itemKey, subscriptionStatus: "active", updatedAt: now })
+      .where(eq(organizations.id, order.orgId));
+
+    // Record in subscription history
+    const endDate = new Date(now);
+    endDate.setFullYear(endDate.getFullYear() + 1);
+    await db.insert(subscriptions).values({
+      orgId:       order.orgId,
+      planKey:     order.itemKey,
+      planName:    order.itemName,
+      planPrice:   order.price,
+      startDate:   now,
+      endDate,
+      status:      "active",
+    });
+    // Extend subscriptionEndsAt on org
+    await db.update(organizations)
+      .set({ subscriptionEndsAt: endDate, updatedAt: now })
+      .where(eq(organizations.id, order.orgId));
+
+  } else if (order.orderType === "renewal") {
+    // Extend by 1 year from today (or from current end if in future)
+    const [org] = await db.select({ subscriptionEndsAt: organizations.subscriptionEndsAt })
+      .from(organizations).where(eq(organizations.id, order.orgId));
+    const base   = org?.subscriptionEndsAt && org.subscriptionEndsAt > now ? org.subscriptionEndsAt : now;
+    const endDate = new Date(base);
+    endDate.setFullYear(endDate.getFullYear() + 1);
+
+    await db.update(organizations)
+      .set({ subscriptionStatus: "active", subscriptionEndsAt: endDate, updatedAt: now })
+      .where(eq(organizations.id, order.orgId));
+
+    await db.insert(subscriptions).values({
+      orgId:       order.orgId,
+      planKey:     order.itemKey,
+      planName:    order.itemName,
+      planPrice:   order.price,
+      startDate:   now,
+      endDate,
+      status:      "active",
+    });
+
+  } else if (order.orderType === "addon") {
+    // Activate addon (insert or re-enable)
+    const [existing] = await db.select({ id: subscriptionAddons.id })
+      .from(subscriptionAddons)
+      .where(and(eq(subscriptionAddons.orgId, order.orgId), eq(subscriptionAddons.addonKey, order.itemKey)));
+
+    if (existing) {
+      await db.update(subscriptionAddons)
+        .set({ isActive: true, activatedAt: now, updatedAt: now })
+        .where(eq(subscriptionAddons.id, existing.id));
+    } else {
+      await db.insert(subscriptionAddons).values({
+        orgId:      order.orgId,
+        addonKey:   order.itemKey,
+        addonName:  order.itemName,
+        price:      String(order.price),
+        isActive:   true,
+        activatedAt: now,
+      });
+    }
+  }
+}
 
 // ============================================================
 // STATS — ملخص الشهر (registered at /organization/stats)

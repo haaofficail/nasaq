@@ -615,10 +615,15 @@ export const settingsApi = {
 
 // --- Organization Subscription & Stats ---
 export const orgSubscriptionApi = {
-  get:          ()              => api.get<{ data: any }>("/organization/subscription"),
-  addons:       ()              => api.get<{ data: any[] }>("/organization/subscription/addons"),
-  history:      ()              => api.get<{ data: any[] }>("/organization/subscription/history"),
-  requestAddon: (addonKey: string) => api.post<{ data: any }>("/organization/subscription/request-addon", { addonKey }),
+  get:            ()                              => api.get<{ data: any }>("/organization/subscription"),
+  addons:         ()                              => api.get<{ data: any[] }>("/organization/subscription/addons"),
+  history:        ()                              => api.get<{ data: any[] }>("/organization/subscription/history"),
+  orders:         ()                              => api.get<{ data: any[] }>("/organization/subscription/orders"),
+  requestAddon:   (addonKey: string)              => api.post<{ data: any }>("/organization/subscription/request-addon", { addonKey }),
+  upgrade:        (planKey: string)               => api.post<{ data: any }>("/organization/subscription/upgrade", { planKey }),
+  renew:          ()                              => api.post<{ data: any }>("/organization/subscription/renew", {}),
+  purchaseAddon:  (addonKey: string)              => api.post<{ data: any }>("/organization/subscription/addons/purchase", { addonKey }),
+  confirmPayment: (orderId: string, paymentRef?: string) => api.post<{ data: any }>("/organization/subscription/confirm-payment", { orderId, paymentRef }),
 };
 
 export const orgStatsApi = {
@@ -1139,6 +1144,11 @@ export const adminApi = {
   // Subscription
   changePlan: (orgId: string, data: { plan?: string; subscriptionStatus?: string; trialEndsAt?: string; subscriptionEndsAt?: string }) =>
     api.post<{ data: any }>(`/admin/orgs/${orgId}/change-plan`, data),
+
+  // Subscription Orders (platform-wide)
+  subscriptionOrders:        (status?: string)                       => api.get<{ data: any[] }>(`/admin/subscription-orders${status ? `?status=${status}` : ""}`),
+  confirmSubscriptionOrder:  (orderId: string, paymentRef?: string)  => api.post<{ data: any }>(`/admin/subscription-orders/${orderId}/confirm`, { paymentRef }),
+  cancelSubscriptionOrder:   (orderId: string)                       => api.post<{ data: any }>(`/admin/subscription-orders/${orderId}/cancel`, {}),
 
   // Create org
   createOrg: (data: any) => api.post<{ data: any }>("/admin/orgs", data),
