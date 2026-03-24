@@ -1,11 +1,14 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { clsx } from "clsx";
-import { Plus, Settings2 } from "lucide-react";
+import { Plus, Settings2, CreditCard, Hash, Clock } from "lucide-react";
 import type { DashboardProfile, Role, WidgetConfig } from "@/lib/dashboardProfiles";
 import { useDashboardPrefs } from "@/hooks/useDashboardPrefs";
 import { passesContextGate } from "@/lib/widgetRegistry";
 import type { OrgContext } from "@/hooks/useOrgContext";
+import { useApi } from "@/hooks/useApi";
+import { orgSubscriptionApi } from "@/lib/api";
+import { PLAN_MAP } from "@/lib/constants";
 import { KPICard } from "./KPICard";
 import { QuickActionsGrid } from "./QuickActionsGrid";
 import { CustomizePanel } from "./CustomizePanel";
@@ -28,6 +31,9 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
   const currentRole = (user.role || "") as Role;
   const orgId = user.orgId || "default";
   const [showCustomize, setShowCustomize] = useState(false);
+
+  const { data: subRes } = useApi(() => orgSubscriptionApi.get(), []);
+  const sub = subRes?.data;
 
   const { prefs, toggleWidget, toggleKpi, reorderWidgets, pinAction, resetPrefs } = useDashboardPrefs(orgId);
 
@@ -58,8 +64,61 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
 
   const renderedWidgets = orderedWidgets.filter((w) => !prefs.hiddenWidgets.includes(w.id));
 
+  const daysLeft = sub?.daysRemaining ?? null;
+  const planName = PLAN_MAP[sub?.plan ?? ""]?.name ?? sub?.plan ?? null;
+  const orgCode  = context?.orgCode ?? null;
+
   return (
     <div className="space-y-5">
+
+      {/* ── Subscription info strip ── */}
+      {(planName || orgCode || daysLeft !== null) && (
+        <Link
+          to="/dashboard/subscription"
+          className="flex items-center gap-4 px-4 py-2.5 bg-white border border-gray-100 rounded-2xl shadow-sm hover:border-brand-200 hover:bg-brand-50/40 transition-colors group"
+        >
+          {/* Plan */}
+          {planName && (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-gray-600 group-hover:text-brand-700">
+              <CreditCard className="w-3.5 h-3.5 text-brand-400 shrink-0" />
+              {planName}
+            </span>
+          )}
+
+          {/* Divider */}
+          {planName && (orgCode || daysLeft !== null) && (
+            <span className="h-3.5 w-px bg-gray-200 shrink-0" />
+          )}
+
+          {/* Org code */}
+          {orgCode && (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-gray-500 group-hover:text-brand-600 font-mono tracking-wider" dir="ltr">
+              <Hash className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+              {orgCode}
+            </span>
+          )}
+
+          {/* Divider */}
+          {orgCode && daysLeft !== null && (
+            <span className="h-3.5 w-px bg-gray-200 shrink-0" />
+          )}
+
+          {/* Days remaining */}
+          {daysLeft !== null && (
+            <span className={clsx(
+              "flex items-center gap-1.5 text-xs font-medium",
+              daysLeft <= 7  ? "text-red-500"    :
+              daysLeft <= 30 ? "text-amber-600"  : "text-emerald-600"
+            )}>
+              <Clock className="w-3.5 h-3.5 shrink-0" />
+              {daysLeft} يوم متبقي
+            </span>
+          )}
+
+          <span className="mr-auto text-xs text-gray-300 group-hover:text-brand-400 transition-colors">←</span>
+        </Link>
+      )}
+
       {/* Welcome row */}
       <div className="flex items-center justify-between">
         <div>
