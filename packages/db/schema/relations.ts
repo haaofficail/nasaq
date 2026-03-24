@@ -189,9 +189,8 @@ export const customerContactsRelations = relations(customerContacts, ({ one }) =
 }));
 
 export const customerInteractionsRelations = relations(customerInteractions, ({ one }) => ({
-  org:      one(organizations, { fields: [customerInteractions.orgId],      references: [organizations.id] }),
-  customer: one(customers,     { fields: [customerInteractions.customerId], references: [customers.id] }),
-  user:     one(users,         { fields: [customerInteractions.userId],     references: [users.id] }),
+  customer: one(customers, { fields: [customerInteractions.customerId], references: [customers.id] }),
+  user:     one(users,     { fields: [customerInteractions.userId],     references: [users.id] }),
 }));
 
 export const customerSubscriptionsRelations = relations(customerSubscriptions, ({ one }) => ({
@@ -270,8 +269,7 @@ export const expensesRelations = relations(expenses, ({ one }) => ({
 }));
 
 export const vendorCommissionsRelations = relations(vendorCommissions, ({ one }) => ({
-  org:     one(organizations, { fields: [vendorCommissions.orgId],     references: [organizations.id] }),
-  booking: one(bookings,      { fields: [vendorCommissions.bookingId], references: [bookings.id] }),
+  org: one(organizations, { fields: [vendorCommissions.orgId], references: [organizations.id] }),
 }));
 
 export const vendorPayoutsRelations = relations(vendorPayouts, ({ one }) => ({
@@ -427,8 +425,7 @@ export const carRentalReservationsRelations = relations(carRentalReservations, (
 // FLOWERS
 // ============================================================
 
-export const flowerVariantsRelations = relations(flowerVariants, ({ one, many }) => ({
-  org:     one(organizations, { fields: [flowerVariants.orgId], references: [organizations.id] }),
+export const flowerVariantsRelations = relations(flowerVariants, ({ many }) => ({
   batches: many(flowerBatches),
 }));
 
@@ -489,7 +486,7 @@ export const treasuryAccountsRelations = relations(treasuryAccounts, ({ one, man
 
 export const treasuryTransactionsRelations = relations(treasuryTransactions, ({ one }) => ({
   org:     one(organizations,  { fields: [treasuryTransactions.orgId],      references: [organizations.id] }),
-  account: one(treasuryAccounts, { fields: [treasuryTransactions.accountId], references: [treasuryAccounts.id] }),
+  account: one(treasuryAccounts, { fields: [treasuryTransactions.treasuryAccountId], references: [treasuryAccounts.id] }),
 }));
 
 // ============================================================

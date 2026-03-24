@@ -9,6 +9,7 @@ import {
   cashierShifts,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
 import {
   postTreasuryTransfer,
   isAccountingEnabled,
@@ -184,6 +185,7 @@ treasuryRouter.delete("/accounts/:id", async (c) => {
     .set({ isActive: false, updatedAt: new Date() })
     .where(and(eq(treasuryAccounts.id, c.req.param("id")), eq(treasuryAccounts.orgId, orgId)));
 
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "treasury_account", resourceId: c.req.param("id") });
   return c.json({ success: true });
 });
 

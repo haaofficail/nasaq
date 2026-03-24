@@ -1,6 +1,32 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { pool } from "@nasaq/db/client";
-import { getOrgId, getPagination } from "../lib/helpers";
+import { getOrgId, getUserId, getPagination } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+
+const createSupplierSchema = z.object({
+  name: z.string().min(1).max(200),
+  contactName: z.string().max(200).optional().nullable(),
+  phone: z.string().max(20).optional().nullable(),
+  email: z.string().email().optional().nullable(),
+  address: z.string().max(500).optional().nullable(),
+  category: z.string().max(100).optional().nullable(),
+  taxNumber: z.string().max(50).optional().nullable(),
+  paymentTerms: z.number().int().min(0).optional().default(30),
+  creditLimit: z.number().min(0).optional().default(0),
+  notes: z.string().max(2000).optional().nullable(),
+});
+
+const createOrderSchema = z.object({
+  supplierId: z.string().uuid(),
+  items: z.array(z.object({
+    name: z.string().min(1),
+    quantity: z.number().int().min(1),
+    unitPrice: z.string().or(z.number()),
+  })).min(1),
+  notes: z.string().optional().nullable(),
+  expectedDelivery: z.string().optional().nullable(),
+});
 
 export const suppliersRouter = new Hono();
 
@@ -11,8 +37,8 @@ suppliersRouter.get("/", async (c) => {
   const category = c.req.query("category");
 
   const where = category
-    ? `WHERE org_id = $1 AND category = $2`
-    : `WHERE org_id = $1`;
+    ? `WHERE org_id = $1 AND category = $2 AND is_active = true`
+    : `WHERE org_id = $1 AND is_active = true`;
   const params = category ? [orgId, category] : [orgId];
 
   const result = await pool.query(
@@ -67,7 +93,7 @@ suppliersRouter.get("/orders", async (c) => {
 // POST /suppliers/orders
 suppliersRouter.post("/orders", async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
+  const body = createOrderSchema.parse(await c.req.json());
   const { supplierId, items, notes, expectedDelivery } = body;
 
   const num = `PO-${Date.now().toString(36).toUpperCase()}`;
@@ -78,6 +104,7 @@ suppliersRouter.post("/orders", async (c) => {
      VALUES ($1, $2, $3, 'pending', $4, $5, $6, $7) RETURNING *`,
     [orgId, supplierId, num, JSON.stringify(items || []), total, notes || null, expectedDelivery || null]
   );
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "purchase_order", resourceId: result.rows[0]?.id });
   return c.json({ data: result.rows[0] }, 201);
 });
 
@@ -108,7 +135,7 @@ suppliersRouter.get("/:id", async (c) => {
 // POST /suppliers
 suppliersRouter.post("/", async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
+  const body = createSupplierSchema.parse(await c.req.json());
   const { name, contactName, phone, email, address, category, taxNumber, paymentTerms, creditLimit, notes } = body;
 
   const result = await pool.query(
@@ -117,6 +144,7 @@ suppliersRouter.post("/", async (c) => {
     [orgId, name, contactName || null, phone || null, email || null, address || null,
      category || null, taxNumber || null, paymentTerms || 30, creditLimit || 0, notes || null]
   );
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "supplier", resourceId: result.rows[0]?.id });
   return c.json({ data: result.rows[0] }, 201);
 });
 
@@ -147,9 +175,10 @@ suppliersRouter.put("/:id", async (c) => {
 suppliersRouter.delete("/:id", async (c) => {
   const orgId = getOrgId(c);
   const result = await pool.query(
-    `DELETE FROM suppliers WHERE id = $1 AND org_id = $2 RETURNING id`,
+    `UPDATE suppliers SET is_active = false WHERE id = $1 AND org_id = $2 RETURNING id`,
     [c.req.param("id"), orgId]
   );
   if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "supplier", resourceId: c.req.param("id") });
   return c.json({ success: true });
 });

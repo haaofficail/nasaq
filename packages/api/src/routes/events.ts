@@ -102,7 +102,9 @@ eventsRouter.get("/:id", async (c) => {
 eventsRouter.post("/", async (c) => {
   const orgId  = getOrgId(c);
   const userId = getUserId(c);
-  const body   = createEventSchema.parse(await c.req.json());
+  const parsed = createEventSchema.safeParse(await c.req.json());
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+  const body = parsed.data;
 
   const [event] = await db.insert(events).values({
     orgId,
@@ -121,7 +123,9 @@ eventsRouter.post("/", async (c) => {
 eventsRouter.put("/:id", async (c) => {
   const orgId  = getOrgId(c);
   const userId = getUserId(c);
-  const body   = createEventSchema.partial().parse(await c.req.json());
+  const parsedPut = createEventSchema.partial().safeParse(await c.req.json());
+  if (!parsedPut.success) return c.json({ error: parsedPut.error.flatten() }, 400);
+  const body = parsedPut.data;
 
   const updates: any = { ...body, updatedAt: new Date() };
   if (body.startsAt) updates.startsAt = new Date(body.startsAt);
@@ -188,7 +192,9 @@ eventsRouter.get("/:id/ticket-types", async (c) => {
 eventsRouter.post("/:id/ticket-types", async (c) => {
   const orgId   = getOrgId(c);
   const eventId = c.req.param("id");
-  const body    = createTicketTypeSchema.parse(await c.req.json());
+  const parsedTT = createTicketTypeSchema.safeParse(await c.req.json());
+  if (!parsedTT.success) return c.json({ error: parsedTT.error.flatten() }, 400);
+  const body = parsedTT.data;
 
   const [event] = await db.select({ id: events.id }).from(events)
     .where(and(eq(events.id, eventId), eq(events.orgId, orgId)));

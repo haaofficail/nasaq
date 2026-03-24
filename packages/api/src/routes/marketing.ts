@@ -1,15 +1,17 @@
 import { Hono } from "hono";
-import { eq, and, desc, asc, sql, count, gte, lte } from "drizzle-orm";
-import { db } from "@nasaq/db/client";
-import { campaigns, coupons, loyaltyConfig, loyaltyTransactions, abandonedCarts, reviews, landingPages } from "@nasaq/db/schema";
+import { eq, and, desc, asc, sql, count, gte, lte, inArray } from "drizzle-orm";
+import { db, pool } from "@nasaq/db/client";
+import { campaigns, coupons, loyaltyConfig, loyaltyTransactions, abandonedCarts, reviews, landingPages, customerSegments, customers } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+import { evaluateSegment } from "../lib/segments-engine";
 import { z } from "zod";
 
 const createCampaignSchema = z.object({
   name: z.string(),
   description: z.string().optional().nullable(),
-  channel: z.string().optional(),
-  status: z.string().optional(),
+  channel: z.enum(["whatsapp", "sms", "email"]).optional(),
+  status: z.enum(["active", "paused", "completed", "cancelled", "draft", "scheduled"]).optional(),
   segmentId: z.string().uuid().optional().nullable(),
   subject: z.string().optional().nullable(),
   body: z.string(),
@@ -87,17 +89,85 @@ marketingRouter.post("/campaigns", async (c) => {
   const orgId = getOrgId(c);
   const userId = getUserId(c);
   const body = createCampaignSchema.parse(await c.req.json());
-  const [campaign] = await db.insert(campaigns).values({ orgId, createdBy: userId, ...body }).returning();
+  const { scheduledAt, ...campaignRest } = body;
+  const [campaign] = await db.insert(campaigns).values({
+    orgId, createdBy: userId, ...campaignRest,
+    ...(scheduledAt !== undefined && { scheduledAt: scheduledAt ? new Date(scheduledAt) : null }),
+  }).returning();
+  insertAuditLog({ orgId, userId, action: "created", resource: "campaign", resourceId: campaign.id });
   return c.json({ data: campaign }, 201);
 });
 
 marketingRouter.patch("/campaigns/:id/send", async (c) => {
   const orgId = getOrgId(c);
+  const id = c.req.param("id");
   const [updated] = await db.update(campaigns).set({
     status: "active", sentAt: new Date(), updatedAt: new Date(),
-  }).where(and(eq(campaigns.id, c.req.param("id")), eq(campaigns.orgId, orgId))).returning();
-  // TODO: Actually send to audience via notification system
+  }).where(and(eq(campaigns.id, id), eq(campaigns.orgId, orgId))).returning();
+
+  if (!updated) return c.json({ error: "الحملة غير موجودة" }, 404);
+
+  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "campaign", resourceId: id, metadata: { action: "send" } });
+
+  // Dispatch to segment members in the background
+  if (updated.segmentId) {
+    dispatchCampaign(orgId, updated).catch(() => {});
+  }
+
   return c.json({ data: updated });
+});
+
+async function dispatchCampaign(orgId: string, campaign: typeof campaigns.$inferSelect) {
+  const [segment] = await db.select().from(customerSegments)
+    .where(and(eq(customerSegments.id, campaign.segmentId!), eq(customerSegments.orgId, orgId)));
+  if (!segment) return;
+
+  const members = await evaluateSegment(orgId, segment.rules as any);
+  if (members.length === 0) return;
+
+  const memberIds = members.map((m) => m.id);
+  const memberDetails = await db.select({ id: customers.id, phone: customers.phone })
+    .from(customers)
+    .where(inArray(customers.id, memberIds));
+
+  const channel = campaign.channel === "multi" ? "whatsapp" : campaign.channel;
+  const phones = memberDetails.map((m) => m.phone).filter(Boolean);
+
+  if (phones.length > 0) {
+    // Bulk insert into message_logs — one row per recipient
+    const placeholders = phones.map((_, i) => `($1, $2, $${i + 3}, $${phones.length + 3}, 'queued', 'campaign')`).join(", ");
+    await pool.query(
+      `INSERT INTO message_logs (org_id, channel, recipient_phone, message_text, status, category) VALUES ${placeholders}`,
+      [orgId, channel, ...phones, campaign.body]
+    ).catch(() => {});
+
+    await db.update(campaigns).set({
+      audienceCount: phones.length,
+      totalSent: phones.length,
+      updatedAt: new Date(),
+    }).where(eq(campaigns.id, campaign.id));
+  }
+}
+
+// ============================================================
+// SEGMENTS
+// ============================================================
+
+marketingRouter.get("/segments", async (c) => {
+  const orgId = getOrgId(c);
+  const result = await db.select().from(customerSegments)
+    .where(and(eq(customerSegments.orgId, orgId), eq(customerSegments.isActive, true)))
+    .orderBy(desc(customerSegments.createdAt));
+  return c.json({ data: result });
+});
+
+marketingRouter.get("/segments/:id/preview", async (c) => {
+  const orgId = getOrgId(c);
+  const segment = await db.select().from(customerSegments)
+    .where(and(eq(customerSegments.id, c.req.param("id")), eq(customerSegments.orgId, orgId)));
+  if (!segment[0]) return c.json({ error: "الشريحة غير موجودة" }, 404);
+  const members = await evaluateSegment(orgId, segment[0].rules as any);
+  return c.json({ data: { count: members.length, sample: members.slice(0, 10) } });
 });
 
 // ============================================================
@@ -106,14 +176,20 @@ marketingRouter.patch("/campaigns/:id/send", async (c) => {
 
 marketingRouter.get("/coupons", async (c) => {
   const orgId = getOrgId(c);
-  const result = await db.select().from(coupons).where(eq(coupons.orgId, orgId)).orderBy(desc(coupons.createdAt));
+  const result = await db.select().from(coupons).where(and(eq(coupons.orgId, orgId), eq(coupons.isActive, true))).orderBy(desc(coupons.createdAt));
   return c.json({ data: result });
 });
 
 marketingRouter.post("/coupons", async (c) => {
   const orgId = getOrgId(c);
   const body = createCouponSchema.parse(await c.req.json());
-  const [coupon] = await db.insert(coupons).values({ orgId, ...body }).returning();
+  const { startsAt, expiresAt, ...couponRest } = body;
+  const [coupon] = await db.insert(coupons).values({
+    orgId, ...couponRest,
+    ...(startsAt !== undefined && { startsAt: startsAt ? new Date(startsAt) : null }),
+    ...(expiresAt !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),
+  }).returning();
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "coupon", resourceId: coupon.id });
   return c.json({ data: coupon }, 201);
 });
 
@@ -229,15 +305,23 @@ marketingRouter.get("/landing-pages", async (c) => {
 marketingRouter.post("/landing-pages", async (c) => {
   const orgId = getOrgId(c);
   const body = createLandingPageSchema.parse(await c.req.json());
-  const [page] = await db.insert(landingPages).values({ orgId, ...body }).returning();
+  const { publishedAt: paCreate, ...pageRest } = body;
+  const [page] = await db.insert(landingPages).values({
+    orgId, ...pageRest,
+    ...(paCreate !== undefined && { publishedAt: paCreate ? new Date(paCreate) : null }),
+  }).returning();
   return c.json({ data: page }, 201);
 });
 
 marketingRouter.put("/landing-pages/:id", async (c) => {
   const orgId = getOrgId(c);
   const body = updateLandingPageSchema.parse(await c.req.json());
-  const [updated] = await db.update(landingPages).set({ ...body, updatedAt: new Date() })
-    .where(and(eq(landingPages.id, c.req.param("id")), eq(landingPages.orgId, orgId))).returning();
+  const { publishedAt: paUpdate, ...pageUpdateRest } = body;
+  const [updated] = await db.update(landingPages).set({
+    ...pageUpdateRest,
+    ...(paUpdate !== undefined && { publishedAt: paUpdate ? new Date(paUpdate) : null }),
+    updatedAt: new Date(),
+  }).where(and(eq(landingPages.id, c.req.param("id")), eq(landingPages.orgId, orgId))).returning();
   return c.json({ data: updated });
 });
 

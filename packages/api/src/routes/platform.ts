@@ -3,6 +3,7 @@ import { eq, and, desc, asc, sql, count } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { marketplaceListings, rfpRequests, rfpProposals, apiKeys, webhookSubscriptions, webhookDeliveries, appStorePlugins, installedPlugins, services, organizations } from "@nasaq/db/schema";
 import { getOrgId, getUserId } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 
@@ -100,7 +101,11 @@ platformRouter.post("/marketplace/listings", async (c) => {
 // Public: create RFP
 platformRouter.post("/rfp", async (c) => {
   const body = createRfpSchema.parse(await c.req.json());
-  const [rfp] = await db.insert(rfpRequests).values(body).returning();
+  const { eventDate, ...rfpRest } = body;
+  const [rfp] = await db.insert(rfpRequests).values({
+    ...rfpRest,
+    ...(eventDate !== undefined && { eventDate: eventDate ? new Date(eventDate) : null }),
+  }).returning();
   return c.json({ data: rfp }, 201);
 });
 
@@ -124,7 +129,7 @@ platformRouter.post("/rfp/:id/proposals", async (c) => {
 
 platformRouter.get("/api-keys", async (c) => {
   const orgId = getOrgId(c);
-  const result = await db.select().from(apiKeys).where(eq(apiKeys.orgId, orgId)).orderBy(desc(apiKeys.createdAt));
+  const result = await db.select().from(apiKeys).where(and(eq(apiKeys.orgId, orgId), eq(apiKeys.isActive, true))).orderBy(desc(apiKeys.createdAt));
   return c.json({ data: result.map(k => ({ ...k, key: k.key.substring(0, 12) + "..." })) });
 });
 
@@ -142,9 +147,13 @@ platformRouter.post("/api-keys", async (c) => {
 
 platformRouter.delete("/api-keys/:id", async (c) => {
   const orgId = getOrgId(c);
-  const [deleted] = await db.delete(apiKeys).where(and(eq(apiKeys.id, c.req.param("id")), eq(apiKeys.orgId, orgId))).returning();
-  if (!deleted) return c.json({ error: "المفتاح غير موجود" }, 404);
-  return c.json({ data: deleted });
+  const [updated] = await db.update(apiKeys)
+    .set({ isActive: false })
+    .where(and(eq(apiKeys.id, c.req.param("id")), eq(apiKeys.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "المفتاح غير موجود" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "api_key", resourceId: updated.id });
+  return c.json({ data: updated });
 });
 
 // ============================================================
@@ -187,7 +196,7 @@ platformRouter.get("/apps/installed", async (c) => {
   const orgId = getOrgId(c);
   const result = await db.select({ installed: installedPlugins, plugin: appStorePlugins })
     .from(installedPlugins).innerJoin(appStorePlugins, eq(installedPlugins.pluginId, appStorePlugins.id))
-    .where(eq(installedPlugins.orgId, orgId));
+    .where(and(eq(installedPlugins.orgId, orgId), eq(installedPlugins.isActive, true)));
   return c.json({ data: result.map(r => ({ ...r.installed, plugin: r.plugin })) });
 });
 
@@ -206,8 +215,10 @@ platformRouter.post("/apps/:pluginId/install", async (c) => {
 
 platformRouter.delete("/apps/:pluginId/uninstall", async (c) => {
   const orgId = getOrgId(c);
-  const [removed] = await db.delete(installedPlugins).where(and(
-    eq(installedPlugins.orgId, orgId), eq(installedPlugins.pluginId, c.req.param("pluginId")),
-  )).returning();
-  return c.json({ data: removed });
+  const [updated] = await db.update(installedPlugins)
+    .set({ isActive: false })
+    .where(and(eq(installedPlugins.orgId, orgId), eq(installedPlugins.pluginId, c.req.param("pluginId"))))
+    .returning();
+  if (updated) insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "installed_plugin", resourceId: updated.id });
+  return c.json({ data: updated });
 });

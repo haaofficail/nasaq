@@ -2,7 +2,9 @@ import { Hono } from "hono";
 import { eq, and, asc } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { addons } from "@nasaq/db/schema";
-import { getOrgId } from "../lib/helpers";
+import { getOrgId, getUserId } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+import { apiErr } from "../lib/errors";
 import { z } from "zod";
 
 const createAddonSchema = z.object({
@@ -10,10 +12,10 @@ const createAddonSchema = z.object({
   nameEn: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
   image: z.string().optional().nullable(),
-  priceMode: z.string().optional(),
+  priceMode: z.enum(["fixed", "percentage"]).optional(),
   price: z.string(),
-  type: z.string().optional(),
-  isAvailable: z.boolean().optional(),
+  type: z.enum(["required", "optional"]).optional(),
+  isActive: z.boolean().optional(),
   sortOrder: z.number().int().optional(),
 });
 
@@ -25,8 +27,9 @@ export const addonsRouter = new Hono();
 addonsRouter.get("/", async (c) => {
   const orgId = getOrgId(c);
   const result = await db.select().from(addons)
-    .where(eq(addons.orgId, orgId))
-    .orderBy(asc(addons.sortOrder));
+    .where(and(eq(addons.orgId, orgId), eq(addons.isActive, true)))
+    .orderBy(asc(addons.sortOrder))
+    .limit(500);
   return c.json({ data: result, total: result.length });
 });
 
@@ -35,22 +38,25 @@ addonsRouter.get("/:id", async (c) => {
   const orgId = getOrgId(c);
   const [addon] = await db.select().from(addons)
     .where(and(eq(addons.id, c.req.param("id")), eq(addons.orgId, orgId)));
-  if (!addon) return c.json({ error: "Addon not found" }, 404);
+  if (!addon) return apiErr(c, "ADDON_NOT_FOUND", 404);
   return c.json({ data: addon });
 });
 
 // POST /addons
 addonsRouter.post("/", async (c) => {
   const orgId = getOrgId(c);
-  const body = createAddonSchema.parse(await c.req.json());
-  const [created] = await db.insert(addons).values({ orgId, ...body }).returning();
+  const parsed = createAddonSchema.safeParse(await c.req.json());
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+  const [created] = await db.insert(addons).values({ orgId, ...parsed.data }).returning();
   return c.json({ data: created }, 201);
 });
 
 // PUT /addons/:id
 addonsRouter.put("/:id", async (c) => {
   const orgId = getOrgId(c);
-  const body = updateAddonSchema.parse(await c.req.json());
+  const parsed = updateAddonSchema.safeParse(await c.req.json());
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+  const body = parsed.data;
   const [updated] = await db.update(addons)
     .set({ ...body, updatedAt: new Date() })
     .where(and(eq(addons.id, c.req.param("id")), eq(addons.orgId, orgId)))
@@ -62,9 +68,11 @@ addonsRouter.put("/:id", async (c) => {
 // DELETE /addons/:id
 addonsRouter.delete("/:id", async (c) => {
   const orgId = getOrgId(c);
-  const [deleted] = await db.delete(addons)
+  const [updated] = await db.update(addons)
+    .set({ isActive: false, updatedAt: new Date() })
     .where(and(eq(addons.id, c.req.param("id")), eq(addons.orgId, orgId)))
     .returning();
-  if (!deleted) return c.json({ error: "Addon not found" }, 404);
-  return c.json({ data: deleted });
+  if (!updated) return c.json({ error: "Addon not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "addon", resourceId: updated.id });
+  return c.json({ data: updated });
 });

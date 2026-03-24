@@ -37,6 +37,7 @@ export const sitePages = pgTable("site_pages", {
   ogImage: text("og_image"),
 
   isPublished: boolean("is_published").default(false),
+  isActive: boolean("is_active").default(true).notNull(), // soft delete
   sortOrder: integer("sort_order").default(0),
   showInNavigation: boolean("show_in_navigation").default(true),
 
@@ -104,6 +105,12 @@ export const siteConfig = pgTable("site_config", {
   whitelabelEnabled: boolean("whitelabel_enabled").default(false),
   hidePoweredBy: boolean("hide_powered_by").default(false),
 
+  // Builder (visual site builder settings)
+  builderConfig: jsonb("builder_config").default({}),
+
+  // Publish state
+  isPublished: boolean("is_published").default(false),
+
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -170,6 +177,23 @@ export const contactSubmissions = pgTable("contact_submissions", {
   
   isRead: boolean("is_read").default(false),
   repliedAt: timestamp("replied_at", { withTimezone: true }),
-  
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ============================================================
+// WEBSITE TEMPLATES — قوالب الموقع
+// ============================================================
+
+export const websiteTemplates = pgTable("website_templates", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  nameEn: text("name_en"),
+  description: text("description"),
+  thumbnail: text("thumbnail"),
+  category: text("category").default("all"),
+  isPremium: boolean("is_premium").default(false),
+  sortOrder: integer("sort_order").default(0),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });

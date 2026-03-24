@@ -1,6 +1,31 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { pool } from "@nasaq/db/client";
-import { getOrgId } from "../lib/helpers";
+import { getOrgId, getUserId } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+
+const createCategorySchema = z.object({
+  name: z.string().min(1).max(200),
+  nameEn: z.string().max(200).optional().nullable(),
+  description: z.string().max(1000).optional().nullable(),
+  image: z.string().url().optional().nullable(),
+  sortOrder: z.number().int().min(0).optional().default(0),
+  isActive: z.boolean().optional().default(true),
+});
+
+const createItemSchema = z.object({
+  categoryId: z.string().uuid().optional().nullable(),
+  name: z.string().min(1).max(200),
+  nameEn: z.string().max(200).optional().nullable(),
+  description: z.string().max(2000).optional().nullable(),
+  price: z.number().min(0),
+  imageUrl: z.string().url().optional().nullable(),
+  isAvailable: z.boolean().optional().default(true),
+  preparationTime: z.number().int().min(0).optional().default(10),
+  isPopular: z.boolean().optional().default(false),
+  calories: z.number().int().min(0).optional().nullable(),
+  sortOrder: z.number().int().min(0).optional().default(0),
+});
 
 export const menuRouter = new Hono();
 
@@ -11,7 +36,7 @@ menuRouter.get("/categories", async (c) => {
     `SELECT mc.*, COUNT(mi.id) as item_count
      FROM menu_categories mc
      LEFT JOIN menu_items mi ON mi.category_id = mc.id
-     WHERE mc.org_id = $1
+     WHERE mc.org_id = $1 AND mc.is_active = true
      GROUP BY mc.id ORDER BY mc.sort_order ASC, mc.name ASC`,
     [orgId]
   );
@@ -21,13 +46,14 @@ menuRouter.get("/categories", async (c) => {
 // POST /menu/categories
 menuRouter.post("/categories", async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
+  const body = createCategorySchema.parse(await c.req.json());
   const result = await pool.query(
     `INSERT INTO menu_categories (org_id, name, name_en, description, image, sort_order, is_active)
      VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
     [orgId, body.name, body.nameEn || null, body.description || null,
      body.image || null, body.sortOrder || 0, body.isActive !== false]
   );
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "menu_category", resourceId: result.rows[0]?.id });
   return c.json({ data: result.rows[0] }, 201);
 });
 
@@ -56,7 +82,7 @@ menuRouter.put("/categories/:id", async (c) => {
 menuRouter.delete("/categories/:id", async (c) => {
   const orgId = getOrgId(c);
   const result = await pool.query(
-    `DELETE FROM menu_categories WHERE id = $1 AND org_id = $2 RETURNING id`,
+    `UPDATE menu_categories SET is_active = false WHERE id = $1 AND org_id = $2 RETURNING id`,
     [c.req.param("id"), orgId]
   );
   if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
@@ -68,7 +94,7 @@ menuRouter.get("/items", async (c) => {
   const orgId = getOrgId(c);
   const categoryId = c.req.query("categoryId");
 
-  const conditions = ["mi.org_id = $1"];
+  const conditions = ["mi.org_id = $1", "mi.is_active = true"];
   const params: any[] = [orgId];
   if (categoryId) { params.push(categoryId); conditions.push(`mi.category_id = $${params.length}`); }
 
@@ -86,7 +112,7 @@ menuRouter.get("/items", async (c) => {
 // POST /menu/items
 menuRouter.post("/items", async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
+  const body = createItemSchema.parse(await c.req.json());
   const result = await pool.query(
     `INSERT INTO menu_items
        (org_id, category_id, name, name_en, description, price, image_url, is_available,
@@ -97,6 +123,7 @@ menuRouter.post("/items", async (c) => {
      body.isAvailable !== false, body.preparationTime || 10,
      body.isPopular || false, body.calories || null, body.sortOrder || 0]
   );
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "menu_item", resourceId: result.rows[0]?.id });
   return c.json({ data: result.rows[0] }, 201);
 });
 
@@ -130,10 +157,12 @@ menuRouter.put("/items/:id", async (c) => {
 // DELETE /menu/items/:id
 menuRouter.delete("/items/:id", async (c) => {
   const orgId = getOrgId(c);
+  const id = c.req.param("id");
   const result = await pool.query(
-    `DELETE FROM menu_items WHERE id = $1 AND org_id = $2 RETURNING id`,
-    [c.req.param("id"), orgId]
+    `UPDATE menu_items SET is_active = false WHERE id = $1 AND org_id = $2 RETURNING id`,
+    [id, orgId]
   );
   if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "menu_item", resourceId: id });
   return c.json({ success: true });
 });

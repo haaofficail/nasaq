@@ -4,6 +4,8 @@ import { eq, and, desc, asc, gte, lte, sql, count } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { shifts, bookingTasks, performanceReviews, vendorProfiles, timeOff, users, roles, rolePermissions, permissions as permissionsTable } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+import { invalidatePermissionCache } from "../middleware/auth";
 
 const createShiftSchema = z.object({
   userId: z.string().uuid(),
@@ -11,7 +13,7 @@ const createShiftSchema = z.object({
   startTime: z.string().optional().nullable(),
   endTime: z.string().optional().nullable(),
   locationId: z.string().uuid().optional().nullable(),
-  status: z.enum(["scheduled", "confirmed", "completed", "cancelled", "no_show"]).default("scheduled"),
+  status: z.enum(["scheduled", "in_progress", "completed", "cancelled", "no_show"]).default("scheduled"),
   notes: z.string().max(1000).optional().nullable(),
 });
 
@@ -25,11 +27,11 @@ const generateTasksSchema = z.object({
 const updateShiftSchema = z.object({
   userId: z.string().uuid().optional(),
   date: z.string().optional(),
-  startTime: z.string().optional().nullable(),
-  endTime: z.string().optional().nullable(),
+  startTime: z.string().optional(),
+  endTime: z.string().optional(),
   locationId: z.string().uuid().optional().nullable(),
   bookingId: z.string().uuid().optional().nullable(),
-  status: z.string().optional(),
+  status: z.enum(["scheduled", "in_progress", "completed", "cancelled", "no_show"]).optional(),
   actualStartTime: z.string().optional().nullable(),
   actualEndTime: z.string().optional().nullable(),
   breakMinutes: z.number().int().optional(),
@@ -97,7 +99,10 @@ teamRouter.post("/shifts", async (c) => {
 
   // Support bulk creation — validate each item
   const rawItems = Array.isArray(raw) ? raw : [raw];
-  const items = rawItems.map((item) => createShiftSchema.parse(item));
+  const parsed = rawItems.map((item) => createShiftSchema.safeParse(item));
+  const invalid = parsed.find((r) => !r.success);
+  if (invalid && !invalid.success) return c.json({ error: invalid.error.flatten() }, 400);
+  const items = (parsed as { success: true; data: any }[]).map((r) => r.data);
 
   const created = await db.insert(shifts)
     .values(items.map((item) => ({ orgId, ...item, date: new Date(item.date) })))
@@ -108,9 +113,15 @@ teamRouter.post("/shifts", async (c) => {
 
 teamRouter.patch("/shifts/:id", async (c) => {
   const orgId = getOrgId(c);
-  const body = updateShiftSchema.parse(await c.req.json());
-  const [updated] = await db.update(shifts).set({ ...body, updatedAt: new Date() })
-    .where(and(eq(shifts.id, c.req.param("id")), eq(shifts.orgId, orgId))).returning();
+  const parsedBody = updateShiftSchema.safeParse(await c.req.json());
+  if (!parsedBody.success) return c.json({ error: parsedBody.error.flatten() }, 400);
+  const body = parsedBody.data;
+  const { date: shiftDate, ...shiftRest } = body;
+  const [updated] = await db.update(shifts).set({
+    ...shiftRest,
+    ...(shiftDate !== undefined && { date: new Date(shiftDate) }),
+    updatedAt: new Date(),
+  }).where(and(eq(shifts.id, c.req.param("id")), eq(shifts.orgId, orgId))).returning();
   if (!updated) return c.json({ error: "الوردية غير موجودة" }, 404);
   return c.json({ data: updated });
 });
@@ -122,8 +133,16 @@ teamRouter.get("/available", async (c) => {
   const locationId = c.req.query("locationId");
   if (!date) return c.json({ error: "التاريخ مطلوب" }, 400);
 
-  // Get all active staff
-  const allStaff = await db.select().from(users).where(and(
+  // Get all active staff — explicit columns only, never SELECT * on users
+  const allStaff = await db.select({
+    id:       users.id,
+    name:     users.name,
+    phone:    users.phone,
+    email:    users.email,
+    type:     users.type,
+    avatar:   users.avatar,
+    roleId:   users.roleId,
+  }).from(users).where(and(
     eq(users.orgId, orgId), eq(users.status, "active"), sql`${users.type} IN ('employee', 'vendor')`,
   ));
 
@@ -245,14 +264,19 @@ teamRouter.get("/vendors", async (c) => {
   const orgId = getOrgId(c);
   const result = await db.select({ profile: vendorProfiles, userName: users.name, userPhone: users.phone })
     .from(vendorProfiles).leftJoin(users, eq(vendorProfiles.userId, users.id))
-    .where(eq(vendorProfiles.orgId, orgId));
+    .where(and(eq(vendorProfiles.orgId, orgId), eq(vendorProfiles.isActive, true)));
   return c.json({ data: result.map(r => ({ ...r.profile, name: r.userName, phone: r.userPhone })) });
 });
 
 teamRouter.post("/vendors", async (c) => {
   const orgId = getOrgId(c);
   const body = createVendorProfileSchema.parse(await c.req.json());
-  const [profile] = await db.insert(vendorProfiles).values({ orgId, ...body }).returning();
+  const { contractStartDate, contractEndDate, ...vendorRest } = body;
+  const [profile] = await db.insert(vendorProfiles).values({
+    orgId, ...vendorRest,
+    ...(contractStartDate !== undefined && { contractStartDate: contractStartDate ? new Date(contractStartDate) : null }),
+    ...(contractEndDate !== undefined && { contractEndDate: contractEndDate ? new Date(contractEndDate) : null }),
+  }).returning();
   return c.json({ data: profile }, 201);
 });
 
@@ -302,7 +326,7 @@ teamRouter.patch("/time-off/:id/approve", async (c) => {
 
 teamRouter.get("/roles", async (c) => {
   const orgId = getOrgId(c);
-  const rolesList = await db.select().from(roles).where(eq(roles.orgId, orgId)).orderBy(asc(roles.name));
+  const rolesList = await db.select().from(roles).where(and(eq(roles.orgId, orgId), eq(roles.isActive, true))).orderBy(asc(roles.name));
   const memberCounts = await db.select({ roleId: users.roleId, count: count() })
     .from(users).where(eq(users.orgId, orgId)).groupBy(users.roleId);
   const countMap = new Map(memberCounts.map(m => [m.roleId, Number(m.count)]));
@@ -359,6 +383,8 @@ teamRouter.put("/roles/:id/permissions", async (c) => {
     }
   }
 
+  invalidatePermissionCache(roleId);
+
   // Return updated permissions list
   const currentPerms = await db.select({ perm: permissionsTable })
     .from(rolePermissions).innerJoin(permissionsTable, eq(rolePermissions.permissionId, permissionsTable.id))
@@ -368,8 +394,12 @@ teamRouter.put("/roles/:id/permissions", async (c) => {
 
 teamRouter.delete("/roles/:id", async (c) => {
   const orgId = getOrgId(c);
-  const [deleted] = await db.delete(roles).where(and(eq(roles.id, c.req.param("id")), eq(roles.orgId, orgId))).returning();
-  if (!deleted) return c.json({ error: "الدور غير موجود" }, 404);
+  const [updated] = await db.update(roles)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(and(eq(roles.id, c.req.param("id")), eq(roles.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "الدور غير موجود" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "role", resourceId: updated.id });
   return c.json({ data: { success: true } });
 });
 
@@ -417,16 +447,18 @@ teamRouter.post("/attendance/checkin", async (c) => {
   const now = new Date();
 
   if (shiftId) {
-    const [updated] = await db.update(shifts).set({ actualStartTime: now, status: "in_progress", notes, updatedAt: now })
+    const [updated] = await db.update(shifts).set({ actualStartTime: now.toTimeString().slice(0, 5), status: "in_progress", notes, updatedAt: now })
       .where(and(eq(shifts.id, shiftId), eq(shifts.orgId, orgId))).returning();
     return c.json({ data: updated });
   }
 
   // Create a new attendance shift for today
   const today = now.toISOString().split("T")[0];
+  const checkInTime = now.toTimeString().slice(0, 5);
   const [created] = await db.insert(shifts).values({
     orgId, userId, date: new Date(today),
-    actualStartTime: now, status: "in_progress", notes,
+    startTime: checkInTime, endTime: "23:59",
+    actualStartTime: checkInTime, status: "in_progress", notes,
   }).returning();
   return c.json({ data: created }, 201);
 });
@@ -434,7 +466,7 @@ teamRouter.post("/attendance/checkin", async (c) => {
 teamRouter.patch("/attendance/:id/checkout", async (c) => {
   const orgId = getOrgId(c);
   const now = new Date();
-  const [updated] = await db.update(shifts).set({ actualEndTime: now, status: "completed", updatedAt: now })
+  const [updated] = await db.update(shifts).set({ actualEndTime: now.toTimeString().slice(0, 5), status: "completed", updatedAt: now })
     .where(and(eq(shifts.id, c.req.param("id")), eq(shifts.orgId, orgId))).returning();
   if (!updated) return c.json({ error: "السجل غير موجود" }, 404);
   return c.json({ data: updated });
@@ -510,15 +542,24 @@ teamRouter.delete("/members/:id", async (c) => {
 teamRouter.put("/vendors/:id", async (c) => {
   const orgId = getOrgId(c);
   const body = createVendorProfileSchema.partial().parse(await c.req.json());
-  const [updated] = await db.update(vendorProfiles).set({ ...body, updatedAt: new Date() })
-    .where(and(eq(vendorProfiles.id, c.req.param("id")), eq(vendorProfiles.orgId, orgId))).returning();
+  const { contractStartDate: csDate, contractEndDate: ceDate, ...vendorUpdateRest } = body;
+  const [updated] = await db.update(vendorProfiles).set({
+    ...vendorUpdateRest,
+    ...(csDate !== undefined && { contractStartDate: csDate ? new Date(csDate) : null }),
+    ...(ceDate !== undefined && { contractEndDate: ceDate ? new Date(ceDate) : null }),
+    updatedAt: new Date(),
+  }).where(and(eq(vendorProfiles.id, c.req.param("id")), eq(vendorProfiles.orgId, orgId))).returning();
   if (!updated) return c.json({ error: "المزود غير موجود" }, 404);
   return c.json({ data: updated });
 });
 
 teamRouter.delete("/vendors/:id", async (c) => {
   const orgId = getOrgId(c);
-  const [deleted] = await db.delete(vendorProfiles).where(and(eq(vendorProfiles.id, c.req.param("id")), eq(vendorProfiles.orgId, orgId))).returning();
-  if (!deleted) return c.json({ error: "المزود غير موجود" }, 404);
+  const [updated] = await db.update(vendorProfiles)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(and(eq(vendorProfiles.id, c.req.param("id")), eq(vendorProfiles.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "المزود غير موجود" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "vendor_profile", resourceId: updated.id });
   return c.json({ data: { success: true } });
 });

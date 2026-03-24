@@ -25,13 +25,18 @@ export const auditActionEnum = pgEnum("audit_action", [
 ]);
 
 // ============================================================
-// AUDIT LOG — سجل المراجعة والتدقيق
+// AUDIT LOG — سجل المراجعة والتدقيق المحاسبي
+//
+// هذا الجدول مخصص حصرياً لأحداث المحاسبة:
+//   journal entries (post / reverse)، إغلاق الفترات، قيود الخزينة
+//
+// للأحداث العامة (تسجيل دخول، حجوزات، إعدادات) → استخدم جدول audit_logs في auth.ts
 // ============================================================
 
 export const auditLog = pgTable("audit_log", {
   id: uuid("id").defaultRandom().primaryKey(),
 
-  orgId:  uuid("org_id").references(() => organizations.id, { onDelete: "cascade" }),
+  orgId:  uuid("org_id").references(() => organizations.id, { onDelete: "set null" }),
   userId: uuid("user_id").references(() => users.id),
 
   action: auditActionEnum("action").notNull(),

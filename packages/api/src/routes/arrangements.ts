@@ -1,6 +1,19 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { pool } from "@nasaq/db/client";
-import { getOrgId, generateSlug } from "../lib/helpers";
+import { getOrgId, getUserId, generateSlug } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+
+const createArrangementSchema = z.object({
+  name: z.string().min(1).max(200),
+  description: z.string().max(2000).optional().nullable(),
+  image: z.string().url().optional().nullable(),
+  categoryTag: z.string().max(100).optional(),
+  category: z.string().max(100).optional(),
+  basePrice: z.number().min(0).optional().default(0),
+  components: z.array(z.unknown()).optional().default([]),
+  linkedToInventory: z.boolean().optional().default(false),
+});
 
 export const arrangementsRouter = new Hono();
 
@@ -9,7 +22,7 @@ arrangementsRouter.get("/", async (c) => {
   const orgId = getOrgId(c);
   const category = c.req.query("category");
 
-  const conditions = ["org_id = $1"];
+  const conditions = ["org_id = $1", "is_active = true"];
   const params: any[] = [orgId];
   if (category) { params.push(category); conditions.push(`category_tag = $${params.length}`); }
 
@@ -39,7 +52,7 @@ arrangementsRouter.get("/stats", async (c) => {
 // POST /arrangements
 arrangementsRouter.post("/", async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
+  const body = createArrangementSchema.parse(await c.req.json());
   const slug = generateSlug(body.name) + "-" + Date.now().toString(36);
 
   const result = await pool.query(
@@ -49,6 +62,7 @@ arrangementsRouter.post("/", async (c) => {
      body.categoryTag || body.category || "general", body.basePrice || 0,
      JSON.stringify(body.components || []), body.linkedToInventory || false]
   );
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "arrangement", resourceId: result.rows[0]?.id });
   return c.json({ data: result.rows[0] }, 201);
 });
 
@@ -72,6 +86,7 @@ arrangementsRouter.put("/:id", async (c) => {
      c.req.param("id"), orgId]
   );
   if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "arrangement", resourceId: c.req.param("id") });
   return c.json({ data: result.rows[0] });
 });
 
@@ -90,10 +105,12 @@ arrangementsRouter.patch("/:id/toggle", async (c) => {
 // DELETE /arrangements/:id
 arrangementsRouter.delete("/:id", async (c) => {
   const orgId = getOrgId(c);
+  const id = c.req.param("id");
   const result = await pool.query(
-    `DELETE FROM flower_packages WHERE id = $1 AND org_id = $2 RETURNING id`,
-    [c.req.param("id"), orgId]
+    `UPDATE flower_packages SET is_active = false WHERE id = $1 AND org_id = $2 RETURNING id`,
+    [id, orgId]
   );
   if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "arrangement", resourceId: id });
   return c.json({ success: true });
 });

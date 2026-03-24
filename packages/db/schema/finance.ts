@@ -39,7 +39,9 @@ export const expenseCategoryEnum = pgEnum("expense_category", [
   "other",       // أخرى
 ]);
 
-export const commissionTypeEnum = pgEnum("commission_type", [
+// NOTE: DB enum name is "commission_type" — used for vendor commission rules only.
+// For org member commission type see commissionTypeEnum in rbac.ts ("commission_type_enum").
+export const vendorCommissionTypeEnum = pgEnum("commission_type", [
   "fixed",       // مبلغ ثابت لكل حجز
   "percentage",  // نسبة من قيمة الحجز
 ]);
@@ -186,7 +188,7 @@ export const vendorCommissions = pgTable("vendor_commissions", {
   vendorId: uuid("vendor_id").notNull().references(() => users.id),
 
   // Commission structure
-  commissionType: commissionTypeEnum("commission_type").default("percentage").notNull(),
+  commissionType: vendorCommissionTypeEnum("commission_type").default("percentage").notNull(),
   commissionValue: numeric("commission_value", { precision: 10, scale: 2 }).notNull(), // 15 = 15% or 500 = 500 SAR
 
   // Scope

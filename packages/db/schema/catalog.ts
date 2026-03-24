@@ -160,6 +160,28 @@ export const services = pgTable("services", {
   isTemplate: boolean("is_template").default(false).notNull(), // قالب جاهز
   templateId: uuid("template_id"),                              // أُنشئت من قالب
 
+  // Demo flag — تُنشأ أثناء الإعداد الأولي، يمكن حذفها بـ DELETE /settings/demo-data
+  isDemo: boolean("is_demo").default(false).notNull(),
+
+  // ── Service Engine fields (migration 019) ─────────────────────────────────
+  serviceType:        text("service_type").default("single").notNull(),
+    // single | session | package | add_on | bundle
+  servicePricingMode: text("service_pricing_mode").default("fixed").notNull(),
+    // fixed | from_price | variable
+  assignmentMode:     text("assignment_mode").default("open").notNull(),
+    // open (any staff) | restricted (specific staff only)
+  isBookable:         boolean("is_bookable").default(true).notNull(),
+  isVisibleInPOS:     boolean("is_visible_in_pos").default(true).notNull(),
+  isVisibleOnline:    boolean("is_visible_online").default(true).notNull(),
+  bufferBeforeMinutes: integer("buffer_before_minutes").default(0).notNull(),
+  bufferAfterMinutes:  integer("buffer_after_minutes").default(0).notNull(),
+  displayName:        text("display_name"),
+  // Delivery layer — cross-cutting over all service types
+  hasDelivery:        boolean("has_delivery").default(false).notNull(),
+  allowsPickup:       boolean("allows_pickup").default(false).notNull(),
+  allowsInVenue:      boolean("allows_in_venue").default(false).notNull(),
+  deliveryCost:       text("delivery_cost").default("0").notNull(),
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
@@ -182,11 +204,14 @@ export const serviceMedia = pgTable("service_media", {
   
   sortOrder: integer("sort_order").default(0).notNull(),
   isCover: boolean("is_cover").default(false).notNull(), // صورة الغلاف الرئيسية
-  
+
   // Image dimensions (for responsive loading)
   width: integer("width"),
   height: integer("height"),
   sizeBytes: integer("size_bytes"),
+
+  // Soft delete — never hard-delete media rows
+  isActive: boolean("is_active").default(true).notNull(),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -439,8 +464,34 @@ export const seasons = pgTable("seasons", {
   startDate: timestamp("start_date", { withTimezone: true }).notNull(),
   endDate: timestamp("end_date", { withTimezone: true }).notNull(),
   color: text("color"),                            // لون العرض في التقويم
-  
+
   isActive: boolean("is_active").default(true).notNull(),
-  
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// ============================================================
+// SERVICE STAFF — ربط الموظفين بالخدمة + تجاوز العمولة
+// تحدد من يمكنه تقديم كل خدمة، مع إمكانية تجاوز المدة/السعر/العمولة
+// ============================================================
+
+export const serviceStaff = pgTable("service_staff", {
+  id:        uuid("id").defaultRandom().primaryKey(),
+  orgId:     uuid("org_id").notNull(),
+  serviceId: uuid("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+  userId:    uuid("user_id").notNull(),
+
+  // Commission override — inherit = use service-level default from service_costs
+  commissionMode:  text("commission_mode").default("inherit").notNull(),
+    // inherit | none | percentage | fixed
+  commissionValue: numeric("commission_value", { precision: 10, scale: 2 }).default("0"),
+
+  // Optional overrides per staff
+  customDurationMinutes: integer("custom_duration_minutes"),
+  customPrice:           numeric("custom_price", { precision: 10, scale: 2 }),
+
+  isActive:  boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("service_staff_unique_idx").on(table.serviceId, table.userId),
+]);

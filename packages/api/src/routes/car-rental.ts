@@ -8,7 +8,8 @@ import {
   vehicleInspections,
 } from "@nasaq/db/schema";
 import { eq, and, or, gte, lte, count, desc } from "drizzle-orm";
-import { getOrgId } from "../lib/helpers";
+import { getOrgId, getUserId } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
 
 export const carRentalRouter = new Hono();
 
@@ -43,7 +44,7 @@ carRentalRouter.get("/categories", async (c) => {
   const rows = await db
     .select()
     .from(vehicleCategories)
-    .where(eq(vehicleCategories.orgId, orgId))
+    .where(and(eq(vehicleCategories.orgId, orgId), eq(vehicleCategories.isActive, true)))
     .orderBy(vehicleCategories.sortOrder);
   return c.json({ data: rows });
 });
@@ -69,9 +70,13 @@ carRentalRouter.put("/categories/:id", async (c) => {
 
 carRentalRouter.delete("/categories/:id", async (c) => {
   const orgId = getOrgId(c);
-  await db
-    .delete(vehicleCategories)
-    .where(and(eq(vehicleCategories.id, c.req.param("id")), eq(vehicleCategories.orgId, orgId)));
+  const [updated] = await db
+    .update(vehicleCategories)
+    .set({ isActive: false })
+    .where(and(eq(vehicleCategories.id, c.req.param("id")), eq(vehicleCategories.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "Not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "vehicle_category", resourceId: updated.id });
   return c.json({ success: true });
 });
 
@@ -101,7 +106,7 @@ carRentalRouter.get("/vehicles", async (c) => {
   const orgId = getOrgId(c);
   const categoryId = c.req.query("categoryId");
   const status = c.req.query("status");
-  const conditions: any[] = [eq(vehicleUnits.orgId, orgId)];
+  const conditions: any[] = [eq(vehicleUnits.orgId, orgId), eq(vehicleUnits.isActive, true)];
   if (categoryId) conditions.push(eq(vehicleUnits.categoryId, categoryId));
   if (status) conditions.push(eq(vehicleUnits.status, status as any));
   const rows = await db
@@ -125,16 +130,28 @@ carRentalRouter.get("/vehicles/:id", async (c) => {
 carRentalRouter.post("/vehicles", async (c) => {
   const orgId = getOrgId(c);
   const body = vehicleSchema.parse(await c.req.json());
-  const [row] = await db.insert(vehicleUnits).values({ ...body, orgId }).returning();
+  const { insuranceExpiry: ie, registrationExpiry: re, ...vehicleRest } = body;
+  const [row] = await db.insert(vehicleUnits).values({
+    ...vehicleRest,
+    orgId,
+    ...(ie !== undefined && { insuranceExpiry: ie ? new Date(ie) : null }),
+    ...(re !== undefined && { registrationExpiry: re ? new Date(re) : null }),
+  }).returning();
   return c.json({ data: row }, 201);
 });
 
 carRentalRouter.put("/vehicles/:id", async (c) => {
   const orgId = getOrgId(c);
   const body = vehicleSchema.partial().parse(await c.req.json());
+  const { insuranceExpiry, registrationExpiry, ...rest } = body;
   const [row] = await db
     .update(vehicleUnits)
-    .set({ ...body, updatedAt: new Date() })
+    .set({
+      ...rest,
+      ...(insuranceExpiry !== undefined && { insuranceExpiry: insuranceExpiry ? new Date(insuranceExpiry) : null }),
+      ...(registrationExpiry !== undefined && { registrationExpiry: registrationExpiry ? new Date(registrationExpiry) : null }),
+      updatedAt: new Date(),
+    })
     .where(and(eq(vehicleUnits.id, c.req.param("id")), eq(vehicleUnits.orgId, orgId)))
     .returning();
   if (!row) return c.json({ error: "Not found" }, 404);
@@ -157,9 +174,13 @@ carRentalRouter.patch("/vehicles/:id/status", async (c) => {
 
 carRentalRouter.delete("/vehicles/:id", async (c) => {
   const orgId = getOrgId(c);
-  await db
-    .delete(vehicleUnits)
-    .where(and(eq(vehicleUnits.id, c.req.param("id")), eq(vehicleUnits.orgId, orgId)));
+  const [updated] = await db
+    .update(vehicleUnits)
+    .set({ isActive: false })
+    .where(and(eq(vehicleUnits.id, c.req.param("id")), eq(vehicleUnits.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "Not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "vehicle", resourceId: updated.id });
   return c.json({ success: true });
 });
 
@@ -309,9 +330,15 @@ carRentalRouter.post("/reservations", async (c) => {
 carRentalRouter.put("/reservations/:id", async (c) => {
   const orgId = getOrgId(c);
   const body = reservationSchema.partial().parse(await c.req.json());
+  const { pickupDate, returnDate, ...rest } = body;
   const [row] = await db
     .update(carRentalReservations)
-    .set({ ...body, updatedAt: new Date() })
+    .set({
+      ...rest,
+      ...(pickupDate !== undefined && { pickupDate: new Date(pickupDate) }),
+      ...(returnDate !== undefined && { returnDate: new Date(returnDate) }),
+      updatedAt: new Date(),
+    })
     .where(and(eq(carRentalReservations.id, c.req.param("id")), eq(carRentalReservations.orgId, orgId)))
     .returning();
   if (!row) return c.json({ error: "Not found" }, 404);

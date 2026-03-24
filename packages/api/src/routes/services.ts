@@ -1,9 +1,11 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { eq, and, asc, desc, ilike, sql, count } from "drizzle-orm";
+import { eq, and, asc, desc, ilike, sql, count, inArray } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { services, serviceMedia, serviceAddons, addons, categories, pricingRules, serviceComponents, serviceCosts, assetTypes, serviceRequirements, users, assets } from "@nasaq/db/schema";
-import { generateSlug, getOrgId, validateBody, getPagination, safeSortField } from "../lib/helpers";
+import { services, serviceMedia, serviceAddons, addons, categories, pricingRules, serviceComponents, serviceCosts, assetTypes, serviceRequirements, serviceStaff, users, assets } from "@nasaq/db/schema";
+import { generateSlug, getOrgId, getUserId, validateBody, getPagination, safeSortField } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+import { nanoid } from "nanoid";
 import { SERVICE_SORT_FIELDS, type ServiceSortField } from "../lib/constants";
 
 export const servicesRouter = new Hono();
@@ -22,7 +24,7 @@ const createServiceSchema = z.object({
   status: z.enum(["draft", "active", "paused", "archived"]).default("draft"),
   
   // Pricing
-  basePrice: z.string().or(z.number()).transform(String),
+  basePrice: z.coerce.string(),
   currency: z.string().default("SAR"),
   vatInclusive: z.boolean().default(true),
   
@@ -40,7 +42,7 @@ const createServiceSchema = z.object({
   // Booking rules
   minAdvanceHours: z.number().int().optional(),
   maxAdvanceeDays: z.number().int().optional(),
-  depositPercent: z.string().or(z.number()).transform(String).default("30"),
+  depositPercent: z.coerce.string().default("30"),
   
   // Cancellation
   cancellationPolicy: z.object({
@@ -63,11 +65,27 @@ const createServiceSchema = z.object({
   // SEO
   metaTitle: z.string().optional(),
   metaDescription: z.string().optional(),
-  
+
   // Display
   sortOrder: z.number().int().default(0),
   isFeatured: z.boolean().default(false),
   isTemplate: z.boolean().default(false),
+
+  // ── Service Engine fields (migration 019) ────────────────────────────────
+  displayName:        z.string().optional(),
+  serviceType:        z.enum(["appointment","execution","field_service","rental","event_rental","product","product_shipping","food_order","package","add_on","project"]).default("appointment"),
+  servicePricingMode: z.enum(["fixed","from_price","variable"]).default("fixed"),
+  assignmentMode:     z.enum(["open","restricted"]).default("open"),
+  isBookable:         z.boolean().default(true),
+  isVisibleInPOS:     z.boolean().default(true),
+  isVisibleOnline:    z.boolean().default(true),
+  bufferBeforeMinutes: z.number().int().default(0),
+  bufferAfterMinutes:  z.number().int().default(0),
+  // ── Delivery layer (migration 021) ───────────────────────────────────────
+  hasDelivery:        z.boolean().default(false),
+  allowsPickup:       z.boolean().default(false),
+  allowsInVenue:      z.boolean().default(false),
+  deliveryCost:       z.coerce.string().default("0"),
 });
 
 const updateServiceSchema = createServiceSchema.partial();
@@ -81,20 +99,31 @@ servicesRouter.get("/", async (c) => {
   const { page, limit, offset } = getPagination(c);
   
   // Filters
-  const status = c.req.query("status");
-  const categoryId = c.req.query("categoryId");
-  const search = c.req.query("search");
-  const featured = c.req.query("featured");
+  const status       = c.req.query("status");
+  const categoryId   = c.req.query("categoryId");
+  const search       = c.req.query("search");
+  const featured     = c.req.query("featured");
+  const visibleInPOS    = c.req.query("visibleInPOS");
+  const visibleOnline   = c.req.query("visibleOnline");
+  const bookableOnly    = c.req.query("bookable");
   const sortBy = safeSortField<ServiceSortField>(c.req.query("sortBy"), SERVICE_SORT_FIELDS, "sortOrder");
   const sortDir = c.req.query("sortDir") === "desc" ? "desc" : "asc";
 
-  // Build conditions
+  // Build conditions — exclude archived by default; status enum controls visibility
   const conditions = [eq(services.orgId, orgId)];
-  
-  if (status) conditions.push(eq(services.status, status as any));
-  if (categoryId) conditions.push(eq(services.categoryId, categoryId));
-  if (featured === "true") conditions.push(eq(services.isFeatured, true));
-  if (search) conditions.push(ilike(services.name, `%${search}%`));
+
+  if (status) {
+    conditions.push(eq(services.status, status as any));
+  } else {
+    // Don't show archived (soft-deleted) unless explicitly requested
+    conditions.push(sql`${services.status} != 'archived'`);
+  }
+  if (categoryId)            conditions.push(eq(services.categoryId, categoryId));
+  if (featured === "true")   conditions.push(eq(services.isFeatured, true));
+  if (search)                conditions.push(ilike(services.name, `%${search}%`));
+  if (visibleInPOS === "true")  conditions.push(eq((services as any).isVisibleInPOS, true));
+  if (visibleOnline === "true") conditions.push(eq((services as any).isVisibleOnline, true));
+  if (bookableOnly === "true")  conditions.push(eq((services as any).isBookable, true));
 
   // Query
   const [result, [{ total }]] = await Promise.all([
@@ -140,7 +169,7 @@ servicesRouter.get("/:id", async (c) => {
   // Get related data in parallel
   const [media, svcAddons, pricing, category] = await Promise.all([
     db.select().from(serviceMedia)
-      .where(eq(serviceMedia.serviceId, id))
+      .where(and(eq(serviceMedia.serviceId, id), eq(serviceMedia.isActive, true)))
       .orderBy(asc(serviceMedia.sortOrder)),
     
     db.select({
@@ -185,11 +214,12 @@ servicesRouter.post("/", async (c) => {
   const body = await validateBody(c, createServiceSchema);
   if (!body) return;
 
-  const slug = body.slug || generateSlug(body.name);
+  const slug = body.slug || `${generateSlug(body.name)}-${nanoid(6).toLowerCase()}`;
 
+  const { basePrice, ...bodyRest } = body;
   const [created] = await db
     .insert(services)
-    .values({ orgId, ...body, slug })
+    .values({ orgId, ...bodyRest, slug, basePrice: String(basePrice) })
     .returning();
 
   return c.json({ data: created }, 201);
@@ -205,9 +235,8 @@ servicesRouter.put("/:id", async (c) => {
   const body = await validateBody(c, updateServiceSchema);
   if (!body) return;
 
-  if (body.name && !body.slug) {
-    body.slug = generateSlug(body.name);
-  }
+  // Don't auto-regenerate slug on update — caller must provide explicit slug to change it
+  // (prevents collision when renaming a service)
 
   // Handle status change to active -> set publishedAt
   const updates: any = { ...body, updatedAt: new Date() };
@@ -233,13 +262,15 @@ servicesRouter.delete("/:id", async (c) => {
   const orgId = getOrgId(c);
   const id = c.req.param("id");
 
-  const [deleted] = await db
-    .delete(services)
+  const [updated] = await db
+    .update(services)
+    .set({ status: "archived", updatedAt: new Date() })
     .where(and(eq(services.id, id), eq(services.orgId, orgId)))
     .returning();
 
-  if (!deleted) return c.json({ error: "Service not found" }, 404);
-  return c.json({ data: deleted });
+  if (!updated) return c.json({ error: "Service not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "service", resourceId: updated.id });
+  return c.json({ data: updated });
 });
 
 // ============================================================
@@ -276,13 +307,14 @@ servicesRouter.post("/:id/media", async (c) => {
 servicesRouter.delete("/:id/media/:mediaId", async (c) => {
   const mediaId = c.req.param("mediaId");
 
-  const [deleted] = await db
-    .delete(serviceMedia)
+  const [softDeleted] = await db
+    .update(serviceMedia)
+    .set({ isActive: false })
     .where(eq(serviceMedia.id, mediaId))
     .returning();
 
-  if (!deleted) return c.json({ error: "Media not found" }, 404);
-  return c.json({ data: deleted });
+  if (!softDeleted) return c.json({ error: "Media not found" }, 404);
+  return c.json({ data: softDeleted });
 });
 
 // ============================================================
@@ -331,7 +363,7 @@ servicesRouter.post("/:id/duplicate", async (c) => {
     .values({
       ...rest,
       name: `${original.name} (نسخة)`,
-      slug: generateSlug(`${original.name} نسخة`),
+      slug: `${generateSlug(original.name)}-copy-${nanoid(6).toLowerCase()}`,
       status: "draft",
       totalBookings: 0,
       avgRating: null,
@@ -339,7 +371,7 @@ servicesRouter.post("/:id/duplicate", async (c) => {
     .returning();
 
   // Copy media
-  const media = await db.select().from(serviceMedia).where(eq(serviceMedia.serviceId, id));
+  const media = await db.select().from(serviceMedia).where(and(eq(serviceMedia.serviceId, id), eq(serviceMedia.isActive, true)));
   if (media.length > 0) {
     await db.insert(serviceMedia).values(
       media.map(({ id: _mid, serviceId: _sid, createdAt: _ca, ...m }) => ({
@@ -546,24 +578,36 @@ servicesRouter.get("/:id/requirements", async (c) => {
     ))
     .orderBy(asc(serviceRequirements.sortOrder), asc(serviceRequirements.createdAt));
 
-  // Enrich with related data
-  const enriched = await Promise.all(reqs.map(async (req) => {
+  // Batch-load related data to avoid N+1
+  const userIds    = [...new Set(reqs.filter(r => r.requirementType === "employee" && r.userId).map(r => r.userId!))];
+  const assetIds   = [...new Set(reqs.filter(r => r.requirementType === "asset" && r.assetId).map(r => r.assetId!))];
+  const typeIds    = [...new Set(reqs.filter(r => r.requirementType === "asset" && r.assetTypeId && !r.assetId).map(r => r.assetTypeId!))];
+
+  const [userRows, assetRows, typeRows] = await Promise.all([
+    userIds.length  ? db.select({ id: users.id, name: users.name, jobTitle: users.jobTitle, avatar: users.avatar }).from(users).where(inArray(users.id, userIds)) : [],
+    assetIds.length ? db.select({ id: assets.id, name: assets.name, serialNumber: assets.serialNumber, status: assets.status }).from(assets).where(inArray(assets.id, assetIds)) : [],
+    typeIds.length  ? db.select({ id: assetTypes.id, name: assetTypes.name }).from(assetTypes).where(inArray(assetTypes.id, typeIds)) : [],
+  ]);
+
+  const userMap  = new Map(userRows.map(u  => [u.id,  u]));
+  const assetMap = new Map(assetRows.map(a => [a.id, a]));
+  const typeMap  = new Map(typeRows.map(t  => [t.id,  t]));
+
+  const enriched = reqs.map((req) => {
     if (req.requirementType === "employee" && req.userId) {
-      const [u] = await db.select({ name: users.name, jobTitle: users.jobTitle, avatar: users.avatar })
-        .from(users).where(eq(users.id, req.userId));
+      const u = userMap.get(req.userId);
       return { ...req, userName: u?.name, userJobTitle: u?.jobTitle, userAvatar: u?.avatar };
     }
     if (req.requirementType === "asset" && req.assetId) {
-      const [a] = await db.select({ name: assets.name, serialNumber: assets.serialNumber, status: assets.status })
-        .from(assets).where(eq(assets.id, req.assetId));
+      const a = assetMap.get(req.assetId);
       return { ...req, assetName: a?.name, assetSerial: a?.serialNumber, assetStatus: a?.status };
     }
     if (req.requirementType === "asset" && req.assetTypeId) {
-      const [at] = await db.select({ name: assetTypes.name }).from(assetTypes).where(eq(assetTypes.id, req.assetTypeId));
+      const at = typeMap.get(req.assetTypeId);
       return { ...req, assetTypeName: at?.name };
     }
     return req;
-  }));
+  });
 
   return c.json({ data: enriched });
 });
@@ -625,5 +669,117 @@ servicesRouter.delete("/:id/requirements/:reqId", async (c) => {
     .returning();
 
   if (!deleted) return c.json({ error: "المتطلب غير موجود" }, 404);
+  return c.json({ data: { success: true } });
+});
+
+// ============================================================
+// SERVICE STAFF — ربط الموظفين بالخدمة
+// GET  /services/:id/staff
+// POST /services/:id/staff
+// PUT  /services/:id/staff/:userId
+// DELETE /services/:id/staff/:userId
+// ============================================================
+
+const serviceStaffSchema = z.object({
+  userId:                z.string().uuid(),
+  commissionMode:        z.enum(["inherit","none","percentage","fixed"]).default("inherit"),
+  commissionValue:       z.number().min(0).default(0),
+  customDurationMinutes: z.number().int().optional().nullable(),
+  customPrice:           z.number().min(0).optional().nullable(),
+});
+
+servicesRouter.get("/:id/staff", async (c) => {
+  const orgId    = getOrgId(c);
+  const serviceId = c.req.param("id");
+
+  const rows = await db
+    .select({
+      ss: serviceStaff,
+      u:  { id: users.id, name: users.name, jobTitle: users.jobTitle, avatar: users.avatar },
+    })
+    .from(serviceStaff)
+    .leftJoin(users, eq(serviceStaff.userId, users.id))
+    .where(and(
+      eq(serviceStaff.serviceId, serviceId),
+      eq(serviceStaff.orgId, orgId),
+      eq(serviceStaff.isActive, true),
+    ))
+    .orderBy(asc(serviceStaff.createdAt));
+
+  return c.json({ data: rows.map(r => ({ ...r.ss, userName: r.u?.name, userJobTitle: r.u?.jobTitle, userAvatar: r.u?.avatar })) });
+});
+
+servicesRouter.post("/:id/staff", async (c) => {
+  const orgId     = getOrgId(c);
+  const serviceId = c.req.param("id");
+  const body      = serviceStaffSchema.parse(await c.req.json());
+
+  const [created] = await db
+    .insert(serviceStaff)
+    .values({
+      orgId, serviceId,
+      userId:                body.userId,
+      commissionMode:        body.commissionMode,
+      commissionValue:       String(body.commissionValue),
+      customDurationMinutes: body.customDurationMinutes ?? null,
+      customPrice:           body.customPrice != null ? String(body.customPrice) : null,
+    })
+    .onConflictDoUpdate({
+      target: [serviceStaff.serviceId, serviceStaff.userId],
+      set: {
+        commissionMode:        body.commissionMode,
+        commissionValue:       String(body.commissionValue),
+        customDurationMinutes: body.customDurationMinutes ?? null,
+        customPrice:           body.customPrice != null ? String(body.customPrice) : null,
+        isActive:              true,
+      },
+    })
+    .returning();
+
+  return c.json({ data: created }, 201);
+});
+
+servicesRouter.put("/:id/staff/:userId", async (c) => {
+  const orgId    = getOrgId(c);
+  const serviceId = c.req.param("id");
+  const userId   = c.req.param("userId");
+  const body     = serviceStaffSchema.partial().parse(await c.req.json());
+
+  const updates: any = {};
+  if (body.commissionMode  !== undefined) updates.commissionMode  = body.commissionMode;
+  if (body.commissionValue !== undefined) updates.commissionValue = String(body.commissionValue);
+  if (body.customDurationMinutes !== undefined) updates.customDurationMinutes = body.customDurationMinutes;
+  if (body.customPrice !== undefined) updates.customPrice = body.customPrice != null ? String(body.customPrice) : null;
+
+  const [updated] = await db
+    .update(serviceStaff)
+    .set(updates)
+    .where(and(
+      eq(serviceStaff.serviceId, serviceId),
+      eq(serviceStaff.userId, userId),
+      eq(serviceStaff.orgId, orgId),
+    ))
+    .returning();
+
+  if (!updated) return c.json({ error: "الموظف غير مرتبط بهذه الخدمة" }, 404);
+  return c.json({ data: updated });
+});
+
+servicesRouter.delete("/:id/staff/:userId", async (c) => {
+  const orgId    = getOrgId(c);
+  const serviceId = c.req.param("id");
+  const userId   = c.req.param("userId");
+
+  const [deleted] = await db
+    .update(serviceStaff)
+    .set({ isActive: false })
+    .where(and(
+      eq(serviceStaff.serviceId, serviceId),
+      eq(serviceStaff.userId, userId),
+      eq(serviceStaff.orgId, orgId),
+    ))
+    .returning();
+
+  if (!deleted) return c.json({ error: "الموظف غير مرتبط بهذه الخدمة" }, 404);
   return c.json({ data: { success: true } });
 });

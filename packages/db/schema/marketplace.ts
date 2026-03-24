@@ -14,21 +14,23 @@ export const marketplaceListings = pgTable("marketplace_listings", {
   serviceId: uuid("service_id").notNull().references(() => services.id),
 
   isActive: boolean("is_active").default(true).notNull(),
-  
+
   // Marketplace-specific pricing (can differ from direct)
   marketplacePrice: numeric("marketplace_price", { precision: 10, scale: 2 }),
-  
+
   // Ranking
   featuredUntil: timestamp("featured_until", { withTimezone: true }),
   sortScore: numeric("sort_score", { precision: 5, scale: 2 }).default("0"),
-  
+
   // Stats
   views: integer("views").default(0),
   inquiries: integer("inquiries").default(0),
   bookings: integer("bookings").default(0),
-  
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
-});
+}, (table) => [
+  uniqueIndex("marketplace_listings_org_service_idx").on(table.orgId, table.serviceId),
+]);
 
 // ============================================================
 // RFP — طلبات عروض الأسعار

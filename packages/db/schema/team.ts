@@ -171,7 +171,8 @@ export const vendorProfiles = pgTable("vendor_profiles", {
   
   // Status
   verificationStatus: text("verification_status").default("pending"), // pending, verified, rejected
-  
+  isActive: boolean("is_active").default(true).notNull(), // soft delete
+
   notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

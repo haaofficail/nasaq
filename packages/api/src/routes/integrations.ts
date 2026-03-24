@@ -3,7 +3,9 @@ import { z } from "zod";
 import { db } from "@nasaq/db/client";
 import { integrationConfigs, webhookLogs, syncJobs } from "@nasaq/db/schema";
 import { eq, and, desc, count } from "drizzle-orm";
-import { getOrgId } from "../lib/helpers";
+import { getOrgId, getUserId } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+import { encryptJson, decryptJson } from "../lib/encryption";
 
 export const integrationsRouter = new Hono();
 
@@ -21,10 +23,16 @@ const configSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-// Strip credentials before returning to client
+// Strip credentials before returning to client — never expose raw creds
 function sanitize(row: any) {
   const { credentials: _c, ...rest } = row;
   return rest;
+}
+
+// Encrypt credentials field before writing to DB
+function withEncryptedCreds(body: any): any {
+  if (!body.credentials) return body;
+  return { ...body, credentials: encryptJson(body.credentials) };
 }
 
 // ============================================================
@@ -36,7 +44,7 @@ integrationsRouter.get("/configs", async (c) => {
   const rows = await db
     .select()
     .from(integrationConfigs)
-    .where(eq(integrationConfigs.orgId, orgId))
+    .where(and(eq(integrationConfigs.orgId, orgId), eq(integrationConfigs.isActive, true)))
     .orderBy(integrationConfigs.createdAt);
   return c.json({ data: rows.map(sanitize) });
 });
@@ -53,7 +61,7 @@ integrationsRouter.get("/configs/:id", async (c) => {
 
 integrationsRouter.post("/configs", async (c) => {
   const orgId = getOrgId(c);
-  const body = configSchema.parse(await c.req.json());
+  const body = withEncryptedCreds(configSchema.parse(await c.req.json()));
   const [row] = await db
     .insert(integrationConfigs)
     .values({ ...body, orgId, status: "pending_setup" })
@@ -63,7 +71,7 @@ integrationsRouter.post("/configs", async (c) => {
 
 integrationsRouter.put("/configs/:id", async (c) => {
   const orgId = getOrgId(c);
-  const body = configSchema.partial().parse(await c.req.json());
+  const body = withEncryptedCreds(configSchema.partial().parse(await c.req.json()));
   const [row] = await db
     .update(integrationConfigs)
     .set({ ...body, updatedAt: new Date() })
@@ -87,11 +95,27 @@ integrationsRouter.patch("/configs/:id/status", async (c) => {
   return c.json({ data: sanitize(row) });
 });
 
+// GET /configs/:id/credentials — decrypt and return to owner only (settings:edit required)
+integrationsRouter.get("/configs/:id/credentials", async (c) => {
+  const orgId = getOrgId(c);
+  const [row] = await db
+    .select({ credentials: integrationConfigs.credentials })
+    .from(integrationConfigs)
+    .where(and(eq(integrationConfigs.id, c.req.param("id")), eq(integrationConfigs.orgId, orgId)));
+  if (!row) return c.json({ error: "Not found" }, 404);
+  const creds = decryptJson(row.credentials as string | null);
+  return c.json({ data: creds ?? {} });
+});
+
 integrationsRouter.delete("/configs/:id", async (c) => {
   const orgId = getOrgId(c);
-  await db
-    .delete(integrationConfigs)
-    .where(and(eq(integrationConfigs.id, c.req.param("id")), eq(integrationConfigs.orgId, orgId)));
+  const [updated] = await db
+    .update(integrationConfigs)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(and(eq(integrationConfigs.id, c.req.param("id")), eq(integrationConfigs.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "Not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "integration_config", resourceId: updated.id });
   return c.json({ success: true });
 });
 

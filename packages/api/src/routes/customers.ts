@@ -4,6 +4,7 @@ import { eq, and, asc, desc, ilike, or, count, sql } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { customers, customerContacts, customerInteractions, customerSegments } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
 import { nanoid } from "nanoid";
 
 // ============================================================
@@ -70,10 +71,11 @@ customersRouter.get("/", async (c) => {
   const type = c.req.query("type");
   const isActive = c.req.query("isActive");
 
-  const conditions = [eq(customers.orgId, orgId)];
+  // Default: show active customers only; pass isActive=false to see deactivated
+  const activeFilter = isActive !== undefined ? isActive === "true" : true;
+  const conditions = [eq(customers.orgId, orgId), eq(customers.isActive, activeFilter)];
   if (tier) conditions.push(eq(customers.tier, tier as any));
   if (type) conditions.push(eq(customers.type, type as any));
-  if (isActive !== undefined) conditions.push(eq(customers.isActive, isActive === "true"));
   if (search) {
     conditions.push(or(
       ilike(customers.name, `%${search}%`),
@@ -136,6 +138,7 @@ customersRouter.post("/", async (c) => {
     referralCode,
   }).returning();
 
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "customer", resourceId: created.id });
   return c.json({ data: created }, 201);
 });
 
@@ -154,6 +157,7 @@ customersRouter.put("/:id", async (c) => {
     .returning();
 
   if (!updated) return c.json({ error: "العميل غير موجود" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "customer", resourceId: updated.id });
   return c.json({ data: updated });
 });
 
@@ -233,9 +237,8 @@ customersRouter.post("/segments", async (c) => {
     name: body.name,
     description: body.description,
     color: body.color,
-    conditions: body.conditions,
+    rules: body.conditions,
     isActive: body.isActive,
-    isDynamic: body.isDynamic,
   }).returning();
   return c.json({ data: segment }, 201);
 });
@@ -244,12 +247,24 @@ customersRouter.post("/segments", async (c) => {
 customersRouter.get("/stats/summary", async (c) => {
   const orgId = getOrgId(c);
 
-  const [stats] = await db.select({
-    total: count(),
-    totalVIP: sql<number>`COUNT(*) FILTER (WHERE ${customers.tier} = 'vip')`,
-    totalBusiness: sql<number>`COUNT(*) FILTER (WHERE ${customers.type} = 'business')`,
-    totalSpent: sql<string>`COALESCE(SUM(CAST(${customers.totalSpent} AS DECIMAL)), 0)`,
-  }).from(customers).where(eq(customers.orgId, orgId));
+  const thisMonthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
-  return c.json({ data: stats });
+  const [[stats], sourceRows] = await Promise.all([
+    db.select({
+      total: count(),
+      totalVIP: sql<number>`COUNT(*) FILTER (WHERE ${customers.tier} = 'vip')`,
+      totalBusiness: sql<number>`COUNT(*) FILTER (WHERE ${customers.type} = 'business')`,
+      totalSpent: sql<string>`COALESCE(SUM(CAST(${customers.totalSpent} AS DECIMAL)), 0)`,
+      newThisMonth: sql<number>`COUNT(*) FILTER (WHERE ${customers.createdAt} >= ${thisMonthStart})`,
+      returning: sql<number>`COUNT(*) FILTER (WHERE ${customers.totalBookings} > 1)`,
+    }).from(customers).where(and(eq(customers.orgId, orgId), eq(customers.isActive, true))),
+
+    db.select({
+      source: sql<string>`COALESCE(${customers.source}, 'direct')`,
+      count: count(),
+    }).from(customers).where(and(eq(customers.orgId, orgId), eq(customers.isActive, true)))
+      .groupBy(sql`COALESCE(${customers.source}, 'direct')`),
+  ]);
+
+  return c.json({ data: { ...stats, sourceBreakdown: sourceRows } });
 });

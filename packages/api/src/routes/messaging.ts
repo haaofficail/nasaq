@@ -1,6 +1,23 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { pool } from "@nasaq/db/client";
-import { getOrgId, getPagination } from "../lib/helpers";
+import { getOrgId, getUserId, getPagination } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+
+const sendBulkSchema = z.object({
+  phones: z.array(z.string().min(5).max(20)).min(1).max(500),
+  message: z.string().min(1).max(4096),
+  category: z.string().max(100).optional(),
+});
+
+const createVariableSchema = z.object({
+  name: z.string().max(100).optional(),
+  variableKey: z.string().max(100).optional(),
+  example: z.string().max(500).optional(),
+  variableValue: z.string().max(500).optional(),
+  label: z.string().max(200).optional().nullable(),
+  description: z.string().max(200).optional().nullable(),
+}).refine(d => d.name || d.variableKey, { message: "name or variableKey required" });
 
 export const messagingRouter = new Hono();
 
@@ -16,9 +33,26 @@ messagingRouter.get("/status", async (c) => {
     data: {
       connected: session?.status === "connected",
       status: session?.status || "disconnected",
-      phone: session?.phone || null,
+      phoneNumber: session?.phone || null,
     },
   });
+});
+
+// POST /messaging/connect — SSE stream for QR code (stub: no real WhatsApp library installed)
+messagingRouter.post("/connect", async (c) => {
+  const orgId = getOrgId(c);
+  // Return SSE stream with an error event since no WA library is configured
+  return new Response(
+    `data: ${JSON.stringify({ type: "error", message: "خدمة واتساب غير مُهيأة على الخادم بعد — تواصل مع الدعم" })}\n\n`,
+    {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+        "X-Org-Id": orgId,
+      },
+    }
+  );
 });
 
 // POST /messaging/disconnect
@@ -80,6 +114,7 @@ messagingRouter.put("/templates/:id", async (c) => {
      c.req.param("id"), orgId]
   );
   if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "message_template", resourceId: c.req.param("id") });
   return c.json({ data: result.rows[0] });
 });
 
@@ -128,6 +163,7 @@ messagingRouter.put("/settings", async (c) => {
       [orgId, body.autoSend || false, body.channel || "whatsapp"]
     );
   }
+  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "messaging_settings", resourceId: orgId });
   return c.json({ data: result.rows[0] });
 });
 
@@ -184,7 +220,7 @@ messagingRouter.get("/variables", async (c) => {
 // POST /messaging/variables
 messagingRouter.post("/variables", async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
+  const body = createVariableSchema.parse(await c.req.json());
   const result = await pool.query(
     `INSERT INTO message_variables (org_id, variable_key, variable_value, description) VALUES ($1,$2,$3,$4) RETURNING *`,
     [orgId, body.name || body.variableKey, body.example || body.variableValue || "", body.label || body.description || null]
@@ -196,7 +232,7 @@ messagingRouter.post("/variables", async (c) => {
 messagingRouter.delete("/variables/:id", async (c) => {
   const orgId = getOrgId(c);
   const result = await pool.query(
-    `DELETE FROM message_variables WHERE id = $1 AND org_id = $2 RETURNING id`,
+    `UPDATE message_variables SET is_active = false WHERE id = $1 AND org_id = $2 RETURNING id`,
     [c.req.param("id"), orgId]
   );
   if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
@@ -206,7 +242,7 @@ messagingRouter.delete("/variables/:id", async (c) => {
 // POST /messaging/send-bulk
 messagingRouter.post("/send-bulk", async (c) => {
   const orgId = getOrgId(c);
-  const { phones, message, category } = await c.req.json();
+  const { phones, message, category } = sendBulkSchema.parse(await c.req.json());
 
   // Log bulk sends
   const values = (phones || []).map((_: string, i: number) => `($1,$${i * 3 + 2},$${i * 3 + 3},$${i * 3 + 4},'whatsapp','sent')`).join(",");

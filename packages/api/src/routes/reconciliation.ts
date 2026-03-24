@@ -8,6 +8,7 @@ import {
   chartOfAccounts,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
 
 export const reconciliationRouter = new Hono();
 
@@ -165,12 +166,13 @@ reconciliationRouter.patch("/:id", async (c) => {
 // DELETE /reconciliation/:id  (draft only)
 reconciliationRouter.delete("/:id", async (c) => {
   const orgId = getOrgId(c);
+  const id = c.req.param("id");
 
   const [statement] = await db
     .select({ status: reconciliationStatements.status })
     .from(reconciliationStatements)
     .where(and(
-      eq(reconciliationStatements.id, c.req.param("id")),
+      eq(reconciliationStatements.id, id),
       eq(reconciliationStatements.orgId, orgId)
     ));
 
@@ -181,8 +183,9 @@ reconciliationRouter.delete("/:id", async (c) => {
 
   await db
     .delete(reconciliationStatements)
-    .where(eq(reconciliationStatements.id, c.req.param("id")));
+    .where(eq(reconciliationStatements.id, id));
 
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "reconciliation_statement", resourceId: id });
   return c.json({ success: true });
 });
 
@@ -278,6 +281,7 @@ reconciliationRouter.patch("/:statementId/items/:itemId", async (c) => {
 // DELETE /reconciliation/:statementId/items/:itemId
 reconciliationRouter.delete("/:statementId/items/:itemId", async (c) => {
   const orgId = getOrgId(c);
+  const itemId = c.req.param("itemId");
 
   const [statement] = await db
     .select({ status: reconciliationStatements.status })
@@ -292,8 +296,9 @@ reconciliationRouter.delete("/:statementId/items/:itemId", async (c) => {
 
   await db
     .delete(reconciliationItems)
-    .where(eq(reconciliationItems.id, c.req.param("itemId")));
+    .where(eq(reconciliationItems.id, itemId));
 
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "reconciliation_item", resourceId: itemId });
   return c.json({ success: true });
 });
 

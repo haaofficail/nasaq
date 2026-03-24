@@ -5,6 +5,7 @@ import {
   roomTypes, roomUnits, hotelReservations, housekeepingLogs, hotelSeasonalPricing
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
 import { z } from "zod";
 
 const createRoomTypeSchema = z.object({
@@ -33,7 +34,7 @@ const createRoomUnitSchema = z.object({
   roomNumber: z.string(),
   floor: z.number().int().optional().nullable(),
   building: z.string().optional().nullable(),
-  status: z.string().optional(),
+  status: z.enum(["available", "occupied", "reserved", "cleaning", "maintenance", "out_of_service"]).optional(),
   priceOverride: z.string().optional().nullable(),
   notesForStaff: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
@@ -77,7 +78,7 @@ export const hotelRouter = new Hono();
 hotelRouter.get("/room-types", async (c) => {
   const orgId = getOrgId(c);
   const result = await db.select().from(roomTypes)
-    .where(eq(roomTypes.orgId, orgId))
+    .where(and(eq(roomTypes.orgId, orgId), eq(roomTypes.isActive, true)))
     .orderBy(asc(roomTypes.sortOrder), asc(roomTypes.name));
   return c.json({ data: result });
 });
@@ -102,11 +103,13 @@ hotelRouter.put("/room-types/:id", async (c) => {
 
 hotelRouter.delete("/room-types/:id", async (c) => {
   const orgId = getOrgId(c);
-  const [deleted] = await db.delete(roomTypes)
+  const [updated] = await db.update(roomTypes)
+    .set({ isActive: false, updatedAt: new Date() })
     .where(and(eq(roomTypes.id, c.req.param("id")), eq(roomTypes.orgId, orgId)))
     .returning();
-  if (!deleted) return c.json({ error: "نوع الغرفة غير موجود" }, 404);
-  return c.json({ data: deleted });
+  if (!updated) return c.json({ error: "نوع الغرفة غير موجود" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "room_type", resourceId: updated.id });
+  return c.json({ data: updated });
 });
 
 // ── Room Units ───────────────────────────────────────────────
@@ -115,7 +118,7 @@ hotelRouter.get("/rooms", async (c) => {
   const orgId = getOrgId(c);
   const roomTypeId = c.req.query("roomTypeId");
   const status = c.req.query("status");
-  const conditions: any[] = [eq(roomUnits.orgId, orgId)];
+  const conditions: any[] = [eq(roomUnits.orgId, orgId), eq(roomUnits.isActive, true)];
   if (roomTypeId) conditions.push(eq(roomUnits.roomTypeId, roomTypeId));
   if (status) conditions.push(eq(roomUnits.status, status as any));
   const result = await db.select().from(roomUnits)
@@ -155,11 +158,13 @@ hotelRouter.patch("/rooms/:id/status", async (c) => {
 
 hotelRouter.delete("/rooms/:id", async (c) => {
   const orgId = getOrgId(c);
-  const [deleted] = await db.delete(roomUnits)
+  const [updated] = await db.update(roomUnits)
+    .set({ isActive: false, updatedAt: new Date() })
     .where(and(eq(roomUnits.id, c.req.param("id")), eq(roomUnits.orgId, orgId)))
     .returning();
-  if (!deleted) return c.json({ error: "الغرفة غير موجودة" }, 404);
-  return c.json({ data: deleted });
+  if (!updated) return c.json({ error: "الغرفة غير موجودة" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "room_unit", resourceId: updated.id });
+  return c.json({ data: updated });
 });
 
 // ── Reservations ─────────────────────────────────────────────
@@ -421,9 +426,11 @@ hotelRouter.post("/seasonal-pricing", async (c) => {
 
 hotelRouter.delete("/seasonal-pricing/:id", async (c) => {
   const orgId = getOrgId(c);
-  const [deleted] = await db.delete(hotelSeasonalPricing)
+  const [updated] = await db.update(hotelSeasonalPricing)
+    .set({ isActive: false })
     .where(and(eq(hotelSeasonalPricing.id, c.req.param("id")), eq(hotelSeasonalPricing.orgId, orgId)))
     .returning();
-  if (!deleted) return c.json({ error: "التسعير غير موجود" }, 404);
-  return c.json({ data: deleted });
+  if (!updated) return c.json({ error: "التسعير غير موجود" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "hotel_seasonal_pricing", resourceId: updated.id });
+  return c.json({ data: updated });
 });

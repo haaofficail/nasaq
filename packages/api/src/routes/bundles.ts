@@ -1,8 +1,31 @@
 import { Hono } from "hono";
-import { eq, and, asc } from "drizzle-orm";
+import { z } from "zod";
+import { eq, and, asc, ne } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { bundles, bundleItems, services, customerSubscriptions } from "@nasaq/db/schema";
-import { getOrgId, generateSlug } from "../lib/helpers";
+import { getOrgId, generateSlug, getUserId } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+
+const createBundleSchema = z.object({
+  name: z.string().min(1).max(200),
+  slug: z.string().optional(),
+  description: z.string().optional().nullable(),
+  price: z.string().optional(),
+  status: z.enum(["active", "paused", "draft", "archived"]).optional(),
+  sortOrder: z.number().int().optional(),
+});
+
+const addBundleItemSchema = z.object({
+  serviceId: z.string().uuid(),
+  quantity: z.number().int().min(1).optional().default(1),
+  includedAddonIds: z.array(z.string().uuid()).optional().default([]),
+  sortOrder: z.number().int().min(0).optional().default(0),
+});
+
+const sellBundleSchema = z.object({
+  customerId: z.string().uuid(),
+  startDate: z.string().optional().nullable(),
+});
 
 export const bundlesRouter = new Hono();
 
@@ -10,7 +33,7 @@ export const bundlesRouter = new Hono();
 bundlesRouter.get("/", async (c) => {
   const orgId = getOrgId(c);
   const result = await db.select().from(bundles)
-    .where(eq(bundles.orgId, orgId))
+    .where(and(eq(bundles.orgId, orgId), ne(bundles.status, "archived")))
     .orderBy(asc(bundles.sortOrder));
   return c.json({ data: result, total: result.length });
 });
@@ -38,7 +61,7 @@ bundlesRouter.get("/:id", async (c) => {
 // POST /bundles
 bundlesRouter.post("/", async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
+  const body = createBundleSchema.parse(await c.req.json());
   const slug = body.slug || generateSlug(body.name);
   const [created] = await db.insert(bundles).values({ orgId, ...body, slug }).returning();
   return c.json({ data: created }, 201);
@@ -46,7 +69,7 @@ bundlesRouter.post("/", async (c) => {
 
 // POST /bundles/:id/items — Add service to bundle
 bundlesRouter.post("/:id/items", async (c) => {
-  const body = await c.req.json();
+  const body = addBundleItemSchema.parse(await c.req.json());
   const [item] = await db.insert(bundleItems).values({
     bundleId: c.req.param("id"),
     serviceId: body.serviceId,
@@ -61,10 +84,7 @@ bundlesRouter.post("/:id/items", async (c) => {
 bundlesRouter.post("/:id/sell", async (c) => {
   const orgId = getOrgId(c);
   const bundleId = c.req.param("id");
-  const body = await c.req.json();
-  const { customerId, startDate } = body;
-
-  if (!customerId) return c.json({ error: "customerId مطلوب" }, 400);
+  const { customerId, startDate } = sellBundleSchema.parse(await c.req.json());
 
   const [bundle] = await db.select().from(bundles)
     .where(and(eq(bundles.id, bundleId), eq(bundles.orgId, orgId)));
@@ -78,7 +98,7 @@ bundlesRouter.post("/:id/sell", async (c) => {
 
   if (items.length === 0) return c.json({ error: "الباقة لا تحتوي على خدمات" }, 400);
 
-  const start = startDate ? new Date(startDate) : new Date();
+  const startDateStr = startDate ?? new Date().toISOString().slice(0, 10);
 
   const created = await db.insert(customerSubscriptions).values(
     items.map(({ item, service }) => ({
@@ -89,7 +109,7 @@ bundlesRouter.post("/:id/sell", async (c) => {
       price: bundle.finalPrice ?? bundle.totalBasePrice ?? null,
       maxUsage: item.quantity ?? 1,
       currentUsage: 0,
-      startDate: start,
+      startDate: startDateStr,
       status: "active",
     }))
   ).returning();
@@ -100,9 +120,11 @@ bundlesRouter.post("/:id/sell", async (c) => {
 // DELETE /bundles/:id
 bundlesRouter.delete("/:id", async (c) => {
   const orgId = getOrgId(c);
-  const [deleted] = await db.delete(bundles)
+  const [updated] = await db.update(bundles)
+    .set({ status: "archived", updatedAt: new Date() })
     .where(and(eq(bundles.id, c.req.param("id")), eq(bundles.orgId, orgId)))
     .returning();
-  if (!deleted) return c.json({ error: "Bundle not found" }, 404);
-  return c.json({ data: deleted });
+  if (!updated) return c.json({ error: "Bundle not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "bundle", resourceId: updated.id });
+  return c.json({ data: updated });
 });

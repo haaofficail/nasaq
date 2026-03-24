@@ -1,9 +1,12 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, desc, sql } from "drizzle-orm";
-import { db } from "@nasaq/db/client";
-import { approvalRules, approvalRequests } from "@nasaq/db/schema";
+import { db, pool } from "@nasaq/db/client";
+import { approvalRules, approvalRequests, bookings } from "@nasaq/db/schema";
 import { getOrgId, getUserId } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+import { requirePermission } from "../middleware/auth";
+import { apiErr } from "../lib/errors";
 import { DEFAULT_EXPIRY_HOURS } from "@nasaq/db/constants";
 
 const createApprovalRequestSchema = z.object({
@@ -32,6 +35,30 @@ const createApprovalRuleSchema = z.object({
 });
 
 export const approvalsRouter = new Hono();
+
+// ============================================================
+// APPROVAL EXECUTION — يُنفّذ الإجراء المطلوب بعد الموافقة
+// المدعوم حالياً: تغيير حالة الحجز (resource = "booking")
+// ============================================================
+
+async function executeApprovedAction(
+  orgId: string,
+  request: typeof approvalRequests.$inferSelect,
+) {
+  if (request.resource !== "booking") return;
+
+  const data = request.requestData as Record<string, unknown>;
+  const newStatus = data?.status as string | undefined;
+  if (!newStatus) return;
+
+  await db.update(bookings).set({
+    status: newStatus as any,
+    updatedAt: new Date(),
+  }).where(and(
+    eq(bookings.id, request.resourceId),
+    eq(bookings.orgId, orgId),
+  ));
+}
 
 // ============================================================
 // GET /approvals — List pending approval requests
@@ -93,31 +120,43 @@ approvalsRouter.post("/", async (c) => {
 
   const [request] = await db.insert(approvalRequests).values({
     orgId,
-    ruleId: body.ruleId || null,
+    ruleId: body.ruleId ?? null,
     resource: body.resource,
     resourceId: body.resourceId,
     action: body.action,
-    description: body.description,
+    description: body.description ?? "",
     requestData: body.requestData || {},
     requestedBy: userId!,
-    approverRoleId: body.approverRoleId || null,
-    approverUserId: body.approverUserId || null,
+    approverRoleId: body.approverRoleId ?? null,
+    approverUserId: body.approverUserId ?? null,
     expiresAt: new Date(Date.now() + (body.expiryHours || DEFAULT_EXPIRY_HOURS) * 60 * 60 * 1000),
   }).returning();
 
-  // TODO: Send notification to approver (WhatsApp/Push)
+  // Notify approver via message_logs (fire-and-forget)
+  if (body.approverUserId) {
+    pool.query(`
+      INSERT INTO message_logs (org_id, channel, recipient_phone, message_text, status, category)
+      SELECT $1, 'dashboard', u.phone,
+        $2, 'sent', 'approval_request'
+      FROM users u WHERE u.id = $3 LIMIT 1
+    `, [
+      orgId,
+      `طلب موافقة جديد: ${body.description || body.action} — ${body.resource}`,
+      body.approverUserId,
+    ]).catch(() => {});
+  }
 
   return c.json({ data: request }, 201);
 });
 
 // ============================================================
-// PATCH /approvals/:id/approve — Approve
+// PATCH /approvals/:id/approve — Approve (requires approvals:approve)
 // ============================================================
 
-approvalsRouter.patch("/:id/approve", async (c) => {
+approvalsRouter.patch("/:id/approve", requirePermission("approvals", "approve"), async (c) => {
   const orgId = getOrgId(c);
   const userId = getUserId(c);
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const body = await c.req.json();
 
   const [updated] = await db.update(approvalRequests).set({
@@ -131,21 +170,22 @@ approvalsRouter.patch("/:id/approve", async (c) => {
     eq(approvalRequests.status, "pending"),
   )).returning();
 
-  if (!updated) return c.json({ error: "الطلب غير موجود أو تم حله مسبقاً" }, 404);
+  if (!updated) return apiErr(c, "APPR_NOT_FOUND", 404);
 
-  // TODO: Execute the original action now that it's approved
+  // Execute the original action — currently supports booking status transitions
+  executeApprovedAction(orgId, updated).catch(() => {});
 
   return c.json({ data: updated });
 });
 
 // ============================================================
-// PATCH /approvals/:id/reject — Reject
+// PATCH /approvals/:id/reject — Reject (requires approvals:reject)
 // ============================================================
 
-approvalsRouter.patch("/:id/reject", async (c) => {
+approvalsRouter.patch("/:id/reject", requirePermission("approvals", "reject"), async (c) => {
   const orgId = getOrgId(c);
   const userId = getUserId(c);
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const body = await c.req.json();
 
   const [updated] = await db.update(approvalRequests).set({
@@ -159,7 +199,7 @@ approvalsRouter.patch("/:id/reject", async (c) => {
     eq(approvalRequests.status, "pending"),
   )).returning();
 
-  if (!updated) return c.json({ error: "الطلب غير موجود أو تم حله مسبقاً" }, 404);
+  if (!updated) return apiErr(c, "APPR_NOT_FOUND", 404);
   return c.json({ data: updated });
 });
 
@@ -170,7 +210,7 @@ approvalsRouter.patch("/:id/reject", async (c) => {
 approvalsRouter.get("/rules", async (c) => {
   const orgId = getOrgId(c);
   const result = await db.select().from(approvalRules)
-    .where(eq(approvalRules.orgId, orgId));
+    .where(and(eq(approvalRules.orgId, orgId), eq(approvalRules.isActive, true)));
   return c.json({ data: result });
 });
 
@@ -195,11 +235,13 @@ approvalsRouter.post("/rules", async (c) => {
 
 approvalsRouter.delete("/rules/:id", async (c) => {
   const orgId = getOrgId(c);
-  const [deleted] = await db.delete(approvalRules)
+  const [updated] = await db.update(approvalRules)
+    .set({ isActive: false, updatedAt: new Date() })
     .where(and(eq(approvalRules.id, c.req.param("id")), eq(approvalRules.orgId, orgId)))
     .returning();
-  if (!deleted) return c.json({ error: "القاعدة غير موجودة" }, 404);
-  return c.json({ data: deleted });
+  if (!updated) return apiErr(c, "APPR_RULE_NOT_FOUND", 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "approval_rule", resourceId: updated.id });
+  return c.json({ data: updated });
 });
 
 // ============================================================

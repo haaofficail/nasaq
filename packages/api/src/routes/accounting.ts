@@ -9,6 +9,8 @@ import {
   accountingPeriods,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+import { requirePermission } from "../middleware/auth";
 import {
   createJournalEntry,
   reverseJournalEntry,
@@ -173,6 +175,7 @@ accountingRouter.delete("/chart-of-accounts/:id", async (c) => {
     .set({ isActive: false, updatedAt: new Date() })
     .where(eq(chartOfAccounts.id, c.req.param("id")));
 
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "chart_of_accounts", resourceId: c.req.param("id") });
   return c.json({ success: true });
 });
 
@@ -221,15 +224,15 @@ accountingRouter.post("/periods", async (c) => {
   return c.json({ data: period }, 201);
 });
 
-// POST /accounting/periods/:id/close — إغلاق فترة
-accountingRouter.post("/periods/:id/close", async (c) => {
+// POST /accounting/periods/:id/close — إغلاق فترة (requires finance:close)
+accountingRouter.post("/periods/:id/close", requirePermission("finance", "close"), async (c) => {
   const orgId = getOrgId(c);
   const userId = getUserId(c);
 
   const [period] = await db
     .select()
     .from(accountingPeriods)
-    .where(and(eq(accountingPeriods.id, c.req.param("id")), eq(accountingPeriods.orgId, orgId)));
+    .where(and(eq(accountingPeriods.id, c.req.param("id")!), eq(accountingPeriods.orgId, orgId)));
 
   if (!period) return c.json({ error: "الفترة غير موجودة" }, 404);
   if (period.status !== "open") return c.json({ error: "الفترة مُغلقة بالفعل" }, 422);
@@ -279,7 +282,7 @@ accountingRouter.post("/periods/:id/closing-entries", async (c) => {
   const [period] = await db
     .select()
     .from(accountingPeriods)
-    .where(and(eq(accountingPeriods.id, c.req.param("id")), eq(accountingPeriods.orgId, orgId)));
+    .where(and(eq(accountingPeriods.id, c.req.param("id")!), eq(accountingPeriods.orgId, orgId)));
 
   if (!period) return c.json({ error: "الفترة غير موجودة" }, 404);
   if (period.status === "locked") return c.json({ error: "الفترة مقفلة — لا يمكن توليد قيود إقفال" }, 422);
@@ -322,7 +325,7 @@ accountingRouter.post("/periods/:id/lock", async (c) => {
   const [period] = await db
     .select()
     .from(accountingPeriods)
-    .where(and(eq(accountingPeriods.id, c.req.param("id")), eq(accountingPeriods.orgId, orgId)));
+    .where(and(eq(accountingPeriods.id, c.req.param("id")!), eq(accountingPeriods.orgId, orgId)));
 
   if (!period) return c.json({ error: "الفترة غير موجودة" }, 404);
   if (period.status === "locked") return c.json({ error: "الفترة مقفلة بالفعل" }, 422);
@@ -379,7 +382,7 @@ accountingRouter.get("/journal-entries/:id", async (c) => {
   const [entry] = await db
     .select()
     .from(journalEntries)
-    .where(and(eq(journalEntries.id, c.req.param("id")), eq(journalEntries.orgId, orgId)));
+    .where(and(eq(journalEntries.id, c.req.param("id")!), eq(journalEntries.orgId, orgId)));
 
   if (!entry) return c.json({ error: "القيد غير موجود" }, 404);
 
@@ -472,15 +475,15 @@ accountingRouter.post("/journal-entries", async (c) => {
   }
 });
 
-// POST /accounting/journal-entries/:id/post — ترحيل قيد مسودة
-accountingRouter.post("/journal-entries/:id/post", async (c) => {
+// POST /accounting/journal-entries/:id/post — ترحيل قيد مسودة (requires finance:post)
+accountingRouter.post("/journal-entries/:id/post", requirePermission("finance", "post"), async (c) => {
   const orgId = getOrgId(c);
   const userId = getUserId(c);
 
   const [entry] = await db
     .select()
     .from(journalEntries)
-    .where(and(eq(journalEntries.id, c.req.param("id")), eq(journalEntries.orgId, orgId)));
+    .where(and(eq(journalEntries.id, c.req.param("id")!), eq(journalEntries.orgId, orgId)));
 
   if (!entry) return c.json({ error: "القيد غير موجود" }, 404);
   if (entry.status !== "draft") return c.json({ error: "القيد مُرحَّل بالفعل" }, 422);
@@ -515,18 +518,20 @@ accountingRouter.post("/journal-entries/:id/post", async (c) => {
   return c.json({ data: posted });
 });
 
-// POST /accounting/journal-entries/:id/reverse — عكس قيد
-accountingRouter.post("/journal-entries/:id/reverse", async (c) => {
+// POST /accounting/journal-entries/:id/reverse — عكس قيد (requires finance:reverse)
+accountingRouter.post("/journal-entries/:id/reverse", requirePermission("finance", "reverse"), async (c) => {
   const orgId = getOrgId(c);
   const userId = getUserId(c);
-  const body = z.object({ reason: z.string().optional() }).optional().parse(
+  const bodyParsed = z.object({ reason: z.string().optional() }).optional().safeParse(
     await c.req.json().catch(() => ({}))
   );
+  if (!bodyParsed.success) return c.json({ error: bodyParsed.error.flatten() }, 400);
+  const body = bodyParsed.data;
 
   const [entry] = await db
     .select()
     .from(journalEntries)
-    .where(and(eq(journalEntries.id, c.req.param("id")), eq(journalEntries.orgId, orgId)));
+    .where(and(eq(journalEntries.id, c.req.param("id")!), eq(journalEntries.orgId, orgId)));
 
   if (!entry) return c.json({ error: "القيد غير موجود" }, 404);
 

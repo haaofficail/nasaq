@@ -64,22 +64,36 @@ export const assets = pgTable("assets", {
   assetTypeId: uuid("asset_type_id").notNull().references(() => assetTypes.id),
 
   // Identity
-  serialNumber: text("serial_number"),             // رقم تسلسلي فريد
-  barcode: text("barcode"),                        // QR/Barcode value
-  name: text("name"),                              // اسم مميز (اختياري)
-  
+  serialNumber: text("serial_number"),
+  barcode: text("barcode"),
+  name: text("name"),
+
   // Status
   status: assetStatusEnum("status").default("available").notNull(),
-  condition: text("condition"),                    // ممتاز، جيد، مقبول، يحتاج صيانة
-  
-  // Location
+  condition: text("condition"),                    // excellent, good, fair, poor
+
+  // ── Operational Location Model ──────────────────────────────
+  // warehouse → in storage  |  branch → at a branch
+  // rented → rented to customer  |  assigned → assigned to employee
+  locationType: text("location_type").default("warehouse").notNull(),
   currentLocationId: uuid("current_location_id").references(() => locations.id),
-  
+
+  // Assignment to user/employee (locationType = "assigned")
+  assignedToUserId: uuid("assigned_to_user_id").references(() => users.id),
+
+  // Rental linkage (locationType = "rented")
+  rentedToCustomerId: uuid("rented_to_customer_id"),
+  rentalBookingId: uuid("rental_booking_id"),
+
+  // ── Flags ───────────────────────────────────────────────────
+  isMovable: boolean("is_movable").default(true).notNull(),    // fixed vs movable
+  isRentable: boolean("is_rentable").default(false).notNull(), // rentable vs non-rentable
+
   // Financial
   purchaseDate: timestamp("purchase_date", { withTimezone: true }),
   purchasePrice: numeric("purchase_price", { precision: 10, scale: 2 }),
   currentValue: numeric("current_value", { precision: 10, scale: 2 }),
-  
+
   // Usage tracking
   totalUses: integer("total_uses").default(0),
   lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
@@ -87,8 +101,8 @@ export const assets = pgTable("assets", {
   nextMaintenanceAt: timestamp("next_maintenance_at", { withTimezone: true }),
 
   // Images
-  images: jsonb("images").default([]),             // ["url1", "url2"]
-  
+  images: jsonb("images").default([]),
+
   notes: text("notes"),
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -159,6 +173,37 @@ export const maintenanceLogs = pgTable("maintenance_logs", {
 // ============================================================
 // ASSET TRANSFERS — نقل الأصول بين المواقع
 // ============================================================
+
+// ============================================================
+// ASSET MOVEMENTS — تاريخ حركات الأصل الكاملة
+// ============================================================
+
+export const assetMovements = pgTable("asset_movements", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  assetId: uuid("asset_id").notNull().references(() => assets.id, { onDelete: "cascade" }),
+
+  // From state (null on first movement)
+  fromLocationType: text("from_location_type"),
+  fromLocationId: uuid("from_location_id").references(() => locations.id),
+  fromAssignedUserId: uuid("from_assigned_user_id").references(() => users.id),
+  fromCustomerId: uuid("from_customer_id"),
+
+  // To state
+  toLocationType: text("to_location_type").notNull(),
+  toLocationId: uuid("to_location_id").references(() => locations.id),
+  toAssignedUserId: uuid("to_assigned_user_id").references(() => users.id),
+  toCustomerId: uuid("to_customer_id"),
+  toBookingId: uuid("to_booking_id"),
+
+  reason: text("reason"),
+  notes: text("notes"),
+  movedBy: uuid("moved_by").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("asset_movements_asset_id_idx").on(table.assetId),
+  index("asset_movements_org_id_idx").on(table.orgId),
+]);
 
 export const assetTransfers = pgTable("asset_transfers", {
   id: uuid("id").defaultRandom().primaryKey(),

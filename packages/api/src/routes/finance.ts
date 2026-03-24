@@ -7,9 +7,12 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { DEFAULT_VAT_RATE } from "@nasaq/db/constants";
 import { postCreditSale, postExpense, isAccountingEnabled, getAccountByKey } from "../lib/posting-engine";
+import { insertAuditLog } from "../lib/audit";
+import { requirePermission } from "../middleware/auth";
+import { encryptString, decryptString } from "../lib/encryption";
 
 const createExpenseSchema = z.object({
-  category: z.string(),
+  category: z.enum(["marketing", "maintenance", "rent", "salaries", "equipment", "transport", "utilities", "supplies", "other"]),
   subcategory: z.string().optional(),
   description: z.string(),
   amount: z.string(),
@@ -26,7 +29,7 @@ const createExpenseSchema = z.object({
 });
 
 const createInvoiceSchema = z.object({
-  invoiceType: z.enum(["simplified", "standard"]).optional(),
+  invoiceType: z.enum(["simplified", "tax", "credit_note", "debit_note"]).optional(),
   bookingId: z.string().uuid().optional().nullable(),
   customerId: z.string().uuid().optional().nullable(),
   sellerName: z.string().min(1),
@@ -56,6 +59,12 @@ const createInvoiceSchema = z.object({
     vatAmount: z.string(),
     totalAmount: z.string(),
   })).optional(),
+});
+
+const generatePayoutSchema = z.object({
+  vendorId: z.string().uuid(),
+  periodStart: z.string(),
+  periodEnd: z.string(),
 });
 
 const createGatewaySchema = z.object({
@@ -194,6 +203,7 @@ financeRouter.post("/invoices", async (c) => {
     } catch { /* فشل الترحيل لا يُوقف العملية */ }
   })();
 
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "invoice", resourceId: invoice.id });
   return c.json({ data: invoice }, 201);
 });
 
@@ -259,6 +269,7 @@ financeRouter.post("/expenses", async (c) => {
     } catch { /* فشل الترحيل لا يُوقف العملية */ }
   })();
 
+  insertAuditLog({ orgId, userId, action: "created", resource: "expense", resourceId: expense.id });
   return c.json({ data: expense }, 201);
 });
 
@@ -275,10 +286,9 @@ financeRouter.get("/payouts", async (c) => {
   return c.json({ data: result });
 });
 
-financeRouter.post("/payouts/generate", async (c) => {
+financeRouter.post("/payouts/generate", requirePermission("finance", "approve"), async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
-  const { vendorId, periodStart, periodEnd } = body;
+  const { vendorId, periodStart, periodEnd } = generatePayoutSchema.parse(await c.req.json());
 
   // Get vendor's bookings in period
   const vendorBookings = await db.select().from(bookings).where(and(
@@ -315,18 +325,69 @@ financeRouter.post("/payouts/generate", async (c) => {
 // PAYMENT GATEWAY CONFIG
 // ============================================================
 
+// Encrypt the three sensitive credential fields before DB write
+function encryptGatewayCreds<T extends { apiKey?: string | null; secretKey?: string | null; webhookSecret?: string | null }>(body: T): T {
+  const result = { ...body };
+  if (body.apiKey != null)       result.apiKey       = encryptString(body.apiKey) as T["apiKey"];
+  if (body.secretKey != null)    result.secretKey    = encryptString(body.secretKey) as T["secretKey"];
+  if (body.webhookSecret != null) result.webhookSecret = encryptString(body.webhookSecret) as T["webhookSecret"];
+  return result;
+}
+
+// Strip sensitive fields from list/detail responses
+function sanitizeGateway(g: Record<string, unknown>) {
+  return {
+    ...g,
+    apiKey:        g.apiKey        ? "***" : null,
+    secretKey:     g.secretKey     ? "***" : null,
+    webhookSecret: g.webhookSecret ? "***" : null,
+  };
+}
+
 financeRouter.get("/gateways", async (c) => {
   const orgId = getOrgId(c);
   const result = await db.select().from(paymentGatewayConfigs).where(eq(paymentGatewayConfigs.orgId, orgId));
-  // Hide sensitive keys
-  return c.json({ data: result.map(g => ({ ...g, apiKey: g.apiKey ? "***" : null, secretKey: g.secretKey ? "***" : null })) });
+  return c.json({ data: result.map(sanitizeGateway) });
 });
 
 financeRouter.post("/gateways", async (c) => {
   const orgId = getOrgId(c);
-  const body = createGatewaySchema.parse(await c.req.json());
+  const body = encryptGatewayCreds(createGatewaySchema.parse(await c.req.json()));
   const [gw] = await db.insert(paymentGatewayConfigs).values({ orgId, ...body }).returning();
-  return c.json({ data: gw }, 201);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "payment_gateway", resourceId: gw.id });
+  return c.json({ data: sanitizeGateway(gw as unknown as Record<string, unknown>) }, 201);
+});
+
+financeRouter.put("/gateways/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const body = encryptGatewayCreds(createGatewaySchema.partial().parse(await c.req.json()));
+  const [gw] = await db
+    .update(paymentGatewayConfigs)
+    .set({ ...body, updatedAt: new Date() })
+    .where(and(eq(paymentGatewayConfigs.id, c.req.param("id")), eq(paymentGatewayConfigs.orgId, orgId)))
+    .returning();
+  if (!gw) return c.json({ error: "Not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "payment_gateway", resourceId: gw.id });
+  return c.json({ data: sanitizeGateway(gw as unknown as Record<string, unknown>) });
+});
+
+// Decrypt and return raw credentials — owner/admin only
+financeRouter.get("/gateways/:id/credentials", requirePermission("finance", "manage"), async (c) => {
+  const orgId = getOrgId(c);
+  const [gw] = await db
+    .select()
+    .from(paymentGatewayConfigs)
+    .where(and(eq(paymentGatewayConfigs.id, c.req.param("id")!), eq(paymentGatewayConfigs.orgId, orgId)));
+  if (!gw) return c.json({ error: "Not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "view", resource: "payment_gateway_credentials", resourceId: gw.id });
+  return c.json({
+    data: {
+      apiKey:        decryptString(gw.apiKey),
+      publishableKey: gw.publishableKey,
+      secretKey:     decryptString(gw.secretKey),
+      webhookSecret: decryptString(gw.webhookSecret),
+    },
+  });
 });
 
 // ============================================================
@@ -424,6 +485,48 @@ financeRouter.get("/reports/cashflow", async (c) => {
   }
 
   return c.json({ data });
+});
+
+// ============================================================
+// GET /finance/commission-summary — ملخص عمولات الموظفين
+// يحسب العمولة على أساس نسبة الخدمة (service_costs) أو نسبة الموظف (users.commissionRate)
+// ============================================================
+
+financeRouter.get("/commission-summary", async (c) => {
+  const orgId = getOrgId(c);
+  const year  = parseInt(c.req.query("year")  || String(new Date().getFullYear()));
+  const month = parseInt(c.req.query("month") || String(new Date().getMonth() + 1));
+
+  const from = new Date(year, month - 1, 1);
+  const to   = new Date(year, month, 0, 23, 59, 59);
+
+  // Single aggregation query: joins booking_items → services → service_costs → assigned user
+  const rows = await db.execute(sql`
+    SELECT
+      b.assigned_user_id                                          AS user_id,
+      u.name                                                      AS user_name,
+      u.job_title                                                 AS job_title,
+      u.commission_rate                                           AS staff_rate,
+      COUNT(DISTINCT b.id)::int                                   AS booking_count,
+      COALESCE(SUM(bi.total_price::numeric), 0)                   AS total_revenue,
+      COALESCE(SUM(
+        bi.total_price::numeric *
+        COALESCE(sc.commission_percent::numeric, u.commission_rate::numeric, 10) / 100
+      ), 0)                                                       AS commission_amount
+    FROM bookings b
+    JOIN booking_items bi  ON bi.booking_id   = b.id
+    JOIN services s        ON s.id            = bi.service_id
+    LEFT JOIN service_costs sc ON sc.service_id = s.id AND sc.org_id = b.org_id
+    LEFT JOIN users u      ON u.id            = b.assigned_user_id
+    WHERE b.org_id    = ${orgId}
+      AND b.status    = 'completed'
+      AND b.event_date >= ${from}
+      AND b.event_date <= ${to}
+    GROUP BY b.assigned_user_id, u.name, u.job_title, u.commission_rate
+    ORDER BY total_revenue DESC
+  `);
+
+  return c.json({ data: (rows as any).rows ?? [] });
 });
 
 // ============================================================

@@ -1,10 +1,16 @@
 import { Hono } from "hono";
-import { eq, and, desc, ilike, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, ilike, sql, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { nanoid } from "nanoid";
+import { writeFile, mkdir, unlink } from "node:fs/promises";
+import { join } from "node:path";
 import { db } from "@nasaq/db/client";
 import { mediaAssets } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+
+const UPLOAD_DIR     = process.env.UPLOAD_DIR     || "/var/www/nasaq/static/uploads";
+const STATIC_BASE_URL = process.env.STATIC_BASE_URL || "https://nasaqpro.tech/static/uploads";
 
 // ── Lazy R2 client — only created when env vars are present ─────────────────
 
@@ -46,6 +52,59 @@ const ALLOWED_TYPES: Record<string, string> = {
   "application/vnd.ms-excel":                                            "document",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":  "document",
 };
+
+// ── Image dimension reader (no external deps) ────────────────────────────────
+
+function getImageDimensions(buf: Buffer, mime: string): { width: number; height: number } | null {
+  try {
+    if (mime === "image/png") {
+      if (buf.length < 24) return null;
+      return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+    }
+    if (mime === "image/gif") {
+      if (buf.length < 10) return null;
+      return { width: buf.readUInt16LE(6), height: buf.readUInt16LE(8) };
+    }
+    if (mime === "image/jpeg") {
+      let i = 2;
+      while (i + 9 < buf.length) {
+        if (buf[i] !== 0xFF) break;
+        const m = buf[i + 1];
+        if ((m >= 0xC0 && m <= 0xC3) || (m >= 0xC5 && m <= 0xC7) ||
+            (m >= 0xC9 && m <= 0xCB) || (m >= 0xCD && m <= 0xCF)) {
+          return { height: buf.readUInt16BE(i + 5), width: buf.readUInt16BE(i + 7) };
+        }
+        i += 2 + buf.readUInt16BE(i + 2);
+      }
+      return null;
+    }
+    if (mime === "image/webp") {
+      if (buf.length < 30) return null;
+      if (buf.slice(0, 4).toString("ascii") !== "RIFF") return null;
+      if (buf.slice(8, 12).toString("ascii") !== "WEBP") return null;
+      const t = buf.slice(12, 16).toString("ascii").trim();
+      if (t === "VP8 ") return { width: buf.readUInt16LE(26) & 0x3FFF, height: buf.readUInt16LE(28) & 0x3FFF };
+      if (t === "VP8L") {
+        const b = buf.readUInt32LE(21);
+        return { width: (b & 0x3FFF) + 1, height: ((b >> 14) & 0x3FFF) + 1 };
+      }
+      return null;
+    }
+    return null;
+  } catch { return null; }
+}
+
+// ── Disk file cleanup helper ──────────────────────────────────────────────────
+
+async function deleteDiskFile(r2Key: string): Promise<void> {
+  try {
+    // r2Key = "orgId/category/filename" — file lives at UPLOAD_DIR/orgId/filename
+    const parts = r2Key.split("/");
+    if (parts.length < 3) return;
+    const diskPath = join(UPLOAD_DIR, parts[0], parts[parts.length - 1]);
+    await unlink(diskPath);
+  } catch { /* non-critical */ }
+}
 
 function mimeToAssetType(mime: string): "image" | "video" | "document" | "logo" {
   return (ALLOWED_TYPES[mime] as any) || "document";
@@ -108,6 +167,8 @@ mediaRouter.get("/", async (c) => {
   const category = c.req.query("category") || "";
   const tag      = c.req.query("tag")      || "";
   const serviceId = c.req.query("serviceId") || "";
+  const sortBy  = c.req.query("sortBy")  || "createdAt";
+  const sortDir = c.req.query("sortDir") || "desc";
 
   const conditions: any[] = [
     eq(mediaAssets.orgId, orgId),
@@ -126,10 +187,18 @@ mediaRouter.get("/", async (c) => {
 
   const where = and(...conditions);
 
+  const SORT_COLS: Record<string, any> = {
+    createdAt: mediaAssets.createdAt,
+    name:      mediaAssets.name,
+    sizeBytes: mediaAssets.sizeBytes,
+  };
+  const sortCol = SORT_COLS[sortBy] ?? mediaAssets.createdAt;
+  const orderFn = sortDir === "asc" ? asc : desc;
+
   const [rows, countRow] = await Promise.all([
     db.select().from(mediaAssets)
       .where(where)
-      .orderBy(desc(mediaAssets.createdAt))
+      .orderBy(orderFn(sortCol))
       .limit(limit)
       .offset(offset),
     db.select({ count: sql<number>`COUNT(*)` })
@@ -270,6 +339,27 @@ mediaRouter.post("/confirm", async (c) => {
   }).returning();
 
   return c.json({ data: asset }, 201);
+});
+
+// ============================================================
+// GET /media/stats
+// Storage summary for the org
+// ============================================================
+
+mediaRouter.get("/stats", async (c) => {
+  const orgId = getOrgId(c);
+  const [row] = await db
+    .select({
+      totalCount: sql<number>`COUNT(*)`,
+      totalSize:  sql<number>`COALESCE(SUM(size_bytes), 0)`,
+      imageCount: sql<number>`COUNT(*) FILTER (WHERE file_type = 'image')`,
+      videoCount: sql<number>`COUNT(*) FILTER (WHERE file_type = 'video')`,
+      docCount:   sql<number>`COUNT(*) FILTER (WHERE file_type = 'document')`,
+      logoCount:  sql<number>`COUNT(*) FILTER (WHERE file_type = 'logo')`,
+    })
+    .from(mediaAssets)
+    .where(and(eq(mediaAssets.orgId, orgId), eq(mediaAssets.isActive, true)));
+  return c.json({ data: row });
 });
 
 // ============================================================
@@ -455,18 +545,79 @@ mediaRouter.delete("/:id", async (c) => {
     .set({ isActive: false, updatedAt: new Date() })
     .where(eq(mediaAssets.id, id));
 
-  // Best-effort R2 deletion — don't fail the request if it errors
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "media_asset", resourceId: id, metadata: { name: asset.name, mimeType: asset.mimeType } });
+
+  // Best-effort file deletion — R2 or disk
   try {
     const s3 = await getR2Client();
     if (s3 && asset.r2Key) {
       const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
       await s3.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: asset.r2Key }));
+    } else if (!s3 && asset.r2Key) {
+      await deleteDiskFile(asset.r2Key);
     }
-  } catch {
-    // Non-critical — metadata is already soft-deleted
-  }
+  } catch { /* Non-critical */ }
 
   return c.json({ data: { id: asset.id, deleted: true } });
+});
+
+// ============================================================
+// POST /media/upload
+// Direct multipart upload — used when R2 is not configured
+// ============================================================
+
+mediaRouter.post("/upload", async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+
+  const form = await c.req.formData();
+  const file = form.get("file") as File | null;
+
+  if (!file) return c.json({ error: "لم يتم إرسال ملف" }, 400);
+  if (!ALLOWED_TYPES[file.type]) return c.json({ error: "نوع الملف غير مدعوم" }, 400);
+
+  const maxSize = maxSizeForMime(file.type);
+  if (file.size > maxSize) return c.json({ error: "حجم الملف كبير جداً" }, 400);
+
+  const ext      = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "bin";
+  const key      = `${nanoid(14)}.${ext}`;
+  const category = (form.get("category") as string) || "media";
+
+  const orgDir = join(UPLOAD_DIR, orgId);
+  await mkdir(orgDir, { recursive: true });
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await writeFile(join(orgDir, key), buffer);
+
+  const fileUrl   = `${STATIC_BASE_URL}/${orgId}/${key}`;
+  const r2Key     = `${orgId}/${category}/${key}`;
+  const dimensions = file.type.startsWith("image/") ? getImageDimensions(buffer, file.type) : null;
+
+  const tagsRaw = form.get("tags") as string | null;
+  const tags    = tagsRaw ? tagsRaw.split(",").map(t => t.trim()).filter(Boolean) : [];
+
+  const fileType        = (form.get("fileType") as any) || mimeToAssetType(file.type);
+  const altText         = (form.get("altText")  as string | null) ?? undefined;
+  const relatedServiceId = (form.get("relatedServiceId") as string | null) ?? undefined;
+  const name            = (form.get("name") as string | null) || file.name.replace(/\.[^.]+$/, "");
+
+  const [asset] = await db.insert(mediaAssets).values({
+    orgId,
+    createdBy:        userId || undefined,
+    name,
+    fileUrl,
+    r2Key,
+    fileType,
+    mimeType:         file.type,
+    sizeBytes:        file.size,
+    width:            dimensions?.width,
+    height:           dimensions?.height,
+    tags,
+    category:         category || undefined,
+    altText,
+    relatedServiceId,
+  }).returning();
+
+  return c.json({ data: asset }, 201);
 });
 
 // ============================================================
@@ -478,10 +629,30 @@ mediaRouter.post("/bulk-delete", async (c) => {
   const orgId = getOrgId(c);
   const body  = z.object({ ids: z.array(z.string().uuid()).min(1).max(50) }).parse(await c.req.json());
 
+  // Fetch r2Keys before deleting (for disk/R2 cleanup)
+  const rows = await db
+    .select({ id: mediaAssets.id, r2Key: mediaAssets.r2Key })
+    .from(mediaAssets)
+    .where(and(inArray(mediaAssets.id, body.ids), eq(mediaAssets.orgId, orgId)));
+
   const deleted = await db.update(mediaAssets)
     .set({ isActive: false, updatedAt: new Date() })
     .where(and(inArray(mediaAssets.id, body.ids), eq(mediaAssets.orgId, orgId)))
     .returning({ id: mediaAssets.id });
+
+  // Best-effort file cleanup
+  const s3 = await getR2Client();
+  for (const row of rows) {
+    if (!row.r2Key) continue;
+    try {
+      if (s3) {
+        const { DeleteObjectCommand } = await import("@aws-sdk/client-s3");
+        await s3.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: row.r2Key }));
+      } else {
+        await deleteDiskFile(row.r2Key);
+      }
+    } catch { /* non-critical */ }
+  }
 
   return c.json({ data: { deleted: deleted.length } });
 });

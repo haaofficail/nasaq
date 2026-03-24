@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { eq, and, inArray } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { serviceMedia, services } from "@nasaq/db/schema";
-import { getOrgId } from "../lib/helpers";
+import { getOrgId, getUserId } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
 import { nanoid } from "nanoid";
 
 // Helper: verify that a media item belongs to the caller's org
@@ -184,14 +185,14 @@ uploadsRouter.delete("/:id", async (c) => {
   const isOwned = await verifyMediaOwnership(mediaId, orgId);
   if (!isOwned) return c.json({ error: "الصورة غير موجودة أو غير مصرح" }, 404);
 
-  const [deleted] = await db.delete(serviceMedia)
+  const [softDeleted] = await db.update(serviceMedia)
+    .set({ isActive: false })
     .where(eq(serviceMedia.id, mediaId))
     .returning();
 
-  if (!deleted) return c.json({ error: "الصورة غير موجودة" }, 404);
+  if (!softDeleted) return c.json({ error: "الصورة غير موجودة" }, 404);
 
-  // TODO: Delete from R2 bucket
-  // await s3Client.send(new DeleteObjectCommand({ Bucket: R2_BUCKET, Key: extractKey(deleted.url) }));
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "service_media", resourceId: mediaId });
 
-  return c.json({ data: deleted });
+  return c.json({ data: softDeleted });
 });

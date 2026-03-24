@@ -477,7 +477,7 @@ attendanceRouter.delete("/schedules/:id", async (c) => {
     `SELECT COUNT(*) AS cnt FROM employee_schedule_assignments WHERE schedule_id = $1 AND is_active = true`, [id]
   );
   if (parseInt(rows[0].cnt) > 0) return c.json({ error: "لا يمكن حذف جدول مرتبط بموظفين" }, 400);
-  await pool.query(`DELETE FROM attendance_schedules WHERE id = $1 AND org_id = $2`, [id, orgId]);
+  await pool.query(`UPDATE attendance_schedules SET is_active = false WHERE id = $1 AND org_id = $2`, [id, orgId]);
   return c.json({ data: { success: true } });
 });
 

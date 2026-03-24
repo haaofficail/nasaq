@@ -3,7 +3,9 @@ import { z } from "zod";
 import { eq, and, isNull, asc } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { categories } from "@nasaq/db/schema";
-import { generateSlug, getOrgId, validateBody } from "../lib/helpers";
+import { generateSlug, getOrgId, getUserId, validateBody } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+import { apiErr } from "../lib/errors";
 
 export const categoriesRouter = new Hono();
 
@@ -38,8 +40,9 @@ categoriesRouter.get("/", async (c) => {
   const result = await db
     .select()
     .from(categories)
-    .where(eq(categories.orgId, orgId))
-    .orderBy(asc(categories.sortOrder), asc(categories.name));
+    .where(and(eq(categories.orgId, orgId), eq(categories.isActive, true)))
+    .orderBy(asc(categories.sortOrder), asc(categories.name))
+    .limit(500);
 
   if (flat) {
     return c.json({ data: result, total: result.length });
@@ -63,7 +66,7 @@ categoriesRouter.get("/:id", async (c) => {
     .from(categories)
     .where(and(eq(categories.id, id), eq(categories.orgId, orgId)));
 
-  if (!category) return c.json({ error: "Category not found" }, 404);
+  if (!category) return apiErr(c, "CAT_NOT_FOUND", 404);
 
   // Get children
   const children = await db
@@ -137,16 +140,18 @@ categoriesRouter.delete("/:id", async (c) => {
     .where(and(eq(categories.parentId, id), eq(categories.orgId, orgId)));
 
   if (children.length > 0) {
-    return c.json({ error: "Cannot delete category with children. Delete or move children first." }, 400);
+    return apiErr(c, "CAT_HAS_CHILDREN", 400);
   }
 
-  const [deleted] = await db
-    .delete(categories)
+  const [updated] = await db
+    .update(categories)
+    .set({ isActive: false, updatedAt: new Date() })
     .where(and(eq(categories.id, id), eq(categories.orgId, orgId)))
     .returning();
 
-  if (!deleted) return c.json({ error: "Category not found" }, 404);
-  return c.json({ data: deleted });
+  if (!updated) return c.json({ error: "Category not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "category", resourceId: updated.id });
+  return c.json({ data: updated });
 });
 
 // ============================================================

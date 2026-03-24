@@ -5,6 +5,7 @@ import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
 import { requestId } from "hono/request-id";
 import "dotenv/config";
+import { z } from "zod";
 import { db, pool } from "@nasaq/db/client";
 import { platformAuditLog } from "@nasaq/db/schema";
 import { log } from "./lib/logger";
@@ -63,12 +64,13 @@ import { billingRouter } from "./routes/billing";
 import { marketplaceRouter } from "./routes/marketplace";
 import { eventsRouter } from "./routes/events";
 import { procurementRouter } from "./routes/procurement";
+import { fulfillmentsRouter } from "./routes/fulfillments";
 
 // ============================================================
 // APP
 // ============================================================
 
-const app = new Hono().basePath("/api/v1");
+const app = new Hono<{ Variables: { adminId?: string; requestId: string } }>().basePath("/api/v1");
 
 // Global middleware
 app.use("*", requestId());
@@ -100,6 +102,15 @@ app.use("*", async (c, next) => {
 
 // Global error handler — يُسجّل كل خطأ 500 في platformAuditLog ويُرجع كوداً
 app.onError((err, c) => {
+  // ZodError from bare .parse() calls → 400 instead of 500
+  if (err instanceof z.ZodError) {
+    const first = err.errors[0];
+    const msg = first
+      ? `${first.path.length ? first.path.join(".") + ": " : ""}${first.message}`
+      : "بيانات غير صحيحة";
+    return c.json({ error: msg, code: "VALIDATION_ERROR", details: err.flatten() }, 400);
+  }
+
   const requestId = (c.get("requestId") as string | undefined) ?? undefined;
   const url = new URL(c.req.url);
   const path = url.pathname;
@@ -171,6 +182,9 @@ app.use("/customers/*", authMiddleware);
 app.use("/uploads/*", authMiddleware);
 app.use("/import/*", authMiddleware);
 app.use("/approvals/*", authMiddleware);
+app.use("/uploads/*", methodGuard("services"));
+app.use("/import/*", methodGuard("settings"));
+app.use("/approvals/*", methodGuard("bookings"));
 app.use("/finance/*", authMiddleware);
 app.use("/inventory/*", authMiddleware);
 app.use("/inventory/*", requireCapability("inventory"));
@@ -291,6 +305,12 @@ app.route("/finance", financeRouter);
 // --- Phase 2: Inventory ---
 app.route("/inventory", inventoryRouter);
 
+// --- Fulfillments (warehouse lifecycle) ---
+app.use("/fulfillments/*", authMiddleware);
+app.use("/fulfillments/*", requireCapability("inventory"));
+app.use("/fulfillments/*", methodGuard("inventory"));
+app.route("/fulfillments", fulfillmentsRouter);
+
 // --- Phase 2: Team ---
 app.route("/team", teamRouter);
 
@@ -352,11 +372,13 @@ app.route("/contracts", rentalRouter);
 
 // --- Inspections (backward compat alias) ---
 app.use("/inspections/*", authMiddleware);
+app.use("/inspections/*", methodGuard("bookings"));
 app.route("/inspections", rentalRouter);
 
 // --- Attendance Engine ---
 app.use("/attendance/*", authMiddleware);
 app.use("/attendance/*", requireCapability("attendance"));
+app.use("/attendance/*", methodGuard("team"));
 app.route("/attendance", attendanceRouter);
 
 // --- Hotel ---
@@ -469,6 +491,14 @@ app.route("/procurement", procurementRouter);
 
 // --- Reminders ---
 app.use("/reminders/*", authMiddleware);
+app.use("/reminders/*", async (c, next) => {
+  // Templates & categories are read-only reference data — no extra permission needed
+  const path = c.req.path;
+  if (c.req.method === "GET" && (path.endsWith("/templates") || path.endsWith("/categories"))) {
+    return next();
+  }
+  return methodGuard("bookings")(c, next);
+});
 app.route("/reminders", remindersRouter);
 
 // --- Flower Master Data ---

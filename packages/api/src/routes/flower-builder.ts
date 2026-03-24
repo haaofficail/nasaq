@@ -1,6 +1,31 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { pool } from "@nasaq/db/client";
-import { getOrgId, getPagination } from "../lib/helpers";
+import { getOrgId, getUserId, getPagination } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+
+const createCatalogItemSchema = z.object({
+  type: z.enum(["packaging", "gift", "card", "delivery"]),
+  name: z.string().min(1).max(200),
+  nameEn: z.string().max(200).optional().nullable(),
+  price: z.number().min(0).optional().default(0),
+  icon: z.string().optional().nullable(),
+  image: z.string().optional().nullable(),
+  isActive: z.boolean().optional().default(true),
+});
+
+const createFlowerOrderSchema = z.object({
+  customerName: z.string().min(1).max(200),
+  customerPhone: z.string().min(5).max(20),
+  items: z.array(z.unknown()).optional().default([]),
+  subtotal: z.number().min(0).optional().default(0),
+  total: z.number().min(0).optional(),
+  totalPrice: z.number().min(0).optional(),
+  deliveryAddress: z.record(z.unknown()).optional().nullable(),
+  deliveryDate: z.string().optional().nullable(),
+  giftMessage: z.string().max(500).optional().nullable(),
+  packaging: z.string().optional().default("bouquet"),
+});
 
 export const flowerBuilderRouter = new Hono();
 
@@ -21,12 +46,13 @@ flowerBuilderRouter.get("/catalog", async (c) => {
 // POST /flower-builder/catalog
 flowerBuilderRouter.post("/catalog", async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
+  const body = createCatalogItemSchema.parse(await c.req.json());
   const result = await pool.query(
     `INSERT INTO flower_builder_items (org_id, type, name, name_en, price, icon, is_active)
      VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
     [orgId, body.type, body.name, body.nameEn || null, body.price || 0, body.icon || body.image || null, body.isActive !== false]
   );
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "flower_builder_item", resourceId: result.rows[0]?.id });
   return c.json({ data: result.rows[0] }, 201);
 });
 
@@ -53,7 +79,7 @@ flowerBuilderRouter.put("/catalog/:id", async (c) => {
 flowerBuilderRouter.delete("/catalog/:id", async (c) => {
   const orgId = getOrgId(c);
   const result = await pool.query(
-    `DELETE FROM flower_builder_items WHERE id = $1 AND org_id = $2 RETURNING id`,
+    `UPDATE flower_builder_items SET is_active = false WHERE id = $1 AND org_id = $2 RETURNING id`,
     [c.req.param("id"), orgId]
   );
   if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
@@ -108,7 +134,7 @@ flowerBuilderRouter.get("/orders/stats", async (c) => {
 // POST /flower-builder/orders
 flowerBuilderRouter.post("/orders", async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
+  const body = createFlowerOrderSchema.parse(await c.req.json());
   const orderNum = `FLW-${Date.now().toString(36).toUpperCase()}`;
 
   const result = await pool.query(
@@ -122,18 +148,21 @@ flowerBuilderRouter.post("/orders", async (c) => {
      body.deliveryAddress ? JSON.stringify(body.deliveryAddress) : null,
      body.deliveryDate || null, body.giftMessage || null, body.packaging || "bouquet"]
   );
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "flower_order", resourceId: result.rows[0]?.id });
   return c.json({ data: result.rows[0] }, 201);
 });
 
 // PATCH /flower-builder/orders/:id/status
 flowerBuilderRouter.patch("/orders/:id/status", async (c) => {
   const orgId = getOrgId(c);
+  const id = c.req.param("id");
   const { status } = await c.req.json();
   const result = await pool.query(
     `UPDATE flower_orders SET status = $1, updated_at = NOW() WHERE id = $2 AND org_id = $3 RETURNING *`,
-    [status, c.req.param("id"), orgId]
+    [status, id, orgId]
   );
   if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "flower_order", resourceId: id, metadata: { status } });
   return c.json({ data: result.rows[0] });
 });
 

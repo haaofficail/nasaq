@@ -133,19 +133,63 @@ export const bookingItems = pgTable("booking_items", {
   serviceId: uuid("service_id").notNull().references(() => services.id),
 
   serviceName: text("service_name").notNull(),     // Snapshot — لا يتغير إذا تغيرت الخدمة
+  serviceType: text("service_type"),               // Snapshot of service_type at booking time
+  durationMinutes: integer("duration_minutes"),    // Snapshot of duration
+  vatInclusive: boolean("vat_inclusive").default(true).notNull(),  // Snapshot of VAT setting
   quantity: integer("quantity").default(1).notNull(),
   unitPrice: numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
   totalPrice: numeric("total_price", { precision: 10, scale: 2 }).notNull(),
-  
+
   // Pricing details (snapshot of applied rules)
   pricingBreakdown: jsonb("pricing_breakdown").default([]),
-  // [{ rule: "seasonal", label: "رمضان +30%", adjustment: 450 }]
-  
-  notes: text("notes"),
 
+  notes: text("notes"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index("booking_items_booking_id_idx").on(table.bookingId),
+]);
+
+// ============================================================
+// BOOKING ASSIGNMENTS
+// من نفّذ / سينفّذ الحجز
+// ============================================================
+
+export const bookingAssignments = pgTable("booking_assignments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  bookingId: uuid("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  role: text("role").default("staff").notNull(), // staff | vendor | driver | supervisor
+  assignedAt: timestamp("assigned_at", { withTimezone: true }).defaultNow().notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("booking_assignments_booking_idx").on(table.bookingId),
+  index("booking_assignments_user_idx").on(table.userId),
+]);
+
+// ============================================================
+// BOOKING COMMISSIONS
+// العمولات المحسوبة لكل حجز
+// ============================================================
+
+export const bookingCommissions = pgTable("booking_commissions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  bookingId: uuid("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  bookingItemId: uuid("booking_item_id").references(() => bookingItems.id),
+  userId: uuid("user_id").notNull().references(() => users.id),
+  serviceId: uuid("service_id").references(() => services.id),
+  commissionMode: text("commission_mode").default("percentage").notNull(), // percentage | fixed
+  rate: numeric("rate", { precision: 10, scale: 2 }).default("0").notNull(),
+  baseAmount: numeric("base_amount", { precision: 12, scale: 2 }).default("0").notNull(),
+  commissionAmount: numeric("commission_amount", { precision: 12, scale: 2 }).default("0").notNull(),
+  status: text("status").default("pending").notNull(), // pending | approved | paid | voided
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("booking_commissions_booking_idx").on(table.bookingId),
+  index("booking_commissions_user_idx").on(table.userId),
 ]);
 
 // ============================================================
@@ -232,3 +276,53 @@ export const bookingPipelineStages = pgTable("booking_pipeline_stages", {
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// ============================================================
+// BOOKING EVENTS
+// سجل تدقيق — كل تغيير على الحجز
+// ============================================================
+
+export const bookingEvents = pgTable("booking_events", {
+  id:         uuid("id").defaultRandom().primaryKey(),
+  orgId:      uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  bookingId:  uuid("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  userId:     uuid("user_id").references(() => users.id),
+
+  eventType:  text("event_type").notNull(),
+    // created | status_changed | payment_received | note_added | rescheduled | assigned | cancelled | refunded
+  fromStatus: text("from_status"),
+  toStatus:   text("to_status"),
+  metadata:   jsonb("metadata").default({}),
+  notes:      text("notes"),
+
+  createdAt:  timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("booking_events_booking_idx").on(table.bookingId),
+  index("booking_events_org_idx").on(table.orgId),
+]);
+
+// ============================================================
+// BOOKING CONSUMPTIONS
+// خصم المخزون عند اكتمال الحجز
+// ============================================================
+
+export const bookingConsumptions = pgTable("booking_consumptions", {
+  id:              uuid("id").defaultRandom().primaryKey(),
+  orgId:           uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  bookingId:       uuid("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
+  bookingItemId:   uuid("booking_item_id").references(() => bookingItems.id),
+
+  supplyId:        uuid("supply_id"),        // salon_supplies.id
+  inventoryItemId: uuid("inventory_item_id"), // general inventory (future)
+
+  quantity:    numeric("quantity", { precision: 10, scale: 2 }).notNull(),
+  unit:        text("unit"),
+  consumedAt:  timestamp("consumed_at", { withTimezone: true }).defaultNow().notNull(),
+  createdBy:   uuid("created_by").references(() => users.id),
+  notes:       text("notes"),
+
+  createdAt:   timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("booking_consumptions_booking_idx").on(table.bookingId),
+  index("booking_consumptions_org_idx").on(table.orgId),
+]);

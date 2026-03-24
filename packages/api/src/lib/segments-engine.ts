@@ -1,6 +1,6 @@
 import { eq, and, sql, gte, lte, gt, lt } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { customers, customerSegments } from "@nasaq/db/schema";
+import { customers, customerSegments, loyaltyConfig, loyaltyTransactions } from "@nasaq/db/schema";
 
 // ============================================================
 // SMART SEGMENTS ENGINE
@@ -131,6 +131,41 @@ export async function refreshAllSegments(orgId: string) {
   );
 
   return results;
+}
+
+// ============================================================
+// LOYALTY POINTS AWARDING
+// يُمنح تلقائياً عند تسجيل دفعة مكتملة للحجز
+// ============================================================
+
+export async function awardLoyaltyPoints(params: {
+  orgId: string;
+  customerId: string;
+  bookingId: string;
+  bookingAmount: number;
+}) {
+  const { orgId, customerId, bookingId, bookingAmount } = params;
+
+  const [config] = await db.select().from(loyaltyConfig).where(
+    and(eq(loyaltyConfig.orgId, orgId), eq(loyaltyConfig.isActive, true))
+  );
+  if (!config) return;
+
+  const points = Math.floor(bookingAmount * parseFloat(String(config.pointsPerSar ?? "1")));
+  if (points <= 0) return;
+
+  await db.transaction(async (tx) => {
+    await tx.insert(loyaltyTransactions).values({
+      orgId, customerId, bookingId,
+      type: "earned",
+      points,
+      description: `نقاط مكتسبة من حجز`,
+    });
+    await tx.update(customers).set({
+      loyaltyPoints: sql`COALESCE(${customers.loyaltyPoints}, 0) + ${points}`,
+      updatedAt: new Date(),
+    }).where(and(eq(customers.id, customerId), eq(customers.orgId, orgId)));
+  });
 }
 
 // ============================================================

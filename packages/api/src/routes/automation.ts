@@ -3,13 +3,14 @@ import { eq, and, desc, asc, count } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { automationRules, notificationTemplates, notificationLogs, workflows, scheduledJobs } from "@nasaq/db/schema";
 import { getOrgId, getUserId } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
 import { z } from "zod";
 
 const createRuleSchema = z.object({
   name: z.string(),
   description: z.string().optional().nullable(),
-  status: z.string().optional(),
-  triggerType: z.string(),
+  status: z.enum(["active", "paused", "draft"]).optional(),
+  triggerType: z.enum(["event", "schedule", "condition"]),
   triggerEvent: z.string().optional().nullable(),
   triggerSchedule: z.string().optional().nullable(),
   conditions: z.array(z.unknown()).optional(),
@@ -20,7 +21,7 @@ const updateRuleSchema = createRuleSchema.partial();
 
 const createTemplateSchema = z.object({
   name: z.string(),
-  channel: z.string(),
+  channel: z.enum(["whatsapp", "sms", "email", "push", "internal"]),
   subject: z.string().optional().nullable(),
   body: z.string(),
   availableVariables: z.array(z.string()).optional(),
@@ -36,7 +37,7 @@ const createWorkflowSchema = z.object({
   name: z.string(),
   description: z.string().optional().nullable(),
   definition: z.unknown(),
-  status: z.string().optional(),
+  status: z.enum(["active", "paused", "draft"]).optional(),
 });
 
 const updateWorkflowSchema = createWorkflowSchema.partial();
@@ -59,7 +60,7 @@ export const automationRouter = new Hono();
 automationRouter.get("/rules", async (c) => {
   const orgId = getOrgId(c);
   const status = c.req.query("status");
-  const conditions = [eq(automationRules.orgId, orgId)];
+  const conditions: any[] = [eq(automationRules.orgId, orgId)];
   if (status) conditions.push(eq(automationRules.status, status as any));
   const result = await db.select().from(automationRules).where(and(...conditions)).orderBy(desc(automationRules.createdAt));
   return c.json({ data: result });
@@ -84,10 +85,13 @@ automationRouter.put("/rules/:id", async (c) => {
 
 automationRouter.delete("/rules/:id", async (c) => {
   const orgId = getOrgId(c);
-  const [deleted] = await db.delete(automationRules)
-    .where(and(eq(automationRules.id, c.req.param("id")), eq(automationRules.orgId, orgId))).returning();
-  if (!deleted) return c.json({ error: "القاعدة غير موجودة" }, 404);
-  return c.json({ data: deleted });
+  const [updated] = await db.update(automationRules)
+    .set({ status: "paused", updatedAt: new Date() })
+    .where(and(eq(automationRules.id, c.req.param("id")), eq(automationRules.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "القاعدة غير موجودة" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "automation_rule", resourceId: updated.id });
+  return c.json({ data: updated });
 });
 
 // ============================================================
@@ -204,7 +208,7 @@ automationRouter.post("/workflows", async (c) => {
   const orgId = getOrgId(c);
   const userId = getUserId(c);
   const body = createWorkflowSchema.parse(await c.req.json());
-  const [wf] = await db.insert(workflows).values({ orgId, createdBy: userId, ...body }).returning();
+  const [wf] = await db.insert(workflows).values({ orgId, createdBy: userId, ...body, definition: body.definition ?? {} }).returning();
   return c.json({ data: wf }, 201);
 });
 

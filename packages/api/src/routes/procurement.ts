@@ -182,7 +182,7 @@ procurementRouter.post("/suppliers", async (c) => {
     createdBy: userId,
   }).returning();
 
-  await insertAuditLog(c, "create", "supplier", row.id, { name: row.name });
+  insertAuditLog({ orgId, userId, action: "created", resource: "supplier", resourceId: row.id, metadata: { name: row.name } });
   return c.json({ supplier: row }, 201);
 });
 
@@ -202,7 +202,7 @@ procurementRouter.patch("/suppliers/:id", async (c) => {
     .where(and(eq(suppliers.id, c.req.param("id")), eq(suppliers.orgId, orgId)))
     .returning();
 
-  await insertAuditLog(c, "update", "supplier", row.id, parsed.data);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "supplier", resourceId: row.id });
   return c.json({ supplier: row });
 });
 
@@ -217,7 +217,7 @@ procurementRouter.delete("/suppliers/:id", async (c) => {
     .set({ isActive: false, status: "inactive", updatedAt: new Date() })
     .where(and(eq(suppliers.id, c.req.param("id")), eq(suppliers.orgId, orgId)));
 
-  await insertAuditLog(c, "delete", "supplier", existing.id, {});
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "supplier", resourceId: existing.id });
   return c.json({ ok: true });
 });
 
@@ -336,7 +336,7 @@ procurementRouter.post("/orders", async (c) => {
       deliveryNotes: data.deliveryNotes,
       notes: data.notes,
       internalNotes: data.internalNotes,
-      createdBy: userId,
+      createdBy: userId!,
       status: "draft",
     }).returning();
 
@@ -364,7 +364,7 @@ procurementRouter.post("/orders", async (c) => {
     return po;
   });
 
-  await insertAuditLog(c, "create", "purchase_order", result.id, { poNumber, supplierId: data.supplierId, totalAmount });
+  insertAuditLog({ orgId, userId, action: "created", resource: "purchase_order", resourceId: result.id, metadata: { poNumber, supplierId: data.supplierId, totalAmount } });
   return c.json({ order: result }, 201);
 });
 
@@ -410,7 +410,7 @@ procurementRouter.patch("/orders/:id", async (c) => {
     .where(and(eq(purchaseOrders.id, poId), eq(purchaseOrders.orgId, orgId)))
     .returning();
 
-  await insertAuditLog(c, "update", "purchase_order", poId, parsed.data);
+  insertAuditLog({ orgId, userId, action: "updated", resource: "purchase_order", resourceId: poId, metadata: parsed.data });
   return c.json({ order: row });
 });
 
@@ -482,7 +482,7 @@ procurementRouter.post("/receipts", async (c) => {
       locationId: data.locationId,
       grNumber,
       receivedAt: data.receivedAt ? new Date(data.receivedAt) : new Date(),
-      receivedBy: userId,
+      receivedBy: userId!,
       notes: data.notes,
       status: "pending",
     }).returning();
@@ -528,7 +528,7 @@ procurementRouter.post("/receipts", async (c) => {
     return gr;
   });
 
-  await insertAuditLog(c, "create", "goods_receipt", result.id, { grNumber, poId: data.poId });
+  insertAuditLog({ orgId, userId, action: "created", resource: "goods_receipt", resourceId: result.id, metadata: { grNumber, poId: data.poId } });
   return c.json({ receipt: result }, 201);
 });
 
@@ -546,83 +546,100 @@ procurementRouter.patch("/receipts/:id/approve", async (c) => {
   const parsed = schema.safeParse(body);
   if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
 
-  const [gr] = await db.select().from(goodsReceipts)
+  // Pre-check outside transaction (fast path rejection)
+  const [grPre] = await db.select({ id: goodsReceipts.id, status: goodsReceipts.status })
+    .from(goodsReceipts)
     .where(and(eq(goodsReceipts.id, grId), eq(goodsReceipts.orgId, orgId)));
-  if (!gr) return apiErr(c, "GR_NOT_FOUND", 404);
-  if (gr.status !== "pending") return apiErr(c, "GR_ALREADY_PROCESSED", 400);
+  if (!grPre) return apiErr(c, "GR_NOT_FOUND", 404);
+  if (grPre.status !== "pending") return apiErr(c, "GR_ALREADY_PROCESSED", 400);
 
-  const [row] = await db.update(goodsReceipts)
-    .set({
-      status: parsed.data.status,
-      approvedBy: userId,
-      approvedAt: new Date(),
-      notes: parsed.data.notes ?? gr.notes,
-    })
-    .where(and(eq(goodsReceipts.id, grId), eq(goodsReceipts.orgId, orgId)))
-    .returning();
+  // Single transaction: status update + inventory update are atomic
+  let row: typeof goodsReceipts.$inferSelect | undefined;
+  try {
+    row = await db.transaction(async (tx) => {
+      // Re-read inside transaction to guard against concurrent approval
+      const [gr] = await tx.select().from(goodsReceipts)
+        .where(and(eq(goodsReceipts.id, grId), eq(goodsReceipts.orgId, orgId)));
+      if (!gr || gr.status !== "pending") throw Object.assign(new Error("GR_ALREADY_PROCESSED"), { code: "GR_ALREADY_PROCESSED" });
 
-  // Auto-update inventory when GR is approved
-  if (parsed.data.status === "approved") {
-    const grItems = await db.select().from(goodsReceiptItems)
-      .where(eq(goodsReceiptItems.grId, grId));
+    const [updated] = await tx.update(goodsReceipts)
+      .set({
+        status: parsed.data.status,
+        approvedBy: userId,
+        approvedAt: new Date(),
+        notes: parsed.data.notes ?? gr.notes,
+      })
+      .where(and(eq(goodsReceipts.id, grId), eq(goodsReceipts.orgId, orgId)))
+      .returning();
 
-    if (grItems.length > 0) {
-      const poItemIds = grItems.map(i => i.poItemId);
-      const poItems = await db.select().from(purchaseOrderItems)
-        .where(inArray(purchaseOrderItems.id, poItemIds));
-      const poItemMap = new Map(poItems.map(p => [p.id, p]));
+    // Auto-update inventory when GR is approved
+    if (parsed.data.status === "approved") {
+      const grItems = await tx.select().from(goodsReceiptItems)
+        .where(eq(goodsReceiptItems.grId, grId));
 
-      for (const grItem of grItems) {
-        if (grItem.stockUpdated) continue;
-        const accepted = parseFloat(String(grItem.acceptedQuantity));
-        if (accepted <= 0) continue;
+      if (grItems.length > 0) {
+        const poItemIds = grItems.map(i => i.poItemId);
+        const poItems = await tx.select().from(purchaseOrderItems)
+          .where(inArray(purchaseOrderItems.id, poItemIds));
+        const poItemMap = new Map(poItems.map(p => [p.id, p]));
 
-        const poItem = poItemMap.get(grItem.poItemId);
-        if (!poItem) continue;
+        for (const grItem of grItems) {
+          if (grItem.stockUpdated) continue;
+          const accepted = parseFloat(String(grItem.acceptedQuantity));
+          if (accepted <= 0) continue;
 
-        // Salon supply → increment quantity
-        if (poItem.supplyItemId) {
-          const [supply] = await db.select({ id: salonSupplies.id, quantity: salonSupplies.quantity })
-            .from(salonSupplies)
-            .where(and(eq(salonSupplies.id, poItem.supplyItemId), eq(salonSupplies.orgId, orgId)));
-          if (supply) {
-            const newQty = parseFloat(String(supply.quantity ?? 0)) + accepted;
-            await db.update(salonSupplies)
-              .set({ quantity: String(newQty.toFixed(2)), updatedAt: new Date() })
-              .where(eq(salonSupplies.id, supply.id));
+          const poItem = poItemMap.get(grItem.poItemId);
+          if (!poItem) continue;
+
+          // Salon supply → increment quantity
+          if (poItem.supplyItemId) {
+            const [supply] = await tx.select({ id: salonSupplies.id, quantity: salonSupplies.quantity })
+              .from(salonSupplies)
+              .where(and(eq(salonSupplies.id, poItem.supplyItemId), eq(salonSupplies.orgId, orgId)));
+            if (supply) {
+              const newQty = parseFloat(String(supply.quantity ?? 0)) + accepted;
+              await tx.update(salonSupplies)
+                .set({ quantity: String(newQty.toFixed(2)), updatedAt: new Date() })
+                .where(eq(salonSupplies.id, supply.id));
+            }
           }
-        }
 
-        // Flower variant → create a new batch
-        if (poItem.flowerVariantId) {
-          const expiryEstimated = grItem.expiryDate
-            ? new Date(grItem.expiryDate)
-            : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // default 7 days
-          const batchNumber = `GR-${gr.grNumber}-${grItem.lineOrder ?? 0}`;
-          await db.insert(flowerBatches).values({
-            orgId,
-            variantId: poItem.flowerVariantId,
-            locationId: gr.locationId ?? null,
-            batchNumber,
-            supplierId: gr.supplierId,
-            quantityReceived: Math.round(accepted),
-            quantityRemaining: Math.round(accepted),
-            unitCost: poItem.unitPrice,
-            receivedAt: gr.receivedAt,
-            expiryEstimated,
-            notes: grItem.qualityNotes,
-          });
-        }
+          // Flower variant → create a new batch
+          if (poItem.flowerVariantId) {
+            const expiryEstimated = grItem.expiryDate
+              ? new Date(grItem.expiryDate)
+              : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            const batchNumber = `GR-${gr.grNumber}-${grItem.lineOrder ?? 0}`;
+            await tx.insert(flowerBatches).values({
+              orgId,
+              variantId: poItem.flowerVariantId,
+              locationId: gr.locationId ?? null,
+              batchNumber,
+              supplierId: gr.supplierId,
+              quantityReceived: Math.round(accepted),
+              quantityRemaining: Math.round(accepted),
+              unitCost: poItem.unitPrice,
+              receivedAt: gr.receivedAt,
+              expiryEstimated,
+              notes: grItem.qualityNotes,
+            });
+          }
 
-        // Mark this GR item as stock-updated
-        await db.update(goodsReceiptItems)
-          .set({ stockUpdated: true })
-          .where(eq(goodsReceiptItems.id, grItem.id));
+          await tx.update(goodsReceiptItems)
+            .set({ stockUpdated: true })
+            .where(eq(goodsReceiptItems.id, grItem.id));
+        }
       }
     }
+
+      return updated;
+    });
+  } catch (err: any) {
+    if (err?.code === "GR_ALREADY_PROCESSED") return apiErr(c, "GR_ALREADY_PROCESSED", 400);
+    throw err;
   }
 
-  await insertAuditLog(c, "update", "goods_receipt", grId, { status: parsed.data.status });
+  insertAuditLog({ orgId, userId, action: "updated", resource: "goods_receipt", resourceId: grId, metadata: { status: parsed.data.status } });
   return c.json({ receipt: row });
 });
 
@@ -710,11 +727,7 @@ procurementRouter.post("/invoices", async (c) => {
     status: "received",
   }).returning();
 
-  await insertAuditLog(c, "create", "supplier_invoice", row.id, {
-    invoiceNumber: data.invoiceNumber,
-    supplierId: data.supplierId,
-    totalAmount: data.totalAmount,
-  });
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "supplier_invoice", resourceId: row.id, metadata: { invoiceNumber: data.invoiceNumber, supplierId: data.supplierId, totalAmount: data.totalAmount } });
   return c.json({ invoice: row }, 201);
 });
 
@@ -755,7 +768,18 @@ procurementRouter.patch("/invoices/:id/status", async (c) => {
     .where(and(eq(supplierInvoices.id, invId), eq(supplierInvoices.orgId, orgId)))
     .returning();
 
-  await insertAuditLog(c, "update", "supplier_invoice", invId, { status: parsed.data.status });
+  // When invoice is paid — increment supplier's totalSpent and totalOrders
+  if (parsed.data.status === "paid" && inv.status !== "paid") {
+    const paidAmt = parsed.data.paidAmount ?? parseFloat(String(inv.totalAmount));
+    await db.update(suppliers)
+      .set({
+        totalSpent: sql`total_spent + ${paidAmt}`,
+        totalOrders: sql`total_orders + 1`,
+      })
+      .where(and(eq(suppliers.id, inv.supplierId), eq(suppliers.orgId, orgId)));
+  }
+
+  insertAuditLog({ orgId, userId, action: "updated", resource: "supplier_invoice", resourceId: invId, metadata: { status: parsed.data.status } });
   return c.json({ invoice: row });
 });
 

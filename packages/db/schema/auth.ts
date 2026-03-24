@@ -70,6 +70,12 @@ export const users = pgTable("users", {
   accessStartTime: text("access_start_time"),       // "08:00" — وقت بداية الوصول
   accessEndTime: text("access_end_time"),            // "22:00" — وقت نهاية الوصول
 
+  // Super Admin & Nasaq Staff
+  isSuperAdmin: boolean("is_super_admin").default(false),
+  nasaqRole: text("nasaq_role"),   // 'account_manager' | 'support_agent' | 'content_manager' | 'viewer'
+  lastLoginIp: text("last_login_ip"),
+  loginCount: integer("login_count").default(0),
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -87,7 +93,8 @@ export const roles = pgTable("roles", {
   nameEn: text("name_en"),                         // Operations Manager
   description: text("description"),
   isSystem: boolean("is_system").default(false),   // أدوار النظام الافتراضية
-  
+  isActive: boolean("is_active").default(true).notNull(), // soft delete
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -161,13 +168,18 @@ export const otpCodes = pgTable("otp_codes", {
 ]);
 
 // ============================================================
-// AUDIT LOG
-// سجل الأحداث — لا يُحذف أبداً
+// AUDIT LOG — سجل الأحداث العامة (لا يُحذف أبداً)
+//
+// هذا الجدول للأحداث العامة للنظام:
+//   تسجيل الدخول/الخروج، الحجوزات، العملاء، الإعدادات، الفواتير،
+//   أي action يكتبها insertAuditLog() في lib/audit.ts
+//
+// للأحداث المحاسبية (قيود، إغلاق فترات) → استخدم جدول audit_log في audit-log.ts
 // ============================================================
 
 export const auditLogs = pgTable("audit_logs", {
   id: uuid("id").defaultRandom().primaryKey(),
-  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  orgId: uuid("org_id").references(() => organizations.id, { onDelete: "set null" }),
   userId: uuid("user_id").references(() => users.id, { onDelete: "set null" }),
   
   action: text("action").notNull(),                // created, updated, deleted, approved, rejected
@@ -176,7 +188,9 @@ export const auditLogs = pgTable("audit_logs", {
   
   oldValue: jsonb("old_value"),                    // القيمة القديمة
   newValue: jsonb("new_value"),                    // القيمة الجديدة
-  
+
+  metadata: jsonb("metadata"),                     // بيانات سياقية إضافية (حالة جديدة، سبب، إلخ)
+
   ip: text("ip"),
   userAgent: text("user_agent"),
 

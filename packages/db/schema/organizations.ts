@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum, jsonb, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, jsonb, uuid, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { DEFAULT_VAT_RATE } from "../constants";
 
 // ============================================================
@@ -29,6 +29,7 @@ export const organizations = pgTable("organizations", {
   id: uuid("id").defaultRandom().primaryKey(),
 
   // Basic info
+  orgCode: text("org_code").unique(),               // كود المرجع البشري — NSQ-0001
   name: text("name").notNull(),                    // اسم الشركة
   nameEn: text("name_en"),                         // English name (optional)
   slug: text("slug").notNull().unique(),            // URL slug: nasaq.sa/company-slug
@@ -88,6 +89,29 @@ export const organizations = pgTable("organizations", {
   //         services, medical, education, technology, construction, logistics, other, general
   businessType: text("business_type").default("general"),
 
+  // Operating profile — specific operating model within the business type (Constitution Q2)
+  // flowers: florist_retail | florist_kosha | florist_contract_supply | florist_hybrid
+  // salon:   salon_in_branch | salon_home_service | salon_spa | salon_hybrid
+  // restaurant: restaurant_dine_in | restaurant_takeaway | restaurant_delivery | restaurant_cloud_kitchen | restaurant_catering
+  // hotel:   hotel_standard | hotel_apartments | hotel_resort
+  // car_rental: car_rental_daily | car_rental_long_term | car_rental_chauffeur
+  // rental:  rental_equipment | rental_furniture | rental_venues
+  // events:  events_full | events_decor | events_catering_only
+  // others:  general
+  operatingProfile: text("operating_profile").default("general"),
+
+  // Service delivery modes — how services reach customers (array)
+  // on_site | delivery | pickup | at_customer_location | reservation_based | recurring_service | walk_in
+  serviceDeliveryModes: jsonb("service_delivery_modes").default([]),
+
+  // Enabled capabilities — controls which modules appear in UI and API (Constitution Q4 + Q20)
+  // inventory | assets | bookings | accounting | delivery | contracts | attendance
+  // schedules | floral | kosha | pos | website | marketing
+  enabledCapabilities: jsonb("enabled_capabilities").default(["bookings", "customers", "catalog", "media"]),
+
+  // Dashboard profile — derived from businessType + operatingProfile, can be overridden
+  dashboardProfile: text("dashboard_profile").default("default"),
+
   // Domain
   customDomain: text("custom_domain"),              // www.almahfal.com
   subdomain: text("subdomain").unique(),            // almahfal.nasaq.sa
@@ -109,6 +133,16 @@ export const organizations = pgTable("organizations", {
   onboardingStep: text("onboarding_step").default("0"),
   hasDemoData: boolean("has_demo_data").default(false),
   demoClearedAt: timestamp("demo_cleared_at", { withTimezone: true }),
+
+  // Admin management
+  isVerified: boolean("is_verified").default(false),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  suspendedAt: timestamp("suspended_at", { withTimezone: true }),
+  suspendReason: text("suspend_reason"),
+  adminNotes: text("admin_notes"),
+  accountManagerId: uuid("account_manager_id"),  // FK to users.id (nasaq staff)
+  favicon:       text("favicon"),               // Favicon URL (main)
+  faviconFiles:  jsonb("favicon_files"),         // { ico, 16, 32, 180, 192, 512 }
 
   // Metadata
   isActive: boolean("is_active").default(true).notNull(),
@@ -149,3 +183,40 @@ export const locations = pgTable("locations", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// ============================================================
+// ORGANIZATION CAPABILITY OVERRIDES
+// Per-org forced-on / forced-off on top of businessType defaults
+// ============================================================
+
+export const organizationCapabilityOverrides = pgTable("organization_capability_overrides", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  capabilityKey: text("capability_key").notNull(),
+  enabled: boolean("enabled").notNull().default(true),  // true = force-on, false = force-off
+  reason: text("reason"),
+  setBy: uuid("set_by"),  // references users.id — FK enforced at DB level in migration
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("org_cap_overrides_unique_idx").on(table.orgId, table.capabilityKey),
+  index("org_cap_overrides_org_idx").on(table.orgId),
+]);
+
+// ============================================================
+// BUSINESS VOCABULARY
+// Org/type-level label overrides (booking = موعد vs حجز vs مشروع)
+// ============================================================
+
+export const businessVocabulary = pgTable("business_vocabulary", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").references(() => organizations.id, { onDelete: "cascade" }),  // NULL = global default for businessType
+  businessType: text("business_type"),
+  termKey: text("term_key").notNull(),              // "booking" | "service" | "customer" | "staff"
+  valueAr: text("value_ar").notNull(),
+  valueEn: text("value_en"),
+  context: text("context"),                          // "plural" | "short" | null
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("business_vocab_org_idx").on(table.orgId),
+  index("business_vocab_type_idx").on(table.businessType, table.termKey),
+]);

@@ -1,25 +1,33 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { eq, and, asc, desc, gte, lte, or, ilike, count, sql, between, inArray } from "drizzle-orm";
+import { eq, and, asc, desc, gte, lte, lt, or, ilike, count, sql, between, inArray } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import {
   bookings, bookingItems, bookingItemAddons, payments,
   services, addons, customers, locations, pricingRules, organizations,
+  serviceSupplyRecipes, salonSupplies, salonSupplyAdjustments,
+  bookingAssignments, bookingCommissions, serviceCosts, serviceStaff,
+  bookingEvents, bookingConsumptions,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, generateBookingNumber } from "../lib/helpers";
 import { postCashSale, postDepositReceived, postRefund, isAccountingEnabled } from "../lib/posting-engine";
 import { DEFAULT_VAT_RATE, DEFAULT_DEPOSIT_PERCENT, BOOKING_TRACKING_TOKEN_LENGTH } from "../lib/constants";
 import { insertAuditLog } from "../lib/audit";
+import { awardLoyaltyPoints } from "../lib/segments-engine";
+import type { AuthUser } from "../middleware/auth";
 
-export const bookingsRouter = new Hono();
+export const bookingsRouter = new Hono<{ Variables: { user: AuthUser | null; orgId: string; locationFilter: string[] | null; requestId: string } }>();
 
 // ============================================================
 // SCHEMAS
 // ============================================================
 
+// Immediate-sale types: no time slot required — booking = sale at current moment
+const IMMEDIATE_TYPES = new Set(["product", "product_shipping", "food_order", "package", "add_on"]);
+
 const createBookingSchema = z.object({
   customerId: z.string().uuid(),
-  eventDate: z.string().datetime(),
+  eventDate: z.string().datetime().optional(),   // optional for immediate-sale types
   eventEndDate: z.string().datetime().optional(),
   locationId: z.string().uuid().optional(),
   customLocation: z.string().optional(),
@@ -63,7 +71,6 @@ bookingsRouter.get("/", async (c) => {
   const dateFrom = c.req.query("dateFrom");
   const dateTo = c.req.query("dateTo");
   const search = c.req.query("search");
-  const sortBy = c.req.query("sortBy") || "createdAt";
   const sortDir = c.req.query("sortDir") || "desc";
 
   const conditions = [eq(bookings.orgId, orgId)];
@@ -227,7 +234,7 @@ bookingsRouter.post("/", async (c) => {
   const serviceIds = body.items.map((i) => i.serviceId);
   const addonIds = body.items.flatMap((i) => i.addons.map((a) => a.addonId));
 
-  const [allServices, allPricingRules, allAddons] = await Promise.all([
+  const [allServices, allPricingRules, allAddons, allServiceCosts, allServiceStaffRows, orgRow] = await Promise.all([
     db.select().from(services)
       .where(and(inArray(services.id, serviceIds), eq(services.orgId, orgId))),
     db.select().from(pricingRules)
@@ -237,10 +244,19 @@ bookingsRouter.post("/", async (c) => {
       ? db.select().from(addons)
           .where(and(inArray(addons.id, addonIds), eq(addons.orgId, orgId)))
       : Promise.resolve([] as (typeof addons.$inferSelect)[]),
+    db.select().from(serviceCosts)
+      .where(and(inArray(serviceCosts.serviceId, serviceIds), eq(serviceCosts.orgId, orgId))),
+    userId
+      ? db.select().from(serviceStaff)
+          .where(and(inArray(serviceStaff.serviceId, serviceIds), eq(serviceStaff.userId, userId)))
+      : Promise.resolve([] as (typeof serviceStaff.$inferSelect)[]),
+    db.select({ settings: organizations.settings }).from(organizations).where(eq(organizations.id, orgId)),
   ]);
 
   const serviceMap = new Map(allServices.map((s) => [s.id, s]));
   const addonMap = new Map(allAddons.map((a) => [a.id, a]));
+  const serviceCostMap = new Map(allServiceCosts.map((c) => [c.serviceId, c]));
+  const serviceStaffMap = new Map(allServiceStaffRows.map((s) => [s.serviceId, s]));
 
   let subtotal = 0;
   const itemsToInsert: any[] = [];
@@ -252,8 +268,22 @@ bookingsRouter.post("/", async (c) => {
       return c.json({ error: `الخدمة غير موجودة: ${item.serviceId}` }, 400);
     }
 
-    if (service.status !== "active") {
-      return c.json({ error: `الخدمة غير متاحة: ${service.name}` }, 400);
+    if (service.status !== "active" || (service as any).isBookable === false) {
+      return c.json({ error: `الخدمة غير متاحة للحجز: ${service.name}` }, 400);
+    }
+
+    // Immediate-sale types don't require a scheduled time
+    const sType = (service as any).serviceType as string | undefined;
+    if (!IMMEDIATE_TYPES.has(sType ?? "") && !body.eventDate) {
+      return c.json({ error: `الخدمة "${service.name}" تتطلب تاريخ ووقت الحجز` }, 400);
+    }
+    // field_service: requires customer location
+    if (sType === "field_service" && !body.customLocation && !body.locationId) {
+      return c.json({ error: `الخدمة الميدانية "${service.name}" تتطلب تحديد موقع العميل` }, 400);
+    }
+    // rental: requires end date for duration
+    if (sType === "rental" && !body.eventEndDate) {
+      return c.json({ error: `خدمة التأجير "${service.name}" تتطلب تحديد تاريخ الانتهاء` }, 400);
     }
 
     // Calculate price with applicable pricing rules
@@ -265,7 +295,7 @@ bookingsRouter.post("/", async (c) => {
     );
 
     for (const rule of rules) {
-      const adjustment = applyPricingRule(rule, unitPrice, body.eventDate, body.locationId);
+      const adjustment = applyPricingRule(rule, unitPrice, body.eventDate ?? "", body.locationId);
       if (adjustment !== 0) {
         unitPrice += adjustment;
         pricingBreakdown.push({
@@ -285,6 +315,9 @@ bookingsRouter.post("/", async (c) => {
       id: itemId,
       serviceId: service.id,
       serviceName: service.name,
+      serviceType: (service as any).serviceType || null,
+      durationMinutes: (service as any).durationMinutes || null,
+      vatInclusive: (service as any).vatInclusive ?? true,
       quantity: item.quantity,
       unitPrice: unitPrice.toFixed(2),
       totalPrice: totalPrice.toFixed(2),
@@ -317,11 +350,15 @@ bookingsRouter.post("/", async (c) => {
     }
   }
 
-  // 3. Calculate totals using named constants (Q6)
-  const vatRate = DEFAULT_VAT_RATE; // from org settings — TODO: read from org.settings.vatRate
+  // 3. Calculate totals — vatRate from org settings, depositPercent from services
+  const orgSettings = (orgRow[0]?.settings ?? {}) as Record<string, unknown>;
+  const vatRate = typeof orgSettings.vatRate === "number" ? orgSettings.vatRate : DEFAULT_VAT_RATE;
   const vatAmount = subtotal * (vatRate / 100);
   const totalAmount = subtotal + vatAmount;
-  const depositPercent = DEFAULT_DEPOSIT_PERCENT; // TODO: read from service settings
+  const depositPercent = Math.max(
+    DEFAULT_DEPOSIT_PERCENT,
+    ...Array.from(serviceMap.values()).map(s => parseFloat(String((s as any).depositPercent ?? DEFAULT_DEPOSIT_PERCENT))),
+  );
   const depositAmount = totalAmount * (depositPercent / 100);
 
   // 4. Generate identifiers outside transaction (idempotent)
@@ -333,15 +370,25 @@ bookingsRouter.post("/", async (c) => {
     constructor(public conflicts: string[]) { super("LOCATION_CONFLICT"); }
   }
 
+  // Determine if ALL items are immediate-sale types (no scheduling needed)
+  const allImmediate = Array.from(serviceMap.values())
+    .every(s => IMMEDIATE_TYPES.has((s as any).serviceType ?? ""));
+  const resolvedEventDate = body.eventDate ? new Date(body.eventDate) : new Date();
+
+  // Compute max buffer (before/after) across all services in this booking
+  const maxBufferBefore = allImmediate ? 0 : Math.max(0, ...Array.from(serviceMap.values()).map(s => (s as any).bufferBeforeMinutes || 0));
+  const maxBufferAfter  = allImmediate ? 0 : Math.max(0, ...Array.from(serviceMap.values()).map(s => (s as any).bufferAfterMinutes  || 0));
+
   let booking: typeof bookings.$inferSelect;
   try {
     booking = await db.transaction(async (tx) => {
       // Conflict check with row lock and range overlap — prevents TOCTOU (C1/C4/C6)
-      if (body.locationId) {
-        const eventStart = new Date(body.eventDate);
+      // Expand window by service buffer to prevent back-to-back bookings without cleanup time
+      if (body.locationId && !allImmediate) {
+        const eventStart = new Date(resolvedEventDate.getTime() - maxBufferBefore * 60_000);
         const eventEnd = body.eventEndDate
-          ? new Date(body.eventEndDate)
-          : new Date(eventStart.getTime() + 24 * 60 * 60 * 1000);
+          ? new Date(new Date(body.eventEndDate).getTime() + maxBufferAfter * 60_000)
+          : new Date(resolvedEventDate.getTime() + 24 * 60 * 60 * 1000 + maxBufferAfter * 60_000);
 
         const { rows: conflictRows } = await tx.execute(sql`
           SELECT id, booking_number FROM bookings
@@ -365,7 +412,7 @@ bookingsRouter.post("/", async (c) => {
         bookingNumber,
         status: "pending",
         paymentStatus: "pending",
-        eventDate: new Date(body.eventDate),
+        eventDate: resolvedEventDate,
         eventEndDate: body.eventEndDate ? new Date(body.eventEndDate) : null,
         locationId: body.locationId || null,
         customLocation: body.customLocation,
@@ -400,6 +447,75 @@ bookingsRouter.post("/", async (c) => {
         await tx.insert(bookingItemAddons).values(addonsToInsert);
       }
 
+      // Immutable audit event — booking created
+      await tx.insert(bookingEvents).values({
+        orgId,
+        bookingId: newBooking.id,
+        userId,
+        eventType: "created",
+        toStatus: "pending",
+        metadata: { bookingNumber, source: body.source || "dashboard" },
+      });
+
+      // Auto-create assignment for the creator/assignee
+      if (userId) {
+        await tx.insert(bookingAssignments).values({
+          orgId,
+          bookingId: newBooking.id,
+          userId,
+          role: "staff",
+          assignedAt: new Date(),
+        });
+
+        // Compute commissions per booking item
+        const commissionsToInsert: any[] = [];
+        for (const item of itemsToInsert) {
+          const cost = serviceCostMap.get(item.serviceId);
+          const staffRow = serviceStaffMap.get(item.serviceId);
+
+          let commissionMode: string = "percentage";
+          let rate: number = 0;
+
+          if (staffRow && staffRow.commissionMode === "none") {
+            continue; // no commission for this user+service
+          } else if (staffRow && staffRow.commissionMode === "fixed") {
+            commissionMode = "fixed";
+            rate = parseFloat(staffRow.commissionValue as string) || 0;
+          } else if (staffRow && staffRow.commissionMode === "percentage") {
+            commissionMode = "percentage";
+            rate = parseFloat(staffRow.commissionValue as string) || 0;
+          } else {
+            // inherit or no staff row: use service-level commissionPercent
+            commissionMode = "percentage";
+            rate = cost ? (parseFloat(cost.commissionPercent as string) || 0) : 10;
+          }
+
+          if (rate === 0) continue;
+
+          const baseAmount = parseFloat(item.totalPrice);
+          const commissionAmount = commissionMode === "fixed"
+            ? rate
+            : baseAmount * (rate / 100);
+
+          commissionsToInsert.push({
+            orgId,
+            bookingId: newBooking.id,
+            bookingItemId: item.id,
+            userId,
+            serviceId: item.serviceId,
+            commissionMode,
+            rate: rate.toFixed(2),
+            baseAmount: baseAmount.toFixed(2),
+            commissionAmount: commissionAmount.toFixed(2),
+            status: "pending",
+          });
+        }
+
+        if (commissionsToInsert.length > 0) {
+          await tx.insert(bookingCommissions).values(commissionsToInsert);
+        }
+      }
+
       // Update customer stats
       await tx.update(customers).set({
         totalBookings: sql`${customers.totalBookings} + 1`,
@@ -420,6 +536,7 @@ bookingsRouter.post("/", async (c) => {
     throw err;
   }
 
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "booking", resourceId: booking.id });
   return c.json({
     data: {
       ...booking,
@@ -440,12 +557,17 @@ const updateStatusSchema = z.object({
 
 bookingsRouter.patch("/:id/status", async (c) => {
   const orgId = getOrgId(c);
+  const actingUserId = getUserId(c);
   const id = c.req.param("id");
   const { status: newStatus, reason } = updateStatusSchema.parse(await c.req.json());
 
-  const updates: Partial<typeof bookings.$inferInsert> = { status: newStatus, updatedAt: new Date() };
+  // Read current status for audit trail
+  const [existing] = await db.select({ status: bookings.status })
+    .from(bookings).where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)));
+  if (!existing) return c.json({ error: "الحجز غير موجود" }, 404);
+  const fromStatus = existing.status;
 
-  // Handle special statuses
+  const updates: Partial<typeof bookings.$inferInsert> = { status: newStatus, updatedAt: new Date() };
   if (newStatus === "cancelled") {
     updates.cancelledAt = new Date();
     updates.cancellationReason = reason ?? null;
@@ -457,7 +579,171 @@ bookingsRouter.patch("/:id/status", async (c) => {
     .returning();
 
   if (!updated) return c.json({ error: "الحجز غير موجود" }, 404);
+
+  // Booking event — status change
+  db.insert(bookingEvents).values({
+    orgId,
+    bookingId: id,
+    userId: actingUserId,
+    eventType: "status_changed",
+    fromStatus: fromStatus as string,
+    toStatus: newStatus,
+    metadata: reason ? { reason } : {},
+  }).catch(() => {});
+
+  insertAuditLog({ orgId, userId: actingUserId, action: "updated", resource: "booking", resourceId: id, metadata: { status: newStatus } });
+
+  // On completion: deduct supplies + record consumptions (non-blocking)
+  if (newStatus === "completed") {
+    (async () => {
+      try {
+        const items = await db.select({
+          id: bookingItems.id,
+          serviceId: bookingItems.serviceId,
+          quantity: bookingItems.quantity,
+        }).from(bookingItems).where(eq(bookingItems.bookingId, id));
+
+        for (const item of items) {
+          if (!item.serviceId) continue;
+          const recipes = await db.select().from(serviceSupplyRecipes)
+            .where(and(
+              eq(serviceSupplyRecipes.serviceId, item.serviceId),
+              eq(serviceSupplyRecipes.orgId, orgId),
+            ));
+
+          for (const recipe of recipes) {
+            const totalQty = parseFloat(recipe.quantity as string) * (item.quantity || 1);
+            const [supply] = await db.select({ quantity: salonSupplies.quantity })
+              .from(salonSupplies).where(eq(salonSupplies.id, recipe.supplyId));
+            if (!supply) continue;
+
+            const newQty = Math.max(0, parseFloat(supply.quantity as string) - totalQty);
+            await db.update(salonSupplies)
+              .set({ quantity: String(newQty), updatedAt: new Date() })
+              .where(eq(salonSupplies.id, recipe.supplyId));
+
+            await db.insert(salonSupplyAdjustments).values({
+              orgId,
+              supplyId:  recipe.supplyId,
+              delta:     String(-totalQty),
+              reason:    "consumed",
+              notes:     `خصم تلقائي — حجز ${id.slice(0, 8)}`,
+              createdBy: actingUserId,
+            });
+
+            // Record consumption in booking_consumptions
+            await db.insert(bookingConsumptions).values({
+              orgId,
+              bookingId: id,
+              bookingItemId: item.id,
+              supplyId: recipe.supplyId,
+              quantity: String(totalQty),
+              unit: (recipe as any).unit || null,
+              consumedAt: new Date(),
+              createdBy: actingUserId,
+              notes: `خصم تلقائي من وصفة الخدمة`,
+            });
+          }
+        }
+      } catch (_) { /* non-critical */ }
+    })();
+  }
+
   return c.json({ data: updated });
+});
+
+// ============================================================
+// PATCH /bookings/:id/reschedule — Reschedule / reassign booking
+// تأجيل أو تحويل الحجز مع حفظ السبب
+// ============================================================
+
+const rescheduleSchema = z.object({
+  eventDate:    z.string().datetime(),
+  eventEndDate: z.string().datetime().optional(),
+  assignedUserId: z.string().uuid().optional().nullable(),
+  reason: z.enum([
+    "customer_request",   // بطلب العميل
+    "staff_unavailable",  // الموظف غير متاح
+    "emergency",          // طارئ
+    "double_booking",     // تعارض مواعيد
+    "other",              // أخرى
+  ]).default("customer_request"),
+  notes: z.string().optional(),
+});
+
+bookingsRouter.patch("/:id/reschedule", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const id = c.req.param("id");
+  const body = rescheduleSchema.parse(await c.req.json());
+
+  const [existing] = await db.select().from(bookings)
+    .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)));
+  if (!existing) return c.json({ error: "الحجز غير موجود" }, 404);
+  if (existing.status === "cancelled") return c.json({ error: "لا يمكن تعديل حجز ملغي" }, 422);
+  if (existing.status === "completed") return c.json({ error: "لا يمكن تعديل حجز مكتمل" }, 422);
+
+  // Build note with reschedule log (append to existing internalNotes)
+  const REASONS: Record<string, string> = {
+    customer_request:  "بطلب العميل",
+    staff_unavailable: "الموظف غير متاح",
+    emergency:         "طارئ",
+    double_booking:    "تعارض مواعيد",
+    other:             "أخرى",
+  };
+  const reasonLabel = REASONS[body.reason] ?? body.reason;
+  const prevDate = existing.eventDate ? new Date(existing.eventDate).toISOString() : "—";
+  const logLine = `[تأجيل ${new Date().toISOString().slice(0, 10)}] من: ${prevDate} → إلى: ${body.eventDate} — السبب: ${reasonLabel}${body.notes ? ` — ${body.notes}` : ""}`;
+  const updatedNotes = existing.internalNotes
+    ? `${existing.internalNotes}\n${logLine}`
+    : logLine;
+
+  const updates: Partial<typeof bookings.$inferInsert> = {
+    eventDate:    new Date(body.eventDate),
+    internalNotes: updatedNotes,
+    updatedAt:    new Date(),
+  };
+  if (body.eventEndDate !== undefined) updates.eventEndDate = new Date(body.eventEndDate);
+  if (body.assignedUserId !== undefined) updates.assignedUserId = body.assignedUserId;
+
+  const [updated] = await db.update(bookings)
+    .set(updates)
+    .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)))
+    .returning();
+
+  // Booking event — rescheduled
+  db.insert(bookingEvents).values({
+    orgId,
+    bookingId: id,
+    userId,
+    eventType: "rescheduled",
+    metadata: { from: prevDate, to: body.eventDate, reason: body.reason, notes: body.notes },
+  }).catch(() => {});
+
+  insertAuditLog({
+    orgId, userId,
+    action: "rescheduled",
+    resource: "booking",
+    resourceId: updated.id,
+    metadata: { from: prevDate, to: body.eventDate, reason: body.reason },
+  });
+
+  return c.json({ data: updated });
+});
+
+// ============================================================
+// GET /bookings/:id/events — Booking audit trail
+// ============================================================
+
+bookingsRouter.get("/:id/events", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+
+  const events = await db.select().from(bookingEvents)
+    .where(and(eq(bookingEvents.bookingId, id), eq(bookingEvents.orgId, orgId)))
+    .orderBy(asc(bookingEvents.createdAt));
+
+  return c.json({ data: events });
 });
 
 // ============================================================
@@ -466,7 +752,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
 
 const recordPaymentSchema = z.object({
   amount: z.string().refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, { message: "amount must be a positive number" }),
-  method: z.string(),
+  method: z.enum(["cash", "bank_transfer", "mada", "visa_master", "apple_pay", "tamara", "tabby", "wallet", "payment_link"]),
   status: z.enum(["completed", "pending", "failed"]).default("completed"),
   type: z.enum(["payment", "deposit", "refund"]).default("payment"),
   gatewayProvider: z.string().optional().nullable(),
@@ -530,6 +816,27 @@ bookingsRouter.post("/:id/payments", async (c) => {
       return c.json({ error: "الحجز غير موجود" }, 404);
     }
     throw err;
+  }
+
+  // Booking event — payment received
+  if (payment.status === "completed") {
+    db.insert(bookingEvents).values({
+      orgId,
+      bookingId,
+      userId,
+      eventType: "payment_received",
+      metadata: { amount: body.amount, method: body.method, type: body.type, paymentId: payment.id },
+    }).catch(() => {});
+
+    // Award loyalty points — fire-and-forget, non-critical
+    if (payment.customerId) {
+      awardLoyaltyPoints({
+        orgId,
+        customerId: payment.customerId,
+        bookingId,
+        bookingAmount: parseFloat(body.amount),
+      }).catch(() => {});
+    }
   }
 
   insertAuditLog({
@@ -684,6 +991,99 @@ bookingsRouter.get("/stats/summary", async (c) => {
       startDate: startDate.toISOString(),
       ...stats,
       statusBreakdown,
+    },
+  });
+});
+
+// ============================================================
+// GET /bookings/stats/trend — monthly revenue + bookings (last N months)
+// ============================================================
+
+bookingsRouter.get("/stats/trend", async (c) => {
+  const orgId = getOrgId(c);
+  const months = Math.min(parseInt(c.req.query("months") || "6"), 24);
+  const now = new Date();
+  const startDate = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
+
+  const rows = await db.select({
+    month: sql<string>`to_char(date_trunc('month', ${bookings.createdAt}), 'YYYY-MM')`,
+    revenue: sql<string>`COALESCE(SUM(CAST(${bookings.totalAmount} AS DECIMAL)), 0)`,
+    bookingCount: count(),
+  }).from(bookings).where(and(
+    eq(bookings.orgId, orgId),
+    gte(bookings.createdAt, startDate),
+    sql`${bookings.status} != 'cancelled'`,
+  )).groupBy(sql`date_trunc('month', ${bookings.createdAt})`);
+
+  const map = new Map(rows.map((r) => [r.month, r]));
+  const data = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const month = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    const row = map.get(month);
+    data.push({ month, revenue: parseFloat(row?.revenue ?? "0"), bookings: Number(row?.bookingCount ?? 0) });
+  }
+
+  return c.json({ data });
+});
+
+// ============================================================
+// GET /bookings/stats/growth — current period vs previous period
+// ============================================================
+
+bookingsRouter.get("/stats/growth", async (c) => {
+  const orgId = getOrgId(c);
+  const period = c.req.query("period") || "month";
+  const now = new Date();
+
+  let currentStart: Date, previousStart: Date, previousEnd: Date;
+  switch (period) {
+    case "week":
+      currentStart  = new Date(now.getTime() - 7 * 86400000);
+      previousStart = new Date(now.getTime() - 14 * 86400000);
+      previousEnd   = currentStart;
+      break;
+    case "quarter":
+      currentStart  = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+      previousStart = new Date(currentStart.getFullYear(), currentStart.getMonth() - 3, 1);
+      previousEnd   = currentStart;
+      break;
+    case "year":
+      currentStart  = new Date(now.getFullYear(), 0, 1);
+      previousStart = new Date(now.getFullYear() - 1, 0, 1);
+      previousEnd   = currentStart;
+      break;
+    default: // month
+      currentStart  = new Date(now.getFullYear(), now.getMonth(), 1);
+      previousStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      previousEnd   = currentStart;
+  }
+
+  const baseWhere = (start: Date, end?: Date) => and(
+    eq(bookings.orgId, orgId),
+    gte(bookings.createdAt, start),
+    ...(end ? [lt(bookings.createdAt, end)] : []),
+    sql`${bookings.status} != 'cancelled'`,
+  );
+
+  const [cur, prev] = await Promise.all([
+    db.select({ revenue: sql<string>`COALESCE(SUM(CAST(${bookings.totalAmount} AS DECIMAL)), 0)`, cnt: count() })
+      .from(bookings).where(baseWhere(currentStart)),
+    db.select({ revenue: sql<string>`COALESCE(SUM(CAST(${bookings.totalAmount} AS DECIMAL)), 0)`, cnt: count() })
+      .from(bookings).where(baseWhere(previousStart, previousEnd)),
+  ]);
+
+  const growth = (prev: number, cur: number) =>
+    prev > 0 ? Math.round(((cur - prev) / prev) * 100) : (cur > 0 ? 100 : 0);
+
+  const curRev = parseFloat(cur[0].revenue), prevRev = parseFloat(prev[0].revenue);
+  const curCnt = Number(cur[0].cnt), prevCnt = Number(prev[0].cnt);
+
+  return c.json({
+    data: {
+      period,
+      revenue:  { current: curRev, previous: prevRev, growth: growth(prevRev, curRev) },
+      bookings: { current: curCnt, previous: prevCnt, growth: growth(prevCnt, curCnt) },
     },
   });
 });

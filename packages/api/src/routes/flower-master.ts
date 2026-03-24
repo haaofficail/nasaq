@@ -6,7 +6,8 @@ import {
   flowerSubstitutions, flowerRecipeComponents,
 } from "@nasaq/db/schema";
 import { eq, and, desc, asc, sql, count, lte, gte, gt, isNull, or } from "drizzle-orm";
-import { getOrgId } from "../lib/helpers";
+import { getOrgId, getUserId } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
 
 export const flowerMasterRouter = new Hono();
 
@@ -589,9 +590,11 @@ flowerMasterRouter.post("/pricing", async (c) => {
 
 flowerMasterRouter.delete("/pricing/:id", async (c) => {
   const orgId = getOrgId(c);
+  const id = c.req.param("id");
   await db.update(flowerVariantPricing)
     .set({ isActive: false, updatedAt: new Date() })
-    .where(and(eq(flowerVariantPricing.id, c.req.param("id")), eq(flowerVariantPricing.orgId, orgId)));
+    .where(and(eq(flowerVariantPricing.id, id), eq(flowerVariantPricing.orgId, orgId)));
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "flower_pricing", resourceId: id });
   return c.json({ success: true });
 });
 
@@ -627,9 +630,11 @@ flowerMasterRouter.post("/substitutions", async (c) => {
 
 flowerMasterRouter.delete("/substitutions/:id", async (c) => {
   const orgId = getOrgId(c);
+  const id = c.req.param("id");
   await db.update(flowerSubstitutions)
     .set({ isActive: false })
-    .where(and(eq(flowerSubstitutions.id, c.req.param("id")), eq(flowerSubstitutions.orgId, orgId)));
+    .where(and(eq(flowerSubstitutions.id, id), eq(flowerSubstitutions.orgId, orgId)));
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "flower_substitution", resourceId: id });
   return c.json({ success: true });
 });
 
@@ -665,9 +670,11 @@ flowerMasterRouter.post("/recipes", async (c) => {
 
 flowerMasterRouter.delete("/recipes/:id", async (c) => {
   const orgId = getOrgId(c);
+  const id = c.req.param("id");
   await db.update(flowerRecipeComponents)
     .set({ isActive: false })
-    .where(and(eq(flowerRecipeComponents.id, c.req.param("id")), eq(flowerRecipeComponents.orgId, orgId)));
+    .where(and(eq(flowerRecipeComponents.id, id), eq(flowerRecipeComponents.orgId, orgId)));
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "flower_recipe", resourceId: id });
   return c.json({ success: true });
 });
 
@@ -776,4 +783,93 @@ flowerMasterRouter.get("/reports/consumption", async (c) => {
   );
 
   return c.json({ data: result.rows });
+});
+
+// ─── Intelligence: Waste + Margin + Demand Velocity ───────────────────────────
+
+// GET /flower-master/reports/intelligence
+flowerMasterRouter.get("/reports/intelligence", async (c) => {
+  const orgId = getOrgId(c);
+
+  const waste = await pool.query(
+    `SELECT
+       v.id AS variant_id,
+       COALESCE(v.display_name_ar, v.flower_type || ' ' || v.color) AS display_name,
+       v.flower_type, v.color, v.origin, v.grade,
+       COUNT(b.id) FILTER (WHERE b.expiry_estimated < NOW() AND b.quantity_remaining > 0) AS waste_batches,
+       COALESCE(SUM(b.quantity_remaining) FILTER (WHERE b.expiry_estimated < NOW() AND b.quantity_remaining > 0), 0) AS waste_units,
+       COALESCE(SUM(b.quantity_remaining * b.unit_cost::NUMERIC) FILTER (WHERE b.expiry_estimated < NOW() AND b.quantity_remaining > 0), 0) AS waste_cost,
+       COALESCE(SUM(b.quantity_received), 0) AS total_received,
+       CASE
+         WHEN SUM(b.quantity_received) > 0
+         THEN ROUND((COALESCE(SUM(b.quantity_remaining) FILTER (WHERE b.expiry_estimated < NOW() AND b.quantity_remaining > 0), 0)::NUMERIC / NULLIF(SUM(b.quantity_received), 0)) * 100, 1)
+         ELSE 0
+       END AS waste_rate_pct,
+       COALESCE(AVG(b.unit_cost::NUMERIC), 0) AS avg_purchase_cost,
+       COALESCE(SUM(b.quantity_remaining) FILTER (WHERE b.is_active AND b.expiry_estimated > NOW()), 0) AS current_stock
+     FROM flower_variants v
+     LEFT JOIN flower_batches b ON b.variant_id = v.id AND b.org_id = $1
+     WHERE v.is_active = TRUE
+     GROUP BY v.id, v.display_name_ar, v.flower_type, v.color, v.origin, v.grade
+     ORDER BY waste_cost DESC`,
+    [orgId]
+  );
+
+  const velocity = await pool.query(
+    `SELECT
+       v.id AS variant_id,
+       COALESCE(v.display_name_ar, v.flower_type || ' ' || v.color) AS display_name,
+       v.flower_type,
+       COALESCE(SUM(b.quantity_received - b.quantity_remaining) FILTER (WHERE b.created_at >= NOW() - INTERVAL '30 days'), 0) AS consumed_last_30d,
+       ROUND(COALESCE(SUM(b.quantity_received - b.quantity_remaining) FILTER (WHERE b.created_at >= NOW() - INTERVAL '30 days'), 0)::NUMERIC / 4.3, 1) AS weekly_demand,
+       COALESCE(SUM(b.quantity_remaining) FILTER (WHERE b.is_active AND b.expiry_estimated > NOW()), 0) AS current_stock
+     FROM flower_variants v
+     LEFT JOIN flower_batches b ON b.variant_id = v.id AND b.org_id = $1
+     WHERE v.is_active = TRUE
+     GROUP BY v.id, v.display_name_ar, v.flower_type
+     HAVING COALESCE(SUM(b.quantity_received), 0) > 0
+     ORDER BY weekly_demand DESC
+     LIMIT 20`,
+    [orgId]
+  );
+
+  const margin = await pool.query(
+    `SELECT
+       v.id AS variant_id,
+       COALESCE(v.display_name_ar, v.flower_type || ' ' || v.color) AS display_name,
+       v.flower_type, v.grade,
+       COALESCE(AVG(b.unit_cost::NUMERIC), 0) AS avg_cost,
+       COALESCE(MIN(p.price_per_stem), 0) AS min_price,
+       COALESCE(MAX(p.price_per_stem), 0) AS max_price,
+       CASE
+         WHEN COALESCE(MIN(p.price_per_stem), 0) > 0
+         THEN ROUND(((COALESCE(MIN(p.price_per_stem), 0) - COALESCE(AVG(b.unit_cost::NUMERIC), 0)) / NULLIF(COALESCE(MIN(p.price_per_stem), 0), 0)) * 100, 1)
+         ELSE 0
+       END AS margin_pct
+     FROM flower_variants v
+     LEFT JOIN flower_batches b ON b.variant_id = v.id AND b.org_id = $1 AND b.is_active
+     LEFT JOIN flower_variant_pricing p ON p.variant_id = v.id AND p.org_id = $1
+     WHERE v.is_active = TRUE
+     GROUP BY v.id, v.display_name_ar, v.flower_type, v.grade
+     ORDER BY margin_pct DESC`,
+    [orgId]
+  );
+
+  const expiring = await pool.query(
+    `SELECT
+       v.id AS variant_id,
+       COALESCE(v.display_name_ar, v.flower_type || ' ' || v.color) AS display_name,
+       b.id AS batch_id, b.batch_number, b.quantity_remaining,
+       b.expiry_estimated, b.quality_status, b.unit_cost,
+       (b.expiry_estimated::DATE - CURRENT_DATE) AS days_left
+     FROM flower_variants v
+     JOIN flower_batches b ON b.variant_id = v.id AND b.org_id = $1
+     WHERE b.is_active AND b.quantity_remaining > 0
+       AND b.expiry_estimated <= NOW() + INTERVAL '7 days'
+       AND b.expiry_estimated > NOW()
+     ORDER BY b.expiry_estimated ASC`,
+    [orgId]
+  );
+
+  return c.json({ data: { waste: waste.rows, velocity: velocity.rows, margin: margin.rows, expiring: expiring.rows } });
 });

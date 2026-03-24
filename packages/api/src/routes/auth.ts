@@ -4,8 +4,9 @@ import { eq, and, gt, desc, sql, or } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { users, otpCodes, sessions, auditLogs, organizations, roles, bookingPipelineStages } from "@nasaq/db/schema";
 import { nanoid } from "nanoid";
-import { SESSION_DURATION_MS } from "../lib/constants";
-import { DEFAULT_TRIAL_DAYS } from "../lib/constants";
+import { SESSION_DURATION_MS, DEFAULT_TRIAL_DAYS, MAX_FAILED_LOGIN_ATTEMPTS } from "../lib/constants";
+import { authMiddleware, type AuthUser } from "../middleware/auth";
+import { getBusinessDefaults, getTrustedIp } from "../lib/helpers";
 import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
 
 // ============================================================
@@ -27,7 +28,44 @@ function verifyPassword(password: string, stored: string): boolean {
   return timingSafeEqual(inputHash, storedHash);
 }
 
-export const authRouter = new Hono();
+export const authRouter = new Hono<{ Variables: { user: AuthUser | null; orgId: string; requestId: string } }>();
+
+// ============================================================
+// IP RATE LIMITER — in-memory with size cap + TTL eviction
+// Suitable for single-instance. For multi-instance, replace
+// ipHits store with Redis (same interface, same logic).
+// ============================================================
+
+const MAX_IP_ENTRIES = 10_000; // prevent unbounded growth
+const ipHits = new Map<string, { count: number; resetAt: number }>();
+
+function checkIpRateLimit(ip: string, maxPerWindow: number, windowMs: number): boolean {
+  const now = Date.now();
+  const entry = ipHits.get(ip);
+
+  if (!entry || entry.resetAt < now) {
+    // Evict oldest entries if map is full
+    if (!entry && ipHits.size >= MAX_IP_ENTRIES) {
+      const oldest = [...ipHits.entries()]
+        .sort((a, b) => a[1].resetAt - b[1].resetAt)
+        .slice(0, Math.floor(MAX_IP_ENTRIES * 0.1)); // evict oldest 10%
+      for (const [k] of oldest) ipHits.delete(k);
+    }
+    ipHits.set(ip, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+
+  entry.count++;
+  return entry.count <= maxPerWindow;
+}
+
+// Prune expired entries every 10 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, val] of ipHits.entries()) {
+    if (val.resetAt < now) ipHits.delete(key);
+  }
+}, 10 * 60 * 1000);
 
 // ============================================================
 // POST /auth/register — تسجيل نشاط تجاري جديد
@@ -35,6 +73,11 @@ export const authRouter = new Hono();
 // ============================================================
 
 authRouter.post("/register", async (c) => {
+  const ip = getTrustedIp(c);
+  if (!checkIpRateLimit(ip, 5, 60 * 60 * 1000)) { // 5 registrations per IP per hour
+    return c.json({ error: "تم تجاوز الحد المسموح — حاول لاحقاً", code: "RATE_LIMITED" }, 429);
+  }
+
   const body = await c.req.json();
   const { businessName, phone, email, businessType, password } = body;
 
@@ -74,24 +117,33 @@ authRouter.post("/register", async (c) => {
 
   // Create org + owner + default pipeline in a transaction
   const result = await db.transaction(async (tx) => {
+    const biz = businessType || "general";
+    const bizDefaults = getBusinessDefaults(biz);
+    const [seqRow] = await tx.execute(sql`SELECT nextval('org_code_seq') AS n`);
+    const orgCode = `NSQ-${String(seqRow.n).padStart(4, "0")}`;
+
     const [org] = await tx.insert(organizations).values({
+      orgCode,
       name: businessName,
       slug,
       phone: normalizedPhone,
       email: email || null,
-      businessType: businessType || "general",
+      businessType: biz,
       plan: "basic",
       subscriptionStatus: "trialing",
       trialEndsAt: new Date(Date.now() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000),
       subdomain: slug,
+      operatingProfile: bizDefaults.operatingProfile,
+      serviceDeliveryModes: bizDefaults.serviceDeliveryModes,
+      enabledCapabilities: bizDefaults.enabledCapabilities,
     }).returning();
 
     const [owner] = await tx.insert(users).values({
       orgId: org.id,
       name: businessName,
-      phone: normalizedPhone,
-      email: email ? email.toLowerCase().trim() : null,
-      passwordHash: password ? hashPassword(password) : null,
+      phone: normalizedPhone as string,
+      email: email ? email.toLowerCase().trim() : undefined,
+      passwordHash: password ? hashPassword(password) : undefined,
       type: "owner",
       status: "active",
     }).returning();
@@ -124,7 +176,7 @@ authRouter.post("/register", async (c) => {
       userId: result.owner.id,
       token,
       device: c.req.header("User-Agent") || "unknown",
-      ip: c.req.header("X-Forwarded-For") || "unknown",
+      ip: getTrustedIp(c),
       expiresAt,
     });
     const [org2] = await db.select({ businessType: organizations.businessType }).from(organizations).where(eq(organizations.id, result.org.id));
@@ -154,16 +206,17 @@ authRouter.post("/register", async (c) => {
     expiresAt,
   });
 
-  if (process.env.NODE_ENV === "development") {
-    console.log(`\n🔐 Register OTP for ${normalizedPhone}: ${code}\n`);
+  const smsEnabledReg = process.env.SMS_ENABLED === "true";
+  if (!smsEnabledReg) {
+    console.log(`\n🔐 Register OTP [${normalizedPhone}]: ${code}  (expires in 5 min)\n`);
   }
 
   return c.json({
-    message: "تم إنشاء الحساب — أدخل رمز التحقق المرسل لجوالك",
+    message: "تم إنشاء الحساب — أدخل رمز التحقق",
     phone: normalizedPhone,
     orgId: result.org.id,
     expiresIn: 300,
-    ...(process.env.NODE_ENV === "development" ? { _devCode: code } : {}),
+    ...(!smsEnabledReg ? { _devCode: code } : {}),
   }, 201);
 });
 
@@ -194,6 +247,24 @@ authRouter.post("/otp/request", async (c) => {
     return c.json({ error: "الحساب موقوف — تواصل مع المسؤول" }, 403);
   }
 
+  // Rate limit: منع طلب OTP أكثر من مرة كل دقيقة لنفس الرقم
+  const [recentOtp] = await db
+    .select({ id: otpCodes.id })
+    .from(otpCodes)
+    .where(
+      and(
+        eq(otpCodes.phone, phone),
+        eq(otpCodes.purpose, "login"),
+        gt(otpCodes.expiresAt, new Date()),
+        sql`${otpCodes.createdAt} > NOW() - INTERVAL '1 minute'`
+      )
+    )
+    .limit(1);
+
+  if (recentOtp) {
+    return c.json({ error: "يرجى الانتظار دقيقة قبل طلب رمز جديد" }, 429);
+  }
+
   // Generate OTP (6 digits)
   const code = generateOTP();
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 دقائق
@@ -206,17 +277,19 @@ authRouter.post("/otp/request", async (c) => {
     expiresAt,
   });
 
-  // TODO: Send via SMS/WhatsApp (Twilio/Unifonic)
-  // In dev mode, log it
-  if (process.env.NODE_ENV === "development") {
-    console.log(`\n🔐 OTP for ${phone}: ${code}\n`);
+  // TODO: Send via SMS/WhatsApp (Twilio/Unifonic) — set SMS_ENABLED=true when configured
+  const smsEnabled = process.env.SMS_ENABLED === "true";
+
+  // Always log to console so it appears in PM2 logs until SMS is configured
+  if (!smsEnabled) {
+    console.log(`\n🔐 OTP [${phone}]: ${code}  (expires in 5 min)\n`);
   }
 
   return c.json({
-    message: "تم إرسال رمز التحقق",
+    message: smsEnabled ? "تم إرسال رمز التحقق على جوالك" : "رمز التحقق: ظهر في سجلات الخادم",
     expiresIn: 300,
-    // Only expose OTP code in development builds — never in production (S4)
-    ...(process.env.NODE_ENV === "development" ? { _devCode: code } : {}),
+    // Return code in response when SMS is not yet configured — remove once SMS is live
+    ...(!smsEnabled ? { _devCode: code } : {}),
   });
 });
 
@@ -225,6 +298,11 @@ authRouter.post("/otp/request", async (c) => {
 // ============================================================
 
 authRouter.post("/otp/verify", async (c) => {
+  const ip = getTrustedIp(c);
+  if (!checkIpRateLimit(ip, 30, 15 * 60 * 1000)) { // 30 OTP attempts per IP per 15 min
+    return c.json({ error: "تم تجاوز الحد المسموح — حاول بعد 15 دقيقة", code: "RATE_LIMITED" }, 429);
+  }
+
   const body = await c.req.json();
   const phone = normalizePhone(body.phone);
   const code = body.code;
@@ -235,7 +313,11 @@ authRouter.post("/otp/verify", async (c) => {
 
   // Find valid OTP (accept both login and register purposes)
   const [otp] = await db
-    .select()
+    .select({
+      id: otpCodes.id,
+      usedAt: otpCodes.usedAt,
+      attempts: otpCodes.attempts,
+    })
     .from(otpCodes)
     .where(
       and(
@@ -277,7 +359,15 @@ authRouter.post("/otp/verify", async (c) => {
 
   // Find user
   const [user] = await db
-    .select()
+    .select({
+      id: users.id,
+      orgId: users.orgId,
+      name: users.name,
+      phone: users.phone,
+      email: users.email,
+      type: users.type,
+      avatar: users.avatar,
+    })
     .from(users)
     .where(eq(users.phone, phone));
 
@@ -299,7 +389,7 @@ authRouter.post("/otp/verify", async (c) => {
     userId: user.id,
     token,
     device: c.req.header("User-Agent") || "unknown",
-    ip: c.req.header("X-Forwarded-For") || "unknown",
+    ip: getTrustedIp(c),
     expiresAt,
   });
 
@@ -316,7 +406,7 @@ authRouter.post("/otp/verify", async (c) => {
     action: "login",
     resource: "auth",
     resourceId: user.id,
-    ip: c.req.header("X-Forwarded-For") || "unknown",
+    ip: getTrustedIp(c),
     userAgent: c.req.header("User-Agent") || "unknown",
   });
 
@@ -341,6 +431,11 @@ authRouter.post("/otp/verify", async (c) => {
 // ============================================================
 
 authRouter.post("/login", async (c) => {
+  const ip = getTrustedIp(c);
+  if (!checkIpRateLimit(ip, 20, 15 * 60 * 1000)) { // 20 attempts per IP per 15 min
+    return c.json({ error: "تم تجاوز الحد المسموح — حاول بعد 15 دقيقة", code: "RATE_LIMITED" }, 429);
+  }
+
   const body = await c.req.json();
   const { email, password } = body;
 
@@ -349,7 +444,20 @@ authRouter.post("/login", async (c) => {
   }
 
   const [user] = await db
-    .select()
+    .select({
+      id: users.id,
+      orgId: users.orgId,
+      name: users.name,
+      phone: users.phone,
+      email: users.email,
+      type: users.type,
+      avatar: users.avatar,
+      status: users.status,
+      passwordHash: users.passwordHash,
+      failedLoginAttempts: users.failedLoginAttempts,
+      isSuperAdmin: users.isSuperAdmin,
+      nasaqRole: users.nasaqRole,
+    })
     .from(users)
     .where(eq(users.email, email.toLowerCase().trim()));
 
@@ -361,12 +469,19 @@ authRouter.post("/login", async (c) => {
     return c.json({ error: "الحساب موقوف — تواصل مع المسؤول" }, 403);
   }
 
+  // Lockout after MAX_FAILED_LOGIN_ATTEMPTS consecutive failures
+  if ((user.failedLoginAttempts || 0) >= MAX_FAILED_LOGIN_ATTEMPTS) {
+    return c.json({
+      error: "تم تجاوز عدد محاولات الدخول — تواصل مع المسؤول لإعادة تفعيل الحساب",
+      code: "ACCOUNT_LOCKED",
+    }, 429);
+  }
+
   if (!user.passwordHash) {
     return c.json({ error: "هذا الحساب يستخدم تسجيل الدخول بالجوال — اختر طريقة الجوال" }, 400);
   }
 
   if (!verifyPassword(password, user.passwordHash)) {
-    // Increment failed attempts
     await db.update(users)
       .set({ failedLoginAttempts: (user.failedLoginAttempts || 0) + 1 })
       .where(eq(users.id, user.id));
@@ -385,7 +500,7 @@ authRouter.post("/login", async (c) => {
     userId: user.id,
     token,
     device: c.req.header("User-Agent") || "unknown",
-    ip: c.req.header("X-Forwarded-For") || "unknown",
+    ip: getTrustedIp(c),
     expiresAt,
   });
 
@@ -399,7 +514,7 @@ authRouter.post("/login", async (c) => {
     action: "login",
     resource: "auth",
     resourceId: user.id,
-    ip: c.req.header("X-Forwarded-For") || "unknown",
+    ip: getTrustedIp(c),
     userAgent: c.req.header("User-Agent") || "unknown",
   });
 
@@ -415,6 +530,8 @@ authRouter.post("/login", async (c) => {
       type: user.type,
       avatar: user.avatar,
       businessType: org?.businessType || "general",
+      isSuperAdmin: user.isSuperAdmin ?? false,
+      nasaqRole: user.nasaqRole ?? null,
     },
   });
 });
@@ -424,20 +541,20 @@ authRouter.post("/login", async (c) => {
 // ============================================================
 
 authRouter.post("/password/change", async (c) => {
-  const authHeader = c.req.header("Authorization");
-  if (!authHeader?.startsWith("Bearer ")) return c.json({ error: "غير مصرح" }, 401);
-
-  const token = authHeader.substring(7);
-  const [session] = await db.select({ userId: sessions.userId })
-    .from(sessions).where(and(eq(sessions.token, token), gt(sessions.expiresAt, new Date())));
-  if (!session) return c.json({ error: "الجلسة منتهية" }, 401);
+  // authMiddleware guarantees user is set
+  const authUser = c.get("user") as { id: string } | null;
+  if (!authUser) return c.json({ error: "غير مصرح" }, 401);
 
   const { currentPassword, newPassword } = await c.req.json();
   if (!newPassword || newPassword.length < 8) {
     return c.json({ error: "كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل" }, 400);
   }
 
-  const [user] = await db.select().from(users).where(eq(users.id, session.userId));
+  // Load only what we need — passwordHash for verification
+  const [user] = await db
+    .select({ id: users.id, passwordHash: users.passwordHash })
+    .from(users)
+    .where(eq(users.id, authUser.id));
   if (!user) return c.json({ error: "المستخدم غير موجود" }, 404);
 
   // If user already has a password, verify current one
@@ -474,6 +591,16 @@ authRouter.post("/logout", async (c) => {
 });
 
 // ============================================================
+// Protected auth routes — require valid session
+// ============================================================
+
+authRouter.use("/me", authMiddleware);
+authRouter.use("/sessions", authMiddleware);
+authRouter.use("/sessions/*", authMiddleware);
+authRouter.use("/password/change", authMiddleware);
+authRouter.use("/account/update", authMiddleware);
+
+// ============================================================
 // GET /auth/me — بيانات المستخدم الحالي
 // ============================================================
 
@@ -487,11 +614,51 @@ authRouter.get("/me", async (c) => {
 });
 
 // ============================================================
+// PATCH /auth/account/update — تحديث بيانات المستخدم الشخصية
+// ============================================================
+
+authRouter.patch("/account/update", async (c) => {
+  const authUser = c.get("user") as { id: string } | null;
+  if (!authUser) return c.json({ error: "غير مصرح" }, 401);
+
+  const body = await c.req.json();
+  const allowed = ["name", "email", "avatar"] as const;
+  const updates: Record<string, unknown> = {};
+
+  for (const key of allowed) {
+    if (body[key] !== undefined) updates[key] = body[key];
+  }
+
+  if (Object.keys(updates).length === 0) {
+    return c.json({ error: "لا توجد بيانات للتحديث" }, 400);
+  }
+
+  if (updates.email) {
+    const email = String(updates.email).toLowerCase().trim();
+    const [existing] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.email, email), sql`${users.id} != ${authUser.id}`));
+    if (existing) return c.json({ error: "البريد الإلكتروني مستخدم بالفعل" }, 409);
+    updates.email = email;
+  }
+
+  const [updated] = await db
+    .update(users)
+    .set({ ...updates, updatedAt: new Date() })
+    .where(eq(users.id, authUser.id))
+    .returning({ id: users.id, name: users.name, email: users.email, avatar: users.avatar });
+
+  // Refresh stored user in any active session (best-effort localStorage sync via response)
+  return c.json({ data: updated });
+});
+
+// ============================================================
 // GET /auth/sessions — جلساتي النشطة
 // ============================================================
 
 authRouter.get("/sessions", async (c) => {
-  const user = c.get("user");
+  const user = c.get("user") as AuthUser | null;
   if (!user) return c.json({ error: "غير مصرح" }, 401);
 
   const activeSessions = await db
@@ -519,7 +686,7 @@ authRouter.get("/sessions", async (c) => {
 // ============================================================
 
 authRouter.delete("/sessions/:id", async (c) => {
-  const user = c.get("user");
+  const user = c.get("user") as AuthUser | null;
   if (!user) return c.json({ error: "غير مصرح" }, 401);
 
   const sessionId = c.req.param("id");

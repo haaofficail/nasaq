@@ -9,6 +9,7 @@ type AuditParams = {
   resourceId?: string;
   oldValue?: unknown;
   newValue?: unknown;
+  metadata?: unknown;    // structured context: { status, reason, amount, ... }
   ip?: string;
   userAgent?: string;
 };
@@ -23,6 +24,7 @@ export function insertAuditLog(params: AuditParams): void {
     resourceId: params.resourceId ?? null,
     oldValue: params.oldValue ?? null,
     newValue: params.newValue ?? null,
+    metadata: params.metadata ?? null,
     ip: params.ip ?? null,
     userAgent: params.userAgent ?? null,
   }).catch((err) => {

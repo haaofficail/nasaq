@@ -78,6 +78,9 @@ export const customers = pgTable("customers", {
   // Notes
   internalNotes: text("internal_notes"),           // ملاحظات خاصة (لا يراها العميل)
 
+  // Demo flag — تُنشأ أثناء الإعداد الأولي، يمكن حذفها بـ DELETE /settings/demo-data
+  isDemo: boolean("is_demo").default(false).notNull(),
+
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
