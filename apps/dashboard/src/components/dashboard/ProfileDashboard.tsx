@@ -14,6 +14,7 @@ import { QuickActionsGrid } from "./QuickActionsGrid";
 import { CustomizePanel } from "./CustomizePanel";
 import { CreateBookingForm } from "@/components/bookings/CreateBookingForm";
 import { CreateCustomerForm } from "@/components/customers/CreateCustomerForm";
+import { CreateInvoiceModal } from "@/components/invoices/CreateInvoiceModal";
 
 const sizeClass: Record<WidgetConfig["size"], string> = {
   full:       "col-span-1 lg:col-span-6",
@@ -36,6 +37,7 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
   const [copied, setCopied] = useState(false);
   const [showNewBooking, setShowNewBooking] = useState(false);
   const [showNewCustomer, setShowNewCustomer] = useState(false);
+  const [showNewInvoice, setShowNewInvoice] = useState(false);
 
   const { data: subRes } = useApi(() => orgSubscriptionApi.get(), []);
   const sub = subRes?.data;
@@ -260,7 +262,7 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
             {([
               { onClick: () => setShowNewBooking(true),   icon: CalendarCheck, label: "أضف أول حجز",  desc: "سجّل حجزاً جديداً الآن",    color: "text-brand-600",   bg: "bg-brand-50"   },
               { onClick: () => setShowNewCustomer(true),  icon: UserPlus,      label: "أضف عميل",      desc: "ابنِ قاعدة عملائك",          color: "text-violet-600", bg: "bg-violet-50"  },
-              { onClick: () => navigate("/dashboard/finance?tab=invoices"), icon: Receipt, label: "أنشئ فاتورة", desc: "فاتورة احترافية في ثوانٍ", color: "text-emerald-600", bg: "bg-emerald-50" },
+              { onClick: () => setShowNewInvoice(true), icon: Receipt, label: "أنشئ فاتورة", desc: "فاتورة احترافية في ثوانٍ", color: "text-emerald-600", bg: "bg-emerald-50" },
             ] as { onClick: () => void; icon: React.ElementType; label: string; desc: string; color: string; bg: string }[]).map((item) => (
               <button
                 key={item.label}
@@ -290,6 +292,11 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
         open={showNewCustomer}
         onClose={() => setShowNewCustomer(false)}
         onSuccess={() => { setShowNewCustomer(false); }}
+      />
+      <CreateInvoiceModal
+        open={showNewInvoice}
+        onClose={() => setShowNewInvoice(false)}
+        onSuccess={() => { setShowNewInvoice(false); }}
       />
     </div>
   );
