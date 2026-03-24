@@ -116,6 +116,16 @@ export const WIDGET_REGISTRY: Record<string, WidgetContextGate> = {
   },
 
   // ──────────────────────────────────────────────────────────
+  // RECENT ACTIVITY — universal, no capability required
+  // ──────────────────────────────────────────────────────────
+  "recent-activity": {
+    id: "recent-activity",
+    requiredCapabilities: [],
+    allowedBusinessTypes: [],
+    allowedOperatingProfiles: [],
+  },
+
+  // ──────────────────────────────────────────────────────────
   // ONLINE ORDERS widget — restaurant/food/delivery only
   // ──────────────────────────────────────────────────────────
   "online-orders-widget": {
