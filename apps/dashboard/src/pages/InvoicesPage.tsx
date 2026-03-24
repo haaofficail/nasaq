@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "@/hooks/useToast";
-import { FileText, Plus, RefreshCw, CheckCircle2, Clock, XCircle, AlertTriangle, Eye } from "lucide-react";
+import { FileText, Plus, RefreshCw, CheckCircle2, Clock, XCircle, AlertTriangle, Eye, Search, CreditCard } from "lucide-react";
 import { clsx } from "clsx";
 import { financeApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
@@ -9,21 +9,29 @@ import { Button, Modal, Input, Select } from "@/components/ui";
 import { CreateInvoiceModal } from "@/components/invoices/CreateInvoiceModal";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  draft:           { label: "مسودة",      color: "bg-gray-100 text-gray-600 border-gray-200",      icon: Clock },
-  issued:          { label: "صادرة",      color: "bg-blue-50 text-blue-700 border-blue-200",        icon: FileText },
-  sent:            { label: "مُرسلة",     color: "bg-indigo-50 text-indigo-700 border-indigo-200",  icon: FileText },
-  paid:            { label: "مدفوعة",     color: "bg-emerald-50 text-emerald-700 border-emerald-200",icon: CheckCircle2 },
-  partially_paid:  { label: "مدفوعة جزئياً", color: "bg-teal-50 text-teal-700 border-teal-200",   icon: Clock },
-  overdue:         { label: "متأخرة",     color: "bg-red-50 text-red-700 border-red-200",           icon: AlertTriangle },
-  cancelled:       { label: "ملغاة",      color: "bg-gray-100 text-gray-500 border-gray-200",       icon: XCircle },
+  draft:          { label: "مسودة",         color: "bg-gray-100 text-gray-600 border-gray-200",       icon: Clock },
+  issued:         { label: "صادرة",          color: "bg-blue-50 text-blue-700 border-blue-200",         icon: FileText },
+  sent:           { label: "مُرسلة",         color: "bg-indigo-50 text-indigo-700 border-indigo-200",   icon: FileText },
+  paid:           { label: "مدفوعة",         color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
+  partially_paid: { label: "مدفوعة جزئياً", color: "bg-teal-50 text-teal-700 border-teal-200",         icon: Clock },
+  overdue:        { label: "متأخرة",         color: "bg-red-50 text-red-700 border-red-200",             icon: AlertTriangle },
+  cancelled:      { label: "ملغاة",          color: "bg-gray-100 text-gray-500 border-gray-200",        icon: XCircle },
+};
+
+const SOURCE_BADGE: Record<string, { label: string; color: string }> = {
+  booking:  { label: "حجز",     color: "bg-brand-50 text-brand-700 border-brand-200" },
+  order:    { label: "طلب",     color: "bg-violet-50 text-violet-700 border-violet-200" },
+  services: { label: "خدمات",   color: "bg-amber-50 text-amber-700 border-amber-200" },
+  manual:   { label: "يدوي",    color: "bg-gray-100 text-gray-500 border-gray-200" },
 };
 
 const TABS = [
-  { key: "all",     label: "الكل" },
-  { key: "issued",  label: "صادرة" },
-  { key: "paid",    label: "مدفوعة" },
-  { key: "overdue", label: "متأخرة" },
-  { key: "cancelled", label: "ملغاة" },
+  { key: "all",           label: "الكل" },
+  { key: "issued",        label: "صادرة" },
+  { key: "partially_paid",label: "جزئي" },
+  { key: "paid",          label: "مدفوعة" },
+  { key: "overdue",       label: "متأخرة" },
+  { key: "cancelled",     label: "ملغاة" },
 ];
 
 function fmt(n: any) {
@@ -34,28 +42,38 @@ function fmtDate(d: string) {
 }
 
 export function InvoicesPage() {
-  const [tab, setTab]           = useState("all");
-  const [showModal, setShowModal] = useState(false);
+  const [tab, setTab]                 = useState("all");
+  const [search, setSearch]           = useState("");
+  const [showModal, setShowModal]     = useState(false);
   const [viewInvoice, setViewInvoice] = useState<any>(null);
+  const [showPayment, setShowPayment] = useState(false);
+  const [paymentForm, setPaymentForm] = useState({ amount: "", paymentMethod: "cash", reference: "", notes: "" });
+  const [savingPayment, setSavingPayment] = useState(false);
 
-  const { context: orgCtx }               = useOrgContext();
+  const { context: orgCtx } = useOrgContext();
 
   const params: Record<string, string> = {};
   if (tab !== "all") params.status = tab;
+  if (search)        params.q      = search;
 
-  const { data: res, loading, refetch } = useApi(() => financeApi.invoices(params), [tab]);
-  const { mutate: updateStatus }        = useMutation(({ id, s }: any) => financeApi.updateInvoiceStatus(id, s));
+  const { data: res, loading, refetch }  = useApi(() => financeApi.invoices(params), [tab, search]);
+  const { data: statsRes }               = useApi(() => financeApi.invoiceStats(), []);
+  const { data: paymentsRes, refetch: refetchPayments } = useApi(
+    () => viewInvoice ? financeApi.invoicePayments(viewInvoice.id) : Promise.resolve({ data: [] }),
+    [viewInvoice?.id]
+  );
+  const { mutate: updateStatus } = useMutation(({ id, s }: any) => financeApi.updateInvoiceStatus(id, s));
 
-  const invoices: any[] = res?.data || [];
-  const totalIssued = invoices.filter(i => i.status !== "cancelled").reduce((s: number, i: any) => s + Number(i.totalAmount || 0), 0);
-  const totalPaid   = invoices.filter(i => i.status === "paid").reduce((s: number, i: any) => s + Number(i.totalAmount || 0), 0);
-  const totalUnpaid = invoices.filter(i => ["issued","sent","overdue"].includes(i.status)).reduce((s: number, i: any) => s + Number(i.totalAmount || 0), 0);
+  const invoiceList: any[] = res?.data || [];
+  const stats = statsRes?.data;
+  const pmts: any[] = paymentsRes?.data || [];
 
   const markPaid = async (id: string) => {
     try {
       await updateStatus({ id, s: "paid" });
       toast.success("تم تأكيد الدفع");
       refetch();
+      if (viewInvoice?.id === id) setViewInvoice((v: any) => ({ ...v, status: "paid" }));
     } catch { toast.error("فشل التحديث"); }
   };
 
@@ -65,7 +83,25 @@ export function InvoicesPage() {
       await updateStatus({ id, s: "cancelled" });
       toast.success("تم الإلغاء");
       refetch();
+      setViewInvoice(null);
     } catch { toast.error("فشل التحديث"); }
+  };
+
+  const handleAddPayment = async () => {
+    if (!paymentForm.amount || parseFloat(paymentForm.amount) <= 0) { toast.error("أدخل المبلغ"); return; }
+    setSavingPayment(true);
+    try {
+      await financeApi.addInvoicePayment(viewInvoice.id, paymentForm);
+      toast.success("تم تسجيل الدفعة");
+      setShowPayment(false);
+      setPaymentForm({ amount: "", paymentMethod: "cash", reference: "", notes: "" });
+      refetch();
+      refetchPayments();
+      // Re-fetch invoice to update status
+      const updated = await financeApi.getInvoice(viewInvoice.id);
+      setViewInvoice((updated as any).data);
+    } catch { toast.error("فشل تسجيل الدفعة"); }
+    finally { setSavingPayment(false); }
   };
 
   return (
@@ -89,10 +125,10 @@ export function InvoicesPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "إجمالي الفواتير",  value: `${invoices.length} فاتورة`,       color: "text-brand-600",   bg: "bg-brand-50" },
-          { label: "إجمالي المبالغ",   value: `${fmt(totalIssued)} ر.س`,          color: "text-gray-700",    bg: "bg-gray-100" },
-          { label: "مدفوعة",           value: `${fmt(totalPaid)} ر.س`,            color: "text-emerald-600", bg: "bg-emerald-50" },
-          { label: "مستحقة",           value: `${fmt(totalUnpaid)} ر.س`,          color: "text-red-500",     bg: "bg-red-50" },
+          { label: "إجمالي الفواتير",  value: stats ? `${stats.total} فاتورة` : `${invoiceList.length} فاتورة`, color: "text-brand-600",   bg: "bg-brand-50" },
+          { label: "إجمالي المبالغ",   value: `${fmt(stats?.totalAmount)} ر.س`,                                  color: "text-gray-700",    bg: "bg-gray-100" },
+          { label: "مدفوعة",           value: `${fmt(stats?.paidAmount)} ر.س`,                                   color: "text-emerald-600", bg: "bg-emerald-50" },
+          { label: "مستحقة",           value: `${fmt(stats?.unpaidAmount)} ر.س`,                                 color: "text-red-500",     bg: "bg-red-50" },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4">
             <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-2", s.bg)}>
@@ -104,22 +140,33 @@ export function InvoicesPage() {
         ))}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">
-        {TABS.map(t => (
-          <button key={t.key} onClick={() => setTab(t.key)}
-            className={clsx("px-4 py-1.5 rounded-lg text-xs font-medium transition-all",
-              tab === t.key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700")}>
-            {t.label}
-          </button>
-        ))}
+      {/* Search + Tabs */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            className="w-full pr-9 pl-4 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-brand-400 bg-white"
+            placeholder="بحث باسم العميل..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setTab(t.key)}
+              className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                tab === t.key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700")}>
+              {t.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <div className="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900 text-sm">قائمة الفواتير</h2>
-          <span className="text-xs text-gray-400">{invoices.length} فاتورة</span>
+          <span className="text-xs text-gray-400">{invoiceList.length} فاتورة</span>
         </div>
 
         {loading ? (
@@ -132,7 +179,7 @@ export function InvoicesPage() {
               </div>
             ))}
           </div>
-        ) : invoices.length === 0 ? (
+        ) : invoiceList.length === 0 ? (
           <div className="p-12 text-center">
             <FileText className="w-10 h-10 text-gray-200 mx-auto mb-3" />
             <p className="text-sm font-semibold text-gray-700 mb-1">لا توجد فواتير</p>
@@ -147,6 +194,7 @@ export function InvoicesPage() {
                   <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold">رقم الفاتورة</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">العميل</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden sm:table-cell">التاريخ</th>
+                  <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden md:table-cell">المصدر</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden md:table-cell">الضريبة</th>
                   <th className="text-left  py-3 px-4 text-xs text-gray-400 font-semibold">الإجمالي</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">الحالة</th>
@@ -154,9 +202,10 @@ export function InvoicesPage() {
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((inv: any) => {
+                {invoiceList.map((inv: any) => {
                   const sc = STATUS_CONFIG[inv.status] || STATUS_CONFIG.issued;
                   const StatusIcon = sc.icon;
+                  const src = SOURCE_BADGE[inv.sourceType] || SOURCE_BADGE.manual;
                   const canMarkPaid = ["issued", "sent", "overdue", "partially_paid"].includes(inv.status);
                   const canCancel   = ["draft", "issued", "sent"].includes(inv.status);
                   return (
@@ -170,10 +219,16 @@ export function InvoicesPage() {
                         {inv.buyerPhone && <p className="text-xs text-gray-400">{inv.buyerPhone}</p>}
                       </td>
                       <td className="py-3.5 px-4 text-xs text-gray-500 hidden sm:table-cell whitespace-nowrap">{fmtDate(inv.createdAt)}</td>
+                      <td className="py-3.5 px-4 hidden md:table-cell">
+                        <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border", src.color)}>{src.label}</span>
+                      </td>
                       <td className="py-3.5 px-4 text-xs text-gray-500 tabular-nums hidden md:table-cell">{fmt(inv.vatAmount)} ر.س</td>
                       <td className="py-3.5 px-4 text-left">
                         <span className="text-sm font-bold text-gray-900 tabular-nums">{fmt(inv.totalAmount)}</span>
                         <span className="text-xs text-gray-400 mr-1">ر.س</span>
+                        {inv.status === "partially_paid" && (
+                          <p className="text-[11px] text-teal-600 tabular-nums">مدفوع: {fmt(inv.paidAmount)}</p>
+                        )}
                       </td>
                       <td className="py-3.5 px-4">
                         <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border", sc.color)}>
@@ -187,9 +242,9 @@ export function InvoicesPage() {
                             <Eye className="w-3.5 h-3.5 text-brand-500" />
                           </button>
                           {canMarkPaid && (
-                            <button onClick={() => markPaid(inv.id)}
+                            <button onClick={() => { setViewInvoice(inv); setShowPayment(true); }}
                               className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-medium hover:bg-emerald-100 transition-colors">
-                              تأكيد الدفع
+                              دفعة
                             </button>
                           )}
                           {canCancel && (
@@ -218,43 +273,109 @@ export function InvoicesPage() {
 
       {/* View Invoice Modal */}
       {viewInvoice && (
-        <Modal open={!!viewInvoice} onClose={() => setViewInvoice(null)} title="تفاصيل الفاتورة" size="sm"
-          footer={<Button variant="secondary" onClick={() => setViewInvoice(null)}>إغلاق</Button>}>
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-500">رقم الفاتورة</span>
-              <span className="font-mono font-bold">{viewInvoice.invoiceNumber}</span>
+        <Modal
+          open={!!viewInvoice}
+          onClose={() => { setViewInvoice(null); setShowPayment(false); }}
+          title={`فاتورة ${viewInvoice.invoiceNumber}`}
+          size="md"
+          footer={
+            <div className="flex gap-2 w-full">
+              {["issued","sent","overdue","partially_paid"].includes(viewInvoice.status) && (
+                <Button icon={CreditCard} onClick={() => setShowPayment(true)} size="sm">تسجيل دفعة</Button>
+              )}
+              {["draft","issued","sent"].includes(viewInvoice.status) && (
+                <Button variant="danger" size="sm" onClick={() => markCancelled(viewInvoice.id)}>إلغاء</Button>
+              )}
+              <Button variant="secondary" className="mr-auto" onClick={() => { setViewInvoice(null); setShowPayment(false); }}>إغلاق</Button>
             </div>
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-500">البائع</span>
-              <div className="text-right">
-                <p className="font-medium">{viewInvoice.sellerName}</p>
-                {orgCtx?.orgCode && (
-                  <p className="text-[11px] font-mono text-gray-400 mt-0.5" dir="ltr">{orgCtx.orgCode}</p>
-                )}
-              </div>
-            </div>
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-500">المشتري</span>
-              <span className="font-medium">{viewInvoice.buyerName}</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-500">المبلغ قبل الضريبة</span>
-              <span className="tabular-nums">{fmt(viewInvoice.subtotal)} ر.س</span>
-            </div>
-            <div className="flex justify-between py-2 border-b border-gray-100">
-              <span className="text-gray-500">الضريبة ({viewInvoice.vatRate || 15}%)</span>
-              <span className="tabular-nums">{fmt(viewInvoice.vatAmount)} ر.س</span>
-            </div>
-            <div className="flex justify-between py-2 font-bold text-base border-b border-gray-100">
-              <span>الإجمالي</span>
-              <span className="tabular-nums text-brand-600">{fmt(viewInvoice.totalAmount)} ر.س</span>
+          }
+        >
+          <div className="space-y-4">
+            {/* Invoice detail rows */}
+            <div className="space-y-2 text-sm">
+              {[
+                { label: "رقم الفاتورة", value: <span className="font-mono font-bold">{viewInvoice.invoiceNumber}</span> },
+                { label: "النوع", value: viewInvoice.invoiceType === "simplified" ? "مبسطة B2C" : "ضريبية B2B" },
+                { label: "المصدر", value: <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border", (SOURCE_BADGE[viewInvoice.sourceType] || SOURCE_BADGE.manual).color)}>{(SOURCE_BADGE[viewInvoice.sourceType] || SOURCE_BADGE.manual).label}</span> },
+                { label: "البائع", value: <div className="text-right"><p className="font-medium">{viewInvoice.sellerName}</p>{viewInvoice.sellerVatNumber && <p className="text-xs font-mono text-gray-400">{viewInvoice.sellerVatNumber}</p>}</div> },
+                { label: "المشتري", value: <div className="text-right"><p className="font-medium">{viewInvoice.buyerName}</p>{viewInvoice.buyerPhone && <p className="text-xs text-gray-400">{viewInvoice.buyerPhone}</p>}</div> },
+                { label: "تاريخ الإصدار", value: fmtDate(viewInvoice.issueDate || viewInvoice.createdAt) },
+                ...(viewInvoice.dueDate ? [{ label: "تاريخ الاستحقاق", value: fmtDate(viewInvoice.dueDate) }] : []),
+              ].map(row => (
+                <div key={row.label} className="flex justify-between py-1.5 border-b border-gray-50">
+                  <span className="text-gray-500">{row.label}</span>
+                  <span>{row.value}</span>
+                </div>
+              ))}
             </div>
 
-            {/* ── بصمة نسق ───────────────────────────────────── */}
-            <div className="mt-2 pt-3 flex items-center justify-between">
+            {/* Amounts */}
+            <div className="bg-gray-50 rounded-xl p-3 space-y-1.5 text-sm">
+              <div className="flex justify-between text-gray-600">
+                <span>قبل الضريبة</span>
+                <span className="tabular-nums">{fmt(viewInvoice.subtotal)} ر.س</span>
+              </div>
+              <div className="flex justify-between text-gray-600">
+                <span>الضريبة ({viewInvoice.vatRate || 15}%)</span>
+                <span className="tabular-nums">{fmt(viewInvoice.vatAmount)} ر.س</span>
+              </div>
+              <div className="flex justify-between font-bold text-base border-t border-gray-200 pt-1.5">
+                <span>الإجمالي</span>
+                <span className="tabular-nums text-brand-600">{fmt(viewInvoice.totalAmount)} ر.س</span>
+              </div>
+              {parseFloat(viewInvoice.paidAmount || "0") > 0 && (
+                <div className="flex justify-between text-teal-600 text-sm pt-1 border-t border-gray-200">
+                  <span>المدفوع</span>
+                  <span className="tabular-nums font-medium">{fmt(viewInvoice.paidAmount)} ر.س</span>
+                </div>
+              )}
+            </div>
+
+            {/* Payment history */}
+            {pmts.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-gray-700 mb-2">سجل الدفعات</p>
+                <div className="space-y-1.5">
+                  {pmts.map((p: any) => (
+                    <div key={p.id} className="flex items-center justify-between bg-emerald-50/60 rounded-lg px-3 py-2 text-xs">
+                      <span className="text-emerald-700 font-medium">{fmt(p.amount)} ر.س</span>
+                      <span className="text-gray-500">{p.paymentMethod === "cash" ? "نقد" : p.paymentMethod === "bank_transfer" ? "تحويل" : p.paymentMethod === "card" ? "بطاقة" : "أخرى"}</span>
+                      <span className="text-gray-400 tabular-nums">{fmtDate(p.paymentDate)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add payment inline */}
+            {showPayment && (
+              <div className="border border-brand-100 rounded-xl p-4 bg-brand-50/30 space-y-3">
+                <p className="text-sm font-semibold text-gray-800">تسجيل دفعة جديدة</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Input label="المبلغ *" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" dir="ltr" />
+                  <Select
+                    label="طريقة الدفع"
+                    value={paymentForm.paymentMethod}
+                    onChange={e => setPaymentForm(p => ({ ...p, paymentMethod: e.target.value }))}
+                    options={[
+                      { value: "cash", label: "نقد" },
+                      { value: "bank_transfer", label: "تحويل بنكي" },
+                      { value: "card", label: "بطاقة" },
+                      { value: "other", label: "أخرى" },
+                    ]}
+                  />
+                </div>
+                <Input label="مرجع (اختياري)" value={paymentForm.reference} onChange={e => setPaymentForm(p => ({ ...p, reference: e.target.value }))} placeholder="رقم التحويل..." dir="ltr" />
+                <div className="flex gap-2">
+                  <Button onClick={handleAddPayment} loading={savingPayment} size="sm">تأكيد الدفعة</Button>
+                  <Button variant="secondary" size="sm" onClick={() => setShowPayment(false)}>إلغاء</Button>
+                </div>
+              </div>
+            )}
+
+            {/* نسق watermark */}
+            <div className="pt-2 flex items-center justify-between border-t border-gray-50">
               <div className="flex items-center gap-2">
-                {/* شعار نسق */}
                 <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
                   <span className="text-white font-bold text-xs leading-none">ن</span>
                 </div>
@@ -271,6 +392,7 @@ export function InvoicesPage() {
             </div>
           </div>
         </Modal>
-      )}    </div>
+      )}
+    </div>
   );
 }

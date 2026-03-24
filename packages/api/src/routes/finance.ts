@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq, and, desc, asc, gte, lte, sql, count, sum } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { invoices, invoiceItems, expenses, vendorCommissions, vendorPayouts, paymentGatewayConfigs, bookings, payments, organizations } from "@nasaq/db/schema";
+import { invoices, invoiceItems, invoicePayments, expenses, vendorCommissions, vendorPayouts, paymentGatewayConfigs, bookings, payments, organizations, bookingItems } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { nanoid } from "nanoid";
 import { z } from "zod";
@@ -30,6 +30,7 @@ const createExpenseSchema = z.object({
 
 const createInvoiceSchema = z.object({
   invoiceType: z.enum(["simplified", "tax", "credit_note", "debit_note"]).optional(),
+  sourceType: z.enum(["manual", "booking", "order", "services"]).optional(),
   bookingId: z.string().uuid().optional().nullable(),
   customerId: z.string().uuid().optional().nullable(),
   sellerName: z.string().min(1),
@@ -115,6 +116,29 @@ financeRouter.get("/invoices/:id", async (c) => {
   return c.json({ data: { ...invoice, items } });
 });
 
+// GET /finance/invoices/stats
+financeRouter.get("/invoices/stats", async (c) => {
+  const orgId = getOrgId(c);
+  const [totals] = await db.select({
+    total: count(),
+    totalAmount: sql<string>`COALESCE(SUM(CAST(${invoices.totalAmount} AS DECIMAL)) FILTER (WHERE ${invoices.status} != 'cancelled'), 0)`,
+    paidAmount:  sql<string>`COALESCE(SUM(CAST(${invoices.totalAmount} AS DECIMAL)) FILTER (WHERE ${invoices.status} = 'paid'), 0)`,
+    unpaidAmount: sql<string>`COALESCE(SUM(CAST(${invoices.totalAmount} AS DECIMAL)) FILTER (WHERE ${invoices.status} IN ('issued','sent','overdue')), 0)`,
+    draftCount: sql<number>`COUNT(*) FILTER (WHERE ${invoices.status} = 'draft')`,
+  }).from(invoices).where(eq(invoices.orgId, orgId));
+  return c.json({ data: totals });
+});
+
+// GET /finance/invoices/import-booking/:bookingId — fetch booking for invoice import
+financeRouter.get("/invoices/import-booking/:bookingId", async (c) => {
+  const orgId = getOrgId(c);
+  const bookingId = c.req.param("bookingId");
+  const [booking] = await db.select().from(bookings).where(and(eq(bookings.id, bookingId), eq(bookings.orgId, orgId)));
+  if (!booking) return c.json({ error: "الحجز غير موجود" }, 404);
+  const items = await db.select().from(bookingItems).where(eq(bookingItems.bookingId, bookingId));
+  return c.json({ data: { ...booking, items } });
+});
+
 // POST /finance/invoices — Create invoice (auto from booking or manual)
 financeRouter.post("/invoices", async (c) => {
   const orgId = getOrgId(c);
@@ -142,6 +166,7 @@ financeRouter.post("/invoices", async (c) => {
       invoiceNumber,
       uuid: invoiceUuid,
       invoiceType: body.invoiceType || "simplified",
+      sourceType: body.sourceType || "manual",
       status: "issued",
       bookingId: body.bookingId || null,
       customerId: body.customerId || null,
@@ -205,6 +230,75 @@ financeRouter.post("/invoices", async (c) => {
 
   insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "invoice", resourceId: invoice.id });
   return c.json({ data: invoice }, 201);
+});
+
+// PATCH /finance/invoices/:id/status
+financeRouter.patch("/invoices/:id/status", async (c) => {
+  const orgId = getOrgId(c);
+  const { status } = await c.req.json();
+  const [inv] = await db.update(invoices)
+    .set({ status, updatedAt: new Date(), ...(status === "paid" ? { paidAt: new Date(), paidAmount: db.select({ v: invoices.totalAmount }).from(invoices).where(eq(invoices.id, c.req.param("id"))).limit(1) } : {}) })
+    .where(and(eq(invoices.id, c.req.param("id")), eq(invoices.orgId, orgId)))
+    .returning();
+  if (!inv) return c.json({ error: "الفاتورة غير موجودة" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "invoice", resourceId: inv.id });
+  return c.json({ data: inv });
+});
+
+// GET /finance/invoices/:id/payments
+financeRouter.get("/invoices/:id/payments", async (c) => {
+  const orgId = getOrgId(c);
+  const result = await db.select().from(invoicePayments)
+    .where(and(eq(invoicePayments.invoiceId, c.req.param("id")), eq(invoicePayments.orgId, orgId)))
+    .orderBy(desc(invoicePayments.createdAt));
+  return c.json({ data: result });
+});
+
+// POST /finance/invoices/:id/payments
+financeRouter.post("/invoices/:id/payments", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const invoiceId = c.req.param("id");
+  const body = z.object({
+    amount: z.string(),
+    paymentMethod: z.enum(["cash", "bank_transfer", "card", "other"]).optional().default("cash"),
+    paymentDate: z.string().optional(),
+    reference: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+  }).parse(await c.req.json());
+
+  const [inv] = await db.select().from(invoices).where(and(eq(invoices.id, invoiceId), eq(invoices.orgId, orgId)));
+  if (!inv) return c.json({ error: "الفاتورة غير موجودة" }, 404);
+
+  const [payment] = await db.insert(invoicePayments).values({
+    invoiceId,
+    orgId,
+    amount: body.amount,
+    paymentMethod: body.paymentMethod,
+    paymentDate: body.paymentDate ? new Date(body.paymentDate) : new Date(),
+    reference: body.reference ?? null,
+    notes: body.notes ?? null,
+    createdBy: userId ?? null,
+  }).returning();
+
+  // Recalculate paid amount and update status
+  const [{ totalPaid }] = await db.select({
+    totalPaid: sql<string>`COALESCE(SUM(CAST(${invoicePayments.amount} AS DECIMAL)), 0)`,
+  }).from(invoicePayments).where(eq(invoicePayments.invoiceId, invoiceId));
+
+  const paid = parseFloat(totalPaid);
+  const total = parseFloat(inv.totalAmount);
+  const newStatus = paid >= total ? "paid" : paid > 0 ? "partially_paid" : inv.status;
+
+  await db.update(invoices).set({
+    paidAmount: paid.toFixed(2),
+    status: newStatus as any,
+    ...(newStatus === "paid" ? { paidAt: new Date() } : {}),
+    updatedAt: new Date(),
+  }).where(eq(invoices.id, invoiceId));
+
+  insertAuditLog({ orgId, userId, action: "created", resource: "invoice_payment", resourceId: payment.id });
+  return c.json({ data: payment }, 201);
 });
 
 // ============================================================

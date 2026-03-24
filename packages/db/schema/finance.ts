@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum, jsonb, uuid, integer, numeric, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, jsonb, uuid, integer, numeric, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { bookings } from "./bookings";
 import { customers } from "./customers";
@@ -103,6 +103,9 @@ export const invoices = pgTable("invoices", {
   notes: text("notes"),
   termsAndConditions: text("terms_and_conditions"),
   
+  // Source tagging
+  sourceType: text("source_type").default("manual"),  // manual | booking | order | services
+
   // Linked credit note (for refunds)
   relatedInvoiceId: uuid("related_invoice_id"),
 
@@ -131,6 +134,28 @@ export const invoiceItems = pgTable("invoice_items", {
 
   sortOrder: integer("sort_order").default(0),
 });
+
+// ============================================================
+// INVOICE PAYMENTS — دفعات الفواتير
+// ============================================================
+
+export const invoicePayments = pgTable("invoice_payments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  invoiceId: uuid("invoice_id").notNull().references(() => invoices.id, { onDelete: "cascade" }),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  paymentMethod: text("payment_method").notNull().default("cash"), // cash | bank_transfer | card | other
+  paymentDate: timestamp("payment_date", { withTimezone: true }).defaultNow().notNull(),
+  reference: text("reference"),
+  notes: text("notes"),
+
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("invoice_payments_invoice_idx").on(table.invoiceId),
+  index("invoice_payments_org_idx").on(table.orgId),
+]);
 
 // ============================================================
 // EXPENSES — المصروفات
