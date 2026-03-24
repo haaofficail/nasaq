@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Plus, Search, Grid3X3, List, Eye, EyeOff, Copy, Trash2, Pencil, Star, Package, Globe, Loader2, AlertCircle } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi } from "@/lib/api";
@@ -45,12 +45,22 @@ function TypeBadge({ type }: { type: string }) {
 
 export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("الكل");
   const [typeFilter, setTypeFilter] = useState("الكل");
   const [view, setView] = useState<"grid" | "list">("grid");
   const [showCreate, setShowCreate] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+
+  // Auto-open create modal if ?new=1
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setShowCreate(true);
+      searchParams.delete("new");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, []);
 
   const { data: servicesRes, loading, error, refetch } = useApi(() => servicesApi.list(), []);
   const { data: categoriesRes } = useApi(() => categoriesApi.list(true), []);

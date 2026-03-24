@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { clsx } from "clsx";
 import { Plus, Settings2, CreditCard, Hash, Clock, Users, TrendingUp, CalendarCheck, Copy, Check, ExternalLink, BookOpen, Receipt, UserPlus } from "lucide-react";
-import type { DashboardProfile, Role, WidgetConfig } from "@/lib/dashboardProfiles";
+import type { DashboardProfile, Role, WidgetConfig, QuickActionModal } from "@/lib/dashboardProfiles";
 import { useDashboardPrefs } from "@/hooks/useDashboardPrefs";
 import { passesContextGate } from "@/lib/widgetRegistry";
 import type { OrgContext } from "@/hooks/useOrgContext";
@@ -235,7 +235,16 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
       )}
 
       {/* Quick actions */}
-      <QuickActionsGrid actions={profile.quickActions} currentRole={currentRole} />
+      <QuickActionsGrid
+        actions={profile.quickActions}
+        currentRole={currentRole}
+        onModalOpen={(modal: QuickActionModal) => {
+          if (modal === "booking")  setShowNewBooking(true);
+          if (modal === "customer") setShowNewCustomer(true);
+          if (modal === "invoice")  setShowNewInvoice(true);
+          if (modal === "service")  navigate("/dashboard/catalog?tab=services&new=1");
+        }}
+      />
 
       {/* Widgets */}
       {renderedWidgets.length > 0 && (
