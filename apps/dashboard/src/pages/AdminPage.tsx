@@ -664,10 +664,11 @@ function OrgsTab() {
   const [showCreate, setShowCreate] = useState(false);
   const [createForm, setCreateForm] = useState({
     name: "", nameEn: "", businessType: "general", plan: "basic",
-    phone: "", email: "", city: "", ownerName: "", ownerPhone: "", ownerPassword: "",
+    phone: "", email: "", city: "", ownerName: "", ownerPhone: "", ownerEmail: "", ownerPassword: "",
   });
   const [resetPwModal, setResetPwModal] = useState<{ orgId: string; orgName: string } | null>(null);
   const [resetPw, setResetPw] = useState("");
+  const [credentialsModal, setCredentialsModal] = useState<{ phone: string | null; email: string | null; password: string } | null>(null);
 
   const { data, loading, refetch } = useApi(
     () => adminApi.orgs({
@@ -850,6 +851,37 @@ function OrgsTab() {
         </Modal>
       )}
 
+      {/* Owner Credentials Modal */}
+      {credentialsModal && (
+        <Modal open onClose={() => setCredentialsModal(null)} title="✅ تم إنشاء المنشأة — بيانات دخول المالك" width="max-w-sm">
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500">احتفظ بهذه البيانات — لن تظهر مجدداً</p>
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2 font-mono text-sm">
+              {credentialsModal.email && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 font-sans text-xs">الإيميل</span>
+                  <span className="text-gray-900 select-all">{credentialsModal.email}</span>
+                </div>
+              )}
+              {credentialsModal.phone && (
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 font-sans text-xs">الجوال</span>
+                  <span className="text-gray-900 select-all" dir="ltr">{credentialsModal.phone}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-2">
+                <span className="text-gray-400 font-sans text-xs">كلمة المرور</span>
+                <span className="text-brand-600 font-bold select-all" dir="ltr">{credentialsModal.password}</span>
+              </div>
+            </div>
+            <button onClick={() => setCredentialsModal(null)}
+              className="w-full py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600">
+              فهمت — إغلاق
+            </button>
+          </div>
+        </Modal>
+      )}
+
       {/* Create Org Modal */}
       <Modal open={showCreate} onClose={() => setShowCreate(false)} title="منشأة جديدة" width="max-w-xl">
         <div className="space-y-3">
@@ -912,6 +944,12 @@ function OrgsTab() {
                   placeholder="05XXXXXXXX" className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
               </div>
               <div className="col-span-2">
+                <label className="text-xs text-gray-500 block mb-1">إيميل المالك <span className="text-brand-500 font-medium">(للدخول)</span></label>
+                <input type="email" value={createForm.ownerEmail} onChange={(e) => setCreateForm({ ...createForm, ownerEmail: e.target.value })}
+                  placeholder="owner@company.com" dir="ltr"
+                  className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
+              </div>
+              <div className="col-span-2">
                 <label className="text-xs text-gray-500 block mb-1">كلمة المرور</label>
                 <input type="password" value={createForm.ownerPassword} onChange={(e) => setCreateForm({ ...createForm, ownerPassword: e.target.value })}
                   placeholder="سيتم إنشاء كلمة مرور تلقائية إذا تُرك فارغاً" dir="ltr"
@@ -923,10 +961,11 @@ function OrgsTab() {
           <div className="flex gap-3 pt-2">
             <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
             <button disabled={creating || !createForm.name} onClick={async () => {
-              await createOrg(createForm);
+              const res: any = await createOrg(createForm);
               setShowCreate(false);
-              setCreateForm({ name: "", nameEn: "", businessType: "general", plan: "basic", phone: "", email: "", city: "", ownerName: "", ownerPhone: "", ownerPassword: "" });
+              setCreateForm({ name: "", nameEn: "", businessType: "general", plan: "basic", phone: "", email: "", city: "", ownerName: "", ownerPhone: "", ownerEmail: "", ownerPassword: "" });
               refetch();
+              if (res?.ownerCredentials) setCredentialsModal(res.ownerCredentials);
             }} className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2">
               {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />} إنشاء المنشأة
             </button>

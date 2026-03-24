@@ -926,7 +926,7 @@ adminRouter.post("/orgs", async (c) => {
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
 
-  const { name, nameEn, businessType, plan, phone, email, city, ownerName, ownerPhone, ownerPassword } = body;
+  const { name, nameEn, businessType, plan, phone, email, city, ownerName, ownerPhone, ownerEmail, ownerPassword } = body;
   if (!name) return apiErr(c, "ORG_NAME_REQUIRED", 400);
   if (!plan) return apiErr(c, "ORG_PLAN_REQUIRED", 400);
 
@@ -934,6 +934,11 @@ adminRouter.post("/orgs", async (c) => {
   if (ownerPhone) {
     const [dup] = await db.select({ id: users.id }).from(users).where(eq(users.phone, ownerPhone));
     if (dup) return apiErr(c, "USR_PHONE_TAKEN", 409);
+  }
+  // If owner email provided, check it's not already taken
+  if (ownerEmail) {
+    const [dup] = await db.select({ id: users.id }).from(users).where(eq(users.email, ownerEmail.toLowerCase().trim()));
+    if (dup) return apiErr(c, "USR_EMAIL_TAKEN", 409);
   }
 
   const slug = body.slug || generateSlug(nameEn || name);
@@ -944,6 +949,8 @@ adminRouter.post("/orgs", async (c) => {
 
   const trialDays = planConfig?.trialDays ?? 14;
   const trialEndsAt = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
+
+  let ownerRawPass: string | undefined;
 
   const org = await db.transaction(async (tx) => {
     const [newOrg] = await tx.insert(organizations).values({
@@ -969,14 +976,15 @@ adminRouter.post("/orgs", async (c) => {
     });
 
     // Create owner user if owner details provided
-    if (ownerPhone || ownerName) {
-      const rawPass = ownerPassword?.trim()
+    if (ownerPhone || ownerName || ownerEmail) {
+      ownerRawPass = ownerPassword?.trim()
         || Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 4).toUpperCase();
-      const finalHash = hashPassword(rawPass);
+      const finalHash = hashPassword(ownerRawPass);
       await tx.insert(users).values({
         orgId: newOrg.id,
         name: ownerName || name,
         phone: ownerPhone || null,
+        email: ownerEmail ? ownerEmail.toLowerCase().trim() : null,
         passwordHash: finalHash,
         type: "owner",
         status: "active",
@@ -1003,10 +1011,17 @@ adminRouter.post("/orgs", async (c) => {
     return newOrg;
   });
 
-  logAdminAction(adminId, "create_org", "org", org.id, { name, plan, hasOwner: !!(ownerPhone || ownerName) }, c.req.header("X-Forwarded-For"));
+  logAdminAction(adminId, "create_org", "org", org.id, { name, plan, hasOwner: !!(ownerPhone || ownerName || ownerEmail) }, c.req.header("X-Forwarded-For"));
   // مزامنة المحرك التجاري للمنشأة الجديدة
   syncOrgEntitlements(org.id).catch(() => {});
-  return c.json({ data: org }, 201);
+  return c.json({
+    data: org,
+    ownerCredentials: ownerRawPass ? {
+      phone: ownerPhone || null,
+      email: ownerEmail || null,
+      password: ownerRawPass,
+    } : null,
+  }, 201);
 });
 
 // ── Admin: Reset org owner password ────────────────────────
