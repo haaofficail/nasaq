@@ -4,8 +4,7 @@ import { Plus, Search, Grid3X3, List, Eye, EyeOff, Copy, Trash2, Pencil, Star, P
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { CreateServiceForm } from "@/components/services/CreateServiceForm";
-import { EditServiceForm } from "@/components/services/EditServiceForm";
+import { ServiceFormModal } from "@/components/services/ServiceFormModal";
 import { PageHeader, Button } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 
@@ -312,8 +311,8 @@ export function ServicesPage() {
         </div>
       )}
 
-      {showCreate && <CreateServiceForm open={true} onClose={() => setShowCreate(false)} onSuccess={handleCreated} />}
-      {editId && <EditServiceForm open={true} serviceId={editId} onClose={() => setEditId(null)} onSuccess={handleEdited} />}
+      <ServiceFormModal open={showCreate} onClose={() => setShowCreate(false)} onSuccess={handleCreated} />
+      {editId && <ServiceFormModal open={true} serviceId={editId} onClose={() => setEditId(null)} onSuccess={handleEdited} />}
     </div>
   );
 }

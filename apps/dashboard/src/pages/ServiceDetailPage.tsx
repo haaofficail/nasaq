@@ -9,7 +9,7 @@ import {
 import { clsx } from "clsx";
 import { servicesApi, questionsApi, inventoryApi, teamApi, salonApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { EditServiceForm } from "@/components/services/EditServiceForm";
+import { ServiceFormModal } from "@/components/services/ServiceFormModal";
 import { Modal, Input, TextArea, Select, Button, Toggle } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 
@@ -1269,6 +1269,6 @@ export function ServiceDetailPage() {
         </div>
       </Modal>
 
-      {showEdit && <EditServiceForm open={showEdit} serviceId={id!} onClose={() => setShowEdit(false)} onSuccess={() => { setShowEdit(false); refetch(); }} />}    </div>
+      {showEdit && <ServiceFormModal open={showEdit} serviceId={id!} onClose={() => setShowEdit(false)} onSuccess={() => { setShowEdit(false); refetch(); }} />}    </div>
   );
 }
