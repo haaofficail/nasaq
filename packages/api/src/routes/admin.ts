@@ -965,7 +965,11 @@ adminRouter.post("/orgs", async (c) => {
   let ownerRawPass: string | undefined;
 
   const org = await db.transaction(async (tx) => {
+    const [seqRow] = await tx.execute(sql`SELECT nextval('org_code_seq') AS n`);
+    const orgCode = `NSQ-${String((seqRow as any).n).padStart(4, "0")}`;
+
     const [newOrg] = await tx.insert(organizations).values({
+      orgCode,
       name,
       nameEn: nameEn || null,
       slug,
