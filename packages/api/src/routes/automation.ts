@@ -137,7 +137,7 @@ automationRouter.post("/send", async (c) => {
   let finalSubject = body.subject || "";
 
   if (templateId) {
-    const [template] = await db.select().from(notificationTemplates).where(eq(notificationTemplates.id, templateId));
+    const [template] = await db.select().from(notificationTemplates).where(and(eq(notificationTemplates.id, templateId), eq(notificationTemplates.orgId, orgId)));
     if (template) {
       finalBody = template.body;
       finalSubject = template.subject || "";
