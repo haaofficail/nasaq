@@ -6,6 +6,7 @@ import {
 import { clsx } from "clsx";
 import { settingsApi, servicesApi } from "@/lib/api";
 import { type OnboardingStatus, dismissOnboarding } from "@/hooks/useOnboarding";
+import { SAUDI_CITIES } from "@/lib/constants";
 
 // ============================================================
 // ONBOARDING WIZARD — مرشد الإعداد الأولي
@@ -188,7 +189,7 @@ export function OnboardingWizard({ status, onComplete }: Props) {
                   onChange={e => setBranchCity(e.target.value)}
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500"
                 >
-                  {["الرياض","جدة","مكة","المدينة","الدمام","الخبر","أبها","تبوك","حائل","القصيم","أخرى"].map(c => (
+                  {SAUDI_CITIES.map(c => (
                     <option key={c} value={c}>{c}</option>
                   ))}
                 </select>

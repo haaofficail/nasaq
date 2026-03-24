@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { adminApi, commercialApi } from "@/lib/api";
+import { SAUDI_CITIES } from "@/lib/constants";
 import { useApi, useMutation } from "@/hooks/useApi";
 
 // ════════════════════════════════════════════════════════════
@@ -898,8 +899,11 @@ function OrgsTab() {
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">المدينة</label>
-              <input value={createForm.city} onChange={(e) => setCreateForm({ ...createForm, city: e.target.value })}
-                placeholder="الرياض" className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
+              <select value={createForm.city} onChange={(e) => setCreateForm({ ...createForm, city: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 bg-white">
+                <option value="">— اختر المدينة —</option>
+                {SAUDI_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">نوع النشاط</label>

@@ -9,6 +9,13 @@ export const DROPDOWN_FETCH_LIMIT = "100";   // fetch-all limit for select dropd
 export const REDIRECT_DELAY_MS = 2000;       // ms before redirect after success
 export const OTP_SUBMIT_DELAY_MS = 100;      // ms to let React state settle before OTP submit
 
+export const SAUDI_CITIES = [
+  "الرياض", "جدة", "مكة المكرمة", "المدينة المنورة", "الدمام", "الخبر",
+  "الظهران", "الطائف", "أبها", "خميس مشيط", "تبوك", "حائل", "بريدة",
+  "القصيم", "الأحساء", "الجبيل", "ينبع", "جازان", "نجران", "الباحة",
+  "عرعر", "سكاكا", "القريات", "الجوف", "حفر الباطن", "بيشة", "أخرى",
+] as const;
+
 export const STORAGE_KEYS = {
   TOKEN: "nasaq_token",
   ORG_ID: "nasaq_org_id",

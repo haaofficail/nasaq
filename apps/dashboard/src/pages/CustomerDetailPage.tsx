@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowRight, User, Phone, Mail, Building2, Star, CalendarCheck, Banknote, MessageSquare, Plus, Loader2, AlertCircle } from "lucide-react";
+import { ArrowRight, User, Phone, Mail, Building2, Star, CalendarCheck, Banknote, MessageSquare, Plus, Loader2, AlertCircle, Clock } from "lucide-react";
 import { clsx } from "clsx";
-import { customersApi, bookingsApi } from "@/lib/api";
+import { customersApi, bookingsApi, auditLogApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Modal, TextArea, Select } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
@@ -15,11 +15,13 @@ export function CustomerDetailPage() {
 
   const { data: res, loading, error, refetch } = useApi(() => customersApi.get(id!), [id]);
   const { mutate: addInteraction, loading: addingInteraction } = useMutation((data: any) => customersApi.addInteraction(id!, data));
+  const { data: timelineRes } = useApi(() => auditLogApi.list({ resourceId: id!, limit: "50" }), [id]);
 
   const customer = res?.data?.customer || res?.data;
   const customerBookings = res?.data?.bookings || [];
   const interactions = res?.data?.interactions || [];
   const stats = res?.data?.stats || {};
+  const timeline = timelineRes?.data || [];
 
   const handleAddInteraction = async () => {
     if (!interactionContent.trim()) return;
@@ -84,7 +86,7 @@ export function CustomerDetailPage() {
           </div>
         </div>
 
-        {/* Interactions */}
+        {/* Interactions + Timeline */}
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <div className="flex items-center justify-between mb-3">
@@ -99,6 +101,55 @@ export function CustomerDetailPage() {
                     <p className="text-sm text-gray-700 mt-1">{int.content}</p>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Timeline */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Clock className="w-4 h-4 text-gray-400" /> التايم لاين
+            </h3>
+            {timeline.length === 0 ? (
+              <p className="text-sm text-gray-400 text-center py-4">لا توجد أحداث مسجّلة</p>
+            ) : (
+              <div className="relative">
+                <div className="absolute right-[7px] top-0 bottom-0 w-px bg-gray-100" />
+                <div className="space-y-4 max-h-96 overflow-y-auto pl-2">
+                  {timeline.map((entry: any) => {
+                    const actionColors: Record<string, string> = {
+                      created: "bg-emerald-100 text-emerald-700",
+                      updated: "bg-blue-100 text-blue-700",
+                      deleted: "bg-red-100 text-red-700",
+                      approved: "bg-violet-100 text-violet-700",
+                      rejected: "bg-amber-100 text-amber-700",
+                    };
+                    const actionLabels: Record<string, string> = {
+                      created: "إنشاء", updated: "تعديل", deleted: "حذف",
+                      approved: "موافقة", rejected: "رفض",
+                    };
+                    const resourceLabels: Record<string, string> = {
+                      booking: "حجز", payment: "دفعة", customer: "عميل",
+                      invoice: "فاتورة", service: "خدمة",
+                    };
+                    return (
+                      <div key={entry.id} className="flex items-start gap-3 pr-5 relative">
+                        <div className="absolute right-0 top-1.5 w-3.5 h-3.5 rounded-full border-2 border-white bg-gray-300 z-10" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className={clsx("text-xs px-2 py-0.5 rounded-full font-medium", actionColors[entry.action] || "bg-gray-100 text-gray-600")}>
+                              {actionLabels[entry.action] || entry.action}
+                            </span>
+                            <span className="text-xs text-gray-500">{resourceLabels[entry.resource] || entry.resource}</span>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {entry.createdAt ? new Date(entry.createdAt).toLocaleString("ar-SA") : "—"}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>

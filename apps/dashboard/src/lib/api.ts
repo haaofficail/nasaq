@@ -228,7 +228,18 @@ export const reconciliationApi = {
 
 // --- Audit Log ---
 export const auditLogApi = {
-  list: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[]; pagination: any }>(`/audit-log${qs}`); },
+  list: (params?: { resource?: string; resourceId?: string; search?: string; action?: string; page?: string; limit?: string; from?: string; to?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.resource)   q.set("resource",   params.resource);
+    if (params?.resourceId) q.set("resourceId", params.resourceId);
+    if (params?.search)     q.set("search",     params.search);
+    if (params?.action)     q.set("action",     params.action);
+    if (params?.page)       q.set("page",       params.page);
+    if (params?.limit)      q.set("limit",      params.limit);
+    if (params?.from)       q.set("from",       params.from);
+    if (params?.to)         q.set("to",         params.to);
+    return api.get<{ data: any[]; pagination: any }>(`/audit-log?${q}`);
+  },
   get: (id: string) => api.get<{ data: any }>(`/audit-log/${id}`),
 };
 

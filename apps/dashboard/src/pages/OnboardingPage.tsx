@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Layers, Building2, User, Settings, ArrowLeft, Check, Loader2, Zap } from "lucide-react";
 import { clsx } from "clsx";
 import { api } from "@/lib/api";
+import { SAUDI_CITIES } from "@/lib/constants";
 
 const steps = ["معلومات الشركة", "بيانات المالك", "الإعداد"];
 
@@ -102,8 +103,7 @@ export function OnboardingPage() {
                 <input value={form.orgName} onChange={set("orgName")} placeholder="مثال: محفل" className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500" /></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1.5">المدينة</label>
                 <select value={form.city} onChange={set("city")} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none">
-                  <option value="الرياض">الرياض</option><option value="جدة">جدة</option><option value="مكة">مكة</option>
-                  <option value="المدينة">المدينة</option><option value="الدمام">الدمام</option><option value="أخرى">أخرى</option>
+                  {SAUDI_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
                 </select></div>
               <div><label className="block text-sm font-medium text-gray-700 mb-1.5">المجال</label>
                 <select value={form.industry} onChange={set("industry")} className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none">

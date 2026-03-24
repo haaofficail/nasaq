@@ -5,30 +5,39 @@ import { settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Input, Select, Modal } from "@/components/ui";
 import { COLORS, SHADOWS, TYPOGRAPHY } from "@/lib/design-tokens";
+import { SAUDI_CITIES } from "@/lib/constants";
+
+const CITY_OPTIONS = [{ value: "", label: "— اختر المدينة —" }, ...SAUDI_CITIES.map(c => ({ value: c, label: c }))];
 
 const FONT = TYPOGRAPHY.family;
 
 const BUSINESS_TYPES = [
-  { value: "restaurant",  label: "مطعم" },
-  { value: "cafe",        label: "مقهى وكوفي شوب" },
-  { value: "catering",    label: "ضيافة وتقديم طعام" },
-  { value: "bakery",      label: "مخبز وحلويات" },
-  { value: "salon",       label: "صالون تجميل نسائي" },
-  { value: "barber",      label: "حلاقة وتصفيف رجالي" },
-  { value: "spa",         label: "سبا ومساج" },
-  { value: "fitness",     label: "صالة رياضية ولياقة" },
-  { value: "events",      label: "تنظيم فعاليات وأفراح" },
-  { value: "photography", label: "تصوير وإنتاج إعلامي" },
-  { value: "retail",      label: "متجر تجزئة عام" },
-  { value: "flower_shop", label: "متجر ورود وهدايا" },
-  { value: "rental",      label: "تأجير معدات وأصول" },
-  { value: "services",    label: "خدمات مهنية وحرة" },
-  { value: "medical",     label: "عيادات ورعاية صحية" },
-  { value: "education",   label: "تعليم وتدريب" },
-  { value: "technology",  label: "تقنية معلومات وبرمجة" },
-  { value: "construction",label: "مقاولات وبناء" },
-  { value: "logistics",   label: "شحن ونقل ولوجستيات" },
-  { value: "other",       label: "أخرى" },
+  { value: "general",          label: "عام" },
+  { value: "salon",            label: "صالون تجميل" },
+  { value: "barber",           label: "حلاق" },
+  { value: "spa",              label: "سبا" },
+  { value: "fitness",          label: "لياقة بدنية" },
+  { value: "restaurant",       label: "مطعم" },
+  { value: "cafe",             label: "مقهى" },
+  { value: "bakery",           label: "مخبز" },
+  { value: "catering",         label: "تموين وضيافة" },
+  { value: "flower_shop",      label: "محل ورود" },
+  { value: "hotel",            label: "فندق" },
+  { value: "car_rental",       label: "تأجير سيارات" },
+  { value: "rental",           label: "تأجير معدات" },
+  { value: "real_estate",      label: "عقارات" },
+  { value: "retail",           label: "متجر تجزئة" },
+  { value: "printing",         label: "طباعة" },
+  { value: "laundry",          label: "مغسلة" },
+  { value: "events",           label: "فعاليات" },
+  { value: "event_organizer",  label: "تنظيم مناسبات" },
+  { value: "digital_services", label: "خدمات رقمية" },
+  { value: "technology",       label: "تقنية" },
+  { value: "maintenance",      label: "صيانة" },
+  { value: "workshop",         label: "ورشة" },
+  { value: "logistics",        label: "لوجستيات" },
+  { value: "construction",     label: "مقاولات" },
+  { value: "photography",      label: "تصوير" },
 ];
 
 const BRANCH_COLORS = [
@@ -235,9 +244,15 @@ export function SettingsPage() {
             معلومات المؤسسة
           </h2>
           <div className="space-y-4 max-w-lg">
+            <Select
+              label="نوع المنشأة" name="businessType"
+              value={f.businessType || f.business_type || ""}
+              onChange={e => setForm({ ...f, businessType: e.target.value })}
+              options={[{ value: "", label: "— اختر نوع المنشأة —" }, ...BUSINESS_TYPES]}
+            />
             <div className="grid grid-cols-2 gap-4">
               <Input label="اسم المؤسسة" name="name" value={f.name || ""} onChange={e => setForm({ ...f, name: e.target.value })} placeholder="اسم الشركة بالعربي" />
-              <Input label="المدينة" name="city" value={f.city || ""} onChange={e => setForm({ ...f, city: e.target.value })} />
+              <Select label="المدينة" name="city" value={f.city || ""} onChange={e => setForm({ ...f, city: e.target.value })} options={CITY_OPTIONS} />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Input label="رقم الجوال" name="phone" value={f.phone || ""} onChange={e => setForm({ ...f, phone: e.target.value })} dir="ltr" placeholder="05XXXXXXXX" />
@@ -247,12 +262,6 @@ export function SettingsPage() {
               <Input label="السجل التجاري" name="cr" value={f.commercialRegister || ""} onChange={e => setForm({ ...f, commercialRegister: e.target.value })} dir="ltr" />
               <Input label="الرقم الضريبي" name="vat" value={f.vatNumber || ""} onChange={e => setForm({ ...f, vatNumber: e.target.value })} dir="ltr" />
             </div>
-            <Select
-              label="نوع المنشأة" name="businessType"
-              value={f.businessType || f.business_type || ""}
-              onChange={e => setForm({ ...f, businessType: e.target.value })}
-              options={[{ value: "", label: "— اختر نوع المنشأة —" }, ...BUSINESS_TYPES]}
-            />
             <div className="pt-2 flex items-center gap-3">
               <Button onClick={handleSaveProfile} loading={saving}>حفظ التغييرات</Button>
               {saved && (
@@ -476,7 +485,7 @@ export function SettingsPage() {
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">الموقع الجغرافي</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <Input label="المدينة" name="city" value={branchForm.city} onChange={e => setBranchForm((p: any) => ({ ...p, city: e.target.value }))} placeholder="الرياض" />
+                  <Select label="المدينة" name="city" value={branchForm.city} onChange={e => setBranchForm((p: any) => ({ ...p, city: e.target.value }))} options={CITY_OPTIONS} />
                   <Input label="العنوان التفصيلي" name="address" value={branchForm.address} onChange={e => setBranchForm((p: any) => ({ ...p, address: e.target.value }))} placeholder="حي الملز، شارع..." />
                 </div>
               </div>

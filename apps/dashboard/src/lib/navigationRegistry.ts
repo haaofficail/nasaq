@@ -8,7 +8,7 @@ import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard, CalendarCheck, ShoppingBag, Package, Users,
   Layers, Box, UsersRound, Wallet, BarChart3, Globe, Send,
-  Settings, Shield, Bell, MessageCircle,
+  Settings, Shield, Bell, MessageCircle, ClipboardList,
   // specialty icons
   Flower2, UtensilsCrossed, Building, Truck, Key, PartyPopper, Camera, Wrench, Warehouse,
 } from "lucide-react";
@@ -239,8 +239,9 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
 // ============================================================
 
 export const BOTTOM_NAV: NavItemEntry[] = [
-  { name: "التذكيرات", href: "/dashboard/reminders", icon: Bell,     exact: false, requiredCapabilities: [] },
-  { name: "الاعدادات", href: "/dashboard/settings",  icon: Settings, exact: false, requiredCapabilities: [] },
+  { name: "سجل الأحداث", href: "/dashboard/settings/audit-log", icon: ClipboardList, exact: false, requiredCapabilities: [] },
+  { name: "التذكيرات",   href: "/dashboard/reminders",          icon: Bell,          exact: false, requiredCapabilities: [] },
+  { name: "الاعدادات",   href: "/dashboard/settings",           icon: Settings,      exact: false, requiredCapabilities: [] },
 ];
 
 export const SUPER_ADMIN_NAV: NavItemEntry = {

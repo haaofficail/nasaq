@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { ClipboardList, Search, Loader2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
-import { auditApi } from "@/lib/api";
+import { auditLogApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { Pagination } from "@/components/ui/Pagination";
 
@@ -41,7 +41,7 @@ export function AuditLogPage() {
   const [page, setPage]         = useState(1);
 
   const { data: res, loading, refetch } = useApi(
-    () => auditApi.list({ resource: resource || undefined, search: search || undefined, page: String(page), limit: String(PAGE_SIZE) }),
+    () => auditLogApi.list({ resource: resource || undefined, search: search || undefined, page: String(page), limit: String(PAGE_SIZE) }),
     [resource, page]
   );
   const logs = res?.data || [];
@@ -146,7 +146,7 @@ export function AuditLogPage() {
           <Pagination
             page={page}
             pageSize={PAGE_SIZE}
-            total={res?.total ?? filtered.length}
+            total={res?.pagination?.total ?? filtered.length}
             onPage={setPage}
             label="سجل"
           />
