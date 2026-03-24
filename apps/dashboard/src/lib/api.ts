@@ -28,7 +28,10 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: "Network error" }));
     const code = body.code ? `[${body.code}]` : `[HTTP_${res.status}]`;
-    const msg = body.error || `HTTP ${res.status}`;
+    const rawError = body.error;
+    const msg = typeof rawError === "string" ? rawError
+      : rawError ? JSON.stringify(rawError)
+      : `HTTP ${res.status}`;
     throw new Error(`${code} ${msg}`);
   }
 
@@ -58,7 +61,10 @@ export const authApi = {
     api.post("/auth/password/change", { currentPassword, newPassword }),
   logout: () => api.post("/auth/logout"),
   me: () => api.get<{ data: any }>("/auth/me"),
+  updateMe: (data: { name?: string; email?: string; avatar?: string }) =>
+    api.patch<{ data: any }>("/auth/account/update", data),
   sessions: () => api.get<{ data: any[] }>("/auth/sessions"),
+  deleteSession: (id: string) => api.delete(`/auth/sessions/${id}`),
 };
 
 // --- Categories ---
@@ -288,9 +294,31 @@ export const inventoryApi = {
   updateAsset: (id: string, data: any) => api.put<{ data: any }>(`/inventory/assets/${id}`, data),
   deleteAsset: (id: string) => api.delete(`/inventory/assets/${id}`),
   updateStatus: (id: string, status: string) => api.patch<{ data: any }>(`/inventory/assets/${id}/status`, { status }),
+  moveAsset: (id: string, data: any) => api.post<{ data: any }>(`/inventory/assets/${id}/move`, data),
+  returnAsset: (id: string, data?: any) => api.post<{ data: any }>(`/inventory/assets/${id}/return`, data ?? {}),
+  assetMovements: (id: string) => api.get<{ data: any[]; total: number }>(`/inventory/assets/${id}/movements`),
   addMaintenance: (data: any) => api.post<{ data: any }>("/inventory/maintenance", data),
   availability: (date: string, typeId?: string) => api.get<{ data: any }>(`/inventory/availability?date=${date}${typeId ? "&typeId=" + typeId : ""}`),
   report: () => api.get<{ data: any }>("/inventory/reports/summary"),
+  // Inventory products (consumables)
+  products: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[] }>(`/inventory/products${qs}`); },
+  createProduct: (data: any) => api.post<{ data: any }>("/inventory/products", data),
+  updateProduct: (id: string, data: any) => api.put<{ data: any }>(`/inventory/products/${id}`, data),
+  deleteProduct: (id: string) => api.delete(`/inventory/products/${id}`),
+  adjustStock: (id: string, data: any) => api.post<{ data: any }>(`/inventory/products/${id}/adjust`, data),
+  stockMovements: (productId?: string) => api.get<{ data: any[] }>(`/inventory/products/movements${productId ? "?productId=" + productId : ""}`),
+};
+
+// --- Fulfillments (warehouse lifecycle) ---
+export const fulfillmentsApi = {
+  list: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[] }>(`/fulfillments${qs}`); },
+  get: (id: string) => api.get<{ data: any }>(`/fulfillments/${id}`),
+  create: (data: any) => api.post<{ data: any }>("/fulfillments", data),
+  advanceStage: (id: string, data?: any) => api.patch<{ data: any }>(`/fulfillments/${id}/stage`, data ?? {}),
+  addAllocation: (id: string, data: any) => api.post<{ data: any }>(`/fulfillments/${id}/allocations`, data),
+  removeAllocation: (id: string, allocId: string) => api.delete(`/fulfillments/${id}/allocations/${allocId}`),
+  updateAllocation: (id: string, allocId: string, data: any) => api.patch<{ data: any }>(`/fulfillments/${id}/allocations/${allocId}`, data),
+  stats: () => api.get<{ data: any[] }>("/fulfillments/stats/summary"),
 };
 
 // --- Team ---
@@ -454,26 +482,6 @@ export const staffApi = {
   remove: (id: string) => api.delete(`/team/members/${id}`),
 };
 
-export const suppliersApi = {
-  list: (params?: { category?: string }) => {
-    const q = new URLSearchParams();
-    if (params?.category) q.set("category", params.category);
-    return api.get<{ data: any[] }>(`/suppliers?${q}`);
-  },
-  get: (id: string) => api.get<{ data: any }>(`/suppliers/${id}`),
-  create: (data: any) => api.post<{ data: any }>("/suppliers", data),
-  update: (id: string, data: any) => api.put<{ data: any }>(`/suppliers/${id}`, data),
-  remove: (id: string) => api.delete(`/suppliers/${id}`),
-  stats: () => api.get<{ data: any }>("/suppliers/stats"),
-  orders: (params?: { supplierId?: string; status?: string }) => {
-    const q = new URLSearchParams();
-    if (params?.supplierId) q.set("supplierId", params.supplierId);
-    if (params?.status) q.set("status", params.status);
-    return api.get<{ data: any[] }>(`/suppliers/orders?${q}`);
-  },
-  createOrder: (data: any) => api.post<{ data: any }>("/suppliers/orders", data),
-  updateOrder: (id: string, data: any) => api.patch<{ data: any }>(`/suppliers/orders/${id}`, data),
-};
 
 export const posApi = {
   transactions: (params?: { date?: string; type?: string }) => {
@@ -513,7 +521,7 @@ export const auditApi = {
     if (params?.search) q.set("search", params.search);
     if (params?.page) q.set("page", params.page);
     if (params?.limit) q.set("limit", params.limit);
-    return api.get<{ data: any[] }>(`/approvals/audit-log?${q}`);
+    return api.get<{ data: any[]; total: number }>(`/approvals/audit-log?${q}`);
   },
 };
 
