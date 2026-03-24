@@ -26,6 +26,16 @@ import { superAdminMiddleware } from "../middleware/auth";
 import { z } from "zod";
 import { scryptSync, randomBytes } from "crypto";
 
+function normalizePhoneAdmin(phone: string): string | null {
+  if (!phone) return null;
+  let p = phone.replace(/[\s-]/g, "");
+  if (p.startsWith("05")) p = "+966" + p.substring(1);
+  else if (p.startsWith("966")) p = "+" + p;
+  else if (p.startsWith("+966")) { /* already normalized */ }
+  else return null;
+  return p;
+}
+
 function hashPassword(password: string): string {
   const salt = randomBytes(16).toString("hex");
   const hash = scryptSync(password, salt, 64).toString("hex");
@@ -926,7 +936,8 @@ adminRouter.post("/orgs", async (c) => {
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
 
-  const { name, nameEn, businessType, plan, phone, email, city, ownerName, ownerPhone, ownerEmail, ownerPassword } = body;
+  const { name, nameEn, businessType, plan, phone, email, city, ownerName, ownerEmail, ownerPassword } = body;
+  const ownerPhone = body.ownerPhone ? normalizePhoneAdmin(body.ownerPhone) : null;
   if (!name) return apiErr(c, "ORG_NAME_REQUIRED", 400);
   if (!plan) return apiErr(c, "ORG_PLAN_REQUIRED", 400);
 
