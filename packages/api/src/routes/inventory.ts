@@ -1,0 +1,609 @@
+import { Hono } from "hono";
+import { eq, and, desc, asc, sql, count, gte, lte, inArray } from "drizzle-orm";
+import { db, pool } from "@nasaq/db/client";
+import { assetTypes, assets, assetReservations, maintenanceLogs, assetTransfers, assetMovements } from "@nasaq/db/schema";
+import { getOrgId, getPagination, getUserId } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+import { apiErr } from "../lib/errors";
+import { z } from "zod";
+import { ONE_DAY_MS } from "../lib/constants";
+
+const createAssetTypeSchema = z.object({
+  name: z.string(),
+  nameEn: z.string().optional().nullable(),
+  category: z.string().optional().nullable(),
+  defaultPrice: z.string().optional().nullable(),
+  defaultLifespanMonths: z.number().int().optional().nullable(),
+  maintenanceIntervalUses: z.number().int().optional().nullable(),
+  maintenanceIntervalDays: z.number().int().optional().nullable(),
+  image: z.string().optional().nullable(),
+  minStock: z.number().int().optional(),
+  isActive: z.boolean().optional(),
+});
+
+const LOCATION_TYPES = ["warehouse", "branch", "rented", "assigned"] as const;
+
+const createAssetSchema = z.object({
+  assetTypeId: z.string().uuid(),
+  serialNumber: z.string().optional().nullable(),
+  barcode: z.string().optional().nullable(),
+  name: z.string().optional().nullable(),
+  status: z.enum(["available", "in_use", "maintenance", "damaged", "lost", "retired"]).optional(),
+  condition: z.string().optional().nullable(),
+  locationType: z.enum(LOCATION_TYPES).optional(),
+  currentLocationId: z.string().uuid().optional().nullable(),
+  isMovable: z.boolean().optional(),
+  isRentable: z.boolean().optional(),
+  purchaseDate: z.string().optional().nullable(),
+  purchasePrice: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+const moveAssetSchema = z.object({
+  toLocationType: z.enum(LOCATION_TYPES),
+  toLocationId: z.string().uuid().optional().nullable(),
+  toAssignedUserId: z.string().uuid().optional().nullable(),
+  toCustomerId: z.string().uuid().optional().nullable(),
+  toBookingId: z.string().uuid().optional().nullable(),
+  reason: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+const updateAssetSchema = createAssetSchema.partial();
+
+const createTransferSchema = z.object({
+  assetId: z.string().uuid(),
+  fromLocationId: z.string().uuid().optional().nullable(),
+  toLocationId: z.string().uuid(),
+  quantity: z.number().int().optional(),
+  scheduledDate: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+const createMaintenanceSchema = z.object({
+  assetId: z.string().uuid(),
+  type: z.enum(["preventive", "corrective", "cleaning", "inspection"]),
+  description: z.string().optional().nullable(),
+  cost: z.string().optional().nullable(),
+  startDate: z.string(),
+  endDate: z.string().optional().nullable(),
+  performedBy: z.string().optional().nullable(),
+  conditionBefore: z.string().optional().nullable(),
+  conditionAfter: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+export const inventoryRouter = new Hono();
+
+// ============================================================
+// ASSET TYPES
+// ============================================================
+
+inventoryRouter.get("/types", async (c) => {
+  const orgId = getOrgId(c);
+  const types = await db.select().from(assetTypes).where(and(eq(assetTypes.orgId, orgId), eq(assetTypes.isActive, true))).orderBy(asc(assetTypes.name));
+  if (types.length === 0) return c.json({ data: [] });
+
+  // Single GROUP BY query instead of N per-type queries (QE2)
+  const counts = await db.select({
+    assetTypeId: assets.assetTypeId,
+    total: count(),
+    available: sql<number>`COUNT(*) FILTER (WHERE ${assets.status} = 'available')`,
+  }).from(assets)
+    .where(and(inArray(assets.assetTypeId, types.map((t) => t.id)), eq(assets.isActive, true)))
+    .groupBy(assets.assetTypeId);
+
+  const countMap = new Map(counts.map((c) => [c.assetTypeId, c]));
+  const withCounts = types.map((t) => {
+    const c = countMap.get(t.id);
+    return { ...t, totalAssets: Number(c?.total ?? 0), availableAssets: Number(c?.available ?? 0) };
+  });
+  return c.json({ data: withCounts });
+});
+
+inventoryRouter.post("/types", async (c) => {
+  const orgId = getOrgId(c);
+  const body = createAssetTypeSchema.parse(await c.req.json());
+  const [type] = await db.insert(assetTypes).values({ orgId, ...body }).returning();
+  return c.json({ data: type }, 201);
+});
+
+inventoryRouter.put("/types/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const body = createAssetTypeSchema.partial().parse(await c.req.json());
+  const [updated] = await db.update(assetTypes).set(body)
+    .where(and(eq(assetTypes.id, c.req.param("id")), eq(assetTypes.orgId, orgId))).returning();
+  if (!updated) return c.json({ error: "النوع غير موجود" }, 404);
+  return c.json({ data: updated });
+});
+
+inventoryRouter.delete("/types/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+  const [{ cnt }] = await db.select({ cnt: count() }).from(assets)
+    .where(and(eq(assets.assetTypeId, id), eq(assets.orgId, orgId), eq(assets.isActive, true)));
+  if (Number(cnt) > 0) return c.json({ error: "لا يمكن حذف النوع لوجود أصول مرتبطة به" }, 400);
+  const [updated] = await db.update(assetTypes)
+    .set({ isActive: false })
+    .where(and(eq(assetTypes.id, id), eq(assetTypes.orgId, orgId))).returning();
+  if (!updated) return c.json({ error: "النوع غير موجود" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "asset_type", resourceId: updated.id });
+  return c.json({ data: { success: true } });
+});
+
+// ============================================================
+// ASSETS
+// ============================================================
+
+inventoryRouter.get("/assets", async (c) => {
+  const orgId = getOrgId(c);
+  const { page, limit, offset } = getPagination(c);
+  const typeId     = c.req.query("typeId");
+  const status     = c.req.query("status");
+  const locationId = c.req.query("locationId");
+  const search     = c.req.query("search");
+
+  const conditions = [eq(assets.orgId, orgId), eq(assets.isActive, true)];
+  if (typeId)     conditions.push(eq(assets.assetTypeId, typeId));
+  if (status)     conditions.push(eq(assets.status, status as any));
+  if (locationId) conditions.push(eq(assets.currentLocationId, locationId));
+  if (search)     conditions.push(sql`(${assets.name} ILIKE ${`%${search}%`} OR ${assets.serialNumber} ILIKE ${`%${search}%`} OR ${assets.barcode} ILIKE ${`%${search}%`})`);
+
+  const [result, [{ total }]] = await Promise.all([
+    db.select().from(assets).where(and(...conditions)).orderBy(desc(assets.createdAt)).limit(limit).offset(offset),
+    db.select({ total: count() }).from(assets).where(and(...conditions)),
+  ]);
+
+  return c.json({ data: result, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+});
+
+inventoryRouter.get("/assets/:id", async (c) => {
+  const orgId   = getOrgId(c);
+  const assetId = c.req.param("id");
+
+  // Round 1: asset + reservations + maintenance + recent movements in parallel
+  const [[asset], reservations, maintenance, movements] = await Promise.all([
+    db.select().from(assets).where(and(eq(assets.id, assetId), eq(assets.orgId, orgId))),
+    db.select().from(assetReservations).where(eq(assetReservations.assetId, assetId)).orderBy(desc(assetReservations.startDate)).limit(10),
+    db.select().from(maintenanceLogs).where(eq(maintenanceLogs.assetId, assetId)).orderBy(desc(maintenanceLogs.startDate)).limit(20),
+    db.select().from(assetMovements).where(eq(assetMovements.assetId, assetId)).orderBy(desc(assetMovements.createdAt)).limit(20),
+  ]);
+
+  if (!asset) return apiErr(c, "INV_ASSET_NOT_FOUND", 404);
+
+  // Round 2: type (needs assetTypeId from round 1)
+  const [type] = asset.assetTypeId
+    ? await db.select().from(assetTypes).where(eq(assetTypes.id, asset.assetTypeId))
+    : [];
+
+  return c.json({ data: { ...asset, type, reservations, maintenanceHistory: maintenance, movementHistory: movements } });
+});
+
+inventoryRouter.post("/assets", async (c) => {
+  const orgId = getOrgId(c);
+  const body = createAssetSchema.parse(await c.req.json());
+
+  // Auto-generate serial number if not provided
+  if (!body.serialNumber) {
+    const [{ cnt }] = await db.select({ cnt: count() }).from(assets).where(eq(assets.orgId, orgId));
+    body.serialNumber = `AST-${new Date().getFullYear()}-${String(Number(cnt) + 1).padStart(4, "0")}`;
+  }
+
+  const { purchaseDate, ...rest } = body;
+  const [asset] = await db.insert(assets).values({
+    orgId,
+    ...rest,
+    ...(purchaseDate !== undefined && { purchaseDate: purchaseDate ? new Date(purchaseDate) : null }),
+  }).returning();
+  return c.json({ data: asset }, 201);
+});
+
+inventoryRouter.put("/assets/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const body = updateAssetSchema.parse(await c.req.json());
+  const { purchaseDate, ...rest } = body;
+  const [updated] = await db.update(assets).set({
+    ...rest,
+    ...(purchaseDate !== undefined && { purchaseDate: purchaseDate ? new Date(purchaseDate) : null }),
+    updatedAt: new Date(),
+  }).where(and(eq(assets.id, c.req.param("id")), eq(assets.orgId, orgId))).returning();
+  if (!updated) return c.json({ error: "الأصل غير موجود" }, 404);
+  return c.json({ data: updated });
+});
+
+inventoryRouter.patch("/assets/:id/status", async (c) => {
+  const orgId = getOrgId(c);
+  const { status, notes } = await c.req.json();
+  const updates: any = { status, updatedAt: new Date() };
+  if (status === "maintenance") updates.lastMaintenanceAt = new Date();
+  const [updated] = await db.update(assets).set(updates)
+    .where(and(eq(assets.id, c.req.param("id")), eq(assets.orgId, orgId))).returning();
+  if (!updated) return c.json({ error: "الأصل غير موجود" }, 404);
+  return c.json({ data: updated });
+});
+
+inventoryRouter.delete("/assets/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const [deleted] = await db.update(assets).set({ isActive: false, updatedAt: new Date() })
+    .where(and(eq(assets.id, c.req.param("id")), eq(assets.orgId, orgId))).returning();
+  if (!deleted) return c.json({ error: "الأصل غير موجود" }, 404);
+  return c.json({ data: { success: true } });
+});
+
+// ============================================================
+// ASSET MOVE — نقل الأصل مع تسجيل الحركة
+// ============================================================
+
+inventoryRouter.post("/assets/:id/move", async (c) => {
+  const orgId   = getOrgId(c);
+  const userId  = getUserId(c);
+  const assetId = c.req.param("id");
+  const body    = moveAssetSchema.parse(await c.req.json());
+
+  const result = await db.transaction(async (tx) => {
+    const [asset] = await tx.select().from(assets)
+      .where(and(eq(assets.id, assetId), eq(assets.orgId, orgId)));
+    if (!asset) throw Object.assign(new Error("NOT_FOUND"), { status: 404 });
+
+    // State machine validations
+    if (!asset.isMovable) throw Object.assign(new Error("FIXED_ASSET"), { status: 400, msg: "الأصل ثابت ولا يمكن نقله" });
+    if (asset.locationType === "rented") throw Object.assign(new Error("RENTED"), { status: 400, msg: "الأصل مؤجر حالياً، أعد الأصل أولاً" });
+    if (asset.status === "maintenance") throw Object.assign(new Error("IN_MAINTENANCE"), { status: 400, msg: "الأصل في الصيانة، أنهِ الصيانة أولاً" });
+
+    // If moving to "branch" or "warehouse", toLocationId is required
+    if (["branch", "warehouse"].includes(body.toLocationType) && !body.toLocationId) {
+      throw Object.assign(new Error("LOCATION_REQUIRED"), { status: 400, msg: "يجب تحديد الموقع/الفرع" });
+    }
+    // If moving to "assigned", toAssignedUserId is required
+    if (body.toLocationType === "assigned" && !body.toAssignedUserId) {
+      throw Object.assign(new Error("USER_REQUIRED"), { status: 400, msg: "يجب تحديد الموظف المُعيَّن له" });
+    }
+    // If moving to "rented", customer is required
+    if (body.toLocationType === "rented" && !body.toCustomerId) {
+      throw Object.assign(new Error("CUSTOMER_REQUIRED"), { status: 400, msg: "يجب تحديد العميل" });
+    }
+
+    // Log movement
+    await tx.insert(assetMovements).values({
+      orgId,
+      assetId,
+      fromLocationType: asset.locationType,
+      fromLocationId: asset.currentLocationId,
+      fromAssignedUserId: asset.assignedToUserId,
+      fromCustomerId: asset.rentedToCustomerId,
+      toLocationType: body.toLocationType,
+      toLocationId: body.toLocationId ?? null,
+      toAssignedUserId: body.toAssignedUserId ?? null,
+      toCustomerId: body.toCustomerId ?? null,
+      toBookingId: body.toBookingId ?? null,
+      reason: body.reason,
+      notes: body.notes,
+      movedBy: userId ?? null,
+    });
+
+    // Derive new status
+    let newStatus = asset.status;
+    if (body.toLocationType === "rented") newStatus = "in_use";
+    else if (body.toLocationType === "assigned") newStatus = "in_use";
+    else if (asset.status === "in_use" && ["warehouse", "branch"].includes(body.toLocationType)) newStatus = "available";
+
+    // Update asset
+    const [updated] = await tx.update(assets).set({
+      locationType: body.toLocationType,
+      currentLocationId: body.toLocationId ?? null,
+      assignedToUserId: body.toAssignedUserId ?? null,
+      rentedToCustomerId: body.toCustomerId ?? null,
+      rentalBookingId: body.toBookingId ?? null,
+      status: newStatus,
+      totalUses: body.toLocationType === "rented" ? (asset.totalUses ?? 0) + 1 : asset.totalUses,
+      lastUsedAt: body.toLocationType === "rented" ? new Date() : asset.lastUsedAt,
+      updatedAt: new Date(),
+    }).where(eq(assets.id, assetId)).returning();
+
+    return updated;
+  }).catch(err => {
+    if (err?.status) throw err;
+    throw err;
+  });
+
+  insertAuditLog({ orgId, userId, action: "moved", resource: "asset", resourceId: assetId });
+  return c.json({ data: result });
+});
+
+// POST /inventory/assets/:id/return — إرجاع الأصل (من أي حالة إلى warehouse/branch)
+inventoryRouter.post("/assets/:id/return", async (c) => {
+  const orgId   = getOrgId(c);
+  const userId  = getUserId(c);
+  const assetId = c.req.param("id");
+  const body    = await c.req.json().catch(() => ({}));
+  const toLocationId = body.toLocationId ?? null;
+  const notes        = body.notes ?? null;
+  const condition    = body.condition ?? null;
+
+  const result = await db.transaction(async (tx) => {
+    const [asset] = await tx.select().from(assets)
+      .where(and(eq(assets.id, assetId), eq(assets.orgId, orgId)));
+    if (!asset) throw Object.assign(new Error("NOT_FOUND"), { status: 404 });
+
+    const toLocationType = toLocationId ? "branch" : "warehouse";
+
+    await tx.insert(assetMovements).values({
+      orgId, assetId,
+      fromLocationType: asset.locationType,
+      fromLocationId: asset.currentLocationId,
+      fromAssignedUserId: asset.assignedToUserId,
+      fromCustomerId: asset.rentedToCustomerId,
+      toLocationType,
+      toLocationId: toLocationId ?? null,
+      toAssignedUserId: null,
+      toCustomerId: null,
+      toBookingId: null,
+      reason: "return",
+      notes,
+      movedBy: userId ?? null,
+    });
+
+    const [updated] = await tx.update(assets).set({
+      locationType: toLocationType,
+      currentLocationId: toLocationId ?? null,
+      assignedToUserId: null,
+      rentedToCustomerId: null,
+      rentalBookingId: null,
+      status: "available",
+      condition: condition ?? asset.condition,
+      updatedAt: new Date(),
+    }).where(eq(assets.id, assetId)).returning();
+
+    return updated;
+  });
+
+  insertAuditLog({ orgId, userId, action: "returned", resource: "asset", resourceId: assetId });
+  return c.json({ data: result });
+});
+
+// GET /inventory/assets/:id/movements — سجل حركات الأصل
+inventoryRouter.get("/assets/:id/movements", async (c) => {
+  const orgId   = getOrgId(c);
+  const assetId = c.req.param("id");
+  const { limit, offset } = getPagination(c);
+
+  const [movements, [{ total }]] = await Promise.all([
+    db.select().from(assetMovements)
+      .where(and(eq(assetMovements.assetId, assetId), eq(assetMovements.orgId, orgId)))
+      .orderBy(desc(assetMovements.createdAt))
+      .limit(limit).offset(offset),
+    db.select({ total: count() }).from(assetMovements)
+      .where(and(eq(assetMovements.assetId, assetId), eq(assetMovements.orgId, orgId))),
+  ]);
+
+  return c.json({ data: movements, total: Number(total) });
+});
+
+// ============================================================
+// AVAILABILITY CHECK — فحص توفر الأصول لتاريخ معين
+// ============================================================
+
+inventoryRouter.post("/availability", async (c) => {
+  const orgId = getOrgId(c);
+  const { assetTypeId, date, endDate } = await c.req.json();
+  const startD = new Date(date);
+  const endD = endDate ? new Date(endDate) : new Date(startD.getTime() + ONE_DAY_MS);
+
+  // Total assets of this type
+  const [{ total }] = await db.select({ total: count() }).from(assets)
+    .where(and(eq(assets.orgId, orgId), eq(assets.assetTypeId, assetTypeId), eq(assets.status, "available"), eq(assets.isActive, true)));
+
+  // Reserved assets on this date
+  const [{ reserved }] = await db.select({ reserved: count() }).from(assetReservations)
+    .where(and(
+      eq(assetReservations.orgId, orgId),
+      sql`${assetReservations.assetId} IN (SELECT id FROM assets WHERE asset_type_id = ${assetTypeId})`,
+      sql`${assetReservations.status} NOT IN ('cancelled', 'returned')`,
+      lte(assetReservations.startDate, endD), gte(assetReservations.endDate, startD),
+    ));
+
+  return c.json({ data: { assetTypeId, date, totalAvailable: Number(total), reserved: Number(reserved), netAvailable: Number(total) - Number(reserved) } });
+});
+
+// ============================================================
+// MAINTENANCE
+// ============================================================
+
+inventoryRouter.post("/maintenance", async (c) => {
+  const orgId = getOrgId(c);
+  const body = createMaintenanceSchema.parse(await c.req.json());
+
+  const log = await db.transaction(async (tx) => {
+    const [entry] = await tx.insert(maintenanceLogs).values({
+      orgId, assetId: body.assetId, type: body.type, description: body.description,
+      cost: body.cost || "0", startDate: new Date(body.startDate),
+      endDate: body.endDate ? new Date(body.endDate) : null, performedBy: body.performedBy,
+      conditionBefore: body.conditionBefore, conditionAfter: body.conditionAfter, notes: body.notes,
+    }).returning();
+
+    await tx.update(assets).set({
+      status: body.endDate ? "available" : "maintenance",
+      lastMaintenanceAt: new Date(),
+      condition: body.conditionAfter || undefined,
+      updatedAt: new Date(),
+    }).where(eq(assets.id, body.assetId));
+
+    return entry;
+  });
+
+  return c.json({ data: log }, 201);
+});
+
+// ============================================================
+// TRANSFERS
+// ============================================================
+
+inventoryRouter.post("/transfers", async (c) => {
+  const orgId = getOrgId(c);
+  const body = createTransferSchema.parse(await c.req.json());
+  const { scheduledDate, ...rest } = body;
+  const [transfer] = await db.insert(assetTransfers).values({
+    orgId,
+    ...rest,
+    ...(scheduledDate !== undefined && { scheduledDate: scheduledDate ? new Date(scheduledDate) : null }),
+  }).returning();
+  return c.json({ data: transfer }, 201);
+});
+
+inventoryRouter.patch("/transfers/:id/complete", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+
+  const transfer = await db.transaction(async (tx) => {
+    const [t] = await tx.update(assetTransfers).set({ status: "completed", completedAt: new Date() })
+      .where(and(eq(assetTransfers.id, id), eq(assetTransfers.orgId, orgId))).returning();
+    if (!t) throw Object.assign(new Error("NOT_FOUND"), { status: 404 });
+
+    await tx.update(assets).set({ currentLocationId: t.toLocationId, updatedAt: new Date() })
+      .where(eq(assets.id, t.assetId));
+
+    return t;
+  }).catch(err => {
+    if (err?.status === 404) return null;
+    throw err;
+  });
+
+  if (!transfer) return c.json({ error: "النقل غير موجود" }, 404);
+  return c.json({ data: transfer });
+});
+
+// ============================================================
+// REPORTS
+// ============================================================
+
+inventoryRouter.get("/reports/summary", async (c) => {
+  const orgId = getOrgId(c);
+
+  const statusBreakdown = await db.select({
+    status: assets.status, count: count(),
+  }).from(assets).where(and(eq(assets.orgId, orgId), eq(assets.isActive, true))).groupBy(assets.status);
+
+  const [maintenanceDue] = await db.select({ count: count() }).from(assets)
+    .where(and(eq(assets.orgId, orgId), eq(assets.isActive, true), lte(assets.nextMaintenanceAt, new Date())));
+
+  const [{ totalValue }] = await db.select({
+    totalValue: sql<string>`COALESCE(SUM(CAST(${assets.currentValue} AS DECIMAL)), 0)`,
+  }).from(assets).where(and(eq(assets.orgId, orgId), eq(assets.isActive, true)));
+
+  return c.json({ data: { statusBreakdown, maintenanceDue: Number(maintenanceDue.count), totalAssetValue: parseFloat(totalValue) } });
+});
+
+// ============================================================
+// INVENTORY PRODUCTS (consumables / materials)
+// ============================================================
+
+inventoryRouter.get("/products", async (c) => {
+  const orgId    = getOrgId(c);
+  const search   = c.req.query("search") || "";
+  const category = c.req.query("category") || "";
+  const lowStock = c.req.query("low_stock") === "1";
+
+  const { rows } = await pool.query(
+    `SELECT p.*,
+       CASE WHEN p.current_stock <= p.min_stock THEN true ELSE false END AS is_low_stock
+     FROM inventory_products p
+     WHERE p.org_id = $1
+       AND p.is_active = true
+       ${search   ? "AND (p.name ILIKE $2 OR p.sku ILIKE $2)" : ""}
+       ${category ? `AND p.category = ${search ? "$3" : "$2"}` : ""}
+       ${lowStock ? "AND p.current_stock <= p.min_stock" : ""}
+     ORDER BY p.category ASC, p.name ASC`,
+    [orgId, ...(search ? [`%${search}%`] : []), ...(category ? [category] : [])],
+  );
+  return c.json({ data: rows });
+});
+
+inventoryRouter.post("/products", async (c) => {
+  const orgId  = getOrgId(c);
+  const body   = await c.req.json();
+  const { name, nameEn, sku, category, unit, unitCost, sellingPrice, currentStock, minStock, maxStock, notes, imageUrl } = body;
+  if (!name?.trim()) return c.json({ error: "الاسم مطلوب" }, 400);
+  const { rows } = await pool.query(
+    `INSERT INTO inventory_products (org_id, name, name_en, sku, category, unit, unit_cost, selling_price, current_stock, min_stock, max_stock, notes, image_url)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
+    [orgId, name, nameEn||null, sku||null, category||null, unit||"قطعة", unitCost||0, sellingPrice||0, currentStock||0, minStock||0, maxStock||null, notes||null, imageUrl||null],
+  );
+  return c.json({ data: rows[0] }, 201);
+});
+
+inventoryRouter.put("/products/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+  const body  = await c.req.json();
+  const { name, nameEn, sku, category, unit, unitCost, sellingPrice, minStock, maxStock, notes, imageUrl } = body;
+  const { rows } = await pool.query(
+    `UPDATE inventory_products
+     SET name=$1, name_en=$2, sku=$3, category=$4, unit=$5, unit_cost=$6, selling_price=$7,
+         min_stock=$8, max_stock=$9, notes=$10, image_url=$11, updated_at=NOW()
+     WHERE id=$12 AND org_id=$13 RETURNING *`,
+    [name, nameEn||null, sku||null, category||null, unit||"قطعة", unitCost||0, sellingPrice||0, minStock||0, maxStock||null, notes||null, imageUrl||null, id, orgId],
+  );
+  if (!rows.length) return c.json({ error: "المنتج غير موجود" }, 404);
+  return c.json({ data: rows[0] });
+});
+
+inventoryRouter.delete("/products/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+  await pool.query("UPDATE inventory_products SET is_active=false, updated_at=NOW() WHERE id=$1 AND org_id=$2", [id, orgId]);
+  return c.json({ success: true });
+});
+
+// POST /inventory/products/:id/adjust — stock adjustment
+inventoryRouter.post("/products/:id/adjust", async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const id     = c.req.param("id");
+  const { type, quantity, notes, referenceId, referenceType } = await c.req.json();
+  // type: in | out | adjustment | waste | return
+  if (!type || quantity == null) return c.json({ error: "type وquantity مطلوبان" }, 400);
+  const qty = parseFloat(quantity);
+  if (isNaN(qty) || qty === 0) return c.json({ error: "كمية غير صحيحة" }, 400);
+
+  const delta = ["in", "return"].includes(type) ? qty : (["out", "waste"].includes(type) ? -qty : qty);
+
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+    const { rows: [product] } = await client.query(
+      "SELECT id, current_stock FROM inventory_products WHERE id=$1 AND org_id=$2 FOR UPDATE",
+      [id, orgId],
+    );
+    if (!product) { await client.query("ROLLBACK"); return c.json({ error: "المنتج غير موجود" }, 404); }
+    const newStock = parseFloat(product.current_stock) + delta;
+    if (newStock < 0) { await client.query("ROLLBACK"); return c.json({ error: "المخزون غير كافٍ" }, 400); }
+    await client.query("UPDATE inventory_products SET current_stock=$1, updated_at=NOW() WHERE id=$2", [newStock, id]);
+    const { rows: [movement] } = await client.query(
+      `INSERT INTO stock_movements (org_id, product_id, type, quantity, reference_id, reference_type, notes, performed_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+      [orgId, id, type, Math.abs(qty), referenceId||null, referenceType||null, notes||null, userId||null],
+    );
+    await client.query("COMMIT");
+    return c.json({ data: { movement, newStock } }, 201);
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+});
+
+// GET /inventory/products/movements — recent stock movements
+inventoryRouter.get("/products/movements", async (c) => {
+  const orgId     = getOrgId(c);
+  const productId = c.req.query("productId") || "";
+  const { rows }  = await pool.query(
+    `SELECT m.*, p.name AS product_name, p.unit
+     FROM stock_movements m
+     JOIN inventory_products p ON p.id = m.product_id
+     WHERE m.org_id = $1 ${productId ? "AND m.product_id = $2" : ""}
+     ORDER BY m.created_at DESC LIMIT 100`,
+    [orgId, ...(productId ? [productId] : [])],
+  );
+  return c.json({ data: rows });
+});

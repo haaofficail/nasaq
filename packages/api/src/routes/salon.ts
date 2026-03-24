@@ -1,0 +1,521 @@
+import { Hono } from "hono";
+import { z } from "zod";
+import { eq, and, asc, desc, lte, sql, gte, lt } from "drizzle-orm";
+import { db } from "@nasaq/db/client";
+import {
+  salonSupplies, salonSupplyAdjustments,
+  clientBeautyProfiles, visitNotes, serviceSupplyRecipes,
+  bookings, bookingItems,
+} from "@nasaq/db/schema";
+import { getOrgId, getUserId, getPagination } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
+
+export const salonRouter = new Hono<{ Variables: { orgId: string; user: any; requestId: string; locationFilter: string[] | null } }>();
+
+// ============================================================
+// SCHEMAS
+// ============================================================
+
+const supplySchema = z.object({
+  name:         z.string().min(1),
+  category:     z.string().default("general"),
+  unit:         z.string().default("piece"),
+  quantity:     z.string().default("0"),
+  minQuantity:  z.string().default("0"),
+  costPerUnit:  z.string().optional().nullable(),
+  supplierId:   z.string().uuid().optional().nullable(),
+  notes:        z.string().optional().nullable(),
+});
+
+const adjustSchema = z.object({
+  delta:  z.string().refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) !== 0, {
+    message: "delta must be a non-zero number",
+  }),
+  reason: z.enum(["restock", "consumed", "manual", "waste", "return"]).default("manual"),
+  notes:  z.string().optional(),
+});
+
+// ============================================================
+// GET /salon/supplies — list all supplies
+// ============================================================
+
+salonRouter.get("/supplies", async (c) => {
+  const orgId = getOrgId(c);
+  const { limit, offset } = getPagination(c);
+  const category = c.req.query("category");
+  const lowStock = c.req.query("lowStock") === "true";
+
+  const conditions = [eq(salonSupplies.orgId, orgId), eq(salonSupplies.isActive, true)];
+  if (category) conditions.push(eq(salonSupplies.category, category));
+  if (lowStock) conditions.push(lte(salonSupplies.quantity, salonSupplies.minQuantity));
+
+  const rows = await db.select().from(salonSupplies)
+    .where(and(...conditions))
+    .orderBy(asc(salonSupplies.category), asc(salonSupplies.name))
+    .limit(limit)
+    .offset(offset);
+
+  return c.json({ data: rows });
+});
+
+// ============================================================
+// GET /salon/supplies/low-stock — items at or below minimum
+// ============================================================
+
+salonRouter.get("/supplies/low-stock", async (c) => {
+  const orgId = getOrgId(c);
+
+  const rows = await db.select().from(salonSupplies)
+    .where(and(
+      eq(salonSupplies.orgId, orgId),
+      eq(salonSupplies.isActive, true),
+      lte(salonSupplies.quantity, salonSupplies.minQuantity),
+    ))
+    .orderBy(asc(salonSupplies.quantity));
+
+  return c.json({ data: rows, count: rows.length });
+});
+
+// ============================================================
+// GET /salon/supplies/:id
+// ============================================================
+
+salonRouter.get("/supplies/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+
+  const [row] = await db.select().from(salonSupplies)
+    .where(and(eq(salonSupplies.id, id), eq(salonSupplies.orgId, orgId)));
+  if (!row) return c.json({ error: "المستلزم غير موجود" }, 404);
+
+  // Last 20 adjustments
+  const history = await db.select().from(salonSupplyAdjustments)
+    .where(eq(salonSupplyAdjustments.supplyId, id))
+    .orderBy(desc(salonSupplyAdjustments.createdAt))
+    .limit(20);
+
+  return c.json({ data: { ...row, history } });
+});
+
+// ============================================================
+// POST /salon/supplies — create supply item
+// ============================================================
+
+salonRouter.post("/supplies", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const body = supplySchema.parse(await c.req.json());
+
+  const [row] = await db.insert(salonSupplies).values({
+    orgId,
+    name:        body.name,
+    category:    body.category,
+    unit:        body.unit,
+    quantity:    body.quantity,
+    minQuantity: body.minQuantity,
+    costPerUnit: body.costPerUnit ?? null,
+    supplierId:  body.supplierId ?? null,
+    notes:       body.notes ?? null,
+  }).returning();
+
+  insertAuditLog({ orgId, userId, action: "created", resource: "salon_supply", resourceId: row.id });
+  return c.json({ data: row }, 201);
+});
+
+// ============================================================
+// PATCH /salon/supplies/:id — update metadata
+// ============================================================
+
+salonRouter.patch("/supplies/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const id = c.req.param("id");
+  const body = supplySchema.partial().parse(await c.req.json());
+
+  const [updated] = await db.update(salonSupplies)
+    .set({ ...body, updatedAt: new Date() })
+    .where(and(eq(salonSupplies.id, id), eq(salonSupplies.orgId, orgId)))
+    .returning();
+
+  if (!updated) return c.json({ error: "المستلزم غير موجود" }, 404);
+  insertAuditLog({ orgId, userId, action: "updated", resource: "salon_supply", resourceId: updated.id });
+  return c.json({ data: updated });
+});
+
+// ============================================================
+// DELETE /salon/supplies/:id — soft delete
+// ============================================================
+
+salonRouter.delete("/supplies/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const id = c.req.param("id");
+
+  const [updated] = await db.update(salonSupplies)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(and(eq(salonSupplies.id, id), eq(salonSupplies.orgId, orgId)))
+    .returning();
+
+  if (!updated) return c.json({ error: "المستلزم غير موجود" }, 404);
+  insertAuditLog({ orgId, userId, action: "deleted", resource: "salon_supply", resourceId: updated.id });
+  return c.json({ success: true });
+});
+
+// ============================================================
+// POST /salon/supplies/:id/adjust — adjust quantity
+// إضافة مخزون (restock) أو تسجيل استهلاك (consumed)
+// ============================================================
+
+salonRouter.post("/supplies/:id/adjust", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const supplyId = c.req.param("id");
+  const body = adjustSchema.parse(await c.req.json());
+
+  const updated = await db.transaction(async (tx) => {
+    const [supply] = await tx.select().from(salonSupplies)
+      .where(and(eq(salonSupplies.id, supplyId), eq(salonSupplies.orgId, orgId)));
+    if (!supply) throw Object.assign(new Error("NOT_FOUND"), { status: 404 });
+
+    const newQty = parseFloat(supply.quantity as string) + parseFloat(body.delta);
+    if (newQty < 0) throw Object.assign(new Error("NEGATIVE_STOCK"), { status: 422 });
+
+    const [updatedSupply] = await tx.update(salonSupplies)
+      .set({ quantity: String(newQty), updatedAt: new Date() })
+      .where(eq(salonSupplies.id, supplyId))
+      .returning();
+
+    await tx.insert(salonSupplyAdjustments).values({
+      orgId,
+      supplyId,
+      delta:     body.delta,
+      reason:    body.reason,
+      notes:     body.notes ?? null,
+      createdBy: userId,
+    });
+
+    return updatedSupply;
+  }).catch((err) => {
+    if (err.status === 404) throw err;
+    if (err.message === "NEGATIVE_STOCK") throw err;
+    throw err;
+  });
+
+  insertAuditLog({ orgId, userId, action: "adjusted", resource: "salon_supply", resourceId: supplyId, metadata: { delta: body.delta, reason: body.reason } });
+  return c.json({ data: updated });
+});
+
+// ============================================================
+// CLIENT BEAUTY PROFILE
+// GET  /salon/beauty-profile/:customerId
+// PUT  /salon/beauty-profile/:customerId  (upsert)
+// ============================================================
+
+const beautyProfileSchema = z.object({
+  hairType:       z.string().optional().nullable(),
+  hairTexture:    z.string().optional().nullable(),
+  hairCondition:  z.string().optional().nullable(),
+  naturalColor:   z.string().optional().nullable(),
+  currentColor:   z.string().optional().nullable(),
+  skinType:       z.string().optional().nullable(),
+  skinConcerns:   z.string().optional().nullable(),
+  allergies:      z.string().optional().nullable(),
+  sensitivities:  z.string().optional().nullable(),
+  medicalNotes:   z.string().optional().nullable(),
+  preferredStaffId: z.string().uuid().optional().nullable(),
+  preferences:    z.string().optional().nullable(),
+  avoidNotes:     z.string().optional().nullable(),
+  lastFormula:    z.string().optional().nullable(),
+});
+
+salonRouter.get("/beauty-profile/:customerId", async (c) => {
+  const orgId = getOrgId(c);
+  const customerId = c.req.param("customerId");
+
+  const [profile] = await db.select().from(clientBeautyProfiles)
+    .where(and(eq(clientBeautyProfiles.orgId, orgId), eq(clientBeautyProfiles.customerId, customerId)));
+
+  // Also fetch last 5 visit notes for this client
+  const history = await db.select().from(visitNotes)
+    .where(and(eq(visitNotes.orgId, orgId), eq(visitNotes.customerId, customerId)))
+    .orderBy(desc(visitNotes.createdAt))
+    .limit(5);
+
+  return c.json({ data: { profile: profile || null, recentVisits: history } });
+});
+
+salonRouter.put("/beauty-profile/:customerId", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const customerId = c.req.param("customerId");
+  const body = beautyProfileSchema.parse(await c.req.json());
+
+  const [existing] = await db.select({ id: clientBeautyProfiles.id }).from(clientBeautyProfiles)
+    .where(and(eq(clientBeautyProfiles.orgId, orgId), eq(clientBeautyProfiles.customerId, customerId)));
+
+  let result;
+  if (existing) {
+    [result] = await db.update(clientBeautyProfiles)
+      .set({ ...body, updatedAt: new Date() })
+      .where(eq(clientBeautyProfiles.id, existing.id))
+      .returning();
+  } else {
+    [result] = await db.insert(clientBeautyProfiles)
+      .values({ orgId, customerId, ...body })
+      .returning();
+  }
+
+  insertAuditLog({ orgId, userId, action: "updated", resource: "beauty_profile", resourceId: customerId });
+  return c.json({ data: result });
+});
+
+// ============================================================
+// VISIT NOTES
+// GET  /salon/visit-notes/:bookingId
+// POST /salon/visit-notes/:bookingId     (create / upsert)
+// ============================================================
+
+const visitNoteSchema = z.object({
+  customerId:     z.string().uuid(),
+  staffId:        z.string().uuid().optional().nullable(),
+  serviceId:      z.string().uuid().optional().nullable(),
+  formula:        z.string().optional().nullable(),
+  productsUsed:   z.string().optional().nullable(),
+  processingTime: z.number().int().optional().nullable(),
+  technique:      z.string().optional().nullable(),
+  resultNotes:    z.string().optional().nullable(),
+  privateNotes:   z.string().optional().nullable(),
+  recommendedProducts: z.string().optional().nullable(),
+  nextVisitIn:    z.number().int().optional().nullable(),
+  nextVisitDate:  z.string().optional().nullable(),
+  beforePhotoUrl: z.string().optional().nullable(),
+  afterPhotoUrl:  z.string().optional().nullable(),
+});
+
+salonRouter.get("/visit-notes/:bookingId", async (c) => {
+  const orgId = getOrgId(c);
+  const bookingId = c.req.param("bookingId");
+
+  const notes = await db.select().from(visitNotes)
+    .where(and(eq(visitNotes.orgId, orgId), eq(visitNotes.bookingId, bookingId)));
+
+  return c.json({ data: notes });
+});
+
+salonRouter.post("/visit-notes/:bookingId", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const bookingId = c.req.param("bookingId");
+  const body = visitNoteSchema.parse(await c.req.json());
+
+  // Upsert: one note per booking (overwrite if exists)
+  const [existing] = await db.select({ id: visitNotes.id }).from(visitNotes)
+    .where(and(eq(visitNotes.orgId, orgId), eq(visitNotes.bookingId, bookingId)));
+
+  let note;
+  if (existing) {
+    [note] = await db.update(visitNotes)
+      .set({ ...body, updatedAt: new Date() })
+      .where(eq(visitNotes.id, existing.id))
+      .returning();
+  } else {
+    [note] = await db.insert(visitNotes)
+      .values({ orgId, bookingId, ...body })
+      .returning();
+  }
+
+  // Auto-update lastFormula on beauty profile if formula provided
+  if (body.formula) {
+    await db.update(clientBeautyProfiles)
+      .set({ lastFormula: body.formula, updatedAt: new Date() })
+      .where(and(
+        eq(clientBeautyProfiles.orgId, orgId),
+        eq(clientBeautyProfiles.customerId, body.customerId),
+      ));
+  }
+
+  insertAuditLog({ orgId, userId, action: "created", resource: "visit_note", resourceId: bookingId });
+  return c.json({ data: note }, 201);
+});
+
+// ============================================================
+// SERVICE SUPPLY RECIPES — وصفة استهلاك المستلزمات
+// GET    /salon/recipes?serviceId=...
+// POST   /salon/recipes
+// DELETE /salon/recipes/:id
+// ============================================================
+
+salonRouter.get("/recipes", async (c) => {
+  const orgId = getOrgId(c);
+  const serviceId = c.req.query("serviceId");
+
+  const conditions = [eq(serviceSupplyRecipes.orgId, orgId)];
+  if (serviceId) conditions.push(eq(serviceSupplyRecipes.serviceId, serviceId));
+
+  const rows = await db.select().from(serviceSupplyRecipes)
+    .where(and(...conditions))
+    .orderBy(asc(serviceSupplyRecipes.serviceId));
+
+  return c.json({ data: rows });
+});
+
+salonRouter.post("/recipes", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const body = z.object({
+    serviceId: z.string().uuid(),
+    supplyId:  z.string().uuid(),
+    quantity:  z.string().default("1"),
+    notes:     z.string().optional().nullable(),
+  }).parse(await c.req.json());
+
+  const [row] = await db.insert(serviceSupplyRecipes)
+    .values({ orgId, ...body })
+    .onConflictDoUpdate({
+      target: [serviceSupplyRecipes.serviceId, serviceSupplyRecipes.supplyId],
+      set: { quantity: body.quantity, notes: body.notes ?? null },
+    })
+    .returning();
+
+  insertAuditLog({ orgId, userId, action: "created", resource: "service_recipe", resourceId: row.id });
+  return c.json({ data: row }, 201);
+});
+
+salonRouter.delete("/recipes/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const id = c.req.param("id");
+
+  await db.delete(serviceSupplyRecipes)
+    .where(and(eq(serviceSupplyRecipes.id, id), eq(serviceSupplyRecipes.orgId, orgId)));
+
+  insertAuditLog({ orgId, userId, action: "deleted", resource: "service_recipe", resourceId: id });
+  return c.json({ success: true });
+});
+
+// ============================================================
+// STAFF PERFORMANCE ANALYTICS
+// GET /salon/staff-performance?from=YYYY-MM-DD&to=YYYY-MM-DD
+//
+// Returns per-staff: revenue, bookings, rebooking_rate, avg_ticket,
+// completed_count, cancelled_count, no_show_count, revenue_per_booking
+// ============================================================
+
+salonRouter.get("/staff-performance", async (c) => {
+  const orgId = getOrgId(c);
+  const from  = c.req.query("from");
+  const to    = c.req.query("to");
+
+  const dateConditions = [
+    eq(bookings.orgId, orgId),
+  ];
+  if (from) dateConditions.push(gte(bookings.eventDate, new Date(from)));
+  if (to)   dateConditions.push(lte(bookings.eventDate, new Date(to)));
+
+  // Aggregate bookings per assigned staff
+  const rows = await db.execute(sql`
+    SELECT
+      b.assigned_user_id                                                    AS staff_id,
+      COUNT(*)                                                              AS total_bookings,
+      COUNT(*) FILTER (WHERE b.status = 'completed')                       AS completed,
+      COUNT(*) FILTER (WHERE b.status = 'cancelled')                       AS cancelled,
+      COUNT(*) FILTER (WHERE b.status = 'no_show')                         AS no_show,
+      COALESCE(SUM(CASE WHEN b.status = 'completed' THEN CAST(b.total_amount AS DECIMAL) ELSE 0 END), 0) AS revenue,
+      CASE WHEN COUNT(*) FILTER (WHERE b.status = 'completed') > 0
+        THEN COALESCE(SUM(CASE WHEN b.status = 'completed' THEN CAST(b.total_amount AS DECIMAL) ELSE 0 END), 0)
+             / COUNT(*) FILTER (WHERE b.status = 'completed')
+        ELSE 0
+      END                                                                   AS avg_ticket
+    FROM bookings b
+    WHERE b.org_id = ${orgId}
+      AND b.assigned_user_id IS NOT NULL
+      ${from ? sql`AND b.event_date >= ${new Date(from)}` : sql``}
+      ${to   ? sql`AND b.event_date <= ${new Date(to)}`   : sql``}
+    GROUP BY b.assigned_user_id
+    ORDER BY revenue DESC
+  `);
+
+  // Rebooking rate: % of completed clients who booked again within 90 days
+  const rebookRows = await db.execute(sql`
+    SELECT
+      b1.assigned_user_id AS staff_id,
+      COUNT(DISTINCT b1.customer_id)   AS served_clients,
+      COUNT(DISTINCT b2.customer_id)   AS rebooked_clients
+    FROM bookings b1
+    LEFT JOIN bookings b2
+      ON b2.customer_id = b1.customer_id
+      AND b2.org_id = b1.org_id
+      AND b2.id != b1.id
+      AND b2.event_date > b1.event_date
+      AND b2.event_date <= b1.event_date + INTERVAL '90 days'
+      AND b2.status NOT IN ('cancelled', 'no_show')
+    WHERE b1.org_id = ${orgId}
+      AND b1.status = 'completed'
+      AND b1.assigned_user_id IS NOT NULL
+      ${from ? sql`AND b1.event_date >= ${new Date(from)}` : sql``}
+      ${to   ? sql`AND b1.event_date <= ${new Date(to)}`   : sql``}
+    GROUP BY b1.assigned_user_id
+  `);
+
+  // Merge
+  const rebookMap: Record<string, any> = {};
+  for (const r of rebookRows.rows ?? (rebookRows as unknown as any[])) {
+    rebookMap[(r as any).staff_id] = r;
+  }
+
+  const result = (rows.rows ?? (rows as unknown as any[])).map((r: any) => {
+    const rb = rebookMap[r.staff_id];
+    const rebookingRate = rb && Number(rb.served_clients) > 0
+      ? Math.round((Number(rb.rebooked_clients) / Number(rb.served_clients)) * 100)
+      : 0;
+    return {
+      staffId:      r.staff_id,
+      totalBookings: Number(r.total_bookings),
+      completed:    Number(r.completed),
+      cancelled:    Number(r.cancelled),
+      noShow:       Number(r.no_show),
+      revenue:      parseFloat(r.revenue),
+      avgTicket:    parseFloat(r.avg_ticket),
+      rebookingRate,
+      servedClients: rb ? Number(rb.served_clients) : 0,
+    };
+  });
+
+  return c.json({ data: result });
+});
+
+// ============================================================
+// RECALL ENGINE — عملاء حان موعدهم للزيارة
+// GET /salon/recall?serviceInterval=4  (بالأسابيع)
+// Returns customers who haven't visited in serviceInterval+ weeks
+// ============================================================
+
+salonRouter.get("/recall", async (c) => {
+  const orgId   = c.get("orgId") as string;
+  const weeks   = parseInt(c.req.query("serviceInterval") || "6");
+  const limit   = parseInt(c.req.query("limit") || "50");
+  const cutoff  = new Date();
+  cutoff.setDate(cutoff.getDate() - weeks * 7);
+
+  const rows = await db.execute(sql`
+    SELECT DISTINCT ON (c.id)
+      c.id,
+      c.name,
+      c.phone,
+      c.last_booking_at,
+      EXTRACT(DAY FROM NOW() - c.last_booking_at)::int AS days_since_last_visit,
+      vn.next_visit_date,
+      vn.next_visit_in
+    FROM customers c
+    LEFT JOIN visit_notes vn ON vn.customer_id = c.id
+      AND vn.org_id = ${orgId}
+    WHERE c.org_id = ${orgId}
+      AND c.is_active = true
+      AND c.last_booking_at IS NOT NULL
+      AND c.last_booking_at <= ${cutoff}
+    ORDER BY c.id, c.last_booking_at DESC
+    LIMIT ${limit}
+  `);
+
+  return c.json({ data: rows.rows ?? rows, weeks });
+});

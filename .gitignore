@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+build/
+.next/
+.turbo/
+.cache/
+
+# Environment — كل مكان
+.env
+.env.*
+**/.env
+**/.env.*
+*.env
+
+# WhatsApp sessions — مفاتيح حساسة
+whatsapp-sessions/
+
+# Uploads
+uploads/
+
+# System
+.DS_Store
+*.log
+*.map
+Thumbs.db

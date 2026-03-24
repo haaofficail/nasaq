@@ -1,0 +1,23 @@
+{
+  "name": "nasaq",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Nasaq — Vendor OS for Events",
+  "scripts": {
+    "dev": "pnpm --filter @nasaq/api dev & pnpm --filter @nasaq/dashboard dev",
+    "dev:api": "pnpm --filter @nasaq/api dev",
+    "dev:dashboard": "pnpm --filter @nasaq/dashboard dev",
+    "db:generate": "pnpm --filter @nasaq/db generate",
+    "db:migrate": "pnpm --filter @nasaq/db migrate",
+    "db:push": "pnpm --filter @nasaq/db push",
+    "db:studio": "pnpm --filter @nasaq/db studio",
+    "db:seed": "pnpm --filter @nasaq/db seed",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  }
+}
