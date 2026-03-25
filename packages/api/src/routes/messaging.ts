@@ -78,9 +78,98 @@ messagingRouter.post("/test", async (c) => {
   return c.json({ success: true, message: "Test message sent (simulated)" });
 });
 
+// Default templates seeded per org on first access
+const DEFAULT_TEMPLATES = [
+  // ── الحجوزات ──────────────────────────────────────────────
+  {
+    event_type: "booking_confirmed", category: "bookings", send_to: "customer", sort_order: 1,
+    title: "تأكيد الحجز",
+    message_ar: "مرحباً {customer_name} 👋\nتم تأكيد حجزك في {org_name}.\n\n📅 التاريخ: {booking_date}\n⏰ الوقت: {booking_time}\n💈 الخدمة: {service_name}\n\nرقم الحجز: {booking_number}\nنتطلع لاستقبالك!",
+  },
+  {
+    event_type: "booking_reminder_24h", category: "bookings", send_to: "customer", sort_order: 2, delay_minutes: 0,
+    title: "تذكير قبل 24 ساعة",
+    message_ar: "تذكير 📌\nلديك حجز في {org_name} غداً.\n\n📅 {booking_date} ⏰ {booking_time}\n💈 {service_name}\n\nللتعديل أو الإلغاء تواصل معنا.",
+  },
+  {
+    event_type: "booking_reminder_2h", category: "bookings", send_to: "customer", sort_order: 3, delay_minutes: 0,
+    title: "تذكير قبل ساعتين",
+    message_ar: "تذكير ⏰\nحجزك في {org_name} بعد ساعتين!\n\n📅 {booking_date} - {booking_time}\n💈 {service_name}\n\nنراك قريباً 🙌",
+  },
+  {
+    event_type: "booking_cancelled", category: "bookings", send_to: "customer", sort_order: 4,
+    title: "إلغاء الحجز",
+    message_ar: "نأسف لإبلاغك {customer_name}\nتم إلغاء حجزك رقم {booking_number} في {org_name}.\n\nللحجز مجدداً تواصل معنا.",
+  },
+  {
+    event_type: "booking_rescheduled", category: "bookings", send_to: "customer", sort_order: 5,
+    title: "إعادة جدولة الحجز",
+    message_ar: "تم تحديث موعدك في {org_name} 📅\n\nالموعد الجديد:\n📅 {booking_date} ⏰ {booking_time}\n💈 {service_name}\n\nرقم الحجز: {booking_number}",
+  },
+  {
+    event_type: "booking_completed", category: "bookings", send_to: "customer", sort_order: 6,
+    title: "اكتمال الحجز",
+    message_ar: "شكراً لزيارتك {customer_name} 🌟\nنتمنى أن تكون تجربتك في {org_name} رائعة.\n\nنسعد بخدمتك دائماً!",
+  },
+  // ── إشعارات المالك ────────────────────────────────────────
+  {
+    event_type: "owner_new_booking", category: "bookings", send_to: "owner", sort_order: 7,
+    title: "إشعار المالك — حجز جديد",
+    message_ar: "حجز جديد 📋\nالعميل: {customer_name}\n📅 {booking_date} ⏰ {booking_time}\n💈 {service_name}\n💰 {amount} ر.س\nرقم الحجز: {booking_number}",
+  },
+  {
+    event_type: "owner_booking_cancelled", category: "bookings", send_to: "owner", sort_order: 8,
+    title: "إشعار المالك — إلغاء حجز",
+    message_ar: "تم إلغاء حجز ⚠️\nالعميل: {customer_name}\n📅 {booking_date} ⏰ {booking_time}\nرقم الحجز: {booking_number}",
+  },
+  // ── المدفوعات ─────────────────────────────────────────────
+  {
+    event_type: "payment_received", category: "payments", send_to: "customer", sort_order: 1,
+    title: "استلام دفعة",
+    message_ar: "تم استلام دفعتك ✅\nالمبلغ: {amount} ر.س\nالحجز: {booking_number}\n{org_name}\n\nشكراً لثقتك بنا 💙",
+  },
+  {
+    event_type: "invoice_issued", category: "payments", send_to: "customer", sort_order: 2,
+    title: "إصدار فاتورة",
+    message_ar: "تم إصدار فاتورتك من {org_name} 🧾\nالمبلغ: {amount} ر.س\nرقم الفاتورة: {invoice_number}\n\nللاستفسار تواصل معنا.",
+  },
+  // ── الموظفون ──────────────────────────────────────────────
+  {
+    event_type: "staff_assigned", category: "staff", send_to: "provider", sort_order: 1,
+    title: "تكليف موظف بحجز",
+    message_ar: "تم تكليفك بحجز جديد 📌\nالعميل: {customer_name}\n📅 {booking_date} ⏰ {booking_time}\n💈 {service_name}",
+  },
+  {
+    event_type: "staff_schedule_change", category: "staff", send_to: "provider", sort_order: 2,
+    title: "تغيير في الجدول",
+    message_ar: "تنبيه: تم تعديل جدولك في {org_name} 📅\nيرجى مراجعة التطبيق للاطلاع على التفاصيل.",
+  },
+];
+
 // GET /messaging/templates
 messagingRouter.get("/templates", async (c) => {
   const orgId = getOrgId(c);
+
+  // Seed default templates if org has none
+  const existing = await pool.query(
+    `SELECT COUNT(*) FROM message_templates WHERE org_id = $1`, [orgId]
+  );
+  if (parseInt(existing.rows[0].count) === 0) {
+    const insertValues = DEFAULT_TEMPLATES.map((t, i) => {
+      const base = (i * 8) + 2;
+      return `($1,$${base},$${base+1},$${base+2},$${base+3},$${base+4},$${base+5},$${base+6},$${base+7})`;
+    }).join(",");
+    const params: any[] = [orgId];
+    DEFAULT_TEMPLATES.forEach(t => {
+      params.push(t.event_type, t.category, t.send_to, t.sort_order ?? 0, t.title, t.message_ar, true, 0);
+    });
+    await pool.query(
+      `INSERT INTO message_templates (org_id, event_type, category, send_to, sort_order, title, message_ar, is_active, delay_minutes)
+       VALUES ${insertValues} ON CONFLICT (org_id, event_type, send_to) DO NOTHING`,
+      params
+    ).catch(() => {});
+  }
+
   const result = await pool.query(
     `SELECT * FROM message_templates WHERE org_id = $1 ORDER BY category ASC, sort_order ASC`,
     [orgId]
@@ -205,6 +294,19 @@ messagingRouter.get("/stats", async (c) => {
   return c.json({ data: result.rows[0] });
 });
 
+const STANDARD_VARIABLES = [
+  { key: "customer_name",   label: "اسم العميل",      description: "الاسم الكامل للعميل" },
+  { key: "booking_date",    label: "تاريخ الحجز",     description: "تاريخ الحجز بالميلادي" },
+  { key: "booking_time",    label: "وقت الحجز",       description: "وقت الحجز" },
+  { key: "service_name",    label: "اسم الخدمة",      description: "اسم الخدمة المحجوزة" },
+  { key: "booking_number",  label: "رقم الحجز",       description: "الرقم التعريفي للحجز" },
+  { key: "org_name",        label: "اسم المنشأة",     description: "اسم منشأتك" },
+  { key: "amount",          label: "المبلغ",           description: "المبلغ بالريال السعودي" },
+  { key: "staff_name",      label: "اسم الموظف",      description: "اسم الموظف المكلف" },
+  { key: "invoice_number",  label: "رقم الفاتورة",    description: "رقم الفاتورة" },
+  { key: "phone",           label: "رقم الجوال",      description: "رقم جوال العميل" },
+];
+
 // GET /messaging/variables
 messagingRouter.get("/variables", async (c) => {
   const orgId = getOrgId(c);
@@ -212,9 +314,7 @@ messagingRouter.get("/variables", async (c) => {
     `SELECT * FROM message_variables WHERE org_id = $1 ORDER BY variable_key ASC`,
     [orgId]
   );
-  const standard: any[] = [];
-  const custom = result.rows;
-  return c.json({ data: { standard, custom } });
+  return c.json({ data: { standard: STANDARD_VARIABLES, custom: result.rows } });
 });
 
 // POST /messaging/variables
