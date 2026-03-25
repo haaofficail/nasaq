@@ -10,7 +10,6 @@ import {
 import { clsx } from "clsx";
 import { servicesApi, questionsApi, inventoryApi, teamApi, salonApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { ServiceFormModal } from "@/components/services/ServiceFormModal";
 import { Modal, Input, TextArea, Select, Button, Toggle } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { fmtDate } from "@/lib/utils";
@@ -39,7 +38,6 @@ const EMPTY_Q = {
 export function ServiceDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [showEdit, setShowEdit] = useState(false);
   const [activeTab, setActiveTab] = useState<Tab>("info");
 
   const { data: res, loading, error, refetch } = useApi(() => servicesApi.get(id!), [id]);
@@ -330,7 +328,7 @@ export function ServiceDetailPage() {
           <p className="text-sm text-gray-500">{service.categoryName || "بدون تصنيف"}</p>
         </div>
         <span className={clsx("px-3 py-1 rounded-full text-xs font-medium", sc.cls)}>{sc.label}</span>
-        <button onClick={() => setShowEdit(true)} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm hover:bg-gray-50"><Pencil className="w-4 h-4" /> تعديل</button>
+        <button onClick={() => navigate(`/dashboard/services/${id}/edit`)} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm hover:bg-gray-50"><Pencil className="w-4 h-4" /> تعديل</button>
         <button onClick={handleDuplicate} className="p-2 rounded-lg hover:bg-gray-100"><Copy className="w-4 h-4 text-gray-400" /></button>
         <button onClick={handleDelete} disabled={deleting} className="p-2 rounded-lg hover:bg-red-50"><Trash2 className="w-4 h-4 text-red-400" /></button>
       </div>
@@ -357,45 +355,87 @@ export function ServiceDetailPage() {
 
       {/* Tab: Info */}
       {activeTab === "info" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="font-semibold text-gray-900 mb-4">معلومات الخدمة</h2>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-gray-400">السعر الأساسي</span><p className="font-bold text-lg text-brand-600 mt-1">{Number(service.basePrice || 0).toLocaleString()} ر.س</p></div>
-                <div><span className="text-gray-400">وحدة التسعير</span><p className="font-medium mt-1">{service.pricingUnit || "لكل حدث"}</p></div>
-                <div><span className="text-gray-400">السعة</span><p className="font-medium mt-1">{service.capacity || "—"} شخص</p></div>
-                <div><span className="text-gray-400">المدة</span><p className="font-medium mt-1">{service.durationHours || "—"} ساعة</p></div>
+        <div className="space-y-4">
+          {/* Service details */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="font-semibold text-gray-900 mb-4">معلومات الخدمة</h2>
+            <div className="divide-y divide-gray-50 text-sm">
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-gray-400">السعر الأساسي</span>
+                <p className="font-bold text-base text-brand-600">{Number(service.basePrice || 0).toLocaleString()} ر.س</p>
               </div>
-              {service.description && <div className="mt-4 pt-4 border-t border-gray-100"><span className="text-gray-400 text-sm">الوصف</span><p className="text-sm text-gray-600 mt-1 leading-relaxed">{service.description}</p></div>}
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-gray-400">وحدة التسعير</span>
+                <p className="font-medium text-gray-700">{service.pricingUnit || "لكل حدث"}</p>
+              </div>
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-gray-400">السعة</span>
+                <p className="font-medium text-gray-700">{service.capacity || "—"} شخص</p>
+              </div>
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-gray-400">المدة</span>
+                <p className="font-medium text-gray-700">{service.durationHours || "—"} ساعة</p>
+              </div>
             </div>
-            {(service.includes?.length > 0 || service.excludes?.length > 0) && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 className="font-semibold text-gray-900 mb-4">يشمل / لا يشمل</h2>
-                <div className="grid grid-cols-2 gap-6">
-                  {service.includes?.length > 0 && <div><h3 className="text-sm font-medium text-green-600 mb-2">يشمل</h3>{service.includes.map((item: string, i: number) => <p key={i} className="flex items-center gap-1.5 text-sm text-gray-600 py-1"><Check className="w-3.5 h-3.5 text-green-500 shrink-0" />{item}</p>)}</div>}
-                  {service.excludes?.length > 0 && <div><h3 className="text-sm font-medium text-red-500 mb-2">لا يشمل</h3>{service.excludes.map((item: string, i: number) => <p key={i} className="flex items-center gap-1.5 text-sm text-gray-600 py-1"><X className="w-3.5 h-3.5 text-red-400 shrink-0" />{item}</p>)}</div>}
-                </div>
+            {service.description && (
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                <span className="text-gray-400 text-sm">الوصف</span>
+                <p className="text-sm text-gray-600 mt-1 leading-relaxed">{service.description}</p>
               </div>
             )}
           </div>
-          <div className="space-y-4">
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h3 className="font-semibold text-gray-900 mb-3">الإحصائيات</h3>
+
+          {/* Stats */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <h3 className="font-semibold text-gray-900 mb-3">الإحصائيات</h3>
+            <div className="divide-y divide-gray-50 text-sm">
+              <div className="flex items-center justify-between py-2.5"><span className="text-gray-500 flex items-center gap-2"><CalendarCheck className="w-4 h-4" /> الحجوزات</span><span className="font-bold text-gray-900">{service.totalBookings || 0}</span></div>
+              <div className="flex items-center justify-between py-2.5"><span className="text-gray-500 flex items-center gap-2"><Banknote className="w-4 h-4" /> الإيرادات</span><span className="font-bold text-gray-900">{Number(service.totalRevenue || 0).toLocaleString()} ر.س</span></div>
+              <div className="flex items-center justify-between py-2.5"><span className="text-gray-500 flex items-center gap-2"><Star className="w-4 h-4" /> التقييم</span><span className="font-bold text-gray-900">{service.avgRating ? Number(service.avgRating).toFixed(1) : "—"}</span></div>
+              <div className="flex items-center justify-between py-2.5"><span className="text-gray-500 flex items-center gap-2"><Eye className="w-4 h-4" /> المشاهدات</span><span className="font-bold text-gray-900">{service.viewCount || 0}</span></div>
+            </div>
+          </div>
+
+          {/* Includes / excludes */}
+          {(service.includes?.length > 0 || service.excludes?.length > 0) && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6">
+              <h2 className="font-semibold text-gray-900 mb-4">يشمل / لا يشمل</h2>
               <div className="space-y-3">
-                <div className="flex items-center justify-between"><span className="text-sm text-gray-500 flex items-center gap-2"><CalendarCheck className="w-4 h-4" /> الحجوزات</span><span className="font-bold">{service.totalBookings || 0}</span></div>
-                <div className="flex items-center justify-between"><span className="text-sm text-gray-500 flex items-center gap-2"><Banknote className="w-4 h-4" /> الإيرادات</span><span className="font-bold">{Number(service.totalRevenue || 0).toLocaleString()} ر.س</span></div>
-                <div className="flex items-center justify-between"><span className="text-sm text-gray-500 flex items-center gap-2"><Star className="w-4 h-4" /> التقييم</span><span className="font-bold">{service.avgRating ? Number(service.avgRating).toFixed(1) : "—"}</span></div>
-                <div className="flex items-center justify-between"><span className="text-sm text-gray-500 flex items-center gap-2"><Eye className="w-4 h-4" /> المشاهدات</span><span className="font-bold">{service.viewCount || 0}</span></div>
+                {service.includes?.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-2">يشمل</h3>
+                    <div className="space-y-1">
+                      {service.includes.map((item: string, i: number) => (
+                        <p key={i} className="flex items-center gap-2 text-sm text-gray-600 py-1">
+                          <Check className="w-3.5 h-3.5 text-green-500 shrink-0" />{item}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {service.excludes?.length > 0 && (
+                  <div>
+                    <h3 className="text-xs font-semibold text-red-500 uppercase tracking-wide mb-2">لا يشمل</h3>
+                    <div className="space-y-1">
+                      {service.excludes.map((item: string, i: number) => (
+                        <p key={i} className="flex items-center gap-2 text-sm text-gray-600 py-1">
+                          <X className="w-3.5 h-3.5 text-red-400 shrink-0" />{item}
+                        </p>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <h3 className="font-semibold text-gray-900 mb-3">معلومات إضافية</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between"><span className="text-gray-400">الرابط</span><span className="font-mono text-xs text-brand-500">/book/{service.slug}</span></div>
-                <div className="flex justify-between"><span className="text-gray-400">SKU</span><span>{service.sku || "—"}</span></div>
-                <div className="flex justify-between"><span className="text-gray-400">تاريخ الإنشاء</span><span>{service.createdAt ? fmtDate(service.createdAt) : "—"}</span></div>
-              </div>
+          )}
+
+          {/* Extra info */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <h3 className="font-semibold text-gray-900 mb-3">معلومات إضافية</h3>
+            <div className="divide-y divide-gray-50 text-sm">
+              <div className="flex items-center justify-between py-2.5"><span className="text-gray-400">الرابط</span><span className="font-mono text-xs text-brand-500">/book/{service.slug}</span></div>
+              <div className="flex items-center justify-between py-2.5"><span className="text-gray-400">SKU</span><span className="text-gray-700">{service.sku || "—"}</span></div>
+              <div className="flex items-center justify-between py-2.5"><span className="text-gray-400">تاريخ الإنشاء</span><span className="text-gray-700">{service.createdAt ? fmtDate(service.createdAt) : "—"}</span></div>
             </div>
           </div>
         </div>
@@ -1271,6 +1311,6 @@ export function ServiceDetailPage() {
         </div>
       </Modal>
 
-      {showEdit && <ServiceFormModal open={showEdit} serviceId={id!} onClose={() => setShowEdit(false)} onSuccess={() => { setShowEdit(false); refetch(); }} />}    </div>
+    </div>
   );
 }

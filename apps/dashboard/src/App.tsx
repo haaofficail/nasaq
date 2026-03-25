@@ -22,6 +22,7 @@ import { MarketplaceBrowsePage } from "./pages/MarketplaceBrowsePage";
 import { DashboardPage } from "./pages/DashboardPage";
 // ServicesPage imported by CatalogPage directly; /dashboard/services redirects to /dashboard/catalog
 import { ServiceDetailPage } from "./pages/ServiceDetailPage";
+import { ServiceFormPage } from "./pages/ServiceFormPage";
 import { CategoriesPage } from "./pages/CategoriesPage";
 import { AddonsPage } from "./pages/AddonsPage";
 import { BookingsPage } from "./pages/BookingsPage";
@@ -161,7 +162,9 @@ export default function App() {
       <Route path="/dashboard" element={<RequireAuth><Layout /></RequireAuth>}>
         <Route index element={<DashboardPage />} />
 
-        {/* Services detail — list redirects to /catalog */}
+        {/* Services — create/edit as full page, detail view */}
+        <Route path="services/new" element={<ServiceFormPage />} />
+        <Route path="services/:id/edit" element={<ServiceFormPage />} />
         <Route path="services/:id" element={<ServiceDetailPage />} />
         <Route path="categories" element={<CategoriesPage />} />
         <Route path="addons" element={<AddonsPage />} />

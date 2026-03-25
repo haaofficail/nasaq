@@ -4,7 +4,6 @@ import { Plus, Search, Grid3X3, List, Eye, EyeOff, Copy, Trash2, Pencil, Star, P
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { ServiceFormModal } from "@/components/services/ServiceFormModal";
 import { PageHeader, Button } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 
@@ -50,15 +49,11 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
   const [categoryFilter, setCategoryFilter] = useState("الكل");
   const [typeFilter, setTypeFilter] = useState("الكل");
   const [view, setView] = useState<"grid" | "list">("grid");
-  const [showCreate, setShowCreate] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
 
-  // Auto-open create modal if ?new=1
+  // Auto-navigate to create page if ?new=1
   useEffect(() => {
     if (searchParams.get("new") === "1") {
-      setShowCreate(true);
-      searchParams.delete("new");
-      setSearchParams(searchParams, { replace: true });
+      navigate("/dashboard/services/new");
     }
   }, []);
 
@@ -81,7 +76,7 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
   // Unique types present in this org's services
   const presentTypes: string[] = ["الكل", ...Array.from(new Set(services.map((s: any) => s.serviceType).filter(Boolean) as string[]))];
 
-  const handleDelete = async (id: string, name: string) => {
+  const handleDelete = async (id: string, name: string) => {  // eslint-disable-line @typescript-eslint/no-unused-vars
     if (!confirm("حذف \"" + name + "\"؟")) return;
     await deleteService(id);
     refetch();
@@ -93,8 +88,6 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
     await updateService({ id: service.id, data: { status: newStatus } });
     refetch();
   };
-  const handleCreated = () => { setShowCreate(false); refetch(); };
-  const handleEdited = () => { setEditId(null); refetch(); };
 
   if (loading) return <PageSkeleton />;
 
@@ -112,7 +105,7 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
         <PageHeader
           title="الخدمات"
           description={`${services.length} خدمة`}
-          actions={<Button icon={Plus} onClick={() => setShowCreate(true)}>خدمة جديدة</Button>}
+          actions={<Button icon={Plus} onClick={() => navigate("/dashboard/services/new")}>خدمة جديدة</Button>}
         />
       )}
 
@@ -152,7 +145,7 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
           <button onClick={() => setView("list")} className={clsx("p-2 rounded-lg transition-colors", view === "list" ? "bg-brand-500 text-white" : "text-gray-400 hover:bg-gray-50")}><List className="w-4 h-4" /></button>
         </div>
         {embedded && (
-          <Button icon={Plus} onClick={() => setShowCreate(true)}>خدمة جديدة</Button>
+          <Button icon={Plus} onClick={() => navigate("/dashboard/services/new")}>خدمة جديدة</Button>
         )}
       </div>
 
@@ -162,7 +155,7 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
           <h3 className="text-base font-semibold text-gray-900 mb-1">{search ? "لا توجد نتائج" : "لا توجد خدمات بعد"}</h3>
           <p className="text-sm text-gray-400 mb-4">{search ? "جرب كلمات بحث مختلفة" : "أضف أول خدمة لك"}</p>
           {!search && (
-            <button onClick={() => setShowCreate(true)}
+            <button onClick={() => navigate("/dashboard/services/new")}
               className="bg-brand-500 text-white rounded-xl px-4 py-2 text-sm font-medium hover:bg-brand-600 transition-colors">
               <Plus className="w-4 h-4 inline ml-1" /> إضافة خدمة
             </button>
@@ -223,7 +216,7 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
               {/* Action bar */}
               <div className="border-t border-gray-50 px-3 py-2 flex items-center justify-between gap-1">
                 <button
-                  onClick={() => setEditId(service.id)}
+                  onClick={() => navigate(`/dashboard/services/${service.id}/edit`)}
                   title="تعديل"
                   className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-brand-50 hover:text-brand-600 transition-colors"
                 >
@@ -303,7 +296,7 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
                   <td className="py-3.5 px-4 text-gray-500 tabular-nums">{service.totalBookings || 0}</td>
                   <td className="py-3.5 px-4">
                     <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => setEditId(service.id)} title="تعديل" className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors"><Pencil className="w-3.5 h-3.5 text-brand-500" /></button>
+                      <button onClick={() => navigate(`/dashboard/services/${service.id}/edit`)} title="تعديل" className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors"><Pencil className="w-3.5 h-3.5 text-brand-500" /></button>
                       <button onClick={() => handleDuplicate(service.id)} title="تكرار" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Copy className="w-3.5 h-3.5 text-gray-400" /></button>
                       <button
                         onClick={() => handleToggleWebsite(service)}
@@ -325,8 +318,6 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
         </div>
       )}
 
-      <ServiceFormModal open={showCreate} onClose={() => setShowCreate(false)} onSuccess={handleCreated} />
-      {editId && <ServiceFormModal open={true} serviceId={editId} onClose={() => setEditId(null)} onSuccess={handleEdited} />}
     </div>
   );
 }
