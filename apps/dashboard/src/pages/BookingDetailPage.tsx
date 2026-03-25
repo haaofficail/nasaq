@@ -4,6 +4,7 @@ import { ArrowRight, CalendarCheck, MapPin, Phone, User, Banknote, Clock, CheckC
 import { clsx } from "clsx";
 import { bookingsApi, salonApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
+import { success as hapticSuccess } from "@/lib/haptics";
 import { Button, Modal, Input, Select } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { fmtDate } from "@/lib/utils";
@@ -52,6 +53,7 @@ export function BookingDetailPage() {
   const handleStatusChange = async (status: string) => {
     if (status === "cancelled" && !confirm("هل أنت متأكد من إلغاء الحجز؟")) return;
     await updateStatus({ status });
+    if (status === "confirmed" || status === "completed") hapticSuccess();
     refetch();
     refetchEvents();
   };

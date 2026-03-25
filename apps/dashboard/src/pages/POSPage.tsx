@@ -10,6 +10,7 @@ import {
 import { posApi, servicesApi, categoriesApi, customersApi, settingsApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { toast } from "@/hooks/useToast";
+import { success as hapticSuccess } from "@/lib/haptics";
 
 // ============================================================
 // TYPES
@@ -839,6 +840,7 @@ export function POSPage() {
       });
       setSaleResult(res.data);
       toast.success("تم إتمام البيع");
+      hapticSuccess();
     } catch (err: any) {
       toast.error(err?.message || "فشل إتمام البيع");
     } finally {
@@ -867,6 +869,7 @@ export function POSPage() {
       const firstChild = res.data?.children?.[0];
       if (firstChild) setSaleResult(firstChild);
       toast.success("تم إتمام البيع المقسّم");
+      hapticSuccess();
     } catch (err: any) {
       toast.error(err?.message || "فشل إتمام البيع المقسّم");
     } finally {
@@ -898,7 +901,7 @@ export function POSPage() {
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-4rem)] overflow-hidden -m-5">
+    <div className="flex flex-col h-[calc(100dvh-4rem)] overflow-hidden -m-4 md:-m-6">
 
       {/* Top bar */}
       <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-100 shrink-0">
@@ -979,7 +982,7 @@ export function POSPage() {
             {/* Services grid */}
             <div className="flex-1 overflow-y-auto p-4">
               {loadingServices ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {[...Array(12)].map((_, i) => (
                     <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
                   ))}
@@ -990,7 +993,7 @@ export function POSPage() {
                   <p className="text-sm text-gray-400">لا توجد خدمات</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {filteredServices.map(svc => {
                     const inCart = cart.find(c => c.id === svc.id);
                     return (
@@ -1027,7 +1030,7 @@ export function POSPage() {
           </div>
 
           {/* ── RIGHT: Cart + Payment (30%) ── */}
-          <div className="w-80 lg:w-96 shrink-0 flex flex-col bg-white border-r border-gray-100">
+          <div className="w-80 md:w-96 shrink-0 flex flex-col bg-white border-r border-gray-100">
 
             {/* Cart header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
