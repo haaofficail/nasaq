@@ -88,7 +88,7 @@ const revenueKpi = (id = "revenue"): KPIConfig => ({
   bg: "bg-emerald-50",
   iconColor: "text-emerald-600",
   fetcher: () => bookingsApi.stats("month"),
-  transform: (d) => Number(d?.data?.revenue || 0).toLocaleString("ar-SA"),
+  transform: (d) => Number(d?.data?.revenue || 0).toLocaleString("en-US"),
   allowedRoles: ["owner", "admin", "manager"],
 });
 
@@ -100,7 +100,7 @@ const bookingsKpi = (id = "bookings", label = "الحجوزات", unit = "حجز
   bg: "bg-blue-50",
   iconColor: "text-blue-600",
   fetcher: () => bookingsApi.stats("month"),
-  transform: (d) => Number(d?.data?.total || 0).toLocaleString("ar-SA"),
+  transform: (d) => Number(d?.data?.total || 0).toLocaleString("en-US"),
   allowedRoles: [],
 });
 
@@ -112,7 +112,7 @@ const customersKpi = (id = "customers", label = "العملاء", unit = "عمي
   bg: "bg-violet-50",
   iconColor: "text-violet-600",
   fetcher: () => customersApi.stats(),
-  transform: (d) => Number(d?.data?.total || 0).toLocaleString("ar-SA"),
+  transform: (d) => Number(d?.data?.total || 0).toLocaleString("en-US"),
   allowedRoles: [],
 });
 
@@ -286,7 +286,7 @@ const profiles: Record<string, DashboardProfile> = {
         bg: "bg-pink-50",
         iconColor: "text-pink-600",
         fetcher: () => flowerMasterApi.stockReport(),
-        transform: (d) => (d?.data ?? []).reduce((s: number, r: any) => s + parseInt(r.total_remaining || 0), 0).toLocaleString("ar-SA"),
+        transform: (d) => (d?.data ?? []).reduce((s: number, r: any) => s + parseInt(r.total_remaining || 0), 0).toLocaleString("en-US"),
         allowedRoles: [],
       },
       {
@@ -389,7 +389,7 @@ const profiles: Record<string, DashboardProfile> = {
         bg: "bg-pink-50",
         iconColor: "text-pink-600",
         fetcher: () => flowerMasterApi.stockReport(),
-        transform: (d) => (d?.data ?? []).reduce((s: number, r: any) => s + parseInt(r.total_remaining || 0), 0).toLocaleString("ar-SA"),
+        transform: (d) => (d?.data ?? []).reduce((s: number, r: any) => s + parseInt(r.total_remaining || 0), 0).toLocaleString("en-US"),
         allowedRoles: [],
       },
       {
@@ -434,7 +434,7 @@ const profiles: Record<string, DashboardProfile> = {
         bg: "bg-pink-50",
         iconColor: "text-pink-600",
         fetcher: () => flowerMasterApi.stockReport(),
-        transform: (d) => (d?.data ?? []).reduce((s: number, r: any) => s + parseInt(r.total_remaining || 0), 0).toLocaleString("ar-SA"),
+        transform: (d) => (d?.data ?? []).reduce((s: number, r: any) => s + parseInt(r.total_remaining || 0), 0).toLocaleString("en-US"),
         allowedRoles: [],
       },
       {
@@ -785,7 +785,7 @@ const profiles: Record<string, DashboardProfile> = {
         bg: "bg-emerald-50",
         iconColor: "text-emerald-600",
         fetcher: () => financeApi.pnl(),
-        transform: (d) => Number(d?.data?.revenue || 0).toLocaleString("ar-SA"),
+        transform: (d) => Number(d?.data?.revenue || 0).toLocaleString("en-US"),
         allowedRoles: ["owner", "admin", "manager"],
       },
       bookingsKpi("contracts", "العقود النشطة", "عقد"),

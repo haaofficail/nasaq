@@ -177,7 +177,7 @@ export default function CarRentalPage() {
                     <div key={cat.id} className="bg-white border border-gray-200 rounded-lg p-3">
                       <div className="font-semibold text-sm text-gray-900">{cat.name}</div>
                       <div className="text-sm text-gray-500 mt-1">
-                        {Number(cat.pricePerDay).toLocaleString("ar-SA")} ريال / يوم
+                        {Number(cat.pricePerDay).toLocaleString("en-US")} ريال / يوم
                       </div>
                     </div>
                   ))}
@@ -208,7 +208,7 @@ export default function CarRentalPage() {
                           {categories.find((c) => c.id === v.categoryId)?.name ?? "—"}
                         </td>
                         <td className="px-4 py-3 text-gray-500">
-                          {(v.mileage || 0).toLocaleString("ar-SA")} كم
+                          {(v.mileage || 0).toLocaleString("en-US")} كم
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -327,7 +327,7 @@ export default function CarRentalPage() {
                           {new Date(res.returnDate).toLocaleDateString("ar-SA")}
                         </td>
                         <td className="px-4 py-3 font-medium">
-                          {Number(res.totalAmount).toLocaleString("ar-SA")} ريال
+                          {Number(res.totalAmount).toLocaleString("en-US")} ريال
                         </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">

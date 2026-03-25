@@ -193,7 +193,7 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
         <div className="grid grid-cols-3 gap-3">
           {[
             { label: "عملاء الشهر",   value: stats.newCustomersThisMonth, icon: Users,         color: "text-violet-600", bg: "bg-violet-50" },
-            { label: "مبيعات الشهر",  value: `${Number(stats.salesThisMonth).toLocaleString("ar-SA")} ر.س`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
+            { label: "مبيعات الشهر",  value: `${Number(stats.salesThisMonth).toLocaleString("en-US")} ر.س`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "حجوزات الشهر",  value: stats.bookingsThisMonth,    icon: CalendarCheck, color: "text-brand-600",   bg: "bg-brand-50" },
           ].map((s) => (
             <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3.5 flex items-center gap-3">

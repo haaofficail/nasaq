@@ -74,7 +74,7 @@ export function RecentBookingsWidget() {
                 </div>
                 <div className="text-left shrink-0">
                   <p className="text-sm font-bold text-gray-900 tabular-nums">
-                    {Number(b.totalAmount || 0).toLocaleString("ar-SA")} ر.س
+                    {Number(b.totalAmount || 0).toLocaleString("en-US")} ر.س
                   </p>
                   <span className={clsx("text-[10px] px-2 py-0.5 rounded-full font-medium", s.color)}>
                     {s.label}

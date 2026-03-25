@@ -143,7 +143,7 @@ export function CustomerDetailPage() {
                             <span className="text-xs text-gray-500">{resourceLabels[entry.resource] || entry.resource}</span>
                           </div>
                           <p className="text-xs text-gray-400 mt-1">
-                            {entry.createdAt ? new Date(entry.createdAt).toLocaleString("ar-SA") : "—"}
+                            {entry.createdAt ? new Date(entry.createdAt).toLocaleString("en-US") : "—"}
                           </p>
                         </div>
                       </div>

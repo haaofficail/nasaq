@@ -39,7 +39,7 @@ export function OnlineOrdersWidget() {
         </div>
         <div className="bg-emerald-50 rounded-xl p-3 text-center">
           <p className={clsx("text-2xl font-bold text-emerald-600 tabular-nums", loading && "opacity-30")}>
-            {loading ? "—" : revenue.toLocaleString("ar-SA")}
+            {loading ? "—" : revenue.toLocaleString("en-US")}
           </p>
           <p className="text-xs text-emerald-400 mt-0.5">إيرادات · ر.س</p>
         </div>

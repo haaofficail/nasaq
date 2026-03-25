@@ -176,7 +176,7 @@ export function FlowerInventoryPage() {
           <div className="w-9 h-9 rounded-xl bg-pink-50 flex items-center justify-center mb-3">
             <Flower2 className="w-4 h-4 text-pink-500" />
           </div>
-          <p className="text-2xl font-bold text-gray-900 tabular-nums">{totalStems.toLocaleString("ar-SA")}</p>
+          <p className="text-2xl font-bold text-gray-900 tabular-nums">{totalStems.toLocaleString("en-US")}</p>
           <p className="text-xs text-gray-400 mt-0.5">إجمالي السيقان</p>
         </div>
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
@@ -283,7 +283,7 @@ export function FlowerInventoryPage() {
                       </div>
                       <div className="text-left shrink-0">
                         <p className={clsx("text-base font-bold tabular-nums", isLow ? "text-red-600" : "text-gray-900")}>
-                          {remaining.toLocaleString("ar-SA")}
+                          {remaining.toLocaleString("en-US")}
                           <span className="text-xs font-normal text-gray-400 mr-1">ساق</span>
                         </p>
                         {isLow && (
@@ -348,11 +348,11 @@ export function FlowerInventoryPage() {
                           <div className="flex items-center gap-4 mt-2">
                             <div>
                               <span className="text-xs text-gray-400">متبقي: </span>
-                              <span className="text-xs font-bold text-gray-800 tabular-nums">{b.quantityRemaining.toLocaleString("ar-SA")} ساق</span>
+                              <span className="text-xs font-bold text-gray-800 tabular-nums">{b.quantityRemaining.toLocaleString("en-US")} ساق</span>
                             </div>
                             <div>
                               <span className="text-xs text-gray-400">مستلم: </span>
-                              <span className="text-xs text-gray-600 tabular-nums">{b.quantityReceived.toLocaleString("ar-SA")}</span>
+                              <span className="text-xs text-gray-600 tabular-nums">{b.quantityReceived.toLocaleString("en-US")}</span>
                             </div>
                           </div>
                         </div>
@@ -407,7 +407,7 @@ export function FlowerInventoryPage() {
                             {b.variant?.displayNameAr || b.variant?.flowerType || "—"}
                           </p>
                           <p className="text-xs text-gray-400 mt-0.5">
-                            دفعة #{b.batchNumber} · {b.quantityRemaining.toLocaleString("ar-SA")} ساق متبقية
+                            دفعة #{b.batchNumber} · {b.quantityRemaining.toLocaleString("en-US")} ساق متبقية
                           </p>
                         </div>
                         <div className="text-left shrink-0">
@@ -497,7 +497,7 @@ export function FlowerInventoryPage() {
                 <option value="">اختر النوع</option>
                 {stock.map(r => (
                   <option key={r.variant_id} value={r.variant_id}>
-                    {r.display_name_ar || r.flower_type} — {parseInt(r.total_remaining).toLocaleString("ar-SA")} ساق متاحة
+                    {r.display_name_ar || r.flower_type} — {parseInt(r.total_remaining).toLocaleString("en-US")} ساق متاحة
                   </option>
                 ))}
               </select>

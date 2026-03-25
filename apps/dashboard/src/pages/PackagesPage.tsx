@@ -320,7 +320,7 @@ export function PackagesPage() {
                     <div>
                       <p className="text-sm font-medium text-gray-900">{item.service?.name || "خدمة"}</p>
                       {item.service?.basePrice && (
-                        <p className="text-xs text-gray-500">{Number(item.service.basePrice).toLocaleString("ar-SA")} ر.س</p>
+                        <p className="text-xs text-gray-500">{Number(item.service.basePrice).toLocaleString("en-US")} ر.س</p>
                       )}
                     </div>
                     <button onClick={() => handleRemoveItem(item.id)}
@@ -345,7 +345,7 @@ export function PackagesPage() {
                     className="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-50 transition-colors text-right">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{s.name}</p>
-                      {s.basePrice && <p className="text-xs text-gray-400">{Number(s.basePrice).toLocaleString("ar-SA")} ر.س</p>}
+                      {s.basePrice && <p className="text-xs text-gray-400">{Number(s.basePrice).toLocaleString("en-US")} ر.س</p>}
                     </div>
                     <Plus className="w-4 h-4 text-brand-500 shrink-0" />
                   </button>

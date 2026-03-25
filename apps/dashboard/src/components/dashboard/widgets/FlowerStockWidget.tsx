@@ -65,7 +65,7 @@ export function FlowerStockWidget() {
       {/* Summary KPIs */}
       <div className="grid grid-cols-4 gap-3 mb-4">
         <div className="bg-pink-50 rounded-xl p-3 text-center">
-          <p className="text-xl font-bold text-pink-600 tabular-nums">{totalStems.toLocaleString("ar-SA")}</p>
+          <p className="text-xl font-bold text-pink-600 tabular-nums">{totalStems.toLocaleString("en-US")}</p>
           <p className="text-[11px] text-pink-400 mt-0.5">إجمالي السيقان</p>
         </div>
         <div className="bg-emerald-50 rounded-xl p-3 text-center">
@@ -120,7 +120,7 @@ export function FlowerStockWidget() {
                     )}
                   </span>
                   <span className={clsx("text-xs tabular-nums font-semibold shrink-0 mr-3", isLow ? "text-red-600" : "text-gray-900")}>
-                    {stems.toLocaleString("ar-SA")} ساق
+                    {stems.toLocaleString("en-US")} ساق
                   </span>
                 </div>
                 <StockBar value={stems} max={maxStems} />

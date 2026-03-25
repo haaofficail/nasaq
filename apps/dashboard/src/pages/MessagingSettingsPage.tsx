@@ -779,7 +779,7 @@ function LogsTab() {
                   return (
                     <tr key={log.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
                       <td className="py-3 px-5 text-gray-500 tabular-nums text-xs">
-                        {log.sent_at ? new Date(log.sent_at).toLocaleString("ar-SA") : "—"}
+                        {log.sent_at ? new Date(log.sent_at).toLocaleString("en-US") : "—"}
                       </td>
                       <td className="py-3 px-4">
                         <div>

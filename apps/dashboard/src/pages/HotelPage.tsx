@@ -181,7 +181,7 @@ export default function HotelPage() {
                     <div key={rt.id} className="bg-white border border-gray-200 rounded-lg p-4">
                       <div className="font-semibold text-gray-900">{rt.name}</div>
                       <div className="text-sm text-gray-500 mt-1">
-                        {Number(rt.pricePerNight).toLocaleString("ar-SA")} ريال / ليلة
+                        {Number(rt.pricePerNight).toLocaleString("en-US")} ريال / ليلة
                       </div>
                       <div className="text-xs text-gray-400 mt-1">
                         حد أقصى {rt.maxOccupancy} أشخاص
@@ -326,7 +326,7 @@ export default function HotelPage() {
                           {new Date(res.checkOutDate).toLocaleDateString("ar-SA")}
                         </td>
                         <td className="px-4 py-3 font-medium">
-                          {Number(res.totalAmount).toLocaleString("ar-SA")} ريال
+                          {Number(res.totalAmount).toLocaleString("en-US")} ريال
                         </td>
                         <td className="px-4 py-3">
                           <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
@@ -502,7 +502,7 @@ export default function HotelPage() {
                       {new Date(sp.endDate).toLocaleDateString("ar-SA")}
                     </div>
                     <div className="text-lg font-bold text-blue-600 mt-2">
-                      {Number(sp.pricePerNight).toLocaleString("ar-SA")} ريال / ليلة
+                      {Number(sp.pricePerNight).toLocaleString("en-US")} ريال / ليلة
                     </div>
                     <button
                       className="mt-2 text-xs text-red-500 hover:underline"

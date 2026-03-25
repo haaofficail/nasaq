@@ -110,14 +110,14 @@ export function PublicTrackingPage() {
           <div>
             <div className="flex justify-between text-sm mb-1.5">
               <span className="text-gray-500">المدفوع</span>
-              <span className="font-medium text-green-600">{paidAmount.toLocaleString("ar-SA")} ر.س</span>
+              <span className="font-medium text-green-600">{paidAmount.toLocaleString("en-US")} ر.س</span>
             </div>
             <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
               <div className="h-full rounded-full bg-green-500 transition-all" style={{ width: `${paidPct}%` }} />
             </div>
             <div className="flex justify-between text-xs mt-1.5">
               <span className="text-gray-400">{paidPct}%</span>
-              <span className="text-gray-400">الإجمالي: {totalAmount.toLocaleString("ar-SA")} ر.س</span>
+              <span className="text-gray-400">الإجمالي: {totalAmount.toLocaleString("en-US")} ر.س</span>
             </div>
           </div>
 
@@ -125,7 +125,7 @@ export function PublicTrackingPage() {
             <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-amber-700 font-medium">المبلغ المتبقي</span>
-                <span className="text-lg font-bold text-amber-700">{balanceDue.toLocaleString("ar-SA")} ر.س</span>
+                <span className="text-lg font-bold text-amber-700">{balanceDue.toLocaleString("en-US")} ر.س</span>
               </div>
               <button className="w-full py-3 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2" style={{ background: primaryColor }}>
                 <CreditCard className="w-4 h-4" /> ادفع الآن

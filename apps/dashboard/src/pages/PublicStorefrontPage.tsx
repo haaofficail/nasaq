@@ -54,8 +54,8 @@ function hexToRgb(hex: string) {
 
 function formatPrice(price?: number, pricingType?: string) {
   if (!price) return null;
-  if (pricingType === "from") return `يبدأ من ${price.toLocaleString("ar-SA")} ر.س`;
-  return `${price.toLocaleString("ar-SA")} ر.س`;
+  if (pricingType === "from") return `يبدأ من ${price.toLocaleString("en-US")} ر.س`;
+  return `${price.toLocaleString("en-US")} ر.س`;
 }
 
 function formatDate(dateStr: string) {

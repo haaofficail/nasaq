@@ -1878,7 +1878,7 @@ function SubscriptionOrdersTab() {
                     <td className="px-5 py-3 text-gray-600">{TYPE_LABELS[o.orderType] ?? o.orderType}</td>
                     <td className="px-5 py-3 text-gray-600">{o.itemName}</td>
                     <td className="px-5 py-3 text-gray-700 font-medium tabular-nums">
-                      {o.price ? `${Number(o.price).toLocaleString("ar-SA")} ر.س` : "—"}
+                      {o.price ? `${Number(o.price).toLocaleString("en-US")} ر.س` : "—"}
                     </td>
                     <td className="px-5 py-3">{statusBadge(o.status)}</td>
                     <td className="px-5 py-3 text-gray-400 text-xs whitespace-nowrap">
@@ -1928,7 +1928,7 @@ function SubscriptionOrdersTab() {
               <div className="flex justify-between">
                 <span className="text-gray-500">المبلغ</span>
                 <span className="font-bold text-emerald-600">
-                  {showConfirmModal.price ? `${Number(showConfirmModal.price).toLocaleString("ar-SA")} ر.س` : "—"}
+                  {showConfirmModal.price ? `${Number(showConfirmModal.price).toLocaleString("en-US")} ر.س` : "—"}
                 </span>
               </div>
             </div>
@@ -2298,7 +2298,7 @@ function SystemTab() {
                   <div>
                     <p className="text-sm font-bold text-gray-800">نتائج الفحص الشامل</p>
                     <p className="text-xs text-gray-400">
-                      {new Date(diagResult.runAt).toLocaleString("ar-SA")} — استغرق {diagResult.durationMs}ms
+                      {new Date(diagResult.runAt).toLocaleString("en-US")} — استغرق {diagResult.durationMs}ms
                     </p>
                   </div>
                 </div>
@@ -2473,7 +2473,7 @@ function SystemTab() {
                       <span className="text-xs font-mono text-gray-400">{e.targetId ?? "—"}</span>
                     </td>
                     <td className="py-2.5 px-4 text-xs text-gray-400 whitespace-nowrap">
-                      {e.createdAt ? new Date(e.createdAt).toLocaleString("ar-SA") : "—"}
+                      {e.createdAt ? new Date(e.createdAt).toLocaleString("en-US") : "—"}
                     </td>
                   </tr>
                 ))}
@@ -2513,7 +2513,7 @@ function SystemTab() {
                   return (
                     <tr key={i} className={clsx("border-b border-gray-50", warn ? "bg-amber-50/40" : "hover:bg-gray-50/40")}>
                       <td className="py-2 px-4 text-xs text-gray-500 font-mono whitespace-nowrap">
-                        {h.recordedAt ? new Date(h.recordedAt).toLocaleString("ar-SA") : "—"}
+                        {h.recordedAt ? new Date(h.recordedAt).toLocaleString("en-US") : "—"}
                       </td>
                       <td className="py-2 px-4 text-xs font-semibold">
                         <span className={h.dbLatencyMs > 500 ? "text-red-600" : h.dbLatencyMs > 200 ? "text-amber-600" : "text-emerald-600"}>

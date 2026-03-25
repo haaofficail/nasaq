@@ -62,7 +62,7 @@ export function StatCard({ icon, label, value, change, changeType, unit }: StatC
             fontVariantNumeric: "tabular-nums", letterSpacing: -0.5,
             lineHeight: 1,
           }}>
-            {typeof value === "number" ? value.toLocaleString("ar-SA") : value}
+            {typeof value === "number" ? value.toLocaleString("en-US") : value}
           </span>
           {unit && <span style={{ fontSize: 12, color: COLORS.muted }}>{unit}</span>}
         </div>

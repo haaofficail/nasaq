@@ -133,7 +133,7 @@ export function AuditLogPage() {
                   <td className="py-3 px-4 text-gray-600">{log.userName || <span className="text-gray-300">نظام</span>}</td>
                   <td className="py-3 px-4 text-gray-400 text-xs font-mono">{log.ip || "—"}</td>
                   <td className="py-3 px-4 text-gray-400 text-xs">
-                    {log.createdAt ? new Date(log.createdAt).toLocaleString("ar-SA") : "—"}
+                    {log.createdAt ? new Date(log.createdAt).toLocaleString("en-US") : "—"}
                   </td>
                 </tr>
               ))}

@@ -480,7 +480,7 @@ function ConsumablesTab() {
         {[
           { label: "إجمالي المواد",    value: products.length,                        color: "text-brand-600",   bg: "bg-brand-50",   icon: Boxes },
           { label: "مخزون منخفض",     value: lowCount,                               color: "text-red-500",     bg: "bg-red-50",     icon: AlertTriangle },
-          { label: "قيمة المخزون",     value: `${totalValue.toLocaleString("ar-SA")} ر.س`, color: "text-emerald-600", bg: "bg-emerald-50", icon: BarChart3 },
+          { label: "قيمة المخزون",     value: `${totalValue.toLocaleString("en-US")} ر.س`, color: "text-emerald-600", bg: "bg-emerald-50", icon: BarChart3 },
           { label: "تصنيفات",         value: categories.length,                      color: "text-purple-600",  bg: "bg-purple-50",  icon: Package },
         ].map((s, i) => (
           <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
@@ -532,11 +532,11 @@ function ConsumablesTab() {
                   <td className="py-3.5 px-4 text-xs text-gray-500 hidden sm:table-cell">{p.category || "—"}</td>
                   <td className="py-3.5 px-4">
                     <span className={clsx("font-semibold tabular-nums", p.is_low_stock ? "text-red-600" : "text-gray-900")}>
-                      {parseFloat(p.current_stock).toLocaleString("ar-SA")}
+                      {parseFloat(p.current_stock).toLocaleString("en-US")}
                     </span>
                     <span className="text-xs text-gray-400 mr-1">{p.unit}</span>
                   </td>
-                  <td className="py-3.5 px-4 text-xs text-gray-500 hidden md:table-cell">{parseFloat(p.min_stock).toLocaleString("ar-SA")} {p.unit}</td>
+                  <td className="py-3.5 px-4 text-xs text-gray-500 hidden md:table-cell">{parseFloat(p.min_stock).toLocaleString("en-US")} {p.unit}</td>
                   <td className="py-3.5 px-4 text-xs text-gray-500 hidden lg:table-cell">{parseFloat(p.unit_cost || 0).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td>
                   <td className="py-3.5 px-4">
                     <div className="flex gap-1">
@@ -591,7 +591,7 @@ function ConsumablesTab() {
           <div className="space-y-4">
             <div className="bg-gray-50 rounded-xl px-4 py-3 text-sm">
               <span className="text-gray-500">المخزون الحالي: </span>
-              <span className="font-bold text-gray-900">{parseFloat(adjustItem.current_stock).toLocaleString("ar-SA")} {adjustItem.unit}</span>
+              <span className="font-bold text-gray-900">{parseFloat(adjustItem.current_stock).toLocaleString("en-US")} {adjustItem.unit}</span>
             </div>
             <Select label="نوع الحركة" name="adjType" value={adjustForm.type}
               onChange={e => setAdjustForm(p => ({ ...p, type: e.target.value }))}

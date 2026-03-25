@@ -28,7 +28,7 @@ export function SalesChartWidget() {
           المبيعات
           {total > 0 && (
             <span className="text-xs font-normal text-gray-400">
-              — {total.toLocaleString("ar-SA")} ر.س
+              — {total.toLocaleString("en-US")} ر.س
             </span>
           )}
         </h3>
@@ -75,7 +75,7 @@ export function SalesChartWidget() {
                 tickLine={false}
               />
               <Tooltip
-                formatter={(v: number) => [`${v.toLocaleString("ar-SA")} ر.س`, "المبيعات"]}
+                formatter={(v: number) => [`${v.toLocaleString("en-US")} ر.س`, "المبيعات"]}
                 labelStyle={{ fontFamily: "IBM Plex Sans Arabic, sans-serif", fontSize: 11 }}
                 contentStyle={{
                   borderRadius: 12,

@@ -138,7 +138,7 @@ export default function IntegrationsPage() {
 
                           {config.lastSyncAt && (
                             <div className="text-xs text-gray-400 mt-2">
-                              آخر مزامنة: {new Date(config.lastSyncAt).toLocaleString("ar-SA")}
+                              آخر مزامنة: {new Date(config.lastSyncAt).toLocaleString("en-US")}
                             </div>
                           )}
                           {config.lastError && (
@@ -296,7 +296,7 @@ export default function IntegrationsPage() {
                           )}
                         </td>
                         <td className="px-4 py-3 text-gray-400 text-xs">
-                          {new Date(log.createdAt).toLocaleString("ar-SA")}
+                          {new Date(log.createdAt).toLocaleString("en-US")}
                         </td>
                       </tr>
                     ))}
@@ -376,7 +376,7 @@ export default function IntegrationsPage() {
                           {{ scheduler: "تلقائي", manual: "يدوي", webhook: "webhook" }[job.triggeredBy as string] ?? job.triggeredBy}
                         </td>
                         <td className="px-4 py-3 text-gray-400 text-xs">
-                          {new Date(job.createdAt).toLocaleString("ar-SA")}
+                          {new Date(job.createdAt).toLocaleString("en-US")}
                         </td>
                       </tr>
                     ))}

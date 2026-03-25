@@ -236,7 +236,7 @@ export function CreateInvoiceModal({ open, onClose, onSuccess }: Props) {
                       <p className="text-sm font-medium text-gray-800">{bk.customerName || bk.buyerName || "—"}</p>
                       <p className="text-xs text-gray-400">{bk.bookingNumber || bk.id.slice(0, 8)}</p>
                     </div>
-                    <span className="text-xs text-brand-600 font-mono">{Number(bk.totalAmount || 0).toLocaleString("ar-SA")} ر.س</span>
+                    <span className="text-xs text-brand-600 font-mono">{Number(bk.totalAmount || 0).toLocaleString("en-US")} ر.س</span>
                   </button>
                 ))}
               </div>

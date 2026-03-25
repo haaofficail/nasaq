@@ -365,7 +365,7 @@ export function PublicFlowerPage() {
           {grandTotal > 0 && (
             <div className="text-sm font-black text-white px-3 py-1.5 rounded-xl shadow"
               style={{ background: accent }}>
-              {grandTotal.toLocaleString("ar-SA")} ر.س
+              {grandTotal.toLocaleString("en-US")} ر.س
             </div>
           )}
         </div>
@@ -437,7 +437,7 @@ export function PublicFlowerPage() {
               <h1 className="text-xl font-black text-gray-900">{cfg.heroTitle}</h1>
               {flowerCount > 0 && (
                 <p className="text-sm mt-1 font-medium" style={{ color: accent }}>
-                  اخترت {flowerCount} قطعة · {flowerTotal.toLocaleString("ar-SA")} ر.س
+                  اخترت {flowerCount} قطعة · {flowerTotal.toLocaleString("en-US")} ر.س
                 </p>
               )}
             </div>
@@ -461,7 +461,7 @@ export function PublicFlowerPage() {
                       <div className="p-2.5">
                         <p className="font-bold text-gray-900 text-xs leading-snug line-clamp-2">{pkg.name}</p>
                         <p className="text-xs font-black mt-1" style={{ color: accent }}>
-                          {(pkg.basePrice || 0).toLocaleString("ar-SA")} ر.س
+                          {(pkg.basePrice || 0).toLocaleString("en-US")} ر.س
                         </p>
                       </div>
                     </button>
@@ -542,7 +542,7 @@ export function PublicFlowerPage() {
                           {fl.color && <p className="text-xs text-gray-400 mb-2">{fl.color}{fl.type ? ` · ${fl.type}` : ""}</p>}
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-black" style={{ color: accent }}>
-                              {fl.sellPrice.toLocaleString("ar-SA")} ر.س
+                              {fl.sellPrice.toLocaleString("en-US")} ر.س
                             </span>
                             <div className="flex items-center gap-1">
                               <button onClick={() => setFlowerQty(fl.id, -1)} disabled={qty === 0}
@@ -608,7 +608,7 @@ export function PublicFlowerPage() {
                     {pkg.description && <p className="text-xs text-gray-400 mt-0.5">{pkg.description}</p>}
                   </div>
                   <span className="text-sm font-black shrink-0" style={{ color: accent }}>
-                    +{pkg.price.toLocaleString("ar-SA")} ر.س
+                    +{pkg.price.toLocaleString("en-US")} ر.س
                   </span>
                 </button>
               ))}
@@ -643,7 +643,7 @@ export function PublicFlowerPage() {
                         <p className="font-bold text-gray-800 text-sm">{g.name}</p>
                         {g.description && <p className="text-xs text-gray-400 mt-0.5 truncate">{g.description}</p>}
                         <p className="text-sm font-black mt-1" style={{ color: accent }}>
-                          {g.price.toLocaleString("ar-SA")} ر.س
+                          {g.price.toLocaleString("en-US")} ر.س
                         </p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0">
@@ -704,7 +704,7 @@ export function PublicFlowerPage() {
                       {c.description && <p className="text-xs text-gray-400 mt-0.5">{c.description}</p>}
                     </div>
                     <span className="text-sm font-black shrink-0" style={{ color: accent }}>
-                      +{c.price.toLocaleString("ar-SA")} ر.س
+                      +{c.price.toLocaleString("en-US")} ر.س
                     </span>
                   </button>
                 ))}
@@ -885,7 +885,7 @@ export function PublicFlowerPage() {
                         <span className="w-3 h-3 rounded-full shrink-0" style={{ background: dot }} />
                         <span className="text-sm text-gray-700 flex-1">{fl.name} × {qty}</span>
                         <span className="text-sm font-bold text-gray-800">
-                          {(fl.sellPrice * qty).toLocaleString("ar-SA")} ر.س
+                          {(fl.sellPrice * qty).toLocaleString("en-US")} ر.س
                         </span>
                       </div>
                     );
@@ -904,7 +904,7 @@ export function PublicFlowerPage() {
                       <div className="flex items-center gap-2 px-4 py-2.5">
                         <span className="text-lg">{p.icon || "🎁"}</span>
                         <span className="flex-1 text-sm text-gray-600">{p.name}</span>
-                        <span className="text-sm font-bold text-gray-800">+{p.price.toLocaleString("ar-SA")} ر.س</span>
+                        <span className="text-sm font-bold text-gray-800">+{p.price.toLocaleString("en-US")} ر.س</span>
                       </div>
                     ) : null;
                   })()}
@@ -914,7 +914,7 @@ export function PublicFlowerPage() {
                       <div key={id} className="flex items-center gap-2 px-4 py-2.5">
                         <span className="text-lg">{g.icon || "🎁"}</span>
                         <span className="flex-1 text-sm text-gray-600">{g.name} × {qty}</span>
-                        <span className="text-sm font-bold text-gray-800">+{(g.price * qty).toLocaleString("ar-SA")} ر.س</span>
+                        <span className="text-sm font-bold text-gray-800">+{(g.price * qty).toLocaleString("en-US")} ر.س</span>
                       </div>
                     ) : null;
                   })}
@@ -927,7 +927,7 @@ export function PublicFlowerPage() {
                           <p className="text-sm text-gray-600">{c.name}</p>
                           {cardMsg && <p className="text-xs text-gray-400 mt-0.5 italic">"{cardMsg.slice(0, 40)}{cardMsg.length > 40 ? "..." : ""}"</p>}
                         </div>
-                        <span className="text-sm font-bold text-gray-800 shrink-0">+{c.price.toLocaleString("ar-SA")} ر.س</span>
+                        <span className="text-sm font-bold text-gray-800 shrink-0">+{c.price.toLocaleString("en-US")} ر.س</span>
                       </div>
                     ) : null;
                   })()}
@@ -965,7 +965,7 @@ export function PublicFlowerPage() {
             <div className="p-5 rounded-2xl text-white text-right shadow-lg flex items-center justify-between"
               style={{ background: `linear-gradient(135deg, ${accent}, ${accent}cc)` }}>
               <span className="font-bold text-lg">المجموع</span>
-              <span className="text-3xl font-black">{grandTotal.toLocaleString("ar-SA")} <span className="text-base font-medium opacity-80">ر.س</span></span>
+              <span className="text-3xl font-black">{grandTotal.toLocaleString("en-US")} <span className="text-base font-medium opacity-80">ر.س</span></span>
             </div>
 
             {/* Validation */}
@@ -1000,7 +1000,7 @@ export function PublicFlowerPage() {
           {grandTotal > 0 && (
             <div className="flex-1 text-center">
               <p className="text-xs text-gray-400">{flowerCount} قطعة</p>
-              <p className="text-sm font-black text-gray-900 leading-none">{grandTotal.toLocaleString("ar-SA")} ر.س</p>
+              <p className="text-sm font-black text-gray-900 leading-none">{grandTotal.toLocaleString("en-US")} ر.س</p>
             </div>
           )}
 

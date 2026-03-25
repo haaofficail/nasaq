@@ -13,7 +13,7 @@ import { Modal } from "@/components/ui";
 // ── helpers ────────────────────────────────────────────────
 
 function annualPrice(monthly: number) { return monthly * 12; }
-function fmtPrice(n: number) { return n === 0 ? "حسب الطلب" : `${n.toLocaleString("ar-SA")} ر.س`; }
+function fmtPrice(n: number) { return n === 0 ? "حسب الطلب" : `${n.toLocaleString("en-US")} ر.س`; }
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
@@ -364,7 +364,7 @@ export function SubscriptionPage() {
                     </td>
                     <td className="px-5 py-3 text-gray-600">{row.itemName}</td>
                     <td className="px-5 py-3 text-gray-600 tabular-nums">
-                      {row.price ? `${Number(row.price).toLocaleString("ar-SA")} ر.س` : "—"}
+                      {row.price ? `${Number(row.price).toLocaleString("en-US")} ر.س` : "—"}
                     </td>
                     <td className="px-5 py-3"><StatusBadge status={row.status} /></td>
                     <td className="px-5 py-3 text-gray-400 text-xs whitespace-nowrap">

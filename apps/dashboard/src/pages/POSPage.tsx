@@ -132,7 +132,7 @@ export function POSPage() {
                       {svc.name}
                     </p>
                     <p className="text-sm font-bold text-brand-600 tabular-nums">
-                      {Number(svc.basePrice || 0).toLocaleString("ar-SA")} ر.س
+                      {Number(svc.basePrice || 0).toLocaleString("en-US")} ر.س
                     </p>
                   </button>
                 );
@@ -201,7 +201,7 @@ export function POSPage() {
                     </button>
                   </div>
                   <span className="text-sm font-bold text-gray-900 tabular-nums">
-                    {(item.price * item.qty).toLocaleString("ar-SA")} ر.س
+                    {(item.price * item.qty).toLocaleString("en-US")} ر.س
                   </span>
                 </div>
               </div>
@@ -237,15 +237,15 @@ export function POSPage() {
           <div className="space-y-1.5 text-sm">
             <div className="flex justify-between text-gray-500">
               <span>المجموع</span>
-              <span className="tabular-nums">{subtotal.toLocaleString("ar-SA")} ر.س</span>
+              <span className="tabular-nums">{subtotal.toLocaleString("en-US")} ر.س</span>
             </div>
             <div className="flex justify-between text-gray-500">
               <span>ضريبة 15%</span>
-              <span className="tabular-nums">{vat.toLocaleString("ar-SA")} ر.س</span>
+              <span className="tabular-nums">{vat.toLocaleString("en-US")} ر.س</span>
             </div>
             <div className="flex justify-between font-bold text-gray-900 text-base pt-1 border-t border-gray-100">
               <span>الإجمالي</span>
-              <span className="tabular-nums text-brand-600">{total.toLocaleString("ar-SA")} ر.س</span>
+              <span className="tabular-nums text-brand-600">{total.toLocaleString("en-US")} ر.س</span>
             </div>
           </div>
 
@@ -262,7 +262,7 @@ export function POSPage() {
               className="w-full flex items-center justify-center gap-2 bg-brand-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors shadow-sm shadow-brand-500/20"
             >
               <Receipt className="w-4 h-4" />
-              إتمام البيع · {total.toLocaleString("ar-SA")} ر.س
+              إتمام البيع · {total.toLocaleString("en-US")} ر.س
             </button>
           )}
         </div>

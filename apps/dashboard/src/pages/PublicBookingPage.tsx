@@ -125,7 +125,7 @@ export function PublicBookingPage() {
                   <h2 className="font-bold text-gray-900 text-base leading-snug">{svc.name}</h2>
                   {svc.description && <p className="text-sm text-gray-500 mt-1 line-clamp-2">{svc.description}</p>}
                   <p className="text-lg font-black mt-2" style={{ color: primaryColor }}>
-                    {parseFloat(svc.basePrice || svc.price || 0).toLocaleString("ar-SA")} <span className="text-sm font-normal text-gray-400">ر.س</span>
+                    {parseFloat(svc.basePrice || svc.price || 0).toLocaleString("en-US")} <span className="text-sm font-normal text-gray-400">ر.س</span>
                   </p>
                 </div>
                 <ChevronLeft className="w-5 h-5 text-gray-300 shrink-0" />
@@ -144,7 +144,7 @@ export function PublicBookingPage() {
             <div className="bg-white rounded-2xl border border-gray-200 p-5">
               <h2 className="font-bold text-gray-900 mb-1">{selectedService.name}</h2>
               <p className="text-xl font-black" style={{ color: primaryColor }}>
-                {svcPrice.toLocaleString("ar-SA")} ر.س
+                {svcPrice.toLocaleString("en-US")} ر.س
               </p>
             </div>
 
@@ -188,7 +188,7 @@ export function PublicBookingPage() {
                         </div>
                         <span className="text-sm font-medium text-gray-900">{addon.name}</span>
                       </div>
-                      <span className="text-sm font-bold" style={{ color: primaryColor }}>+{parseFloat(addon.price || 0).toLocaleString("ar-SA")} ر.س</span>
+                      <span className="text-sm font-bold" style={{ color: primaryColor }}>+{parseFloat(addon.price || 0).toLocaleString("en-US")} ر.س</span>
                     </button>
                   );
                 })}
@@ -198,14 +198,14 @@ export function PublicBookingPage() {
             {/* Price summary */}
             <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-2 text-sm">
               <h3 className="font-bold text-gray-900 mb-3">ملخص السعر</h3>
-              <div className="flex justify-between"><span className="text-gray-500">{selectedService.name}</span><span>{svcPrice.toLocaleString("ar-SA")} ر.س</span></div>
+              <div className="flex justify-between"><span className="text-gray-500">{selectedService.name}</span><span>{svcPrice.toLocaleString("en-US")} ر.س</span></div>
               {selectedAddons.map((id: string) => {
                 const a = siteData.addons?.find((x: any) => x.id === id);
-                return a ? <div key={id} className="flex justify-between text-gray-400"><span>+ {a.name}</span><span>{parseFloat(a.price || 0).toLocaleString("ar-SA")} ر.س</span></div> : null;
+                return a ? <div key={id} className="flex justify-between text-gray-400"><span>+ {a.name}</span><span>{parseFloat(a.price || 0).toLocaleString("en-US")} ر.س</span></div> : null;
               })}
-              <div className="flex justify-between text-gray-500 pt-2 border-t border-gray-100"><span>ضريبة القيمة المضافة (15%)</span><span>{Math.round(vat).toLocaleString("ar-SA")} ر.س</span></div>
-              <div className="flex justify-between font-bold text-base text-gray-900 pt-2 border-t border-gray-200"><span>الإجمالي</span><span>{Math.round(total).toLocaleString("ar-SA")} ر.س</span></div>
-              <div className="flex justify-between text-xs pt-1" style={{ color: primaryColor }}><span>العربون المطلوب (30%)</span><span>{Math.round(deposit).toLocaleString("ar-SA")} ر.س</span></div>
+              <div className="flex justify-between text-gray-500 pt-2 border-t border-gray-100"><span>ضريبة القيمة المضافة (15%)</span><span>{Math.round(vat).toLocaleString("en-US")} ر.س</span></div>
+              <div className="flex justify-between font-bold text-base text-gray-900 pt-2 border-t border-gray-200"><span>الإجمالي</span><span>{Math.round(total).toLocaleString("en-US")} ر.س</span></div>
+              <div className="flex justify-between text-xs pt-1" style={{ color: primaryColor }}><span>العربون المطلوب (30%)</span><span>{Math.round(deposit).toLocaleString("en-US")} ر.س</span></div>
             </div>
 
             <button disabled={!selectedDate} onClick={() => setStep("contact")}
@@ -259,8 +259,8 @@ export function PublicBookingPage() {
               <p className="text-sm text-gray-500 mb-5">سيتم التواصل معك قريباً لتأكيد الحجز</p>
               <div className="bg-gray-50 rounded-xl p-4 text-right space-y-2 text-sm mb-5">
                 <div className="flex justify-between"><span className="text-gray-500">رقم الحجز</span><span className="font-bold font-mono">{bookingResult.bookingNumber}</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">الإجمالي</span><span className="font-bold">{parseFloat(bookingResult.totalAmount || 0).toLocaleString("ar-SA")} ر.س</span></div>
-                <div className="flex justify-between"><span className="text-gray-500">العربون</span><span className="font-bold" style={{ color: primaryColor }}>{parseFloat(bookingResult.depositAmount || 0).toLocaleString("ar-SA")} ر.س</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">الإجمالي</span><span className="font-bold">{parseFloat(bookingResult.totalAmount || 0).toLocaleString("en-US")} ر.س</span></div>
+                <div className="flex justify-between"><span className="text-gray-500">العربون</span><span className="font-bold" style={{ color: primaryColor }}>{parseFloat(bookingResult.depositAmount || 0).toLocaleString("en-US")} ر.س</span></div>
               </div>
               {bookingResult.trackingToken && (
                 <Link to={`/track/${bookingResult.trackingToken}`}

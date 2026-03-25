@@ -59,7 +59,7 @@ function TrendChart({ data }: { data: { month: string; revenue: number; bookings
             <span className="text-[9px] text-gray-400 tabular-nums">{label}</span>
             {/* tooltip */}
             <div className="absolute bottom-full mb-1 hidden group-hover:block z-10 bg-gray-800 text-white text-[10px] rounded px-2 py-1 whitespace-nowrap">
-              {d.revenue.toLocaleString("ar-SA")} ر.س — {d.bookings} حجز
+              {d.revenue.toLocaleString("en-US")} ر.س — {d.bookings} حجز
             </div>
           </div>
         );
@@ -162,10 +162,10 @@ export function ReportsPage() {
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: "الإيرادات",   value: `${revenue.toLocaleString("ar-SA")} ر.س`, icon: Banknote,      bg: "bg-emerald-50", ic: "text-emerald-600", g: growth.revenue?.growth },
-                { label: "الحجوزات",    value: totalBookings.toLocaleString("ar-SA"),      icon: CalendarCheck, bg: "bg-blue-50",    ic: "text-blue-600",   g: growth.bookings?.growth },
-                { label: "العملاء",     value: totalCustomers.toLocaleString("ar-SA"),     icon: Users,         bg: "bg-violet-50",  ic: "text-violet-600", g: null },
-                { label: "متوسط الحجز", value: `${Math.round(avgValue).toLocaleString("ar-SA")} ر.س`, icon: TrendingUp, bg: "bg-amber-50", ic: "text-amber-600", g: null },
+                { label: "الإيرادات",   value: `${revenue.toLocaleString("en-US")} ر.س`, icon: Banknote,      bg: "bg-emerald-50", ic: "text-emerald-600", g: growth.revenue?.growth },
+                { label: "الحجوزات",    value: totalBookings.toLocaleString("en-US"),      icon: CalendarCheck, bg: "bg-blue-50",    ic: "text-blue-600",   g: growth.bookings?.growth },
+                { label: "العملاء",     value: totalCustomers.toLocaleString("en-US"),     icon: Users,         bg: "bg-violet-50",  ic: "text-violet-600", g: null },
+                { label: "متوسط الحجز", value: `${Math.round(avgValue).toLocaleString("en-US")} ر.س`, icon: TrendingUp, bg: "bg-amber-50", ic: "text-amber-600", g: null },
               ].map((kpi, i) => (
                 <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
                   <div className="flex items-center justify-between mb-3">
@@ -278,8 +278,8 @@ export function ReportsPage() {
                       <span className="text-sm text-gray-600">{row.label}</span>
                       <GrowthBadge value={row.g ?? 0} />
                     </div>
-                    <p className="text-2xl font-bold text-gray-900 tabular-nums">{Number(row.cur || 0).toLocaleString("ar-SA")}{row.suffix}</p>
-                    <p className="text-xs text-gray-400 mt-1">الفترة السابقة: {Number(row.prev || 0).toLocaleString("ar-SA")}{row.suffix}</p>
+                    <p className="text-2xl font-bold text-gray-900 tabular-nums">{Number(row.cur || 0).toLocaleString("en-US")}{row.suffix}</p>
+                    <p className="text-xs text-gray-400 mt-1">الفترة السابقة: {Number(row.prev || 0).toLocaleString("en-US")}{row.suffix}</p>
                   </div>
                 ))}
               </div>
@@ -354,7 +354,7 @@ export function ReportsPage() {
                 <card.icon className={clsx("w-5 h-5", card.color)} />
               </div>
               <p className={clsx("text-2xl font-bold tabular-nums", card.color)}>
-                {typeof card.value === "number" ? card.value.toLocaleString("ar-SA") : card.value}
+                {typeof card.value === "number" ? card.value.toLocaleString("en-US") : card.value}
                 {card.suffix && <span className="text-sm font-normal text-gray-400"> {card.suffix}</span>}
               </p>
               <p className="text-xs text-gray-400 mt-1">{card.label}</p>

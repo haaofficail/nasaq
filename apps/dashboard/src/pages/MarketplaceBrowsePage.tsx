@@ -150,7 +150,7 @@ export function MarketplaceBrowsePage() {
                     <h3 className="text-sm font-semibold text-gray-900 leading-relaxed line-clamp-2 group-hover:text-brand-600 transition-colors">{listing.service}</h3>
                     <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
                       <span className="text-lg font-bold text-brand-600">
-                        {Number(listing.price).toLocaleString("ar-SA")} <span className="text-xs text-gray-400 font-normal">ر.س</span>
+                        {Number(listing.price).toLocaleString("en-US")} <span className="text-xs text-gray-400 font-normal">ر.س</span>
                       </span>
                       <div className="flex items-center gap-2 text-xs text-gray-400">
                         {listing.rating && (

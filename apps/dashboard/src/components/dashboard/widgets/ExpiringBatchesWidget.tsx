@@ -124,7 +124,7 @@ export function ExpiringBatchesWidget() {
                       {name}
                     </p>
                     <p className="text-xs text-gray-400 mt-0.5 tabular-nums">
-                      {qty.toLocaleString("ar-SA")} ساق متبقي
+                      {qty.toLocaleString("en-US")} ساق متبقي
                     </p>
                   </div>
                   {days !== null && <UrgencyBadge days={days} />}

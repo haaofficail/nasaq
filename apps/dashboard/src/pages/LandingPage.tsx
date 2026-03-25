@@ -65,7 +65,7 @@ function StatItem({ target, suffix, label, start }: { target: number; suffix: st
   return (
     <div className="text-center">
       <p className="text-4xl md:text-5xl font-black text-gray-900 leading-none mb-2">
-        {count.toLocaleString("ar-SA")}{suffix}
+        {count.toLocaleString("en-US")}{suffix}
       </p>
       <p className="text-sm text-gray-500 font-medium">{label}</p>
     </div>

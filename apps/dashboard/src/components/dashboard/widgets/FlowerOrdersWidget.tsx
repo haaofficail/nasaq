@@ -97,7 +97,7 @@ export function FlowerOrdersWidget() {
                     <p className="text-xs font-medium text-gray-800 truncate">{name}</p>
                   </div>
                   <span className="text-xs tabular-nums text-gray-600 shrink-0">
-                    {total.toLocaleString("ar-SA")} ر.س
+                    {total.toLocaleString("en-US")} ر.س
                   </span>
                 </Link>
               );

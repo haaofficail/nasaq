@@ -165,7 +165,7 @@ export function AutomationPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 text-xs text-gray-400">
-                      {log.createdAt ? new Date(log.createdAt).toLocaleString("ar-SA") : "—"}
+                      {log.createdAt ? new Date(log.createdAt).toLocaleString("en-US") : "—"}
                     </td>
                   </tr>
                 ))}

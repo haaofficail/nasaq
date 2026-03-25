@@ -138,7 +138,7 @@ export function AddonsPage() {
                     </div>
                   </td>
                   <td className="py-3 px-4 font-semibold tabular-nums text-gray-900">
-                    {Number(addon.price || 0).toLocaleString("ar-SA")}
+                    {Number(addon.price || 0).toLocaleString("en-US")}
                     {addon.priceMode === "percentage" ? "%" : " ر.س"}
                   </td>
                   <td className="py-3 px-4">
