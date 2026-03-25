@@ -76,7 +76,7 @@ const INIT_COMP: ComponentDraft = { sourceType: "manual", inventoryItemId: "", n
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const iCls = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 transition-all bg-white";
+const iCls = "w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300";
 
 function Err({ msg }: { msg?: string }) {
   if (!msg) return null;
@@ -390,36 +390,36 @@ export function ServiceFormPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <button onClick={cancel} className="p-2 rounded-lg hover:bg-gray-100 transition-colors">
-            <ArrowRight className="w-5 h-5 text-gray-400" />
+          <button onClick={cancel} className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
+            <ArrowRight className="w-4 h-4 text-gray-500" />
           </button>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">
-              {isEdit ? `تعديل: ${serviceName || form.name}` : "خدمة جديدة"}
+            <h1 className="text-lg font-bold text-gray-900 leading-tight">
+              {isEdit ? (serviceName || form.name || "تعديل الخدمة") : "خدمة جديدة"}
             </h1>
-            <p className="text-sm text-gray-400">
-              {isEdit ? "عدّل بيانات الخدمة واحفظ" : "أنشئ خدمة جديدة لمنشأتك"}
+            <p className="text-xs text-gray-400 mt-0.5">
+              {isEdit ? "عدّل البيانات واحفظ" : "أنشئ خدمة جديدة لمنشأتك"}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={cancel}
-            className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+            className="px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
             إلغاء
           </button>
-          <button onClick={save} disabled={saving || (!showForm)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 disabled:opacity-60 transition-colors">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {isEdit ? "حفظ التعديلات" : "إنشاء الخدمة"}
+          <button onClick={save} disabled={saving || !showForm}
+            className="flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors shadow-sm">
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            {isEdit ? "حفظ" : "إنشاء"}
           </button>
         </div>
       </div>
 
-      <div className="max-w-3xl mx-auto space-y-5">
+      <div className="max-w-2xl mx-auto space-y-4">
 
         {/* ── Type selection (create only, hidden if type came from picker) ── */}
         {!isEdit && !typeAlreadyPicked && (
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-1">نوع الخدمة <span className="text-red-400">*</span></h2>
             <p className="text-xs text-gray-400 mb-4">اختر نوع الخدمة التي تقدمها — يؤثر على حقول الحجز والتسعير</p>
             {errors.serviceType && (
@@ -452,8 +452,8 @@ export function ServiceFormPage() {
         {showForm && (
           <>
             {/* Card: Service info */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4">معلومات الخدمة</h2>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">معلومات الخدمة</h2>
               <div className="space-y-3">
                 {selType && (isEdit || typeAlreadyPicked) && (
                   <div>
@@ -473,14 +473,14 @@ export function ServiceFormPage() {
                 )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">اسم الخدمة <span className="text-red-400">*</span></label>
+                    <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">اسم الخدمة <span className="text-red-400">*</span></label>
                     <input autoFocus={!isEdit} value={form.name} onChange={upd("name")}
                       placeholder="مثال: حجز جلسة تصوير"
                       className={clsx(iCls, errors.name && "border-red-300")} />
                     <Err msg={errors.name} />
                   </div>
                   <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">التصنيف</label>
+                    <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">التصنيف</label>
                     <select value={form.categoryId} onChange={upd("categoryId")} className={iCls}>
                       <option value="">بدون تصنيف</option>
                       {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -488,7 +488,7 @@ export function ServiceFormPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-1">
+                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
                     الوصف المختصر <span className="text-gray-400 font-normal">(يظهر في الكروت)</span>
                   </label>
                   <input value={form.shortDescription} onChange={upd("shortDescription")} maxLength={150}
@@ -497,7 +497,7 @@ export function ServiceFormPage() {
                   <p className="text-[10px] text-gray-400 mt-0.5 text-left" dir="ltr">{form.shortDescription.length}/150</p>
                 </div>
                 <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-1">
+                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
                     الوصف التفصيلي <span className="text-gray-400 font-normal">(اختياري)</span>
                   </label>
                   <textarea value={form.description} onChange={upd("description")} rows={4}
@@ -508,12 +508,12 @@ export function ServiceFormPage() {
             </div>
 
             {/* Card: Price and time */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4">السعر والوقت</h2>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">السعر والوقت</h2>
               <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">السعر (ر.س) <span className="text-red-400">*</span></label>
+                <div className="flex flex-wrap gap-4">
+                  <div className="w-40">
+                    <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">السعر (ر.س) <span className="text-red-400">*</span></label>
                     <input type="number" min={0} value={form.basePrice} onChange={upd("basePrice")}
                       placeholder="0.00" dir="ltr"
                       className={clsx(iCls, errors.basePrice && "border-red-300")} />
@@ -521,11 +521,11 @@ export function ServiceFormPage() {
                   </div>
                   {needsTiming && (
                     <div>
-                      <label className="text-xs font-medium text-gray-600 block mb-1">المدة <span className="text-red-400">*</span></label>
+                      <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">المدة <span className="text-red-400">*</span></label>
                       <div className="flex gap-2">
                         <input type="number" min={1} value={form.durationValue} onChange={upd("durationValue")}
-                          className={clsx(iCls, "w-24", errors.durationValue && "border-red-300")} dir="ltr" />
-                        <select value={form.durationUnit} onChange={upd("durationUnit")} className={clsx(iCls, "flex-1")}>
+                          className={clsx(iCls, "w-20", errors.durationValue && "border-red-300")} dir="ltr" />
+                        <select value={form.durationUnit} onChange={upd("durationUnit")} className={clsx(iCls, "w-24")}>
                           {(["minute","hour","day"] as DurationUnit[]).map(u =>
                             <option key={u} value={u}>{UNIT_LABELS[u]}</option>
                           )}
@@ -534,83 +534,87 @@ export function ServiceFormPage() {
                       <Err msg={errors.durationValue} />
                     </div>
                   )}
-                </div>
-                {NEEDS_CAPACITY.has(form.serviceType) && (
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">
-                      الطاقة الاستيعابية <span className="text-gray-400 font-normal">(أشخاص)</span>
+                  {NEEDS_CAPACITY.has(form.serviceType) && (
+                    <div className="w-36">
+                      <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                        الطاقة <span className="text-gray-400 font-normal">(أشخاص)</span>
+                      </label>
+                      <input type="number" min={1} value={form.maxCapacity} onChange={upd("maxCapacity")}
+                        placeholder="∞" dir="ltr" className={iCls} />
+                    </div>
+                  )}
+                  <div className="w-32">
+                    <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                      العربون <span className="text-gray-400 font-normal">(%)</span>
                     </label>
-                    <input type="number" min={1} value={form.maxCapacity} onChange={upd("maxCapacity")}
-                      placeholder="غير محدودة" dir="ltr" className={clsx(iCls, "w-40")} />
+                    <input type="number" min={0} max={100} value={form.depositPercent} onChange={upd("depositPercent")}
+                      placeholder="30" dir="ltr" className={iCls} />
                   </div>
-                )}
-                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none pt-1">
+                </div>
+                <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none w-fit">
+                  <div className={clsx(
+                    "w-4 h-4 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
+                    form.vatInclusive ? "bg-brand-500 border-brand-500" : "border-gray-300 bg-white"
+                  )}>
+                    {form.vatInclusive && <svg viewBox="0 0 10 8" className="w-2.5 h-2.5 fill-none stroke-white stroke-2"><polyline points="1,4 4,7 9,1" /></svg>}
+                  </div>
                   <input type="checkbox" checked={form.vatInclusive}
                     onChange={e => setForm(f => ({ ...f, vatInclusive: e.target.checked }))}
-                    className="rounded border-gray-300 text-brand-500 w-4 h-4" />
+                    className="sr-only" />
                   السعر شامل ضريبة القيمة المضافة
                 </label>
-                <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-1">
-                    العربون <span className="text-gray-400 font-normal">(% من السعر)</span>
-                  </label>
-                  <input type="number" min={0} max={100} value={form.depositPercent} onChange={upd("depositPercent")}
-                    placeholder="30" dir="ltr" className={clsx(iCls, "w-40")} />
-                </div>
               </div>
             </div>
 
             {/* Card: Booking rules */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4">إعدادات الحجز</h2>
-              <div className="space-y-3">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">
-                      إلغاء مجاني <span className="text-gray-400 font-normal">(ساعات قبل)</span>
-                    </label>
-                    <input type="number" min={0} value={form.cancellationFreeHours} onChange={upd("cancellationFreeHours")}
-                      placeholder="24" dir="ltr" className={iCls} />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">
-                      أقل حجز مسبق <span className="text-gray-400 font-normal">(ساعات)</span>
-                    </label>
-                    <input type="number" min={0} value={form.minAdvanceHours} onChange={upd("minAdvanceHours")}
-                      placeholder="0" dir="ltr" className={iCls} />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 block mb-1">
-                      أقصى حجز مسبق <span className="text-gray-400 font-normal">(أيام)</span>
-                    </label>
-                    <input type="number" min={0} value={form.maxAdvanceDays} onChange={upd("maxAdvanceDays")}
-                      placeholder="∞" dir="ltr" className={iCls} />
-                  </div>
-                  {needsTiming && (
-                    <>
-                      <div>
-                        <label className="text-xs font-medium text-gray-600 block mb-1">
-                          راحة قبل الموعد <span className="text-gray-400 font-normal">(دقيقة)</span>
-                        </label>
-                        <input type="number" min={0} value={form.bufferBeforeMinutes} onChange={upd("bufferBeforeMinutes")}
-                          dir="ltr" className={iCls} />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-gray-600 block mb-1">
-                          راحة بعد الموعد <span className="text-gray-400 font-normal">(دقيقة)</span>
-                        </label>
-                        <input type="number" min={0} value={form.bufferAfterMinutes} onChange={upd("bufferAfterMinutes")}
-                          dir="ltr" className={iCls} />
-                      </div>
-                    </>
-                  )}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">إعدادات الحجز</h2>
+              <div className="flex flex-wrap gap-4">
+                <div className="w-32">
+                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                    إلغاء مجاني<br /><span className="text-gray-400 font-normal">(ساعات قبل)</span>
+                  </label>
+                  <input type="number" min={0} value={form.cancellationFreeHours} onChange={upd("cancellationFreeHours")}
+                    placeholder="24" dir="ltr" className={iCls} />
                 </div>
+                <div className="w-32">
+                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                    أقل حجز مسبق<br /><span className="text-gray-400 font-normal">(ساعات)</span>
+                  </label>
+                  <input type="number" min={0} value={form.minAdvanceHours} onChange={upd("minAdvanceHours")}
+                    placeholder="0" dir="ltr" className={iCls} />
+                </div>
+                <div className="w-32">
+                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                    أقصى حجز مسبق<br /><span className="text-gray-400 font-normal">(أيام)</span>
+                  </label>
+                  <input type="number" min={0} value={form.maxAdvanceDays} onChange={upd("maxAdvanceDays")}
+                    placeholder="∞" dir="ltr" className={iCls} />
+                </div>
+                {needsTiming && (
+                  <>
+                    <div className="w-32">
+                      <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                        راحة قبل<br /><span className="text-gray-400 font-normal">(دقيقة)</span>
+                      </label>
+                      <input type="number" min={0} value={form.bufferBeforeMinutes} onChange={upd("bufferBeforeMinutes")}
+                        dir="ltr" className={iCls} />
+                    </div>
+                    <div className="w-32">
+                      <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
+                        راحة بعد<br /><span className="text-gray-400 font-normal">(دقيقة)</span>
+                      </label>
+                      <input type="number" min={0} value={form.bufferAfterMinutes} onChange={upd("bufferAfterMinutes")}
+                        dir="ltr" className={iCls} />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
             {/* Card: Image and status */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4">الصورة والحالة</h2>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">الصورة والحالة</h2>
               <div className="space-y-4">
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-2">
@@ -662,30 +666,39 @@ export function ServiceFormPage() {
             </div>
 
             {/* Card: Visibility */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4">منافذ الظهور</h2>
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">منافذ الظهور</h2>
               <div className="space-y-2">
                 {[
-                  { key: "isBookable",      label: "الموقع",             desc: "يظهر في صفحة الحجز الإلكتروني" },
+                  { key: "isBookable",      label: "الحجز الإلكتروني",   desc: "يظهر في صفحة الحجز" },
                   { key: "isVisibleInPOS",  label: "نقطة البيع",         desc: "يظهر في الكاشير" },
                   { key: "isVisibleOnline", label: "المتجر الإلكتروني",  desc: "يظهر في المتجر" },
                 ].map(({ key, label, desc }) => (
                   <label key={key}
-                    className="flex items-center justify-between py-2.5 px-3 bg-gray-50 rounded-xl cursor-pointer select-none hover:bg-gray-100 transition-colors">
+                    className="flex items-center justify-between py-2.5 px-3 rounded-xl cursor-pointer select-none hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
                     <div>
-                      <p className="text-sm font-medium text-gray-700">{label}</p>
-                      <p className="text-xs text-gray-400">{desc}</p>
+                      <p className="text-sm font-medium text-gray-800">{label}</p>
+                      <p className="text-[11px] text-gray-400">{desc}</p>
                     </div>
-                    <input type="checkbox" checked={(form as any)[key]}
-                      onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))}
-                      className="rounded border-gray-300 text-brand-500 w-4 h-4" />
+                    <div className={clsx(
+                      "relative w-9 h-5 rounded-full transition-colors",
+                      (form as any)[key] ? "bg-brand-500" : "bg-gray-200"
+                    )}>
+                      <div className={clsx(
+                        "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-sm transition-all",
+                        (form as any)[key] ? "right-0.5" : "left-0.5"
+                      )} />
+                      <input type="checkbox" checked={(form as any)[key]}
+                        onChange={e => setForm(f => ({ ...f, [key]: e.target.checked }))}
+                        className="sr-only" />
+                    </div>
                   </label>
                 ))}
               </div>
             </div>
 
             {/* Card: Service provider (staff) */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-sm font-semibold text-gray-900">مقدمو الخدمة</h2>
@@ -767,7 +780,7 @@ export function ServiceFormPage() {
             </div>
 
             {/* Card: Inventory components */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-sm font-semibold text-gray-900">مكونات الخدمة</h2>
@@ -822,7 +835,7 @@ export function ServiceFormPage() {
                       </div>
                       {/* Name / inventory select */}
                       <div>
-                        <label className="text-xs font-medium text-gray-500 block mb-1">
+                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">
                           {c.sourceType === "inventory" ? "المنتج من المخزون" : "اسم المكون"} <span className="text-red-400">*</span>
                         </label>
                         {c.sourceType === "inventory" ? (
@@ -848,19 +861,19 @@ export function ServiceFormPage() {
                       {/* Quantity + unit + cost */}
                       <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <label className="text-xs font-medium text-gray-500 block mb-1">الكمية</label>
+                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">الكمية</label>
                           <input type="number" min={0} step="0.1" value={c.quantity} dir="ltr"
                             onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, quantity: e.target.value } : x))}
                             className={iCls} />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-gray-500 block mb-1">الوحدة</label>
+                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">الوحدة</label>
                           <input value={c.unit} placeholder="قطعة"
                             onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, unit: e.target.value } : x))}
                             className={iCls} />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-gray-500 block mb-1">التكلفة (ر.س)</label>
+                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">التكلفة (ر.س)</label>
                           <input type="number" min={0} value={c.unitCost} dir="ltr"
                             onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, unitCost: e.target.value } : x))}
                             className={iCls} />
@@ -873,7 +886,7 @@ export function ServiceFormPage() {
             </div>
 
             {/* Card: Add-ons */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-sm font-semibold text-gray-900">الإضافات المدفوعة</h2>
@@ -936,7 +949,7 @@ export function ServiceFormPage() {
                         </div>
                         {/* Name + delete */}
                         <div className="flex-1 min-w-0">
-                          <label className="text-xs font-medium text-gray-500 block mb-1">اسم الإضافة <span className="text-red-400">*</span></label>
+                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">اسم الإضافة <span className="text-red-400">*</span></label>
                           <input value={a.name} placeholder="مثال: دفاية غاز"
                             onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
                             className={iCls} />
@@ -948,7 +961,7 @@ export function ServiceFormPage() {
                       </div>
                       {/* Description */}
                       <div>
-                        <label className="text-xs font-medium text-gray-500 block mb-1">الوصف <span className="text-gray-400 font-normal">(اختياري)</span></label>
+                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">الوصف <span className="text-gray-400 font-normal">(اختياري)</span></label>
                         <input value={a.description} placeholder="وصف مختصر للإضافة..."
                           onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, description: e.target.value } : x))}
                           className={iCls} />
@@ -956,13 +969,13 @@ export function ServiceFormPage() {
                       {/* Price + type row */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-xs font-medium text-gray-500 block mb-1">السعر (ر.س) <span className="text-red-400">*</span></label>
+                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">السعر (ر.س) <span className="text-red-400">*</span></label>
                           <input type="number" min={0} value={a.price} placeholder="0.00" dir="ltr"
                             onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
                             className={iCls} />
                         </div>
                         <div>
-                          <label className="text-xs font-medium text-gray-500 block mb-1">النوع</label>
+                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">النوع</label>
                           <select value={a.type}
                             onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.value as any } : x))}
                             className={iCls}>
@@ -986,7 +999,7 @@ export function ServiceFormPage() {
             </div>
 
             {/* Card: Custom questions */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-sm font-semibold text-gray-900">أسئلة مخصصة</h2>
@@ -1035,28 +1048,34 @@ export function ServiceFormPage() {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                      <div className="flex items-center gap-4 flex-wrap">
-                        <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
-                          <input type="checkbox" checked={q.isRequired}
-                            onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, isRequired: e.target.checked } : x))}
-                            className="rounded border-gray-300 text-brand-500 w-3.5 h-3.5" />
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <button type="button"
+                          onClick={() => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, isRequired: !x.isRequired } : x))}
+                          className={clsx("px-3 py-1 rounded-lg text-xs font-medium transition-all border",
+                            q.isRequired
+                              ? "bg-red-50 text-red-600 border-red-200"
+                              : "bg-gray-50 text-gray-400 border-gray-200 hover:text-gray-600"
+                          )}>
                           إلزامي
-                        </label>
-                        <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
-                          <input type="checkbox" checked={q.isPaid}
-                            onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, isPaid: e.target.checked } : x))}
-                            className="rounded border-gray-300 text-brand-500 w-3.5 h-3.5" />
+                        </button>
+                        <button type="button"
+                          onClick={() => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, isPaid: !x.isPaid } : x))}
+                          className={clsx("px-3 py-1 rounded-lg text-xs font-medium transition-all border",
+                            q.isPaid
+                              ? "bg-green-50 text-green-600 border-green-200"
+                              : "bg-gray-50 text-gray-400 border-gray-200 hover:text-gray-600"
+                          )}>
                           بمقابل مالي
-                        </label>
+                        </button>
                         {q.isPaid && (
-                          <input type="number" min={0} value={q.price} placeholder="ر.س" dir="ltr"
+                          <input type="number" min={0} value={q.price} placeholder="0.00 ر.س" dir="ltr"
                             onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
-                            className={clsx(iCls, "w-24 text-xs")} />
+                            className={clsx(iCls, "w-28")} />
                         )}
                       </div>
                       {(q.type === "select" || q.type === "multi") && (
                         <div>
-                          <label className="text-xs font-medium text-gray-500 block mb-1">الخيارات (كل خيار في سطر)</label>
+                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">الخيارات (كل خيار في سطر)</label>
                           <textarea value={q.options} rows={3} placeholder={"خيار 1\nخيار 2\nخيار 3"}
                             onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, options: e.target.value } : x))}
                             className={clsx(iCls, "resize-none text-xs")} />
@@ -1079,16 +1098,19 @@ export function ServiceFormPage() {
       </div>
 
       {/* Sticky save bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 py-3 px-6 flex items-center justify-end gap-3 z-10">
-        <button onClick={cancel}
-          className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-          إلغاء
-        </button>
-        <button onClick={save} disabled={saving || !showForm}
-          className="flex items-center gap-2 px-5 py-2 rounded-xl bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 disabled:opacity-60 transition-colors">
-          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          {isEdit ? "حفظ التعديلات" : "إنشاء الخدمة"}
-        </button>
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-gray-100 py-3 px-6 flex items-center justify-between z-10">
+        <p className="text-xs text-gray-400">{isEdit ? "أي تعديل لن يُحفظ حتى تضغط حفظ" : "ستُنشأ الخدمة فور الضغط"}</p>
+        <div className="flex items-center gap-2">
+          <button onClick={cancel}
+            className="px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
+            إلغاء
+          </button>
+          <button onClick={save} disabled={saving || !showForm}
+            className="flex items-center gap-1.5 px-5 py-1.5 rounded-lg bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors shadow-sm">
+            {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            {isEdit ? "حفظ التعديلات" : "إنشاء الخدمة"}
+          </button>
+        </div>
       </div>
     </div>
   );
