@@ -291,7 +291,13 @@ servicesRouter.delete("/:id", async (c) => {
 // ============================================================
 
 servicesRouter.post("/:id/media", async (c) => {
+  const orgId = getOrgId(c);
   const serviceId = c.req.param("id");
+
+  const [svc] = await db.select({ id: services.id }).from(services)
+    .where(and(eq(services.id, serviceId), eq(services.orgId, orgId)));
+  if (!svc) return c.json({ error: "Service not found" }, 404);
+
   const body = await c.req.json();
 
   const [media] = await db
@@ -318,12 +324,18 @@ servicesRouter.post("/:id/media", async (c) => {
 // ============================================================
 
 servicesRouter.delete("/:id/media/:mediaId", async (c) => {
+  const orgId = getOrgId(c);
+  const serviceId = c.req.param("id");
   const mediaId = c.req.param("mediaId");
+
+  const [svc] = await db.select({ id: services.id }).from(services)
+    .where(and(eq(services.id, serviceId), eq(services.orgId, orgId)));
+  if (!svc) return c.json({ error: "Service not found" }, 404);
 
   const [softDeleted] = await db
     .update(serviceMedia)
     .set({ isActive: false })
-    .where(eq(serviceMedia.id, mediaId))
+    .where(and(eq(serviceMedia.id, mediaId), eq(serviceMedia.serviceId, serviceId)))
     .returning();
 
   if (!softDeleted) return c.json({ error: "Media not found" }, 404);
@@ -335,8 +347,19 @@ servicesRouter.delete("/:id/media/:mediaId", async (c) => {
 // ============================================================
 
 servicesRouter.post("/:id/addons", async (c) => {
+  const orgId = getOrgId(c);
   const serviceId = c.req.param("id");
   const body = await c.req.json();
+
+  // Verify service belongs to org
+  const [svc] = await db.select({ id: services.id }).from(services)
+    .where(and(eq(services.id, serviceId), eq(services.orgId, orgId)));
+  if (!svc) return c.json({ error: "Service not found" }, 404);
+
+  // Verify addon belongs to same org
+  const [addon] = await db.select({ id: addons.id }).from(addons)
+    .where(and(eq(addons.id, body.addonId), eq(addons.orgId, orgId)));
+  if (!addon) return c.json({ error: "Addon not found" }, 404);
 
   const [linked] = await db
     .insert(serviceAddons)

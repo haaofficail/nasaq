@@ -416,10 +416,13 @@ const publicBookSchema = z.object({
   customerPhone:   z.string().min(7).max(20),
   serviceId:       z.string().uuid(),
   eventDate:       z.string().datetime(),
-  selectedAddons:  z.array(z.string().uuid()).optional().default([]),
-  customLocation:  z.string().optional().nullable(),
-  notes:           z.string().optional().nullable(),
-  questionAnswers: z.array(z.object({ questionId: z.string(), answer: z.string() })).optional().default([]),
+  selectedAddons:  z.array(z.string().uuid()).max(20).optional().default([]),
+  customLocation:  z.string().max(500).optional().nullable(),
+  notes:           z.string().max(2000).optional().nullable(),
+  questionAnswers: z.array(z.object({
+    questionId: z.string().uuid(),
+    answer:     z.string().max(1000),
+  })).max(50).optional().default([]),
 });
 
 websiteRouter.post("/public/:orgSlug/book", async (c) => {
