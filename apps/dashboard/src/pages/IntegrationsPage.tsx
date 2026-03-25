@@ -239,7 +239,7 @@ export default function IntegrationsPage() {
                           )}
                         </div>
                         {isConnected ? (
-                          <span className="text-xs text-green-600 font-medium">✓ مربوط</span>
+                          <span className="text-xs text-green-600 font-medium">مربوط</span>
                         ) : (
                           <button
                             className="text-xs text-blue-600 hover:underline text-right"

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Mail, MessageCircle, Clock, MapPin, MessageSquare, CheckCircle } from "lucide-react";
 import { PublicLayout } from "../components/public/PublicLayout";
 
 export function ContactPage() {
@@ -45,14 +46,14 @@ export function ContactPage() {
               <h2 className="text-2xl font-black text-gray-900 mb-8">معلومات التواصل</h2>
               <div className="space-y-6">
                 {[
-                  { icon: "📧", title: "البريد الإلكتروني", val: "support@nasaq.sa" },
-                  { icon: "📱", title: "الواتساب", val: "+966 5X XXX XXXX" },
-                  { icon: "🕐", title: "أوقات العمل", val: "الأحد - الخميس، 9 ص - 6 م" },
-                  { icon: "📍", title: "الموقع", val: "الرياض، المملكة العربية السعودية" },
+                  { Icon: Mail,          title: "البريد الإلكتروني", val: "support@nasaq.sa" },
+                  { Icon: MessageCircle, title: "الواتساب",          val: "+966 5X XXX XXXX" },
+                  { Icon: Clock,         title: "أوقات العمل",       val: "الأحد - الخميس، 9 ص - 6 م" },
+                  { Icon: MapPin,        title: "الموقع",            val: "الرياض، المملكة العربية السعودية" },
                 ].map((item) => (
                   <div key={item.title} className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-xl shrink-0">
-                      {item.icon}
+                    <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                      <item.Icon className="w-5 h-5 text-[#1A56DB]" />
                     </div>
                     <div>
                       <p className="font-semibold text-gray-900 text-sm">{item.title}</p>
@@ -73,7 +74,7 @@ export function ContactPage() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-green-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-green-600 transition-colors"
                 >
-                  <span>💬</span> تواصل عبر الواتساب
+                  <MessageSquare className="w-4 h-4" /> تواصل عبر الواتساب
                 </a>
               </div>
             </div>
@@ -82,7 +83,9 @@ export function ContactPage() {
             <div>
               {sent ? (
                 <div className="bg-green-50 border border-green-200 rounded-2xl p-10 text-center">
-                  <div className="text-5xl mb-4">✅</div>
+                  <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
                   <h3 className="text-xl font-bold text-green-700 mb-2">تم إرسال رسالتك!</h3>
                   <p className="text-green-600 text-sm">سنتواصل معك في أقرب وقت ممكن.</p>
                   <button

@@ -96,7 +96,7 @@ export function RegisterPage() {
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
                   s < step ? "bg-green-500 text-white" : s === step ? "bg-[#1A56DB] text-white" : "bg-gray-200 text-gray-400"
                 }`}>
-                  {s < step ? "✓" : s}
+                  {s < step ? <CheckCircle className="w-4 h-4" /> : s}
                 </div>
                 {s < 3 && <div className={`w-12 h-0.5 ${s < step ? "bg-green-500" : "bg-gray-200"}`} />}
               </div>

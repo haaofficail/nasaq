@@ -376,8 +376,8 @@ function FulfillmentsTab() {
           <Select label="نتيجة الفحص" name="result" value={inspectForm.result}
             onChange={e => setInspectForm(p => ({ ...p, result: e.target.value }))}
             options={[
-              { value: "completed",             label: "✓ جاهز للاستخدام" },
-              { value: "maintenance_required",  label: "⚠ يحتاج صيانة" },
+              { value: "completed",             label: "جاهز للاستخدام" },
+              { value: "maintenance_required",  label: "يحتاج صيانة" },
             ]} />
           <Input label="ملاحظات الفحص" name="iNotes" value={inspectForm.notes}
             onChange={e => setInspectForm(p => ({ ...p, notes: e.target.value }))} placeholder="وصف الحالة..." />

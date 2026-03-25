@@ -1,9 +1,10 @@
 import { Link } from "react-router-dom";
+import { Calendar, Users, Banknote, Package, UserCog, BarChart3, Check, type LucideIcon } from "lucide-react";
 import { PublicLayout } from "../components/public/PublicLayout";
 
-const features = [
+const features: { icon: LucideIcon; title: string; desc: string; points: string[] }[] = [
   {
-    icon: "📅",
+    icon: Calendar,
     title: "إدارة الحجوزات",
     desc: "نظام حجز متكامل مصمم لتلبية احتياجات شركات الفعاليات.",
     points: [
@@ -15,7 +16,7 @@ const features = [
     ],
   },
   {
-    icon: "👥",
+    icon: Users,
     title: "إدارة العملاء (CRM)",
     desc: "قاعدة بيانات عملاء شاملة لبناء علاقات طويلة الأمد.",
     points: [
@@ -27,7 +28,7 @@ const features = [
     ],
   },
   {
-    icon: "💰",
+    icon: Banknote,
     title: "المحاسبة والفواتير",
     desc: "إدارة مالية احترافية من الفاتورة حتى التقرير السنوي.",
     points: [
@@ -39,7 +40,7 @@ const features = [
     ],
   },
   {
-    icon: "📦",
+    icon: Package,
     title: "إدارة المخزون والأصول",
     desc: "تتبع كامل لأصولك ومعداتك الخاصة بالفعاليات.",
     points: [
@@ -51,7 +52,7 @@ const features = [
     ],
   },
   {
-    icon: "👷",
+    icon: UserCog,
     title: "إدارة الفريق",
     desc: "أدوات متكاملة لإدارة موظفيك ومزودي الخدمة.",
     points: [
@@ -63,7 +64,7 @@ const features = [
     ],
   },
   {
-    icon: "📊",
+    icon: BarChart3,
     title: "التقارير والتحليلات",
     desc: "بيانات دقيقة لاتخاذ قرارات أفضل.",
     points: [
@@ -94,13 +95,17 @@ export function FeaturesPage() {
             <div className="max-w-5xl mx-auto px-6">
               <div className={`flex flex-col md:flex-row items-center gap-12 ${i % 2 === 1 ? "md:flex-row-reverse" : ""}`}>
                 <div className="flex-1">
-                  <div className="text-6xl mb-6">{f.icon}</div>
+                  <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-6">
+                    <f.icon className="w-7 h-7 text-[#1A56DB]" />
+                  </div>
                   <h2 className="text-3xl font-black text-gray-900 mb-4">{f.title}</h2>
                   <p className="text-lg text-gray-500 mb-8 leading-relaxed">{f.desc}</p>
                   <ul className="space-y-3">
                     {f.points.map((p) => (
                       <li key={p} className="flex items-start gap-3 text-gray-700">
-                        <span className="w-5 h-5 rounded-full bg-blue-50 text-[#1A56DB] flex items-center justify-center text-xs font-bold shrink-0 mt-0.5">✓</span>
+                        <span className="w-5 h-5 rounded-full bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
+                          <Check className="w-3 h-3 text-[#1A56DB]" />
+                        </span>
                         <span className="text-sm">{p}</span>
                       </li>
                     ))}
@@ -108,7 +113,7 @@ export function FeaturesPage() {
                 </div>
                 <div className="flex-1">
                   <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8 h-64 flex items-center justify-center">
-                    <span className="text-8xl opacity-50">{f.icon}</span>
+                    <f.icon className="w-24 h-24 text-[#1A56DB] opacity-20" />
                   </div>
                 </div>
               </div>

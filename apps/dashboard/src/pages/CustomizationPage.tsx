@@ -118,7 +118,7 @@ export function CustomizationPage() {
             icon={Save}
             variant={savedKey === currentTab?.key ? "secondary" : "primary"}
           >
-            {savedKey === currentTab?.key ? "تم الحفظ ✓" : "حفظ التغييرات"}
+            {savedKey === currentTab?.key ? "تم الحفظ" : "حفظ التغييرات"}
           </Button>
         </div>
 

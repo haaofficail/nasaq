@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { Check, X, ChevronDown } from "lucide-react";
 import { PublicLayout } from "../components/public/PublicLayout";
 
 const plans = [
@@ -63,11 +64,11 @@ const comparison = [
   { feature: "الخدمات النشطة", basic: "5", pro: "غير محدود", enterprise: "غير محدود" },
   { feature: "الحجوزات الشهرية", basic: "100", pro: "غير محدود", enterprise: "غير محدود" },
   { feature: "أعضاء الفريق", basic: "1", pro: "3", enterprise: "غير محدود" },
-  { feature: "إدارة المخزون", basic: "✗", pro: "✓", enterprise: "✓" },
-  { feature: "التسويق والحملات", basic: "✗", pro: "✓", enterprise: "✓" },
-  { feature: "التقارير المتقدمة", basic: "✗", pro: "✓", enterprise: "✓" },
-  { feature: "تكامل API", basic: "✗", pro: "✗", enterprise: "✓" },
-  { feature: "مدير حساب", basic: "✗", pro: "✗", enterprise: "✓" },
+  { feature: "إدارة المخزون", basic: false, pro: true,  enterprise: true  },
+  { feature: "التسويق والحملات", basic: false, pro: true,  enterprise: true  },
+  { feature: "التقارير المتقدمة", basic: false, pro: true,  enterprise: true  },
+  { feature: "تكامل API", basic: false, pro: false, enterprise: true  },
+  { feature: "مدير حساب", basic: false, pro: false, enterprise: true  },
 ];
 
 const faqs = [
@@ -150,7 +151,7 @@ export function PricingPage() {
                 <ul className="space-y-3 flex-1 mb-8">
                   {plan.features.map((f) => (
                     <li key={f} className={`flex items-center gap-2 text-sm ${plan.highlight ? "text-blue-100" : "text-gray-600"}`}>
-                      <span className={plan.highlight ? "text-white" : "text-[#1A56DB]"}>✓</span>
+                      <Check className={`w-4 h-4 shrink-0 ${plan.highlight ? "text-white" : "text-[#1A56DB]"}`} />
                       {f}
                     </li>
                   ))}
@@ -183,14 +184,24 @@ export function PricingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {comparison.map((row, i) => (
-                    <tr key={row.feature} className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}>
-                      <td className="py-3.5 pr-4 text-sm text-gray-700">{row.feature}</td>
-                      <td className="py-3.5 text-center text-sm text-gray-500">{row.basic}</td>
-                      <td className="py-3.5 text-center text-sm font-semibold text-[#1A56DB]">{row.pro}</td>
-                      <td className="py-3.5 text-center text-sm text-gray-500">{row.enterprise}</td>
-                    </tr>
-                  ))}
+                  {comparison.map((row, i) => {
+                    const cell = (v: string | boolean, highlight?: boolean) => {
+                      if (typeof v === "boolean") {
+                        return v
+                          ? <Check className={`w-4 h-4 mx-auto ${highlight ? "text-[#1A56DB] font-semibold" : "text-gray-400"}`} />
+                          : <X className="w-4 h-4 mx-auto text-gray-200" />;
+                      }
+                      return <span className={highlight ? "font-semibold text-[#1A56DB]" : ""}>{v}</span>;
+                    };
+                    return (
+                      <tr key={row.feature} className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}>
+                        <td className="py-3.5 pr-4 text-sm text-gray-700">{row.feature}</td>
+                        <td className="py-3.5 text-center text-sm text-gray-500">{cell(row.basic)}</td>
+                        <td className="py-3.5 text-center text-sm">{cell(row.pro, true)}</td>
+                        <td className="py-3.5 text-center text-sm text-gray-500">{cell(row.enterprise)}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -204,7 +215,7 @@ export function PricingPage() {
                 <details key={faq.q} className="bg-white rounded-xl border border-gray-200 group">
                   <summary className="px-6 py-4 cursor-pointer font-semibold text-gray-900 flex items-center justify-between list-none">
                     {faq.q}
-                    <span className="text-gray-400 group-open:rotate-180 transition-transform">▼</span>
+                    <ChevronDown className="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform shrink-0" />
                   </summary>
                   <p className="px-6 pb-4 text-sm text-gray-500 leading-relaxed">{faq.a}</p>
                 </details>

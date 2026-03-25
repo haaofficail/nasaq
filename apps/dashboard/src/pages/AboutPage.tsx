@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Target, Handshake, Rocket, Heart } from "lucide-react";
 import { PublicLayout } from "../components/public/PublicLayout";
 
 const team = [
@@ -47,7 +48,9 @@ export function AboutPage() {
                 </p>
               </div>
               <div className="bg-[#1A56DB] rounded-2xl p-8 text-white">
-                <div className="text-5xl mb-6">🎯</div>
+                <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-6">
+                  <Target className="w-6 h-6 text-white" />
+                </div>
                 <h3 className="text-2xl font-black mb-3">مهمتنا</h3>
                 <p className="text-blue-100 leading-relaxed">
                   تبسيط إدارة الفعاليات من خلال تقنية ذكية وسهلة الاستخدام،
@@ -96,12 +99,14 @@ export function AboutPage() {
             <h2 className="text-3xl font-black text-gray-900 text-center mb-12">قيمنا</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {[
-                { icon: "🤝", title: "الثقة", desc: "نحرص على بناء علاقات شفافة وموثوقة مع عملائنا" },
-                { icon: "🚀", title: "الابتكار", desc: "نسعى دائماً لتطوير حلول جديدة تلبي احتياجات السوق" },
-                { icon: "❤️", title: "الاهتمام", desc: "نهتم بنجاح عملائنا كما نهتم بنجاح أنفسنا" },
+                { Icon: Handshake, title: "الثقة",    desc: "نحرص على بناء علاقات شفافة وموثوقة مع عملائنا" },
+                { Icon: Rocket,    title: "الابتكار", desc: "نسعى دائماً لتطوير حلول جديدة تلبي احتياجات السوق" },
+                { Icon: Heart,     title: "الاهتمام", desc: "نهتم بنجاح عملائنا كما نهتم بنجاح أنفسنا" },
               ].map((v) => (
                 <div key={v.title} className="bg-gray-50 rounded-2xl p-6 text-center">
-                  <div className="text-4xl mb-4">{v.icon}</div>
+                  <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
+                    <v.Icon className="w-6 h-6 text-[#1A56DB]" />
+                  </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2">{v.title}</h3>
                   <p className="text-sm text-gray-500">{v.desc}</p>
                 </div>

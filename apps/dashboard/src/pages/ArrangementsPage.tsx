@@ -7,7 +7,22 @@ import {
   Check, Clock, Phone, User, Settings, ExternalLink, RefreshCw, Eye,
   MapPin, ChevronDown, ChevronRight, DollarSign, AlertCircle,
   Palette, Globe, Sliders, MessageSquare, Save, Sparkles,
+  Box, Heart, Star, Tag, Archive, Layers, Ribbon, Candy,
+  type LucideIcon,
 } from "lucide-react";
+
+// ─── Lucide Icon Registry for catalog items ────────────────────────────────────
+const ICON_REGISTRY: Record<string, LucideIcon> = {
+  Package, Gift, CreditCard, Truck, Box, ShoppingBag,
+  Heart, Star, Sparkles, Tag, Flower2, Archive, Layers,
+  Ribbon, Candy, Check, Plus,
+};
+const ICON_OPTIONS: { name: string; icon: LucideIcon }[] = Object.entries(ICON_REGISTRY).map(([name, icon]) => ({ name, icon }));
+
+function CatalogIcon({ name, className }: { name?: string | null; className?: string }) {
+  const Icon = (name && ICON_REGISTRY[name]) ? ICON_REGISTRY[name] : Package;
+  return <Icon className={className || "w-5 h-5 text-gray-400"} />;
+}
 import { arrangementsApi, flowerBuilderApi, settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Modal, Button, Input, Toggle } from "@/components/ui";
@@ -158,12 +173,22 @@ function CatalogItemModal({ item, onClose, onSave }: { item?: any; onClose: () =
           <Input label="الاسم *" name="name" value={form.name} onChange={e => f("name", e.target.value)} placeholder="اسم العنصر" required />
           <Input label="الاسم بالإنجليزية" name="nameEn" value={form.nameEn} onChange={e => f("nameEn", e.target.value)} dir="ltr" placeholder="English name" />
         </div>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="col-span-2">
-            <Input label="السعر (ر.س)" name="price" type="number" value={form.price}
-              onChange={e => f("price", e.target.value)} placeholder="0" dir="ltr" />
+        <div className="grid grid-cols-2 gap-3">
+          <Input label="السعر (ر.س)" name="price" type="number" value={form.price}
+            onChange={e => f("price", e.target.value)} placeholder="0" dir="ltr" />
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-1.5">الأيقونة</p>
+            <div className="grid grid-cols-8 gap-1 p-2 border border-gray-200 rounded-xl">
+              {ICON_OPTIONS.map(({ name, icon: Icon }) => (
+                <button key={name} type="button" onClick={() => f("icon", name)}
+                  title={name}
+                  className={clsx("w-7 h-7 flex items-center justify-center rounded-lg transition-colors",
+                    form.icon === name ? "bg-brand-500 text-white" : "hover:bg-gray-100 text-gray-500")}>
+                  <Icon className="w-3.5 h-3.5" />
+                </button>
+              ))}
+            </div>
           </div>
-          <Input label="الأيقونة" name="icon" value={form.icon} onChange={e => f("icon", e.target.value)} placeholder="🎁" />
         </div>
         {form.type === "gift" && (
           <div className="flex items-center gap-3">
@@ -659,9 +684,7 @@ function BuilderConfigTab() {
             {curItems.map((item: any) => (
               <div key={item.id} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50/40 transition-colors">
                 <span className="w-8 flex items-center justify-center">
-                  {item.icon
-                    ? <span className="text-xl">{item.icon}</span>
-                    : <Package className="w-5 h-5 text-gray-400" />}
+                  <CatalogIcon name={item.icon} />
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">

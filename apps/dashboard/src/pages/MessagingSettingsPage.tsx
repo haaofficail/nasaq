@@ -89,7 +89,7 @@ function ConnectionTab() {
               setConnecting(false);
             } else if (payload.type === "connected") {
               setQrData("");
-              setConnectMsg(`تم الاتصال ✓ ${payload.phone || ""}`);
+              setConnectMsg(`تم الاتصال — ${payload.phone || ""}`);
               setConnecting(false);
               setTimeout(() => { setShowQR(false); refetch(); }, 1500);
             } else if (payload.type === "error") {
@@ -734,7 +734,7 @@ function SettingsTab() {
 
       <div className="flex justify-end">
         <Button onClick={handleSave} loading={saving} variant={saved ? "secondary" : "primary"}>
-          {saved ? "تم الحفظ ✓" : "حفظ الإعدادات"}
+          {saved ? "تم الحفظ" : "حفظ الإعدادات"}
         </Button>
       </div>
     </div>

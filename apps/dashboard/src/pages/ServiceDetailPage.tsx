@@ -5,6 +5,7 @@ import {
   ArrowRight, Pencil, Trash2, Package, Star, CalendarCheck, Banknote,
   Loader2, AlertCircle, Copy, Eye, Plus, ChevronUp, ChevronDown, Save, HelpCircle, Settings2,
   Boxes, Wrench, FlaskConical, TrendingUp, Users, Layers, AlignLeft, ClipboardList,
+  Check, X,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, questionsApi, inventoryApi, teamApi, salonApi } from "@/lib/api";
@@ -372,8 +373,8 @@ export function ServiceDetailPage() {
               <div className="bg-white rounded-xl border border-gray-200 p-6">
                 <h2 className="font-semibold text-gray-900 mb-4">يشمل / لا يشمل</h2>
                 <div className="grid grid-cols-2 gap-6">
-                  {service.includes?.length > 0 && <div><h3 className="text-sm font-medium text-green-600 mb-2">يشمل</h3>{service.includes.map((item: string, i: number) => <p key={i} className="text-sm text-gray-600 py-1">✓ {item}</p>)}</div>}
-                  {service.excludes?.length > 0 && <div><h3 className="text-sm font-medium text-red-500 mb-2">لا يشمل</h3>{service.excludes.map((item: string, i: number) => <p key={i} className="text-sm text-gray-600 py-1">✗ {item}</p>)}</div>}
+                  {service.includes?.length > 0 && <div><h3 className="text-sm font-medium text-green-600 mb-2">يشمل</h3>{service.includes.map((item: string, i: number) => <p key={i} className="flex items-center gap-1.5 text-sm text-gray-600 py-1"><Check className="w-3.5 h-3.5 text-green-500 shrink-0" />{item}</p>)}</div>}
+                  {service.excludes?.length > 0 && <div><h3 className="text-sm font-medium text-red-500 mb-2">لا يشمل</h3>{service.excludes.map((item: string, i: number) => <p key={i} className="flex items-center gap-1.5 text-sm text-gray-600 py-1"><X className="w-3.5 h-3.5 text-red-400 shrink-0" />{item}</p>)}</div>}
                 </div>
               </div>
             )}
@@ -1011,7 +1012,7 @@ export function ServiceDetailPage() {
                     {assetsList.map((a: any) => (
                       <option key={a.id} value={a.id}>
                         {a.serialNumber && `[${a.serialNumber}] `}{a.name || a.assetTypeName || "أصل"}
-                        {a.status === "available" ? " ✓" : a.status === "in_use" ? " (مستخدم)" : ""}
+                        {a.status === "available" ? " (متاح)" : a.status === "in_use" ? " (مستخدم)" : ""}
                       </option>
                     ))}
                   </select>
