@@ -126,7 +126,7 @@ servicesRouter.get("/", async (c) => {
   if (bookableOnly === "true")  conditions.push(eq((services as any).isBookable, true));
 
   // Query
-  const [result, [{ total }]] = await Promise.all([
+  const [rows, [{ total }]] = await Promise.all([
     db
       .select()
       .from(services)
@@ -139,6 +139,19 @@ servicesRouter.get("/", async (c) => {
       .from(services)
       .where(and(...conditions)),
   ]);
+
+  // Attach cover images in a single batch query
+  let coverMap: Record<string, string> = {};
+  if (rows.length > 0) {
+    const ids = rows.map(r => r.id);
+    const covers = await db
+      .select({ serviceId: serviceMedia.serviceId, url: serviceMedia.url })
+      .from(serviceMedia)
+      .where(and(inArray(serviceMedia.serviceId, ids), eq(serviceMedia.isActive, true), eq(serviceMedia.isCover, true)));
+    covers.forEach(c => { if (c.serviceId && c.url) coverMap[c.serviceId] = c.url; });
+  }
+
+  const result = rows.map(r => ({ ...r, coverImage: coverMap[r.id] || null }));
 
   return c.json({
     data: result,
