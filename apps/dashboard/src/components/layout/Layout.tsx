@@ -191,38 +191,39 @@ export function Layout() {
                   </NavLink>
                 </div>
               )}
+
+              {/* Bottom nav (عام) — scrolls with main nav */}
+              <div className="mb-1 mt-1">
+                {collapsed ? (
+                  <div className="h-px bg-gray-100 mx-2 my-2" />
+                ) : (
+                  <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-2">عام</p>
+                )}
+                <div className="space-y-0.5">
+                  {BOTTOM_NAV.map((item) => {
+                    const active = isActive(item.href, item.exact);
+                    return (
+                      <NavLink
+                        key={item.href}
+                        to={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        title={collapsed ? item.name : undefined}
+                        className={clsx(
+                          "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+                          collapsed && "justify-center px-2",
+                          active ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                        )}
+                      >
+                        <item.icon className={clsx("w-4 h-4 shrink-0", active ? "text-brand-500" : "text-gray-400")} />
+                        {!collapsed && <span className="flex-1 truncate">{item.name}</span>}
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              </div>
             </>
           )}
         </nav>
-
-        {/* Bottom nav (always visible) */}
-        <div className="border-t border-gray-100 px-2 pt-2 shrink-0">
-          {collapsed && <div className="h-px bg-gray-100 mx-2 mb-2" />}
-          {!collapsed && (
-            <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-1.5">عام</p>
-          )}
-          <div className="space-y-0.5 pb-2">
-            {BOTTOM_NAV.map((item) => {
-              const active = isActive(item.href, item.exact);
-              return (
-                <NavLink
-                  key={item.href}
-                  to={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  title={collapsed ? item.name : undefined}
-                  className={clsx(
-                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                    collapsed && "justify-center px-2",
-                    active ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                  )}
-                >
-                  <item.icon className={clsx("w-4 h-4 shrink-0", active ? "text-brand-500" : "text-gray-400")} />
-                  {!collapsed && <span className="flex-1 truncate">{item.name}</span>}
-                </NavLink>
-              );
-            })}
-          </div>
-        </div>
 
         {/* User footer */}
         <div className={clsx("border-t border-gray-100 p-2 shrink-0 space-y-1", collapsed && "flex flex-col items-center space-y-1")}>
