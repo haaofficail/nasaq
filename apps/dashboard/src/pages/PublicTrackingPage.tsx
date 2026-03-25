@@ -69,7 +69,7 @@ export function PublicTrackingPage() {
         <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3">
           {b.serviceName && <h2 className="font-bold text-gray-900">{b.serviceName}</h2>}
           <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-            {b.eventDate && <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-gray-400" />{new Date(b.eventDate).toLocaleDateString("ar-SA")}</span>}
+            {b.eventDate && <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4 text-gray-400" />{fmtDate(b.eventDate)}</span>}
             {b.eventDate && <span className="flex items-center gap-1.5"><Clock className="w-4 h-4 text-gray-400" />{new Date(b.eventDate).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}</span>}
             {b.location && <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4 text-gray-400" />{b.location}</span>}
           </div>

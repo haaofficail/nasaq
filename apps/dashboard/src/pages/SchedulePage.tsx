@@ -24,7 +24,7 @@ function addDays(date: string, n: number) {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("ar-SA", { weekday: "long", month: "long", day: "numeric" });
+  return new Date(dateStr).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { weekday: "long", month: "long", day: "numeric" });
 }
 
 // ─── Staff Column View ────────────────────────────────────────────────────────

@@ -53,7 +53,7 @@ export function CustomerDetailPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-400">الحجوزات</p><p className="text-xl font-bold text-brand-600">{customer.totalBookings || stats.totalBookings || 0}</p></div>
         <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-400">الإنفاق</p><p className="text-xl font-bold text-green-600">{Number(customer.totalSpent || stats.totalSpent || 0).toLocaleString()}</p></div>
         <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-400">متوسط الحجز</p><p className="text-xl font-bold">{Number(customer.avgBookingValue || stats.avgBookingValue || 0).toLocaleString()}</p></div>
-        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-400">آخر حجز</p><p className="text-sm font-bold mt-1">{customer.lastBookingDate ? new Date(customer.lastBookingDate).toLocaleDateString("ar-SA") : "—"}</p></div>
+        <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-400">آخر حجز</p><p className="text-sm font-bold mt-1">{customer.lastBookingDate ? fmtDate(customer.lastBookingDate) : "—"}</p></div>
         <div className="bg-white rounded-xl border border-gray-200 p-4"><p className="text-xs text-gray-400">نقاط الولاء</p><p className="text-xl font-bold text-purple-600">{customer.loyaltyPoints || 0}</p></div>
       </div>
 
@@ -77,7 +77,7 @@ export function CustomerDetailPage() {
               <div className="space-y-2">
                 {customerBookings.map((b: any) => (
                   <Link key={b.id} to={"/bookings/" + b.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50">
-                    <div><p className="text-sm font-medium">#{b.bookingNumber || b.id?.substring(0, 8)}</p><p className="text-xs text-gray-400">{b.eventDate ? new Date(b.eventDate).toLocaleDateString("ar-SA") : "—"}</p></div>
+                    <div><p className="text-sm font-medium">#{b.bookingNumber || b.id?.substring(0, 8)}</p><p className="text-xs text-gray-400">{b.eventDate ? fmtDate(b.eventDate) : "—"}</p></div>
                     <span className="font-bold text-sm">{Number(b.totalAmount || 0).toLocaleString()} ر.س</span>
                   </Link>
                 ))}
@@ -97,7 +97,7 @@ export function CustomerDetailPage() {
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {interactions.map((int: any) => (
                   <div key={int.id} className="border-b border-gray-50 pb-2 last:border-0">
-                    <p className="text-xs text-gray-400">{int.createdAt ? new Date(int.createdAt).toLocaleDateString("ar-SA") : ""} — {int.type === "note" ? "ملاحظة" : int.type === "call" ? "اتصال" : int.type}</p>
+                    <p className="text-xs text-gray-400">{int.createdAt ? fmtDate(int.createdAt) : ""} — {int.type === "note" ? "ملاحظة" : int.type === "call" ? "اتصال" : int.type}</p>
                     <p className="text-sm text-gray-700 mt-1">{int.content}</p>
                   </div>
                 ))}

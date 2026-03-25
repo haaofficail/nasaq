@@ -688,7 +688,7 @@ export function StorefrontPage() {
                         </span>
                       </td>
                       <td className="py-3 px-4 text-gray-500">{post.views || 0}</td>
-                      <td className="py-3 px-4 text-gray-400 text-xs">{post.publishedAt ? new Date(post.publishedAt).toLocaleDateString("ar-SA") : "—"}</td>
+                      <td className="py-3 px-4 text-gray-400 text-xs">{post.publishedAt ? fmtDate(post.publishedAt) : "—"}</td>
                       <td className="py-3 px-4">
                         <div className="flex gap-1 justify-end">
                           <button onClick={() => { setPostForm({ title: post.title, excerpt: post.excerpt || "", content: post.content || "", status: post.status, tags: post.tags || [], category: post.category || "" }); setPostModal({ open: true, item: post }); }} className="p-1.5 rounded-lg hover:bg-gray-100"><Pencil className="w-3.5 h-3.5 text-gray-400" /></button>

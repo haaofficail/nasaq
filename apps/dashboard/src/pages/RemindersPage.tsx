@@ -251,7 +251,7 @@ function ReminderCard({ reminder, onComplete, onRefresh }: { reminder: any; onCo
           {done ? "مكتمل" : days < 0 ? `متأخر ${Math.abs(days)} يوم` : days === 0 ? "اليوم" : `${days} يوم`}
         </span>
         <span className="text-xs text-gray-400">
-          {new Date(reminder.due_date || reminder.dueDate).toLocaleDateString("ar-SA", { day: "numeric", month: "short", year: "numeric" })}
+          {new Date(reminder.due_date || reminder.dueDate).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { day: "numeric", month: "short", year: "numeric" })}
         </span>
       </div>
     </div>

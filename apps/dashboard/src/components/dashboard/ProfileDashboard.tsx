@@ -149,7 +149,7 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
             مرحباً{user.name ? ` ${user.name}` : ""} 👋
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">
-            {new Date().toLocaleDateString("ar-SA", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+            {new Date().toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
           </p>
         </div>
         <div className="flex items-center gap-2">

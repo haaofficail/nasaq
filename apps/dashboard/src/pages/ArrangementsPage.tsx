@@ -398,7 +398,7 @@ function OrdersTab() {
                     <td className="py-3 px-4 text-xs text-gray-500 max-w-[140px] truncate">{flowerSummary || "—"}</td>
                     <td className="py-3 px-4 font-semibold text-gray-900">{Number(o.total).toFixed(2)} <span className="text-xs text-gray-400">ر.س</span></td>
                     <td className="py-3 px-4"><StatusBadge status={o.status} /></td>
-                    <td className="py-3 px-4 text-xs text-gray-400">{new Date(o.createdAt).toLocaleDateString("ar-SA")}</td>
+                    <td className="py-3 px-4 text-xs text-gray-400">{fmtDate(o.createdAt)}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-1">
                         <button onClick={() => setSelectedOrder(o)}

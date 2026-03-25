@@ -27,7 +27,7 @@ export function TodayScheduleSummaryWidget() {
     .filter((b) => b.scheduledAt)
     .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
 
-  const todayLabel = new Date().toLocaleDateString("ar-SA", {
+  const todayLabel = new Date().toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", {
     weekday: "long",
     month: "long",
     day: "numeric",

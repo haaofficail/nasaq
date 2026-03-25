@@ -217,7 +217,7 @@ function FulfillmentsTab() {
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {f.customer_name && <span>{f.customer_name} · </span>}
-                    {f.event_date && <span>{new Date(f.event_date).toLocaleDateString("ar-SA")} · </span>}
+                    {f.event_date && <span>{fmtDate(f.event_date)} · </span>}
                     {f.allocation_count > 0 && <span>{f.allocation_count} أصل</span>}
                   </p>
                 </div>
@@ -256,7 +256,7 @@ function FulfillmentsTab() {
                 <div className="flex items-start justify-between">
                   <div>
                     <h2 className="text-lg font-bold text-gray-900">{detailRow.booking_number || detailRow.booking_id?.slice(-8)}</h2>
-                    <p className="text-sm text-gray-500 mt-0.5">{detailRow.customer_name} · {detailRow.event_date && new Date(detailRow.event_date).toLocaleDateString("ar-SA")}</p>
+                    <p className="text-sm text-gray-500 mt-0.5">{detailRow.customer_name} · {detailRow.event_date && fmtDate(detailRow.event_date)}</p>
                   </div>
                   <button onClick={() => setDetail(null)} className="p-1.5 rounded-lg hover:bg-gray-100">
                     <X className="w-4 h-4 text-gray-400" />

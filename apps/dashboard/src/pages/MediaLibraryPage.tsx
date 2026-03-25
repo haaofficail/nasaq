@@ -73,7 +73,7 @@ function fileSizeLabel(bytes: number | null): string {
 }
 
 function fmtDate(d: string) {
-  return new Date(d).toLocaleDateString("ar-SA", { year: "numeric", month: "short", day: "numeric" });
+  return new Date(d).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 function inferType(mime: string): AssetType {

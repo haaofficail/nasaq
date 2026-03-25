@@ -173,7 +173,7 @@ export function InspectionsPage() {
                   {!i.damage_found && (
                     <CheckCircle2 className="w-5 h-5 text-green-400" />
                   )}
-                  <span className="text-xs text-gray-400">{new Date(i.created_at).toLocaleDateString("ar-SA")}</span>
+                  <span className="text-xs text-gray-400">{fmtDate(i.created_at)}</span>
                 </div>
               </div>
             </div>

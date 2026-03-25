@@ -320,10 +320,10 @@ export default function HotelPage() {
                           {rooms.find((r) => r.id === res.roomUnitId)?.roomNumber ?? "—"}
                         </td>
                         <td className="px-4 py-3 text-gray-500">
-                          {new Date(res.checkInDate).toLocaleDateString("ar-SA")}
+                          {fmtDate(res.checkInDate)}
                         </td>
                         <td className="px-4 py-3 text-gray-500">
-                          {new Date(res.checkOutDate).toLocaleDateString("ar-SA")}
+                          {fmtDate(res.checkOutDate)}
                         </td>
                         <td className="px-4 py-3 font-medium">
                           {Number(res.totalAmount).toLocaleString("en-US")} ريال
@@ -498,8 +498,8 @@ export default function HotelPage() {
                   <div key={sp.id} className="bg-white border border-gray-200 rounded-lg p-4">
                     <div className="font-semibold text-gray-900">{sp.name}</div>
                     <div className="text-sm text-gray-500 mt-1">
-                      {new Date(sp.startDate).toLocaleDateString("ar-SA")} ←{" "}
-                      {new Date(sp.endDate).toLocaleDateString("ar-SA")}
+                      {fmtDate(sp.startDate)} ←{" "}
+                      {fmtDate(sp.endDate)}
                     </div>
                     <div className="text-lg font-bold text-blue-600 mt-2">
                       {Number(sp.pricePerNight).toLocaleString("en-US")} ريال / ليلة

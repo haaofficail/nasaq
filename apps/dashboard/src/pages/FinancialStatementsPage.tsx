@@ -13,7 +13,7 @@ import { Button } from "@/components/ui";
 // ────────────────────────────────────────────────────────────
 
 function fmt(n: number) {
-  return n.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 const TABS = [
@@ -323,7 +323,7 @@ function AgingReport({ type, asOf }: { type: "ar" | "ap"; asOf: string }) {
               <div key={i} className="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-gray-100">
                 <div>
                   <p className="text-sm text-gray-800 font-medium">{item.description}</p>
-                  <p className="text-xs text-gray-400">{item.entryNumber} · {new Date(item.date).toLocaleDateString("ar-SA")} · {item.ageDays} يوم</p>
+                  <p className="text-xs text-gray-400">{item.entryNumber} · {fmtDate(item.date)} · {item.ageDays} يوم</p>
                 </div>
                 <span className="text-sm font-bold tabular-nums text-gray-900">{fmt(item.balance)} ر.س</span>
               </div>

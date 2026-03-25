@@ -317,7 +317,7 @@ export function ClientBeautyCardPage() {
                     {v.resultNotes && <p className="text-xs text-gray-500 mt-0.5">{v.resultNotes}</p>}
                   </div>
                   <p className="text-xs text-gray-300 shrink-0">
-                    {new Date(v.createdAt).toLocaleDateString("ar-SA")}
+                    {fmtDate(v.createdAt)}
                   </p>
                 </div>
                 {v.nextVisitIn && (

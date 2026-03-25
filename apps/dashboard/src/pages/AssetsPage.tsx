@@ -56,7 +56,7 @@ const MOVE_REASONS = [
 
 function fmtDate(d?: string | null) {
   if (!d) return "—";
-  return new Date(d).toLocaleDateString("ar-SA");
+  return fmtDate(d);
 }
 
 // ── UI Primitives ────────────────────────────────────────────────────────────

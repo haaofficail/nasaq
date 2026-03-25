@@ -290,7 +290,7 @@ export function SuppliersPage() {
                 <div className="px-5 py-4 flex items-center justify-between">
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-900">{o.supplierName || "مورد"}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{o.poNumber} · {o.orderDate ? new Date(o.orderDate).toLocaleDateString("ar-SA") : ""}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{o.poNumber} · {o.orderDate ? fmtDate(o.orderDate) : ""}</p>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
                     <span className="font-semibold text-gray-900 tabular-nums hidden sm:block">
@@ -341,8 +341,8 @@ export function SuppliersPage() {
                     {isOverdue && <span className="flex items-center gap-1 text-xs text-red-500"><Clock className="w-3 h-3" /> متأخرة</span>}
                   </div>
                   <p className="text-xs text-gray-400 mt-0.5">
-                    {inv.invoiceDate ? new Date(inv.invoiceDate).toLocaleDateString("ar-SA") : ""}
-                    {inv.dueDate ? ` · استحقاق ${new Date(inv.dueDate).toLocaleDateString("ar-SA")}` : ""}
+                    {inv.invoiceDate ? fmtDate(inv.invoiceDate) : ""}
+                    {inv.dueDate ? ` · استحقاق ${fmtDate(inv.dueDate)}` : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
@@ -696,7 +696,7 @@ function POItems({ poId, supplierId, onReceiptCreated }: { poId: string; supplie
             <div key={r.id} className="flex items-center justify-between text-xs bg-gray-50 rounded-xl px-3 py-2">
               <span className="text-gray-700 font-medium">{r.grNumber}</span>
               <div className="flex items-center gap-2">
-                <span className="text-gray-400">{new Date(r.receivedAt).toLocaleDateString("ar-SA")}</span>
+                <span className="text-gray-400">{fmtDate(r.receivedAt)}</span>
                 <span className={clsx("px-2 py-0.5 rounded-lg font-medium",
                   r.status === "approved" ? "bg-green-50 text-green-700" : r.status === "rejected" ? "bg-red-50 text-red-500" : "bg-yellow-50 text-yellow-700")}>
                   {r.status === "approved" ? "موافق" : r.status === "rejected" ? "مرفوض" : "قيد المراجعة"}

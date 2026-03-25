@@ -155,7 +155,7 @@ export function BookingsPage() {
                     </span>
                     <span className="text-xs text-gray-400 flex items-center gap-1">
                       <CalendarCheck className="w-2.5 h-2.5" />
-                      {booking.eventDate ? new Date(booking.eventDate).toLocaleDateString("ar-SA") : "—"}
+                      {booking.eventDate ? fmtDate(booking.eventDate) : "—"}
                     </span>
                     {booking.locationName && (
                       <span className="text-xs text-gray-400 flex items-center gap-1">

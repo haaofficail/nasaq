@@ -146,7 +146,7 @@ export function EventsPage() {
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-900 truncate">{e.name}</p>
                     <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400 flex-wrap">
-                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(e.startsAt).toLocaleDateString("ar-SA", { dateStyle: "medium" })}</span>
+                      <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{new Date(e.startsAt).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { dateStyle: "medium" })}</span>
                       {e.venueName && <span className="flex items-center gap-1"><MapPin className="w-3 h-3" />{e.venueName}</span>}
                       {e.totalCapacity && <span className="flex items-center gap-1"><Users className="w-3 h-3" />{e.soldTickets ?? 0}/{e.totalCapacity}</span>}
                     </div>
@@ -188,7 +188,7 @@ export function EventsPage() {
               )}
               <div className="space-y-1.5 text-xs text-gray-500">
                 <div className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5 shrink-0" />
-                  {new Date(selectedEvent.startsAt).toLocaleString("ar-SA", { dateStyle: "medium", timeStyle: "short" })}
+                  {new Date(selectedEvent.startsAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
                 </div>
                 {selectedEvent.venueName && <div className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 shrink-0" />{selectedEvent.venueName}{selectedEvent.venueCity ? ` — ${selectedEvent.venueCity}` : ""}</div>}
                 {selectedEvent.totalCapacity && (

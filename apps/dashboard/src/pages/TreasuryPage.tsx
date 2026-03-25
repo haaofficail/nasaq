@@ -13,7 +13,7 @@ import { useApi, useMutation } from "@/hooks/useApi";
 // ============================================================
 
 function fmt(n: any) {
-  return Number(n || 0).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 const ACCOUNT_TYPE_CONFIG: Record<string, { label: string; icon: any; bg: string; color: string }> = {
@@ -539,7 +539,7 @@ export function TreasuryPage() {
                       </p>
                     </div>
                     <p className="text-xs text-gray-300 shrink-0 w-16 text-left">
-                      {new Date(tx.created_at).toLocaleDateString("ar-SA", { month: "short", day: "numeric" })}
+                      {new Date(tx.created_at).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { month: "short", day: "numeric" })}
                     </p>
                   </div>
                 );

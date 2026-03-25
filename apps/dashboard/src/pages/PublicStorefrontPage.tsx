@@ -59,7 +59,7 @@ function formatPrice(price?: number, pricingType?: string) {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" });
+  return new Date(dateStr).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { year: "numeric", month: "long", day: "numeric" });
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────

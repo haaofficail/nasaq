@@ -139,7 +139,7 @@ export function FinancePage() {
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-gray-400 text-xs">
-                      {inv.createdAt ? new Date(inv.createdAt).toLocaleDateString("ar-SA") : "—"}
+                      {inv.createdAt ? fmtDate(inv.createdAt) : "—"}
                     </td>
                   </tr>
                 ))}
@@ -173,7 +173,7 @@ export function FinancePage() {
                     <td className="py-3.5 px-4 text-gray-500 text-xs">{exp.category}</td>
                     <td className="py-3.5 px-4 font-bold text-red-500 tabular-nums">{Number(exp.amount || 0).toLocaleString()} ر.س</td>
                     <td className="py-3.5 px-4 text-gray-400 text-xs">
-                      {exp.date ? new Date(exp.date).toLocaleDateString("ar-SA") : "—"}
+                      {exp.date ? fmtDate(exp.date) : "—"}
                     </td>
                   </tr>
                 ))}

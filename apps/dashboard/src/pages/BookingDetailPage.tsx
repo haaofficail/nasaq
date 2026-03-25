@@ -123,7 +123,7 @@ export function BookingDetailPage() {
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <h2 className="font-semibold text-gray-900 mb-4">تفاصيل الحجز</h2>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-gray-400" /><span className="text-gray-500">تاريخ الحدث</span><span className="font-medium mr-auto">{booking.eventDate ? new Date(booking.eventDate).toLocaleDateString("ar-SA") : "—"}</span></div>
+              <div className="flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-gray-400" /><span className="text-gray-500">تاريخ الحدث</span><span className="font-medium mr-auto">{booking.eventDate ? fmtDate(booking.eventDate) : "—"}</span></div>
               <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-gray-400" /><span className="text-gray-500">المدة</span><span className="font-medium mr-auto">{booking.eventDuration || "—"} ساعة</span></div>
               <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" /><span className="text-gray-500">الفرع</span><span className="font-medium mr-auto">{booking.locationName || "—"}</span></div>
               <div className="flex items-center gap-2"><User className="w-4 h-4 text-gray-400" /><span className="text-gray-500">عدد الضيوف</span><span className="font-medium mr-auto">{booking.guestCount || "—"}</span></div>
@@ -160,7 +160,7 @@ export function BookingDetailPage() {
             </div>
             {booking.payments?.length > 0 && booking.payments.map((p: any, i: number) => (
               <div key={i} className="flex items-center justify-between py-2 border-b border-gray-50 text-sm">
-                <span className="text-gray-500">{p.createdAt ? new Date(p.createdAt).toLocaleDateString("ar-SA") : "—"} — {p.method === "cash" ? "نقداً" : p.method === "bank_transfer" ? "تحويل بنكي" : p.method}</span>
+                <span className="text-gray-500">{p.createdAt ? fmtDate(p.createdAt) : "—"} — {p.method === "cash" ? "نقداً" : p.method === "bank_transfer" ? "تحويل بنكي" : p.method}</span>
                 <span className="font-bold text-green-600">+{Number(p.amount).toLocaleString()} ر.س</span>
               </div>
             ))}
@@ -207,7 +207,7 @@ export function BookingDetailPage() {
                           )}
                         </p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {new Date(ev.createdAt).toLocaleString("ar-SA", { dateStyle: "short", timeStyle: "short" })}
+                          {new Date(ev.createdAt).toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" })}
                         </p>
                         {ev.metadata?.reason && (
                           <p className="text-xs text-gray-500 mt-0.5">السبب: {ev.metadata.reason}</p>

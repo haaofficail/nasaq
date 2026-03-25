@@ -44,7 +44,7 @@ const SIDE_OPTIONS = [
 ];
 
 function fmt(n: number) {
-  return n.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // ────────────────────────────────────────────────────────────
@@ -206,7 +206,7 @@ function StatementDetail({ id, onBack }: { id: string; onBack: () => void }) {
             </span>
           </div>
           <p className="text-sm text-gray-400 mt-0.5">
-            {new Date(s.periodStart).toLocaleDateString("ar-SA")} — {new Date(s.periodEnd).toLocaleDateString("ar-SA")}
+            {fmtDate(s.periodStart)} — {fmtDate(s.periodEnd)}
           </p>
         </div>
         {!isCompleted && (
@@ -388,7 +388,7 @@ function StatementList({ onSelect }: { onSelect: (id: string) => void }) {
                   className="border-b border-gray-50 last:border-0 hover:bg-brand-50/40 cursor-pointer transition-colors">
                   <td className="py-3.5 px-5 font-medium text-gray-900">{TYPE_LABELS[s.type] ?? s.type}</td>
                   <td className="py-3.5 px-4 text-gray-500 text-xs">
-                    {new Date(s.periodStart).toLocaleDateString("ar-SA")} — {new Date(s.periodEnd).toLocaleDateString("ar-SA")}
+                    {fmtDate(s.periodStart)} — {fmtDate(s.periodEnd)}
                   </td>
                   <td className="py-3.5 px-4 tabular-nums text-gray-700">{fmt(parseFloat(s.bookBalance))} ر.س</td>
                   <td className="py-3.5 px-4 tabular-nums text-gray-700">{fmt(parseFloat(s.externalBalance))} ر.س</td>

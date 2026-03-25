@@ -69,7 +69,7 @@ export function RecentBookingsWidget() {
                   </p>
                   <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
                     <Clock className="w-3 h-3" />
-                    {b.eventDate ? new Date(b.eventDate).toLocaleDateString("ar-SA") : "—"}
+                    {b.eventDate ? fmtDate(b.eventDate) : "—"}
                   </p>
                 </div>
                 <div className="text-left shrink-0">

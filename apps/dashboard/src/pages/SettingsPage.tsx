@@ -722,13 +722,13 @@ export function SettingsPage() {
               {sub.trialEndsAt && (
                 <div style={{ background: COLORS.warningBg, borderRadius: 10, padding: 16 }}>
                   <p style={{ fontSize: 11, color: COLORS.warningText, marginBottom: 6 }}>تنتهي التجربة</p>
-                  <p style={{ fontSize: 13, fontWeight: 600, color: COLORS.warningText }}>{new Date(sub.trialEndsAt).toLocaleDateString("ar-SA")}</p>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: COLORS.warningText }}>{fmtDate(sub.trialEndsAt)}</p>
                 </div>
               )}
               <div style={{ background: COLORS.light, borderRadius: 10, padding: 16 }}>
                 <p style={{ fontSize: 11, color: COLORS.muted, marginBottom: 6 }}>التجديد</p>
                 <p style={{ fontSize: 13, fontWeight: 600, color: COLORS.dark }}>
-                  {sub.renewalDate ? new Date(sub.renewalDate).toLocaleDateString("ar-SA") : "—"}
+                  {sub.renewalDate ? fmtDate(sub.renewalDate) : "—"}
                 </p>
               </div>
             </div>

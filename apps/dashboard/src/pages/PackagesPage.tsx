@@ -19,7 +19,7 @@ const EMPTY = {
 
 function fmt(n: any) {
   if (!n || Number(n) === 0) return "—";
-  return Number(n).toLocaleString("ar-SA", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " ر.س";
+  return Number(n).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + " ر.س";
 }
 
 export function PackagesPage() {

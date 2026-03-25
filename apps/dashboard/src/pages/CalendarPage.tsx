@@ -50,7 +50,7 @@ export function CalendarPage() {
             <ChevronRight className="w-4 h-4 text-gray-500" />
           </button>
           <span className="text-sm font-semibold text-gray-800 min-w-[140px] text-center">
-            {currentDate.toLocaleDateString("ar-SA", { month: "long", year: "numeric" })}
+            {currentDate.toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { month: "long", year: "numeric" })}
           </span>
           <button onClick={next} className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors">
             <ChevronLeft className="w-4 h-4 text-gray-500" />

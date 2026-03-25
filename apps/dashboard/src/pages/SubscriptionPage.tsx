@@ -199,7 +199,7 @@ export function SubscriptionPage() {
           <div>
             <p className="text-xs text-gray-400 mb-0.5">تاريخ الانتهاء</p>
             <p className="text-sm font-medium text-gray-700">
-              {sub?.endDate ? new Date(sub.endDate).toLocaleDateString("ar-SA") : "—"}
+              {sub?.endDate ? fmtDate(sub.endDate) : "—"}
             </p>
           </div>
           <div>
@@ -368,7 +368,7 @@ export function SubscriptionPage() {
                     </td>
                     <td className="px-5 py-3"><StatusBadge status={row.status} /></td>
                     <td className="px-5 py-3 text-gray-400 text-xs whitespace-nowrap">
-                      {new Date(row.createdAt).toLocaleDateString("ar-SA")}
+                      {fmtDate(row.createdAt)}
                     </td>
                   </tr>
                 ))}

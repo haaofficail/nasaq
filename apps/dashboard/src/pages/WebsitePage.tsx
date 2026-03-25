@@ -479,7 +479,7 @@ export function WebsitePage() {
               </p>
               <p style={{ fontSize: 12, color: COLORS.muted, margin: "3px 0 0" }}>
                 {builder.isPublished
-                  ? `منشور منذ ${builder.publishedAt ? new Date(builder.publishedAt).toLocaleDateString("ar-SA") : "—"}`
+                  ? `منشور منذ ${builder.publishedAt ? fmtDate(builder.publishedAt) : "—"}`
                   : "مسودة — لم يُنشر بعد"}
               </p>
             </div>

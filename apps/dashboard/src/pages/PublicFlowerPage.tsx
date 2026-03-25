@@ -944,7 +944,7 @@ export function PublicFlowerPage() {
               {delivDate && (
                 <p className="text-sm text-gray-600 flex items-center gap-1.5">
                   <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                  {new Date(delivDate).toLocaleDateString("ar-SA", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+                  {new Date(delivDate).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
                 </p>
               )}
               {delivAddr && (

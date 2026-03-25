@@ -392,7 +392,7 @@ export function ServiceDetailPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-gray-400">الرابط</span><span className="font-mono text-xs text-brand-500">/book/{service.slug}</span></div>
                 <div className="flex justify-between"><span className="text-gray-400">SKU</span><span>{service.sku || "—"}</span></div>
-                <div className="flex justify-between"><span className="text-gray-400">تاريخ الإنشاء</span><span>{service.createdAt ? new Date(service.createdAt).toLocaleDateString("ar-SA") : "—"}</span></div>
+                <div className="flex justify-between"><span className="text-gray-400">تاريخ الإنشاء</span><span>{service.createdAt ? fmtDate(service.createdAt) : "—"}</span></div>
               </div>
             </div>
           </div>

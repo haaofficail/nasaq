@@ -112,7 +112,7 @@ function dateLabel(dateStr: string): string {
   const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
   if (d.toDateString() === today.toDateString())     return "اليوم";
   if (d.toDateString() === yesterday.toDateString()) return "أمس";
-  return d.toLocaleDateString("ar-SA", { year: "numeric", month: "numeric", day: "numeric" });
+  return d.toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 // ── widget ──────────────────────────────────────────────────────

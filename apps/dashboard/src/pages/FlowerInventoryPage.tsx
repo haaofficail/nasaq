@@ -342,7 +342,7 @@ export function FlowerInventoryPage() {
                             <span className="text-xs text-gray-400">مرحلة: {BLOOM_AR[b.currentBloomStage] || b.currentBloomStage}</span>
                             <span className={clsx("text-xs font-medium", urgent ? "text-red-600" : warning ? "text-amber-600" : "text-gray-500")}>
                               <Clock className="w-3 h-3 inline mr-0.5" />
-                              {urgent ? `${days} أيام فقط` : warning ? `${days} أيام` : new Date(b.expiryEstimated).toLocaleDateString("ar-SA")}
+                              {urgent ? `${days} أيام فقط` : warning ? `${days} أيام` : fmtDate(b.expiryEstimated)}
                             </span>
                           </div>
                           <div className="flex items-center gap-4 mt-2">
@@ -417,7 +417,7 @@ export function FlowerInventoryPage() {
                             {days === 0 ? "اليوم!" : `${days} ${days === 1 ? "يوم" : "أيام"}`}
                           </p>
                           <p className="text-[10px] text-gray-400 mt-0.5">
-                            {new Date(b.expiryEstimated).toLocaleDateString("ar-SA")}
+                            {fmtDate(b.expiryEstimated)}
                           </p>
                         </div>
                       </div>

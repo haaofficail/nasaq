@@ -120,7 +120,7 @@ export function OnlineOrdersPage() {
                         <span className="text-xs text-gray-400 tabular-nums">#{order.id?.slice(-6)}</span>
                       </div>
                       <p className="text-xs text-gray-400">
-                        {order.scheduledAt ? new Date(order.scheduledAt).toLocaleString("ar-SA", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}
+                        {order.scheduledAt ? new Date(order.scheduledAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}
                         {order.customerPhone && ` · ${order.customerPhone}`}
                       </p>
                     </div>

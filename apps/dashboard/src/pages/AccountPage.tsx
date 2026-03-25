@@ -69,7 +69,7 @@ function timeAgo(dateStr: string): string {
   if (hrs < 24)  return `منذ ${hrs} ساعة`;
   const days = Math.floor(hrs / 24);
   if (days < 7)  return `منذ ${days} يوم`;
-  return new Date(dateStr).toLocaleDateString("ar-SA");
+  return fmtDate(dateStr);
 }
 
 // ── password strength ───────────────────────────────────────────────────────
@@ -596,7 +596,7 @@ export function AccountPage() {
                       </span>
                       <span className="flex items-center gap-1">
                         <LogOut className="w-3 h-3" />
-                        تنتهي {new Date(s.expiresAt).toLocaleDateString("ar-SA")}
+                        تنتهي {fmtDate(s.expiresAt)}
                       </span>
                     </div>
                   </div>

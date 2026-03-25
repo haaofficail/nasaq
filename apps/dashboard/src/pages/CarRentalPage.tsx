@@ -321,10 +321,10 @@ export default function CarRentalPage() {
                           })()}
                         </td>
                         <td className="px-4 py-3 text-gray-500">
-                          {new Date(res.pickupDate).toLocaleDateString("ar-SA")}
+                          {fmtDate(res.pickupDate)}
                         </td>
                         <td className="px-4 py-3 text-gray-500">
-                          {new Date(res.returnDate).toLocaleDateString("ar-SA")}
+                          {fmtDate(res.returnDate)}
                         </td>
                         <td className="px-4 py-3 font-medium">
                           {Number(res.totalAmount).toLocaleString("en-US")} ريال
@@ -433,7 +433,7 @@ export default function CarRentalPage() {
                           }[insp.inspectionType as string] ?? insp.inspectionType}
                         </td>
                         <td className="px-4 py-3 text-gray-500">
-                          {new Date(insp.inspectedAt).toLocaleDateString("ar-SA")}
+                          {fmtDate(insp.inspectedAt)}
                         </td>
                         <td className="px-4 py-3">
                           {insp.hasDamage ? (

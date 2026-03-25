@@ -38,7 +38,7 @@ function calcTotals(items: LineItem[]) {
 }
 
 function fmt(n: any) {
-  return Number(n || 0).toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 interface Props {

@@ -364,7 +364,7 @@ function BatchesTab() {
                   <td className="px-4 py-3 text-gray-600">{b.unitCost ? `${b.unitCost} ر.س` : "—"}</td>
                   <td className="px-4 py-3">
                     <div className={clsx("text-sm", b.daysUntilExpiry !== undefined && b.daysUntilExpiry <= 1 ? "text-red-600 font-bold" : b.daysUntilExpiry !== undefined && b.daysUntilExpiry <= 3 ? "text-orange-600 font-medium" : "text-gray-600")}>
-                      {new Date(b.expiryEstimated).toLocaleDateString("ar-SA")}
+                      {fmtDate(b.expiryEstimated)}
                     </div>
                     {b.daysUntilExpiry !== undefined && (
                       <div className="text-xs text-gray-400">
@@ -767,7 +767,7 @@ function ReportsTab() {
                   <td className="px-4 py-3 text-orange-500">{r.expiring_stock}</td>
                   <td className="px-4 py-3 text-gray-500">{r.active_batches}</td>
                   <td className="px-4 py-3 text-gray-500 text-xs">
-                    {r.next_expiry ? new Date(r.next_expiry).toLocaleDateString("ar-SA") : "—"}
+                    {r.next_expiry ? fmtDate(r.next_expiry) : "—"}
                   </td>
                 </tr>
               ))}

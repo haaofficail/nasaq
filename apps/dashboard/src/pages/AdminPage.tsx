@@ -1882,7 +1882,7 @@ function SubscriptionOrdersTab() {
                     </td>
                     <td className="px-5 py-3">{statusBadge(o.status)}</td>
                     <td className="px-5 py-3 text-gray-400 text-xs whitespace-nowrap">
-                      {new Date(o.createdAt).toLocaleDateString("ar-SA")}
+                      {fmtDate(o.createdAt)}
                     </td>
                     <td className="px-5 py-3">
                       {o.status === "pending_payment" && (
@@ -2628,7 +2628,7 @@ function RemindersAdminTab() {
                         </span>
                       </td>
                       <td className={clsx("py-3 px-4 text-xs tabular-nums", overdue ? "text-red-600 font-semibold" : "text-gray-400")}>
-                        {r.dueDate ? new Date(r.dueDate).toLocaleDateString("ar-SA") : "—"}
+                        {r.dueDate ? fmtDate(r.dueDate) : "—"}
                       </td>
                       <td className="py-3 px-4">
                         <span className={clsx("px-2 py-0.5 rounded-full text-[10px] font-semibold",
@@ -3639,7 +3639,7 @@ function CommercialTab() {
                       <td className="py-3 px-4 text-gray-500 text-xs">{DISC_TYPE_LABELS[d.type] || d.type}</td>
                       <td className="py-3 px-4 font-bold text-gray-900">{d.value}{d.type === "percentage" ? "%" : " ر.س"}</td>
                       <td className="py-3 px-4 text-gray-400 text-xs">{d.targetScope || "global"}</td>
-                      <td className="py-3 px-4 text-gray-400 text-xs">{d.endsAt ? new Date(d.endsAt).toLocaleDateString("ar-SA") : "بلا انتهاء"}</td>
+                      <td className="py-3 px-4 text-gray-400 text-xs">{d.endsAt ? fmtDate(d.endsAt) : "بلا انتهاء"}</td>
                       <td className="py-3 px-4">
                         <button onClick={() => deleteDisc(d.id).then(() => refetchDisc())} className="text-xs text-red-500 hover:underline">حذف</button>
                       </td>
@@ -3668,7 +3668,7 @@ function CommercialTab() {
                   {p.description && <p className="text-xs text-gray-400 mb-3 line-clamp-2">{p.description}</p>}
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-bold text-emerald-700">{p.value}{p.type === "percentage" ? "%" : " ر.س"} خصم</span>
-                    {p.endsAt && <span className="text-xs text-gray-400">{new Date(p.endsAt).toLocaleDateString("ar-SA")}</span>}
+                    {p.endsAt && <span className="text-xs text-gray-400">{fmtDate(p.endsAt)}</span>}
                   </div>
                 </div>
               ))}

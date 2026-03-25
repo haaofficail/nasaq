@@ -325,12 +325,12 @@ export function ProfileSettingsPage() {
               <p className="text-sm font-medium text-gray-900">{STATUS_LABELS[sub?.status || "trialing"]}</p>
               {sub?.trialEndsAt && sub.status === "trialing" && (
                 <p className="text-xs text-amber-600">
-                  تنتهي التجربة: {new Date(sub.trialEndsAt).toLocaleDateString("ar-SA")}
+                  تنتهي التجربة: {fmtDate(sub.trialEndsAt)}
                 </p>
               )}
               {sub?.subscriptionEndsAt && sub.status === "active" && (
                 <p className="text-xs text-gray-400">
-                  تجديد: {new Date(sub.subscriptionEndsAt).toLocaleDateString("ar-SA")}
+                  تجديد: {fmtDate(sub.subscriptionEndsAt)}
                 </p>
               )}
             </div>

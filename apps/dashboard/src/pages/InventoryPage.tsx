@@ -537,7 +537,7 @@ function ConsumablesTab() {
                     <span className="text-xs text-gray-400 mr-1">{p.unit}</span>
                   </td>
                   <td className="py-3.5 px-4 text-xs text-gray-500 hidden md:table-cell">{parseFloat(p.min_stock).toLocaleString("en-US")} {p.unit}</td>
-                  <td className="py-3.5 px-4 text-xs text-gray-500 hidden lg:table-cell">{parseFloat(p.unit_cost || 0).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td>
+                  <td className="py-3.5 px-4 text-xs text-gray-500 hidden lg:table-cell">{parseFloat(p.unit_cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س</td>
                   <td className="py-3.5 px-4">
                     <div className="flex gap-1">
                       <button onClick={() => { setAdjustItem(p); setAdjustForm({ type: "in", quantity: "", notes: "" }); }} className="p-1.5 rounded-lg hover:bg-emerald-50 transition-colors" title="تعديل المخزون">

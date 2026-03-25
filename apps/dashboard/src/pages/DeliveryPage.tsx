@@ -323,7 +323,7 @@ export function DeliveryPage() {
                       </td>
                       <td className="px-5 py-3 text-sm text-gray-700">{a.deliveryFee} ر.س</td>
                       <td className="px-5 py-3 text-xs text-gray-400">
-                        {new Date(a.assignedAt).toLocaleDateString("ar-SA")}
+                        {fmtDate(a.assignedAt)}
                       </td>
                     </tr>
                   );
