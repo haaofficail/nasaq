@@ -528,7 +528,13 @@ export function ServiceFormPage() {
                         <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
                           {(["minute","hour","day"] as DurationUnit[]).map(u => (
                             <button key={u} type="button"
-                              onClick={() => setForm(f => ({ ...f, durationUnit: u }))}
+                              onClick={() => {
+                                // Convert current value to new unit
+                                const curMins = (parseFloat(form.durationValue) || 1) * UNIT_MINS[form.durationUnit];
+                                const newVal = curMins / UNIT_MINS[u];
+                                const rounded = Number.isInteger(newVal) ? String(newVal) : newVal.toFixed(1).replace(/\.0$/, "");
+                                setForm(f => ({ ...f, durationUnit: u, durationValue: rounded }));
+                              }}
                               className={clsx(
                                 "px-3 py-1 rounded-md text-xs font-medium transition-all",
                                 form.durationUnit === u
@@ -578,46 +584,28 @@ export function ServiceFormPage() {
             {/* Card: Booking rules */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">إعدادات الحجز</h2>
-              <div className="flex flex-wrap gap-4">
-                <div className="w-32">
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    إلغاء مجاني<br /><span className="text-gray-400 font-normal">(ساعات قبل)</span>
-                  </label>
-                  <input type="number" min={0} value={form.cancellationFreeHours} onChange={upd("cancellationFreeHours")}
-                    placeholder="24" dir="ltr" className={iCls} />
-                </div>
-                <div className="w-32">
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    أقل حجز مسبق<br /><span className="text-gray-400 font-normal">(ساعات)</span>
-                  </label>
-                  <input type="number" min={0} value={form.minAdvanceHours} onChange={upd("minAdvanceHours")}
-                    placeholder="0" dir="ltr" className={iCls} />
-                </div>
-                <div className="w-32">
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    أقصى حجز مسبق<br /><span className="text-gray-400 font-normal">(أيام)</span>
-                  </label>
-                  <input type="number" min={0} value={form.maxAdvanceDays} onChange={upd("maxAdvanceDays")}
-                    placeholder="∞" dir="ltr" className={iCls} />
-                </div>
-                {needsTiming && (
-                  <>
-                    <div className="w-32">
-                      <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                        راحة قبل<br /><span className="text-gray-400 font-normal">(دقيقة)</span>
-                      </label>
-                      <input type="number" min={0} value={form.bufferBeforeMinutes} onChange={upd("bufferBeforeMinutes")}
-                        dir="ltr" className={iCls} />
+              <div className="divide-y divide-gray-50">
+                {[
+                  { field: "cancellationFreeHours", label: "إلغاء مجاني", unit: "ساعة", placeholder: "24" },
+                  { field: "minAdvanceHours",        label: "أقل حجز مسبق",  unit: "ساعة", placeholder: "0" },
+                  { field: "maxAdvanceDays",          label: "أقصى حجز مسبق", unit: "يوم",  placeholder: "∞" },
+                  ...(needsTiming ? [
+                    { field: "bufferBeforeMinutes", label: "فاصل قبل الموعد", unit: "دقيقة", placeholder: "0" },
+                    { field: "bufferAfterMinutes",  label: "فاصل بعد الموعد", unit: "دقيقة", placeholder: "0" },
+                  ] : []),
+                ].map(({ field, label, unit, placeholder }) => (
+                  <div key={field} className="flex items-center justify-between py-2.5">
+                    <span className="text-sm text-gray-700">{label}</span>
+                    <div className="flex items-center gap-2">
+                      <input type="number" min={0} dir="ltr"
+                        value={(form as any)[field]}
+                        onChange={upd(field as keyof Form)}
+                        placeholder={placeholder}
+                        className="w-20 border border-gray-200 rounded-lg px-2.5 py-1 text-sm text-center outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300" />
+                      <span className="text-xs text-gray-400 w-8 text-right">{unit}</span>
                     </div>
-                    <div className="w-32">
-                      <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                        راحة بعد<br /><span className="text-gray-400 font-normal">(دقيقة)</span>
-                      </label>
-                      <input type="number" min={0} value={form.bufferAfterMinutes} onChange={upd("bufferAfterMinutes")}
-                        dir="ltr" className={iCls} />
-                    </div>
-                  </>
-                )}
+                  </div>
+                ))}
               </div>
             </div>
 
