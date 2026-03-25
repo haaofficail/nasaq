@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save } from "lucide-react";
+import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image } from "lucide-react";
 import { clsx } from "clsx";
-import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi, membersApi, inventoryApi } from "@/lib/api";
+import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi, membersApi, inventoryApi, settingsApi } from "@/lib/api";
 import { toast } from "@/hooks/useToast";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -60,10 +60,22 @@ type AddonDraft = {
   price: string; type: "optional" | "required";
   imageUrl: string;
 };
+type QuestionType = "text" | "textarea" | "number" | "date" | "select" | "multi" | "location" | "file" | "image";
 type QuestionDraft = {
-  question: string; type: "text" | "textarea" | "select" | "multi" | "checkbox" | "number" | "date";
+  question: string; type: QuestionType;
   isRequired: boolean; isPaid: boolean; price: string; options: string;
 };
+
+const QUESTION_TYPES: { value: QuestionType; label: string; icon: React.ElementType; desc: string }[] = [
+  { value: "text",     label: "نصّي",           icon: AlignLeft,   desc: "إجابة نصية مفتوحة" },
+  { value: "number",   label: "رقم",             icon: Hash,        desc: "إدخال رقمي" },
+  { value: "date",     label: "تاريخ",           icon: Calendar,    desc: "اختيار تاريخ" },
+  { value: "select",   label: "قائمة منسدلة",   icon: ChevronDown, desc: "اختيار خيار واحد" },
+  { value: "multi",    label: "اختيار متعدد",    icon: LayoutList,  desc: "اختيار أكثر من خيار" },
+  { value: "location", label: "موقع",            icon: MapPin,      desc: "تحديد الموقع على الخريطة" },
+  { value: "file",     label: "ملف",             icon: Paperclip,   desc: "رفع ملف (PDF, Word...)" },
+  { value: "image",    label: "صورة",            icon: Image,       desc: "رفع صورة" },
+];
 type ComponentDraft = {
   sourceType: "manual" | "inventory";
   inventoryItemId: string;
@@ -109,6 +121,8 @@ export function ServiceFormPage() {
   const [loadedAddons,   setLoadedAddons]   = useState<any[]>([]);
   const [loadedQuestions,setLoadedQuestions]= useState<any[]>([]);
   const [loadedComponents,setLoadedComponents] = useState<any[]>([]);
+  const [branches,       setBranches]       = useState<any[]>([]);
+  const [allowedBranches,setAllowedBranches]= useState<string[]>([]); // [] = all
   const [staffMembers,   setStaffMembers]   = useState<any[]>([]);  // all members
   const [pendingStaffIds,setPendingStaffIds]= useState<string[]>([]);  // to be added on save (create)
   const [loadedStaff,    setLoadedStaff]    = useState<any[]>([]);    // already assigned (edit)
@@ -116,7 +130,8 @@ export function ServiceFormPage() {
 
   const fileRef                             = useRef<HTMLInputElement>(null);
   const addonFileRef                        = useRef<HTMLInputElement>(null);
-  const [addonUploadIdx, setAddonUploadIdx] = useState<number | null>(null);
+  const [addonUploadIdx,    setAddonUploadIdx]    = useState<number | null>(null);
+  const [questionPickerIdx, setQuestionPickerIdx] = useState<number | null>(null);
   const [coverPreview, setCoverPreview]     = useState<string | null>(null);
   const [coverUrl,     setCoverUrl]         = useState<string | null>(null);
   const [existingMediaId, setExistingMediaId] = useState<string | null>(null);
@@ -131,6 +146,7 @@ export function ServiceFormPage() {
     categoriesApi.list(true).then(r => setCategories(r.data || [])).catch(() => {});
     membersApi.list().then(r => setStaffMembers(r.data || [])).catch(() => {});
     inventoryApi.products().then(r => setProducts(r.data || [])).catch(() => {});
+    settingsApi.branches().then(r => setBranches(r.data || [])).catch(() => {});
 
     // Pre-select type passed from the type picker
     if (!isEdit && typeFromUrl) {
@@ -176,6 +192,7 @@ export function ServiceFormPage() {
         setLoadedQuestions(qRes.data || []);
         setLoadedComponents((compRes as any).data || []);
         setLoadedStaff((staffRes as any).data || []);
+        setAllowedBranches(s.allowedLocationIds || []);
         setLoading(false);
       }).catch(() => {
         setLoading(false);
@@ -269,6 +286,7 @@ export function ServiceFormPage() {
         description: form.description || undefined,
         basePrice: form.basePrice,
         status: form.status,
+        allowedLocationIds: allowedBranches,
         ...(durationMinutes ? { durationMinutes } : {}),
         ...bookingPayload,
       };
@@ -471,21 +489,12 @@ export function ServiceFormPage() {
                     </div>
                   </div>
                 )}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">اسم الخدمة <span className="text-red-400">*</span></label>
-                    <input autoFocus={!isEdit} value={form.name} onChange={upd("name")}
-                      placeholder="مثال: حجز جلسة تصوير"
-                      className={clsx(iCls, errors.name && "border-red-300")} />
-                    <Err msg={errors.name} />
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">التصنيف</label>
-                    <select value={form.categoryId} onChange={upd("categoryId")} className={iCls}>
-                      <option value="">بدون تصنيف</option>
-                      {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                  </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">اسم الخدمة <span className="text-red-400">*</span></label>
+                  <input autoFocus={!isEdit} value={form.name} onChange={upd("name")}
+                    placeholder="مثال: حجز جلسة تصوير"
+                    className={clsx(iCls, errors.name && "border-red-300")} />
+                  <Err msg={errors.name} />
                 </div>
                 <div>
                   <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
@@ -691,6 +700,55 @@ export function ServiceFormPage() {
                     </div>
                   </label>
                 ))}
+              </div>
+            </div>
+
+            {/* Card: Branches & category */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">الفروع والقسم</h2>
+              <div className="space-y-4">
+                {/* Branches */}
+                <div>
+                  <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">
+                    الفروع <span className="text-gray-400 font-normal normal-case">— اتركها فارغة لتظهر في كل الفروع</span>
+                  </label>
+                  {branches.length === 0 ? (
+                    <p className="text-xs text-gray-400">لا توجد فروع مضافة</p>
+                  ) : (
+                    <div className="flex flex-wrap gap-2">
+                      {branches.map((b: any) => {
+                        const active = allowedBranches.includes(b.id);
+                        return (
+                          <button key={b.id} type="button"
+                            onClick={() => setAllowedBranches(p =>
+                              active ? p.filter(x => x !== b.id) : [...p, b.id]
+                            )}
+                            className={clsx(
+                              "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
+                              active
+                                ? "bg-brand-50 text-brand-700 border-brand-300"
+                                : "bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300"
+                            )}>
+                            {b.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {allowedBranches.length > 0 && (
+                    <p className="text-[11px] text-brand-500 mt-1.5">
+                      تظهر في {allowedBranches.length} فرع — <button type="button" onClick={() => setAllowedBranches([])} className="underline hover:no-underline">إعادة للكل</button>
+                    </p>
+                  )}
+                </div>
+                {/* Category — move it here from info card */}
+                <div>
+                  <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">القسم</label>
+                  <select value={form.categoryId} onChange={upd("categoryId")} className={clsx(iCls, "max-w-xs")}>
+                    <option value="">بدون قسم</option>
+                    {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                </div>
               </div>
             </div>
 
@@ -1035,19 +1093,15 @@ export function ServiceFormPage() {
                             onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, question: e.target.value } : x))}
                             className={iCls} />
                         </div>
-                        <div className="w-36 shrink-0">
+                        <div className="shrink-0">
                           <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">نوع الإجابة</label>
-                          <select value={q.type}
-                            onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.value as any } : x))}
-                            className={iCls}>
-                            <option value="text">نص قصير</option>
-                            <option value="textarea">نص طويل</option>
-                            <option value="select">قائمة اختيار</option>
-                            <option value="multi">اختيار متعدد</option>
-                            <option value="checkbox">موافقة (نعم/لا)</option>
-                            <option value="number">رقم</option>
-                            <option value="date">تاريخ</option>
-                          </select>
+                          <button type="button"
+                            onClick={() => setQuestionPickerIdx(questionPickerIdx === i ? null : i)}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-brand-300 transition-all text-sm text-gray-700 min-w-[140px]">
+                            {(() => { const t = QUESTION_TYPES.find(x => x.value === q.type); const Icon = t?.icon; return Icon ? <Icon className="w-3.5 h-3.5 text-gray-400" /> : null; })()}
+                            <span className="flex-1 text-right">{QUESTION_TYPES.find(x => x.value === q.type)?.label || "اختر"}</span>
+                            <ChevronDown className="w-3 h-3 text-gray-400" />
+                          </button>
                         </div>
                         <button onClick={() => setQuestionDrafts(d => d.filter((_, j) => j !== i))}
                           className="mb-0.5 p-1.5 text-gray-300 hover:text-red-500 transition-colors shrink-0">
@@ -1112,6 +1166,40 @@ export function ServiceFormPage() {
                             className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors">
                             <Plus className="w-3 h-3" /> إضافة خيار
                           </button>
+                        </div>
+                      )}
+
+                      {/* Question type picker overlay */}
+                      {questionPickerIdx === i && (
+                        <div className="mt-2 p-3 bg-white border border-gray-200 rounded-xl shadow-lg">
+                          <div className="grid grid-cols-2 gap-2">
+                            {QUESTION_TYPES.map(t => {
+                              const Icon = t.icon;
+                              return (
+                                <button key={t.value} type="button"
+                                  onClick={() => {
+                                    setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, type: t.value } : x));
+                                    setQuestionPickerIdx(null);
+                                  }}
+                                  className={clsx(
+                                    "flex items-start gap-2.5 p-2.5 rounded-lg text-right transition-all border",
+                                    q.type === t.value
+                                      ? "bg-brand-50 border-brand-300 text-brand-700"
+                                      : "bg-gray-50 border-transparent hover:bg-gray-100 text-gray-700"
+                                  )}>
+                                  <div className={clsx("mt-0.5 shrink-0 p-1.5 rounded-lg",
+                                    q.type === t.value ? "bg-brand-100" : "bg-white"
+                                  )}>
+                                    <Icon className="w-3.5 h-3.5" />
+                                  </div>
+                                  <div>
+                                    <p className="text-xs font-semibold leading-tight">{t.label}</p>
+                                    <p className="text-[10px] text-gray-400 mt-0.5 leading-tight">{t.desc}</p>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       )}
                     </div>
