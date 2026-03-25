@@ -522,14 +522,23 @@ export function ServiceFormPage() {
                   {needsTiming && (
                     <div>
                       <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">المدة <span className="text-red-400">*</span></label>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 items-center">
                         <input type="number" min={1} value={form.durationValue} onChange={upd("durationValue")}
                           className={clsx(iCls, "w-20", errors.durationValue && "border-red-300")} dir="ltr" />
-                        <select value={form.durationUnit} onChange={upd("durationUnit")} className={clsx(iCls, "w-24")}>
-                          {(["minute","hour","day"] as DurationUnit[]).map(u =>
-                            <option key={u} value={u}>{UNIT_LABELS[u]}</option>
-                          )}
-                        </select>
+                        <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
+                          {(["minute","hour","day"] as DurationUnit[]).map(u => (
+                            <button key={u} type="button"
+                              onClick={() => setForm(f => ({ ...f, durationUnit: u }))}
+                              className={clsx(
+                                "px-3 py-1 rounded-md text-xs font-medium transition-all",
+                                form.durationUnit === u
+                                  ? "bg-white text-gray-900 shadow-sm"
+                                  : "text-gray-500 hover:text-gray-700"
+                              )}>
+                              {UNIT_LABELS[u]}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                       <Err msg={errors.durationValue} />
                     </div>
