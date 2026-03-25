@@ -1075,14 +1075,15 @@ export function ServiceFormPage() {
                             onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
                             className={iCls} />
                         </div>
-                        <div>
-                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">النوع</label>
-                          <select value={a.type}
-                            onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.value as any } : x))}
-                            className={iCls}>
-                            <option value="optional">اختياري</option>
-                            <option value="required">إلزامي</option>
-                          </select>
+                        <div className="flex items-center gap-2.5 pt-6">
+                          <input
+                            type="checkbox"
+                            id={`addon-req-${i}`}
+                            checked={a.type === "required"}
+                            onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.checked ? "required" : "optional" } : x))}
+                            className="w-4 h-4 rounded border-gray-300 accent-brand-500 cursor-pointer"
+                          />
+                          <label htmlFor={`addon-req-${i}`} className="text-sm text-gray-700 cursor-pointer select-none">إلزامي</label>
                         </div>
                       </div>
                     </div>
@@ -1174,15 +1175,18 @@ export function ServiceFormPage() {
                           )}>
                           بمقابل مالي
                         </button>
-                        {q.isPaid && (
+                      </div>
+                      {q.isPaid && (
+                        <div className="flex items-center gap-2">
+                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide shrink-0">رسوم الإجابة</label>
                           <div className="flex items-center gap-1.5">
                             <input type="number" min={0} value={q.price} placeholder="0.00" dir="ltr"
                               onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
-                              className={clsx(iCls, "w-24")} />
-                            <span className="text-xs text-gray-400">ر.س</span>
+                              className={clsx(iCls, "w-28")} />
+                            <span className="text-xs text-gray-400 shrink-0">ر.س</span>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                       {(q.type === "select" || q.type === "multi") && (
                         <div className="space-y-2">
                           <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block">الخيارات</label>
