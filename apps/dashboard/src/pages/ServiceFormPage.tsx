@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi } from "@/lib/api";
@@ -78,7 +78,9 @@ function Err({ msg }: { msg?: string }) {
 export function ServiceFormPage() {
   const { id } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const isEdit = !!id && id !== "new";
+  const typeFromUrl = searchParams.get("type") || "";
 
   const [form, setForm]       = useState<Form>(INIT);
   const [loading, setLoading] = useState(false);
@@ -105,6 +107,11 @@ export function ServiceFormPage() {
   // ── Load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     categoriesApi.list(true).then(r => setCategories(r.data || [])).catch(() => {});
+
+    // Pre-select type passed from the type picker
+    if (!isEdit && typeFromUrl) {
+      setForm(f => ({ ...f, serviceType: typeFromUrl }));
+    }
 
     if (isEdit) {
       setLoading(true);
@@ -305,6 +312,8 @@ export function ServiceFormPage() {
   );
 
   const selType = SERVICE_TYPES.find(t => t.value === form.serviceType);
+  // If type came from URL (already picked), skip the type picker card
+  const typeAlreadyPicked = !isEdit && !!typeFromUrl;
   const showForm = isEdit || !!form.serviceType;
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -341,8 +350,8 @@ export function ServiceFormPage() {
 
       <div className="max-w-3xl mx-auto space-y-5">
 
-        {/* ── Type selection (create only) ── */}
-        {!isEdit && (
+        {/* ── Type selection (create only, hidden if type came from picker) ── */}
+        {!isEdit && !typeAlreadyPicked && (
           <div className="bg-white rounded-2xl border border-gray-100 p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-1">نوع الخدمة <span className="text-red-400">*</span></h2>
             <p className="text-xs text-gray-400 mb-4">اختر نوع الخدمة التي تقدمها — يؤثر على حقول الحجز والتسعير</p>
@@ -379,12 +388,20 @@ export function ServiceFormPage() {
             <div className="bg-white rounded-2xl border border-gray-100 p-5">
               <h2 className="text-sm font-semibold text-gray-900 mb-4">معلومات الخدمة</h2>
               <div className="space-y-3">
-                {isEdit && selType && (
+                {selType && (isEdit || typeAlreadyPicked) && (
                   <div>
                     <label className="text-xs font-medium text-gray-500 block mb-1.5">نوع الخدمة</label>
-                    <span className="inline-flex items-center gap-1.5 bg-brand-50 text-brand-700 text-xs font-medium px-3 py-1.5 rounded-lg">
-                      <span>{selType.icon}</span>{selType.label}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 bg-brand-50 text-brand-700 text-xs font-medium px-3 py-1.5 rounded-lg">
+                        <span>{selType.icon}</span>{selType.label}
+                      </span>
+                      {!isEdit && (
+                        <button onClick={() => navigate(-1)}
+                          className="text-xs text-gray-400 hover:text-brand-500 underline transition-colors">
+                          تغيير
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

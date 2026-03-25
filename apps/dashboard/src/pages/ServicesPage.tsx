@@ -1,11 +1,60 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Search, Grid3X3, List, Eye, EyeOff, Copy, Trash2, Pencil, Star, Package, Globe, Loader2, AlertCircle } from "lucide-react";
+import { Plus, Search, Grid3X3, List, Eye, EyeOff, Copy, Trash2, Pencil, Star, Package, Globe, Loader2, AlertCircle, X } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { PageHeader, Button } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
+
+const SERVICE_TYPES = [
+  { value: "appointment",      label: "بموعد",         icon: "🗓" },
+  { value: "execution",        label: "تنفيذ",          icon: "🔧" },
+  { value: "field_service",    label: "ميداني",         icon: "📍" },
+  { value: "rental",           label: "تأجير",          icon: "🏠" },
+  { value: "event_rental",     label: "تأجير فعالية",   icon: "⛺" },
+  { value: "product",          label: "منتج",           icon: "📦" },
+  { value: "product_shipping", label: "شحن",            icon: "🚚" },
+  { value: "food_order",       label: "طعام",           icon: "🍽" },
+  { value: "package",          label: "باقة",           icon: "🎁" },
+  { value: "add_on",           label: "إضافة",          icon: "➕" },
+  { value: "project",          label: "مشروع",          icon: "📋" },
+];
+
+function TypePickerOverlay({ onSelect, onClose }: { onSelect: (type: string) => void; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
+      <div
+        className="relative bg-white rounded-2xl shadow-xl border border-gray-100 p-6 w-full max-w-md"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-base font-bold text-gray-900">نوع الخدمة</h2>
+            <p className="text-xs text-gray-400 mt-0.5">اختر نوع الخدمة التي تريد إضافتها</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
+            <X className="w-4 h-4 text-gray-400" />
+          </button>
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {SERVICE_TYPES.map(t => (
+            <button
+              key={t.value}
+              type="button"
+              onClick={() => onSelect(t.value)}
+              className="flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl border border-gray-100 bg-white text-center hover:border-brand-400 hover:bg-brand-50 transition-all"
+            >
+              <span className="text-2xl leading-none">{t.icon}</span>
+              <span className="text-[11px] font-medium text-gray-600 leading-tight">{t.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; class: string }> = {
@@ -49,11 +98,14 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
   const [categoryFilter, setCategoryFilter] = useState("الكل");
   const [typeFilter, setTypeFilter] = useState("الكل");
   const [view, setView] = useState<"grid" | "list">("grid");
+  const [showTypePicker, setShowTypePicker] = useState(false);
 
-  // Auto-navigate to create page if ?new=1
+  // Auto-open type picker if ?new=1
   useEffect(() => {
     if (searchParams.get("new") === "1") {
-      navigate("/dashboard/services/new");
+      setShowTypePicker(true);
+      searchParams.delete("new");
+      setSearchParams(searchParams, { replace: true });
     }
   }, []);
 
@@ -76,7 +128,7 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
   // Unique types present in this org's services
   const presentTypes: string[] = ["الكل", ...Array.from(new Set(services.map((s: any) => s.serviceType).filter(Boolean) as string[]))];
 
-  const handleDelete = async (id: string, name: string) => {  // eslint-disable-line @typescript-eslint/no-unused-vars
+  const handleDelete = async (id: string, name: string) => {
     if (!confirm("حذف \"" + name + "\"؟")) return;
     await deleteService(id);
     refetch();
@@ -105,7 +157,7 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
         <PageHeader
           title="الخدمات"
           description={`${services.length} خدمة`}
-          actions={<Button icon={Plus} onClick={() => navigate("/dashboard/services/new")}>خدمة جديدة</Button>}
+          actions={<Button icon={Plus} onClick={() => setShowTypePicker(true)}>خدمة جديدة</Button>}
         />
       )}
 
@@ -145,7 +197,7 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
           <button onClick={() => setView("list")} className={clsx("p-2 rounded-lg transition-colors", view === "list" ? "bg-brand-500 text-white" : "text-gray-400 hover:bg-gray-50")}><List className="w-4 h-4" /></button>
         </div>
         {embedded && (
-          <Button icon={Plus} onClick={() => navigate("/dashboard/services/new")}>خدمة جديدة</Button>
+          <Button icon={Plus} onClick={() => setShowTypePicker(true)}>خدمة جديدة</Button>
         )}
       </div>
 
@@ -155,7 +207,7 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
           <h3 className="text-base font-semibold text-gray-900 mb-1">{search ? "لا توجد نتائج" : "لا توجد خدمات بعد"}</h3>
           <p className="text-sm text-gray-400 mb-4">{search ? "جرب كلمات بحث مختلفة" : "أضف أول خدمة لك"}</p>
           {!search && (
-            <button onClick={() => navigate("/dashboard/services/new")}
+            <button onClick={() => setShowTypePicker(true)}
               className="bg-brand-500 text-white rounded-xl px-4 py-2 text-sm font-medium hover:bg-brand-600 transition-colors">
               <Plus className="w-4 h-4 inline ml-1" /> إضافة خدمة
             </button>
@@ -318,6 +370,12 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
         </div>
       )}
 
+      {showTypePicker && (
+        <TypePickerOverlay
+          onSelect={type => { setShowTypePicker(false); navigate(`/dashboard/services/new?type=${type}`); }}
+          onClose={() => setShowTypePicker(false)}
+        />
+      )}
     </div>
   );
 }
