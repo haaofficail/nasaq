@@ -4,7 +4,6 @@ import {
   Layers, ChevronLeft, ChevronRight, Bell, Search, Plus, LogOut, Menu, X, User, WifiOff,
 } from "lucide-react";
 import { clsx } from "clsx";
-import { App as CapApp } from "@capacitor/app";
 import { authApi, orgSubscriptionApi } from "@/lib/api";
 import { useOrgContext, invalidateOrgContextCache } from "@/hooks/useOrgContext";
 import { buildVisibleNav, BOTTOM_NAV, SUPER_ADMIN_NAV } from "@/lib/navigationRegistry";
@@ -27,10 +26,11 @@ export function Layout() {
   // Android back button — navigate back instead of closing app
   useEffect(() => {
     if (!isNative) return;
-    const listener = CapApp.addListener("backButton", () => {
-      navigate(-1);
+    let listenerHandle: any;
+    import("@capacitor/app").then(({ App: CapApp }) => {
+      listenerHandle = CapApp.addListener("backButton", () => { navigate(-1); });
     });
-    return () => { listener.then((h) => h.remove()); };
+    return () => { listenerHandle?.then?.((h: any) => h.remove()); };
   }, [navigate]);
 
   const user = (() => {
