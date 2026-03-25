@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save } from "lucide-react";
 import { clsx } from "clsx";
-import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi } from "@/lib/api";
+import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi, membersApi, inventoryApi } from "@/lib/api";
 import { toast } from "@/hooks/useToast";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -37,7 +37,8 @@ const NEEDS_CAPACITY = new Set(["event_rental","package","food_order","rental"])
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Form = {
-  serviceType: string; name: string; categoryId: string; description: string;
+  serviceType: string; name: string; categoryId: string;
+  shortDescription: string; description: string;
   basePrice: string; durationValue: string; durationUnit: DurationUnit; status: string;
   vatInclusive: boolean; maxCapacity: string;
   depositPercent: string; minAdvanceHours: string; maxAdvanceDays: string;
@@ -46,7 +47,7 @@ type Form = {
 };
 
 const INIT: Form = {
-  serviceType: "", name: "", categoryId: "", description: "",
+  serviceType: "", name: "", categoryId: "", shortDescription: "", description: "",
   basePrice: "", durationValue: "60", durationUnit: "minute", status: "active",
   vatInclusive: true, maxCapacity: "",
   depositPercent: "30", minAdvanceHours: "", maxAdvanceDays: "",
@@ -54,11 +55,24 @@ const INIT: Form = {
   isBookable: true, isVisibleInPOS: true, isVisibleOnline: true,
 };
 
-type AddonDraft    = { name: string; price: string; type: "optional" | "required" };
-type QuestionDraft = { question: string; type: "text" | "select" | "checkbox" | "number"; isRequired: boolean; isPaid: boolean; price: string; options: string };
+type AddonDraft = {
+  name: string; nameEn: string; description: string;
+  price: string; type: "optional" | "required";
+  imageUrl: string;
+};
+type QuestionDraft = {
+  question: string; type: "text" | "textarea" | "select" | "multi" | "checkbox" | "number" | "date";
+  isRequired: boolean; isPaid: boolean; price: string; options: string;
+};
+type ComponentDraft = {
+  sourceType: "manual" | "inventory";
+  inventoryItemId: string;
+  name: string; quantity: string; unit: string; unitCost: string;
+};
 
-const INIT_ADDON: AddonDraft    = { name: "", price: "", type: "optional" };
-const INIT_Q: QuestionDraft     = { question: "", type: "text", isRequired: false, isPaid: false, price: "", options: "" };
+const INIT_ADDON: AddonDraft = { name: "", nameEn: "", description: "", price: "", type: "optional", imageUrl: "" };
+const INIT_Q: QuestionDraft  = { question: "", type: "text", isRequired: false, isPaid: false, price: "", options: "" };
+const INIT_COMP: ComponentDraft = { sourceType: "manual", inventoryItemId: "", name: "", quantity: "1", unit: "قطعة", unitCost: "0" };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -91,10 +105,18 @@ export function ServiceFormPage() {
 
   const [addonDrafts,    setAddonDrafts]    = useState<AddonDraft[]>([]);
   const [questionDrafts, setQuestionDrafts] = useState<QuestionDraft[]>([]);
+  const [componentDrafts,setComponentDrafts]= useState<ComponentDraft[]>([]);
   const [loadedAddons,   setLoadedAddons]   = useState<any[]>([]);
   const [loadedQuestions,setLoadedQuestions]= useState<any[]>([]);
+  const [loadedComponents,setLoadedComponents] = useState<any[]>([]);
+  const [staffMembers,   setStaffMembers]   = useState<any[]>([]);  // all members
+  const [pendingStaffIds,setPendingStaffIds]= useState<string[]>([]);  // to be added on save (create)
+  const [loadedStaff,    setLoadedStaff]    = useState<any[]>([]);    // already assigned (edit)
+  const [products,       setProducts]       = useState<any[]>([]);    // inventory products
 
   const fileRef                             = useRef<HTMLInputElement>(null);
+  const addonFileRef                        = useRef<HTMLInputElement>(null);
+  const [addonUploadIdx, setAddonUploadIdx] = useState<number | null>(null);
   const [coverPreview, setCoverPreview]     = useState<string | null>(null);
   const [coverUrl,     setCoverUrl]         = useState<string | null>(null);
   const [existingMediaId, setExistingMediaId] = useState<string | null>(null);
@@ -107,6 +129,8 @@ export function ServiceFormPage() {
   // ── Load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     categoriesApi.list(true).then(r => setCategories(r.data || [])).catch(() => {});
+    membersApi.list().then(r => setStaffMembers(r.data || [])).catch(() => {});
+    inventoryApi.products().then(r => setProducts(r.data || [])).catch(() => {});
 
     // Pre-select type passed from the type picker
     if (!isEdit && typeFromUrl) {
@@ -118,7 +142,9 @@ export function ServiceFormPage() {
       Promise.all([
         servicesApi.get(id!),
         questionsApi.list(id!).catch(() => ({ data: [] })),
-      ]).then(([res, qRes]) => {
+        servicesApi.getComponents(id!).catch(() => ({ data: [] })),
+        servicesApi.listStaff(id!).catch(() => ({ data: [] })),
+      ]).then(([res, qRes, compRes, staffRes]) => {
         const s = res.data;
         const dur = parseDur(parseInt(s.durationMinutes) || 60);
         const cover = (s.media || []).find((m: any) => m.isCover) || (s.media || [])[0];
@@ -128,6 +154,7 @@ export function ServiceFormPage() {
           serviceType:           s.serviceType || "appointment",
           name:                  s.name || "",
           categoryId:            s.categoryId || "",
+          shortDescription:      s.shortDescription || "",
           description:           s.description || "",
           basePrice:             s.basePrice ? String(s.basePrice) : "",
           durationValue:         dur.v,
@@ -147,6 +174,8 @@ export function ServiceFormPage() {
         });
         setLoadedAddons(s.addons || []);
         setLoadedQuestions(qRes.data || []);
+        setLoadedComponents((compRes as any).data || []);
+        setLoadedStaff((staffRes as any).data || []);
         setLoading(false);
       }).catch(() => {
         setLoading(false);
@@ -158,6 +187,19 @@ export function ServiceFormPage() {
   const upd = (f: keyof Form) => (e: any) => {
     setForm(p => ({ ...p, [f]: e?.target !== undefined ? e.target.value : e }));
     setErrors(p => ({ ...p, [f]: "" }));
+  };
+
+  // ── Addon image upload ────────────────────────────────────────────────────
+  const pickAddonImage = async (file: File, idx: number) => {
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("category", "addons");
+      const res = await mediaApi.upload(fd, () => {});
+      const url = res.data?.fileUrl || res.data?.url || res.data?.publicUrl;
+      if (url) setAddonDrafts(d => d.map((x, j) => j === idx ? { ...x, imageUrl: url } : x));
+    } catch {}
+    setAddonUploadIdx(null);
   };
 
   // ── Image upload ──────────────────────────────────────────────────────────
@@ -220,67 +262,92 @@ export function ServiceFormPage() {
         cancellationPolicy:  { freeHours: parseInt(form.cancellationFreeHours) || 24, refundPercentBefore: 50, refundDaysBefore: 3, noRefundDaysBefore: 1 },
       };
 
+      const baseInfo = {
+        name: form.name,
+        categoryId: form.categoryId || undefined,
+        shortDescription: form.shortDescription || undefined,
+        description: form.description || undefined,
+        basePrice: form.basePrice,
+        status: form.status,
+        ...(durationMinutes ? { durationMinutes } : {}),
+        ...bookingPayload,
+      };
+
+      const saveAddons = async (svcId: string, base: number) => {
+        const valid = addonDrafts.filter(a => a.name.trim() && a.price);
+        for (const a of valid) {
+          const addon = await addonsApi.create({
+            name: a.name.trim(),
+            nameEn: a.nameEn || undefined,
+            description: a.description || undefined,
+            image: a.imageUrl || undefined,
+            price: a.price,
+            type: a.type,
+          });
+          await servicesApi.linkAddon(svcId, { addonId: addon.data.id }).catch(() => {});
+        }
+      };
+
+      const saveQuestions = async (svcId: string, base: number) => {
+        const valid = questionDrafts.filter(q => q.question.trim());
+        for (let i = 0; i < valid.length; i++) {
+          const q = valid[i];
+          await questionsApi.create(svcId, {
+            question: q.question.trim(), type: q.type,
+            isRequired: q.isRequired, isPaid: q.isPaid,
+            price: q.isPaid ? q.price || "0" : "0",
+            options: ["select","multi"].includes(q.type) ? q.options.split("\n").filter(Boolean) : [],
+            sortOrder: base + i,
+          }).catch(() => {});
+        }
+      };
+
+      const saveComponents = async (svcId: string) => {
+        const valid = componentDrafts.filter(c => c.name.trim() || c.inventoryItemId);
+        for (let i = 0; i < valid.length; i++) {
+          const c = valid[i];
+          await servicesApi.addComponent(svcId, {
+            sourceType: c.sourceType,
+            inventoryItemId: c.inventoryItemId || undefined,
+            name: c.name.trim() || undefined,
+            quantity: parseFloat(c.quantity) || 1,
+            unit: c.unit || "قطعة",
+            unitCost: parseFloat(c.unitCost) || 0,
+            sortOrder: i,
+          }).catch(() => {});
+        }
+      };
+
+      const saveStaff = async (svcId: string) => {
+        for (const userId of pendingStaffIds) {
+          await servicesApi.addStaff(svcId, { userId }).catch(() => {});
+        }
+      };
+
       if (isEdit) {
-        await servicesApi.update(id!, {
-          name: form.name, categoryId: form.categoryId || undefined,
-          description: form.description || undefined,
-          basePrice: form.basePrice, status: form.status,
-          ...(durationMinutes ? { durationMinutes } : {}),
-          ...bookingPayload,
-        });
+        await servicesApi.update(id!, baseInfo);
         if (coverUrl && existingMediaId) {
           await servicesApi.removeMedia(id!, existingMediaId).catch(() => {});
           await servicesApi.addMedia(id!, { url: coverUrl, type: "image", isCover: true }).catch(() => {});
         } else if (coverUrl && !existingMediaId) {
           await servicesApi.addMedia(id!, { url: coverUrl, type: "image", isCover: true }).catch(() => {});
         }
-        const validAddonDrafts = addonDrafts.filter(a => a.name.trim() && a.price);
-        for (const a of validAddonDrafts) {
-          const addon = await addonsApi.create({ name: a.name.trim(), price: a.price, type: a.type });
-          await servicesApi.linkAddon(id!, { addonId: addon.data.id }).catch(() => {});
-        }
-        const validQDrafts = questionDrafts.filter(q => q.question.trim());
-        for (let i = 0; i < validQDrafts.length; i++) {
-          const q = validQDrafts[i];
-          await questionsApi.create(id!, {
-            question: q.question.trim(), type: q.type,
-            isRequired: q.isRequired, isPaid: q.isPaid,
-            price: q.isPaid ? q.price || "0" : "0",
-            options: q.type === "select" ? q.options.split("\n").filter(Boolean) : [],
-            sortOrder: loadedQuestions.length + i,
-          }).catch(() => {});
-        }
+        await saveAddons(id!, loadedAddons.length);
+        await saveQuestions(id!, loadedQuestions.length);
+        await saveComponents(id!);
+        await saveStaff(id!);
         toast.success("تم حفظ التعديلات");
         navigate(`/dashboard/services/${id}`);
       } else {
-        const res = await servicesApi.create({
-          name: form.name, serviceType: form.serviceType,
-          categoryId: form.categoryId || undefined,
-          description: form.description || undefined,
-          basePrice: form.basePrice, status: form.status,
-          ...(durationMinutes ? { durationMinutes } : {}),
-          ...bookingPayload,
-        });
+        const res = await servicesApi.create({ ...baseInfo, serviceType: form.serviceType });
         const svcId = res.data.id;
         if (coverUrl) {
           await servicesApi.addMedia(svcId, { url: coverUrl, type: "image", isCover: true }).catch(() => {});
         }
-        const validAddons = addonDrafts.filter(a => a.name.trim() && a.price);
-        for (const a of validAddons) {
-          const addon = await addonsApi.create({ name: a.name.trim(), price: a.price, type: a.type });
-          await servicesApi.linkAddon(svcId, { addonId: addon.data.id }).catch(() => {});
-        }
-        const validQs = questionDrafts.filter(q => q.question.trim());
-        for (let i = 0; i < validQs.length; i++) {
-          const q = validQs[i];
-          await questionsApi.create(svcId, {
-            question: q.question.trim(), type: q.type,
-            isRequired: q.isRequired, isPaid: q.isPaid,
-            price: q.isPaid ? q.price || "0" : "0",
-            options: q.type === "select" ? q.options.split("\n").filter(Boolean) : [],
-            sortOrder: i,
-          }).catch(() => {});
-        }
+        await saveAddons(svcId, 0);
+        await saveQuestions(svcId, 0);
+        await saveComponents(svcId);
+        await saveStaff(svcId);
         toast.success("تم إنشاء الخدمة");
         navigate(`/dashboard/services/${svcId}`);
       }
@@ -422,10 +489,19 @@ export function ServiceFormPage() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-1">
-                    الوصف <span className="text-gray-400 font-normal">(اختياري)</span>
+                    الوصف المختصر <span className="text-gray-400 font-normal">(يظهر في الكروت)</span>
                   </label>
-                  <textarea value={form.description} onChange={upd("description")} rows={3}
-                    placeholder="وصف مختصر للخدمة يراه العملاء..."
+                  <input value={form.shortDescription} onChange={upd("shortDescription")} maxLength={150}
+                    placeholder="جملة أو جملتين تصف الخدمة بإيجاز..."
+                    className={iCls} />
+                  <p className="text-[10px] text-gray-400 mt-0.5 text-left" dir="ltr">{form.shortDescription.length}/150</p>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 block mb-1">
+                    الوصف التفصيلي <span className="text-gray-400 font-normal">(اختياري)</span>
+                  </label>
+                  <textarea value={form.description} onChange={upd("description")} rows={4}
+                    placeholder="تفاصيل الخدمة، ما تشمل، الشروط والأحكام..."
                     className={clsx(iCls, "resize-none")} />
                 </div>
               </div>
@@ -608,6 +684,194 @@ export function ServiceFormPage() {
               </div>
             </div>
 
+            {/* Card: Service provider (staff) */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-900">مقدمو الخدمة</h2>
+                  <p className="text-xs text-gray-400 mt-0.5">الموظفون المؤهلون لتقديم هذه الخدمة</p>
+                </div>
+              </div>
+              {/* Assigned staff (edit) */}
+              {isEdit && loadedStaff.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {loadedStaff.map((s: any) => (
+                    <div key={s.userId || s.id} className="flex items-center gap-2 px-3 py-1.5 bg-brand-50 text-brand-700 rounded-xl text-sm">
+                      <span>{s.name || s.user?.name || "موظف"}</span>
+                      <button onClick={async () => {
+                        await servicesApi.removeStaff(id!, s.userId || s.id).catch(() => {});
+                        setLoadedStaff(p => p.filter((x: any) => (x.userId || x.id) !== (s.userId || s.id)));
+                      }} className="text-brand-400 hover:text-red-500 transition-colors">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Pending staff (create) */}
+              {pendingStaffIds.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {pendingStaffIds.map(uid => {
+                    const m = staffMembers.find((x: any) => x.id === uid);
+                    return (
+                      <div key={uid} className="flex items-center gap-2 px-3 py-1.5 bg-brand-50 text-brand-700 rounded-xl text-sm">
+                        <span>{m?.name || uid}</span>
+                        <button onClick={() => setPendingStaffIds(p => p.filter(x => x !== uid))}
+                          className="text-brand-400 hover:text-red-500 transition-colors">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {/* Add staff dropdown */}
+              {staffMembers.filter((m: any) => {
+                const assigned = isEdit
+                  ? loadedStaff.map((s: any) => s.userId || s.id)
+                  : pendingStaffIds;
+                return !assigned.includes(m.id);
+              }).length > 0 && (
+                <select
+                  value=""
+                  onChange={e => {
+                    const uid = e.target.value;
+                    if (!uid) return;
+                    if (isEdit) {
+                      servicesApi.addStaff(id!, { userId: uid }).then(() => {
+                        const m = staffMembers.find((x: any) => x.id === uid);
+                        setLoadedStaff(p => [...p, { userId: uid, name: m?.name }]);
+                      }).catch(() => {});
+                    } else {
+                      setPendingStaffIds(p => [...p, uid]);
+                    }
+                    e.target.value = "";
+                  }}
+                  className={clsx(iCls, "w-full max-w-xs")}>
+                  <option value="">اختر موظفاً لإضافته...</option>
+                  {staffMembers
+                    .filter((m: any) => {
+                      const assigned = isEdit
+                        ? loadedStaff.map((s: any) => s.userId || s.id)
+                        : pendingStaffIds;
+                      return !assigned.includes(m.id);
+                    })
+                    .map((m: any) => (
+                      <option key={m.id} value={m.id}>{m.name}</option>
+                    ))}
+                </select>
+              )}
+              {staffMembers.length === 0 && loadedStaff.length === 0 && pendingStaffIds.length === 0 && (
+                <p className="text-xs text-gray-400 py-1">لا يوجد موظفون — أضفهم أولاً من صفحة الفريق</p>
+              )}
+            </div>
+
+            {/* Card: Inventory components */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h2 className="text-sm font-semibold text-gray-900">مكونات الخدمة</h2>
+                  <p className="text-xs text-gray-400 mt-0.5">المواد والمستهلكات المطلوبة لتنفيذ الخدمة</p>
+                </div>
+                <button onClick={() => setComponentDrafts(d => [...d, { ...INIT_COMP }])}
+                  className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors">
+                  <Plus className="w-3.5 h-3.5" /> إضافة
+                </button>
+              </div>
+
+              {/* Existing components (edit) */}
+              {isEdit && loadedComponents.length > 0 && (
+                <div className="space-y-2 mb-4">
+                  {loadedComponents.map((c: any) => (
+                    <div key={c.id} className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-xl text-sm">
+                      <div>
+                        <p className="font-medium text-gray-800">{c.customerLabel || c.name}</p>
+                        <p className="text-xs text-gray-400">{c.quantity} {c.unit}</p>
+                      </div>
+                      <span className="text-gray-500 tabular-nums">{Number(c.unitCost || 0).toLocaleString()} ر.س</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {componentDrafts.length === 0 && loadedComponents.length === 0 && (
+                <p className="text-xs text-gray-400 py-1">لا توجد مكونات — اضغط "إضافة" لربط مواد من المخزون</p>
+              )}
+
+              {componentDrafts.length > 0 && (
+                <div className="space-y-3">
+                  {componentDrafts.map((c, i) => (
+                    <div key={i} className="border border-gray-100 rounded-xl p-4 space-y-3">
+                      {/* Source type + delete */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
+                          {(["manual", "inventory"] as const).map(t => (
+                            <button key={t} type="button"
+                              onClick={() => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, sourceType: t, inventoryItemId: "", name: "" } : x))}
+                              className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
+                                c.sourceType === t ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                              )}>
+                              {t === "manual" ? "يدوي" : "من المخزون"}
+                            </button>
+                          ))}
+                        </div>
+                        <button onClick={() => setComponentDrafts(d => d.filter((_, j) => j !== i))}
+                          className="p-1.5 text-gray-300 hover:text-red-500 transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {/* Name / inventory select */}
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 block mb-1">
+                          {c.sourceType === "inventory" ? "المنتج من المخزون" : "اسم المكون"} <span className="text-red-400">*</span>
+                        </label>
+                        {c.sourceType === "inventory" ? (
+                          <select value={c.inventoryItemId}
+                            onChange={e => {
+                              const p = products.find((x: any) => x.id === e.target.value);
+                              setComponentDrafts(d => d.map((x, j) => j === i
+                                ? { ...x, inventoryItemId: e.target.value, name: p?.name || "", unit: p?.unit || "قطعة", unitCost: p?.unitCost ? String(p.unitCost) : x.unitCost }
+                                : x));
+                            }}
+                            className={iCls}>
+                            <option value="">اختر منتجاً...</option>
+                            {products.map((p: any) => (
+                              <option key={p.id} value={p.id}>{p.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input value={c.name} placeholder="مثال: ورد أحمر"
+                            onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                            className={iCls} />
+                        )}
+                      </div>
+                      {/* Quantity + unit + cost */}
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 block mb-1">الكمية</label>
+                          <input type="number" min={0} step="0.1" value={c.quantity} dir="ltr"
+                            onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, quantity: e.target.value } : x))}
+                            className={iCls} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 block mb-1">الوحدة</label>
+                          <input value={c.unit} placeholder="قطعة"
+                            onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, unit: e.target.value } : x))}
+                            className={iCls} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 block mb-1">التكلفة (ر.س)</label>
+                          <input type="number" min={0} value={c.unitCost} dir="ltr"
+                            onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, unitCost: e.target.value } : x))}
+                            className={iCls} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Card: Add-ons */}
             <div className="bg-white rounded-2xl border border-gray-100 p-5">
               <div className="flex items-center justify-between mb-4">
@@ -620,43 +884,105 @@ export function ServiceFormPage() {
                   <Plus className="w-3.5 h-3.5" /> إضافة
                 </button>
               </div>
+
+              {/* Existing addons (edit mode) */}
               {isEdit && loadedAddons.length > 0 && (
-                <div className="space-y-2 mb-3">
+                <div className="space-y-2 mb-4">
                   {loadedAddons.map((a: any) => (
-                    <div key={a.id} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg text-sm">
-                      <span className="text-gray-700">{a.name}</span>
-                      <span className="text-brand-600 font-semibold tabular-nums">{Number(a.price || 0).toLocaleString()} ر.س</span>
+                    <div key={a.id} className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-xl">
+                      {a.image && <img src={a.image} className="w-9 h-9 rounded-lg object-cover shrink-0" alt="" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800">{a.name}</p>
+                        {a.description && <p className="text-xs text-gray-400 truncate">{a.description}</p>}
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="text-sm font-semibold text-brand-600 tabular-nums">{Number(a.price || 0).toLocaleString()} ر.س</p>
+                        <p className="text-[10px] text-gray-400">{a.type === "required" ? "إلزامي" : "اختياري"}</p>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
+
               {addonDrafts.length === 0 && loadedAddons.length === 0 && (
-                <p className="text-xs text-gray-400 py-1">لا توجد إضافات بعد — اضغط "إضافة" لإنشاء واحدة</p>
+                <p className="text-xs text-gray-400 py-1">لا توجد إضافات — اضغط "إضافة" لإنشاء واحدة</p>
               )}
+
+              {/* New addon drafts */}
               {addonDrafts.length > 0 && (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {addonDrafts.map((a, i) => (
-                    <div key={i} className="flex gap-2 items-center">
-                      <input value={a.name} placeholder="اسم الإضافة"
-                        onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                        className={clsx(iCls, "flex-1")} />
-                      <input type="number" min={0} value={a.price} placeholder="السعر" dir="ltr"
-                        onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
-                        className={clsx(iCls, "w-24")} />
-                      <select value={a.type}
-                        onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.value as any } : x))}
-                        className={clsx(iCls, "w-28")}>
-                        <option value="optional">اختياري</option>
-                        <option value="required">إلزامي</option>
-                      </select>
-                      <button onClick={() => setAddonDrafts(d => d.filter((_, j) => j !== i))}
-                        className="p-1.5 text-gray-300 hover:text-red-500 transition-colors shrink-0">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                    <div key={i} className="border border-gray-100 rounded-xl p-4 space-y-3">
+                      {/* Header row: image + name + delete */}
+                      <div className="flex gap-3 items-start">
+                        {/* Image */}
+                        <div className="shrink-0">
+                          {a.imageUrl ? (
+                            <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-gray-200">
+                              <img src={a.imageUrl} className="w-full h-full object-cover" alt="" />
+                              <button onClick={() => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, imageUrl: "" } : x))}
+                                className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded flex items-center justify-center">
+                                <X className="w-2.5 h-2.5 text-white" />
+                              </button>
+                            </div>
+                          ) : (
+                            <button type="button"
+                              onClick={() => { setAddonUploadIdx(i); addonFileRef.current?.click(); }}
+                              className="w-14 h-14 rounded-xl border-2 border-dashed border-gray-200 hover:border-brand-300 flex flex-col items-center justify-center gap-0.5 transition-colors">
+                              <Upload className="w-4 h-4 text-gray-300" />
+                              <span className="text-[9px] text-gray-400">صورة</span>
+                            </button>
+                          )}
+                        </div>
+                        {/* Name + delete */}
+                        <div className="flex-1 min-w-0">
+                          <label className="text-xs font-medium text-gray-500 block mb-1">اسم الإضافة <span className="text-red-400">*</span></label>
+                          <input value={a.name} placeholder="مثال: دفاية غاز"
+                            onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                            className={iCls} />
+                        </div>
+                        <button onClick={() => setAddonDrafts(d => d.filter((_, j) => j !== i))}
+                          className="mt-5 p-1.5 text-gray-300 hover:text-red-500 transition-colors shrink-0">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      {/* Description */}
+                      <div>
+                        <label className="text-xs font-medium text-gray-500 block mb-1">الوصف <span className="text-gray-400 font-normal">(اختياري)</span></label>
+                        <input value={a.description} placeholder="وصف مختصر للإضافة..."
+                          onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, description: e.target.value } : x))}
+                          className={iCls} />
+                      </div>
+                      {/* Price + type row */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 block mb-1">السعر (ر.س) <span className="text-red-400">*</span></label>
+                          <input type="number" min={0} value={a.price} placeholder="0.00" dir="ltr"
+                            onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
+                            className={iCls} />
+                        </div>
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 block mb-1">النوع</label>
+                          <select value={a.type}
+                            onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.value as any } : x))}
+                            className={iCls}>
+                            <option value="optional">اختياري</option>
+                            <option value="required">إلزامي</option>
+                          </select>
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
               )}
+
+              {/* Hidden file input for addon images */}
+              <input ref={addonFileRef} type="file" accept="image/*" className="hidden"
+                onChange={e => {
+                  const f = e.target.files?.[0];
+                  if (f && addonUploadIdx !== null) pickAddonImage(f, addonUploadIdx);
+                  e.target.value = "";
+                }} />
             </div>
 
             {/* Card: Custom questions */}
@@ -695,11 +1021,14 @@ export function ServiceFormPage() {
                           className={clsx(iCls, "flex-1")} />
                         <select value={q.type}
                           onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.value as any } : x))}
-                          className={clsx(iCls, "w-28")}>
-                          <option value="text">نص</option>
-                          <option value="select">قائمة</option>
+                          className={clsx(iCls, "w-32")}>
+                          <option value="text">نص قصير</option>
+                          <option value="textarea">نص طويل</option>
+                          <option value="select">قائمة اختيار</option>
+                          <option value="multi">اختيار متعدد</option>
                           <option value="checkbox">موافقة</option>
                           <option value="number">رقم</option>
+                          <option value="date">تاريخ</option>
                         </select>
                         <button onClick={() => setQuestionDrafts(d => d.filter((_, j) => j !== i))}
                           className="p-1.5 text-gray-300 hover:text-red-500 transition-colors shrink-0">
@@ -725,10 +1054,13 @@ export function ServiceFormPage() {
                             className={clsx(iCls, "w-24 text-xs")} />
                         )}
                       </div>
-                      {q.type === "select" && (
-                        <textarea value={q.options} rows={2} placeholder={"خيار 1\nخيار 2\nخيار 3"}
-                          onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, options: e.target.value } : x))}
-                          className={clsx(iCls, "resize-none text-xs")} />
+                      {(q.type === "select" || q.type === "multi") && (
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 block mb-1">الخيارات (كل خيار في سطر)</label>
+                          <textarea value={q.options} rows={3} placeholder={"خيار 1\nخيار 2\nخيار 3"}
+                            onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, options: e.target.value } : x))}
+                            className={clsx(iCls, "resize-none text-xs")} />
+                        </div>
                       )}
                     </div>
                   ))}
