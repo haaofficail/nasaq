@@ -534,26 +534,19 @@ export function ServiceFormPage() {
                       <div className="flex gap-2 items-center">
                         <input type="number" min={1} value={form.durationValue} onChange={upd("durationValue")}
                           className={clsx(iCls, "w-20", errors.durationValue && "border-red-300")} dir="ltr" />
-                        <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
-                          {(["minute","hour","day"] as DurationUnit[]).map(u => (
-                            <button key={u} type="button"
-                              onClick={() => {
-                                // Convert current value to new unit
-                                const curMins = (parseFloat(form.durationValue) || 1) * UNIT_MINS[form.durationUnit];
-                                const newVal = curMins / UNIT_MINS[u];
-                                const rounded = Number.isInteger(newVal) ? String(newVal) : newVal.toFixed(1).replace(/\.0$/, "");
-                                setForm(f => ({ ...f, durationUnit: u, durationValue: rounded }));
-                              }}
-                              className={clsx(
-                                "px-3 py-1 rounded-md text-xs font-medium transition-all",
-                                form.durationUnit === u
-                                  ? "bg-white text-gray-900 shadow-sm"
-                                  : "text-gray-500 hover:text-gray-700"
-                              )}>
-                              {UNIT_LABELS[u]}
-                            </button>
-                          ))}
-                        </div>
+                        <select value={form.durationUnit}
+                          onChange={e => {
+                            const u = e.target.value as DurationUnit;
+                            const curMins = (parseFloat(form.durationValue) || 1) * UNIT_MINS[form.durationUnit];
+                            const newVal = curMins / UNIT_MINS[u];
+                            const rounded = Number.isInteger(newVal) ? String(newVal) : newVal.toFixed(1).replace(/\.0$/, "");
+                            setForm(f => ({ ...f, durationUnit: u, durationValue: rounded }));
+                          }}
+                          className={clsx(iCls, "w-28")}>
+                          {(["minute","hour","day"] as DurationUnit[]).map(u =>
+                            <option key={u} value={u}>{UNIT_LABELS[u]}</option>
+                          )}
+                        </select>
                       </div>
                       <Err msg={errors.durationValue} />
                     </div>
