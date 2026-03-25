@@ -353,6 +353,26 @@ servicesRouter.post("/:id/addons", async (c) => {
 });
 
 // ============================================================
+// DELETE /services/:id/addons/:addonId — Unlink addon from service
+// ============================================================
+
+servicesRouter.delete("/:id/addons/:addonId", async (c) => {
+  const orgId = getOrgId(c);
+  const serviceId = c.req.param("id");
+  const addonId = c.req.param("addonId");
+
+  // Verify service belongs to org
+  const [svc] = await db.select({ id: services.id }).from(services)
+    .where(and(eq(services.id, serviceId), eq(services.orgId, orgId)));
+  if (!svc) return c.json({ error: "Service not found" }, 404);
+
+  await db.delete(serviceAddons)
+    .where(and(eq(serviceAddons.serviceId, serviceId), eq(serviceAddons.addonId, addonId)));
+
+  return c.json({ success: true });
+});
+
+// ============================================================
 // POST /services/:id/duplicate — Duplicate a service
 // ============================================================
 

@@ -90,7 +90,8 @@ export const servicesApi = {
   duplicate: (id: string) => api.post<{ data: any }>(`/services/${id}/duplicate`),
   addMedia: (id: string, data: any) => api.post(`/services/${id}/media`, data),
   removeMedia: (id: string, mediaId: string) => api.delete(`/services/${id}/media/${mediaId}`),
-  linkAddon: (id: string, data: any) => api.post(`/services/${id}/addons`, data),
+  linkAddon:   (id: string, data: any) => api.post(`/services/${id}/addons`, data),
+  unlinkAddon: (id: string, addonId: string) => api.delete(`/services/${id}/addons/${addonId}`),
   // Components
   getComponents: (id: string) => api.get<{ data: any[]; totalCost: number }>(`/services/${id}/components`),
   addComponent: (id: string, data: any) => api.post<{ data: any }>(`/services/${id}/components`, data),

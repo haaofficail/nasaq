@@ -15,7 +15,7 @@ const UNIT_LABELS: Record<DurationUnit, string> = { minute: "دقيقة", hour: 
 function parseDur(mins: number): { v: string; u: DurationUnit } {
   if (mins >= 1440 && mins % 1440 === 0) return { v: String(mins / 1440), u: "day" };
   if (mins >= 60   && mins % 60   === 0) return { v: String(mins / 60),   u: "hour" };
-  return { v: String(mins || 60), u: "minute" };
+  return { v: String(mins), u: "minute" };
 }
 
 const SERVICE_TYPES = [
@@ -898,12 +898,17 @@ export function ServiceFormPage() {
               {isEdit && loadedComponents.length > 0 && (
                 <div className="space-y-2 mb-4">
                   {loadedComponents.map((c: any) => (
-                    <div key={c.id} className="flex items-center justify-between px-3 py-2.5 bg-gray-50 rounded-xl text-sm">
-                      <div>
+                    <div key={c.id} className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-xl text-sm">
+                      <div className="flex-1 min-w-0">
                         <p className="font-medium text-gray-800">{c.customerLabel || c.name}</p>
                         <p className="text-xs text-gray-400">{c.quantity} {c.unit}</p>
                       </div>
                       <span className="text-gray-500 tabular-nums">{Number(c.unitCost || 0).toLocaleString()} ر.س</span>
+                      <button type="button"
+                        onClick={() => servicesApi.deleteComponent(id!, c.id).then(() => setLoadedComponents(p => p.filter((x: any) => x.id !== c.id))).catch(() => {})}
+                        className="p-1 text-gray-300 hover:text-red-500 transition-colors shrink-0">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -1014,6 +1019,11 @@ export function ServiceFormPage() {
                         <p className="text-sm font-semibold text-brand-600 tabular-nums">{Number(a.price || 0).toLocaleString()} ر.س</p>
                         <p className="text-[10px] text-gray-400">{a.type === "required" ? "إلزامي" : "اختياري"}</p>
                       </div>
+                      <button type="button"
+                        onClick={() => servicesApi.unlinkAddon(id!, a.id).then(() => setLoadedAddons(p => p.filter((x: any) => x.id !== a.id))).catch(() => {})}
+                        className="p-1 text-gray-300 hover:text-red-500 transition-colors shrink-0">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -1118,8 +1128,13 @@ export function ServiceFormPage() {
                   {loadedQuestions.map((q: any) => (
                     <div key={q.id} className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-lg text-sm">
                       <p className="flex-1 text-gray-700">{q.question}</p>
-                      {q.is_required && <span className="text-[10px] bg-red-50 text-red-500 px-2 py-0.5 rounded-full">مطلوب</span>}
+                      {q.isRequired && <span className="text-[10px] bg-red-50 text-red-500 px-2 py-0.5 rounded-full">مطلوب</span>}
                       {q.price > 0 && <span className="text-xs text-green-600">+ {Number(q.price).toLocaleString()} ر.س</span>}
+                      <button type="button"
+                        onClick={() => questionsApi.delete(q.id).then(() => setLoadedQuestions(p => p.filter((x: any) => x.id !== q.id))).catch(() => {})}
+                        className="p-1 text-gray-300 hover:text-red-500 transition-colors shrink-0">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -1255,7 +1270,9 @@ export function ServiceFormPage() {
 
                       {/* Question type picker overlay */}
                       {questionPickerIdx === i && (
-                        <div className="mt-2 p-3 bg-white border border-gray-200 rounded-xl shadow-lg">
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setQuestionPickerIdx(null)} />
+                          <div className="relative z-20 mt-2 p-3 bg-white border border-gray-200 rounded-xl shadow-lg">
                           <div className="grid grid-cols-2 gap-2">
                             {QUESTION_TYPES.map(t => {
                               const Icon = t.icon;
@@ -1285,6 +1302,7 @@ export function ServiceFormPage() {
                             })}
                           </div>
                         </div>
+                        </>
                       )}
                     </div>
                   ))}
