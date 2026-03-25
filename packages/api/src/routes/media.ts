@@ -3,7 +3,7 @@ import { eq, and, desc, asc, ilike, sql, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { writeFile, mkdir, unlink } from "node:fs/promises";
-import { join } from "node:path";
+import { join, resolve, basename } from "node:path";
 import { db } from "@nasaq/db/client";
 import { mediaAssets } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
@@ -101,7 +101,10 @@ async function deleteDiskFile(r2Key: string): Promise<void> {
     // r2Key = "orgId/category/filename" — file lives at UPLOAD_DIR/orgId/filename
     const parts = r2Key.split("/");
     if (parts.length < 3) return;
-    const diskPath = join(UPLOAD_DIR, parts[0], parts[parts.length - 1]);
+    const safeOrg  = basename(parts[0]);
+    const safeFile = basename(parts[parts.length - 1]);
+    const diskPath = resolve(UPLOAD_DIR, safeOrg, safeFile);
+    if (!diskPath.startsWith(resolve(UPLOAD_DIR))) return; // path traversal guard
     await unlink(diskPath);
   } catch { /* non-critical */ }
 }
@@ -583,7 +586,9 @@ mediaRouter.post("/upload", async (c) => {
   const key      = `${nanoid(14)}.${ext}`;
   const category = (form.get("category") as string) || "media";
 
-  const orgDir = join(UPLOAD_DIR, orgId);
+  const safeOrgId = basename(orgId); // prevent path traversal
+  const orgDir = resolve(UPLOAD_DIR, safeOrgId);
+  if (!orgDir.startsWith(resolve(UPLOAD_DIR))) return c.json({ error: "Invalid org" }, 400);
   await mkdir(orgDir, { recursive: true });
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(join(orgDir, key), buffer);

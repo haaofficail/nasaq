@@ -6,6 +6,8 @@ import { eq, and, desc, count } from "drizzle-orm";
 import { getOrgId, getUserId } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { encryptJson, decryptJson } from "../lib/encryption";
+import { createHmac } from "crypto";
+import { log } from "../lib/logger";
 
 export const integrationsRouter = new Hono();
 
@@ -153,17 +155,42 @@ integrationsRouter.get("/webhook-logs", async (c) => {
 // Inbound webhook ingestion — public (no auth)
 integrationsRouter.post("/webhook/inbound/:providerId", async (c) => {
   const providerId = c.req.param("providerId");
-  const body = await c.req.json().catch(() => ({}));
+
+  // Validate providerId format (alphanumeric + hyphens only)
+  if (!/^[a-zA-Z0-9_-]+$/.test(providerId)) {
+    return c.json({ error: "Invalid provider ID" }, 400);
+  }
+
+  const rawBody = await c.req.text();
   const headers: Record<string, string> = {};
   c.req.raw.headers.forEach((v, k) => { headers[k] = v; });
 
   const [config] = await db
-    .select({ orgId: integrationConfigs.orgId, id: integrationConfigs.id })
+    .select({
+      orgId: integrationConfigs.orgId,
+      id: integrationConfigs.id,
+      credentials: integrationConfigs.credentials,
+    })
     .from(integrationConfigs)
     .where(and(eq(integrationConfigs.providerId, providerId), eq(integrationConfigs.status, "active")))
     .limit(1);
 
   if (!config) return c.json({ error: "No active integration found" }, 404);
+
+  // Verify webhook signature if secret is configured in credentials
+  const creds  = decryptJson(config.credentials as any) ?? (config.credentials as Record<string, unknown> | null);
+  const secret = (creds as any)?.webhook_secret as string | undefined;
+  if (secret) {
+    const signature = c.req.header("X-Webhook-Signature") ?? c.req.header("X-Signature") ?? "";
+    const expected  = createHmac("sha256", secret).update(rawBody).digest("hex");
+    if (signature !== expected) {
+      log.warn({ providerId }, "[integrations/webhook] invalid signature");
+      return c.json({ error: "Invalid signature" }, 401);
+    }
+  }
+
+  let body: unknown;
+  try { body = JSON.parse(rawBody); } catch { body = {}; }
 
   await db.insert(webhookLogs).values({
     orgId: config.orgId,

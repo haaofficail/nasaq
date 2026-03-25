@@ -134,16 +134,19 @@ billingRouter.post("/renew", async (c) => {
 billingRouter.post("/webhook/moyasar", async (c) => {
   const rawBody = await c.req.text();
 
-  // التحقق من توقيع Moyasar
+  // التحقق من توقيع Moyasar — مطلوب دائماً
   const signature = c.req.header("X-Moyasar-Signature") ?? "";
   const secret    = process.env.MOYASAR_WEBHOOK_SECRET ?? "";
 
-  if (secret) {
-    const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
-    if (signature !== expected) {
-      log.warn({ signature }, "[billing/webhook] invalid Moyasar signature");
-      return c.json({ error: "Invalid signature" }, 401);
-    }
+  if (!secret) {
+    log.error("[billing/webhook] MOYASAR_WEBHOOK_SECRET is not configured — rejecting webhook");
+    return c.json({ error: "Webhook not configured" }, 503);
+  }
+
+  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+  if (signature !== expected) {
+    log.warn({ signature }, "[billing/webhook] invalid Moyasar signature");
+    return c.json({ error: "Invalid signature" }, 401);
   }
 
   let event: {

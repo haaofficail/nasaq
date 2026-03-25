@@ -266,8 +266,11 @@ marketplaceRouter.post("/rfp/:id/propose", async (c) => {
     status: "submitted",
   }).returning();
 
-  // Increment RFP inquiries counter (fire-and-forget)
-  db.execute(sql`UPDATE rfp_requests SET status = 'in_review' WHERE id = ${rfpId} AND status = 'open'`).catch(() => {});
+  // Update RFP status to in_review (fire-and-forget)
+  db.update(rfpRequests)
+    .set({ status: "in_review" })
+    .where(and(eq(rfpRequests.id, rfpId), eq(rfpRequests.status, "open")))
+    .catch(() => {});
 
   return c.json({ data: proposal }, 201);
 });

@@ -7,6 +7,7 @@ import { nanoid } from "nanoid";
 import { SESSION_DURATION_MS, DEFAULT_TRIAL_DAYS, MAX_FAILED_LOGIN_ATTEMPTS } from "../lib/constants";
 import { authMiddleware, type AuthUser } from "../middleware/auth";
 import { getBusinessDefaults, getTrustedIp } from "../lib/helpers";
+import { log } from "../lib/logger";
 import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
 
 // ============================================================
@@ -208,7 +209,7 @@ authRouter.post("/register", async (c) => {
 
   const smsEnabledReg = process.env.SMS_ENABLED === "true";
   if (!smsEnabledReg) {
-    console.log(`\n🔐 Register OTP [${normalizedPhone}]: ${code}  (expires in 5 min)\n`);
+    log.info({ phone: normalizedPhone, purpose: "register" }, "OTP generated (SMS not enabled)");
   }
 
   return c.json({
@@ -216,7 +217,6 @@ authRouter.post("/register", async (c) => {
     phone: normalizedPhone,
     orgId: result.org.id,
     expiresIn: 300,
-    ...(!smsEnabledReg ? { _devCode: code } : {}),
   }, 201);
 });
 
@@ -239,12 +239,9 @@ authRouter.post("/otp/request", async (c) => {
     .from(users)
     .where(eq(users.phone, phone));
 
-  if (!user) {
-    return c.json({ error: "رقم الجوال غير مسجل في النظام" }, 404);
-  }
-
-  if (user.status === "suspended") {
-    return c.json({ error: "الحساب موقوف — تواصل مع المسؤول" }, 403);
+  if (!user || user.status === "suspended") {
+    // رسالة عامة لمنع تعداد الحسابات
+    return c.json({ error: "تعذر إرسال رمز التحقق — تحقق من الرقم وحاول مجدداً" }, 400);
   }
 
   // Rate limit: منع طلب OTP أكثر من مرة كل دقيقة لنفس الرقم
@@ -280,16 +277,13 @@ authRouter.post("/otp/request", async (c) => {
   // TODO: Send via SMS/WhatsApp (Twilio/Unifonic) — set SMS_ENABLED=true when configured
   const smsEnabled = process.env.SMS_ENABLED === "true";
 
-  // Always log to console so it appears in PM2 logs until SMS is configured
   if (!smsEnabled) {
-    console.log(`\n🔐 OTP [${phone}]: ${code}  (expires in 5 min)\n`);
+    log.info({ phone, purpose: "login" }, "OTP generated (SMS not enabled)");
   }
 
   return c.json({
-    message: smsEnabled ? "تم إرسال رمز التحقق على جوالك" : "رمز التحقق: ظهر في سجلات الخادم",
+    message: smsEnabled ? "تم إرسال رمز التحقق على جوالك" : "تم إنشاء رمز التحقق",
     expiresIn: 300,
-    // Return code in response when SMS is not yet configured — remove once SMS is live
-    ...(!smsEnabled ? { _devCode: code } : {}),
   });
 });
 

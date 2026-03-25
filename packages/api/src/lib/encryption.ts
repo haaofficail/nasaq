@@ -15,19 +15,12 @@ const TAG_LENGTH = 16;  // 128-bit auth tag
 function getKey(): Buffer {
   const hex = process.env.ENCRYPTION_KEY;
   if (!hex || hex.length !== 64) {
-    // If key is missing, encryption is a no-op (warn once per process)
-    return Buffer.alloc(32);
+    throw new Error(
+      "[SECURITY] ENCRYPTION_KEY is not set or invalid (must be 64 hex chars). " +
+      "Generate with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\""
+    );
   }
   return Buffer.from(hex, "hex");
-}
-
-let warnedOnce = false;
-function warnIfNoKey() {
-  const hex = process.env.ENCRYPTION_KEY;
-  if ((!hex || hex.length !== 64) && !warnedOnce) {
-    console.warn("[SECURITY] ENCRYPTION_KEY is not set — credentials stored unencrypted");
-    warnedOnce = true;
-  }
 }
 
 /**
@@ -37,7 +30,6 @@ function warnIfNoKey() {
  */
 export function encryptJson(value: Record<string, unknown> | null | undefined): string | null {
   if (value == null) return null;
-  warnIfNoKey();
 
   const key = getKey();
   const iv = randomBytes(IV_LENGTH);
