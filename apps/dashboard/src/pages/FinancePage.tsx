@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { financeApi, settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Modal, Input, Select, TextArea, PageHeader } from "@/components/ui";
+import { CreateInvoiceModal } from "@/components/invoices/CreateInvoiceModal";
 import { fmtDate } from "@/lib/utils";
 
 export function FinancePage() {
@@ -18,6 +19,7 @@ export function FinancePage() {
     setSearchParams({ tab: keys[i] || "invoices" });
   };
   const [showExpense, setShowExpense] = useState(false);
+  const [showInvoice, setShowInvoice] = useState(false);
   const [expenseForm, setExpenseForm] = useState({ description: "", amount: "", category: "", date: new Date().toISOString().split("T")[0] });
 
   const { data: invoicesRes, loading: invLoading } = useApi(() => financeApi.invoices(), []);
@@ -61,6 +63,7 @@ export function FinancePage() {
         onTabChange={(id) => setSearchParams({ tab: id })}
         actions={
           <div className="flex gap-2">
+            <Button icon={Plus} onClick={() => setShowInvoice(true)}>فاتورة جديدة</Button>
             <Button variant="secondary" icon={Plus} onClick={() => setShowExpense(true)}>مصروف جديد</Button>
             <Button variant="secondary" icon={Download}>تصدير</Button>
           </div>
@@ -205,6 +208,12 @@ export function FinancePage() {
           </div>
         </div>
       )}
+
+      <CreateInvoiceModal
+        open={showInvoice}
+        onClose={() => setShowInvoice(false)}
+        onSuccess={() => setShowInvoice(false)}
+      />
 
       <Modal open={showExpense} onClose={() => setShowExpense(false)} title="مصروف جديد" size="sm"
         footer={<><Button variant="secondary" onClick={() => setShowExpense(false)}>إلغاء</Button><Button onClick={handleCreateExpense} loading={creating}>حفظ</Button></>}>
