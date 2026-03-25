@@ -4,46 +4,121 @@ import { auditLogApi } from "@/lib/api";
 import { clsx } from "clsx";
 import {
   CalendarCheck, FileText, CreditCard, Users, Package,
-  Settings, AlertCircle, Activity,
+  Settings, AlertCircle, Activity, LogIn, CheckCircle2, XCircle, Pencil, Eye,
 } from "lucide-react";
 
-// ── icon + color per action/resource ──────────────────────────
+// ── Arabic labels ──────────────────────────────────────────────
+const ACTION_AR: Record<string, string> = {
+  created:          "إنشاء",
+  create:           "إنشاء",
+  updated:          "تعديل",
+  update:           "تعديل",
+  deleted:          "حذف",
+  delete:           "حذف",
+  removed:          "حذف",
+  login:            "تسجيل دخول",
+  logout:           "تسجيل خروج",
+  completed:        "اكتمل",
+  cancelled:        "إلغاء",
+  cancel:           "إلغاء",
+  approved:         "موافقة",
+  rejected:         "رفض",
+  payment_recorded: "دفعة مُسجَّلة",
+  sent:             "إرسال",
+  view:             "عرض",
+  restored:         "استرداد",
+  refunded:         "استرداد مبلغ",
+};
+
+const RESOURCE_AR: Record<string, string> = {
+  booking:               "حجز",
+  bookings:              "حجز",
+  invoice:               "فاتورة",
+  invoices:              "فاتورة",
+  invoice_payment:       "دفعة فاتورة",
+  payment:               "دفعة",
+  payments:              "دفعة",
+  customer:              "عميل",
+  customers:             "عميل",
+  service:               "خدمة",
+  services:              "خدمة",
+  catalog:               "خدمة",
+  expense:               "مصروف",
+  expenses:              "مصروف",
+  user:                  "مستخدم",
+  users:                 "مستخدم",
+  branch:                "فرع",
+  branches:              "فرع",
+  settings:              "الإعدادات",
+  subscription:          "الاشتراك",
+  subscription_order:    "طلب اشتراك",
+  payment_gateway:       "بوابة دفع",
+  payment_gateway_credentials: "بيانات بوابة دفع",
+  product:               "منتج",
+  order:                 "طلب",
+  stock:                 "مخزون",
+  contract:              "عقد",
+  staff:                 "موظف",
+  shift:                 "وردية",
+  room:                  "غرفة",
+  vehicle:               "مركبة",
+};
+
+function arabicLabel(action: string, resource: string): string {
+  const a = ACTION_AR[action]   || action;
+  const r = RESOURCE_AR[resource] || resource;
+  if (action === "login" || action === "logout") return a;
+  return `${a} ${r}`;
+}
+
+// ── icon + color per resource/action ──────────────────────────
 function getEntryStyle(entry: any): { icon: React.ElementType; color: string; bg: string } {
   const resource = entry.resource || "";
   const action   = entry.action   || "";
 
+  if (action === "login" || action === "logout")
+    return { icon: LogIn,        color: "text-indigo-600",  bg: "bg-indigo-50" };
+  if (action === "deleted" || action === "delete" || action === "removed")
+    return { icon: XCircle,      color: "text-red-500",     bg: "bg-red-50" };
+  if (action === "completed")
+    return { icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50" };
+  if (action === "updated" || action === "update")
+    return { icon: Pencil,       color: "text-amber-600",   bg: "bg-amber-50" };
+  if (action === "view")
+    return { icon: Eye,          color: "text-gray-500",    bg: "bg-gray-100" };
+
   if (resource === "booking" || resource === "bookings")
-    return { icon: CalendarCheck, color: "text-blue-600",   bg: "bg-blue-50" };
-  if (resource === "invoice" || resource === "invoices" || resource === "payment")
+    return { icon: CalendarCheck, color: "text-blue-600",    bg: "bg-blue-50" };
+  if (resource.startsWith("invoice") || resource === "payment" || resource === "payments")
     return { icon: CreditCard,    color: "text-emerald-600", bg: "bg-emerald-50" };
   if (resource === "customer" || resource === "customers")
     return { icon: Users,         color: "text-violet-600",  bg: "bg-violet-50" };
-  if (resource === "service" || resource === "catalog")
+  if (resource === "service" || resource === "catalog" || resource === "product")
     return { icon: Package,       color: "text-teal-600",    bg: "bg-teal-50" };
-  if (resource === "settings")
+  if (resource === "settings" || resource.startsWith("payment_gateway"))
     return { icon: Settings,      color: "text-gray-500",    bg: "bg-gray-100" };
-  if (action === "delete" || action === "remove")
-    return { icon: AlertCircle,   color: "text-red-500",     bg: "bg-red-50" };
-  if (resource === "file" || resource === "document")
+  if (resource === "expense")
     return { icon: FileText,      color: "text-orange-500",  bg: "bg-orange-50" };
   return { icon: Activity,        color: "text-brand-500",   bg: "bg-brand-50" };
 }
 
 function timeLabel(dateStr: string): string {
-  const d = new Date(dateStr);
-  return d.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" });
+  return new Date(dateStr).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" });
 }
 
 function dateLabel(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString("ar-SA", {
-    year: "numeric", month: "numeric", day: "numeric",
-  });
+  const d     = new Date(dateStr);
+  const today = new Date();
+  const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString())     return "اليوم";
+  if (d.toDateString() === yesterday.toDateString()) return "أمس";
+  return d.toLocaleDateString("ar-SA", { year: "numeric", month: "numeric", day: "numeric" });
 }
 
-// ── widget ─────────────────────────────────────────────────────
+// ── widget ──────────────────────────────────────────────────────
 export function RecentActivityWidget() {
   const { data, loading } = useApi(
-    () => auditLogApi.list({ limit: "8" }),
+    () => auditLogApi.list({ limit: "10" }),
     []
   );
   const entries: any[] = data?.data ?? [];
@@ -83,23 +158,25 @@ export function RecentActivityWidget() {
         <div className="divide-y divide-gray-50">
           {entries.map((entry: any) => {
             const { icon: Icon, color, bg } = getEntryStyle(entry);
-            const userName = entry.userName || entry.user?.name || "—";
-            const desc = entry.description || entry.action || "";
+            const label    = arabicLabel(entry.action || "", entry.resource || "");
+            const userName = entry.userName || null;
+            const date     = dateLabel(entry.createdAt);
+            const time     = timeLabel(entry.createdAt);
             return (
               <div key={entry.id} className="flex items-start gap-3 px-5 py-3 hover:bg-gray-50/60 transition-colors">
                 <div className={clsx("w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5", bg)}>
                   <Icon className={clsx("w-3.5 h-3.5", color)} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-gray-800 leading-snug line-clamp-2">{desc}</p>
-                  <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-400 flex-wrap">
-                    <span>{dateLabel(entry.createdAt)}</span>
+                  <p className="text-xs font-semibold text-gray-800 leading-snug">{label}</p>
+                  <div className="flex items-center gap-1.5 mt-1 text-[11px] text-gray-400 flex-wrap">
+                    <span className={clsx(date === "اليوم" ? "text-brand-500 font-medium" : "")}>{date}</span>
                     <span className="text-gray-200">·</span>
-                    <span>{timeLabel(entry.createdAt)}</span>
-                    {userName !== "—" && (
+                    <span className="tabular-nums">{time}</span>
+                    {userName && (
                       <>
                         <span className="text-gray-200">·</span>
-                        <span className="text-gray-500 font-medium">{userName}</span>
+                        <span className="text-gray-600 font-medium truncate max-w-[100px]">{userName}</span>
                       </>
                     )}
                   </div>

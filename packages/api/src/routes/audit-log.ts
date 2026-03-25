@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { eq, and, desc, sql, count, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@nasaq/db/client";
-import { auditLogs } from "@nasaq/db/schema";
+import { auditLogs, users } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 
@@ -34,8 +34,20 @@ auditLogRouter.get("/", async (c) => {
   if (search)     conditions.push(or(ilike(auditLogs.action, `%${search}%`), ilike(auditLogs.resource, `%${search}%`))!);
 
   const [entries, [{ total }]] = await Promise.all([
-    db.select()
+    db.select({
+      id:         auditLogs.id,
+      action:     auditLogs.action,
+      resource:   auditLogs.resource,
+      resourceId: auditLogs.resourceId,
+      metadata:   auditLogs.metadata,
+      newValue:   auditLogs.newValue,
+      createdAt:  auditLogs.createdAt,
+      userId:     auditLogs.userId,
+      userName:   users.name,
+      userRole:   users.role,
+    })
       .from(auditLogs)
+      .leftJoin(users, eq(auditLogs.userId, users.id))
       .where(and(...conditions))
       .orderBy(desc(auditLogs.createdAt))
       .limit(limit)
