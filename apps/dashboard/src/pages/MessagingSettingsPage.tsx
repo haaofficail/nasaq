@@ -150,6 +150,41 @@ function ConnectionTab() {
         </div>
       </div>
 
+      {/* Safety notice */}
+      <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 space-y-3">
+        <div className="flex items-center gap-2">
+          <XCircle className="w-4 h-4 text-amber-600 shrink-0" />
+          <p className="text-sm font-semibold text-amber-800">تنبيهات هامة قبل الربط</p>
+        </div>
+        <ul className="space-y-2 text-xs text-amber-800 leading-relaxed">
+          <li className="flex items-start gap-2">
+            <span className="text-amber-500 mt-0.5 shrink-0">•</span>
+            استخدم رقماً مخصصاً للأعمال فقط — لا تستخدم رقمك الشخصي لتجنب الحظر.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-amber-500 mt-0.5 shrink-0">•</span>
+            لا ترسل رسائل جماعية غير مرغوب فيها (Spam) — قد يؤدي ذلك إلى حظر الرقم نهائياً.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-amber-500 mt-0.5 shrink-0">•</span>
+            تأكد أن المستلمين وافقوا على تلقي الرسائل منك مسبقاً.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-amber-500 mt-0.5 shrink-0">•</span>
+            لا تتجاوز الحد اليومي للرسائل — نوصي بـ 100 رسالة يومياً كحد أقصى للحسابات الجديدة.
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-amber-500 mt-0.5 shrink-0">•</span>
+            أبقِ الهاتف متصلاً بالإنترنت واستخدمه بشكل طبيعي مع واتساب لتجنب الاشتباه.
+          </li>
+        </ul>
+        <div className="border-t border-amber-200 pt-3">
+          <p className="text-[11px] text-amber-600 leading-relaxed">
+            <span className="font-semibold">إخلاء المسؤولية:</span> نسق يوفر أداة إرسال تقنية فقط. أي حظر أو تقييد يطرأ على حسابك في واتساب يقع على عاتق المستخدم كاملاً، ولا تتحمل نسق أي مسؤولية قانونية أو مالية ناتجة عن سوء الاستخدام أو انتهاك سياسات واتساب.
+          </p>
+        </div>
+      </div>
+
       {/* Status Card */}
       <div className={clsx(
         "bg-white rounded-2xl border p-5 flex items-center gap-4",
