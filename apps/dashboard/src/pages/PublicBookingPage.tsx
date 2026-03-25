@@ -59,9 +59,10 @@ export function PublicBookingPage() {
   const toggleAddon = (id: string) =>
     setSelectedAddons(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]);
 
+  const svcAddons: any[] = siteData?.addonsByService?.[selectedService?.id] || [];
   const svcPrice = parseFloat(selectedService?.basePrice || selectedService?.price || 0);
-  const addonsTotal = selectedAddons.reduce((s: number, id: string) => {
-    const a = siteData.addons?.find((x: any) => x.id === id);
+  const addonsTotal = selectedAddons.reduce((s: number, addonId: string) => {
+    const a = svcAddons.find((x: any) => x.id === addonId);
     return s + parseFloat(a?.price || 0);
   }, 0);
   const subtotal = svcPrice + addonsTotal;
@@ -128,7 +129,7 @@ export function PublicBookingPage() {
                 <p>لا توجد خدمات متاحة حالياً</p>
               </div>
             ) : services.map((svc: any) => (
-              <button key={svc.id} onClick={() => { setSelectedService(svc); setStep("details"); }}
+              <button key={svc.id} onClick={() => { setSelectedService(svc); setStep("details"); setSelectedAddons([]); setQuestionAnswers({}); setCustomLocation(""); setSelectedDate(""); }}
                 className="w-full bg-white rounded-2xl border border-gray-200 p-5 text-right hover:border-gray-300 hover:shadow-sm transition-all flex items-center gap-4">
                 {svc.imageUrl ? (
                   <img src={svc.imageUrl} className="w-20 h-20 rounded-xl object-cover shrink-0" alt={svc.name} />
@@ -184,10 +185,10 @@ export function PublicBookingPage() {
               </div>
             </div>
 
-            {siteData.addons?.length > 0 && (
+            {svcAddons.length > 0 && (
               <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3">
                 <h3 className="font-bold text-gray-900">إضافات (اختياري)</h3>
-                {siteData.addons.map((addon: any) => {
+                {svcAddons.map((addon: any) => {
                   const sel = selectedAddons.includes(addon.id);
                   return (
                     <button key={addon.id} onClick={() => toggleAddon(addon.id)}
@@ -213,9 +214,9 @@ export function PublicBookingPage() {
             <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-2 text-sm">
               <h3 className="font-bold text-gray-900 mb-3">ملخص السعر</h3>
               <div className="flex justify-between"><span className="text-gray-500">{selectedService.name}</span><span>{svcPrice.toLocaleString("en-US")} ر.س</span></div>
-              {selectedAddons.map((id: string) => {
-                const a = siteData.addons?.find((x: any) => x.id === id);
-                return a ? <div key={id} className="flex justify-between text-gray-400"><span>+ {a.name}</span><span>{parseFloat(a.price || 0).toLocaleString("en-US")} ر.س</span></div> : null;
+              {selectedAddons.map((addonId: string) => {
+                const a = svcAddons.find((x: any) => x.id === addonId);
+                return a ? <div key={addonId} className="flex justify-between text-gray-400"><span>+ {a.name}</span><span>{parseFloat(a.price || 0).toLocaleString("en-US")} ر.س</span></div> : null;
               })}
               <div className="flex justify-between text-gray-500 pt-2 border-t border-gray-100"><span>ضريبة القيمة المضافة (15%)</span><span>{Math.round(vat).toLocaleString("en-US")} ر.س</span></div>
               <div className="flex justify-between font-bold text-base text-gray-900 pt-2 border-t border-gray-200"><span>الإجمالي</span><span>{Math.round(total).toLocaleString("en-US")} ر.س</span></div>

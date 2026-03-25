@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image } from "lucide-react";
+import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, AlignJustify, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi, membersApi, inventoryApi, settingsApi } from "@/lib/api";
 import { DurationInput } from "@/components/ui/DurationInput";
@@ -68,14 +68,15 @@ type QuestionDraft = {
 };
 
 const QUESTION_TYPES: { value: QuestionType; label: string; icon: React.ElementType; desc: string }[] = [
-  { value: "text",     label: "نصّي",           icon: AlignLeft,   desc: "إجابة نصية مفتوحة" },
-  { value: "number",   label: "رقم",             icon: Hash,        desc: "إدخال رقمي" },
-  { value: "date",     label: "تاريخ",           icon: Calendar,    desc: "اختيار تاريخ" },
-  { value: "select",   label: "قائمة منسدلة",   icon: ChevronDown, desc: "اختيار خيار واحد" },
-  { value: "multi",    label: "اختيار متعدد",    icon: LayoutList,  desc: "اختيار أكثر من خيار" },
-  { value: "location", label: "موقع",            icon: MapPin,      desc: "تحديد الموقع على الخريطة" },
-  { value: "file",     label: "ملف",             icon: Paperclip,   desc: "رفع ملف (PDF, Word...)" },
-  { value: "image",    label: "صورة",            icon: Image,       desc: "رفع صورة" },
+  { value: "text",     label: "نصّي",           icon: AlignLeft,    desc: "إجابة نصية قصيرة" },
+  { value: "textarea", label: "فقرة نصية",      icon: AlignJustify, desc: "إجابة نصية طويلة" },
+  { value: "number",   label: "رقم",             icon: Hash,         desc: "إدخال رقمي" },
+  { value: "date",     label: "تاريخ",           icon: Calendar,     desc: "اختيار تاريخ" },
+  { value: "select",   label: "قائمة منسدلة",   icon: ChevronDown,  desc: "اختيار خيار واحد" },
+  { value: "multi",    label: "اختيار متعدد",    icon: LayoutList,   desc: "اختيار أكثر من خيار" },
+  { value: "location", label: "موقع",            icon: MapPin,       desc: "تحديد الموقع / العنوان" },
+  { value: "file",     label: "ملف",             icon: Paperclip,    desc: "رفع ملف (PDF, Word...)" },
+  { value: "image",    label: "صورة",            icon: Image,        desc: "رفع صورة" },
 ];
 type ComponentDraft = {
   sourceType: "manual" | "inventory";

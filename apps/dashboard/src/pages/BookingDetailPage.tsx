@@ -131,7 +131,19 @@ export function BookingDetailPage() {
               <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" /><span className="text-gray-500">الفرع</span><span className="font-medium mr-auto">{booking.locationName || "—"}</span></div>
               <div className="flex items-center gap-2"><User className="w-4 h-4 text-gray-400" /><span className="text-gray-500">عدد الضيوف</span><span className="font-medium mr-auto">{booking.guestCount || "—"}</span></div>
             </div>
-            {booking.notes && <div className="mt-4 pt-4 border-t border-gray-100"><p className="text-sm text-gray-500">ملاحظات: {booking.notes}</p></div>}
+            {booking.customerNotes && <div className="mt-4 pt-4 border-t border-gray-100"><p className="text-xs font-medium text-gray-400 mb-1">ملاحظات العميل</p><p className="text-sm text-gray-700">{booking.customerNotes}</p></div>}
+            {booking.notes && !booking.customerNotes && <div className="mt-4 pt-4 border-t border-gray-100"><p className="text-sm text-gray-500">ملاحظات: {booking.notes}</p></div>}
+            {booking.questionAnswers && Array.isArray(booking.questionAnswers) && booking.questionAnswers.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">إجابات أسئلة الحجز</p>
+                {(booking.questionAnswers as any[]).map((qa: any, i: number) => (
+                  <div key={i} className="bg-gray-50 rounded-lg px-3 py-2">
+                    <p className="text-xs text-gray-400 mb-0.5">{qa.question || qa.questionId}</p>
+                    <p className="text-sm text-gray-800 font-medium">{qa.answer}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Items */}

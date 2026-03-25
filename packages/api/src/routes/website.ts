@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq, and, desc, asc, count, sql, ne, inArray } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { sitePages, siteConfig, blogPosts, contactSubmissions, services, categories, reviews, organizations, locations, websiteTemplates, bookings, bookingItems, bookingItemAddons, customers, addons, serviceQuestions } from "@nasaq/db/schema";
+import { sitePages, siteConfig, blogPosts, contactSubmissions, services, categories, reviews, organizations, locations, websiteTemplates, bookings, bookingItems, bookingItemAddons, customers, addons, serviceAddons, serviceQuestions } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, generateSlug, generateBookingNumber } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { z } from "zod";
@@ -288,8 +288,32 @@ websiteRouter.get("/public/:orgSlug", async (c) => {
     .where(and(eq(services.orgId, org.id), eq(services.status, "active"), eq((services as any).isVisibleOnline, true)))
     .orderBy(asc(services.sortOrder)).limit(24);
 
-  // Fetch questions for all active services
   const serviceIds = activeServices.map(s => s.id);
+
+  // Fetch addons for all active services (via junction table)
+  const allServiceAddons = serviceIds.length > 0
+    ? await db.select({
+        serviceId: serviceAddons.serviceId,
+        id: addons.id, name: addons.name, nameEn: addons.nameEn,
+        price: addons.price, description: addons.description, image: addons.image,
+        type: addons.type,
+        priceOverride: serviceAddons.priceOverride,
+        typeOverride: serviceAddons.typeOverride,
+        sortOrder: serviceAddons.sortOrder,
+      })
+      .from(serviceAddons)
+      .innerJoin(addons, eq(serviceAddons.addonId, addons.id))
+      .where(and(inArray(serviceAddons.serviceId, serviceIds), eq(addons.isActive, true)))
+      .orderBy(asc(serviceAddons.sortOrder))
+    : [];
+  const addonsByService = allServiceAddons.reduce((acc: Record<string, any[]>, a) => {
+    const row = { ...a, price: a.priceOverride ?? a.price }; // service-level override takes priority
+    if (!acc[a.serviceId]) acc[a.serviceId] = [];
+    acc[a.serviceId].push(row);
+    return acc;
+  }, {});
+
+  // Fetch questions for all active services
   const allQuestions = serviceIds.length > 0
     ? await db.select().from(serviceQuestions)
         .where(and(inArray(serviceQuestions.serviceId, serviceIds), eq(serviceQuestions.isActive, true)))
@@ -345,6 +369,7 @@ websiteRouter.get("/public/:orgSlug", async (c) => {
       config: config ?? null,
       pages,
       services: activeServices,
+      addonsByService,
       questionsByService,
       categories: activeCategories,
       branches: branchList,
@@ -432,6 +457,19 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
       .from(addons).where(and(inArray(addons.id, selectedAddons), eq(addons.orgId, orgId)));
   }
 
+  // 4b. Enrich question answers with question text for readable storage
+  let enrichedAnswers: { questionId: string; question: string; answer: string }[] = [];
+  if (questionAnswers.length > 0) {
+    const qIds = questionAnswers.map(q => q.questionId);
+    const questionRows = await db.select({ id: serviceQuestions.id, question: serviceQuestions.question })
+      .from(serviceQuestions)
+      .where(and(inArray(serviceQuestions.id, qIds), eq(serviceQuestions.serviceId, serviceId)));
+    const qMap = Object.fromEntries(questionRows.map(q => [q.id, q.question]));
+    enrichedAnswers = questionAnswers
+      .filter(a => qMap[a.questionId]) // only valid question IDs
+      .map(a => ({ questionId: a.questionId, question: qMap[a.questionId], answer: a.answer }));
+  }
+
   // 5. Calculate totals
   const svcPrice   = parseFloat(String(service.basePrice || "0"));
   const addonsSum  = addonsList.reduce((s, a) => s + parseFloat(a.price || "0"), 0);
@@ -461,7 +499,7 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
       balanceDue: total.toFixed(2),
       source: "website",
       customerNotes: notes ?? null,
-      questionAnswers: questionAnswers as any,
+      questionAnswers: enrichedAnswers as any,
       trackingToken,
     }).returning();
 
