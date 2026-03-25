@@ -11,7 +11,12 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ["@capacitor/app"],
+      external: [
+        "@capacitor/app",
+        "@capacitor/haptics",
+        "@capacitor/core",
+        "@capacitor/network",
+      ],
     },
   },
   server: {
