@@ -98,6 +98,7 @@ export const bookings = pgTable("bookings", {
   // Notes
   customerNotes: text("customer_notes"),            // ملاحظات العميل
   internalNotes: text("internal_notes"),            // ملاحظات داخلية
+  questionAnswers: jsonb("question_answers").default([]), // إجابات الأسئلة المخصصة
   
   // Rating
   rating: integer("rating"),                        // 1-5

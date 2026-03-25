@@ -53,9 +53,15 @@ export const pricingModeEnum = pgEnum("pricing_mode", [
 
 export const questionTypeEnum = pgEnum("question_type", [
   "text",       // إجابة نصية حرة
-  "select",     // اختيار من قائمة
+  "textarea",   // نص طويل
+  "select",     // اختيار واحد من قائمة
+  "multi",      // اختيار متعدد
   "checkbox",   // موافقة / تأكيد
   "number",     // رقم (الكمية، العمر...)
+  "date",       // تاريخ
+  "location",   // موقع / عنوان
+  "file",       // ملف
+  "image",      // صورة
 ]);
 
 // ============================================================

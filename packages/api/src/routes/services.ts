@@ -803,7 +803,7 @@ servicesRouter.delete("/:id/staff/:userId", async (c) => {
 
 const createQuestionSchema = z.object({
   question:   z.string().min(1),
-  type:       z.enum(["text","select","checkbox","number"]).default("text"),
+  type:       z.enum(["text","textarea","select","multi","checkbox","number","date","location","file","image"]).default("text"),
   isRequired: z.boolean().default(false),
   options:    z.array(z.string()).default([]),
   isPaid:     z.boolean().default(false),

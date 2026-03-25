@@ -24,7 +24,8 @@ export function PublicBookingPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
-  const [step, setStep] = useState<"services" | "details" | "contact" | "done">("services");
+  const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
+  const [step, setStep] = useState<"services" | "details" | "questions" | "contact" | "done">("services");
   const [submitting, setSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState<any>(null);
 
@@ -68,11 +69,16 @@ export function PublicBookingPage() {
   const total = subtotal + vat;
   const deposit = total * DEPOSIT_RATIO;
 
+  const serviceQuestions: any[] = siteData?.questionsByService?.[selectedService?.id] || [];
+
   const handleSubmit = async () => {
     if (!selectedService || !selectedDate || !name || !phone) return;
     setSubmitting(true);
     try {
       const eventDate = new Date(`${selectedDate}T${selectedTime}`).toISOString();
+      const answers = Object.entries(questionAnswers)
+        .filter(([, v]) => v !== "")
+        .map(([questionId, answer]) => ({ questionId, answer }));
       const res = await websiteApi.publicBook(slug!, {
         customerName: name,
         customerPhone: phone,
@@ -81,12 +87,20 @@ export function PublicBookingPage() {
         selectedAddons,
         customLocation: customLocation || undefined,
         notes: notes || undefined,
+        questionAnswers: answers,
       });
       if (res?.data) { setBookingResult(res.data); setStep("done"); }
     } finally {
       setSubmitting(false);
     }
   };
+
+  const setAnswer = (qId: string, val: string) =>
+    setQuestionAnswers(prev => ({ ...prev, [qId]: val }));
+
+  const canProceedFromQuestions = serviceQuestions
+    .filter(q => q.isRequired)
+    .every(q => (questionAnswers[q.id] || "").trim() !== "");
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
@@ -208,7 +222,101 @@ export function PublicBookingPage() {
               <div className="flex justify-between text-xs pt-1" style={{ color: primaryColor }}><span>العربون المطلوب (30%)</span><span>{Math.round(deposit).toLocaleString("en-US")} ر.س</span></div>
             </div>
 
-            <button disabled={!selectedDate} onClick={() => setStep("contact")}
+            <button disabled={!selectedDate} onClick={() => setStep(serviceQuestions.length > 0 ? "questions" : "contact")}
+              className="w-full py-4 rounded-xl text-white font-bold text-base disabled:opacity-50 transition-colors"
+              style={{ background: primaryColor }}>
+              {serviceQuestions.length > 0 ? "التالي — أسئلة الحجز" : "التالي — بيانات التواصل"}
+            </button>
+          </div>
+        )}
+
+        {/* Step: Custom questions */}
+        {step === "questions" && (
+          <div className="space-y-5">
+            <button onClick={() => setStep("details")} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+              <ChevronLeft className="w-4 h-4 rotate-180" /> السابق
+            </button>
+            <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-5">
+              <div>
+                <h2 className="font-bold text-gray-900">أسئلة الحجز</h2>
+                <p className="text-xs text-gray-400 mt-0.5">يرجى الإجابة على الأسئلة التالية لإتمام حجزك</p>
+              </div>
+              {serviceQuestions.map((q: any) => (
+                <div key={q.id}>
+                  <label className="block text-sm font-medium text-gray-800 mb-1.5">
+                    {q.question}
+                    {q.isRequired && <span className="text-red-400 mr-1">*</span>}
+                    {q.isPaid && Number(q.price) > 0 && (
+                      <span className="text-xs text-green-600 font-normal mr-2">+ {Number(q.price).toLocaleString("en-US")} ر.س</span>
+                    )}
+                  </label>
+                  {(q.type === "text" || q.type === "location") && (
+                    <input value={questionAnswers[q.id] || ""} onChange={e => setAnswer(q.id, e.target.value)}
+                      placeholder="اكتب إجابتك..."
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-400" />
+                  )}
+                  {q.type === "textarea" && (
+                    <textarea value={questionAnswers[q.id] || ""} onChange={e => setAnswer(q.id, e.target.value)}
+                      rows={3} placeholder="اكتب إجابتك..."
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-400 resize-none" />
+                  )}
+                  {q.type === "number" && (
+                    <input type="number" value={questionAnswers[q.id] || ""} onChange={e => setAnswer(q.id, e.target.value)}
+                      placeholder="0" dir="ltr"
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-400" />
+                  )}
+                  {q.type === "date" && (
+                    <input type="date" value={questionAnswers[q.id] || ""} onChange={e => setAnswer(q.id, e.target.value)}
+                      dir="ltr"
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-400" />
+                  )}
+                  {(q.type === "select" || q.type === "checkbox") && Array.isArray(q.options) && q.options.length > 0 && (
+                    <div className="space-y-2">
+                      {q.options.map((opt: string) => {
+                        const sel = questionAnswers[q.id] === opt;
+                        return (
+                          <button key={opt} type="button" onClick={() => setAnswer(q.id, sel ? "" : opt)}
+                            className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-right transition-all",
+                              sel ? "border-2 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                            )} style={sel ? { borderColor: primaryColor } : {}}>
+                            <div className={clsx("w-4 h-4 rounded-full border-2 shrink-0 transition-colors")}
+                              style={sel ? { background: primaryColor, borderColor: primaryColor } : { borderColor: "#d1d5db" }}>
+                              {sel && <div className="w-full h-full rounded-full flex items-center justify-center"><Check className="w-2.5 h-2.5 text-white" /></div>}
+                            </div>
+                            <span className="text-sm text-gray-800">{opt}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {q.type === "multi" && Array.isArray(q.options) && q.options.length > 0 && (
+                    <div className="space-y-2">
+                      {q.options.map((opt: string) => {
+                        const selected = (questionAnswers[q.id] || "").split(",").filter(Boolean).includes(opt);
+                        const toggle = () => {
+                          const arr = (questionAnswers[q.id] || "").split(",").filter(Boolean);
+                          const next = selected ? arr.filter(x => x !== opt) : [...arr, opt];
+                          setAnswer(q.id, next.join(","));
+                        };
+                        return (
+                          <button key={opt} type="button" onClick={toggle}
+                            className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-right transition-all",
+                              selected ? "border-2 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                            )} style={selected ? { borderColor: primaryColor } : {}}>
+                            <div className={clsx("w-4 h-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors")}
+                              style={selected ? { background: primaryColor, borderColor: primaryColor } : { borderColor: "#d1d5db" }}>
+                              {selected && <Check className="w-2.5 h-2.5 text-white" />}
+                            </div>
+                            <span className="text-sm text-gray-800">{opt}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <button disabled={!canProceedFromQuestions} onClick={() => setStep("contact")}
               className="w-full py-4 rounded-xl text-white font-bold text-base disabled:opacity-50 transition-colors"
               style={{ background: primaryColor }}>
               التالي — بيانات التواصل
@@ -219,7 +327,7 @@ export function PublicBookingPage() {
         {/* Step: Contact info */}
         {step === "contact" && (
           <div className="space-y-5">
-            <button onClick={() => setStep("details")} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
+            <button onClick={() => setStep(serviceQuestions.length > 0 ? "questions" : "details")} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
               <ChevronLeft className="w-4 h-4 rotate-180" /> السابق
             </button>
             <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">

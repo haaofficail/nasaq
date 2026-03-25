@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq, and, desc, asc, count, sql, ne, inArray } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { sitePages, siteConfig, blogPosts, contactSubmissions, services, categories, reviews, organizations, locations, websiteTemplates, bookings, bookingItems, bookingItemAddons, customers, addons } from "@nasaq/db/schema";
+import { sitePages, siteConfig, blogPosts, contactSubmissions, services, categories, reviews, organizations, locations, websiteTemplates, bookings, bookingItems, bookingItemAddons, customers, addons, serviceQuestions } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, generateSlug, generateBookingNumber } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { z } from "zod";
@@ -288,6 +288,19 @@ websiteRouter.get("/public/:orgSlug", async (c) => {
     .where(and(eq(services.orgId, org.id), eq(services.status, "active"), eq((services as any).isVisibleOnline, true)))
     .orderBy(asc(services.sortOrder)).limit(24);
 
+  // Fetch questions for all active services
+  const serviceIds = activeServices.map(s => s.id);
+  const allQuestions = serviceIds.length > 0
+    ? await db.select().from(serviceQuestions)
+        .where(and(inArray(serviceQuestions.serviceId, serviceIds), eq(serviceQuestions.isActive, true)))
+        .orderBy(asc(serviceQuestions.sortOrder))
+    : [];
+  const questionsByService = allQuestions.reduce((acc: Record<string, any[]>, q) => {
+    if (!acc[q.serviceId]) acc[q.serviceId] = [];
+    acc[q.serviceId].push(q);
+    return acc;
+  }, {});
+
   const activeCategories = await db.select().from(categories)
     .where(and(eq(categories.orgId, org.id), eq(categories.isActive, true)))
     .orderBy(asc(categories.sortOrder));
@@ -332,6 +345,7 @@ websiteRouter.get("/public/:orgSlug", async (c) => {
       config: config ?? null,
       pages,
       services: activeServices,
+      questionsByService,
       categories: activeCategories,
       branches: branchList,
       blog: recentPosts,
@@ -380,6 +394,7 @@ const publicBookSchema = z.object({
   selectedAddons:  z.array(z.string().uuid()).optional().default([]),
   customLocation:  z.string().optional().nullable(),
   notes:           z.string().optional().nullable(),
+  questionAnswers: z.array(z.object({ questionId: z.string(), answer: z.string() })).optional().default([]),
 });
 
 websiteRouter.post("/public/:orgSlug/book", async (c) => {
@@ -387,7 +402,7 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
   const body = publicBookSchema.safeParse(await c.req.json());
   if (!body.success) return c.json({ error: "بيانات غير صحيحة", details: body.error.flatten() }, 422);
 
-  const { customerName, customerPhone, serviceId, eventDate, selectedAddons, customLocation, notes } = body.data;
+  const { customerName, customerPhone, serviceId, eventDate, selectedAddons, customLocation, notes, questionAnswers } = body.data;
 
   // 1. Resolve org
   const [org] = await db.select({ id: organizations.id, name: organizations.name })
@@ -446,6 +461,7 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
       balanceDue: total.toFixed(2),
       source: "website",
       customerNotes: notes ?? null,
+      questionAnswers: questionAnswers as any,
       trackingToken,
     }).returning();
 
