@@ -1,11 +1,28 @@
 import { Hono } from "hono";
-import { eq, and, desc, asc, count, sql, ne, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, count, sql, ne, inArray, notInArray } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { sitePages, siteConfig, blogPosts, contactSubmissions, services, categories, reviews, organizations, locations, websiteTemplates, bookings, bookingItems, bookingItemAddons, customers, addons, serviceAddons, serviceQuestions } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, generateSlug, generateBookingNumber } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { z } from "zod";
 import { DEFAULT_VAT_RATE, BOOKING_TRACKING_TOKEN_LENGTH } from "../lib/constants";
+
+// ── In-memory rate limiter for public booking (resets on restart — lightweight, no Redis needed) ──
+const _bookingRateMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT_MAX    = 10;                  // max bookings per window per IP
+const RATE_LIMIT_WINDOW = 10 * 60 * 1000;     // 10 minutes
+
+function publicBookAllowed(ip: string): boolean {
+  const now = Date.now();
+  const entry = _bookingRateMap.get(ip);
+  if (!entry || entry.resetAt < now) {
+    _bookingRateMap.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
+    return true;
+  }
+  if (entry.count >= RATE_LIMIT_MAX) return false;
+  entry.count++;
+  return true;
+}
 
 const createPageSchema = z.object({
   title: z.string(),
@@ -426,6 +443,12 @@ const publicBookSchema = z.object({
 });
 
 websiteRouter.post("/public/:orgSlug/book", async (c) => {
+  // 0. Rate limit by client IP
+  const clientIp = c.req.header("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+  if (!publicBookAllowed(clientIp)) {
+    return c.json({ error: "طلبات كثيرة جداً، حاول مرة أخرى بعد قليل" }, 429);
+  }
+
   const slug = c.req.param("orgSlug");
   const body = publicBookSchema.safeParse(await c.req.json());
   if (!body.success) return c.json({ error: "بيانات غير صحيحة", details: body.error.flatten() }, 422);
@@ -440,8 +463,11 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
   const orgId = org.id;
 
   // 2. Validate service belongs to org and is active
-  const [service] = await db.select({ id: services.id, name: services.name, basePrice: services.basePrice, serviceType: services.serviceType })
-    .from(services).where(and(eq(services.id, serviceId), eq(services.orgId, orgId), eq(services.status, "active")));
+  const [service] = await db.select({
+    id: services.id, name: services.name,
+    basePrice: services.basePrice, serviceType: services.serviceType,
+    depositPercent: services.depositPercent,
+  }).from(services).where(and(eq(services.id, serviceId), eq(services.orgId, orgId), eq(services.status, "active")));
   if (!service) return c.json({ error: "الخدمة غير متوفرة" }, 404);
 
   // 3. Find or create customer by phone
@@ -451,6 +477,27 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
     [customer] = await db.insert(customers).values({
       orgId, name: customerName, phone: customerPhone, source: "website",
     }).returning({ id: customers.id });
+  }
+
+  // 3b. Prevent duplicate booking (same customer + service + same calendar day, non-terminal status)
+  const bookingDay = new Date(eventDate);
+  bookingDay.setUTCHours(0, 0, 0, 0);
+  const nextDay = new Date(bookingDay);
+  nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+
+  const [duplicate] = await db
+    .select({ id: bookings.id })
+    .from(bookings)
+    .innerJoin(bookingItems, eq(bookingItems.bookingId, bookings.id))
+    .where(and(
+      eq(bookings.orgId, orgId),
+      eq(bookings.customerId, customer.id),
+      eq(bookingItems.serviceId, serviceId),
+      notInArray(bookings.status, ["cancelled", "no_show"]),
+      sql`${bookings.eventDate} >= ${bookingDay} AND ${bookings.eventDate} < ${nextDay}`,
+    ));
+  if (duplicate) {
+    return c.json({ error: "يوجد حجز مسبق لك على هذه الخدمة في نفس اليوم" }, 409);
   }
 
   // 4. Resolve addon prices
@@ -474,11 +521,13 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
   }
 
   // 5. Calculate totals
-  const svcPrice   = parseFloat(String(service.basePrice || "0"));
-  const addonsSum  = addonsList.reduce((s, a) => s + parseFloat(a.price || "0"), 0);
-  const subtotal   = svcPrice + addonsSum;
-  const vatAmount  = subtotal * (DEFAULT_VAT_RATE / 100);
-  const total      = subtotal + vatAmount;
+  const svcPrice       = parseFloat(String(service.basePrice || "0"));
+  const addonsSum      = addonsList.reduce((s, a) => s + parseFloat(a.price || "0"), 0);
+  const subtotal       = svcPrice + addonsSum;
+  const vatAmount      = subtotal * (DEFAULT_VAT_RATE / 100);
+  const total          = subtotal + vatAmount;
+  const depositPct     = parseFloat(String(service.depositPercent ?? "30")) / 100;
+  const depositAmount  = total * depositPct;
 
   const bookingNumber  = generateBookingNumber("NSQ");
   const trackingToken  = crypto.randomUUID().replace(/-/g, "").substring(0, BOOKING_TRACKING_TOKEN_LENGTH);
@@ -497,7 +546,7 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
       discountAmount: "0",
       vatAmount: vatAmount.toFixed(2),
       totalAmount: total.toFixed(2),
-      depositAmount: (total * 0.3).toFixed(2),
+      depositAmount: depositAmount.toFixed(2),
       paidAmount: "0",
       balanceDue: total.toFixed(2),
       source: "website",
