@@ -920,7 +920,7 @@ function OrgsTab() {
 
       {/* Owner Credentials Modal */}
       {credentialsModal && (
-        <Modal open onClose={() => setCredentialsModal(null)} title="✅ تم إنشاء المنشأة — بيانات دخول المالك" width="max-w-sm">
+        <Modal open onClose={() => setCredentialsModal(null)} title="تم إنشاء المنشأة — بيانات دخول المالك" width="max-w-sm">
           <div className="space-y-3">
             <p className="text-xs text-gray-500">احتفظ بهذه البيانات — لن تظهر مجدداً</p>
             <div className="bg-gray-50 rounded-xl p-4 space-y-2 font-mono text-sm">

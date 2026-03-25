@@ -310,13 +310,13 @@ export function PublicFlowerPage() {
 
   /* ── Loading / Error / Confirmed ─────────────────────────── */
   if (loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{ background: "#fdf2f5" }}>
+    <div className="min-h-screen flex items-center justify-center bg-pink-50">
       <Loader2 className="w-8 h-8 animate-spin" style={{ color: DEFAULT_CFG.accentColor }} />
     </div>
   );
 
   if (error) return (
-    <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-center px-6" style={{ background: "#fdf2f5" }}>
+    <div className="min-h-screen flex flex-col items-center justify-center gap-3 text-center px-6 bg-pink-50">
       <AlertCircle className="w-12 h-12 text-rose-300" />
       <p className="text-rose-700 font-medium text-lg">{error}</p>
     </div>

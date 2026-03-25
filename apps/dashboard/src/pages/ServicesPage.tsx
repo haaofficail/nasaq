@@ -19,26 +19,26 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={clsx("px-2 py-0.5 rounded-full text-[10px] font-medium", c.class)}>{c.label}</span>;
 }
 
-const TYPE_META: Record<string, { label: string; icon: string }> = {
-  appointment:      { label: "بموعد",          icon: "🗓️" },
-  execution:        { label: "تنفيذ",          icon: "🔧" },
-  field_service:    { label: "ميداني",         icon: "📍" },
-  rental:           { label: "تأجير",          icon: "🏠" },
-  event_rental:     { label: "تأجير ميداني",   icon: "⛺" },
-  product:          { label: "منتج",           icon: "📦" },
-  product_shipping: { label: "شحن",            icon: "🚚" },
-  food_order:       { label: "طعام",           icon: "🍽️" },
-  package:          { label: "باقة",           icon: "🎁" },
-  add_on:           { label: "إضافة",          icon: "➕" },
-  project:          { label: "مشروع",          icon: "📋" },
+const TYPE_META: Record<string, string> = {
+  appointment:      "بموعد",
+  execution:        "تنفيذ",
+  field_service:    "ميداني",
+  rental:           "تأجير",
+  event_rental:     "تأجير ميداني",
+  product:          "منتج",
+  product_shipping: "شحن",
+  food_order:       "طعام",
+  package:          "باقة",
+  add_on:           "إضافة",
+  project:          "مشروع",
 };
 
 function TypeBadge({ type }: { type: string }) {
-  const m = TYPE_META[type];
-  if (!m) return null;
+  const label = TYPE_META[type];
+  if (!label) return null;
   return (
-    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[10px] font-medium">
-      <span>{m.icon}</span>{m.label}
+    <span className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-gray-100 text-gray-500 text-[10px] font-medium">
+      {label}
     </span>
   );
 }
@@ -134,15 +134,14 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
         {presentTypes.length > 2 && (
           <div className="flex gap-1.5 overflow-x-auto">
             {presentTypes.map(t => {
-              const m = t === "الكل" ? null : TYPE_META[t];
+              const label = t === "الكل" ? "الكل" : (TYPE_META[t] || t);
               return (
                 <button key={t} onClick={() => setTypeFilter(t)}
                   className={clsx(
                     "flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors",
                     typeFilter === t ? "bg-gray-800 text-white shadow-sm" : "bg-white border border-gray-100 text-gray-600 hover:bg-gray-50"
                   )}>
-                  {m && <span>{m.icon}</span>}
-                  {m ? m.label : t}
+                  {label}
                 </button>
               );
             })}

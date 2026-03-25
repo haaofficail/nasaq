@@ -17,15 +17,15 @@ import { fmtDate } from "@/lib/utils";
 
 const CATEGORY_TAGS = [
   { value: "",           label: "الكل",          color: "bg-gray-100 text-gray-600" },
-  { value: "love",       label: "💕 حب ورومانسية", color: "bg-pink-50 text-pink-700" },
-  { value: "congrats",   label: "🎉 تهاني",       color: "bg-amber-50 text-amber-700" },
-  { value: "condolence", label: "🕊️ تعازي",       color: "bg-gray-100 text-gray-600" },
-  { value: "occasions",  label: "🎊 مناسبات",     color: "bg-violet-50 text-violet-700" },
-  { value: "general",    label: "🌸 عام",         color: "bg-emerald-50 text-emerald-700" },
+  { value: "love",       label: "حب ورومانسية",  color: "bg-pink-50 text-pink-700" },
+  { value: "congrats",   label: "تهاني",          color: "bg-amber-50 text-amber-700" },
+  { value: "condolence", label: "تعازي",          color: "bg-gray-100 text-gray-600" },
+  { value: "occasions",  label: "مناسبات",        color: "bg-violet-50 text-violet-700" },
+  { value: "general",    label: "عام",            color: "bg-emerald-50 text-emerald-700" },
 ];
 const TAG_LABELS: Record<string, string> = {
-  love: "💕 حب ورومانسية", congrats: "🎉 تهاني",
-  condolence: "🕊️ تعازي", occasions: "🎊 مناسبات", general: "🌸 عام",
+  love: "حب ورومانسية", congrats: "تهاني",
+  condolence: "تعازي", occasions: "مناسبات", general: "عام",
 };
 
 const CATALOG_TYPES = [
@@ -36,13 +36,13 @@ const CATALOG_TYPES = [
 ];
 
 const ORDER_STATUSES = [
-  { value: "",           label: "الكل",      color: "bg-gray-100 text-gray-600" },
-  { value: "pending",    label: "⏳ انتظار", color: "bg-amber-50 text-amber-700" },
-  { value: "confirmed",  label: "✅ مؤكد",   color: "bg-blue-50 text-blue-700" },
-  { value: "preparing",  label: "🌸 تحضير", color: "bg-violet-50 text-violet-700" },
-  { value: "ready",      label: "📦 جاهز",  color: "bg-teal-50 text-teal-700" },
-  { value: "delivered",  label: "🚚 سُلِّم", color: "bg-emerald-50 text-emerald-700" },
-  { value: "cancelled",  label: "❌ ملغي",  color: "bg-red-50 text-red-700" },
+  { value: "",           label: "الكل",    color: "bg-gray-100 text-gray-600" },
+  { value: "pending",    label: "انتظار",  color: "bg-amber-50 text-amber-700" },
+  { value: "confirmed",  label: "مؤكد",   color: "bg-blue-50 text-blue-700" },
+  { value: "preparing",  label: "تحضير",  color: "bg-violet-50 text-violet-700" },
+  { value: "ready",      label: "جاهز",   color: "bg-teal-50 text-teal-700" },
+  { value: "delivered",  label: "سُلِّم",  color: "bg-emerald-50 text-emerald-700" },
+  { value: "cancelled",  label: "ملغي",   color: "bg-red-50 text-red-700" },
 ];
 const STATUS_NEXT: Record<string, string> = {
   pending: "confirmed", confirmed: "preparing", preparing: "ready",
@@ -332,10 +332,10 @@ function OrdersTab() {
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {[
           { label: "إجمالي",    value: stats?.total || 0,      color: "text-gray-700" },
-          { label: "⏳ انتظار", value: stats?.pending || 0,    color: "text-amber-700" },
-          { label: "✅ مؤكد",   value: stats?.confirmed || 0,  color: "text-blue-700" },
-          { label: "🚚 سُلِّم", value: stats?.delivered || 0,  color: "text-emerald-700" },
-          { label: "💰 إيرادات", value: `${Number(stats?.revenue || 0).toFixed(0)} ر.س`, color: "text-brand-700" },
+          { label: "انتظار",  value: stats?.pending || 0,    color: "text-amber-700" },
+          { label: "مؤكد",    value: stats?.confirmed || 0,  color: "text-blue-700" },
+          { label: "سُلِّم",  value: stats?.delivered || 0,  color: "text-emerald-700" },
+          { label: "الإيرادات", value: `${Number(stats?.revenue || 0).toFixed(0)} ر.س`, color: "text-brand-700" },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
             <p className={clsx("text-2xl font-bold", s.color)}>{s.value}</p>
@@ -658,7 +658,11 @@ function BuilderConfigTab() {
           <div className="divide-y divide-gray-50">
             {curItems.map((item: any) => (
               <div key={item.id} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50/40 transition-colors">
-                <span className="text-2xl w-8 text-center">{item.icon || "📦"}</span>
+                <span className="w-8 flex items-center justify-center">
+                  {item.icon
+                    ? <span className="text-xl">{item.icon}</span>
+                    : <Package className="w-5 h-5 text-gray-400" />}
+                </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="font-medium text-gray-900 text-sm">{item.name}</p>

@@ -121,7 +121,7 @@ export function WebsiteSettingsPage() {
           <p className="text-sm text-gray-400 mt-0.5">{BUSINESS_LABELS[bType] || "عام"} — {profile.name}</p>
         </div>
         <Button onClick={handleSave} loading={savingProfile || savingConfig} icon={saved ? Check : Save} variant={saved ? "secondary" : "primary"}>
-          {saved ? "تم الحفظ ✓" : "حفظ التغييرات"}
+          {saved ? "تم الحفظ" : "حفظ التغييرات"}
         </Button>
       </div>
 

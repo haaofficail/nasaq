@@ -4,7 +4,7 @@ import { useApi, useMutation } from "@/hooks/useApi";
 import { salonApi, customersApi } from "@/lib/api";
 import {
   ArrowRight, Sparkles, AlertTriangle, Heart, User,
-  Clock, Pencil, Check, X, ChevronDown, ChevronUp,
+  Clock, Pencil, Check, X, ChevronDown, ChevronUp, Loader2,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { fmtDate } from "@/lib/utils";
@@ -62,8 +62,8 @@ function Field({ label, value, empty = "غير محدد" }: { label: string; val
 export function ClientBeautyCardPage() {
   const { id: customerId } = useParams<{ id: string }>();
 
-  const { data: customerRes } = useApi(() => customersApi.get(customerId!), [customerId]);
-  const { data: beautyRes, refetch } = useApi(() => salonApi.beautyProfile(customerId!), [customerId]);
+  const { data: customerRes, loading: customerLoading } = useApi(() => customersApi.get(customerId!), [customerId]);
+  const { data: beautyRes, loading: beautyLoading, refetch } = useApi(() => salonApi.beautyProfile(customerId!), [customerId]);
 
   const customer  = customerRes?.data;
   const profile   = beautyRes?.data?.profile || {};
@@ -97,6 +97,14 @@ export function ClientBeautyCardPage() {
     if (section === "alert") setEditAlert(false);
     if (section === "pref")  setEditPref(false);
   };
+
+  if (customerLoading || beautyLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-7 h-7 animate-spin text-brand-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5 max-w-2xl mx-auto">

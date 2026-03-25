@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { CheckCircle } from "lucide-react";
 import { BUSINESS_TYPE_LIST } from "@/lib/constants";
 
 const businessTypes = BUSINESS_TYPE_LIST.map(b => ({ value: b.key, label: b.name }));
@@ -244,8 +245,8 @@ export function RegisterPage() {
           {/* Step 4: Done */}
           {step === 4 && (
             <div className="text-center py-6">
-              <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center text-4xl mx-auto mb-6">
-                🎉
+              <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-10 h-10 text-green-500" />
               </div>
               <h2 className="text-2xl font-black text-gray-900 mb-2">أهلاً بك في نسق!</h2>
               <p className="text-gray-500 text-sm mb-2">تم إنشاء حسابك بنجاح.</p>
