@@ -1187,40 +1187,70 @@ export function ServiceFormPage() {
                           </div>
                         </div>
                       )}
-                      {(q.type === "select" || q.type === "multi") && (
-                        <div className="space-y-2">
-                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block">الخيارات</label>
-                          {(q.options === "" ? [] : q.options.split("\n")).map((opt, oi) => (
-                            <div key={oi} className="flex items-center gap-2">
-                              <input value={opt} placeholder={`خيار ${oi + 1}`}
-                                onChange={e => {
-                                  const arr = q.options.split("\n").filter(Boolean);
-                                  arr[oi] = e.target.value;
-                                  setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, options: arr.join("\n") } : x));
-                                }}
-                                className={clsx(iCls, "flex-1")} />
-                              <button type="button"
-                                onClick={() => {
-                                  const arr = q.options.split("\n").filter(Boolean).filter((_, k) => k !== oi);
-                                  setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, options: arr.join("\n") } : x));
-                                }}
-                                className="p-1.5 text-gray-300 hover:text-red-500 transition-colors shrink-0">
-                                <X className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ))}
-                          <button type="button"
-                            onClick={() => setQuestionDrafts(d => d.map((x, j) => {
-                              if (j !== i) return x;
-                              const arr = x.options.split("\n").filter(Boolean);
-                              arr.push("");
-                              return { ...x, options: arr.join("\n") };
-                            }))}
-                            className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors">
-                            <Plus className="w-3 h-3" /> إضافة خيار
-                          </button>
-                        </div>
-                      )}
+                      {/* Answer preview / options builder */}
+                      <div className="rounded-xl border border-dashed border-gray-200 p-3 bg-gray-50/60">
+                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">الإجابة</p>
+
+                        {(q.type === "text" || q.type === "location") && (
+                          <input disabled placeholder="يكتب العميل إجابته هنا..."
+                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-400 bg-white cursor-not-allowed" />
+                        )}
+                        {q.type === "textarea" && (
+                          <textarea disabled rows={2} placeholder="يكتب العميل إجابته هنا..."
+                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-400 bg-white cursor-not-allowed resize-none" />
+                        )}
+                        {q.type === "number" && (
+                          <input disabled type="number" placeholder="0"
+                            className="w-32 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-400 bg-white cursor-not-allowed" dir="ltr" />
+                        )}
+                        {q.type === "date" && (
+                          <input disabled type="date"
+                            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-400 bg-white cursor-not-allowed" dir="ltr" />
+                        )}
+                        {(q.type === "file" || q.type === "image") && (
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-400 text-sm">
+                            {q.type === "image" ? <Image className="w-4 h-4 shrink-0" /> : <Paperclip className="w-4 h-4 shrink-0" />}
+                            <span>{q.type === "image" ? "رفع صورة" : "رفع ملف"}</span>
+                          </div>
+                        )}
+
+                        {(q.type === "select" || q.type === "multi") && (
+                          <div className="space-y-2">
+                            <p className="text-[10px] text-gray-400 mb-1">أضف الخيارات:</p>
+                            {(q.options === "" ? [] : q.options.split("\n")).map((opt, oi) => (
+                              <div key={oi} className="flex items-center gap-2">
+                                <div className={clsx("w-4 h-4 shrink-0 border-2 border-gray-300",
+                                  q.type === "multi" ? "rounded" : "rounded-full")} />
+                                <input value={opt} placeholder={`خيار ${oi + 1}`}
+                                  onChange={e => {
+                                    const arr = q.options.split("\n").filter(Boolean);
+                                    arr[oi] = e.target.value;
+                                    setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, options: arr.join("\n") } : x));
+                                  }}
+                                  className={clsx(iCls, "flex-1 bg-white")} />
+                                <button type="button"
+                                  onClick={() => {
+                                    const arr = q.options.split("\n").filter(Boolean).filter((_, k) => k !== oi);
+                                    setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, options: arr.join("\n") } : x));
+                                  }}
+                                  className="p-1.5 text-gray-300 hover:text-red-500 transition-colors shrink-0">
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            ))}
+                            <button type="button"
+                              onClick={() => setQuestionDrafts(d => d.map((x, j) => {
+                                if (j !== i) return x;
+                                const arr = x.options.split("\n").filter(Boolean);
+                                arr.push("");
+                                return { ...x, options: arr.join("\n") };
+                              }))}
+                              className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors mt-1">
+                              <Plus className="w-3 h-3" /> إضافة خيار
+                            </button>
+                          </div>
+                        )}
+                      </div>
 
                       {/* Question type picker overlay */}
                       {questionPickerIdx === i && (
