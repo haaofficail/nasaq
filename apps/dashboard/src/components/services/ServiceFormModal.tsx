@@ -1,15 +1,14 @@
 /**
- * ServiceFormModal — v4 (compact)
- * Create: 2 steps only (type → essentials)
- * Edit:   3 compact tabs (basics / pricing+timing / image)
- * Advanced settings live in the service detail page.
+ * ServiceFormModal — v5
+ * Create: 4 steps (النوع → الأساسيات → الإضافات → الأسئلة)
+ * Edit:   4 compact tabs (basics / pricing / addons / questions)
  */
 
 import { useState, useEffect, useRef } from "react";
 import { clsx } from "clsx";
-import { Loader2, AlertCircle, Upload, X } from "lucide-react";
+import { Loader2, AlertCircle, Upload, X, Plus, Trash2 } from "lucide-react";
 import { Modal, Button } from "../ui";
-import { servicesApi, categoriesApi, mediaApi } from "@/lib/api";
+import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi } from "@/lib/api";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -57,6 +56,12 @@ const INIT: Form = {
   basePrice: "", durationValue: "60", durationUnit: "minute", status: "active",
 };
 
+type AddonDraft = { name: string; price: string; type: "optional" | "required" };
+type QuestionDraft = { question: string; type: "text" | "select" | "checkbox" | "number"; isRequired: boolean; isPaid: boolean; price: string; options: string };
+
+const INIT_ADDON: AddonDraft = { name: "", price: "", type: "optional" };
+const INIT_Q: QuestionDraft = { question: "", type: "text", isRequired: false, isPaid: false, price: "", options: "" };
+
 // ─── Small helpers ────────────────────────────────────────────────────────────
 
 const iCls = "w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 transition-all bg-white";
@@ -85,13 +90,22 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
   const isEdit = !!serviceId;
 
   const [form, setForm]       = useState<Form>(INIT);
-  const [step, setStep]       = useState<1 | 2>(1);       // create only
-  const [editTab, setEditTab] = useState<"basics" | "pricing" | "media">("basics");
+  const [step, setStep]       = useState<1 | 2 | 3 | 4>(1);   // create only
+  const [editTab, setEditTab] = useState<"basics" | "pricing" | "addons" | "questions">("basics");
   const [loading, setLoading] = useState(false);
   const [saving, setSaving]   = useState(false);
   const [errors, setErrors]   = useState<Record<string, string>>({});
 
   const [categories, setCategories] = useState<any[]>([]);
+
+  // add-ons drafts (create mode)
+  const [addonDrafts, setAddonDrafts] = useState<AddonDraft[]>([]);
+  // questions drafts (create mode)
+  const [questionDrafts, setQuestionDrafts] = useState<QuestionDraft[]>([]);
+
+  // loaded addons / questions (edit mode)
+  const [loadedAddons,    setLoadedAddons]    = useState<any[]>([]);
+  const [loadedQuestions, setLoadedQuestions] = useState<any[]>([]);
 
   // image
   const fileRef                           = useRef<HTMLInputElement>(null);
@@ -114,11 +128,18 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
     setCoverUrl(null);
     setExistingMediaId(null);
     setUploadErr(null);
+    setAddonDrafts([]);
+    setQuestionDrafts([]);
+    setLoadedAddons([]);
+    setLoadedQuestions([]);
     categoriesApi.list(true).then(r => setCategories(r.data || [])).catch(() => {});
 
     if (isEdit && serviceId) {
       setLoading(true);
-      servicesApi.get(serviceId).then(res => {
+      Promise.all([
+        servicesApi.get(serviceId),
+        questionsApi.list(serviceId).catch(() => ({ data: [] })),
+      ]).then(([res, qRes]) => {
         const s = res.data;
         const dur = parseDur(parseInt(s.durationMinutes) || 60);
         const cover = (s.media || []).find((m: any) => m.isCover) || (s.media || [])[0];
@@ -132,6 +153,8 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
           durationUnit:  dur.u,
           status:        s.status || "active",
         });
+        setLoadedAddons(s.addons || []);
+        setLoadedQuestions(qRes.data || []);
         setLoading(false);
       }).catch(() => { setLoading(false); setErrors({ _load: "فشل تحميل البيانات" }); });
     } else {
@@ -181,7 +204,7 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
   // ── Save ──────────────────────────────────────────────────────────────────
   const save = async () => {
     const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+    if (Object.keys(errs).length) { setErrors(errs); setStep(2); return; }
     setSaving(true);
     setErrors({});
     try {
@@ -199,6 +222,24 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
           if (existingMediaId) await servicesApi.removeMedia(serviceId!, existingMediaId).catch(() => {});
           await servicesApi.addMedia(serviceId!, { url: coverUrl, type: "image", isCover: true }).catch(() => {});
         }
+        // Save new addon drafts
+        const validAddonDrafts = addonDrafts.filter(a => a.name.trim() && a.price);
+        for (const a of validAddonDrafts) {
+          const addon = await addonsApi.create({ name: a.name.trim(), price: a.price, type: a.type });
+          await servicesApi.linkAddon(serviceId!, { addonId: addon.data.id }).catch(() => {});
+        }
+        // Save new question drafts
+        const validQDrafts = questionDrafts.filter(q => q.question.trim());
+        for (let i = 0; i < validQDrafts.length; i++) {
+          const q = validQDrafts[i];
+          await questionsApi.create(serviceId!, {
+            question: q.question.trim(), type: q.type,
+            isRequired: q.isRequired, isPaid: q.isPaid,
+            price: q.isPaid ? q.price || "0" : "0",
+            options: q.type === "select" ? q.options.split("\n").filter(Boolean) : [],
+            sortOrder: loadedQuestions.length + i,
+          }).catch(() => {});
+        }
       } else {
         const res = await servicesApi.create({
           name: form.name, serviceType: form.serviceType,
@@ -207,8 +248,33 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
           isBookable: true, isVisibleInPOS: true, isVisibleOnline: true,
           ...(durationMinutes ? { durationMinutes } : {}),
         });
+        const svcId = res.data.id;
+
+        // Upload cover
         if (coverUrl) {
-          await servicesApi.addMedia(res.data.id, { url: coverUrl, type: "image", isCover: true }).catch(() => {});
+          await servicesApi.addMedia(svcId, { url: coverUrl, type: "image", isCover: true }).catch(() => {});
+        }
+
+        // Create add-ons and link them
+        const validAddons = addonDrafts.filter(a => a.name.trim() && a.price);
+        for (const a of validAddons) {
+          const addon = await addonsApi.create({ name: a.name.trim(), price: a.price, type: a.type });
+          await servicesApi.linkAddon(svcId, { addonId: addon.data.id }).catch(() => {});
+        }
+
+        // Create questions
+        const validQs = questionDrafts.filter(q => q.question.trim());
+        for (let i = 0; i < validQs.length; i++) {
+          const q = validQs[i];
+          await questionsApi.create(svcId, {
+            question: q.question.trim(),
+            type: q.type,
+            isRequired: q.isRequired,
+            isPaid: q.isPaid,
+            price: q.isPaid ? q.price || "0" : "0",
+            options: q.type === "select" ? q.options.split("\n").filter(Boolean) : [],
+            sortOrder: i,
+          }).catch(() => {});
         }
       }
       onSuccess?.();
@@ -238,50 +304,63 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
   );
 
   // ──────────────────────────────────────────────────────────────────────────
-  // CREATE MODE
+  // CREATE MODE — 4 steps
   // ──────────────────────────────────────────────────────────────────────────
+  const STEP_LABELS = ["النوع", "الأساسيات", "الإضافات", "الأسئلة"];
+
   if (!isEdit) {
     return (
       <Modal open={open} onClose={onClose} title={title} size="md"
         footer={
-          step === 1 ? (
-            <div className="flex justify-between w-full">
-              <Button variant="secondary" onClick={onClose}>إلغاء</Button>
-              <Button disabled={!form.serviceType} onClick={() => setStep(2)}>التالي</Button>
-            </div>
-          ) : (
-            <div className="flex justify-between w-full">
-              <button onClick={() => setStep(1)} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
-                ← تغيير النوع
+          <div className="flex justify-between w-full">
+            {step > 1 ? (
+              <button onClick={() => setStep(s => (s - 1) as any)} className="text-xs text-gray-400 hover:text-gray-600 transition-colors">
+                ← السابق
               </button>
-              <div className="flex gap-2">
-                <Button variant="secondary" onClick={onClose}>إلغاء</Button>
-                <Button onClick={save} loading={saving}>إنشاء</Button>
-              </div>
+            ) : (
+              <Button variant="secondary" onClick={onClose}>إلغاء</Button>
+            )}
+            <div className="flex gap-2">
+              {step < 4 ? (
+                <>
+                  {step === 1 && (
+                    <Button disabled={!form.serviceType} onClick={() => setStep(2)}>التالي</Button>
+                  )}
+                  {step >= 2 && (
+                    <>
+                      <button onClick={() => setStep(s => (s + 1) as any)} className="text-xs text-gray-400 hover:text-gray-700 transition-colors px-2">
+                        تخطي
+                      </button>
+                      <Button onClick={() => setStep(s => (s + 1) as any)}>التالي</Button>
+                    </>
+                  )}
+                </>
+              ) : (
+                <Button onClick={save} loading={saving}>إنشاء الخدمة</Button>
+              )}
             </div>
-          )
+          </div>
         }
       >
-        {/* Step indicator — minimal */}
+        {/* Step progress — 4 bars */}
         <div className="flex items-center gap-1.5 mb-4">
-          <div className={clsx("h-1 flex-1 rounded-full transition-all", step >= 1 ? "bg-brand-500" : "bg-gray-100")} />
-          <div className={clsx("h-1 flex-1 rounded-full transition-all", step >= 2 ? "bg-brand-500" : "bg-gray-100")} />
-          <span className="text-[11px] text-gray-400 mr-1">{step === 1 ? "اختر النوع" : "الأساسيات"}</span>
+          {STEP_LABELS.map((lbl, i) => (
+            <div key={i} className="flex-1 flex flex-col gap-0.5">
+              <div className={clsx("h-1 rounded-full transition-all", step > i ? "bg-brand-500" : step === i + 1 ? "bg-brand-300" : "bg-gray-100")} />
+              <span className={clsx("text-[9px] text-center truncate", step === i + 1 ? "text-brand-600 font-medium" : "text-gray-300")}>{lbl}</span>
+            </div>
+          ))}
         </div>
 
-        {/* ── Step 1: Type grid — 4 cols, compact chips ── */}
+        {/* ── Step 1: Type grid ── */}
         {step === 1 && (
           <div className="grid grid-cols-4 gap-1.5">
             {SERVICE_TYPES.map(t => (
-              <button
-                key={t.value}
-                type="button"
+              <button key={t.value} type="button"
                 onClick={() => { setForm(f => ({ ...f, serviceType: t.value })); setStep(2); }}
                 className={clsx(
                   "flex flex-col items-center gap-1 py-2.5 px-1 rounded-lg border text-center transition-all hover:border-brand-300 hover:bg-brand-50/40",
-                  form.serviceType === t.value
-                    ? "border-brand-500 bg-brand-50"
-                    : "border-gray-100 bg-white"
+                  form.serviceType === t.value ? "border-brand-500 bg-brand-50" : "border-gray-100 bg-white"
                 )}
               >
                 <span className="text-lg leading-none">{t.icon}</span>
@@ -296,29 +375,22 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
           const selType = SERVICE_TYPES.find(x => x.value === form.serviceType);
           return (
             <div className="space-y-3">
-              {/* Selected type pill */}
               {selType && (
                 <div className="inline-flex items-center gap-1.5 bg-brand-50 text-brand-700 text-xs font-medium px-2.5 py-1 rounded-full">
                   <span>{selType.icon}</span>{selType.label}
                 </div>
               )}
-
               {errors._submit && (
                 <div className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />{errors._submit}
                 </div>
               )}
-
-              {/* Name */}
               <div>
                 <label className="text-xs font-medium text-gray-600 block mb-1">اسم الخدمة <span className="text-red-400">*</span></label>
-                <input autoFocus value={form.name} onChange={upd("name")}
-                  placeholder="مثال: حجز جلسة تصوير"
-                  className={clsx(iCls, errors.name && "border-red-300 focus:border-red-400")} />
+                <input autoFocus value={form.name} onChange={upd("name")} placeholder="مثال: حجز جلسة تصوير"
+                  className={clsx(iCls, errors.name && "border-red-300")} />
                 <Err msg={errors.name} />
               </div>
-
-              {/* Category + Price */}
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-1">التصنيف</label>
@@ -329,14 +401,11 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-1">السعر (ر.س) <span className="text-red-400">*</span></label>
-                  <input type="number" min={0} value={form.basePrice} onChange={upd("basePrice")}
-                    placeholder="0.00" dir="ltr"
-                    className={clsx(iCls, errors.basePrice && "border-red-300 focus:border-red-400")} />
+                  <input type="number" min={0} value={form.basePrice} onChange={upd("basePrice")} placeholder="0.00" dir="ltr"
+                    className={clsx(iCls, errors.basePrice && "border-red-300")} />
                   <Err msg={errors.basePrice} />
                 </div>
               </div>
-
-              {/* Duration */}
               {needsTiming && (
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-1">المدة <span className="text-red-400">*</span></label>
@@ -344,53 +413,35 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
                     <input type="number" min={1} value={form.durationValue} onChange={upd("durationValue")}
                       className={clsx(iCls, "w-24", errors.durationValue && "border-red-300")} dir="ltr" />
                     <select value={form.durationUnit} onChange={upd("durationUnit")} className={clsx(iCls, "flex-1")}>
-                      {(["minute","hour","day"] as DurationUnit[]).map(u => (
-                        <option key={u} value={u}>{UNIT_LABELS[u]}</option>
-                      ))}
+                      {(["minute","hour","day"] as DurationUnit[]).map(u => <option key={u} value={u}>{UNIT_LABELS[u]}</option>)}
                     </select>
                   </div>
                   <Err msg={errors.durationValue} />
                 </div>
               )}
-
-              {/* Image + Status in one row */}
+              {/* Image + Status row */}
               <div className="flex items-center gap-3 pt-1">
-                {/* Thumbnail */}
-                <div
-                  onClick={() => !uploading && fileRef.current?.click()}
-                  className={clsx(
-                    "relative w-14 h-14 rounded-lg border-2 border-dashed flex items-center justify-center shrink-0 cursor-pointer overflow-hidden transition-all",
+                <div onClick={() => !uploading && fileRef.current?.click()}
+                  className={clsx("relative w-14 h-14 rounded-lg border-2 border-dashed flex items-center justify-center shrink-0 cursor-pointer overflow-hidden transition-all",
                     coverPreview ? "border-transparent" : "border-gray-200 hover:border-brand-300 hover:bg-brand-50/20"
-                  )}
-                >
+                  )}>
                   {coverPreview ? (
                     <>
                       <img src={coverPreview} alt="" className="w-full h-full object-cover" />
-                      {uploading && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                          <Loader2 className="w-4 h-4 text-white animate-spin" />
-                        </div>
-                      )}
+                      {uploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><Loader2 className="w-4 h-4 text-white animate-spin" /></div>}
                       {!uploading && (
-                        <button
-                          onClick={e => { e.stopPropagation(); setCoverPreview(null); setCoverUrl(null); }}
-                          className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 hover:bg-red-500 rounded-sm flex items-center justify-center"
-                        >
+                        <button onClick={e => { e.stopPropagation(); setCoverPreview(null); setCoverUrl(null); }}
+                          className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 hover:bg-red-500 rounded-sm flex items-center justify-center">
                           <X className="w-2.5 h-2.5 text-white" />
                         </button>
                       )}
                     </>
-                  ) : (
-                    <Upload className="w-4 h-4 text-gray-300" />
-                  )}
+                  ) : <Upload className="w-4 h-4 text-gray-300" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-500 mb-1">
-                    {coverPreview ? (uploading ? `جاري الرفع ${uploadPct}%` : "صورة مرفوعة") : "صورة الخدمة (اختياري)"}
-                  </p>
+                  <p className="text-xs text-gray-500">{coverPreview ? (uploading ? `رفع ${uploadPct}%` : "صورة مرفوعة") : "صورة (اختياري)"}</p>
                   {uploadErr && <p className="text-[11px] text-red-500">{uploadErr}</p>}
                 </div>
-                {/* Status toggle */}
                 <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5 shrink-0">
                   {[{ v: "active", l: "نشطة" }, { v: "draft", l: "مسودة" }].map(s => (
                     <button key={s.v} type="button" onClick={() => setForm(f => ({ ...f, status: s.v }))}
@@ -400,23 +451,132 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
                   ))}
                 </div>
               </div>
-
               <input ref={fileRef} type="file" accept="image/*" className="hidden"
                 onChange={e => e.target.files?.[0] && pickFile(e.target.files[0])} />
             </div>
           );
         })()}
+
+        {/* ── Step 3: Paid Add-ons ── */}
+        {step === 3 && (
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500">أضف إضافات اختيارية أو إلزامية يمكن للعميل اختيارها عند الحجز.</p>
+            {addonDrafts.map((a, i) => (
+              <div key={i} className="flex gap-2 items-start p-2.5 bg-gray-50 rounded-lg">
+                <div className="flex-1 space-y-2">
+                  <input value={a.name} placeholder="اسم الإضافة"
+                    onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                    className={iCls} />
+                  <div className="grid grid-cols-2 gap-2">
+                    <input type="number" min={0} value={a.price} placeholder="السعر (ر.س)" dir="ltr"
+                      onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
+                      className={iCls} />
+                    <select value={a.type}
+                      onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.value as any } : x))}
+                      className={iCls}>
+                      <option value="optional">اختياري</option>
+                      <option value="required">إلزامي</option>
+                    </select>
+                  </div>
+                </div>
+                <button onClick={() => setAddonDrafts(d => d.filter((_, j) => j !== i))}
+                  className="mt-1 p-1 text-gray-400 hover:text-red-500 transition-colors shrink-0">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            ))}
+            <button onClick={() => setAddonDrafts(d => [...d, { ...INIT_ADDON }])}
+              className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 transition-colors font-medium">
+              <Plus className="w-3.5 h-3.5" /> إضافة خيار جديد
+            </button>
+            {addonDrafts.length === 0 && (
+              <p className="text-[11px] text-gray-400 text-center py-4 border-2 border-dashed border-gray-100 rounded-lg">
+                لا توجد إضافات — يمكنك تخطي هذه الخطوة
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* ── Step 4: Custom Questions ── */}
+        {step === 4 && (
+          <div className="space-y-3">
+            <p className="text-xs text-gray-500">أسئلة تُطرح على العميل عند إتمام الحجز.</p>
+            {questionDrafts.map((q, i) => (
+              <div key={i} className="p-2.5 bg-gray-50 rounded-lg space-y-2">
+                <div className="flex gap-2 items-start">
+                  <input value={q.question} placeholder="نص السؤال"
+                    onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, question: e.target.value } : x))}
+                    className={clsx(iCls, "flex-1")} />
+                  <button onClick={() => setQuestionDrafts(d => d.filter((_, j) => j !== i))}
+                    className="p-1 text-gray-400 hover:text-red-500 transition-colors shrink-0 mt-0.5">
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <select value={q.type}
+                    onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.value as any } : x))}
+                    className={iCls}>
+                    <option value="text">نص حر</option>
+                    <option value="select">اختيار من قائمة</option>
+                    <option value="checkbox">موافقة</option>
+                    <option value="number">رقم</option>
+                  </select>
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
+                      <input type="checkbox" checked={q.isRequired}
+                        onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, isRequired: e.target.checked } : x))}
+                        className="rounded border-gray-300 text-brand-500" />
+                      إلزامي
+                    </label>
+                    <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
+                      <input type="checkbox" checked={q.isPaid}
+                        onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, isPaid: e.target.checked } : x))}
+                        className="rounded border-gray-300 text-brand-500" />
+                      بمقابل
+                    </label>
+                  </div>
+                </div>
+                {q.isPaid && (
+                  <input type="number" min={0} value={q.price} placeholder="السعر (ر.س)" dir="ltr"
+                    onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
+                    className={iCls} />
+                )}
+                {q.type === "select" && (
+                  <textarea value={q.options} rows={2}
+                    placeholder={"خيار 1\nخيار 2\nخيار 3"}
+                    onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, options: e.target.value } : x))}
+                    className={clsx(iCls, "resize-none text-[11px]")} />
+                )}
+              </div>
+            ))}
+            <button onClick={() => setQuestionDrafts(d => [...d, { ...INIT_Q }])}
+              className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 transition-colors font-medium">
+              <Plus className="w-3.5 h-3.5" /> إضافة سؤال
+            </button>
+            {questionDrafts.length === 0 && (
+              <p className="text-[11px] text-gray-400 text-center py-4 border-2 border-dashed border-gray-100 rounded-lg">
+                لا توجد أسئلة — يمكنك تخطي هذه الخطوة
+              </p>
+            )}
+            {errors._submit && (
+              <div className="flex items-center gap-2 p-2.5 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />{errors._submit}
+              </div>
+            )}
+          </div>
+        )}
       </Modal>
     );
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // EDIT MODE — 3 compact tabs
+  // EDIT MODE — 4 compact tabs
   // ──────────────────────────────────────────────────────────────────────────
   const EDIT_TABS = [
-    { id: "basics",  label: "الأساسيات" },
-    { id: "pricing", label: "السعر والوقت" },
-    { id: "media",   label: "الصورة" },
+    { id: "basics",    label: "الأساسيات" },
+    { id: "pricing",   label: "السعر" },
+    { id: "addons",    label: "الإضافات" },
+    { id: "questions", label: "الأسئلة" },
   ] as const;
 
   return (
@@ -469,6 +629,27 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
               {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </div>
+          {/* Cover image inline */}
+          <div className="flex items-center gap-3">
+            <div onClick={() => !uploading && fileRef.current?.click()}
+              className={clsx("relative w-16 h-16 rounded-lg border-2 border-dashed flex items-center justify-center shrink-0 cursor-pointer overflow-hidden transition-all",
+                coverPreview ? "border-transparent" : "border-gray-200 hover:border-brand-300 hover:bg-brand-50/20"
+              )}>
+              {coverPreview ? (
+                <>
+                  <img src={coverPreview} alt="" className="w-full h-full object-cover" />
+                  {uploading && <div className="absolute inset-0 bg-black/50 flex items-center justify-center"><Loader2 className="w-4 h-4 text-white animate-spin" /></div>}
+                  {!uploading && (
+                    <button onClick={e => { e.stopPropagation(); setCoverPreview(null); setCoverUrl(null); }}
+                      className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 hover:bg-red-500 rounded-sm flex items-center justify-center">
+                      <X className="w-2.5 h-2.5 text-white" />
+                    </button>
+                  )}
+                </>
+              ) : <Upload className="w-4 h-4 text-gray-300" />}
+            </div>
+            <p className="text-xs text-gray-400">{coverPreview ? (uploading ? `رفع ${uploadPct}%` : "صورة الغلاف") : "صورة الغلاف (اختياري)"}</p>
+          </div>
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-gray-600">الحالة</span>
             <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
@@ -511,50 +692,131 @@ export function ServiceFormModal({ open, onClose, onSuccess, serviceId }: Servic
         </div>
       )}
 
-      {/* ── Media ── */}
-      {editTab === "media" && (
-        <div className="space-y-2">
-          <div
-            onClick={() => !uploading && fileRef.current?.click()}
-            className={clsx(
-              "relative h-36 rounded-xl overflow-hidden border-2 cursor-pointer transition-all",
-              coverPreview ? "border-gray-200" : "border-dashed border-gray-200 hover:border-brand-300 hover:bg-brand-50/20 flex flex-col items-center justify-center gap-1.5"
-            )}
-          >
-            {coverPreview ? (
-              <>
-                <img src={coverPreview} alt="" className="w-full h-full object-cover" />
-                {uploading && (
-                  <div className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center gap-1">
-                    <Loader2 className="w-5 h-5 text-white animate-spin" />
-                    <p className="text-white text-xs">{uploadPct}%</p>
-                  </div>
-                )}
-                {!uploading && (
-                  <button
-                    onClick={e => { e.stopPropagation(); setCoverPreview(null); setCoverUrl(null); }}
-                    className="absolute top-2 left-2 w-6 h-6 bg-black/50 hover:bg-red-500 rounded-full flex items-center justify-center"
-                  >
-                    <X className="w-3.5 h-3.5 text-white" />
-                  </button>
-                )}
-              </>
-            ) : (
-              <>
-                <Upload className="w-6 h-6 text-gray-300" />
-                <p className="text-xs text-gray-400">اضغط لرفع صورة الغلاف</p>
-                <p className="text-[11px] text-gray-300">JPG, PNG, WebP — حتى 10MB</p>
-              </>
-            )}
-          </div>
-          {coverPreview && !uploading && (
-            <button onClick={() => fileRef.current?.click()} className="text-xs text-brand-500 hover:underline">تغيير الصورة</button>
+      {/* ── Addons (edit) ── */}
+      {editTab === "addons" && (
+        <div className="space-y-3">
+          {/* Existing linked addons */}
+          {loadedAddons.length > 0 && (
+            <div className="space-y-1.5 mb-2">
+              {loadedAddons.map((a: any) => (
+                <div key={a.id} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg">
+                  <span className="text-sm text-gray-800">{a.name}</span>
+                  <span className="text-xs text-gray-500 font-mono">{Number(a.price || a.priceOverride || 0).toLocaleString()} ر.س</span>
+                </div>
+              ))}
+            </div>
           )}
-          {uploadErr && <Err msg={uploadErr} />}
-          <input ref={fileRef} type="file" accept="image/*" className="hidden"
-            onChange={e => e.target.files?.[0] && pickFile(e.target.files[0])} />
+          {/* New addon drafts */}
+          {addonDrafts.map((a, i) => (
+            <div key={i} className="flex gap-2 items-start p-2.5 bg-gray-50 rounded-lg">
+              <div className="flex-1 space-y-2">
+                <input value={a.name} placeholder="اسم الإضافة"
+                  onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                  className={iCls} />
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="number" min={0} value={a.price} placeholder="السعر (ر.س)" dir="ltr"
+                    onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
+                    className={iCls} />
+                  <select value={a.type}
+                    onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.value as any } : x))}
+                    className={iCls}>
+                    <option value="optional">اختياري</option>
+                    <option value="required">إلزامي</option>
+                  </select>
+                </div>
+              </div>
+              <button onClick={() => setAddonDrafts(d => d.filter((_, j) => j !== i))}
+                className="mt-1 p-1 text-gray-400 hover:text-red-500 shrink-0">
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+          <button onClick={() => setAddonDrafts(d => [...d, { ...INIT_ADDON }])}
+            className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 font-medium">
+            <Plus className="w-3.5 h-3.5" /> إضافة جديدة
+          </button>
         </div>
       )}
+
+      {/* ── Questions (edit) ── */}
+      {editTab === "questions" && (
+        <div className="space-y-3">
+          {/* Existing questions */}
+          {loadedQuestions.length > 0 && (
+            <div className="space-y-1.5 mb-2">
+              {loadedQuestions.map((q: any) => (
+                <div key={q.id} className="flex items-start justify-between px-3 py-2 bg-gray-50 rounded-lg gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs text-gray-800 truncate">{q.question}</p>
+                    <p className="text-[11px] text-gray-400">{q.type}{q.isPaid ? ` · ${Number(q.price || 0)} ر.س` : ""}{q.isRequired ? " · إلزامي" : ""}</p>
+                  </div>
+                  <button onClick={async () => {
+                    await questionsApi.delete(q.id).catch(() => {});
+                    setLoadedQuestions(l => l.filter((x: any) => x.id !== q.id));
+                  }} className="p-1 text-gray-300 hover:text-red-500 shrink-0">
+                    <Trash2 className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          {/* New question drafts */}
+          {questionDrafts.map((q, i) => (
+            <div key={i} className="p-2.5 bg-gray-50 rounded-lg space-y-2">
+              <div className="flex gap-2 items-start">
+                <input value={q.question} placeholder="نص السؤال"
+                  onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, question: e.target.value } : x))}
+                  className={clsx(iCls, "flex-1")} />
+                <button onClick={() => setQuestionDrafts(d => d.filter((_, j) => j !== i))}
+                  className="p-1 text-gray-400 hover:text-red-500 shrink-0 mt-0.5">
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <select value={q.type}
+                  onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.value as any } : x))}
+                  className={iCls}>
+                  <option value="text">نص حر</option>
+                  <option value="select">اختيار من قائمة</option>
+                  <option value="checkbox">موافقة</option>
+                  <option value="number">رقم</option>
+                </select>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
+                    <input type="checkbox" checked={q.isRequired}
+                      onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, isRequired: e.target.checked } : x))}
+                      className="rounded border-gray-300 text-brand-500" />
+                    إلزامي
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
+                    <input type="checkbox" checked={q.isPaid}
+                      onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, isPaid: e.target.checked } : x))}
+                      className="rounded border-gray-300 text-brand-500" />
+                    بمقابل
+                  </label>
+                </div>
+              </div>
+              {q.isPaid && (
+                <input type="number" min={0} value={q.price} placeholder="السعر (ر.س)" dir="ltr"
+                  onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
+                  className={iCls} />
+              )}
+              {q.type === "select" && (
+                <textarea value={q.options} rows={2} placeholder={"خيار 1\nخيار 2"}
+                  onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, options: e.target.value } : x))}
+                  className={clsx(iCls, "resize-none text-[11px]")} />
+              )}
+            </div>
+          ))}
+          <button onClick={() => setQuestionDrafts(d => [...d, { ...INIT_Q }])}
+            className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 font-medium">
+            <Plus className="w-3.5 h-3.5" /> إضافة سؤال
+          </button>
+        </div>
+      )}
+
+      <input ref={fileRef} type="file" accept="image/*" className="hidden"
+        onChange={e => e.target.files?.[0] && pickFile(e.target.files[0])} />
     </Modal>
   );
 }

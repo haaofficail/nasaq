@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum, jsonb, uuid, integer, numeric, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, jsonb, uuid, integer, numeric, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { organizations, locations } from "./organizations";
 
 // ============================================================
@@ -49,6 +49,13 @@ export const addonTypeEnum = pgEnum("addon_type", [
 export const pricingModeEnum = pgEnum("pricing_mode", [
   "fixed",       // مبلغ ثابت
   "percentage",  // نسبة من السعر الأساسي
+]);
+
+export const questionTypeEnum = pgEnum("question_type", [
+  "text",       // إجابة نصية حرة
+  "select",     // اختيار من قائمة
+  "checkbox",   // موافقة / تأكيد
+  "number",     // رقم (الكمية، العمر...)
 ]);
 
 // ============================================================
@@ -494,4 +501,30 @@ export const serviceStaff = pgTable("service_staff", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   uniqueIndex("service_staff_unique_idx").on(table.serviceId, table.userId),
+]);
+
+// ============================================================
+// SERVICE QUESTIONS — أسئلة مخصصة تُطرح على العميل عند الحجز
+// ============================================================
+
+export const serviceQuestions = pgTable("service_questions", {
+  id:        uuid("id").defaultRandom().primaryKey(),
+  orgId:     uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  serviceId: uuid("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
+
+  question:   text("question").notNull(),           // نص السؤال
+  type:       questionTypeEnum("type").default("text").notNull(),
+  isRequired: boolean("is_required").default(false).notNull(),
+  options:    jsonb("options").default([]),           // للنوع select — مصفوفة نصوص
+
+  // مقابل مالي
+  isPaid:     boolean("is_paid").default(false).notNull(),
+  price:      numeric("price", { precision: 10, scale: 2 }).default("0"),
+
+  sortOrder:  integer("sort_order").default(0).notNull(),
+  isActive:   boolean("is_active").default(true).notNull(),
+  createdAt:  timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:  timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("service_questions_service_idx").on(table.serviceId),
 ]);

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, asc, desc, ilike, sql, count, inArray } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { services, serviceMedia, serviceAddons, addons, categories, pricingRules, serviceComponents, serviceCosts, assetTypes, serviceRequirements, serviceStaff, users, assets } from "@nasaq/db/schema";
+import { services, serviceMedia, serviceAddons, addons, categories, pricingRules, serviceComponents, serviceCosts, assetTypes, serviceRequirements, serviceStaff, users, assets, serviceQuestions } from "@nasaq/db/schema";
 import { generateSlug, getOrgId, getUserId, validateBody, getPagination, safeSortField } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { nanoid } from "nanoid";
@@ -795,4 +795,94 @@ servicesRouter.delete("/:id/staff/:userId", async (c) => {
 
   if (!deleted) return c.json({ error: "الموظف غير مرتبط بهذه الخدمة" }, 404);
   return c.json({ data: { success: true } });
+});
+
+// ============================================================
+// SERVICE QUESTIONS — أسئلة مخصصة للحجز
+// ============================================================
+
+const createQuestionSchema = z.object({
+  question:   z.string().min(1),
+  type:       z.enum(["text","select","checkbox","number"]).default("text"),
+  isRequired: z.boolean().default(false),
+  options:    z.array(z.string()).default([]),
+  isPaid:     z.boolean().default(false),
+  price:      z.coerce.string().default("0"),
+  sortOrder:  z.number().int().default(0),
+});
+
+// GET /services/:id/questions
+servicesRouter.get("/:id/questions", async (c) => {
+  const orgId    = getOrgId(c);
+  const serviceId = c.req.param("id");
+  const rows = await db
+    .select()
+    .from(serviceQuestions)
+    .where(and(
+      eq(serviceQuestions.serviceId, serviceId),
+      eq(serviceQuestions.orgId, orgId),
+      eq(serviceQuestions.isActive, true),
+    ))
+    .orderBy(asc(serviceQuestions.sortOrder));
+  return c.json({ data: rows });
+});
+
+// POST /services/:id/questions
+servicesRouter.post("/:id/questions", async (c) => {
+  const orgId    = getOrgId(c);
+  const serviceId = c.req.param("id");
+  const parsed = createQuestionSchema.safeParse(await c.req.json());
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+  const { options, ...rest } = parsed.data;
+  const [created] = await db
+    .insert(serviceQuestions)
+    .values({ orgId, serviceId, ...rest, options: options as any })
+    .returning();
+  return c.json({ data: created }, 201);
+});
+
+// PUT /services/questions/:qid
+servicesRouter.put("/questions/:qid", async (c) => {
+  const orgId = getOrgId(c);
+  const qid   = c.req.param("qid");
+  const parsed = createQuestionSchema.partial().safeParse(await c.req.json());
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+  const { options, ...rest } = parsed.data;
+  const updates: any = { ...rest, updatedAt: new Date() };
+  if (options !== undefined) updates.options = options;
+  const [updated] = await db
+    .update(serviceQuestions)
+    .set(updates)
+    .where(and(eq(serviceQuestions.id, qid), eq(serviceQuestions.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "Question not found" }, 404);
+  return c.json({ data: updated });
+});
+
+// DELETE /services/questions/:qid
+servicesRouter.delete("/questions/:qid", async (c) => {
+  const orgId = getOrgId(c);
+  const qid   = c.req.param("qid");
+  const [deleted] = await db
+    .update(serviceQuestions)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(and(eq(serviceQuestions.id, qid), eq(serviceQuestions.orgId, orgId)))
+    .returning();
+  if (!deleted) return c.json({ error: "Question not found" }, 404);
+  return c.json({ data: { success: true } });
+});
+
+// PUT /services/questions/reorder
+servicesRouter.put("/questions/reorder", async (c) => {
+  const orgId = getOrgId(c);
+  const { items } = await c.req.json() as { items: { id: string; sortOrder: number }[] };
+  if (!Array.isArray(items)) return c.json({ error: "items required" }, 400);
+  await Promise.all(
+    items.map(({ id, sortOrder }) =>
+      db.update(serviceQuestions)
+        .set({ sortOrder, updatedAt: new Date() })
+        .where(and(eq(serviceQuestions.id, id), eq(serviceQuestions.orgId, orgId)))
+    )
+  );
+  return c.json({ success: true });
 });
