@@ -5,7 +5,7 @@ import {
   Settings, FileText, List, BarChart2, Phone, Trash2,
 } from "lucide-react";
 import { clsx } from "clsx";
-import { messagingApi } from "@/lib/api";
+import { messagingApi, settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Modal, Input } from "@/components/ui";
 
@@ -42,7 +42,9 @@ const SEND_TO_OPTIONS = [
 // ─── Connection Tab ────────────────────────────────────────────────
 function ConnectionTab() {
   const { data: statusRes, loading, refetch } = useApi(() => messagingApi.status(), []);
+  const { data: profileRes } = useApi(() => settingsApi.profile(), []);
   const status: any = statusRes?.data || {};
+  const org: any = profileRes?.data || {};
 
   const [showQR, setShowQR] = useState(false);
   const [qrData, setQrData] = useState("");
@@ -120,6 +122,34 @@ function ConnectionTab() {
 
   return (
     <div className="space-y-5">
+
+      {/* Org identity card */}
+      <div className="bg-white rounded-2xl border border-gray-100 px-5 py-4 flex items-center gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-brand-50 flex items-center justify-center shrink-0">
+          <MessageCircle className="w-5 h-5 text-brand-500" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-bold text-gray-900 truncate">{org.name || "—"}</p>
+          <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+            {org.phone && (
+              <span className="text-xs text-gray-400 font-mono flex items-center gap-1">
+                <Phone className="w-3 h-3" /> {org.phone}
+              </span>
+            )}
+            {org.vatNumber && (
+              <span className="text-xs text-gray-400 font-mono">
+                الرقم الضريبي: {org.vatNumber}
+              </span>
+            )}
+            {org.businessType && (
+              <span className="text-xs bg-brand-50 text-brand-600 px-2 py-0.5 rounded-full">
+                {org.businessType}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+
       {/* Status Card */}
       <div className={clsx(
         "bg-white rounded-2xl border p-5 flex items-center gap-4",
