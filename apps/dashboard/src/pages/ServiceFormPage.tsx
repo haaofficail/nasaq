@@ -1024,27 +1024,37 @@ export function ServiceFormPage() {
               {questionDrafts.length > 0 && (
                 <div className="space-y-2">
                   {questionDrafts.map((q, i) => (
-                    <div key={i} className="p-3 bg-gray-50 rounded-xl space-y-2">
-                      <div className="flex gap-2 items-center">
-                        <input value={q.question} placeholder="نص السؤال"
-                          onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, question: e.target.value } : x))}
-                          className={clsx(iCls, "flex-1")} />
-                        <select value={q.type}
-                          onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.value as any } : x))}
-                          className={clsx(iCls, "w-32")}>
-                          <option value="text">نص قصير</option>
-                          <option value="textarea">نص طويل</option>
-                          <option value="select">قائمة اختيار</option>
-                          <option value="multi">اختيار متعدد</option>
-                          <option value="checkbox">موافقة</option>
-                          <option value="number">رقم</option>
-                          <option value="date">تاريخ</option>
-                        </select>
+                    <div key={i} className="p-4 bg-gray-50 rounded-xl space-y-3 border border-gray-100">
+                      {/* Row: question text + type + delete */}
+                      <div className="flex gap-3 items-end">
+                        <div className="flex-1">
+                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">
+                            نص السؤال <span className="text-red-400">*</span>
+                          </label>
+                          <input value={q.question} placeholder="مثال: ما اللون المفضل للباقة؟"
+                            onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, question: e.target.value } : x))}
+                            className={iCls} />
+                        </div>
+                        <div className="w-36 shrink-0">
+                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">نوع الإجابة</label>
+                          <select value={q.type}
+                            onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.value as any } : x))}
+                            className={iCls}>
+                            <option value="text">نص قصير</option>
+                            <option value="textarea">نص طويل</option>
+                            <option value="select">قائمة اختيار</option>
+                            <option value="multi">اختيار متعدد</option>
+                            <option value="checkbox">موافقة (نعم/لا)</option>
+                            <option value="number">رقم</option>
+                            <option value="date">تاريخ</option>
+                          </select>
+                        </div>
                         <button onClick={() => setQuestionDrafts(d => d.filter((_, j) => j !== i))}
-                          className="p-1.5 text-gray-300 hover:text-red-500 transition-colors shrink-0">
+                          className="mb-0.5 p-1.5 text-gray-300 hover:text-red-500 transition-colors shrink-0">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
+                      {/* Row: flags */}
                       <div className="flex items-center gap-2 flex-wrap">
                         <button type="button"
                           onClick={() => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, isRequired: !x.isRequired } : x))}
@@ -1065,17 +1075,43 @@ export function ServiceFormPage() {
                           بمقابل مالي
                         </button>
                         {q.isPaid && (
-                          <input type="number" min={0} value={q.price} placeholder="0.00 ر.س" dir="ltr"
-                            onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
-                            className={clsx(iCls, "w-28")} />
+                          <div className="flex items-center gap-1.5">
+                            <input type="number" min={0} value={q.price} placeholder="0.00" dir="ltr"
+                              onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
+                              className={clsx(iCls, "w-24")} />
+                            <span className="text-xs text-gray-400">ر.س</span>
+                          </div>
                         )}
                       </div>
                       {(q.type === "select" || q.type === "multi") && (
-                        <div>
-                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">الخيارات (كل خيار في سطر)</label>
-                          <textarea value={q.options} rows={3} placeholder={"خيار 1\nخيار 2\nخيار 3"}
-                            onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, options: e.target.value } : x))}
-                            className={clsx(iCls, "resize-none text-xs")} />
+                        <div className="space-y-2">
+                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block">الخيارات</label>
+                          {q.options.split("\n").filter(Boolean).map((opt, oi) => (
+                            <div key={oi} className="flex items-center gap-2">
+                              <input value={opt} placeholder={`خيار ${oi + 1}`}
+                                onChange={e => {
+                                  const arr = q.options.split("\n").filter(Boolean);
+                                  arr[oi] = e.target.value;
+                                  setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, options: arr.join("\n") } : x));
+                                }}
+                                className={clsx(iCls, "flex-1")} />
+                              <button type="button"
+                                onClick={() => {
+                                  const arr = q.options.split("\n").filter(Boolean).filter((_, k) => k !== oi);
+                                  setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, options: arr.join("\n") } : x));
+                                }}
+                                className="p-1.5 text-gray-300 hover:text-red-500 transition-colors shrink-0">
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                          <button type="button"
+                            onClick={() => setQuestionDrafts(d => d.map((x, j) => j === i
+                              ? { ...x, options: x.options ? x.options + "\n" : "" }
+                              : x))}
+                            className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors">
+                            <Plus className="w-3 h-3" /> إضافة خيار
+                          </button>
                         </div>
                       )}
                     </div>
