@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "@/hooks/useToast";
-import { FileText, Plus, RefreshCw, CheckCircle2, Clock, XCircle, AlertTriangle, Eye, Search, CreditCard } from "lucide-react";
+import { FileText, Plus, RefreshCw, CheckCircle2, Clock, XCircle, AlertTriangle, Eye, Search, CreditCard, Building2 } from "lucide-react";
 import { clsx } from "clsx";
 import { financeApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
@@ -298,7 +298,32 @@ export function InvoicesPage() {
                 { label: "النوع", value: viewInvoice.invoiceType === "simplified" ? "مبسطة B2C" : "ضريبية B2B" },
                 { label: "المصدر", value: <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border", (SOURCE_BADGE[viewInvoice.sourceType] || SOURCE_BADGE.manual).color)}>{(SOURCE_BADGE[viewInvoice.sourceType] || SOURCE_BADGE.manual).label}</span> },
                 { label: "البائع", value: <div className="text-right"><p className="font-medium">{viewInvoice.sellerName}</p>{viewInvoice.sellerVatNumber && <p className="text-xs font-mono text-gray-400">{viewInvoice.sellerVatNumber}</p>}</div> },
-                { label: "المشتري", value: <div className="text-right"><p className="font-medium">{viewInvoice.buyerName}</p>{viewInvoice.buyerPhone && <p className="text-xs text-gray-400">{viewInvoice.buyerPhone}</p>}</div> },
+                { label: "المشتري", value: (
+                  <div className="text-right">
+                    <p className="font-medium">{viewInvoice.buyerName}</p>
+                    {viewInvoice.buyerCompanyName && <p className="text-xs text-violet-700 font-medium">{viewInvoice.buyerCompanyName}</p>}
+                    {viewInvoice.buyerPhone && <p className="text-xs text-gray-400">{viewInvoice.buyerPhone}</p>}
+                  </div>
+                )},
+                ...(viewInvoice.buyerCrNumber || viewInvoice.buyerVatNumber ? [{
+                  label: "بيانات المؤسسة",
+                  value: (
+                    <div className="text-right space-y-0.5">
+                      {viewInvoice.buyerCrNumber && (
+                        <div className="flex items-center gap-1 justify-end">
+                          <span className="text-xs text-gray-400">س.ت:</span>
+                          <span className="text-xs font-mono font-medium text-gray-700">{viewInvoice.buyerCrNumber}</span>
+                        </div>
+                      )}
+                      {viewInvoice.buyerVatNumber && (
+                        <div className="flex items-center gap-1 justify-end">
+                          <span className="text-xs text-gray-400">الرقم الضريبي:</span>
+                          <span className="text-xs font-mono font-medium text-gray-700">{viewInvoice.buyerVatNumber}</span>
+                        </div>
+                      )}
+                    </div>
+                  ),
+                }] : []),
                 { label: "تاريخ الإصدار", value: fmtDate(viewInvoice.issueDate || viewInvoice.createdAt) },
                 ...(viewInvoice.dueDate ? [{ label: "تاريخ الاستحقاق", value: fmtDate(viewInvoice.dueDate) }] : []),
               ].map(row => (

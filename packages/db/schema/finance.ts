@@ -79,6 +79,8 @@ export const invoices = pgTable("invoices", {
   buyerPhone: text("buyer_phone"),
   buyerEmail: text("buyer_email"),
   buyerVatNumber: text("buyer_vat_number"),                 // للفاتورة الضريبية B2B
+  buyerCompanyName: text("buyer_company_name"),             // اسم المؤسسة (B2B)
+  buyerCrNumber: text("buyer_cr_number"),                   // السجل التجاري (B2B)
   buyerAddress: text("buyer_address"),
 
   // Amounts
