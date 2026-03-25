@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { carRentalApi } from "../lib/api";
 import { Button } from "../components/ui";
 import { SkeletonRows } from "@/components/ui/Skeleton";
+import { fmtDate } from "@/lib/utils";
 
 type Tab = "dashboard" | "fleet" | "reservations" | "inspections";
 

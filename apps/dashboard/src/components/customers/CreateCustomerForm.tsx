@@ -3,8 +3,9 @@ import { Modal, Input, Select, Button } from "../ui";
 import { customersApi, settingsApi } from "@/lib/api";
 import { User, Building2, UserPlus, Phone, Mail, MapPin, Star, Tag, StickyNote, Globe, Hash } from "lucide-react";
 import { clsx } from "clsx";
+import { SAUDI_CITIES } from "@/lib/constants";
 
-const CITIES = ["الرياض","جدة","مكة المكرمة","المدينة المنورة","الدمام","الخبر","الطائف","بريدة","تبوك","أبها","حائل","نجران","الجبيل","ينبع","الأحساء","القطيف","خميس مشيط","الباحة","عرعر","سكاكا"];
+const CITIES = SAUDI_CITIES;
 
 const TIERS = [
   { value: "regular",    label: "عادي" },

@@ -6,6 +6,7 @@ import { bookingsApi, salonApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Modal, Input, Select } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
+import { fmtDate } from "@/lib/utils";
 
 const statusConfig: Record<string, { label: string; cls: string }> = {
   pending: { label: "بانتظار التأكيد", cls: "bg-amber-50 text-amber-600" },

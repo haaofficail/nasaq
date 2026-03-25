@@ -7,6 +7,7 @@ import {
   Clock, Pencil, Check, X, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { fmtDate } from "@/lib/utils";
 
 const HAIR_TYPES   = ["straight", "wavy", "curly", "coily"];
 const HAIR_LABELS: Record<string, string> = { straight: "ناعم مستقيم", wavy: "موجي", curly: "مجعد", coily: "مجعد كثيف" };

@@ -9,6 +9,7 @@ import { useApi } from "@/hooks/useApi";
 import { PLANS, ADDONS, PLAN_MAP } from "@/lib/constants";
 import { toast } from "@/hooks/useToast";
 import { Modal } from "@/components/ui";
+import { fmtDate } from "@/lib/utils";
 
 // ── helpers ────────────────────────────────────────────────
 

@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { SkeletonRows } from "@/components/ui/Skeleton";
+import { fmtDate } from "@/lib/utils";
 
 const PO_STATUS: Record<string, { label: string; cls: string }> = {
   draft:              { label: "مسودة",          cls: "bg-gray-100 text-gray-500" },

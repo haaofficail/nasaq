@@ -3,6 +3,7 @@ import { clsx } from "clsx";
 import { CalendarCheck, Clock, ArrowLeft } from "lucide-react";
 import { bookingsApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
+import { fmtDate } from "@/lib/utils";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   pending:     { label: "بانتظار",     color: "text-amber-600 bg-amber-50" },

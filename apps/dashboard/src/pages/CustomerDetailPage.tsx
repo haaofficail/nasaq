@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowRight, User, Phone, Mail, Building2, Star, CalendarCheck, Banknote, MessageSquare, Plus, Loader2, AlertCircle, Clock } from "lucide-react";
 import { clsx } from "clsx";
-import { customersApi, bookingsApi, auditLogApi } from "@/lib/api";
+import { customersApi, bookingsApi, auditLogApi, financeApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Modal, TextArea, Select } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
+import { fmtDate } from "@/lib/utils";
 
 export function CustomerDetailPage() {
   const { id } = useParams();
@@ -16,12 +17,14 @@ export function CustomerDetailPage() {
   const { data: res, loading, error, refetch } = useApi(() => customersApi.get(id!), [id]);
   const { mutate: addInteraction, loading: addingInteraction } = useMutation((data: any) => customersApi.addInteraction(id!, data));
   const { data: timelineRes } = useApi(() => auditLogApi.list({ resourceId: id!, limit: "50" }), [id]);
+  const { data: invoicesRes } = useApi(() => financeApi.invoices({ customerId: id! }), [id]);
 
   const customer = res?.data?.customer || res?.data;
   const customerBookings = res?.data?.bookings || [];
   const interactions = res?.data?.interactions || [];
   const stats = res?.data?.stats || {};
   const timeline = timelineRes?.data || [];
+  const customerInvoices: any[] = invoicesRes?.data || [];
 
   const handleAddInteraction = async () => {
     if (!interactionContent.trim()) return;
@@ -81,6 +84,46 @@ export function CustomerDetailPage() {
                     <span className="font-bold text-sm">{Number(b.totalAmount || 0).toLocaleString()} ر.س</span>
                   </Link>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* Invoices */}
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <h2 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Banknote className="w-4 h-4 text-gray-400" /> الفواتير ({customerInvoices.length})
+            </h2>
+            {customerInvoices.length === 0 ? <p className="text-sm text-gray-400 text-center py-4">لا توجد فواتير</p> : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-xs text-gray-400">
+                      <th className="text-right pb-2 font-medium">رقم الفاتورة</th>
+                      <th className="text-right pb-2 font-medium hidden sm:table-cell">التاريخ</th>
+                      <th className="text-right pb-2 font-medium">الإجمالي</th>
+                      <th className="text-right pb-2 font-medium">الحالة</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customerInvoices.slice(0, 10).map((inv: any) => (
+                      <tr key={inv.id} className="border-b border-gray-50 last:border-0">
+                        <td className="py-2 font-mono text-xs text-brand-600">{inv.invoiceNumber}</td>
+                        <td className="py-2 text-xs text-gray-400 hidden sm:table-cell">{inv.issueDate ? fmtDate(inv.issueDate) : "—"}</td>
+                        <td className="py-2 font-bold text-gray-800">{Number(inv.totalAmount || 0).toLocaleString()} ر.س</td>
+                        <td className="py-2">
+                          <span className={clsx("text-[10px] px-2 py-0.5 rounded-full font-medium", {
+                            "bg-emerald-50 text-emerald-700": inv.status === "paid",
+                            "bg-amber-50 text-amber-700": inv.status === "issued" || inv.status === "sent",
+                            "bg-red-50 text-red-600": inv.status === "overdue",
+                            "bg-gray-100 text-gray-500": inv.status === "cancelled" || inv.status === "draft",
+                          })}>
+                            {inv.status === "paid" ? "مدفوعة" : inv.status === "issued" ? "صادرة" : inv.status === "sent" ? "مرسلة" : inv.status === "overdue" ? "متأخرة" : inv.status === "cancelled" ? "ملغاة" : inv.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>

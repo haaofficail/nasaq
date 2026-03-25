@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { financeApi, settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Modal, Input, Select, TextArea, PageHeader } from "@/components/ui";
+import { fmtDate } from "@/lib/utils";
 
 export function FinancePage() {
   const navigate = useNavigate();

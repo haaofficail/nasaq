@@ -14,46 +14,17 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { adminApi, commercialApi } from "@/lib/api";
-import { SAUDI_CITIES, ADDONS, PLANS, ADDON_MAP } from "@/lib/constants";
+import { SAUDI_CITIES, ADDONS, PLANS, ADDON_MAP, BUSINESS_TYPE_MAP, PLAN_MAP } from "@/lib/constants";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { toast } from "@/hooks/useToast";
+import { fmtDate } from "@/lib/utils";
 
 // ════════════════════════════════════════════════════════════
 // CONSTANTS
 // ════════════════════════════════════════════════════════════
 
-const BUSINESS_TYPES: Record<string, string> = {
-  general:          "عام",
-  salon:            "صالون تجميل",
-  barber:           "حلاق",
-  spa:              "سبا",
-  fitness:          "لياقة بدنية",
-  restaurant:       "مطعم",
-  cafe:             "مقهى",
-  bakery:           "مخبز",
-  catering:         "تموين وضيافة",
-  flower_shop:      "محل ورود",
-  hotel:            "فندق",
-  car_rental:       "تأجير سيارات",
-  rental:           "تأجير معدات",
-  real_estate:      "عقارات",
-  retail:           "متجر تجزئة",
-  printing:         "طباعة",
-  laundry:          "مغسلة",
-  events:           "فعاليات",
-  event_organizer:  "تنظيم مناسبات",
-  digital_services: "خدمات رقمية",
-  technology:       "تقنية",
-  maintenance:      "صيانة",
-  workshop:         "ورشة",
-  logistics:        "لوجستيات",
-  construction:     "مقاولات",
-  photography:      "تصوير",
-};
-
-const PLAN_LABELS: Record<string, string> = {
-  basic: "الأساسي", advanced: "المتقدم", pro: "الاحترافي", enterprise: "المؤسسي",
-};
+const BUSINESS_TYPES = BUSINESS_TYPE_MAP;
+const PLAN_LABELS: Record<string, string> = Object.fromEntries(PLANS.map(p => [p.key, p.name]));
 const PLAN_COLORS: Record<string, string> = {
   basic: "bg-slate-100 text-slate-600",
   advanced: "bg-blue-50 text-blue-700",
@@ -674,8 +645,10 @@ function OrgsTab() {
   const [credentialsModal, setCredentialsModal] = useState<{ phone: string | null; email: string | null; password: string } | null>(null);
   const [planModal, setPlanModal] = useState<{ orgId: string; orgName: string; currentPlan: string; currentStatus: string } | null>(null);
   const [planForm, setPlanForm] = useState({ plan: "", subscriptionStatus: "", subscriptionEndsAt: "" });
+  const [renewModal, setRenewModal] = useState<{ orgId: string; orgName: string; plan: string; subscriptionEndsAt: string | null } | null>(null);
   const [addonsModal, setAddonsModal] = useState<{ orgId: string; orgName: string } | null>(null);
   const { mutate: changePlan, loading: changingPlan } = useMutation((d: any) => adminApi.changePlan(d.orgId, d.data));
+  const { mutate: renewSub, loading: renewing } = useMutation((d: any) => adminApi.changePlan(d.orgId, d.data));
   const { data: addonsData, refetch: refetchAddons } = useApi(
     () => addonsModal ? adminApi.getOrgAddons(addonsModal.orgId) : Promise.resolve(null),
     [addonsModal?.orgId]
@@ -805,6 +778,13 @@ function OrgsTab() {
                         <Package className="w-3.5 h-3.5" />
                       </button>
                       <button
+                        onClick={() => setRenewModal({ orgId: org.id, orgName: org.name, plan: org.plan, subscriptionEndsAt: org.subscriptionEndsAt || null })}
+                        className="p-1.5 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors"
+                        title="تجديد الاشتراك"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                      </button>
+                      <button
                         onClick={() => {
                           setPlanModal({ orgId: org.id, orgName: org.name, currentPlan: org.plan, currentStatus: org.subscriptionStatus });
                           setPlanForm({ plan: org.plan, subscriptionStatus: org.subscriptionStatus, subscriptionEndsAt: org.subscriptionEndsAt ? new Date(org.subscriptionEndsAt).toISOString().split("T")[0] : "" });
@@ -889,6 +869,49 @@ function OrgsTab() {
                 className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50"
               >
                 حفظ
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Renew Modal */}
+      {renewModal && (
+        <Modal open onClose={() => setRenewModal(null)} title={`تجديد اشتراك — ${renewModal.orgName}`} width="max-w-sm">
+          <div className="space-y-4">
+            <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">الباقة</span>
+                <span className="font-semibold text-gray-800"><PlanBadge plan={renewModal.plan} /></span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">السعر</span>
+                <span className="font-semibold text-gray-800">
+                  {PLAN_MAP[renewModal.plan]?.price ? `${PLAN_MAP[renewModal.plan].price} ر.س / سنة` : "حسب الطلب"}
+                </span>
+              </div>
+              <div className="flex justify-between border-t border-gray-200 pt-2 mt-2">
+                <span className="text-gray-500">تمديد حتى</span>
+                <span className="font-semibold text-emerald-700 font-mono">
+                  {new Date((renewModal.subscriptionEndsAt ? Math.max(new Date(renewModal.subscriptionEndsAt).getTime(), Date.now()) : Date.now()) + 365 * 24 * 60 * 60 * 1000).toLocaleDateString("ar")}
+                </span>
+              </div>
+            </div>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setRenewModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button
+                disabled={renewing}
+                onClick={async () => {
+                  const base = renewModal.subscriptionEndsAt ? Math.max(new Date(renewModal.subscriptionEndsAt).getTime(), Date.now()) : Date.now();
+                  const newEnd = new Date(base + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+                  await renewSub({ orgId: renewModal.orgId, data: { subscriptionStatus: "active", subscriptionEndsAt: newEnd } });
+                  setRenewModal(null);
+                  refetch();
+                }}
+                className="flex-1 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {renewing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                تجديد سنة
               </button>
             </div>
           </div>

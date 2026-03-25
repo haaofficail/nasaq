@@ -10,6 +10,7 @@ import {
   ClipboardList, Plus, ChevronLeft, Truck, Package, ArrowRight, CheckCircle2,
   AlertTriangle, Clock, RotateCcw, Search, X, Boxes,
 } from "lucide-react";
+import { fmtDate } from "@/lib/utils";
 
 // ============================================================
 // Constants

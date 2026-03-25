@@ -3,6 +3,7 @@ import { hotelApi } from "../lib/api";
 import { toast } from "@/hooks/useToast";
 import { Button } from "../components/ui";
 import { SkeletonRows } from "@/components/ui/Skeleton";
+import { fmtDate } from "@/lib/utils";
 
 type Tab = "dashboard" | "rooms" | "reservations" | "housekeeping" | "pricing";
 

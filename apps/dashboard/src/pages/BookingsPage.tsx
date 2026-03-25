@@ -6,6 +6,7 @@ import { bookingsApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { CreateBookingForm } from "@/components/bookings/CreateBookingForm";
 import { StatusBadge, ModernInput, PageHeader, Button } from "@/components/ui";
+import { fmtDate } from "@/lib/utils";
 
 const PIPELINE_TABS = [
   { key: "all",         label: "الكل" },

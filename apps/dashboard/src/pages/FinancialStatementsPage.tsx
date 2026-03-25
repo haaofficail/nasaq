@@ -7,6 +7,7 @@ import { clsx } from "clsx";
 import { accountingApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { Button } from "@/components/ui";
+import { fmtDate } from "@/lib/utils";
 
 // ────────────────────────────────────────────────────────────
 // Helpers

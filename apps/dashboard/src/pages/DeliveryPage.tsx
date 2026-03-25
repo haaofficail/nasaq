@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { deliveryApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { Modal, Button, Input } from "@/components/ui";
+import { fmtDate } from "@/lib/utils";
 
 const DELIVERY_STATUS_LABELS: Record<string, { label: string; bg: string; text: string; dot: string }> = {
   pending:    { label: "معلق",      bg: "bg-gray-50",    text: "text-gray-600",   dot: "bg-gray-400" },

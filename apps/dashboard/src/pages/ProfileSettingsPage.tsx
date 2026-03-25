@@ -7,51 +7,16 @@ import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Input, Select } from "@/components/ui";
 import { invalidateOrgContextCache } from "@/hooks/useOrgContext";
 import { MediaPickerModal } from "@/components/media/MediaPickerModal";
+import { fmtDate } from "@/lib/utils";
+import { BUSINESS_TYPE_LIST, PLAN_MAP } from "@/lib/constants";
 
 const PLAN_LABELS: Record<string, { label: string; color: string; bg: string }> = {
-  basic:      { label: "أساسي",     color: "text-blue-700",    bg: "bg-blue-50 border-blue-200" },
-  advanced:   { label: "متقدم",     color: "text-violet-700",  bg: "bg-violet-50 border-violet-200" },
-  pro:        { label: "احترافي",   color: "text-amber-700",   bg: "bg-amber-50 border-amber-200" },
-  enterprise: { label: "مؤسسي",     color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
+  basic:      { label: PLAN_MAP["basic"]?.name      || "أساسي",     color: "text-blue-700",    bg: "bg-blue-50 border-blue-200" },
+  advanced:   { label: PLAN_MAP["advanced"]?.name   || "متقدم",     color: "text-violet-700",  bg: "bg-violet-50 border-violet-200" },
+  pro:        { label: PLAN_MAP["pro"]?.name        || "احترافي",   color: "text-amber-700",   bg: "bg-amber-50 border-amber-200" },
+  enterprise: { label: PLAN_MAP["enterprise"]?.name || "مؤسسي",     color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200" },
 };
-const BUSINESS_TYPES = [
-  // الطعام والمشروبات
-  { value: "restaurant",      label: "مطعم" },
-  { value: "cafe",            label: "مقهى وكوفي شوب" },
-  { value: "catering",        label: "ضيافة وتقديم طعام" },
-  { value: "bakery",          label: "مخبز وحلويات" },
-  // الجمال والعناية
-  { value: "salon",           label: "صالون تجميل نسائي" },
-  { value: "barber",          label: "حلاقة وتصفيف رجالي" },
-  { value: "spa",             label: "سبا ومساج" },
-  { value: "fitness",         label: "صالة رياضية ولياقة" },
-  // الفعاليات والتصوير
-  { value: "events",          label: "تنظيم فعاليات وأفراح" },
-  { value: "event_organizer", label: "منظم مناسبات متخصص" },
-  { value: "photography",     label: "تصوير وإنتاج إعلامي" },
-  // التجزئة والبيع
-  { value: "retail",          label: "متجر تجزئة عام" },
-  { value: "flower_shop",     label: "متجر ورود وهدايا" },
-  { value: "printing",        label: "مطبعة وتصميم" },
-  { value: "laundry",         label: "غسيل وتنظيف" },
-  // التأجير والضيافة
-  { value: "rental",          label: "تأجير معدات وأصول" },
-  { value: "real_estate",     label: "عقارات وإدارة وحدات" },
-  { value: "hotel",           label: "فندق وضيافة" },
-  { value: "car_rental",      label: "تأجير سيارات" },
-  // الخدمات المهنية
-  { value: "services",        label: "خدمات مهنية وحرة" },
-  { value: "medical",         label: "عيادات ورعاية صحية" },
-  { value: "education",       label: "تعليم وتدريب" },
-  { value: "technology",      label: "تقنية معلومات وبرمجة" },
-  { value: "digital_services", label: "وكالة رقمية وتسويق" },
-  // الإنشاء والصناعة
-  { value: "construction",    label: "مقاولات وبناء" },
-  { value: "maintenance",     label: "صيانة وإصلاح" },
-  { value: "workshop",        label: "ورشة وتصنيع" },
-  { value: "logistics",       label: "شحن ونقل ولوجستيات" },
-  { value: "other",           label: "أخرى" },
-];
+const BUSINESS_TYPES = BUSINESS_TYPE_LIST.map(b => ({ value: b.key, label: b.name }));
 
 const STATUS_LABELS: Record<string, string> = {
   trialing:   "فترة تجريبية",

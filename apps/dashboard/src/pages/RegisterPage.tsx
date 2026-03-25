@@ -1,34 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { BUSINESS_TYPE_LIST } from "@/lib/constants";
 
-const businessTypes = [
-  // طعام ومشروبات
-  { value: "restaurant",   label: "🍽️ مطعم" },
-  { value: "cafe",         label: "☕ مقهى وكوفي شوب" },
-  { value: "catering",     label: "🥘 ضيافة وتقديم طعام" },
-  { value: "bakery",       label: "🥐 مخبز وحلويات" },
-  // تجميل وعناية
-  { value: "salon",        label: "💅 صالون تجميل نسائي" },
-  { value: "barber",       label: "💈 حلاقة وتصفيف رجالي" },
-  { value: "spa",          label: "🧖 سبا ومساج" },
-  { value: "fitness",      label: "🏋️ صالة رياضية ولياقة" },
-  // فعاليات وترفيه
-  { value: "events",       label: "🎉 تنظيم فعاليات وأفراح" },
-  { value: "photography",  label: "📸 تصوير وإنتاج إعلامي" },
-  // تجزئة ومتاجر
-  { value: "retail",       label: "🛍️ متجر تجزئة عام" },
-  { value: "flower_shop",  label: "🌹 متجر ورود وهدايا" },
-  // تأجير
-  { value: "rental",       label: "🔑 تأجير معدات وأصول" },
-  // خدمات مهنية
-  { value: "services",     label: "🤝 خدمات مهنية وحرة" },
-  { value: "medical",      label: "🏥 عيادات ورعاية صحية" },
-  { value: "education",    label: "📚 تعليم وتدريب" },
-  { value: "technology",   label: "💻 تقنية معلومات وبرمجة" },
-  { value: "construction", label: "🏗️ مقاولات وبناء" },
-  { value: "logistics",    label: "🚚 شحن ونقل ولوجستيات" },
-  { value: "other",        label: "✨ أخرى" },
-];
+const businessTypes = BUSINESS_TYPE_LIST.map(b => ({ value: b.key, label: b.name }));
 
 export function RegisterPage() {
   const navigate = useNavigate();

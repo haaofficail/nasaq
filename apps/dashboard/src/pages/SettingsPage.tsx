@@ -5,40 +5,14 @@ import { settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Input, Select, Modal } from "@/components/ui";
 import { COLORS, SHADOWS, TYPOGRAPHY } from "@/lib/design-tokens";
-import { SAUDI_CITIES } from "@/lib/constants";
+import { SAUDI_CITIES, BUSINESS_TYPE_LIST } from "@/lib/constants";
+import { fmtDate } from "@/lib/utils";
 
 const CITY_OPTIONS = [{ value: "", label: "— اختر المدينة —" }, ...SAUDI_CITIES.map(c => ({ value: c, label: c }))];
 
 const FONT = TYPOGRAPHY.family;
 
-const BUSINESS_TYPES = [
-  { value: "general",          label: "عام" },
-  { value: "salon",            label: "صالون تجميل" },
-  { value: "barber",           label: "حلاق" },
-  { value: "spa",              label: "سبا" },
-  { value: "fitness",          label: "لياقة بدنية" },
-  { value: "restaurant",       label: "مطعم" },
-  { value: "cafe",             label: "مقهى" },
-  { value: "bakery",           label: "مخبز" },
-  { value: "catering",         label: "تموين وضيافة" },
-  { value: "flower_shop",      label: "محل ورود" },
-  { value: "hotel",            label: "فندق" },
-  { value: "car_rental",       label: "تأجير سيارات" },
-  { value: "rental",           label: "تأجير معدات" },
-  { value: "real_estate",      label: "عقارات" },
-  { value: "retail",           label: "متجر تجزئة" },
-  { value: "printing",         label: "طباعة" },
-  { value: "laundry",          label: "مغسلة" },
-  { value: "events",           label: "فعاليات" },
-  { value: "event_organizer",  label: "تنظيم مناسبات" },
-  { value: "digital_services", label: "خدمات رقمية" },
-  { value: "technology",       label: "تقنية" },
-  { value: "maintenance",      label: "صيانة" },
-  { value: "workshop",         label: "ورشة" },
-  { value: "logistics",        label: "لوجستيات" },
-  { value: "construction",     label: "مقاولات" },
-  { value: "photography",      label: "تصوير" },
-];
+const BUSINESS_TYPES = BUSINESS_TYPE_LIST.map(b => ({ value: b.key, label: b.name }));
 
 const BRANCH_COLORS = [
   "#6366f1", "#8b5cf6", "#ec4899", "#f59e0b",

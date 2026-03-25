@@ -20,7 +20,7 @@ import {
   organizationCapabilityOverrides,
   reminderCategories, reminderTemplates, orgReminders,
   otpCodes, roles, bookingPipelineStages,
-  subscriptionAddons, subscriptionOrders,
+  subscriptionAddons, subscriptionOrders, subscriptions,
 } from "@nasaq/db/schema";
 import { _activateOrder } from "./subscription";
 import { getPagination, generateSlug } from "../lib/helpers";
@@ -1024,6 +1024,23 @@ adminRouter.post("/orgs", async (c) => {
         { orgId: newOrg.id, name: "ملغي", color: "#F44336", sortOrder: 6, isTerminal: true },
       ]);
     }
+
+    // Create subscription history record
+    const planNames: Record<string, string> = {
+      basic: "الأساسي", advanced: "المتقدم", pro: "الاحترافي", enterprise: "المؤسسي",
+    };
+    const subNumber = "SUB-" + randomBytes(3).toString("hex").toUpperCase().slice(0, 5);
+    const subStart = new Date();
+    const subEnd = new Date(subStart.getTime() + 365 * 24 * 60 * 60 * 1000);
+    await tx.insert(subscriptions).values({
+      orgId: newOrg.id,
+      subscriptionNumber: subNumber,
+      planKey: plan,
+      planName: planNames[plan] || plan,
+      startDate: subStart,
+      endDate: subEnd,
+      status: "active",
+    });
 
     return newOrg;
   });

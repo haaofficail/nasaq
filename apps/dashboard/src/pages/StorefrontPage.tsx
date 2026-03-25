@@ -12,6 +12,7 @@ import { websiteApi, settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Input, TextArea, Toggle, Modal } from "@/components/ui";
 import { MediaPickerModal } from "@/components/media/MediaPickerModal";
+import { fmtDate } from "@/lib/utils";
 
 // ── Block builder (moved from PageBuilderPage) ─────────────────
 

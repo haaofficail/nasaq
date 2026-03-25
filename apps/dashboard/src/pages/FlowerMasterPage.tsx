@@ -6,6 +6,7 @@ import {
   RefreshCw, ChevronDown, Leaf, Tag, BarChart3, Database,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { fmtDate } from "@/lib/utils";
 
 // ─── Types
 interface Variant {

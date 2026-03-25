@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import { CheckCircle2, Clock, MapPin, Calendar, CreditCard, Shield, Phone, Loader2, AlertCircle } from "lucide-react";
 import { clsx } from "clsx";
 import { publicApi } from "@/lib/api";
+import { fmtDate } from "@/lib/utils";
 
 export function PublicTrackingPage() {
   const { token } = useParams<{ token: string }>();

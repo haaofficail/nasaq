@@ -6,6 +6,7 @@ import {
   Package, TrendingDown, Clock, ChevronDown, Leaf,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { fmtDate } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface Variant {

@@ -4,6 +4,7 @@ import { rentalApi } from "@/lib/api";
 import { ClipboardList, AlertTriangle, CheckCircle2, Plus, X, Check, Filter } from "lucide-react";
 import { clsx } from "clsx";
 import { SkeletonRows } from "@/components/ui/Skeleton";
+import { fmtDate } from "@/lib/utils";
 
 const TYPE_LABELS: Record<string, string> = {
   pre_rental: "قبل التأجير", post_rental: "بعد الاستلام", maintenance_check: "فحص صيانة",
