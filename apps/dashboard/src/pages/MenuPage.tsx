@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { DurationInput } from "@/components/ui/DurationInput";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { categoriesApi, servicesApi } from "@/lib/api";
 import { Plus, Edit2, Trash2, ChevronDown, ChevronRight, Search, X, UtensilsCrossed, EyeOff } from "lucide-react";
@@ -229,8 +230,13 @@ export function MenuPage() {
                 <input type="number" value={svcForm.price} onChange={e => setSvcForm(p => ({ ...p, price: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" placeholder="0" />
               </div>
               <div>
-                <label className="text-xs font-semibold text-gray-500 mb-1 block">المدة (دقائق)</label>
-                <input type="number" value={svcForm.duration} onChange={e => setSvcForm(p => ({ ...p, duration: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" placeholder="60" />
+                <label className="text-xs font-semibold text-gray-500 mb-1 block">المدة</label>
+                <DurationInput
+                  valueMinutes={parseInt(svcForm.duration) || 0}
+                  onChange={m => setSvcForm(p => ({ ...p, duration: String(m) }))}
+                  units={["minute","hour"]}
+                  placeholder="60"
+                />
               </div>
             </div>
             <div>

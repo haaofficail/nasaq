@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 import { menuApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Modal, Button, Input, Toggle } from "@/components/ui";
+import { DurationInput } from "@/components/ui/DurationInput";
 
 const CATEGORY_ICONS = ["🍕","🍔","🌮","🍜","🍱","🥗","🍣","🍛","🍞","☕","🥤","🍰","🍦","🥩","🍗","🥘","🍲","🫕","🧆","🥙"];
 
@@ -68,7 +69,10 @@ function ItemModal({ item, categories, onClose, onSave }: { item?: any; categori
         <Input label="وصف الصنف" name="description" value={form.description} onChange={e => f("description", e.target.value)} placeholder="مكونات أو تفاصيل..." />
         <div className="grid grid-cols-3 gap-3">
           <Input label="السعر (ر.س) *" name="price" type="number" value={form.price} onChange={e => f("price", e.target.value)} placeholder="0" dir="ltr" />
-          <Input label="وقت التحضير (د)" name="preparationTime" type="number" value={form.preparationTime} onChange={e => f("preparationTime", e.target.value)} placeholder="10" dir="ltr" />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">وقت التحضير</label>
+            <DurationInput valueMinutes={parseInt(form.preparationTime)||10} onChange={m => f("preparationTime", String(m))} units={["minute","hour"]} placeholder="10" />
+          </div>
           <Input label="السعرات" name="calories" type="number" value={form.calories} onChange={e => f("calories", e.target.value)} placeholder="اختياري" dir="ltr" />
         </div>
         <div className="flex gap-6">

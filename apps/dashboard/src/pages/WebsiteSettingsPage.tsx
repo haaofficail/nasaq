@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { DurationInput } from "@/components/ui/DurationInput";
 import {
   Loader2, Save, Check, Globe, Building2, Phone, Paintbrush, Upload, X,
 } from "lucide-react";
@@ -282,7 +283,7 @@ export function WebsiteSettingsPage() {
             <>
               <SectionTitle>إعدادات الصالون</SectionTitle>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <Field label="مدة الحجز الافتراضية (دقيقة)"><input type="number" className={cls} value={bs.defaultBookingDuration || 60} onChange={(e) => sbs("defaultBookingDuration", +e.target.value)} dir="ltr" /></Field>
+                <Field label="مدة الحجز الافتراضية"><DurationInput valueMinutes={bs.defaultBookingDuration || 60} onChange={m => sbs("defaultBookingDuration", m)} units={["minute","hour"]} /></Field>
                 <Field label="الحجز المسبق (أيام كحد أقصى)"><input type="number" className={cls} value={bs.maxAdvanceBookingDays || 30} onChange={(e) => sbs("maxAdvanceBookingDays", +e.target.value)} dir="ltr" /></Field>
               </div>
               <Field label="سياسة الإلغاء"><textarea rows={3} className={cls + " resize-none"} value={bs.cancellationPolicy || ""} onChange={(e) => sbs("cancellationPolicy", e.target.value)} dir="rtl" /></Field>
@@ -326,8 +327,8 @@ export function WebsiteSettingsPage() {
                   <Field label="رسوم التوصيل (ر.س)"><input type="number" className={cls} value={bs.deliveryFee || 0} onChange={(e) => sbs("deliveryFee", +e.target.value)} dir="ltr" /></Field>
                   <Field label="توصيل مجاني فوق (ر.س)"><input type="number" className={cls} value={bs.freeDeliveryOver || 0} onChange={(e) => sbs("freeDeliveryOver", +e.target.value)} dir="ltr" /></Field>
                   <Field label="الحد الأدنى للطلب (ر.س)"><input type="number" className={cls} value={bs.minimumOrderAmount || 0} onChange={(e) => sbs("minimumOrderAmount", +e.target.value)} dir="ltr" /></Field>
-                  <Field label="وقت التحضير (دقيقة)"><input type="number" className={cls} value={bs.preparationTime || 20} onChange={(e) => sbs("preparationTime", +e.target.value)} dir="ltr" /></Field>
-                  <Field label="وقت التوصيل (دقيقة)"><input type="number" className={cls} value={bs.deliveryTime || 45} onChange={(e) => sbs("deliveryTime", +e.target.value)} dir="ltr" /></Field>
+                  <Field label="وقت التحضير"><DurationInput valueMinutes={bs.preparationTime || 20} onChange={m => sbs("preparationTime", m)} units={["minute","hour"]} /></Field>
+                  <Field label="وقت التوصيل"><DurationInput valueMinutes={bs.deliveryTime || 45} onChange={m => sbs("deliveryTime", m)} units={["minute","hour"]} /></Field>
                 </div>
               )}
               <Field label="أقسام المطعم (مفصولة بفاصلة)">
@@ -383,7 +384,7 @@ export function WebsiteSettingsPage() {
               <Toggle value={!!bs.enableOnlineBooking}    onChange={(v) => sbs("enableOnlineBooking", v)}    label="تفعيل الحجز الأونلاين" />
               <Toggle value={!!bs.requireDepositForBooking} onChange={(v) => sbs("requireDepositForBooking", v)} label="مطلوب دفع عربون عند الحجز" />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <Field label="مدة الحجز الافتراضية (دقيقة)"><input type="number" className={cls} value={bs.defaultBookingDuration || 60} onChange={(e) => sbs("defaultBookingDuration", +e.target.value)} dir="ltr" /></Field>
+                <Field label="مدة الحجز الافتراضية"><DurationInput valueMinutes={bs.defaultBookingDuration || 60} onChange={m => sbs("defaultBookingDuration", m)} units={["minute","hour"]} /></Field>
                 <Field label="الحجز المسبق (أيام كحد أقصى)"><input type="number" className={cls} value={bs.maxAdvanceBookingDays || 90} onChange={(e) => sbs("maxAdvanceBookingDays", +e.target.value)} dir="ltr" /></Field>
                 {bs.requireDepositForBooking && (
                   <Field label="نسبة العربون (%)"><input type="number" className={cls} value={bs.depositPercent || 30} onChange={(e) => sbs("depositPercent", +e.target.value)} dir="ltr" /></Field>

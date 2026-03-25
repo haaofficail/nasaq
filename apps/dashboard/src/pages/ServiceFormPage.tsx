@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi, membersApi, inventoryApi, settingsApi } from "@/lib/api";
+import { DurationInput } from "@/components/ui/DurationInput";
 import { toast } from "@/hooks/useToast";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -128,15 +129,15 @@ export function ServiceFormPage() {
   const [loadedStaff,    setLoadedStaff]    = useState<any[]>([]);    // already assigned (edit)
   const [products,       setProducts]       = useState<any[]>([]);    // inventory products
 
-  const fileRef                             = useRef<HTMLInputElement>(null);
-  const addonFileRef                        = useRef<HTMLInputElement>(null);
+  // ── Media (multiple images) ───────────────────────────────────────────────
+  type MediaItem = { preview: string; url: string | null; mediaId: string | null; isCover: boolean; uploading: boolean };
+  const [mediaItems,     setMediaItems]     = useState<MediaItem[]>([]);
+  const [removedMediaIds,setRemovedMediaIds]= useState<string[]>([]);
+
+  const fileRef      = useRef<HTMLInputElement>(null);
+  const addonFileRef = useRef<HTMLInputElement>(null);
   const [addonUploadIdx,    setAddonUploadIdx]    = useState<number | null>(null);
   const [questionPickerIdx, setQuestionPickerIdx] = useState<number | null>(null);
-  const [coverPreview, setCoverPreview]     = useState<string | null>(null);
-  const [coverUrl,     setCoverUrl]         = useState<string | null>(null);
-  const [existingMediaId, setExistingMediaId] = useState<string | null>(null);
-  const [uploading,    setUploading]        = useState(false);
-  const [uploadPct,    setUploadPct]        = useState(0);
   const [uploadErr,    setUploadErr]        = useState<string | null>(null);
 
   const needsTiming = NEEDS_TIMING.has(form.serviceType);
@@ -163,8 +164,9 @@ export function ServiceFormPage() {
       ]).then(([res, qRes, compRes, staffRes]) => {
         const s = res.data;
         const dur = parseDur(parseInt(s.durationMinutes) || 60);
-        const cover = (s.media || []).find((m: any) => m.isCover) || (s.media || [])[0];
-        if (cover) { setCoverPreview(cover.url); setCoverUrl(cover.url); setExistingMediaId(cover.id); }
+        setMediaItems((s.media || []).map((m: any) => ({
+          preview: m.url, url: m.url, mediaId: m.id, isCover: !!m.isCover, uploading: false,
+        })));
         setServiceName(s.name || "");
         setForm({
           serviceType:           s.serviceType || "appointment",
@@ -221,25 +223,21 @@ export function ServiceFormPage() {
 
   // ── Image upload ──────────────────────────────────────────────────────────
   const pickFile = async (file: File) => {
-    setCoverPreview(URL.createObjectURL(file));
-    setCoverUrl(null);
+    const preview = URL.createObjectURL(file);
+    const idx = mediaItems.length;
+    setMediaItems(p => [...p, { preview, url: null, mediaId: null, isCover: p.length === 0, uploading: true }]);
     setUploadErr(null);
-    setUploading(true);
-    setUploadPct(0);
     try {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("category", "services");
-      const res = await mediaApi.upload(fd, pct => setUploadPct(pct));
+      const res = await mediaApi.upload(fd, () => {});
       const url = res.data?.fileUrl || res.data?.url || res.data?.publicUrl;
       if (!url) throw new Error("لم يُرجع السيرفر رابط الصورة");
-      setCoverPreview(url);
-      setCoverUrl(url);
+      setMediaItems(p => p.map((m, i) => i === idx ? { ...m, url, preview: url, uploading: false } : m));
     } catch (e: any) {
       setUploadErr(e.message || "فشل رفع الصورة");
-      setCoverPreview(null);
-    } finally {
-      setUploading(false);
+      setMediaItems(p => p.filter((_, i) => i !== idx));
     }
   };
 
@@ -342,14 +340,21 @@ export function ServiceFormPage() {
         }
       };
 
+      const saveMedia = async (svcId: string) => {
+        for (const mid of removedMediaIds) {
+          await servicesApi.removeMedia(svcId, mid).catch(() => {});
+        }
+        for (let i = 0; i < mediaItems.length; i++) {
+          const m = mediaItems[i];
+          if (m.url && !m.mediaId) {
+            await servicesApi.addMedia(svcId, { url: m.url, type: "image", isCover: m.isCover }).catch(() => {});
+          }
+        }
+      };
+
       if (isEdit) {
         await servicesApi.update(id!, baseInfo);
-        if (coverUrl && existingMediaId) {
-          await servicesApi.removeMedia(id!, existingMediaId).catch(() => {});
-          await servicesApi.addMedia(id!, { url: coverUrl, type: "image", isCover: true }).catch(() => {});
-        } else if (coverUrl && !existingMediaId) {
-          await servicesApi.addMedia(id!, { url: coverUrl, type: "image", isCover: true }).catch(() => {});
-        }
+        await saveMedia(id!);
         await saveAddons(id!, loadedAddons.length);
         await saveQuestions(id!, loadedQuestions.length);
         await saveComponents(id!);
@@ -359,9 +364,7 @@ export function ServiceFormPage() {
       } else {
         const res = await servicesApi.create({ ...baseInfo, serviceType: form.serviceType });
         const svcId = res.data.id;
-        if (coverUrl) {
-          await servicesApi.addMedia(svcId, { url: coverUrl, type: "image", isCover: true }).catch(() => {});
-        }
+        await saveMedia(svcId);
         await saveAddons(svcId, 0);
         await saveQuestions(svcId, 0);
         await saveComponents(svcId);
@@ -531,23 +534,18 @@ export function ServiceFormPage() {
                   {needsTiming && (
                     <div>
                       <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">المدة <span className="text-red-400">*</span></label>
-                      <div className="flex gap-2 items-center">
-                        <input type="number" min={1} value={form.durationValue} onChange={upd("durationValue")}
-                          className={clsx(iCls, "w-20", errors.durationValue && "border-red-300")} dir="ltr" />
-                        <select value={form.durationUnit}
-                          onChange={e => {
-                            const u = e.target.value as DurationUnit;
-                            const curMins = (parseFloat(form.durationValue) || 1) * UNIT_MINS[form.durationUnit];
-                            const newVal = curMins / UNIT_MINS[u];
-                            const rounded = Number.isInteger(newVal) ? String(newVal) : newVal.toFixed(1).replace(/\.0$/, "");
-                            setForm(f => ({ ...f, durationUnit: u, durationValue: rounded }));
-                          }}
-                          className={clsx(iCls, "w-28")}>
-                          {(["minute","hour","day"] as DurationUnit[]).map(u =>
-                            <option key={u} value={u}>{UNIT_LABELS[u]}</option>
-                          )}
-                        </select>
-                      </div>
+                      <DurationInput
+                        valueMinutes={(parseFloat(form.durationValue) || 0) * UNIT_MINS[form.durationUnit]}
+                        onChange={mins => {
+                          const { v, u } = (() => {
+                            if (mins >= 1440 && mins % 1440 === 0) return { v: String(mins / 1440), u: "day" as DurationUnit };
+                            if (mins >= 60   && mins % 60   === 0) return { v: String(mins / 60),   u: "hour" as DurationUnit };
+                            return { v: String(mins), u: "minute" as DurationUnit };
+                          })();
+                          setForm(f => ({ ...f, durationValue: v, durationUnit: u }));
+                          setErrors(p => ({ ...p, durationValue: "" }));
+                        }}
+                      />
                       <Err msg={errors.durationValue} />
                     </div>
                   )}
@@ -587,64 +585,119 @@ export function ServiceFormPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">إعدادات الحجز</h2>
               <div className="divide-y divide-gray-50">
-                {[
-                  { field: "cancellationFreeHours", label: "إلغاء مجاني", unit: "ساعة", placeholder: "24" },
-                  { field: "minAdvanceHours",        label: "أقل حجز مسبق",  unit: "ساعة", placeholder: "0" },
-                  { field: "maxAdvanceDays",          label: "أقصى حجز مسبق", unit: "يوم",  placeholder: "∞" },
-                  ...(needsTiming ? [
-                    { field: "bufferBeforeMinutes", label: "فاصل قبل الموعد", unit: "دقيقة", placeholder: "0" },
-                    { field: "bufferAfterMinutes",  label: "فاصل بعد الموعد", unit: "دقيقة", placeholder: "0" },
-                  ] : []),
-                ].map(({ field, label, unit, placeholder }) => (
-                  <div key={field} className="flex items-center justify-between py-2.5">
-                    <span className="text-sm text-gray-700">{label}</span>
-                    <div className="flex items-center gap-2">
-                      <input type="number" min={0} dir="ltr"
-                        value={(form as any)[field]}
-                        onChange={upd(field as keyof Form)}
-                        placeholder={placeholder}
-                        className="w-20 border border-gray-200 rounded-lg px-2.5 py-1 text-sm text-center outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300" />
-                      <span className="text-xs text-gray-400 w-8 text-right">{unit}</span>
+                {/* إلغاء مجاني — ساعة / يوم */}
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="text-sm text-gray-700">إلغاء مجاني</span>
+                  <DurationInput
+                    valueMinutes={(parseFloat(form.cancellationFreeHours) || 0) * 60}
+                    onChange={m => setForm(f => ({ ...f, cancellationFreeHours: String(Math.round(m / 60)) }))}
+                    units={["minute","hour","day"]}
+                    placeholder="24"
+                  />
+                </div>
+                {/* أقل حجز مسبق — دقيقة / ساعة / يوم */}
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="text-sm text-gray-700">أقل حجز مسبق</span>
+                  <DurationInput
+                    valueMinutes={(parseFloat(form.minAdvanceHours) || 0) * 60}
+                    onChange={m => setForm(f => ({ ...f, minAdvanceHours: String(Math.round(m / 60)) }))}
+                    units={["minute","hour","day"]}
+                    placeholder="0"
+                  />
+                </div>
+                {/* أقصى حجز مسبق — يوم فقط */}
+                <div className="flex items-center justify-between py-2.5">
+                  <span className="text-sm text-gray-700">أقصى حجز مسبق</span>
+                  <DurationInput
+                    valueMinutes={(parseFloat(form.maxAdvanceDays) || 0) * 1440}
+                    onChange={m => setForm(f => ({ ...f, maxAdvanceDays: String(Math.round(m / 1440)) }))}
+                    units={["day"]}
+                    placeholder="∞"
+                  />
+                </div>
+                {needsTiming && (
+                  <>
+                    <div className="flex items-center justify-between py-2.5">
+                      <span className="text-sm text-gray-700">فاصل قبل الموعد</span>
+                      <DurationInput
+                        valueMinutes={parseFloat(form.bufferBeforeMinutes) || 0}
+                        onChange={m => setForm(f => ({ ...f, bufferBeforeMinutes: String(m) }))}
+                        units={["minute","hour"]}
+                        placeholder="0"
+                      />
                     </div>
-                  </div>
-                ))}
+                    <div className="flex items-center justify-between py-2.5">
+                      <span className="text-sm text-gray-700">فاصل بعد الموعد</span>
+                      <DurationInput
+                        valueMinutes={parseFloat(form.bufferAfterMinutes) || 0}
+                        onChange={m => setForm(f => ({ ...f, bufferAfterMinutes: String(m) }))}
+                        units={["minute","hour"]}
+                        placeholder="0"
+                      />
+                    </div>
+                  </>
+                )}
               </div>
             </div>
 
             {/* Card: Image and status */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">الصورة والحالة</h2>
+              <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">الصور والحالة</h2>
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-medium text-gray-600 block mb-2">
-                    صورة الغلاف <span className="text-gray-400 font-normal">(اختياري)</span>
-                  </label>
-                  {coverPreview ? (
-                    <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-gray-200">
-                      <img src={coverPreview} alt="" className="w-full h-full object-cover" />
-                      {uploading && (
-                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center gap-1">
-                          <Loader2 className="w-4 h-4 text-white animate-spin" />
-                          <span className="text-white text-xs">{uploadPct}%</span>
-                        </div>
-                      )}
-                      {!uploading && (
-                        <button onClick={() => { setCoverPreview(null); setCoverUrl(null); }}
-                          className="absolute top-1.5 right-1.5 w-5 h-5 bg-black/60 hover:bg-red-500 rounded-md flex items-center justify-center transition-colors">
-                          <X className="w-3 h-3 text-white" />
-                        </button>
-                      )}
-                    </div>
-                  ) : (
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+                      صور الخدمة <span className="text-gray-300 font-normal normal-case">— الأولى تكون الغلاف</span>
+                    </label>
+                    {mediaItems.length > 0 && (
+                      <span className="text-[11px] text-gray-400">{mediaItems.length} صورة</span>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-3">
+                    {mediaItems.map((m, i) => (
+                      <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200 group">
+                        <img src={m.preview} alt="" className="w-full h-full object-cover" />
+                        {m.uploading && (
+                          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                            <Loader2 className="w-4 h-4 text-white animate-spin" />
+                          </div>
+                        )}
+                        {!m.uploading && (
+                          <button
+                            onClick={() => {
+                              if (m.mediaId) setRemovedMediaIds(p => [...p, m.mediaId!]);
+                              setMediaItems(p => {
+                                const next = p.filter((_, j) => j !== i);
+                                // reassign cover to first if needed
+                                if (m.isCover && next.length > 0) next[0] = { ...next[0], isCover: true };
+                                return next;
+                              });
+                            }}
+                            className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-red-500 rounded-md flex items-center justify-center transition-colors opacity-0 group-hover:opacity-100">
+                            <X className="w-3 h-3 text-white" />
+                          </button>
+                        )}
+                        {m.isCover && !m.uploading && (
+                          <span className="absolute bottom-1 right-1 text-[9px] bg-brand-500 text-white px-1.5 py-0.5 rounded-md">غلاف</span>
+                        )}
+                        {!m.isCover && !m.uploading && (
+                          <button onClick={() => setMediaItems(p => p.map((x, j) => ({ ...x, isCover: j === i })))}
+                            className="absolute bottom-1 right-1 text-[9px] bg-black/40 hover:bg-brand-500 text-white px-1.5 py-0.5 rounded-md transition-colors opacity-0 group-hover:opacity-100">
+                            غلاف
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    {/* Add button */}
                     <button type="button" onClick={() => fileRef.current?.click()}
-                      className="flex flex-col items-center justify-center w-32 h-32 rounded-xl border-2 border-dashed border-gray-200 hover:border-brand-300 hover:bg-brand-50/20 transition-all cursor-pointer">
-                      <Upload className="w-6 h-6 text-gray-300 mb-1" />
-                      <span className="text-xs text-gray-400">رفع صورة</span>
+                      className="flex flex-col items-center justify-center w-24 h-24 rounded-xl border-2 border-dashed border-gray-200 hover:border-brand-300 hover:bg-brand-50/20 transition-all">
+                      <Upload className="w-5 h-5 text-gray-300 mb-1" />
+                      <span className="text-[11px] text-gray-400">إضافة صورة</span>
                     </button>
-                  )}
-                  {uploadErr && <p className="text-xs text-red-500 mt-1">{uploadErr}</p>}
-                  <input ref={fileRef} type="file" accept="image/*" className="hidden"
-                    onChange={e => e.target.files?.[0] && pickFile(e.target.files[0])} />
+                  </div>
+                  {uploadErr && <p className="text-xs text-red-500 mt-1.5">{uploadErr}</p>}
+                  <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
+                    onChange={e => { Array.from(e.target.files || []).forEach(pickFile); e.target.value = ""; }} />
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-2">الحالة</label>
@@ -1133,7 +1186,7 @@ export function ServiceFormPage() {
                       {(q.type === "select" || q.type === "multi") && (
                         <div className="space-y-2">
                           <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block">الخيارات</label>
-                          {q.options.split("\n").filter(Boolean).map((opt, oi) => (
+                          {(q.options === "" ? [] : q.options.split("\n")).map((opt, oi) => (
                             <div key={oi} className="flex items-center gap-2">
                               <input value={opt} placeholder={`خيار ${oi + 1}`}
                                 onChange={e => {
@@ -1153,9 +1206,12 @@ export function ServiceFormPage() {
                             </div>
                           ))}
                           <button type="button"
-                            onClick={() => setQuestionDrafts(d => d.map((x, j) => j === i
-                              ? { ...x, options: x.options ? x.options + "\n" : "" }
-                              : x))}
+                            onClick={() => setQuestionDrafts(d => d.map((x, j) => {
+                              if (j !== i) return x;
+                              const arr = x.options.split("\n").filter(Boolean);
+                              arr.push("");
+                              return { ...x, options: arr.join("\n") };
+                            }))}
                             className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors">
                             <Plus className="w-3 h-3" /> إضافة خيار
                           </button>
