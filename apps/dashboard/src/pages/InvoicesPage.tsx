@@ -377,8 +377,9 @@ export function InvoicesPage() {
               <div className="border border-brand-100 rounded-xl p-4 bg-brand-50/30 space-y-3">
                 <p className="text-sm font-semibold text-gray-800">تسجيل دفعة جديدة</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <Input label="المبلغ *" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" dir="ltr" />
+                  <Input name="amount" label="المبلغ *" value={paymentForm.amount} onChange={e => setPaymentForm(p => ({ ...p, amount: e.target.value }))} placeholder="0.00" dir="ltr" />
                   <Select
+                    name="paymentMethod"
                     label="طريقة الدفع"
                     value={paymentForm.paymentMethod}
                     onChange={e => setPaymentForm(p => ({ ...p, paymentMethod: e.target.value }))}
@@ -390,7 +391,7 @@ export function InvoicesPage() {
                     ]}
                   />
                 </div>
-                <Input label="مرجع (اختياري)" value={paymentForm.reference} onChange={e => setPaymentForm(p => ({ ...p, reference: e.target.value }))} placeholder="رقم التحويل..." dir="ltr" />
+                <Input name="reference" label="مرجع (اختياري)" value={paymentForm.reference} onChange={e => setPaymentForm(p => ({ ...p, reference: e.target.value }))} placeholder="رقم التحويل..." dir="ltr" />
                 <div className="flex gap-2">
                   <Button onClick={handleAddPayment} loading={savingPayment} size="sm">تأكيد الدفعة</Button>
                   <Button variant="secondary" size="sm" onClick={() => setShowPayment(false)}>إلغاء</Button>

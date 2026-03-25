@@ -505,8 +505,10 @@ export const posApi = {
     if (params?.type) q.set("type", params.type);
     return api.get<{ data: any[] }>(`/pos/transactions?${q}`);
   },
-  sale: (data: any) => api.post<{ data: any }>("/pos/sale", data),
-  refund: (id: string) => api.post<{ data: any }>(`/pos/refund/${id}`, {}),
+  today: () => api.get<{ data: any[] }>("/pos/today"),
+  sale: (data: any) => api.post<{ data: { transaction: any; invoice: any } }>("/pos/sale", data),
+  splitSale: (data: any) => api.post<{ data: any }>("/pos/sale/split", data),
+  refund: (id: string, reason?: string) => api.post<{ data: any }>(`/pos/sale/${id}/refund`, { reason }),
   settings: () => api.get<{ data: any }>("/pos/settings"),
   updateSettings: (data: any) => api.put<{ data: any }>("/pos/settings", data),
   quickItems: () => api.get<{ data: any[] }>("/pos/quick-items"),

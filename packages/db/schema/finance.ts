@@ -106,7 +106,13 @@ export const invoices = pgTable("invoices", {
   termsAndConditions: text("terms_and_conditions"),
   
   // Source tagging
-  sourceType: text("source_type").default("manual"),  // manual | booking | order | services
+  sourceType: text("source_type").default("manual"),  // manual | booking | order | services | pos
+
+  // Split invoice fields (POS split billing)
+  parentInvoiceId: uuid("parent_invoice_id"),
+  splitType: text("split_type"),       // equal | items | amount
+  splitIndex: integer("split_index"),  // 1-based: الجزء الأول
+  splitTotal: integer("split_total"),  // العدد الكلي للأجزاء
 
   // Linked credit note (for refunds)
   relatedInvoiceId: uuid("related_invoice_id"),

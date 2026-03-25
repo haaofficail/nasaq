@@ -231,6 +231,7 @@ export function CreateInvoiceModal({ open, onClose, onSuccess }: Props) {
         {/* Source + Type row */}
         <div className="grid grid-cols-2 gap-3">
           <Select
+            name="sourceType"
             label="مصدر الفاتورة"
             value={sourceType}
             onChange={e => { setSourceType(e.target.value as any); setImportedBookingId(null); setItems([newLine()]); setBuyerName(""); setBuyerPhone(""); }}
@@ -240,6 +241,7 @@ export function CreateInvoiceModal({ open, onClose, onSuccess }: Props) {
             ]}
           />
           <Select
+            name="invoiceType"
             label="نوع الفاتورة"
             value={invoiceType}
             onChange={e => setInvoiceType(e.target.value)}
@@ -258,6 +260,7 @@ export function CreateInvoiceModal({ open, onClose, onSuccess }: Props) {
               استيراد من حجز
             </div>
             <Input
+              name="bookingSearch"
               placeholder="ابحث باسم العميل أو رقم الحجز..."
               value={bookingSearch}
               onChange={e => setBookingSearch(e.target.value)}
@@ -292,12 +295,14 @@ export function CreateInvoiceModal({ open, onClose, onSuccess }: Props) {
         {/* Seller info */}
         <div className="grid grid-cols-2 gap-3">
           <Input
+            name="sellerName"
             label="اسم البائع *"
             value={sellerName}
             onChange={e => setSellerName(e.target.value)}
             placeholder="اسم منشأتك"
           />
           <Input
+            name="sellerVat"
             label="الرقم الضريبي للبائع"
             value={sellerVat}
             onChange={e => setSellerVat(e.target.value)}
@@ -346,12 +351,14 @@ export function CreateInvoiceModal({ open, onClose, onSuccess }: Props) {
         {/* Buyer info */}
         <div className="grid grid-cols-2 gap-3">
           <Input
+            name="buyerName"
             label="اسم المشتري *"
             value={buyerName}
             onChange={e => setBuyerName(e.target.value)}
             placeholder="اسم العميل"
           />
           <Input
+            name="buyerPhone"
             label="جوال المشتري"
             value={buyerPhone}
             onChange={e => setBuyerPhone(e.target.value)}
@@ -368,6 +375,7 @@ export function CreateInvoiceModal({ open, onClose, onSuccess }: Props) {
               بيانات المؤسسة
             </div>
             <Input
+              name="buyerCompanyName"
               label="اسم المؤسسة"
               value={buyerCompanyName}
               onChange={e => setBuyerCompanyName(e.target.value)}
@@ -375,6 +383,7 @@ export function CreateInvoiceModal({ open, onClose, onSuccess }: Props) {
             />
             <div className="grid grid-cols-2 gap-3">
               <Input
+                name="buyerCrNumber"
                 label="السجل التجاري"
                 value={buyerCrNumber}
                 onChange={e => setBuyerCrNumber(e.target.value)}
@@ -382,6 +391,7 @@ export function CreateInvoiceModal({ open, onClose, onSuccess }: Props) {
                 dir="ltr"
               />
               <Input
+                name="buyerVat"
                 label="الرقم الضريبي للمشتري"
                 value={buyerVat}
                 onChange={e => setBuyerVat(e.target.value)}
@@ -470,12 +480,14 @@ export function CreateInvoiceModal({ open, onClose, onSuccess }: Props) {
         {/* Footer fields */}
         <div className="grid grid-cols-2 gap-3">
           <Input
+            name="dueDate"
             label="تاريخ الاستحقاق"
             type="date"
             value={dueDate}
             onChange={e => setDueDate(e.target.value)}
           />
           <Input
+            name="notes"
             label="ملاحظات"
             value={notes}
             onChange={e => setNotes(e.target.value)}

@@ -155,6 +155,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
         <Section title="معلومات التواصل" icon={Phone}>
           {type === "business" && (
             <Input
+              name="companyName"
               label="اسم المؤسسة *"
               value={form.companyName}
               onChange={set("companyName")}
@@ -163,6 +164,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
             />
           )}
           <Input
+            name="name"
             label={type === "business" ? "اسم جهة الاتصال *" : "الاسم الكامل *"}
             value={form.name}
             onChange={set("name")}
@@ -171,6 +173,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
           />
           <div className="grid grid-cols-2 gap-3">
             <Input
+              name="phone"
               label="رقم الجوال *"
               value={form.phone}
               onChange={set("phone")}
@@ -179,6 +182,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
               error={errors.phone}
             />
             <Input
+              name="email"
               label="البريد الإلكتروني"
               type="email"
               value={form.email}
@@ -201,6 +205,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
             </label>
             {!form.sameAsPhone && (
               <Input
+                name="whatsapp"
                 label="رقم واتساب"
                 value={form.whatsapp}
                 onChange={set("whatsapp")}
@@ -216,6 +221,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
           <Section title="تفاصيل إضافية" icon={User}>
             <div className="grid grid-cols-2 gap-3">
               <Select
+                name="gender"
                 label="الجنس"
                 value={form.gender}
                 onChange={set("gender")}
@@ -226,6 +232,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
                 ]}
               />
               <Input
+                name="birthdate"
                 label="تاريخ الميلاد"
                 type="date"
                 value={form.birthdate}
@@ -240,6 +247,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
           <Section title="بيانات المؤسسة" icon={Building2}>
             <div className="grid grid-cols-2 gap-3">
               <Input
+                name="crNumber"
                 label="رقم السجل التجاري"
                 value={form.crNumber}
                 onChange={set("crNumber")}
@@ -247,6 +255,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
                 dir="ltr"
               />
               <Input
+                name="vatNumber"
                 label="الرقم الضريبي"
                 value={form.vatNumber}
                 onChange={set("vatNumber")}
@@ -255,6 +264,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
               />
             </div>
             <Input
+              name="website"
               label="الموقع الإلكتروني"
               value={form.website}
               onChange={set("website")}
@@ -268,12 +278,14 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
         <Section title="التصنيف والمصدر" icon={Tag}>
           <div className="grid grid-cols-2 gap-3">
             <Select
+              name="city"
               label="المدينة"
               value={form.city}
               onChange={set("city")}
               options={CITIES.map(c => ({ value: c, label: c }))}
             />
             <Select
+              name="source"
               label="مصدر الاكتساب"
               value={form.source}
               onChange={set("source")}
@@ -281,6 +293,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
             />
           </div>
           <Select
+            name="tier"
             label="تصنيف العميل"
             value={form.tier}
             onChange={set("tier")}
