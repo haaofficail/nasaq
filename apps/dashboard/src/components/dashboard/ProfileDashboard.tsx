@@ -212,9 +212,11 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
       {/* ── Booking link ── */}
       {bookingLink && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-3.5 flex items-center gap-3">
-          <ExternalLink className="w-4 h-4 text-brand-400 shrink-0" />
-          <span className="text-xs text-gray-500 ml-1">رابط الحجز:</span>
-          <span className="flex-1 text-xs text-brand-600 font-mono truncate" dir="ltr">{bookingLink}</span>
+          <a href={bookingLink} target="_blank" rel="noopener noreferrer" className="shrink-0 p-1.5 rounded-lg hover:bg-brand-50 transition-colors" title="فتح الرابط">
+            <ExternalLink className="w-4 h-4 text-brand-400" />
+          </a>
+          <span className="text-xs text-gray-500">رابط الحجز:</span>
+          <a href={bookingLink} target="_blank" rel="noopener noreferrer" className="flex-1 text-xs text-brand-600 font-mono truncate hover:underline" dir="ltr">{bookingLink}</a>
           <button
             onClick={handleCopyLink}
             className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-brand-50 hover:text-brand-600 text-gray-500 border border-gray-200 hover:border-brand-200 rounded-xl text-xs font-medium transition-all"
