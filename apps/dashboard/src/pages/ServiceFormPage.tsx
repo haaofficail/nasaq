@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, AlignJustify, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image, Wrench, Home, Package, Truck, Gift, FileText, Star, ShoppingBag, CalendarCheck } from "lucide-react";
+import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, AlignJustify, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image, Wrench, Home, Package, Truck, Gift, FileText, Star, ShoppingBag, CalendarCheck, CheckSquare } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi, membersApi, inventoryApi, settingsApi } from "@/lib/api";
 import { DurationInput } from "@/components/ui/DurationInput";
@@ -63,10 +63,11 @@ type AddonDraft = {
   price: string; type: "optional" | "required";
   imageUrl: string;
 };
-type QuestionType = "text" | "textarea" | "number" | "date" | "select" | "multi" | "location" | "file" | "image";
+type QuestionType = "text" | "textarea" | "number" | "date" | "select" | "multi" | "checkbox" | "location" | "file" | "image";
 type QuestionDraft = {
+  id?: string;        // set for loaded questions (edit mode) — used to call update vs create
   question: string; type: QuestionType;
-  isRequired: boolean; isPaid: boolean; price: string; options: string;
+  isRequired: boolean; isPaid: boolean; price: string; options: string[];
 };
 
 const QUESTION_TYPES: { value: QuestionType; label: string; icon: React.ElementType; desc: string }[] = [
@@ -76,6 +77,7 @@ const QUESTION_TYPES: { value: QuestionType; label: string; icon: React.ElementT
   { value: "date",     label: "تاريخ",           icon: Calendar,     desc: "اختيار تاريخ" },
   { value: "select",   label: "قائمة منسدلة",   icon: ChevronDown,  desc: "اختيار خيار واحد" },
   { value: "multi",    label: "اختيار متعدد",    icon: LayoutList,   desc: "اختيار أكثر من خيار" },
+  { value: "checkbox", label: "موافقة",          icon: CheckSquare,  desc: "تأكيد أو موافقة" },
   { value: "location", label: "موقع",            icon: MapPin,       desc: "تحديد الموقع / العنوان" },
   { value: "file",     label: "ملف",             icon: Paperclip,    desc: "رفع ملف (PDF, Word...)" },
   { value: "image",    label: "صورة",            icon: Image,        desc: "رفع صورة" },
@@ -87,7 +89,7 @@ type ComponentDraft = {
 };
 
 const INIT_ADDON: AddonDraft = { name: "", nameEn: "", description: "", price: "", type: "optional", imageUrl: "" };
-const INIT_Q: QuestionDraft  = { question: "", type: "text", isRequired: false, isPaid: false, price: "", options: "" };
+const INIT_Q: QuestionDraft  = { question: "", type: "text", isRequired: false, isPaid: false, price: "", options: [] };
 const INIT_COMP: ComponentDraft = { sourceType: "manual", inventoryItemId: "", name: "", quantity: "1", unit: "قطعة", unitCost: "0" };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -120,11 +122,11 @@ export function ServiceFormPage() {
   const [serviceName, setServiceName] = useState("");
   const [categories, setCategories]   = useState<any[]>([]);
 
-  const [addonDrafts,    setAddonDrafts]    = useState<AddonDraft[]>([]);
-  const [questionDrafts, setQuestionDrafts] = useState<QuestionDraft[]>([]);
-  const [componentDrafts,setComponentDrafts]= useState<ComponentDraft[]>([]);
-  const [loadedAddons,   setLoadedAddons]   = useState<any[]>([]);
-  const [loadedQuestions,setLoadedQuestions]= useState<any[]>([]);
+  const [addonDrafts,        setAddonDrafts]        = useState<AddonDraft[]>([]);
+  const [questionDrafts,     setQuestionDrafts]     = useState<QuestionDraft[]>([]);
+  const [deletedQuestionIds, setDeletedQuestionIds] = useState<string[]>([]);
+  const [componentDrafts,    setComponentDrafts]    = useState<ComponentDraft[]>([]);
+  const [loadedAddons,       setLoadedAddons]       = useState<any[]>([]);
   const [loadedComponents,setLoadedComponents] = useState<any[]>([]);
   const [branches,       setBranches]       = useState<any[]>([]);
   const [allowedBranches,setAllowedBranches]= useState<string[]>([]); // [] = all
@@ -198,7 +200,15 @@ export function ServiceFormPage() {
           isVisibleOnline:       s.isVisibleOnline  ?? true,
         });
         setLoadedAddons(s.addons || []);
-        setLoadedQuestions(qRes.data || []);
+        setQuestionDrafts((qRes.data || []).map((q: any) => ({
+          id:         q.id,
+          question:   q.question || "",
+          type:       (q.type || "text") as QuestionType,
+          isRequired: q.isRequired ?? false,
+          isPaid:     q.isPaid ?? false,
+          price:      q.price ? String(q.price) : "",
+          options:    Array.isArray(q.options) ? q.options.map(String) : [],
+        })));
         setLoadedComponents((compRes as any).data || []);
         setLoadedStaff((staffRes as any).data || []);
         setAllowedBranches(s.allowedLocationIds || []);
@@ -314,17 +324,28 @@ export function ServiceFormPage() {
         }
       };
 
-      const saveQuestions = async (svcId: string, base: number) => {
+      const saveQuestions = async (svcId: string) => {
+        // Delete removed questions (edit mode)
+        for (const qId of deletedQuestionIds) {
+          await questionsApi.delete(qId).catch(() => {});
+        }
         const valid = questionDrafts.filter(q => q.question.trim());
         for (let i = 0; i < valid.length; i++) {
           const q = valid[i];
-          await questionsApi.create(svcId, {
-            question: q.question.trim(), type: q.type,
-            isRequired: q.isRequired, isPaid: q.isPaid,
-            price: q.isPaid ? q.price || "0" : "0",
-            options: ["select","multi"].includes(q.type) ? q.options.split("\n").filter(Boolean) : [],
-            sortOrder: base + i,
-          }).catch(() => {});
+          const payload = {
+            question:   q.question.trim(),
+            type:       q.type,
+            isRequired: q.isRequired,
+            isPaid:     q.isPaid,
+            price:      q.isPaid ? (q.price || "0") : "0",
+            options:    ["select","multi","checkbox"].includes(q.type) ? q.options.filter(Boolean) : [],
+            sortOrder:  i,
+          };
+          if (q.id) {
+            await questionsApi.update(q.id, payload).catch(() => {});
+          } else {
+            await questionsApi.create(svcId, payload).catch(() => {});
+          }
         }
       };
 
@@ -366,7 +387,7 @@ export function ServiceFormPage() {
         await servicesApi.update(id!, baseInfo);
         await saveMedia(id!);
         await saveAddons(id!, loadedAddons.length);
-        await saveQuestions(id!, loadedQuestions.length);
+        await saveQuestions(id!);
         await saveComponents(id!);
         await saveStaff(id!);
         toast.success("تم حفظ التعديلات");
@@ -376,7 +397,7 @@ export function ServiceFormPage() {
         const svcId = res.data.id;
         await saveMedia(svcId);
         await saveAddons(svcId, 0);
-        await saveQuestions(svcId, 0);
+        await saveQuestions(svcId);
         await saveComponents(svcId);
         await saveStaff(svcId);
         toast.success("تم إنشاء الخدمة");
@@ -1160,23 +1181,7 @@ export function ServiceFormPage() {
                   <Plus className="w-3.5 h-3.5" /> سؤال
                 </button>
               </div>
-              {isEdit && loadedQuestions.length > 0 && (
-                <div className="space-y-2 mb-3">
-                  {loadedQuestions.map((q: any) => (
-                    <div key={q.id} className="flex items-center gap-3 px-3 py-2 bg-gray-50 rounded-lg text-sm">
-                      <p className="flex-1 text-gray-700">{q.question}</p>
-                      {q.isRequired && <span className="text-[10px] bg-red-50 text-red-500 px-2 py-0.5 rounded-full">مطلوب</span>}
-                      {q.price > 0 && <span className="text-xs text-green-600">+ {Number(q.price).toLocaleString()} ر.س</span>}
-                      <button type="button"
-                        onClick={() => questionsApi.delete(q.id).then(() => setLoadedQuestions(p => p.filter((x: any) => x.id !== q.id))).catch(() => {})}
-                        className="p-1 text-gray-300 hover:text-red-500 transition-colors shrink-0">
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {questionDrafts.length === 0 && loadedQuestions.length === 0 && (
+              {questionDrafts.length === 0 && (
                 <p className="text-xs text-gray-400 py-1">لا توجد أسئلة بعد — اضغط "سؤال" لإضافة واحد</p>
               )}
               {questionDrafts.length > 0 && (
@@ -1203,8 +1208,10 @@ export function ServiceFormPage() {
                             <ChevronDown className="w-3 h-3 text-gray-400" />
                           </button>
                         </div>
-                        <button onClick={() => setQuestionDrafts(d => d.filter((_, j) => j !== i))}
-                          className="mb-0.5 p-1.5 text-gray-300 hover:text-red-500 transition-colors shrink-0">
+                        <button type="button" onClick={() => {
+                          if (questionDrafts[i]?.id) setDeletedQuestionIds(p => [...p, questionDrafts[i].id!]);
+                          setQuestionDrafts(d => d.filter((_, j) => j !== i));
+                        }} className="mb-0.5 p-1.5 text-gray-300 hover:text-red-500 transition-colors shrink-0">
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
@@ -1270,38 +1277,49 @@ export function ServiceFormPage() {
                         {(q.type === "select" || q.type === "multi") && (
                           <div className="space-y-2">
                             <p className="text-[10px] text-gray-400 mb-1">أضف الخيارات:</p>
-                            {(q.options === "" ? [] : q.options.split("\n")).map((opt, oi) => (
+                            {q.options.map((opt, oi) => (
                               <div key={oi} className="flex items-center gap-2">
                                 <div className={clsx("w-4 h-4 shrink-0 border-2 border-gray-300",
                                   q.type === "multi" ? "rounded" : "rounded-full")} />
                                 <input value={opt} placeholder={`خيار ${oi + 1}`}
                                   onChange={e => {
-                                    const arr = q.options.split("\n").filter(Boolean);
-                                    arr[oi] = e.target.value;
-                                    setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, options: arr.join("\n") } : x));
+                                    const val = e.target.value;
+                                    setQuestionDrafts(d => d.map((x, j) => j === i
+                                      ? { ...x, options: x.options.map((o, k) => k === oi ? val : o) }
+                                      : x));
+                                  }}
+                                  onKeyDown={e => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      setQuestionDrafts(d => d.map((x, j) => j === i
+                                        ? { ...x, options: [...x.options, ""] }
+                                        : x));
+                                    }
                                   }}
                                   className={clsx(iCls, "flex-1 bg-white")} />
                                 <button type="button"
-                                  onClick={() => {
-                                    const arr = q.options.split("\n").filter(Boolean).filter((_, k) => k !== oi);
-                                    setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, options: arr.join("\n") } : x));
-                                  }}
+                                  onClick={() => setQuestionDrafts(d => d.map((x, j) => j === i
+                                    ? { ...x, options: x.options.filter((_, k) => k !== oi) }
+                                    : x))}
                                   className="p-1.5 text-gray-300 hover:text-red-500 transition-colors shrink-0">
                                   <X className="w-3.5 h-3.5" />
                                 </button>
                               </div>
                             ))}
                             <button type="button"
-                              onClick={() => setQuestionDrafts(d => d.map((x, j) => {
-                                if (j !== i) return x;
-                                const arr = x.options.split("\n").filter(Boolean);
-                                arr.push("");
-                                return { ...x, options: arr.join("\n") };
-                              }))}
+                              onClick={() => setQuestionDrafts(d => d.map((x, j) => j === i
+                                ? { ...x, options: [...x.options, ""] }
+                                : x))}
                               className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors mt-1">
                               <Plus className="w-3 h-3" /> إضافة خيار
                             </button>
                           </div>
+                        )}
+                        {q.type === "checkbox" && (
+                          <label className="flex items-center gap-2 text-sm text-gray-400 cursor-not-allowed select-none">
+                            <div className="w-4 h-4 rounded border-2 border-gray-300 bg-white shrink-0" />
+                            <span>يوافق العميل على البند / الشرط</span>
+                          </label>
                         )}
                       </div>
 
