@@ -1249,29 +1249,32 @@ export function ServiceFormPage() {
                       )}
                       {/* Answer preview / options builder */}
                       <div className="rounded-xl border border-dashed border-gray-200 p-3 bg-gray-50/60">
-                        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide mb-2">الإجابة</p>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <p className="text-[10px] font-semibold text-gray-500">معاينة حقل الإجابة</p>
+                          <span className="text-[9px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full">كما يراه العميل</span>
+                        </div>
 
                         {(q.type === "text" || q.type === "location") && (
-                          <input disabled placeholder="يكتب العميل إجابته هنا..."
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-400 bg-white cursor-not-allowed" />
+                          <input placeholder="يكتب العميل إجابته هنا..."
+                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white" />
                         )}
                         {q.type === "textarea" && (
-                          <textarea disabled rows={2} placeholder="يكتب العميل إجابته هنا..."
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-400 bg-white cursor-not-allowed resize-none" />
+                          <textarea rows={2} placeholder="يكتب العميل إجابته هنا..."
+                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white resize-none" />
                         )}
                         {q.type === "number" && (
-                          <input disabled type="number" placeholder="0"
-                            className="w-32 rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-400 bg-white cursor-not-allowed" dir="ltr" />
+                          <input type="number" placeholder="0"
+                            className="w-32 rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white" dir="ltr" />
                         )}
                         {q.type === "date" && (
-                          <input disabled type="date"
-                            className="rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-400 bg-white cursor-not-allowed" dir="ltr" />
+                          <input type="date"
+                            className="rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white" dir="ltr" />
                         )}
                         {(q.type === "file" || q.type === "image") && (
-                          <div className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-400 text-sm">
+                          <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500 text-sm cursor-pointer hover:border-brand-300 transition-colors w-fit">
                             {q.type === "image" ? <Image className="w-4 h-4 shrink-0" /> : <Paperclip className="w-4 h-4 shrink-0" />}
                             <span>{q.type === "image" ? "رفع صورة" : "رفع ملف"}</span>
-                          </div>
+                          </label>
                         )}
 
                         {(q.type === "select" || q.type === "multi") && (
@@ -1316,8 +1319,8 @@ export function ServiceFormPage() {
                           </div>
                         )}
                         {q.type === "checkbox" && (
-                          <label className="flex items-center gap-2 text-sm text-gray-400 cursor-not-allowed select-none">
-                            <div className="w-4 h-4 rounded border-2 border-gray-300 bg-white shrink-0" />
+                          <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none w-fit">
+                            <input type="checkbox" className="w-4 h-4 rounded accent-brand-500 cursor-pointer" />
                             <span>يوافق العميل على البند / الشرط</span>
                           </label>
                         )}
