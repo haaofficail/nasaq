@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, desc, asc, gte, lte, sql, count } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { shifts, bookingTasks, performanceReviews, vendorProfiles, timeOff, users, roles, rolePermissions, permissions as permissionsTable } from "@nasaq/db/schema";
+import { shifts, bookingTasks, performanceReviews, vendorProfiles, timeOff, users, roles, rolePermissions, permissions as permissionsTable, bookings } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { invalidatePermissionCache } from "../middleware/auth";
@@ -189,6 +189,11 @@ teamRouter.get("/tasks", async (c) => {
 teamRouter.post("/tasks/generate", async (c) => {
   const orgId = getOrgId(c);
   const { bookingId, eventDate, locationName, serviceName } = generateTasksSchema.parse(await c.req.json());
+
+  // Verify booking belongs to org
+  const [bk] = await db.select({ id: bookings.id }).from(bookings)
+    .where(and(eq(bookings.id, bookingId), eq(bookings.orgId, orgId)));
+  if (!bk) return c.json({ error: "الحجز غير موجود" }, 404);
 
   const date = new Date(eventDate);
   const H = 60 * 60 * 1000;

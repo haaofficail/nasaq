@@ -470,6 +470,49 @@ export function TeamPage() {
       {tab === "roles"       && <RolesPage />}
       {tab === "schedule"    && <AttendancePage />}
       {tab === "commissions" && <CommissionsPage />}
+
+      {/* Setup guide + FAQ */}
+      <div className="mt-5 space-y-4">
+        {/* How to set up */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <h3 className="font-semibold text-gray-900 mb-4 text-sm">دليل إعداد الفريق — الخطوات الصحيحة</h3>
+          <ol className="space-y-3">
+            {[
+              { step: "1", title: "أنشئ الأدوار والمسميات أولاً", desc: "اذهب إلى تبويب «الأدوار والمسميات» وأضف مسمى لكل وظيفة (مثال: كاشير، مصمم، مساعد). كل مسمى يرتبط بصلاحية نظام (مالك، مدير، موظف...)." },
+              { step: "2", title: "أضف الأعضاء", desc: "اضغط «إضافة عضو» وادخل الاسم والجوال وحدد المسمى الوظيفي ونوع التوظيف والراتب. سيصل العضو رسالة لتأكيد حسابه." },
+              { step: "3", title: "سجّل الحضور والانصراف", desc: "من تبويب «الجداول والحضور» تستطيع إدارة جداول العمل وتسجيل حضور الفريق يومياً." },
+              { step: "4", title: "تتبع العمولات", desc: "من تبويب «العمولات» يمكنك مراجعة عمولات كل عضو بناءً على الحجوزات التي أنجزها ونسبة العمولة المحددة في ملفه." },
+            ].map(s => (
+              <li key={s.step} className="flex gap-3">
+                <div className="w-6 h-6 rounded-full bg-brand-50 text-brand-600 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{s.step}</div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{s.title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{s.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        {/* FAQ */}
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
+          <div className="space-y-3">
+            {[
+              { q: "ما الفرق بين «الدور» و«المسمى الوظيفي»؟", a: "الدور (owner, manager, staff...) يتحكم في الصلاحيات داخل النظام. المسمى الوظيفي (مثال: كاشير، مصمم) هو اسم تعريفي تختاره أنت ويمكن ربطه بأي دور." },
+              { q: "كيف أعطي موظفاً صلاحية الوصول للنظام؟", a: "أضفه كعضو في الفريق وأسنده لمسمى وظيفي له الدور المناسب. سيتلقى تلقائياً رابط تفعيل حسابه." },
+              { step: "ما معنى «موظف مستقل» و«جهة خارجية»؟", a: "موظف داخلي يعمل في منشأتك بشكل مباشر. مستقل (فريلانسر) يعمل بدوام جزئي أو مشاريع. جهة خارجية شركة أو مزود خدمة خارجي." },
+              { q: "لماذا لا يستطيع الموظف الدخول للنظام؟", a: "تحقق من: (1) أن حسابه نشط وليس «معلق» أو «موقوف»، (2) أنه فعّل الحساب عبر رابط التفعيل المرسل، (3) أنه يستخدم رقم الجوال الصحيح." },
+              { q: "هل يمكنني تعطيل موظف مؤقتاً بدون حذفه؟", a: "نعم. اضغط على زر «تعطيل» بجانب اسمه وستتحول حالته إلى «غير نشط» مما يمنعه من الدخول دون فقدان بياناته." },
+            ].map((faq: any) => (
+              <details key={faq.q} className="border border-gray-100 rounded-xl">
+                <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+                <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

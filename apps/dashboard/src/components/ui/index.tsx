@@ -14,6 +14,7 @@ export { DataTable }      from "./DataTable";
 export { PageSkeleton, SkeletonRows, SkeletonCards } from "./Skeleton";
 export { Pagination }     from "./Pagination";
 export { Toaster }        from "./Toaster";
+export { RichTextEditor } from "./RichTextEditor";
 
 // ============================================================
 // MODAL

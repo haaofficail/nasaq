@@ -34,9 +34,9 @@ export function TodayScheduleSummaryWidget() {
   });
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 h-full">
+    <div className="bg-white rounded-2xl border border-gray-100">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center">
             <CalendarCheck className="w-4 h-4 text-blue-500" />
@@ -57,18 +57,18 @@ export function TodayScheduleSummaryWidget() {
 
       {/* Stats row */}
       <div className="grid grid-cols-3 gap-0 border-b border-gray-50">
-        <div className="flex flex-col items-center py-3 border-l border-gray-50">
-          <p className="text-xl font-bold text-gray-900 tabular-nums">{loading ? "—" : total}</p>
+        <div className="flex flex-col items-center py-2.5 border-l border-gray-50">
+          <p className="text-lg font-bold text-gray-900 tabular-nums">{loading ? "—" : total}</p>
           <p className="text-[11px] text-gray-400 mt-0.5">إجمالي</p>
         </div>
-        <div className="flex flex-col items-center py-3 border-l border-gray-50">
-          <p className={clsx("text-xl font-bold tabular-nums", upcoming.length > 0 ? "text-blue-600" : "text-gray-400")}>
+        <div className="flex flex-col items-center py-2.5 border-l border-gray-50">
+          <p className={clsx("text-lg font-bold tabular-nums", upcoming.length > 0 ? "text-blue-600" : "text-gray-400")}>
             {loading ? "—" : upcoming.length}
           </p>
           <p className="text-[11px] text-gray-400 mt-0.5">قادمة</p>
         </div>
-        <div className="flex flex-col items-center py-3">
-          <p className="text-xl font-bold text-emerald-600 tabular-nums">{loading ? "—" : completed}</p>
+        <div className="flex flex-col items-center py-2.5">
+          <p className="text-lg font-bold text-emerald-600 tabular-nums">{loading ? "—" : completed}</p>
           <p className="text-[11px] text-gray-400 mt-0.5">مكتملة</p>
         </div>
       </div>

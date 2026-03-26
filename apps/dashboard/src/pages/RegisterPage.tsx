@@ -67,7 +67,7 @@ export function RegisterPage() {
         localStorage.setItem("nasaq_user_id", data.user.id || "");
       }
       setStep(4);
-      setTimeout(() => navigate("/"), 2000);
+      setTimeout(() => navigate("/onboarding"), 1500);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -81,7 +81,7 @@ export function RegisterPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-[#1A56DB] flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-[#5b9bd5] flex items-center justify-center">
               <span className="text-white font-black">ن</span>
             </div>
             <span className="text-2xl font-black text-gray-900">نسق</span>
@@ -94,7 +94,7 @@ export function RegisterPage() {
             {[1, 2, 3].map((s) => (
               <div key={s} className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                  s < step ? "bg-green-500 text-white" : s === step ? "bg-[#1A56DB] text-white" : "bg-gray-200 text-gray-400"
+                  s < step ? "bg-green-500 text-white" : s === step ? "bg-[#5b9bd5] text-white" : "bg-gray-200 text-gray-400"
                 }`}>
                   {s < step ? <CheckCircle className="w-4 h-4" /> : s}
                 </div>
@@ -117,7 +117,7 @@ export function RegisterPage() {
                     type="text"
                     value={form.businessName}
                     onChange={(e) => update("businessName", e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#1A56DB] focus:ring-1 focus:ring-blue-100 transition-colors"
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#5b9bd5] focus:ring-1 focus:ring-blue-100 transition-colors"
                     placeholder="مثال: شركة الأمجاد للفعاليات"
                   />
                 </div>
@@ -131,7 +131,7 @@ export function RegisterPage() {
                         onClick={() => update("businessType", bt.value)}
                         className={`px-3 py-3 rounded-xl border text-sm font-medium transition-all text-right ${
                           form.businessType === bt.value
-                            ? "border-[#1A56DB] bg-blue-50 text-[#1A56DB]"
+                            ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]"
                             : "border-gray-200 text-gray-600 hover:border-gray-300"
                         }`}
                       >
@@ -150,7 +150,7 @@ export function RegisterPage() {
                   setError("");
                   setStep(2);
                 }}
-                className="w-full mt-6 bg-[#1A56DB] text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-colors"
+                className="w-full mt-6 bg-[#5b9bd5] text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-colors"
               >
                 التالي ←
               </button>
@@ -170,7 +170,7 @@ export function RegisterPage() {
                     type="tel"
                     value={form.phone}
                     onChange={(e) => update("phone", e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#1A56DB] focus:ring-1 focus:ring-blue-100 transition-colors"
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#5b9bd5] focus:ring-1 focus:ring-blue-100 transition-colors"
                     placeholder="05XXXXXXXX"
                     dir="ltr"
                   />
@@ -181,7 +181,7 @@ export function RegisterPage() {
                     type="email"
                     value={form.email}
                     onChange={(e) => update("email", e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#1A56DB] focus:ring-1 focus:ring-blue-100 transition-colors"
+                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#5b9bd5] focus:ring-1 focus:ring-blue-100 transition-colors"
                     placeholder="email@example.com"
                     dir="ltr"
                   />
@@ -198,7 +198,7 @@ export function RegisterPage() {
                     handleRegister();
                   }}
                   disabled={loading}
-                  className="flex-1 bg-[#1A56DB] text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  className="flex-1 bg-[#5b9bd5] text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
                   {loading ? "جاري التسجيل..." : "إنشاء الحساب ←"}
                 </button>
@@ -225,7 +225,7 @@ export function RegisterPage() {
                   type="text"
                   value={form.otp}
                   onChange={(e) => update("otp", e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-center text-2xl font-black tracking-widest outline-none focus:border-[#1A56DB] focus:ring-1 focus:ring-blue-100 transition-colors"
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-center text-2xl font-black tracking-widest outline-none focus:border-[#5b9bd5] focus:ring-1 focus:ring-blue-100 transition-colors"
                   placeholder="xxxxxx"
                   maxLength={6}
                   dir="ltr"
@@ -234,7 +234,7 @@ export function RegisterPage() {
               <button
                 onClick={handleVerify}
                 disabled={loading || form.otp.length < 6}
-                className="w-full mt-6 bg-[#1A56DB] text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="w-full mt-6 bg-[#5b9bd5] text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
                 {loading ? "جاري التحقق..." : "تحقق ودخول ←"}
               </button>
@@ -258,7 +258,7 @@ export function RegisterPage() {
         {step < 4 && (
           <p className="text-center text-sm text-gray-500 mt-6">
             لديك حساب بالفعل؟{" "}
-            <Link to="/login" className="text-[#1A56DB] font-semibold hover:underline">
+            <Link to="/login" className="text-[#5b9bd5] font-semibold hover:underline">
               سجّل دخول
             </Link>
           </p>

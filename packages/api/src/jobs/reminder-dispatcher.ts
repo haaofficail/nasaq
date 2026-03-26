@@ -1,5 +1,7 @@
 import { pool } from "@nasaq/db/client";
 import { log } from "../lib/logger";
+import { sendSms } from "../lib/sms";
+import { sendWhatsApp } from "../lib/whatsapp";
 
 // ============================================================
 // REMINDER DISPATCHER — يُرسل التذكيرات المستحقة يومياً
@@ -52,27 +54,36 @@ export async function dispatchReminders(): Promise<void> {
     const channels = reminder.notification_channels ?? ["dashboard"];
     const externalChannels = channels.filter((ch) => ch !== "dashboard");
 
-    // أرسل عبر القنوات الخارجية (sms / whatsapp) بكتابة سجل في message_logs
+    // أرسل عبر القنوات الخارجية (sms / whatsapp) مع إرسال فعلي
     for (const channel of externalChannels) {
       try {
-        await pool.query(`
-          INSERT INTO message_logs
-            (org_id, channel, recipient_phone, message_text, status, category)
-          SELECT
-            $1, $2, u.phone,
-            $3,
-            'sent', 'reminder'
-          FROM users u
-          WHERE u.org_id = $1
-            AND u.type   = 'owner'
-          LIMIT 1
-        `, [
-          reminder.org_id,
-          channel,
-          `تذكير: ${reminder.title} — تاريخ الاستحقاق: ${reminder.due_date}`,
-        ]);
+        // جلب رقم المالك
+        const { rows: [owner] } = await pool.query(
+          `SELECT u.phone FROM users u
+           JOIN org_members om ON om.user_id = u.id
+           WHERE om.org_id = $1 AND om.role = 'owner' AND u.phone IS NOT NULL
+           LIMIT 1`,
+          [reminder.org_id],
+        );
+        if (!owner?.phone) continue;
+
+        const msgText = `تذكير: ${reminder.title} — تاريخ الاستحقاق: ${reminder.due_date}`;
+        let delivered = false;
+
+        if (channel === "whatsapp") {
+          delivered = await sendWhatsApp(owner.phone, msgText);
+        } else if (channel === "sms") {
+          delivered = await sendSms(owner.phone, msgText);
+        }
+
+        await pool.query(
+          `INSERT INTO message_logs
+             (org_id, channel, recipient_phone, message_text, status, category)
+           VALUES ($1, $2, $3, $4, $5, 'reminder')`,
+          [reminder.org_id, channel, owner.phone, msgText, delivered ? "sent" : "failed"],
+        );
       } catch (err) {
-        log.warn({ err, reminderId: reminder.id, channel }, "[reminder-dispatcher] message_log insert failed");
+        log.warn({ err, reminderId: reminder.id, channel }, "[reminder-dispatcher] send failed");
       }
     }
 

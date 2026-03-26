@@ -271,7 +271,10 @@ reconciliationRouter.patch("/:statementId/items/:itemId", async (c) => {
       amount:    body.amount !== undefined ? String(body.amount) : undefined,
       clearedAt: body.isCleared ? new Date() : undefined,
     })
-    .where(eq(reconciliationItems.id, c.req.param("itemId")))
+    .where(and(
+      eq(reconciliationItems.id, c.req.param("itemId")),
+      eq(reconciliationItems.statementId, c.req.param("statementId")),
+    ))
     .returning();
 
   if (!updated) return c.json({ error: "البند غير موجود" }, 404);
@@ -296,7 +299,10 @@ reconciliationRouter.delete("/:statementId/items/:itemId", async (c) => {
 
   await db
     .delete(reconciliationItems)
-    .where(eq(reconciliationItems.id, itemId));
+    .where(and(
+      eq(reconciliationItems.id, itemId),
+      eq(reconciliationItems.statementId, c.req.param("statementId")),
+    ));
 
   insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "reconciliation_item", resourceId: itemId });
   return c.json({ success: true });

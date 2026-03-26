@@ -114,7 +114,7 @@ export function PricingPage() {
                 key={plan.id}
                 className={`rounded-2xl p-8 flex flex-col ${
                   plan.highlight
-                    ? "bg-[#1A56DB] text-white shadow-2xl scale-105"
+                    ? "bg-[#5b9bd5] text-white shadow-2xl scale-105"
                     : "bg-white border border-gray-200"
                 }`}
               >
@@ -151,7 +151,7 @@ export function PricingPage() {
                 <ul className="space-y-3 flex-1 mb-8">
                   {plan.features.map((f) => (
                     <li key={f} className={`flex items-center gap-2 text-sm ${plan.highlight ? "text-blue-100" : "text-gray-600"}`}>
-                      <Check className={`w-4 h-4 shrink-0 ${plan.highlight ? "text-white" : "text-[#1A56DB]"}`} />
+                      <Check className={`w-4 h-4 shrink-0 ${plan.highlight ? "text-white" : "text-[#5b9bd5]"}`} />
                       {f}
                     </li>
                   ))}
@@ -160,8 +160,8 @@ export function PricingPage() {
                   to={plan.href}
                   className={`text-center py-3.5 rounded-xl font-bold text-sm transition-colors ${
                     plan.highlight
-                      ? "bg-white text-[#1A56DB] hover:bg-gray-100"
-                      : "bg-[#1A56DB] text-white hover:bg-blue-700"
+                      ? "bg-white text-[#5b9bd5] hover:bg-gray-100"
+                      : "bg-[#5b9bd5] text-white hover:bg-blue-700"
                   }`}
                 >
                   {plan.cta}
@@ -179,7 +179,7 @@ export function PricingPage() {
                   <tr className="border-b border-gray-200">
                     <th className="text-right py-4 pr-4 text-sm font-semibold text-gray-500 w-1/2">الميزة</th>
                     <th className="text-center py-4 text-sm font-semibold text-gray-700">أساسي</th>
-                    <th className="text-center py-4 text-sm font-bold text-[#1A56DB]">احترافي</th>
+                    <th className="text-center py-4 text-sm font-bold text-[#5b9bd5]">احترافي</th>
                     <th className="text-center py-4 text-sm font-semibold text-gray-700">مؤسسي</th>
                   </tr>
                 </thead>
@@ -188,10 +188,10 @@ export function PricingPage() {
                     const cell = (v: string | boolean, highlight?: boolean) => {
                       if (typeof v === "boolean") {
                         return v
-                          ? <Check className={`w-4 h-4 mx-auto ${highlight ? "text-[#1A56DB] font-semibold" : "text-gray-400"}`} />
+                          ? <Check className={`w-4 h-4 mx-auto ${highlight ? "text-[#5b9bd5] font-semibold" : "text-gray-400"}`} />
                           : <X className="w-4 h-4 mx-auto text-gray-200" />;
                       }
-                      return <span className={highlight ? "font-semibold text-[#1A56DB]" : ""}>{v}</span>;
+                      return <span className={highlight ? "font-semibold text-[#5b9bd5]" : ""}>{v}</span>;
                     };
                     return (
                       <tr key={row.feature} className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}>

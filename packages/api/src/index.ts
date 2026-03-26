@@ -54,6 +54,7 @@ import { mediaRouter } from "./routes/media";
 import { salonRouter } from "./routes/salon";
 import { restaurantRouter } from "./routes/restaurant";
 import { rentalRouter } from "./routes/rental";
+import { maintenanceRouter } from "./routes/maintenance";
 import { jobTitlesRouter } from "./routes/job-titles";
 import { membersRouter } from "./routes/members";
 import { deliveryRouter } from "./routes/delivery";
@@ -65,7 +66,11 @@ import { marketplaceRouter } from "./routes/marketplace";
 import { eventsRouter } from "./routes/events";
 import { procurementRouter } from "./routes/procurement";
 import { fulfillmentsRouter } from "./routes/fulfillments";
+import { kitchenRouter } from "./routes/kitchen";
+import { notificationsRouter } from "./routes/notifications";
 import { subscriptionRouter, orgStatsRouter } from "./routes/subscription";
+import { supportRouter } from "./routes/support";
+import { alertsRouter } from "./routes/alerts";
 
 // ============================================================
 // APP
@@ -339,6 +344,17 @@ app.route("/pos", posRouter);
 // --- Online Orders ---
 app.route("/online-orders", onlineOrdersRouter);
 
+// --- Kitchen Display ---
+app.use("/kitchen/*", authMiddleware);
+app.use("/kitchen/*", requireCapability("pos"));
+app.use("/kitchen/*", methodGuard("bookings"));
+app.route("/kitchen", kitchenRouter);
+
+// --- Notifications ---
+app.use("/notifications/*", authMiddleware);
+app.use("/notifications/*", methodGuard("settings"));
+app.route("/notifications", notificationsRouter);
+
 // --- Menu (Restaurant / Cafe / Catering / Bakery) ---
 app.route("/menu", menuRouter);
 
@@ -360,6 +376,10 @@ app.route("/salon", salonRouter);
 app.use("/restaurant/*", authMiddleware);
 app.use("/restaurant/*", methodGuard("bookings"));
 app.route("/restaurant", restaurantRouter);
+
+// --- Maintenance & Cleaning Tasks ---
+app.use("/maintenance/*", authMiddleware);
+app.route("/maintenance", maintenanceRouter);
 
 // --- Rental (contracts + inspections + analytics) ---
 app.use("/rental/*", authMiddleware);
@@ -395,13 +415,21 @@ app.use("/car-rental/*", methodGuard("bookings"));
 app.route("/car-rental", carRentalRouter);
 
 // --- Integrations ---
+// Public: inbound webhooks + outbound webhooks don't need auth
+// Connect/disconnect require settings:edit; viewing available/connected is open to all authenticated users
 app.use("/integrations/*", async (c, next) => {
-  // Public: inbound webhooks from providers
-  if (c.req.path.includes("/integrations/webhook/inbound/")) return next();
+  if (
+    c.req.path.includes("/integrations/webhook/") ||
+    c.req.path.includes("/integrations/webhook/inbound/")
+  ) return next();
   return authMiddleware(c, next);
 });
 app.use("/integrations/*", async (c, next) => {
-  if (c.req.path.includes("/integrations/webhook/inbound/")) return next();
+  // Allow GET requests for all authenticated users (viewing integrations)
+  if (c.req.method === "GET") return next();
+  // Public webhooks
+  if (c.req.path.includes("/integrations/webhook/")) return next();
+  // Mutating actions require settings permission
   return methodGuard("settings")(c, next);
 });
 app.route("/integrations", integrationsRouter);
@@ -476,6 +504,14 @@ app.use("/marketplace/*", async (c, next) => {
 });
 app.route("/marketplace", marketplaceRouter);
 
+// --- Merchant Support Portal ---
+app.use("/support/*", authMiddleware);
+app.route("/support", supportRouter);
+
+// --- In-App Alerts ---
+app.use("/alerts/*", authMiddleware);
+app.route("/alerts", alertsRouter);
+
 // --- Super Admin Panel ---
 // Note: admin router has its own super-admin middleware, no outer guards needed
 app.route("/admin", adminRouter);
@@ -549,6 +585,64 @@ try {
 } catch (err) {
   log.fatal({ err }, "cannot connect to database");
   process.exit(1);
+}
+
+// Auto-run pending migrations on startup
+try {
+  const fs = await import("fs");
+  const path = await import("path");
+  const { fileURLToPath } = await import("url");
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+  // From packages/api/src/ → packages/db/migrations/
+  const migrationsDir = path.resolve(__dirname, "../../db/migrations");
+
+  // Track applied migrations
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS _migrations (
+      name TEXT PRIMARY KEY,
+      applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  const applied = new Set(
+    (await pool.query<{ name: string }>("SELECT name FROM _migrations")).rows.map(r => r.name)
+  );
+
+  const files = fs.readdirSync(migrationsDir)
+    .filter(f => f.endsWith(".sql"))
+    .sort();
+
+  // First run: seed all existing migrations as applied to avoid re-running them
+  if (applied.size === 0 && files.length > 0) {
+    // Check if this is an existing database (has core tables)
+    const { rows } = await pool.query<{ count: string }>(
+      "SELECT COUNT(*)::text AS count FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'organizations'"
+    );
+    if (Number(rows[0]?.count ?? 0) > 0) {
+      // DB already set up — mark all current files as applied without running them
+      for (const file of files) {
+        await pool.query("INSERT INTO _migrations (name) VALUES ($1) ON CONFLICT DO NOTHING", [file]);
+      }
+      log.info({ count: files.length }, "migrations seeded (existing db)");
+    }
+    // Re-fetch applied set after seeding
+    const refreshed = await pool.query<{ name: string }>("SELECT name FROM _migrations");
+    for (const r of refreshed.rows) applied.add(r.name);
+  }
+
+  let ran = 0;
+  for (const file of files) {
+    if (applied.has(file)) continue;
+    const sql = fs.readFileSync(path.join(migrationsDir, file), "utf8");
+    await pool.query(sql);
+    await pool.query("INSERT INTO _migrations (name) VALUES ($1) ON CONFLICT DO NOTHING", [file]);
+    log.info({ migration: file }, "migration applied");
+    ran++;
+  }
+
+  if (ran > 0) log.info({ count: ran }, "migrations complete");
+} catch (err) {
+  log.error({ err }, "migration runner error — continuing startup");
 }
 
 // Start pg-boss scheduler (creates pgboss schema on first run, resumes on restart)

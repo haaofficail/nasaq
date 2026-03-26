@@ -142,3 +142,48 @@ export const syncJobs = pgTable("sync_jobs", {
 }, (table) => [
   index("sync_jobs_org_idx").on(table.orgId),
 ]);
+
+// ============================================================
+// INTEGRATIONS — جدول التكاملات الموحد (الجيل الثاني)
+// ============================================================
+
+export const integrations = pgTable("integrations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  provider: text("provider").notNull(),
+  category: text("category").notNull(),
+  status: text("status").notNull().default("inactive"),
+  credentials: jsonb("credentials").default({}),
+  config: jsonb("config").default({}),
+  webhookUrl: text("webhook_url"),
+  webhookSecret: text("webhook_secret"),
+  lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("integrations_org_id_idx").on(table.orgId),
+]);
+
+// ============================================================
+// INTEGRATION LOGS — سجل الطلبات الواردة والصادرة
+// ============================================================
+
+export const integrationLogs = pgTable("integration_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  integrationId: uuid("integration_id"),
+  direction: text("direction").notNull(),
+  endpoint: text("endpoint"),
+  method: text("method"),
+  requestBody: jsonb("request_body"),
+  responseBody: jsonb("response_body"),
+  statusCode: integer("status_code"),
+  durationMs: integer("duration_ms"),
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index("integration_logs_org_id_idx").on(table.orgId),
+  index("integration_logs_integration_id_idx").on(table.integrationId),
+  index("integration_logs_created_at_idx").on(table.createdAt),
+]);

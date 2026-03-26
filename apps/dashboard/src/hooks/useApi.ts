@@ -11,7 +11,7 @@ type ApiState<T> = {
  * Hook for fetching data from API
  * Usage: const { data, loading, error, refetch } = useApi(() => servicesApi.list())
  */
-export function useApi<T>(fetcher: () => Promise<T>, deps: any[] = []) {
+export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []) {
   const [state, setState] = useState<ApiState<T>>({ data: null, loading: true, error: null });
 
   const fetchData = useCallback(async () => {
@@ -19,8 +19,8 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: any[] = []) {
     try {
       const result = await fetcher();
       setState({ data: result, loading: false, error: null });
-    } catch (err: any) {
-      setState({ data: null, loading: false, error: err.message || "حدث خطأ" });
+    } catch (err: unknown) {
+      setState({ data: null, loading: false, error: err instanceof Error ? err.message : "حدث خطأ" });
     }
   }, deps);
 
@@ -48,8 +48,8 @@ export function useMutation<TInput, TOutput>(
       const result = await mutationFn(input);
       setLoading(false);
       return result;
-    } catch (err: any) {
-      const msg = err.message || "حدث خطأ";
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "حدث خطأ";
       setError(msg);
       setLoading(false);
       if (!options?.silent) toast.error(msg);

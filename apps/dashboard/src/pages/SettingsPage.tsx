@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
-import { Building2, GitBranch, CreditCard, Plus, Trash2, Loader2, CheckCircle2, Zap, Shield, Pencil, User, MapPin, Clock, Star, Warehouse, Briefcase, Palette, Upload, ImageIcon } from "lucide-react";
+import { Building2, GitBranch, CreditCard, Plus, Trash2, Loader2, CheckCircle2, Zap, Shield, Pencil, User, MapPin, Clock, Star, Warehouse, Briefcase, Palette, Upload, ImageIcon, Wallet, Eye, EyeOff } from "lucide-react";
 import { clsx } from "clsx";
-import { settingsApi } from "@/lib/api";
+import { settingsApi, financeApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Input, Select, Modal } from "@/components/ui";
 import { SAUDI_CITIES, BUSINESS_TYPE_LIST } from "@/lib/constants";
@@ -41,6 +41,7 @@ const tabs = [
   { label: "الفروع",         icon: GitBranch },
   { label: "الاشتراك",      icon: CreditCard },
   { label: "الهوية البصرية", icon: Palette },
+  { label: "بوابة الدفع",   icon: Wallet },
 ];
 
 const BRAND_COLORS = [
@@ -81,15 +82,24 @@ export function SettingsPage() {
   const { data: profileRes, loading: pLoading, refetch: refetchProfile } = useApi(() => settingsApi.profile(), []);
   const { data: branchRes,  loading: bLoading, refetch: refetchBranches } = useApi(() => settingsApi.branches(), []);
   const { data: subRes }                                                   = useApi(() => settingsApi.subscription(), []);
+  const { data: gatewayRes, refetch: refetchGateways }                    = useApi(() => financeApi.gateways(), []);
 
   const { mutate: updateProfile, loading: saving   } = useMutation((data: any)  => settingsApi.updateProfile(data));
   const { mutate: createBranch,  loading: creating  } = useMutation((data: any)  => settingsApi.createBranch(data));
   const { mutate: updateBranch,  loading: updating  } = useMutation(({ id, data }: any) => settingsApi.updateBranch(id, data));
   const { mutate: deleteBranch                      } = useMutation((id: string) => settingsApi.deleteBranch(id));
+  const { mutate: createGateway, loading: gwCreating } = useMutation((data: any) => financeApi.createGateway(data));
+  const { mutate: updateGateway, loading: gwUpdating } = useMutation(({ id, data }: any) => financeApi.updateGateway(id, data));
+
+  const [gwForm, setGwForm] = useState({ provider: "moyasar", displayName: "Moyasar", apiKey: "", publishableKey: "", secretKey: "", webhookSecret: "", isActive: false });
+  const [gwEditId, setGwEditId] = useState<string | null>(null);
+  const [showGwSecrets, setShowGwSecrets] = useState(false);
+  const [gwSaved, setGwSaved] = useState(false);
 
   const org      = profileRes?.data || {};
   const branches: any[] = branchRes?.data || [];
   const sub      = subRes?.data || {};
+  const gateways: any[] = gatewayRes?.data || [];
   const mainBranch = branches.find(b => b.isMainBranch);
 
   const [form, setForm] = useState<any>(null);
@@ -711,6 +721,162 @@ export function SettingsPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tab 4: بوابة الدفع ── */}
+      {activeTab === 4 && (
+        <div className="space-y-4">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h2 className="text-[15px] font-bold text-gray-900 flex items-center gap-2 mb-1">
+              <Wallet size={16} className="text-brand-400" />
+              بوابة الدفع الإلكتروني
+            </h2>
+            <p className="text-sm text-gray-400 mb-6">
+              أضف مفاتيح Moyasar لتفعيل الدفع الإلكتروني للحجوزات. العملاء سيتمكنون من الدفع مباشرة من صفحة تتبع الحجز.
+            </p>
+
+            {/* Existing gateways */}
+            {gateways.length > 0 && (
+              <div className="space-y-3 mb-6">
+                {gateways.map((gw: any) => (
+                  <div key={gw.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <span className={clsx("w-2 h-2 rounded-full shrink-0", gw.isActive ? "bg-emerald-500" : "bg-gray-300")} />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-800">{gw.displayName}</p>
+                        <p className="text-xs text-gray-400">{gw.provider} — مفتاح API: {gw.apiKey ? "***" : "غير محدد"}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={async () => {
+                        const creds = await financeApi.gatewayCredentials(gw.id);
+                        setGwForm({ provider: gw.provider, displayName: gw.displayName, apiKey: creds?.data?.apiKey || "", publishableKey: creds?.data?.publishableKey || gw.publishableKey || "", secretKey: creds?.data?.secretKey || "", webhookSecret: creds?.data?.webhookSecret || "", isActive: gw.isActive });
+                        setGwEditId(gw.id);
+                      }}
+                      className="text-xs text-brand-500 hover:underline flex items-center gap-1"
+                    >
+                      <Pencil className="w-3 h-3" /> تعديل
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Gateway form */}
+            {(gwEditId !== null || gateways.length === 0) && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1.5">مزود الدفع</label>
+                    <select value={gwForm.provider} onChange={e => setGwForm(v => ({ ...v, provider: e.target.value }))}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400">
+                      <option value="moyasar">Moyasar</option>
+                      <option value="tap">Tap Payments</option>
+                      <option value="hyperpay">HyperPay</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1.5">الاسم المعروض للعميل</label>
+                    <input value={gwForm.displayName} onChange={e => setGwForm(v => ({ ...v, displayName: e.target.value }))}
+                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" placeholder="Moyasar" />
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-medium text-gray-500">مفتاح API (Secret Key)</label>
+                    <button onClick={() => setShowGwSecrets(v => !v)} className="text-xs text-gray-400 flex items-center gap-1">
+                      {showGwSecrets ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      {showGwSecrets ? "إخفاء" : "إظهار"}
+                    </button>
+                  </div>
+                  <input
+                    type={showGwSecrets ? "text" : "password"}
+                    value={gwForm.apiKey}
+                    onChange={e => setGwForm(v => ({ ...v, apiKey: e.target.value }))}
+                    placeholder="sk_live_..."
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 font-mono"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">الـ Secret Key من لوحة تحكم Moyasar</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">Publishable Key</label>
+                  <input
+                    value={gwForm.publishableKey}
+                    onChange={e => setGwForm(v => ({ ...v, publishableKey: e.target.value }))}
+                    placeholder="pk_live_..."
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-gray-500 mb-1.5">Webhook Secret (اختياري)</label>
+                  <input
+                    type={showGwSecrets ? "text" : "password"}
+                    value={gwForm.webhookSecret}
+                    onChange={e => setGwForm(v => ({ ...v, webhookSecret: e.target.value }))}
+                    placeholder="whsec_..."
+                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 font-mono"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input type="checkbox" id="gw-active" checked={gwForm.isActive} onChange={e => setGwForm(v => ({ ...v, isActive: e.target.checked }))} className="rounded" />
+                  <label htmlFor="gw-active" className="text-sm text-gray-700">تفعيل بوابة الدفع</label>
+                </div>
+
+                <div className="flex items-center gap-3 pt-2">
+                  <Button
+                    loading={gwCreating || gwUpdating}
+                    onClick={async () => {
+                      if (gwEditId) {
+                        await updateGateway({ id: gwEditId, data: gwForm });
+                      } else {
+                        await createGateway(gwForm);
+                      }
+                      setGwEditId(null);
+                      setGwForm({ provider: "moyasar", displayName: "Moyasar", apiKey: "", publishableKey: "", secretKey: "", webhookSecret: "", isActive: false });
+                      setGwSaved(true);
+                      refetchGateways();
+                      setTimeout(() => setGwSaved(false), 2500);
+                    }}
+                  >
+                    {gwEditId ? "حفظ التعديلات" : "إضافة بوابة الدفع"}
+                  </Button>
+                  {gwEditId && (
+                    <button onClick={() => { setGwEditId(null); setGwForm({ provider: "moyasar", displayName: "Moyasar", apiKey: "", publishableKey: "", secretKey: "", webhookSecret: "", isActive: false }); }}
+                      className="text-sm text-gray-400 hover:text-gray-600">إلغاء</button>
+                  )}
+                  {gateways.length === 0 && !gwEditId && (
+                    <button onClick={() => setGwEditId("")}
+                      className="text-sm text-brand-500 hover:underline flex items-center gap-1">
+                      <Plus className="w-4 h-4" /> إضافة بوابة دفع
+                    </button>
+                  )}
+                  {gwSaved && <span className="text-xs text-emerald-600 flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5" /> تم الحفظ</span>}
+                </div>
+              </div>
+            )}
+
+            {gateways.length > 0 && gwEditId === null && (
+              <button onClick={() => setGwEditId("")}
+                className="mt-4 text-sm text-brand-500 hover:underline flex items-center gap-1">
+                <Plus className="w-4 h-4" /> إضافة بوابة دفع أخرى
+              </button>
+            )}
+          </div>
+
+          <div className="bg-blue-50 rounded-2xl border border-blue-100 p-5 text-sm text-blue-700">
+            <p className="font-semibold mb-2">كيفية الإعداد مع Moyasar</p>
+            <ol className="list-decimal list-inside space-y-1 text-blue-600">
+              <li>سجّل في <span className="font-mono">moyasar.com</span> وأنشئ حساباً تجارياً</li>
+              <li>من لوحة التحكم، انسخ الـ Secret Key والـ Publishable Key</li>
+              <li>الصق المفاتيح أعلاه وفعّل بوابة الدفع</li>
+              <li>عملاؤك الآن يقدرون يدفعون من صفحة تتبع الحجز مباشرة</li>
+            </ol>
           </div>
         </div>
       )}

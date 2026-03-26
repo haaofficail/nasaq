@@ -96,7 +96,7 @@ export function FeaturesPage() {
               <div className={`flex flex-col md:flex-row items-center gap-12 ${i % 2 === 1 ? "md:flex-row-reverse" : ""}`}>
                 <div className="flex-1">
                   <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-6">
-                    <f.icon className="w-7 h-7 text-[#1A56DB]" />
+                    <f.icon className="w-7 h-7 text-[#5b9bd5]" />
                   </div>
                   <h2 className="text-3xl font-black text-gray-900 mb-4">{f.title}</h2>
                   <p className="text-lg text-gray-500 mb-8 leading-relaxed">{f.desc}</p>
@@ -104,7 +104,7 @@ export function FeaturesPage() {
                     {f.points.map((p) => (
                       <li key={p} className="flex items-start gap-3 text-gray-700">
                         <span className="w-5 h-5 rounded-full bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
-                          <Check className="w-3 h-3 text-[#1A56DB]" />
+                          <Check className="w-3 h-3 text-[#5b9bd5]" />
                         </span>
                         <span className="text-sm">{p}</span>
                       </li>
@@ -113,7 +113,7 @@ export function FeaturesPage() {
                 </div>
                 <div className="flex-1">
                   <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-8 h-64 flex items-center justify-center">
-                    <f.icon className="w-24 h-24 text-[#1A56DB] opacity-20" />
+                    <f.icon className="w-24 h-24 text-[#5b9bd5] opacity-20" />
                   </div>
                 </div>
               </div>
@@ -122,13 +122,13 @@ export function FeaturesPage() {
         ))}
 
         {/* CTA */}
-        <section className="py-24 bg-[#1A56DB] text-center">
+        <section className="py-24 bg-[#5b9bd5] text-center">
           <div className="max-w-2xl mx-auto px-6">
             <h2 className="text-4xl font-black text-white mb-4">جاهز لتجربة كل هذه الميزات؟</h2>
             <p className="text-blue-200 text-lg mb-8">ابدأ مجاناً لمدة 14 يوماً. لا حاجة لبطاقة ائتمانية.</p>
             <Link
               to="/register"
-              className="inline-block bg-white text-[#1A56DB] px-10 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 transition-colors"
+              className="inline-block bg-white text-[#5b9bd5] px-10 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 transition-colors"
             >
               ابدأ مجاناً الآن
             </Link>

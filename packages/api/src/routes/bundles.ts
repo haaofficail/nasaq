@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, asc, ne } from "drizzle-orm";
-import { db } from "@nasaq/db/client";
+import { db, pool } from "@nasaq/db/client";
 import { bundles, bundleItems, services, customerSubscriptions } from "@nasaq/db/schema";
 import { getOrgId, generateSlug, getUserId } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
@@ -115,6 +115,44 @@ bundlesRouter.post("/:id/sell", async (c) => {
   ).returning();
 
   return c.json({ data: created, count: created.length }, 201);
+});
+
+// GET /bundles/subscriptions — قائمة اشتراكات العملاء
+bundlesRouter.get("/subscriptions", async (c) => {
+  const orgId = getOrgId(c);
+  const status = c.req.query("status");
+  const customerId = c.req.query("customerId");
+  const result = await pool.query(`
+    SELECT
+      cs.*,
+      c.name AS customer_name,
+      c.phone AS customer_phone,
+      s.name AS service_name
+    FROM customer_subscriptions cs
+    LEFT JOIN customers c ON c.id = cs.customer_id
+    LEFT JOIN services s ON s.id = cs.service_id
+    WHERE cs.org_id = $1
+      ${status ? `AND cs.status = '${status.replace(/'/g, "''")}'` : ""}
+      ${customerId ? `AND cs.customer_id = '${customerId.replace(/'/g, "''")}'` : ""}
+    ORDER BY cs.created_at DESC
+    LIMIT 200
+  `, [orgId]);
+  return c.json({ data: result.rows });
+});
+
+// PATCH /bundles/subscriptions/:id/status — تغيير حالة الاشتراك
+bundlesRouter.patch("/subscriptions/:id/status", async (c) => {
+  const orgId = getOrgId(c);
+  const { status } = await c.req.json();
+  const [updated] = await db.update(customerSubscriptions)
+    .set({
+      status,
+      ...(status === "cancelled" ? { cancelledAt: new Date() } : {}),
+    })
+    .where(and(eq(customerSubscriptions.id, c.req.param("id")), eq(customerSubscriptions.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "الاشتراك غير موجود" }, 404);
+  return c.json({ data: updated });
 });
 
 // DELETE /bundles/:id

@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Outlet, NavLink, useLocation, useNavigate, Navigate } from "react-router-dom";
 import {
   Layers, ChevronLeft, ChevronRight, Bell, Search, Plus, LogOut, Menu, X, User, WifiOff,
+  CheckCheck, ExternalLink, Clock,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { authApi, orgSubscriptionApi } from "@/lib/api";
@@ -12,6 +13,7 @@ import { useApi } from "@/hooks/useApi";
 import { useNetwork } from "@/hooks/useNetwork";
 import { isNative } from "@/hooks/usePlatform";
 import { PLAN_MAP } from "@/lib/constants";
+import { useAlerts } from "@/hooks/useAlerts";
 
 const COLLAPSED_KEY = "nasaq_sidebar_collapsed";
 
@@ -60,6 +62,19 @@ export function Layout() {
     [isSuperAdmin]
   );
   const sub = subRes?.data;
+
+  const { alerts, unread, markRead, readAll } = useAlerts();
+  const [bellOpen, setBellOpen] = useState(false);
+  const bellRef = useRef<HTMLDivElement>(null);
+
+  // Close bell dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
 
   // Super admins have their own standalone panel — redirect them out of the merchant layout
   if (isSuperAdmin) return <Navigate to="/admin" replace />;
@@ -360,10 +375,90 @@ export function Layout() {
               <Plus className="w-4 h-4" />
               <span className="hidden sm:inline">حجز جديد</span>
             </button>
-            <button className="relative w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">
-              <Bell className="w-4 h-4 text-gray-500" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white" />
-            </button>
+            {/* Bell — real-time alerts */}
+            <div ref={bellRef} className="relative">
+              <button
+                onClick={() => setBellOpen(o => !o)}
+                className="relative w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors"
+              >
+                <Bell className={clsx("w-4 h-4 transition-colors", unread > 0 ? "text-brand-500" : "text-gray-500")} />
+                {unread > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 flex items-center justify-center rounded-full bg-red-500 text-white text-[9px] font-bold px-0.5 ring-2 ring-white">
+                    {unread > 9 ? "9+" : unread}
+                  </span>
+                )}
+              </button>
+
+              {bellOpen && (
+                <div className="absolute left-0 top-11 w-80 bg-white border border-gray-100 rounded-2xl shadow-xl shadow-black/8 z-50 overflow-hidden" dir="rtl">
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-brand-500" />
+                      <span className="text-sm font-bold text-gray-900">الإشعارات</span>
+                      {unread > 0 && (
+                        <span className="text-[10px] font-bold bg-red-50 text-red-500 px-1.5 py-0.5 rounded-full">{unread} جديد</span>
+                      )}
+                    </div>
+                    {unread > 0 && (
+                      <button onClick={() => readAll()} className="flex items-center gap-1 text-[11px] text-brand-500 hover:text-brand-600 font-medium transition-colors">
+                        <CheckCheck className="w-3.5 h-3.5" /> قراءة الكل
+                      </button>
+                    )}
+                  </div>
+
+                  {/* List */}
+                  <div className="max-h-80 overflow-y-auto">
+                    {alerts.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-10 text-center">
+                        <Bell className="w-8 h-8 text-gray-200 mb-2" />
+                        <p className="text-xs text-gray-400">لا توجد إشعارات</p>
+                      </div>
+                    ) : (
+                      alerts.map((a: any) => (
+                        <div
+                          key={a.id}
+                          onClick={() => {
+                            if (!a.isRead) markRead(a.id);
+                            if (a.link) { navigate(a.link); setBellOpen(false); }
+                          }}
+                          className={clsx(
+                            "flex items-start gap-3 px-4 py-3 border-b border-gray-50 transition-colors cursor-pointer",
+                            !a.isRead ? "bg-brand-50/40 hover:bg-brand-50" : "hover:bg-gray-50"
+                          )}
+                        >
+                          <div className={clsx(
+                            "w-2 h-2 rounded-full mt-1.5 shrink-0",
+                            !a.isRead ? "bg-brand-400" : "bg-transparent"
+                          )} />
+                          <div className="flex-1 min-w-0">
+                            <p className={clsx("text-xs leading-snug", !a.isRead ? "font-semibold text-gray-900" : "font-medium text-gray-700")}>
+                              {a.title}
+                            </p>
+                            {a.body && <p className="text-[11px] text-gray-400 mt-0.5 line-clamp-2">{a.body}</p>}
+                            <div className="flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3 text-gray-300" />
+                              <span className="text-[10px] text-gray-300">
+                                {new Date(a.createdAt).toLocaleString("ar-SA", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            </div>
+                          </div>
+                          {a.link && <ExternalLink className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-1" />}
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  {/* Footer */}
+                  <div className="px-4 py-2.5 bg-gray-50/60 border-t border-gray-100">
+                    <button onClick={() => { navigate("/dashboard/support"); setBellOpen(false); }}
+                      className="w-full text-center text-xs text-brand-500 hover:text-brand-600 font-medium transition-colors">
+                      عرض بوابة الدعم
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
             <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-sm cursor-pointer hover:ring-2 hover:ring-brand-200 transition-all">
               {user?.name?.[0] || "م"}
             </div>

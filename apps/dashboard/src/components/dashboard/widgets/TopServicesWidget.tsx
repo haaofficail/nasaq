@@ -7,7 +7,7 @@ export function TopServicesWidget() {
   const services: any[] = data?.data || [];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 h-full">
+    <div className="bg-white rounded-2xl border border-gray-100 p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-gray-900 text-sm">أبرز الخدمات</h2>
         <Link to="/dashboard/services" className="text-xs text-brand-500 hover:text-brand-600 font-medium">

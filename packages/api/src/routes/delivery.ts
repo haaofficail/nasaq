@@ -1,9 +1,10 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, asc, desc, sql, inArray } from "drizzle-orm";
-import { db } from "@nasaq/db/client";
+import { db, pool } from "@nasaq/db/client";
 import { deliveryPartners, deliveryAssignments, orgMembers, users, jobTitles } from "@nasaq/db/schema";
-import { getOrgId, validateBody, getPagination } from "../lib/helpers";
+import { getOrgId, getUserId, validateBody, getPagination } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
 
 export const deliveryRouter = new Hono();
 
@@ -60,7 +61,8 @@ deliveryRouter.get("/partners", async (c) => {
 
 // POST /delivery/partners
 deliveryRouter.post("/partners", async (c) => {
-  const orgId = getOrgId(c);
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
   const body = await validateBody(c, createPartnerSchema);
   if (!body) return;
 
@@ -70,12 +72,14 @@ deliveryRouter.post("/partners", async (c) => {
     .values({ ...partnerRest, orgId, commissionValue: String(commissionValue) })
     .returning();
 
+  insertAuditLog({ orgId, userId, action: "created", resource: "delivery_partner", resourceId: created.id, newValue: { name: created.name, type: created.type } });
   return c.json({ data: created }, 201);
 });
 
 // PUT /delivery/partners/:id
 deliveryRouter.put("/partners/:id", async (c) => {
-  const orgId = getOrgId(c);
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
   const id = c.req.param("id");
   const body = await validateBody(c, updatePartnerSchema);
   if (!body) return;
@@ -98,12 +102,14 @@ deliveryRouter.put("/partners/:id", async (c) => {
     .where(and(eq(deliveryPartners.id, id), eq(deliveryPartners.orgId, orgId)))
     .returning();
 
+  insertAuditLog({ orgId, userId, action: "updated", resource: "delivery_partner", resourceId: id, newValue: body });
   return c.json({ data: updated });
 });
 
 // DELETE /delivery/partners/:id (soft)
 deliveryRouter.delete("/partners/:id", async (c) => {
-  const orgId = getOrgId(c);
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
   const id = c.req.param("id");
 
   await db
@@ -111,6 +117,7 @@ deliveryRouter.delete("/partners/:id", async (c) => {
     .set({ isActive: false, updatedAt: new Date() })
     .where(and(eq(deliveryPartners.id, id), eq(deliveryPartners.orgId, orgId)));
 
+  insertAuditLog({ orgId, userId, action: "deleted", resource: "delivery_partner", resourceId: id });
   return c.json({ success: true });
 });
 
@@ -187,6 +194,13 @@ deliveryRouter.post("/assignments", async (c) => {
   const body = await validateBody(c, createAssignmentSchema);
   if (!body) return;
 
+  // Verify the order belongs to this org
+  const { rows: [order] } = await pool.query(
+    "SELECT id FROM online_orders WHERE id = $1 AND org_id = $2",
+    [body.orderId, orgId],
+  );
+  if (!order) return c.json({ error: "الطلب غير موجود أو غير مصرح" }, 404);
+
   const { deliveryFee, driverShare, ...assignmentRest } = body;
   const [created] = await db
     .insert(deliveryAssignments)
@@ -203,13 +217,14 @@ deliveryRouter.post("/assignments", async (c) => {
 
 // PATCH /delivery/assignments/:id/status
 deliveryRouter.patch("/assignments/:id/status", async (c) => {
-  const orgId = getOrgId(c);
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
   const id = c.req.param("id");
   const body = await validateBody(c, updateAssignmentStatusSchema);
   if (!body) return;
 
   const [existing] = await db
-    .select({ id: deliveryAssignments.id })
+    .select({ id: deliveryAssignments.id, status: deliveryAssignments.status })
     .from(deliveryAssignments)
     .where(and(eq(deliveryAssignments.id, id), eq(deliveryAssignments.orgId, orgId)));
 
@@ -226,6 +241,10 @@ deliveryRouter.patch("/assignments/:id/status", async (c) => {
     .set(updates)
     .where(and(eq(deliveryAssignments.id, id), eq(deliveryAssignments.orgId, orgId)));
 
+  insertAuditLog({
+    orgId, userId, action: "updated", resource: "delivery_assignment", resourceId: id,
+    oldValue: { status: existing.status }, newValue: { status: body.status },
+  });
   return c.json({ success: true });
 });
 

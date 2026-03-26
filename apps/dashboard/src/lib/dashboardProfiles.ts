@@ -260,14 +260,14 @@ const profiles: Record<string, DashboardProfile> = {
     profileKey: "default",
     label: "لوحة التحكم",
     primaryAction: { label: "حجز جديد", href: "/dashboard/bookings" },
-    kpis: [revenueKpi(), bookingsKpi(), customersKpi(), servicesKpi()],
+    kpis: [revenueKpi(), todayAppointmentsKpi(), customersKpi(), bookingsKpi()],
     quickActions: [
-      { id: "new-booking", modal: "booking" as const,  label: "حجز جديد",   href: "/dashboard/bookings",  icon: CalendarCheck, bg: "bg-blue-50",   text: "text-blue-600",   allowedRoles: [] },
-      { id: "new-service", modal: "service" as const,  label: "خدمة جديدة", href: "/dashboard/services",  icon: Package,       bg: "bg-teal-50",   text: "text-teal-600",   allowedRoles: [] },
+      { id: "new-booking",  modal: "booking"  as const, label: "حجز جديد",   href: "/dashboard/bookings",  icon: CalendarCheck, bg: "bg-blue-50",   text: "text-blue-600",   allowedRoles: [] },
       { id: "new-customer", modal: "customer" as const, label: "عميل جديد",  href: "/dashboard/customers", icon: Users,         bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
+      { id: "new-service",  modal: "service"  as const, label: "خدمة جديدة", href: "/dashboard/services",  icon: Package,       bg: "bg-teal-50",   text: "text-teal-600",   allowedRoles: [] },
       { id: "reports",      label: "التقارير",   href: "/dashboard/reports",   icon: BarChart2,     bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
+    widgets: [todayScheduleWidget("two-thirds"), bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
   },
 
   // ──────────────────────────────────────────────────────────

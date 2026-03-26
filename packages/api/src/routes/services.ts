@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { eq, and, asc, desc, ilike, sql, count, inArray } from "drizzle-orm";
+import { eq, and, asc, desc, ilike, sql, count, inArray, notInArray } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { services, serviceMedia, serviceAddons, addons, categories, pricingRules, serviceComponents, serviceCosts, assetTypes, serviceRequirements, serviceStaff, users, assets, serviceQuestions } from "@nasaq/db/schema";
+import { services, serviceMedia, serviceAddons, addons, categories, pricingRules, serviceComponents, serviceCosts, assetTypes, serviceRequirements, serviceStaff, users, assets, serviceQuestions, bookings, orgMembers } from "@nasaq/db/schema";
 import { generateSlug, getOrgId, getUserId, validateBody, getPagination, safeSortField } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { nanoid } from "nanoid";
+import { generateBarcodeString, lookupByBarcode, isBarcodeUnique } from "../lib/barcode";
 import { SERVICE_SORT_FIELDS, type ServiceSortField } from "../lib/constants";
 
 export const servicesRouter = new Hono();
@@ -86,6 +87,10 @@ const createServiceSchema = z.object({
   allowsPickup:       z.boolean().default(false),
   allowsInVenue:      z.boolean().default(false),
   deliveryCost:       z.coerce.string().default("0"),
+  // ── Barcode (migration 050) ──────────────────────────────────────────────
+  barcode:            z.string().max(100).optional().nullable(),
+  // ── Amenities (migration 054) — for rental, chalet, apartment, hotel ────
+  amenities:          z.array(z.string()).default([]),
 });
 
 const updateServiceSchema = createServiceSchema.partial();
@@ -121,9 +126,9 @@ servicesRouter.get("/", async (c) => {
   if (categoryId)            conditions.push(eq(services.categoryId, categoryId));
   if (featured === "true")   conditions.push(eq(services.isFeatured, true));
   if (search)                conditions.push(ilike(services.name, `%${search}%`));
-  if (visibleInPOS === "true")  conditions.push(eq((services as any).isVisibleInPOS, true));
-  if (visibleOnline === "true") conditions.push(eq((services as any).isVisibleOnline, true));
-  if (bookableOnly === "true")  conditions.push(eq((services as any).isBookable, true));
+  if (visibleInPOS === "true")  conditions.push(eq(services.isVisibleInPOS, true));
+  if (visibleOnline === "true") conditions.push(eq(services.isVisibleOnline, true));
+  if (bookableOnly === "true")  conditions.push(eq(services.isBookable, true));
 
   // Query
   const [rows, [{ total }]] = await Promise.all([
@@ -177,14 +182,14 @@ servicesRouter.get("/:id", async (c) => {
     .from(services)
     .where(and(eq(services.id, id), eq(services.orgId, orgId)));
 
-  if (!service) return c.json({ error: "Service not found" }, 404);
+  if (!service) return c.json({ error: "الخدمة غير موجودة" }, 404);
 
-  // Get related data in parallel
-  const [media, svcAddons, pricing, category] = await Promise.all([
+  // Get all related data in one parallel batch — no extra round trips needed
+  const [media, svcAddons, pricing, category, components, requirements, staffRows, questions] = await Promise.all([
     db.select().from(serviceMedia)
       .where(and(eq(serviceMedia.serviceId, id), eq(serviceMedia.isActive, true)))
       .orderBy(asc(serviceMedia.sortOrder)),
-    
+
     db.select({
       serviceAddon: serviceAddons,
       addon: addons,
@@ -192,14 +197,34 @@ servicesRouter.get("/:id", async (c) => {
       .leftJoin(addons, eq(serviceAddons.addonId, addons.id))
       .where(eq(serviceAddons.serviceId, id))
       .orderBy(asc(serviceAddons.sortOrder)),
-    
+
     db.select().from(pricingRules)
       .where(and(eq(pricingRules.serviceId, id), eq(pricingRules.isActive, true)))
       .orderBy(desc(pricingRules.priority)),
-    
+
     service.categoryId
       ? db.select().from(categories).where(eq(categories.id, service.categoryId)).then(r => r[0])
       : null,
+
+    db.select().from(serviceComponents)
+      .where(and(eq(serviceComponents.serviceId, id), eq(serviceComponents.orgId, orgId), eq(serviceComponents.isActive, true)))
+      .orderBy(asc(serviceComponents.sortOrder)),
+
+    db.select().from(serviceRequirements)
+      .where(and(eq(serviceRequirements.serviceId, id), eq(serviceRequirements.orgId, orgId), eq(serviceRequirements.isActive, true)))
+      .orderBy(asc(serviceRequirements.sortOrder)),
+
+    db.select({
+      ss: serviceStaff,
+      u: { id: users.id, name: users.name, jobTitle: users.jobTitle, avatar: users.avatar },
+    }).from(serviceStaff)
+      .leftJoin(users, eq(serviceStaff.userId, users.id))
+      .where(and(eq(serviceStaff.serviceId, id), eq(serviceStaff.orgId, orgId), eq(serviceStaff.isActive, true)))
+      .orderBy(asc(serviceStaff.createdAt)),
+
+    db.select().from(serviceQuestions)
+      .where(and(eq(serviceQuestions.serviceId, id), eq(serviceQuestions.orgId, orgId), eq(serviceQuestions.isActive, true)))
+      .orderBy(asc(serviceQuestions.sortOrder)),
   ]);
 
   return c.json({
@@ -208,12 +233,17 @@ servicesRouter.get("/:id", async (c) => {
       category,
       media,
       addons: svcAddons.map(sa => ({
+        linkId: sa.serviceAddon.id,        // ID العلاقة — مطلوب للتعديل والحذف
         ...sa.addon,
         priceOverride: sa.serviceAddon.priceOverride,
         typeOverride: sa.serviceAddon.typeOverride,
         sortOrder: sa.serviceAddon.sortOrder,
       })),
       pricingRules: pricing,
+      components,
+      requirements,
+      staff: staffRows.map(r => ({ ...r.ss, userName: r.u?.name, userJobTitle: r.u?.jobTitle, userAvatar: r.u?.avatar })),
+      questions,
     },
   });
 });
@@ -229,10 +259,20 @@ servicesRouter.post("/", async (c) => {
 
   const slug = body.slug || `${generateSlug(body.name)}-${nanoid(6).toLowerCase()}`;
 
+  // Auto-generate barcode if not provided
+  let barcode = body.barcode ?? null;
+  if (!barcode) {
+    let attempts = 0;
+    do {
+      barcode = generateBarcodeString();
+      attempts++;
+    } while (!(await isBarcodeUnique(orgId, barcode)) && attempts < 10);
+  }
+
   const { basePrice, ...bodyRest } = body;
   const [created] = await db
     .insert(services)
-    .values({ orgId, ...bodyRest, slug, basePrice: String(basePrice) })
+    .values({ orgId, ...bodyRest, slug, basePrice: String(basePrice), barcode })
     .returning();
 
   return c.json({ data: created }, 201);
@@ -249,12 +289,16 @@ servicesRouter.put("/:id", async (c) => {
   if (!body) return;
 
   // Don't auto-regenerate slug on update — caller must provide explicit slug to change it
-  // (prevents collision when renaming a service)
 
-  // Handle status change to active -> set publishedAt
+  // publishedAt يُضبط مرة واحدة فقط عند أول نشر — لا يُعاد التعيين في كل حفظ
   const updates: any = { ...body, updatedAt: new Date() };
   if (body.status === "active") {
-    updates.publishedAt = new Date();
+    const [current] = await db.select({ publishedAt: services.publishedAt })
+      .from(services)
+      .where(and(eq(services.id, id), eq(services.orgId, orgId)));
+    if (current && !current.publishedAt) {
+      updates.publishedAt = new Date();
+    }
   }
 
   const [updated] = await db
@@ -263,7 +307,7 @@ servicesRouter.put("/:id", async (c) => {
     .where(and(eq(services.id, id), eq(services.orgId, orgId)))
     .returning();
 
-  if (!updated) return c.json({ error: "Service not found" }, 404);
+  if (!updated) return c.json({ error: "الخدمة غير موجودة" }, 404);
   return c.json({ data: updated });
 });
 
@@ -275,13 +319,32 @@ servicesRouter.delete("/:id", async (c) => {
   const orgId = getOrgId(c);
   const id = c.req.param("id");
 
+  // لا يمكن أرشفة خدمة عليها حجوزات نشطة
+  const [{ activeCount }] = await db
+    .select({ activeCount: count() })
+    .from(bookings)
+    .where(and(
+      eq(bookings.orgId, orgId),
+      notInArray(bookings.status, ["cancelled", "no_show", "completed"]),
+      sql`EXISTS (
+        SELECT 1 FROM booking_items bi
+        WHERE bi.booking_id = ${bookings.id} AND bi.service_id = ${id}
+      )`,
+    ));
+
+  if (Number(activeCount) > 0) {
+    return c.json({
+      error: `لا يمكن أرشفة الخدمة — يوجد ${activeCount} حجز نشط عليها. أكمل الحجوزات أو ألغِها أولاً`,
+    }, 409);
+  }
+
   const [updated] = await db
     .update(services)
     .set({ status: "archived", updatedAt: new Date() })
     .where(and(eq(services.id, id), eq(services.orgId, orgId)))
     .returning();
 
-  if (!updated) return c.json({ error: "Service not found" }, 404);
+  if (!updated) return c.json({ error: "الخدمة غير موجودة" }, 404);
   insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "service", resourceId: updated.id });
   return c.json({ data: updated });
 });
@@ -290,29 +353,43 @@ servicesRouter.delete("/:id", async (c) => {
 // POST /services/:id/media — Add media
 // ============================================================
 
+const addMediaSchema = z.object({
+  url:          z.string().url(),
+  type:         z.enum(["image", "video"]).default("image"),
+  thumbnailUrl: z.string().url().optional().nullable(),
+  altText:      z.string().max(300).optional().nullable(),
+  sortOrder:    z.number().int().default(0),
+  isCover:      z.boolean().default(false),
+  width:        z.number().int().positive().optional().nullable(),
+  height:       z.number().int().positive().optional().nullable(),
+  sizeBytes:    z.number().int().positive().optional().nullable(),
+});
+
 servicesRouter.post("/:id/media", async (c) => {
   const orgId = getOrgId(c);
   const serviceId = c.req.param("id");
 
   const [svc] = await db.select({ id: services.id }).from(services)
     .where(and(eq(services.id, serviceId), eq(services.orgId, orgId)));
-  if (!svc) return c.json({ error: "Service not found" }, 404);
+  if (!svc) return c.json({ error: "الخدمة غير موجودة" }, 404);
 
-  const body = await c.req.json();
+  const parsed = addMediaSchema.safeParse(await c.req.json());
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+  const body = parsed.data;
 
   const [media] = await db
     .insert(serviceMedia)
     .values({
       serviceId,
-      type: body.type || "image",
-      url: body.url,
-      thumbnailUrl: body.thumbnailUrl,
-      altText: body.altText,
-      sortOrder: body.sortOrder || 0,
-      isCover: body.isCover || false,
-      width: body.width,
-      height: body.height,
-      sizeBytes: body.sizeBytes,
+      type:         body.type,
+      url:          body.url,
+      thumbnailUrl: body.thumbnailUrl ?? null,
+      altText:      body.altText ?? null,
+      sortOrder:    body.sortOrder,
+      isCover:      body.isCover,
+      width:        body.width ?? null,
+      height:       body.height ?? null,
+      sizeBytes:    body.sizeBytes ?? null,
     })
     .returning();
 
@@ -330,7 +407,7 @@ servicesRouter.delete("/:id/media/:mediaId", async (c) => {
 
   const [svc] = await db.select({ id: services.id }).from(services)
     .where(and(eq(services.id, serviceId), eq(services.orgId, orgId)));
-  if (!svc) return c.json({ error: "Service not found" }, 404);
+  if (!svc) return c.json({ error: "الخدمة غير موجودة" }, 404);
 
   const [softDeleted] = await db
     .update(serviceMedia)
@@ -338,7 +415,7 @@ servicesRouter.delete("/:id/media/:mediaId", async (c) => {
     .where(and(eq(serviceMedia.id, mediaId), eq(serviceMedia.serviceId, serviceId)))
     .returning();
 
-  if (!softDeleted) return c.json({ error: "Media not found" }, 404);
+  if (!softDeleted) return c.json({ error: "الصورة غير موجودة" }, 404);
   return c.json({ data: softDeleted });
 });
 
@@ -354,12 +431,12 @@ servicesRouter.post("/:id/addons", async (c) => {
   // Verify service belongs to org
   const [svc] = await db.select({ id: services.id }).from(services)
     .where(and(eq(services.id, serviceId), eq(services.orgId, orgId)));
-  if (!svc) return c.json({ error: "Service not found" }, 404);
+  if (!svc) return c.json({ error: "الخدمة غير موجودة" }, 404);
 
   // Verify addon belongs to same org
   const [addon] = await db.select({ id: addons.id }).from(addons)
     .where(and(eq(addons.id, body.addonId), eq(addons.orgId, orgId)));
-  if (!addon) return c.json({ error: "Addon not found" }, 404);
+  if (!addon) return c.json({ error: "الإضافة غير موجودة" }, 404);
 
   const [linked] = await db
     .insert(serviceAddons)
@@ -387,7 +464,7 @@ servicesRouter.delete("/:id/addons/:addonId", async (c) => {
   // Verify service belongs to org
   const [svc] = await db.select({ id: services.id }).from(services)
     .where(and(eq(services.id, serviceId), eq(services.orgId, orgId)));
-  if (!svc) return c.json({ error: "Service not found" }, 404);
+  if (!svc) return c.json({ error: "الخدمة غير موجودة" }, 404);
 
   await db.delete(serviceAddons)
     .where(and(eq(serviceAddons.serviceId, serviceId), eq(serviceAddons.addonId, addonId)));
@@ -409,11 +486,21 @@ servicesRouter.post("/:id/duplicate", async (c) => {
     .from(services)
     .where(and(eq(services.id, id), eq(services.orgId, orgId)));
 
-  if (!original) return c.json({ error: "Service not found" }, 404);
+  if (!original) return c.json({ error: "الخدمة غير موجودة" }, 404);
+
+  // جلب كل البيانات المرتبطة قبل النسخ
+  const [media, linkedAddons, rules, comps, reqs, questions] = await Promise.all([
+    db.select().from(serviceMedia).where(and(eq(serviceMedia.serviceId, id), eq(serviceMedia.isActive, true))),
+    db.select().from(serviceAddons).where(eq(serviceAddons.serviceId, id)),
+    db.select().from(pricingRules).where(and(eq(pricingRules.serviceId, id), eq(pricingRules.isActive, true))),
+    db.select().from(serviceComponents).where(and(eq(serviceComponents.serviceId, id), eq(serviceComponents.isActive, true))),
+    db.select().from(serviceRequirements).where(and(eq(serviceRequirements.serviceId, id), eq(serviceRequirements.isActive, true))),
+    db.select().from(serviceQuestions).where(and(eq(serviceQuestions.serviceId, id), eq(serviceQuestions.orgId, orgId), eq(serviceQuestions.isActive, true))),
+  ]);
 
   // Create copy
   const { id: _id, createdAt, updatedAt, publishedAt, slug, totalBookings, avgRating, ...rest } = original;
-  
+
   const [copy] = await db
     .insert(services)
     .values({
@@ -426,14 +513,45 @@ servicesRouter.post("/:id/duplicate", async (c) => {
     })
     .returning();
 
-  // Copy media
-  const media = await db.select().from(serviceMedia).where(and(eq(serviceMedia.serviceId, id), eq(serviceMedia.isActive, true)));
+  // نسخ الصور
   if (media.length > 0) {
     await db.insert(serviceMedia).values(
-      media.map(({ id: _mid, serviceId: _sid, createdAt: _ca, ...m }) => ({
-        ...m,
-        serviceId: copy.id,
-      }))
+      media.map(({ id: _mid, serviceId: _sid, createdAt: _ca, ...m }) => ({ ...m, serviceId: copy.id }))
+    );
+  }
+
+  // نسخ الإضافات المربوطة
+  if (linkedAddons.length > 0) {
+    await db.insert(serviceAddons).values(
+      linkedAddons.map(({ id: _lid, serviceId: _sid, ...a }) => ({ ...a, serviceId: copy.id }))
+    );
+  }
+
+  // نسخ قواعد التسعير
+  if (rules.length > 0) {
+    await db.insert(pricingRules).values(
+      rules.map(({ id: _rid, serviceId: _sid, createdAt: _ca, updatedAt: _ua, ...r }) => ({ ...r, serviceId: copy.id }))
+    );
+  }
+
+  // نسخ المكونات
+  if (comps.length > 0) {
+    await db.insert(serviceComponents).values(
+      comps.map(({ id: _cid, serviceId: _sid, createdAt: _ca, ...comp }) => ({ ...comp, serviceId: copy.id }))
+    );
+  }
+
+  // نسخ المتطلبات
+  if (reqs.length > 0) {
+    await db.insert(serviceRequirements).values(
+      reqs.map(({ id: _rid, serviceId: _sid, createdAt: _ca, ...req }) => ({ ...req, serviceId: copy.id }))
+    );
+  }
+
+  // نسخ الأسئلة
+  if (questions.length > 0) {
+    await db.insert(serviceQuestions).values(
+      questions.map(({ id: _qid, serviceId: _sid, createdAt: _ca, updatedAt: _ua, ...q }) => ({ ...q, serviceId: copy.id }))
     );
   }
 
@@ -483,7 +601,7 @@ servicesRouter.get("/:id/components", async (c) => {
   if (assetTypeIds.length > 0) {
     const types = await db.select({ id: assetTypes.id, name: assetTypes.name })
       .from(assetTypes)
-      .where(sql`${assetTypes.id} = ANY(${assetTypeIds})`);
+      .where(inArray(assetTypes.id, assetTypeIds));
     assetTypeMap = new Map(types.map(t => [t.id, t.name]));
   }
 
@@ -500,6 +618,11 @@ servicesRouter.get("/:id/components", async (c) => {
 servicesRouter.post("/:id/components", async (c) => {
   const orgId = getOrgId(c);
   const serviceId = c.req.param("id");
+
+  const [svc] = await db.select({ id: services.id }).from(services)
+    .where(and(eq(services.id, serviceId), eq(services.orgId, orgId)));
+  if (!svc) return c.json({ error: "الخدمة غير موجودة" }, 404);
+
   const body = createComponentSchema.parse(await c.req.json());
 
   const [comp] = await db.insert(serviceComponents).values({
@@ -524,6 +647,7 @@ servicesRouter.post("/:id/components", async (c) => {
 
 servicesRouter.put("/:id/components/:compId", async (c) => {
   const orgId = getOrgId(c);
+  const serviceId = c.req.param("id");
   const compId = c.req.param("compId");
   const body = createComponentSchema.partial().parse(await c.req.json());
 
@@ -542,7 +666,7 @@ servicesRouter.put("/:id/components/:compId", async (c) => {
   if (body.sourceType !== undefined) updates.sourceType = body.sourceType;
 
   const [updated] = await db.update(serviceComponents).set(updates)
-    .where(and(eq(serviceComponents.id, compId), eq(serviceComponents.orgId, orgId)))
+    .where(and(eq(serviceComponents.id, compId), eq(serviceComponents.serviceId, serviceId), eq(serviceComponents.orgId, orgId)))
     .returning();
 
   if (!updated) return c.json({ error: "المكون غير موجود" }, 404);
@@ -551,11 +675,12 @@ servicesRouter.put("/:id/components/:compId", async (c) => {
 
 servicesRouter.delete("/:id/components/:compId", async (c) => {
   const orgId = getOrgId(c);
+  const serviceId = c.req.param("id");
   const compId = c.req.param("compId");
 
   const [deleted] = await db.update(serviceComponents)
     .set({ isActive: false })
-    .where(and(eq(serviceComponents.id, compId), eq(serviceComponents.orgId, orgId)))
+    .where(and(eq(serviceComponents.id, compId), eq(serviceComponents.serviceId, serviceId), eq(serviceComponents.orgId, orgId)))
     .returning();
 
   if (!deleted) return c.json({ error: "المكون غير موجود" }, 404);
@@ -576,22 +701,39 @@ servicesRouter.get("/:id/costs", async (c) => {
   return c.json({ data: costs ?? null });
 });
 
+const costsSchema = z.object({
+  materialCost:       z.number().min(0).default(0),
+  laborMinutes:       z.number().int().min(0).default(0),
+  laborCostPerMinute: z.number().min(0).default(0),
+  overheadPercent:    z.number().min(0).max(100).default(0),
+  commissionPercent:  z.number().min(0).max(100).default(0),
+  notes:              z.string().max(1000).optional().nullable(),
+});
+
 servicesRouter.put("/:id/costs", async (c) => {
   const orgId = getOrgId(c);
   const serviceId = c.req.param("id");
-  const body = await c.req.json();
+
+  const parsed = costsSchema.safeParse(await c.req.json());
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
+  const body = parsed.data;
+
+  // تحقق من ملكية الخدمة
+  const [svc] = await db.select({ id: services.id }).from(services)
+    .where(and(eq(services.id, serviceId), eq(services.orgId, orgId)));
+  if (!svc) return c.json({ error: "الخدمة غير موجودة" }, 404);
 
   const [existing] = await db.select({ id: serviceCosts.id }).from(serviceCosts)
     .where(and(eq(serviceCosts.serviceId, serviceId), eq(serviceCosts.orgId, orgId)));
 
   const vals = {
-    materialCost: String(body.materialCost ?? 0),
-    laborMinutes: body.laborMinutes ?? 0,
-    laborCostPerMinute: String(body.laborCostPerMinute ?? 0),
-    overheadPercent: String(body.overheadPercent ?? 0),
-    commissionPercent: String(body.commissionPercent ?? 0),
-    notes: body.notes ?? null,
-    updatedAt: new Date(),
+    materialCost:       String(body.materialCost),
+    laborMinutes:       body.laborMinutes,
+    laborCostPerMinute: String(body.laborCostPerMinute),
+    overheadPercent:    String(body.overheadPercent),
+    commissionPercent:  String(body.commissionPercent),
+    notes:              body.notes ?? null,
+    updatedAt:          new Date(),
   };
 
   if (existing) {
@@ -671,6 +813,11 @@ servicesRouter.get("/:id/requirements", async (c) => {
 servicesRouter.post("/:id/requirements", async (c) => {
   const orgId = getOrgId(c);
   const serviceId = c.req.param("id");
+
+  const [svc] = await db.select({ id: services.id }).from(services)
+    .where(and(eq(services.id, serviceId), eq(services.orgId, orgId)));
+  if (!svc) return c.json({ error: "الخدمة غير موجودة" }, 404);
+
   const body = requirementSchema.parse(await c.req.json());
 
   const [created] = await db.insert(serviceRequirements).values({
@@ -692,6 +839,7 @@ servicesRouter.post("/:id/requirements", async (c) => {
 
 servicesRouter.put("/:id/requirements/:reqId", async (c) => {
   const orgId = getOrgId(c);
+  const serviceId = c.req.param("id");
   const reqId = c.req.param("reqId");
   const body = requirementSchema.partial().parse(await c.req.json());
 
@@ -708,7 +856,7 @@ servicesRouter.put("/:id/requirements/:reqId", async (c) => {
   if (body.sortOrder !== undefined) updates.sortOrder = body.sortOrder;
 
   const [updated] = await db.update(serviceRequirements).set(updates)
-    .where(and(eq(serviceRequirements.id, reqId), eq(serviceRequirements.orgId, orgId)))
+    .where(and(eq(serviceRequirements.id, reqId), eq(serviceRequirements.serviceId, serviceId), eq(serviceRequirements.orgId, orgId)))
     .returning();
 
   if (!updated) return c.json({ error: "المتطلب غير موجود" }, 404);
@@ -717,11 +865,12 @@ servicesRouter.put("/:id/requirements/:reqId", async (c) => {
 
 servicesRouter.delete("/:id/requirements/:reqId", async (c) => {
   const orgId = getOrgId(c);
+  const serviceId = c.req.param("id");
   const reqId = c.req.param("reqId");
 
   const [deleted] = await db.update(serviceRequirements)
     .set({ isActive: false })
-    .where(and(eq(serviceRequirements.id, reqId), eq(serviceRequirements.orgId, orgId)))
+    .where(and(eq(serviceRequirements.id, reqId), eq(serviceRequirements.serviceId, serviceId), eq(serviceRequirements.orgId, orgId)))
     .returning();
 
   if (!deleted) return c.json({ error: "المتطلب غير موجود" }, 404);
@@ -769,6 +918,16 @@ servicesRouter.post("/:id/staff", async (c) => {
   const orgId     = getOrgId(c);
   const serviceId = c.req.param("id");
   const body      = serviceStaffSchema.parse(await c.req.json());
+
+  // تحقق من ملكية الخدمة
+  const [svc] = await db.select({ id: services.id }).from(services)
+    .where(and(eq(services.id, serviceId), eq(services.orgId, orgId)));
+  if (!svc) return c.json({ error: "الخدمة غير موجودة" }, 404);
+
+  // تحقق من أن الموظف ينتمي إلى نفس المنشأة
+  const [member] = await db.select({ id: orgMembers.id }).from(orgMembers)
+    .where(and(eq(orgMembers.userId, body.userId), eq(orgMembers.orgId, orgId), eq(orgMembers.status, "active")));
+  if (!member) return c.json({ error: "الموظف غير موجود في هذه المنشأة" }, 404);
 
   const [created] = await db
     .insert(serviceStaff)
@@ -874,6 +1033,11 @@ servicesRouter.get("/:id/questions", async (c) => {
 servicesRouter.post("/:id/questions", async (c) => {
   const orgId    = getOrgId(c);
   const serviceId = c.req.param("id");
+
+  const [svc] = await db.select({ id: services.id }).from(services)
+    .where(and(eq(services.id, serviceId), eq(services.orgId, orgId)));
+  if (!svc) return c.json({ error: "الخدمة غير موجودة" }, 404);
+
   const parsed = createQuestionSchema.safeParse(await c.req.json());
   if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
   const { options, ...rest } = parsed.data;
@@ -882,6 +1046,21 @@ servicesRouter.post("/:id/questions", async (c) => {
     .values({ orgId, serviceId, ...rest, options: options as any })
     .returning();
   return c.json({ data: created }, 201);
+});
+
+// PUT /services/questions/reorder  — يجب أن يكون قبل /questions/:qid حتى لا تلتقطه Hono كـ param
+servicesRouter.put("/questions/reorder", async (c) => {
+  const orgId = getOrgId(c);
+  const { items } = await c.req.json() as { items: { id: string; sortOrder: number }[] };
+  if (!Array.isArray(items)) return c.json({ error: "items مطلوب" }, 400);
+  await Promise.all(
+    items.map(({ id, sortOrder }) =>
+      db.update(serviceQuestions)
+        .set({ sortOrder, updatedAt: new Date() })
+        .where(and(eq(serviceQuestions.id, id), eq(serviceQuestions.orgId, orgId)))
+    )
+  );
+  return c.json({ success: true });
 });
 
 // PUT /services/questions/:qid
@@ -898,7 +1077,7 @@ servicesRouter.put("/questions/:qid", async (c) => {
     .set(updates)
     .where(and(eq(serviceQuestions.id, qid), eq(serviceQuestions.orgId, orgId)))
     .returning();
-  if (!updated) return c.json({ error: "Question not found" }, 404);
+  if (!updated) return c.json({ error: "السؤال غير موجود" }, 404);
   return c.json({ data: updated });
 });
 
@@ -911,21 +1090,41 @@ servicesRouter.delete("/questions/:qid", async (c) => {
     .set({ isActive: false, updatedAt: new Date() })
     .where(and(eq(serviceQuestions.id, qid), eq(serviceQuestions.orgId, orgId)))
     .returning();
-  if (!deleted) return c.json({ error: "Question not found" }, 404);
+  if (!deleted) return c.json({ error: "السؤال غير موجود" }, 404);
   return c.json({ data: { success: true } });
 });
 
-// PUT /services/questions/reorder
-servicesRouter.put("/questions/reorder", async (c) => {
+// ============================================================
+// BARCODE ENDPOINTS
+// ============================================================
+
+// GET /services/lookup/barcode/:code — Lookup service or product by barcode
+servicesRouter.get("/lookup/barcode/:code", async (c) => {
+  const orgId   = getOrgId(c);
+  const barcode = c.req.param("code");
+  const match   = await lookupByBarcode(orgId, barcode);
+  if (!match) return c.json({ error: "لا يوجد منتج أو خدمة بهذا الباركود" }, 404);
+  return c.json({ data: match });
+});
+
+// POST /services/:id/generate-barcode — Regenerate barcode for a service
+servicesRouter.post("/:id/generate-barcode", async (c) => {
   const orgId = getOrgId(c);
-  const { items } = await c.req.json() as { items: { id: string; sortOrder: number }[] };
-  if (!Array.isArray(items)) return c.json({ error: "items required" }, 400);
-  await Promise.all(
-    items.map(({ id, sortOrder }) =>
-      db.update(serviceQuestions)
-        .set({ sortOrder, updatedAt: new Date() })
-        .where(and(eq(serviceQuestions.id, id), eq(serviceQuestions.orgId, orgId)))
-    )
-  );
-  return c.json({ success: true });
+  const id    = c.req.param("id");
+
+  let barcode: string;
+  let attempts = 0;
+  do {
+    barcode = generateBarcodeString();
+    attempts++;
+  } while (!(await isBarcodeUnique(orgId, barcode, id)) && attempts < 10);
+
+  const [updated] = await db
+    .update(services)
+    .set({ barcode, updatedAt: new Date() })
+    .where(and(eq(services.id, id), eq(services.orgId, orgId)))
+    .returning({ id: services.id, barcode: services.barcode });
+
+  if (!updated) return c.json({ error: "الخدمة غير موجودة" }, 404);
+  return c.json({ data: updated });
 });

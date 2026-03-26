@@ -1,4 +1,5 @@
 import { useState } from "react";
+import React from "react";
 import { Mail, MessageCircle, Clock, MapPin, MessageSquare, CheckCircle } from "lucide-react";
 import { PublicLayout } from "../components/public/PublicLayout";
 
@@ -20,11 +21,11 @@ export function ContactPage() {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "حدث خطأ. حاول مرة أخرى.");
+        throw new Error((data as { error?: string }).error || "حدث خطأ. حاول مرة أخرى.");
       }
       setSent(true);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "حدث خطأ");
     } finally {
       setLoading(false);
     }
@@ -52,8 +53,8 @@ export function ContactPage() {
                   { Icon: MapPin,        title: "الموقع",            val: "الرياض، المملكة العربية السعودية" },
                 ].map((item) => (
                   <div key={item.title} className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                      <item.Icon className="w-5 h-5 text-[#1A56DB]" />
+                    <div className="w-12 h-12 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
+                      <item.Icon className="w-5 h-5 text-brand-500" />
                     </div>
                     <div>
                       <p className="font-semibold text-gray-900 text-sm">{item.title}</p>
@@ -63,7 +64,7 @@ export function ContactPage() {
                 ))}
               </div>
 
-              <div className="mt-10 bg-blue-50 rounded-2xl p-6">
+              <div className="mt-10 bg-brand-50 rounded-2xl p-6">
                 <h3 className="font-bold text-gray-900 mb-2">هل تريد عرضاً تجريبياً؟</h3>
                 <p className="text-sm text-gray-600 mb-4">
                   يسعدنا تقديم عرض مباشر لإظهار كيف يمكن لنسق مساعدة عملك.
@@ -103,7 +104,7 @@ export function ContactPage() {
                       type="text"
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#1A56DB] focus:ring-1 focus:ring-blue-100 transition-colors"
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors"
                       placeholder="اسمك الكريم"
                       required
                     />
@@ -115,7 +116,7 @@ export function ContactPage() {
                         type="tel"
                         value={form.phone}
                         onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#1A56DB] focus:ring-1 focus:ring-blue-100 transition-colors"
+                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors"
                         placeholder="05XXXXXXXX"
                       />
                     </div>
@@ -125,7 +126,7 @@ export function ContactPage() {
                         type="email"
                         value={form.email}
                         onChange={(e) => setForm({ ...form, email: e.target.value })}
-                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#1A56DB] focus:ring-1 focus:ring-blue-100 transition-colors"
+                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors"
                         placeholder="email@example.com"
                       />
                     </div>
@@ -135,7 +136,7 @@ export function ContactPage() {
                     <textarea
                       value={form.message}
                       onChange={(e) => setForm({ ...form, message: e.target.value })}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#1A56DB] focus:ring-1 focus:ring-blue-100 transition-colors resize-none"
+                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors resize-none"
                       rows={5}
                       placeholder="كيف يمكننا مساعدتك؟"
                       required
@@ -145,7 +146,7 @@ export function ContactPage() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full bg-[#1A56DB] text-white py-4 rounded-xl font-bold text-base hover:bg-blue-700 transition-colors disabled:opacity-50"
+                    className="w-full bg-brand-500 text-white py-4 rounded-xl font-bold text-base hover:bg-brand-600 transition-colors disabled:opacity-50"
                   >
                     {loading ? "جاري الإرسال..." : "إرسال الرسالة"}
                   </button>

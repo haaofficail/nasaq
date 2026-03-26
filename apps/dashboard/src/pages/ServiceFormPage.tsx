@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, AlignJustify, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image, Wrench, Home, Package, Truck, Gift, FileText, Star, ShoppingBag, CalendarCheck, CheckSquare } from "lucide-react";
+import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, AlignJustify, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image, Wrench, Home, Package, Truck, Gift, FileText, Star, ShoppingBag, CalendarCheck, CheckSquare, Barcode, RefreshCw } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi, membersApi, inventoryApi, settingsApi } from "@/lib/api";
 import { DurationInput } from "@/components/ui/DurationInput";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { toast } from "@/hooks/useToast";
+import { RENTAL_AMENITIES, AMENITY_CATEGORY_LABELS } from "@/lib/constants";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -32,8 +34,107 @@ const SERVICE_TYPES: { value: string; label: string; icon: React.ElementType }[]
   { value: "project",          label: "مشروع",          icon: FileText },
 ];
 
-const NEEDS_TIMING   = new Set(["appointment","execution","field_service","rental","event_rental","project"]);
+const NEEDS_TIMING   = new Set(["appointment","execution","field_service","rental","event_rental","project","food_order"]);
 const NEEDS_CAPACITY = new Set(["event_rental","package","food_order","rental"]);
+
+type TypeConfig = {
+  hint: string;
+  durationLabel: string;
+  componentTitle: string;
+  componentDesc: string;
+  showBookingRules: boolean;
+  showComponents: boolean;
+  showStaff: boolean;
+  showAddons: boolean;
+  defaults: Partial<Form>;
+};
+
+const TYPE_CONFIG: Record<string, TypeConfig> = {
+  appointment: {
+    hint: "العميل يحجز وقتاً محدداً مع موظف — الأنسب للصالونات والعيادات والتصوير.",
+    durationLabel: "مدة الموعد",
+    componentTitle: "المواد المستهلكة", componentDesc: "المواد التي تُستهلك في كل جلسة",
+    showBookingRules: true, showComponents: true, showStaff: true, showAddons: true,
+    defaults: { durationValue: "60", durationUnit: "minute", depositPercent: "0", cancellationFreeHours: "24", servicePricingMode: "fixed" },
+  },
+  execution: {
+    hint: "العميل يطلب تنفيذ عمل ويُحدد موعداً — الأنسب للصيانة والتركيب.",
+    durationLabel: "مدة التنفيذ المتوقعة",
+    componentTitle: "مواد التنفيذ", componentDesc: "المواد والمعدات اللازمة للتنفيذ",
+    showBookingRules: true, showComponents: true, showStaff: true, showAddons: true,
+    defaults: { durationValue: "2", durationUnit: "hour", depositPercent: "50", servicePricingMode: "fixed" },
+  },
+  field_service: {
+    hint: "الموظف يزور العميل في موقعه — الأنسب للخدمات المنزلية والميدانية.",
+    durationLabel: "مدة الزيارة المتوقعة",
+    componentTitle: "معدات الزيارة", componentDesc: "المعدات والأدوات المطلوبة للزيارة الميدانية",
+    showBookingRules: true, showComponents: true, showStaff: true, showAddons: false,
+    defaults: { durationValue: "2", durationUnit: "hour", depositPercent: "30", servicePricingMode: "fixed" },
+  },
+  rental: {
+    hint: "العميل يستأجر أصلاً لفترة محددة — الأنسب لتأجير السيارات والمعدات.",
+    durationLabel: "وحدة الإيجار الافتراضية",
+    componentTitle: "تجهيزات مشمولة", componentDesc: "ما يشمله عقد الإيجار من ملحقات",
+    showBookingRules: false, showComponents: true, showStaff: false, showAddons: true,
+    defaults: { durationValue: "1", durationUnit: "day", servicePricingMode: "fixed", depositPercent: "50", cancellationFreeHours: "48" },
+  },
+  event_rental: {
+    hint: "تأجير قاعة أو مكان لحدث — حدد السعة القصوى والعربون المطلوب.",
+    durationLabel: "مدة الفعالية",
+    componentTitle: "ما يشمله التأجير", componentDesc: "التجهيزات والخدمات المشمولة",
+    showBookingRules: false, showComponents: true, showStaff: false, showAddons: true,
+    defaults: { durationValue: "4", durationUnit: "hour", depositPercent: "50", servicePricingMode: "fixed" },
+  },
+  product: {
+    hint: "منتج يُباع مباشرة — يظهر في الكاشير والمتجر دون حجز مسبق.",
+    durationLabel: "",
+    componentTitle: "مكونات المنتج", componentDesc: "المواد الخام والمكونات المستخدمة في التصنيع",
+    showBookingRules: false, showComponents: true, showStaff: false, showAddons: false,
+    defaults: { servicePricingMode: "fixed", isBookable: false, isVisibleInPOS: true, depositPercent: "0" },
+  },
+  product_shipping: {
+    hint: "منتج يُشحن للعميل — يدعم الشحن والتتبع والمتجر الإلكتروني.",
+    durationLabel: "",
+    componentTitle: "مكونات المنتج", componentDesc: "المواد الخام المستخدمة في التصنيع",
+    showBookingRules: false, showComponents: true, showStaff: false, showAddons: false,
+    defaults: { servicePricingMode: "fixed", isBookable: false, isVisibleOnline: true, isVisibleInPOS: false, depositPercent: "0" },
+  },
+  food_order: {
+    hint: "وجبة أو منتج غذائي — يظهر في قائمة الطعام ونقطة البيع.",
+    durationLabel: "وقت التحضير",
+    componentTitle: "المكونات والمواد الخام", componentDesc: "مكونات الوجبة أو المنتج الغذائي",
+    showBookingRules: false, showComponents: true, showStaff: false, showAddons: true,
+    defaults: { durationValue: "15", durationUnit: "minute", servicePricingMode: "fixed", depositPercent: "0", isVisibleInPOS: true },
+  },
+  package: {
+    hint: "مجموعة خدمات مجمّعة بسعر موحد — أضف ما تشمله الباقة في قسم المكونات.",
+    durationLabel: "",
+    componentTitle: "الخدمات المشمولة", componentDesc: "الخدمات والعناصر المشمولة في هذه الباقة",
+    showBookingRules: false, showComponents: true, showStaff: false, showAddons: true,
+    defaults: { servicePricingMode: "fixed", depositPercent: "30" },
+  },
+  add_on: {
+    hint: "خيار اختياري يضيفه العميل على خدمة أساسية — سعر فقط بدون حجز مستقل.",
+    durationLabel: "",
+    componentTitle: "مواد الإضافة", componentDesc: "المواد المستهلكة في تقديم هذه الإضافة",
+    showBookingRules: false, showComponents: false, showStaff: false, showAddons: false,
+    defaults: { depositPercent: "0", isBookable: false, isVisibleOnline: false },
+  },
+  project: {
+    hint: "عمل طويل المدى يُنفَّذ على مراحل — حدد المدة التقديرية ومقدمي الخدمة.",
+    durationLabel: "المدة التقديرية للمشروع",
+    componentTitle: "موارد المشروع", componentDesc: "المواد والموارد المطلوبة لتنفيذ المشروع",
+    showBookingRules: true, showComponents: true, showStaff: true, showAddons: false,
+    defaults: { durationValue: "7", durationUnit: "day", depositPercent: "30", cancellationFreeHours: "72" },
+  },
+};
+
+const DEFAULT_TYPE_CONFIG: TypeConfig = {
+  hint: "", durationLabel: "المدة",
+  componentTitle: "مكونات الخدمة", componentDesc: "المواد والمستهلكات المطلوبة",
+  showBookingRules: true, showComponents: true, showStaff: true, showAddons: true,
+  defaults: {},
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -46,6 +147,8 @@ type Form = {
   depositPercent: string; minAdvanceHours: string; maxAdvanceDays: string;
   bufferBeforeMinutes: string; bufferAfterMinutes: string; cancellationFreeHours: string;
   isBookable: boolean; isVisibleInPOS: boolean; isVisibleOnline: boolean;
+  barcode: string;
+  amenities: string[];
 };
 
 const INIT: Form = {
@@ -56,6 +159,8 @@ const INIT: Form = {
   depositPercent: "30", minAdvanceHours: "", maxAdvanceDays: "",
   bufferBeforeMinutes: "0", bufferAfterMinutes: "0", cancellationFreeHours: "24",
   isBookable: true, isVisibleInPOS: true, isVisibleOnline: true,
+  barcode: "",
+  amenities: [],
 };
 
 type AddonDraft = {
@@ -96,6 +201,27 @@ const INIT_COMP: ComponentDraft = { sourceType: "manual", inventoryItemId: "", n
 
 const iCls = "w-full border border-gray-200 h-10 rounded-xl px-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300";
 const taCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300 resize-none";
+
+function FilePreviewInput({ accept, icon, label }: { accept: string; icon: React.ReactNode; label: string }) {
+  const [fileName, setFileName] = useState<string | null>(null);
+  return (
+    <label className={clsx(
+      "flex items-center gap-2 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-colors w-fit max-w-full",
+      fileName ? "border-brand-300 bg-brand-50 text-brand-600" : "border-gray-200 bg-white text-gray-500 hover:border-brand-300",
+    )}>
+      {icon}
+      <span className="truncate max-w-[200px]">{fileName ?? label}</span>
+      {fileName && (
+        <button type="button" onClick={e => { e.preventDefault(); setFileName(null); }}
+          className="ml-1 shrink-0 text-gray-400 hover:text-red-400 transition-colors">
+          <X className="w-3.5 h-3.5" />
+        </button>
+      )}
+      <input type="file" accept={accept} className="hidden"
+        onChange={e => setFileName(e.target.files?.[0]?.name ?? null)} />
+    </label>
+  );
+}
 
 function Err({ msg }: { msg?: string }) {
   if (!msg) return null;
@@ -147,6 +273,15 @@ export function ServiceFormPage() {
   const [uploadErr,    setUploadErr]        = useState<string | null>(null);
 
   const needsTiming = NEEDS_TIMING.has(form.serviceType);
+  const typeConfig  = TYPE_CONFIG[form.serviceType] || DEFAULT_TYPE_CONFIG;
+
+  // Apply type-specific defaults when user picks a new type (create mode only)
+  useEffect(() => {
+    if (!isEdit && form.serviceType && TYPE_CONFIG[form.serviceType]) {
+      setForm(f => ({ ...f, ...TYPE_CONFIG[form.serviceType].defaults }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.serviceType, isEdit]);
 
   // ── Load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -198,6 +333,8 @@ export function ServiceFormPage() {
           isBookable:            s.isBookable       ?? true,
           isVisibleInPOS:        s.isVisibleInPOS   ?? true,
           isVisibleOnline:       s.isVisibleOnline  ?? true,
+          barcode:               s.barcode          || "",
+          amenities:             Array.isArray(s.amenities) ? s.amenities : [],
         });
         setLoadedAddons(s.addons || []);
         setQuestionDrafts((qRes.data || []).map((q: any) => ({
@@ -285,7 +422,7 @@ export function ServiceFormPage() {
         maxCapacity:         form.maxCapacity ? parseInt(form.maxCapacity) : undefined,
         depositPercent:      form.depositPercent || "0",
         minAdvanceHours:     form.minAdvanceHours ? parseInt(form.minAdvanceHours) : undefined,
-        maxAdvanceDays:      form.maxAdvanceDays  ? parseInt(form.maxAdvanceDays)  : undefined,
+        maxAdvanceeDays:     form.maxAdvanceDays  ? parseInt(form.maxAdvanceDays)  : undefined,
         bufferBeforeMinutes: parseInt(form.bufferBeforeMinutes) || 0,
         bufferAfterMinutes:  parseInt(form.bufferAfterMinutes)  || 0,
         isBookable:          form.isBookable,
@@ -307,6 +444,8 @@ export function ServiceFormPage() {
         allowedLocationIds: allowedBranches,
         ...(durationMinutes ? { durationMinutes } : {}),
         ...bookingPayload,
+        barcode: form.barcode || undefined,
+        amenities: form.amenities,
       };
 
       const saveAddons = async (svcId: string, base: number) => {
@@ -506,6 +645,14 @@ export function ServiceFormPage() {
         {/* ── Form cards ── */}
         {showForm && (
           <>
+            {/* Type hint banner */}
+            {typeConfig.hint && (
+              <div className="flex items-start gap-2.5 px-4 py-3 bg-brand-50 border border-brand-100 rounded-xl text-sm text-brand-700">
+                <span className="shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5" />
+                {typeConfig.hint}
+              </div>
+            )}
+
             {/* Card: Service info */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">معلومات الخدمة</h2>
@@ -552,9 +699,39 @@ export function ServiceFormPage() {
                   <label className="text-xs font-medium text-gray-700 block mb-1.5">
                     الوصف التفصيلي <span className="text-gray-400 font-normal text-[11px]">(اختياري)</span>
                   </label>
-                  <textarea value={form.description} onChange={upd("description")} rows={4}
+                  <RichTextEditor
+                    value={form.description}
+                    onChange={v => upd("description")({ target: { value: v } } as any)}
                     placeholder="تفاصيل الخدمة، ما تشمل، الشروط والأحكام..."
-                    className={taCls} />
+                    minHeight={120}
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1.5">
+                    <Barcode size={13} className="text-gray-400" />
+                    الباركود <span className="text-gray-400 font-normal text-[11px]">(يُولَّد تلقائياً عند الحفظ)</span>
+                  </label>
+                  <div className="flex gap-2">
+                    <input value={form.barcode} onChange={upd("barcode")} dir="ltr"
+                      placeholder="NSQ..." className={clsx(iCls, "font-mono text-sm")} />
+                    <button type="button"
+                      onClick={async () => {
+                        if (isEdit && id) {
+                          try {
+                            const res: any = await servicesApi.generateBarcode(id);
+                            if (res?.data?.barcode) setForm(f => ({ ...f, barcode: res.data.barcode }));
+                          } catch {}
+                        } else {
+                          const ts = Date.now().toString().slice(-8);
+                          const rand = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
+                          setForm(f => ({ ...f, barcode: `NSQ${ts}${rand}` }));
+                        }
+                      }}
+                      className="px-3 py-2 rounded-xl border border-gray-200 text-gray-500 hover:text-brand-600 hover:border-brand-200 hover:bg-brand-50 transition-colors shrink-0"
+                      title="توليد باركود جديد">
+                      <RefreshCw size={14} />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -591,7 +768,7 @@ export function ServiceFormPage() {
                   </div>
                   {needsTiming && (
                     <div>
-                      <label className="text-xs font-medium text-gray-700 block mb-1.5">المدة <span className="text-red-400">*</span></label>
+                      <label className="text-xs font-medium text-gray-700 block mb-1.5">{typeConfig.durationLabel || "المدة"} <span className="text-red-400">*</span></label>
                       <DurationInput
                         valueMinutes={(parseFloat(form.durationValue) || 0) * UNIT_MINS[form.durationUnit]}
                         onChange={mins => {
@@ -640,7 +817,7 @@ export function ServiceFormPage() {
             </div>
 
             {/* Card: Booking rules */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            {typeConfig.showBookingRules && <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">إعدادات الحجز</h2>
               <div className="divide-y divide-gray-50">
                 {/* إلغاء مجاني — ساعة / يوم */}
@@ -696,7 +873,57 @@ export function ServiceFormPage() {
                   </>
                 )}
               </div>
-            </div>
+            </div>}
+
+            {/* Card: Amenities — only for rental types */}
+            {["rental", "event_rental"].includes(form.serviceType) && (
+              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                <h2 className="text-sm font-semibold text-gray-900 mb-1 pb-3 border-b border-gray-50">المرافق والمميزات</h2>
+                <p className="text-[11px] text-gray-400 mb-4">حدد المرافق المتاحة — تظهر للعميل عند الحجز</p>
+                <div className="space-y-5">
+                  {Object.entries(AMENITY_CATEGORY_LABELS).map(([cat, catLabel]) => {
+                    const items = RENTAL_AMENITIES.filter(a => a.category === cat);
+                    if (items.length === 0) return null;
+                    return (
+                      <div key={cat}>
+                        <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">{catLabel}</p>
+                        <div className="flex flex-wrap gap-2">
+                          {items.map(a => {
+                            const checked = form.amenities.includes(a.key);
+                            return (
+                              <button key={a.key} type="button"
+                                onClick={() => setForm(f => ({
+                                  ...f,
+                                  amenities: checked
+                                    ? f.amenities.filter(k => k !== a.key)
+                                    : [...f.amenities, a.key],
+                                }))}
+                                className={clsx(
+                                  "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
+                                  checked
+                                    ? "bg-brand-50 border-brand-300 text-brand-700"
+                                    : "bg-white border-gray-200 text-gray-500 hover:border-brand-200 hover:text-brand-600"
+                                )}>
+                                {a.label}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {form.amenities.length > 0 && (
+                  <div className="mt-4 pt-3 border-t border-gray-50 flex items-center justify-between">
+                    <p className="text-xs text-gray-400">{form.amenities.length} مرفق محدد</p>
+                    <button type="button" onClick={() => setForm(f => ({ ...f, amenities: [] }))}
+                      className="text-xs text-red-400 hover:text-red-500 transition-colors">
+                      إزالة الكل
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Card: Image and status */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -858,7 +1085,7 @@ export function ServiceFormPage() {
             </div>
 
             {/* Card: Service provider (staff) */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            {typeConfig.showStaff && <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-sm font-semibold text-gray-900">مقدمو الخدمة</h2>
@@ -937,14 +1164,14 @@ export function ServiceFormPage() {
               {staffMembers.length === 0 && loadedStaff.length === 0 && pendingStaffIds.length === 0 && (
                 <p className="text-xs text-gray-400 py-1">لا يوجد موظفون — أضفهم أولاً من صفحة الفريق</p>
               )}
-            </div>
+            </div>}
 
             {/* Card: Inventory components */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            {typeConfig.showComponents && <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
-                  <h2 className="text-sm font-semibold text-gray-900">مكونات الخدمة</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">المواد والمستهلكات المطلوبة لتنفيذ الخدمة</p>
+                  <h2 className="text-sm font-semibold text-gray-900">{typeConfig.componentTitle}</h2>
+                  <p className="text-xs text-gray-400 mt-0.5">{typeConfig.componentDesc}</p>
                 </div>
                 <button onClick={() => setComponentDrafts(d => [...d, { ...INIT_COMP }])}
                   className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors">
@@ -1048,10 +1275,10 @@ export function ServiceFormPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </div>}
 
             {/* Card: Add-ons */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            {typeConfig.showAddons && <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h2 className="text-sm font-semibold text-gray-900">الإضافات المدفوعة</h2>
@@ -1167,7 +1394,7 @@ export function ServiceFormPage() {
                   if (f && addonUploadIdx !== null) pickAddonImage(f, addonUploadIdx);
                   e.target.value = "";
                 }} />
-            </div>
+            </div>}
 
             {/* Card: Custom questions */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -1271,10 +1498,11 @@ export function ServiceFormPage() {
                             className="rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white" dir="ltr" />
                         )}
                         {(q.type === "file" || q.type === "image") && (
-                          <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-500 text-sm cursor-pointer hover:border-brand-300 transition-colors w-fit">
-                            {q.type === "image" ? <Image className="w-4 h-4 shrink-0" /> : <Paperclip className="w-4 h-4 shrink-0" />}
-                            <span>{q.type === "image" ? "رفع صورة" : "رفع ملف"}</span>
-                          </label>
+                          <FilePreviewInput
+                            accept={q.type === "image" ? "image/*" : "*/*"}
+                            icon={q.type === "image" ? <Image className="w-4 h-4 shrink-0" /> : <Paperclip className="w-4 h-4 shrink-0" />}
+                            label={q.type === "image" ? "اختر صورة..." : "اختر ملفاً..."}
+                          />
                         )}
 
                         {(q.type === "select" || q.type === "multi") && (

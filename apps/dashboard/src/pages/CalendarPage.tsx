@@ -141,6 +141,24 @@ export function CalendarPage() {
           </div>
         </div>
       )}
+
+      {/* FAQ */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
+        <div className="space-y-3">
+          {[
+            { q: "لماذا لا تظهر بعض الحجوزات في التقويم؟", a: "التقويم يعرض الحجوزات حسب «تاريخ الحدث» وليس تاريخ الإنشاء. الحجوزات التي لا تحمل تاريخ حدث محدد لن تظهر هنا." },
+            { q: "كيف أضيف حجزاً من التقويم مباشرة؟", a: "اذهب لصفحة «الحجوزات» واضغط «حجز جديد». سيُضاف الحجز في التقويم تلقائياً بعد تحديد تاريخ الحدث." },
+            { q: "ما الفرق بين ألوان الحجوزات؟", a: "كل لون يعبّر عن حالة الحجز: أصفر = معلق، أزرق = مؤكد، بنفسجي = قيد التنفيذ، أخضر = مكتمل، أحمر = ملغي." },
+            { q: "كيف أمنع التعارض في المواعيد؟", a: "النظام يمنع تلقائياً حجز نفس الموظف أو الأصل في وقتين متداخلين إذا كانت مدة الخدمة محددة بدقة." },
+          ].map(faq => (
+            <details key={faq.q} className="border border-gray-100 rounded-xl">
+              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+              <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

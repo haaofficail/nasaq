@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq, and, desc, asc, sql, count, gte, lte, inArray } from "drizzle-orm";
 import { db, pool } from "@nasaq/db/client";
-import { campaigns, coupons, loyaltyConfig, loyaltyTransactions, abandonedCarts, reviews, landingPages, customerSegments, customers } from "@nasaq/db/schema";
+import { campaigns, coupons, loyaltyConfig, loyaltyTransactions, abandonedCarts, reviews, landingPages, customerSegments, customers, organizations } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { evaluateSegment } from "../lib/segments-engine";
@@ -98,6 +98,26 @@ marketingRouter.post("/campaigns", async (c) => {
   return c.json({ data: campaign }, 201);
 });
 
+marketingRouter.patch("/campaigns/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+  const body = createCampaignSchema.partial().parse(await c.req.json());
+  const { scheduledAt, ...rest } = body;
+  const [updated] = await db.update(campaigns).set({
+    ...rest,
+    ...(scheduledAt !== undefined && { scheduledAt: scheduledAt ? new Date(scheduledAt) : null }),
+    updatedAt: new Date(),
+  }).where(and(eq(campaigns.id, id), eq(campaigns.orgId, orgId))).returning();
+  if (!updated) return c.json({ error: "الحملة غير موجودة" }, 404);
+  return c.json({ data: updated });
+});
+
+marketingRouter.delete("/campaigns/:id", async (c) => {
+  const orgId = getOrgId(c);
+  await db.delete(campaigns).where(and(eq(campaigns.id, c.req.param("id")), eq(campaigns.orgId, orgId)));
+  return c.json({ success: true });
+});
+
 marketingRouter.patch("/campaigns/:id/send", async (c) => {
   const orgId = getOrgId(c);
   const id = c.req.param("id");
@@ -170,6 +190,57 @@ marketingRouter.get("/segments/:id/preview", async (c) => {
   return c.json({ data: { count: members.length, sample: members.slice(0, 10) } });
 });
 
+marketingRouter.post("/segments", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const { name, description, color, rules, isActive } = await c.req.json();
+  const [seg] = await db.insert(customerSegments).values({
+    orgId, name,
+    description: description || null,
+    color: color || null,
+    rules: rules || { operator: "and", conditions: [] },
+    isActive: isActive !== false,
+  }).returning();
+  insertAuditLog({ orgId, userId, action: "created", resource: "customer_segment", resourceId: seg.id });
+  return c.json({ data: seg }, 201);
+});
+
+marketingRouter.patch("/segments/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const body = await c.req.json();
+  const allowed = ["name", "description", "color", "rules", "isActive"] as const;
+  const updates: any = { updatedAt: new Date() };
+  allowed.forEach(k => { if (body[k] !== undefined) updates[k] = body[k]; });
+  const [seg] = await db.update(customerSegments)
+    .set(updates)
+    .where(and(eq(customerSegments.id, c.req.param("id")), eq(customerSegments.orgId, orgId)))
+    .returning();
+  if (!seg) return c.json({ error: "الشريحة غير موجودة" }, 404);
+  return c.json({ data: seg });
+});
+
+marketingRouter.delete("/segments/:id", async (c) => {
+  const orgId = getOrgId(c);
+  await db.delete(customerSegments)
+    .where(and(eq(customerSegments.id, c.req.param("id")), eq(customerSegments.orgId, orgId)));
+  return c.json({ success: true });
+});
+
+marketingRouter.patch("/abandoned-carts/:id/status", async (c) => {
+  const orgId = getOrgId(c);
+  const { status } = await c.req.json();
+  const [cart] = await db.update(abandonedCarts)
+    .set({
+      recoveryStatus: status,
+      ...(status === "recovered" ? { recoveredAt: new Date() } : {}),
+      updatedAt: new Date(),
+    })
+    .where(and(eq(abandonedCarts.id, c.req.param("id")), eq(abandonedCarts.orgId, orgId)))
+    .returning();
+  if (!cart) return c.json({ error: "السلة غير موجودة" }, 404);
+  return c.json({ data: cart });
+});
+
 // ============================================================
 // COUPONS
 // ============================================================
@@ -191,6 +262,32 @@ marketingRouter.post("/coupons", async (c) => {
   }).returning();
   insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "coupon", resourceId: coupon.id });
   return c.json({ data: coupon }, 201);
+});
+
+marketingRouter.patch("/coupons/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const body = createCouponSchema.partial().parse(await c.req.json());
+  const { startsAt, expiresAt, ...rest } = body;
+  const [updated] = await db.update(coupons).set({
+    ...rest,
+    ...(startsAt !== undefined && { startsAt: startsAt ? new Date(startsAt) : null }),
+    ...(expiresAt !== undefined && { expiresAt: expiresAt ? new Date(expiresAt) : null }),
+  }).where(and(eq(coupons.id, c.req.param("id")), eq(coupons.orgId, orgId))).returning();
+  if (!updated) return c.json({ error: "الكوبون غير موجود" }, 404);
+  return c.json({ data: updated });
+});
+
+marketingRouter.delete("/coupons/:id", async (c) => {
+  const orgId = getOrgId(c);
+  await db.delete(coupons).where(and(eq(coupons.id, c.req.param("id")), eq(coupons.orgId, orgId)));
+  return c.json({ success: true });
+});
+
+// GET all coupons (active + inactive)
+marketingRouter.get("/coupons/all", async (c) => {
+  const orgId = getOrgId(c);
+  const result = await db.select().from(coupons).where(eq(coupons.orgId, orgId)).orderBy(desc(coupons.createdAt));
+  return c.json({ data: result });
 });
 
 marketingRouter.post("/coupons/validate", async (c) => {
@@ -290,6 +387,77 @@ marketingRouter.patch("/reviews/:id/respond", async (c) => {
     responseText, respondedBy: userId, respondedAt: new Date(), status: "approved", isPublished: true,
   }).where(and(eq(reviews.id, c.req.param("id")), eq(reviews.orgId, orgId))).returning();
   return c.json({ data: updated });
+});
+
+// PATCH /reviews/:id/visibility — toggle show/hide
+marketingRouter.patch("/reviews/:id/visibility", async (c) => {
+  const orgId = getOrgId(c);
+  const [review] = await db.select({ isPublished: reviews.isPublished })
+    .from(reviews).where(and(eq(reviews.id, c.req.param("id")), eq(reviews.orgId, orgId)));
+  if (!review) return c.json({ error: "التقييم غير موجود" }, 404);
+  const [updated] = await db.update(reviews)
+    .set({ isPublished: !review.isPublished })
+    .where(and(eq(reviews.id, c.req.param("id")), eq(reviews.orgId, orgId)))
+    .returning();
+  return c.json({ data: updated });
+});
+
+// PATCH /reviews/:id/status — approve | reject | pending
+marketingRouter.patch("/reviews/:id/status", async (c) => {
+  const orgId = getOrgId(c);
+  const { status } = await c.req.json();
+  const [updated] = await db.update(reviews)
+    .set({ status, ...(status === "approved" ? { isPublished: true } : {}) })
+    .where(and(eq(reviews.id, c.req.param("id")), eq(reviews.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "التقييم غير موجود" }, 404);
+  return c.json({ data: updated });
+});
+
+// DELETE /reviews/:id
+marketingRouter.delete("/reviews/:id", async (c) => {
+  const orgId = getOrgId(c);
+  await db.delete(reviews).where(and(eq(reviews.id, c.req.param("id")), eq(reviews.orgId, orgId)));
+  return c.json({ success: true });
+});
+
+// POST /reviews/request — طلب تقييم عبر واتساب/رسالة نصية
+marketingRouter.post("/reviews/request", async (c) => {
+  const orgId = getOrgId(c);
+  const { phone, customerName, bookingId } = await c.req.json();
+  if (!phone) return c.json({ error: "رقم الهاتف مطلوب" }, 400);
+
+  // Build review link
+  const [org] = await db.select({ slug: organizations.slug }).from(organizations).where(eq(organizations.id, orgId));
+  const reviewUrl = `${process.env.DASHBOARD_URL || "https://nasaqpro.tech"}/book/${org?.slug || ""}?review=1${bookingId ? `&bid=${bookingId}` : ""}`;
+
+  const message = `أهلاً ${customerName || ""}!\nشكراً لاختيارك خدماتنا. نودّ معرفة رأيك.\nقيّمنا هنا:\n${reviewUrl}`;
+
+  const { sendWhatsApp } = await import("../lib/whatsapp");
+  const sent = await sendWhatsApp(phone, message).catch(() => false);
+
+  return c.json({ data: { sent, message } });
+});
+
+// GET /reviews/stats
+marketingRouter.get("/reviews/stats", async (c) => {
+  const orgId = getOrgId(c);
+  const all = await db.select({ rating: reviews.rating, status: reviews.status })
+    .from(reviews).where(eq(reviews.orgId, orgId));
+
+  const total = all.length;
+  const avg = total > 0 ? all.reduce((s, r) => s + r.rating, 0) / total : 0;
+  const dist: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  all.forEach(r => { dist[r.rating] = (dist[r.rating] || 0) + 1; });
+
+  return c.json({
+    data: {
+      total,
+      avg: Math.round(avg * 10) / 10,
+      distribution: dist,
+      pending: all.filter(r => r.status === "pending").length,
+    },
+  });
 });
 
 // ============================================================

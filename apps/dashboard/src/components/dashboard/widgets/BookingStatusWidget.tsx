@@ -30,12 +30,12 @@ export function BookingStatusWidget() {
   const total = bookings.length || 1;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 h-full">
-      <div className="mb-4">
+    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+      <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-gray-900 text-sm">حالة الحجوزات</h2>
-        <p className="text-xs text-gray-400 mt-0.5">التوزيع الحالي</p>
+        <p className="text-xs text-gray-400">التوزيع الحالي</p>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {Object.entries(statusConfig).map(([key, cfg]) => {
           const count = counts[key] || 0;
           return (

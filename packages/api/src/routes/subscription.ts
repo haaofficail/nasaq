@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { eq, and, desc, gte, sql, count, sum, or } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { organizations, subscriptionAddons, subscriptions, subscriptionOrders, bookings, customers, invoices } from "@nasaq/db/schema";
-import { getOrgId } from "../lib/helpers";
+import { getOrgId, getUserId } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
 
 export const subscriptionRouter = new Hono();
 export const orgStatsRouter     = new Hono();
@@ -133,7 +134,8 @@ subscriptionRouter.get("/orders", async (c) => {
 // body: { planKey }
 // ============================================================
 subscriptionRouter.post("/upgrade", async (c) => {
-  const orgId = getOrgId(c);
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
   const { planKey } = await c.req.json();
   if (!planKey || !PLAN_NAMES[planKey]) return c.json({ error: "planKey غير صالح" }, 400);
 
@@ -154,6 +156,16 @@ subscriptionRouter.post("/upgrade", async (c) => {
     expiresAt: makeExpiry(),
   }).returning();
 
+  insertAuditLog({
+    orgId,
+    userId,
+    action:     "created",
+    resource:   "subscription_order",
+    resourceId: order.id,
+    newValue:   { orderType: "upgrade", planKey, price: annualPrice },
+    metadata:   { planName: PLAN_NAMES[planKey] },
+  });
+
   return c.json({
     data: {
       orderId:   order.id,
@@ -168,7 +180,8 @@ subscriptionRouter.post("/upgrade", async (c) => {
 // POST /organization/subscription/renew
 // ============================================================
 subscriptionRouter.post("/renew", async (c) => {
-  const orgId = getOrgId(c);
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
 
   const [org] = await db.select({ plan: organizations.plan })
     .from(organizations).where(eq(organizations.id, orgId));
@@ -191,6 +204,15 @@ subscriptionRouter.post("/renew", async (c) => {
     expiresAt: makeExpiry(),
   }).returning();
 
+  insertAuditLog({
+    orgId,
+    userId,
+    action:     "created",
+    resource:   "subscription_order",
+    resourceId: order.id,
+    newValue:   { orderType: "renewal", planKey: org.plan, price: annualPrice },
+  });
+
   return c.json({
     data: {
       orderId:   order.id,
@@ -206,7 +228,8 @@ subscriptionRouter.post("/renew", async (c) => {
 // body: { addonKey }
 // ============================================================
 subscriptionRouter.post("/addons/purchase", async (c) => {
-  const orgId = getOrgId(c);
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
   const { addonKey } = await c.req.json();
   if (!addonKey || !ADDON_NAMES[addonKey]) return c.json({ error: "addonKey غير صالح" }, 400);
 
@@ -228,6 +251,16 @@ subscriptionRouter.post("/addons/purchase", async (c) => {
     expiresAt: makeExpiry(),
   }).returning();
 
+  insertAuditLog({
+    orgId,
+    userId,
+    action:     "created",
+    resource:   "subscription_order",
+    resourceId: order.id,
+    newValue:   { orderType: "addon", addonKey, price: addonPrice },
+    metadata:   { addonName: ADDON_NAMES[addonKey] },
+  });
+
   return c.json({
     data: {
       orderId:    order.id,
@@ -241,12 +274,13 @@ subscriptionRouter.post("/addons/purchase", async (c) => {
 // ============================================================
 // POST /organization/subscription/confirm-payment
 // body: { orderId, paymentRef }
-// TODO: هذا الـ endpoint يتم ربطه لاحقاً مع بوابة الدفع (Moyasar)
+// يتحقق من الدفع عبر Moyasar API قبل التفعيل
 // ============================================================
 subscriptionRouter.post("/confirm-payment", async (c) => {
-  const orgId = getOrgId(c);
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
   const { orderId, paymentRef } = await c.req.json();
-  if (!orderId) return c.json({ error: "orderId مطلوب" }, 400);
+  if (!orderId || !paymentRef) return c.json({ error: "orderId و paymentRef مطلوبان" }, 400);
 
   const [order] = await db.select()
     .from(subscriptionOrders)
@@ -257,14 +291,50 @@ subscriptionRouter.post("/confirm-payment", async (c) => {
   if (order.status === "cancelled") return c.json({ error: "الطلب ملغي" }, 409);
   if (order.status === "expired")   return c.json({ error: "انتهت صلاحية الطلب" }, 409);
 
-  await _activateOrder(order, paymentRef ?? null);
+  // التحقق من الدفع عبر Moyasar API
+  const moyasarKey = process.env.MOYASAR_API_KEY;
+  if (moyasarKey) {
+    try {
+      const verifyRes = await fetch(`https://api.moyasar.com/v1/payments/${paymentRef}`, {
+        headers: {
+          "Authorization": `Basic ${Buffer.from(moyasarKey + ":").toString("base64")}`,
+        },
+      });
+
+      if (!verifyRes.ok) {
+        return c.json({ error: "تعذر التحقق من الدفع — حاول مجدداً" }, 502);
+      }
+
+      const payment = await verifyRes.json() as {
+        id: string;
+        status: string;
+        amount: number;
+        currency: string;
+        metadata?: { orgId?: string };
+      };
+
+      if (payment.status !== "paid") {
+        return c.json({ error: `الدفع غير مكتمل (الحالة: ${payment.status})` }, 402);
+      }
+
+      // التحقق أن الدفع لهذه المنشأة
+      if (payment.metadata?.orgId && payment.metadata.orgId !== orgId) {
+        return c.json({ error: "الدفع لا ينتمي لهذه المنشأة" }, 403);
+      }
+    } catch {
+      return c.json({ error: "خطأ في التواصل مع بوابة الدفع" }, 502);
+    }
+  }
+  // إذا لم يُهيأ MOYASAR_API_KEY — يُقبل مؤقتاً (dev mode)
+
+  await _activateOrder(order, paymentRef, userId);
   return c.json({ data: { success: true, orderId } });
 });
 
 // ============================================================
 // SHARED: activate order after payment confirmed
 // ============================================================
-export async function _activateOrder(order: any, paymentRef: string | null) {
+export async function _activateOrder(order: any, paymentRef: string | null, actorId?: string | null) {
   const now = new Date();
 
   // Mark order as paid
@@ -337,6 +407,25 @@ export async function _activateOrder(order: any, paymentRef: string | null) {
       });
     }
   }
+
+  // Audit: payment confirmed + subscription activated
+  insertAuditLog({
+    orgId:      order.orgId,
+    userId:     actorId ?? null,
+    action:     "approved",
+    resource:   "subscription_order",
+    resourceId: order.id,
+    newValue:   {
+      status:     "paid",
+      orderType:  order.orderType,
+      itemKey:    order.itemKey,
+      price:      order.price,
+      paymentRef: paymentRef ?? null,
+    },
+    metadata: {
+      description: `تم تفعيل ${order.orderType === "addon" ? `إضافة "${order.itemName}"` : `خطة "${order.itemName}"`} بعد تأكيد الدفع`,
+    },
+  });
 }
 
 // ============================================================

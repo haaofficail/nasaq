@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "@/hooks/useToast";
-import { FileText, Plus, RefreshCw, CheckCircle2, Clock, XCircle, AlertTriangle, Eye, Search, CreditCard, Building2 } from "lucide-react";
+import { FileText, Plus, RefreshCw, CheckCircle2, Clock, XCircle, AlertTriangle, Eye, Search, CreditCard, Building2, Send } from "lucide-react";
 import { clsx } from "clsx";
 import { financeApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
@@ -26,12 +27,13 @@ const SOURCE_BADGE: Record<string, { label: string; color: string }> = {
 };
 
 const TABS = [
-  { key: "all",           label: "الكل" },
-  { key: "issued",        label: "صادرة" },
-  { key: "partially_paid",label: "جزئي" },
-  { key: "paid",          label: "مدفوعة" },
-  { key: "overdue",       label: "متأخرة" },
-  { key: "cancelled",     label: "ملغاة" },
+  { key: "all",            label: "الكل" },
+  { key: "issued",         label: "بانتظار الدفع" },
+  { key: "paid",           label: "تم الدفع" },
+  { key: "partially_paid", label: "مدفوع جزئياً" },
+  { key: "overdue",        label: "متأخرة" },
+  { key: "cancelled",      label: "ملغى" },
+  { key: "draft",          label: "مسودة" },
 ];
 
 function fmt(n: any) {
@@ -85,6 +87,17 @@ export function InvoicesPage() {
       refetch();
       setViewInvoice(null);
     } catch { toast.error("فشل التحديث"); }
+  };
+
+  const [sendingId, setSendingId] = useState<string | null>(null);
+  const sendInvoice = async (id: string) => {
+    setSendingId(id);
+    try {
+      await financeApi.sendInvoice(id);
+      toast.success("تم إرسال الفاتورة بنجاح");
+      refetch();
+    } catch { toast.error("فشل إرسال الفاتورة"); }
+    finally { setSendingId(null); }
   };
 
   const handleAddPayment = async () => {
@@ -190,44 +203,46 @@ export function InvoicesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-50 bg-gray-50/40">
-                  <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold">رقم الفاتورة</th>
-                  <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">العميل</th>
-                  <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden sm:table-cell">التاريخ</th>
-                  <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden md:table-cell">المصدر</th>
-                  <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden md:table-cell">الضريبة</th>
-                  <th className="text-left  py-3 px-4 text-xs text-gray-400 font-semibold">الإجمالي</th>
-                  <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">الحالة</th>
-                  <th className="py-3 px-4 w-32" />
+                <tr className="border-b border-gray-100 bg-gray-50/50">
+                  {[
+                    "رقم الطلب", "العميل", "رقم الجوال",
+                    "تاريخ الإصدار", "الإجمالي",
+                    "حالة الدفع", "تاريخ الدفع", ""
+                  ].map(h => (
+                    <th key={h} className="text-right py-3 px-4 text-xs text-gray-400 font-semibold whitespace-nowrap">{h}</th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
                 {invoiceList.map((inv: any) => {
                   const sc = STATUS_CONFIG[inv.status] || STATUS_CONFIG.issued;
                   const StatusIcon = sc.icon;
-                  const src = SOURCE_BADGE[inv.sourceType] || SOURCE_BADGE.manual;
                   const canMarkPaid = ["issued", "sent", "overdue", "partially_paid"].includes(inv.status);
                   const canCancel   = ["draft", "issued", "sent"].includes(inv.status);
+                  const canSend     = ["issued","sent","overdue","partially_paid"].includes(inv.status);
                   return (
                     <tr key={inv.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                      <td className="py-3.5 px-5">
-                        <span className="text-sm font-mono font-semibold text-gray-900">{inv.invoiceNumber}</span>
-                        <p className="text-xs text-gray-400 mt-0.5">{inv.invoiceType === "simplified" ? "مبسطة" : "ضريبية"}</p>
+                      <td className="py-3.5 px-4">
+                        <Link to={`/invoices/${inv.id}`} className="font-mono text-sm font-semibold text-brand-600 hover:underline">
+                          {inv.invoiceNumber}
+                        </Link>
+                        <p className="text-[10px] text-gray-400 mt-0.5">{inv.invoiceType === "simplified" ? "مبسطة B2C" : "ضريبية B2B"}</p>
                       </td>
                       <td className="py-3.5 px-4">
                         <p className="text-sm font-medium text-gray-900">{inv.buyerName}</p>
-                        {inv.buyerPhone && <p className="text-xs text-gray-400">{inv.buyerPhone}</p>}
+                        {inv.buyerCompanyName && <p className="text-xs text-violet-600">{inv.buyerCompanyName}</p>}
                       </td>
-                      <td className="py-3.5 px-4 text-xs text-gray-500 hidden sm:table-cell whitespace-nowrap">{fmtDate(inv.createdAt)}</td>
-                      <td className="py-3.5 px-4 hidden md:table-cell">
-                        <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium border", src.color)}>{src.label}</span>
+                      <td className="py-3.5 px-4 text-sm text-gray-500 tabular-nums" dir="ltr">{inv.buyerPhone || "—"}</td>
+                      <td className="py-3.5 px-4 text-xs text-gray-500 whitespace-nowrap">
+                        {inv.issueDate ? fmtDate(inv.issueDate) : fmtDate(inv.createdAt)}
                       </td>
-                      <td className="py-3.5 px-4 text-xs text-gray-500 tabular-nums hidden md:table-cell">{fmt(inv.vatAmount)} ر.س</td>
-                      <td className="py-3.5 px-4 text-left">
-                        <span className="text-sm font-bold text-gray-900 tabular-nums">{fmt(inv.totalAmount)}</span>
-                        <span className="text-xs text-gray-400 mr-1">ر.س</span>
+                      <td className="py-3.5 px-4">
+                        <p className="text-sm font-bold text-gray-900 tabular-nums">{fmt(inv.totalAmount)} ر.س</p>
                         {inv.status === "partially_paid" && (
-                          <p className="text-[11px] text-teal-600 tabular-nums">مدفوع: {fmt(inv.paidAmount)}</p>
+                          <p className="text-[10px] text-teal-600 tabular-nums">مدفوع: {fmt(inv.paidAmount)} ر.س</p>
+                        )}
+                        {inv.vatAmount && Number(inv.vatAmount) > 0 && (
+                          <p className="text-[10px] text-gray-400 tabular-nums">ضريبة: {fmt(inv.vatAmount)} ر.س</p>
                         )}
                       </td>
                       <td className="py-3.5 px-4">
@@ -235,16 +250,25 @@ export function InvoicesPage() {
                           <StatusIcon className="w-3 h-3" /> {sc.label}
                         </span>
                       </td>
+                      <td className="py-3.5 px-4 text-xs text-gray-400 whitespace-nowrap">
+                        {inv.paidAt ? fmtDate(inv.paidAt) : "—"}
+                      </td>
                       <td className="py-3.5 px-4">
-                        <div className="flex gap-1 justify-end">
-                          <button onClick={() => setViewInvoice(inv)}
-                            className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors" title="عرض">
+                        <div className="flex gap-1 justify-end items-center">
+                          <Link to={`/invoices/${inv.id}`}
+                            className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors inline-flex" title="عرض التفاصيل">
                             <Eye className="w-3.5 h-3.5 text-brand-500" />
-                          </button>
+                          </Link>
                           {canMarkPaid && (
                             <button onClick={() => { setViewInvoice(inv); setShowPayment(true); }}
                               className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-medium hover:bg-emerald-100 transition-colors">
                               دفعة
+                            </button>
+                          )}
+                          {canSend && (
+                            <button onClick={() => sendInvoice(inv.id)} disabled={sendingId === inv.id}
+                              className="p-1.5 rounded-lg hover:bg-indigo-50 transition-colors disabled:opacity-50" title="إرسال للعميل">
+                              <Send className="w-3.5 h-3.5 text-indigo-500" />
                             </button>
                           )}
                           {canCancel && (
@@ -419,6 +443,25 @@ export function InvoicesPage() {
           </div>
         </Modal>
       )}
+
+      {/* FAQ */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
+        <div className="space-y-3">
+          {[
+            { q: "ما الفرق بين «بانتظار الدفع» و«متأخرة»؟", a: "«بانتظار الدفع» تعني الفاتورة أُصدرت ولم يحن موعد الاستحقاق أو لم يُحدَّد. «متأخرة» تعني تجاوزت تاريخ الاستحقاق ولم تُسدَّد." },
+            { q: "ما المقصود بـ «مدفوع جزئياً»؟", a: "تم استلام جزء من مبلغ الفاتورة فقط. يمكنك إضافة دفعات متعددة حتى يكتمل المبلغ وتتحول الفاتورة إلى «تم الدفع»." },
+            { q: "هل يمكنني إرسال الفاتورة مباشرة للعميل؟", a: "نعم، اضغط على أيقونة الإرسال في قائمة الفواتير أو من داخل تفاصيل الفاتورة وستُرسل عبر واتساب أو بريد إلكتروني." },
+            { q: "ما هي «الفاتورة الضريبية» مقابل «الفاتورة المبسّطة»؟", a: "الفاتورة الضريبية تشترط الرقم الضريبي للطرفين وتفاصيل VAT كاملة وهي مطلوبة للمعاملات بين الشركات (B2B). الفاتورة المبسّطة للمبيعات اليومية للأفراد." },
+            { q: "ماذا يحدث عند إلغاء فاتورة؟", a: "تُلغى الفاتورة ويُسجَّل قيد عكسي في النظام المحاسبي تلقائياً. لا يمكن التراجع عن الإلغاء." },
+          ].map(faq => (
+            <details key={faq.q} className="border border-gray-100 rounded-xl">
+              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+              <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

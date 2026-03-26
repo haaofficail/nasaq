@@ -209,6 +209,25 @@ export function FinancePage() {
         </div>
       )}
 
+      {/* FAQ */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
+        <div className="space-y-3">
+          {[
+            { q: "ما الفرق بين «الفاتورة» و«المصروف»؟", a: "الفاتورة مبلغ تحصله من عميلك مقابل خدمة أو منتج (إيراد). المصروف مبلغ تدفعه أنت كتكلفة تشغيلية مثل الإيجار والرواتب والمشتريات." },
+            { q: "متى تُعتبر الفاتورة «مدفوعة»؟", a: "عندما يُسجّل دفعة كاملة لها في النظام. الفواتير الجزئية تظهر كـ «معلقة» حتى تكتمل الدفعة." },
+            { q: "ما «صافي الربح» وكيف يُحسب؟", a: "إجمالي الإيرادات (الفواتير) ناقص إجمالي المصروفات المسجّلة في نفس الفترة. لدقة أكبر استخدم التقارير المالية المفصّلة." },
+            { q: "ما الفرق بين «المالية» هنا و«التقارير»؟", a: "هذه الصفحة للإدارة اليومية (إنشاء فواتير، تسجيل مصروفات). صفحة التقارير للتحليل والمقارنة بالفترات والتصدير." },
+            { q: "ما «قيود اليومية» وما «التسويات»؟", a: "قيود اليومية هي التسجيل المحاسبي التفصيلي لكل حركة مالية. التسويات لمطابقة أرصدة البنك أو العملاء مع السجلات." },
+          ].map(faq => (
+            <details key={faq.q} className="border border-gray-100 rounded-xl">
+              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+              <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
+
       <CreateInvoiceModal
         open={showInvoice}
         onClose={() => setShowInvoice(false)}

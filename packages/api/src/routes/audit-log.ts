@@ -44,7 +44,7 @@ auditLogRouter.get("/", async (c) => {
       createdAt:  auditLogs.createdAt,
       userId:     auditLogs.userId,
       userName:   users.name,
-      userRole:   users.role,
+      userRole:   users.type,
     })
       .from(auditLogs)
       .leftJoin(users, eq(auditLogs.userId, users.id))

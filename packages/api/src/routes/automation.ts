@@ -1,10 +1,14 @@
 import { Hono } from "hono";
 import { eq, and, desc, asc, count } from "drizzle-orm";
-import { db } from "@nasaq/db/client";
+import { db, pool } from "@nasaq/db/client";
 import { automationRules, notificationTemplates, notificationLogs, workflows, scheduledJobs } from "@nasaq/db/schema";
 import { getOrgId, getUserId } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
+import { encryptString, decryptString } from "../lib/encryption";
 import { z } from "zod";
+import { sendSms } from "../lib/sms";
+import { sendWhatsApp } from "../lib/whatsapp";
+import { sendEmail, buildEmailHtml } from "../lib/email";
 
 const createRuleSchema = z.object({
   name: z.string(),
@@ -158,15 +162,31 @@ automationRouter.post("/send", async (c) => {
     subject: finalSubject, body: finalBody, status: "pending",
   }).returning();
 
-  // TODO: Actually send via provider (Twilio, WhatsApp API, Resend, etc.)
-  // For now: mark as sent
-  await db.update(notificationLogs).set({ status: "sent", sentAt: new Date() }).where(eq(notificationLogs.id, log.id));
-
-  if (process.env.NODE_ENV === "development") {
-    console.log(`\n📧 Notification [${channel}] to ${recipientContact}:\n${finalBody}\n`);
+  // ── إرسال فعلي عبر القناة ──────────────────────────────────
+  let delivered = false;
+  try {
+    if (channel === "sms") {
+      delivered = await sendSms(recipientContact, finalBody);
+    } else if (channel === "whatsapp") {
+      delivered = await sendWhatsApp(recipientContact, finalBody);
+    } else if (channel === "email") {
+      delivered = await sendEmail({
+        to:      recipientContact,
+        subject: finalSubject || "إشعار من نسق",
+        html:    buildEmailHtml({ title: finalSubject || "إشعار", body: finalBody }),
+        text:    finalBody,
+      });
+    }
+  } catch (_err) {
+    // لا تكسر الاستجابة — سجّل فقط
   }
 
-  return c.json({ data: { ...log, status: "sent" } }, 201);
+  const finalStatus = delivered ? "sent" : "failed";
+  await db.update(notificationLogs)
+    .set({ status: finalStatus, sentAt: delivered ? new Date() : null })
+    .where(eq(notificationLogs.id, log.id));
+
+  return c.json({ data: { ...log, status: finalStatus } }, 201);
 });
 
 // ============================================================
@@ -244,4 +264,246 @@ automationRouter.patch("/jobs/:id/toggle", async (c) => {
   if (!current) return c.json({ error: "الوظيفة غير موجودة" }, 404);
   const [updated] = await db.update(scheduledJobs).set({ isActive: !current.isActive }).where(eq(scheduledJobs.id, current.id)).returning();
   return c.json({ data: updated });
+});
+
+// ============================================================
+// WHATSAPP TEMPLATES — قوالب رسائل واتساب
+// ============================================================
+
+const whatsappTemplateSchema = z.object({
+  name: z.string().min(1),
+  triggerEvent: z.enum(["booking_confirmed", "booking_reminder_24h", "booking_reminder_1h", "booking_cancelled", "payment_received"]),
+  messageBody: z.string().min(1),
+  isActive: z.boolean().optional().default(true),
+  language: z.string().optional().default("ar"),
+});
+
+const whatsappTemplateUpdateSchema = whatsappTemplateSchema.partial();
+
+automationRouter.get("/whatsapp-templates", async (c) => {
+  const orgId = getOrgId(c);
+  const result = await pool.query(
+    `SELECT * FROM whatsapp_templates WHERE org_id = $1 ORDER BY created_at DESC`,
+    [orgId]
+  );
+  return c.json({ data: result.rows });
+});
+
+automationRouter.post("/whatsapp-templates", async (c) => {
+  const orgId = getOrgId(c);
+  const body = whatsappTemplateSchema.parse(await c.req.json());
+  const result = await pool.query(
+    `INSERT INTO whatsapp_templates (org_id, name, trigger_event, message_body, is_active, language)
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+    [orgId, body.name, body.triggerEvent, body.messageBody, body.isActive ?? true, body.language ?? "ar"]
+  );
+  return c.json({ data: result.rows[0] }, 201);
+});
+
+automationRouter.put("/whatsapp-templates/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+  const body = whatsappTemplateUpdateSchema.parse(await c.req.json());
+  const fields: string[] = [];
+  const values: unknown[] = [];
+  let idx = 1;
+  if (body.name !== undefined) { fields.push(`name = $${idx++}`); values.push(body.name); }
+  if (body.triggerEvent !== undefined) { fields.push(`trigger_event = $${idx++}`); values.push(body.triggerEvent); }
+  if (body.messageBody !== undefined) { fields.push(`message_body = $${idx++}`); values.push(body.messageBody); }
+  if (body.isActive !== undefined) { fields.push(`is_active = $${idx++}`); values.push(body.isActive); }
+  if (body.language !== undefined) { fields.push(`language = $${idx++}`); values.push(body.language); }
+  if (fields.length === 0) return c.json({ error: "لا يوجد حقول للتحديث" }, 400);
+  fields.push(`updated_at = NOW()`);
+  values.push(orgId, id);
+  const result = await pool.query(
+    `UPDATE whatsapp_templates SET ${fields.join(", ")} WHERE org_id = $${idx++} AND id = $${idx++} RETURNING *`,
+    values
+  );
+  if (result.rowCount === 0) return c.json({ error: "القالب غير موجود" }, 404);
+  return c.json({ data: result.rows[0] });
+});
+
+automationRouter.delete("/whatsapp-templates/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+  const result = await pool.query(
+    `DELETE FROM whatsapp_templates WHERE org_id = $1 AND id = $2 RETURNING id`,
+    [orgId, id]
+  );
+  if (result.rowCount === 0) return c.json({ error: "القالب غير موجود" }, 404);
+  return c.json({ data: { id } });
+});
+
+automationRouter.post("/whatsapp-templates/:id/test", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+  const { phone } = await c.req.json();
+  if (!phone) return c.json({ error: "رقم الهاتف مطلوب" }, 400);
+
+  const result = await pool.query(
+    `SELECT * FROM whatsapp_templates WHERE org_id = $1 AND id = $2`,
+    [orgId, id]
+  );
+  if (result.rowCount === 0) return c.json({ error: "القالب غير موجود" }, 404);
+
+  const template = result.rows[0];
+  // Replace variables with sample data for the test
+  const sampleVars: Record<string, string> = {
+    "{{customer_name}}": "عميل تجريبي",
+    "{{service_name}}": "خدمة تجريبية",
+    "{{booking_date}}": new Date().toLocaleDateString("ar-SA"),
+    "{{booking_time}}": "10:00 ص",
+    "{{amount}}": "100",
+    "{{business_name}}": "نسق",
+  };
+  let message = template.message_body as string;
+  for (const [variable, value] of Object.entries(sampleVars)) {
+    message = message.replaceAll(variable, value);
+  }
+
+  let delivered = false;
+  try {
+    delivered = await sendWhatsApp(phone, message);
+  } catch (_err) {
+    // silent
+  }
+
+  return c.json({ data: { delivered, message } });
+});
+
+// ============================================================
+// WHATSAPP CONNECTION — إعداد اتصال واتساب (API أو QR)
+// ============================================================
+
+automationRouter.get("/whatsapp-connection", async (c) => {
+  const orgId = getOrgId(c);
+  const result = await pool.query(
+    `SELECT id, mode, status, phone_number, display_name, api_phone_id,
+            messages_sent, last_activity, error_message, qr_code, updated_at
+     FROM whatsapp_connections WHERE org_id = $1`,
+    [orgId]
+  );
+  return c.json({ data: result.rows[0] ?? null });
+});
+
+// Save API credentials (Meta WhatsApp Business API)
+automationRouter.post("/whatsapp-connection/api", async (c) => {
+  const orgId = getOrgId(c);
+  const { phoneId, accessToken, webhookVerify } = await c.req.json();
+  if (!phoneId || !accessToken) return c.json({ error: "phoneId و accessToken مطلوبان" }, 400);
+
+  // Test the credentials first
+  let phoneNumber: string | null = null;
+  let displayName: string | null = null;
+  try {
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${phoneId}?fields=display_phone_number,verified_name`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    if (res.ok) {
+      const data = await res.json() as any;
+      phoneNumber = data.display_phone_number ?? null;
+      displayName = data.verified_name ?? null;
+    }
+  } catch (_) { /* silent — save anyway */ }
+
+  const encryptedToken = encryptString(accessToken);
+
+  await pool.query(
+    `INSERT INTO whatsapp_connections (org_id, mode, status, phone_number, display_name, api_phone_id, api_access_token, api_webhook_verify, updated_at)
+     VALUES ($1, 'api', 'connected', $2, $3, $4, $5, $6, NOW())
+     ON CONFLICT (org_id) DO UPDATE SET
+       mode = 'api', status = 'connected',
+       phone_number = COALESCE($2, whatsapp_connections.phone_number),
+       display_name = COALESCE($3, whatsapp_connections.display_name),
+       api_phone_id = $4, api_access_token = $5,
+       api_webhook_verify = $6, error_message = NULL, updated_at = NOW()`,
+    [orgId, phoneNumber, displayName, phoneId, encryptedToken, webhookVerify ?? null]
+  );
+
+  return c.json({ data: { ok: true, phoneNumber, displayName } });
+});
+
+// Start QR session
+automationRouter.post("/whatsapp-connection/qr/start", async (c) => {
+  const orgId = getOrgId(c);
+  // Mark as pending_qr immediately
+  await pool.query(
+    `INSERT INTO whatsapp_connections (org_id, mode, status, updated_at)
+     VALUES ($1, 'qr', 'pending_qr', NOW())
+     ON CONFLICT (org_id) DO UPDATE SET mode = 'qr', status = 'pending_qr', qr_code = NULL, error_message = NULL, updated_at = NOW()`,
+    [orgId]
+  );
+
+  // Start session async (don't await — returns immediately)
+  import("../lib/whatsapp-qr").then(({ startQrSession }) => {
+    startQrSession(orgId).catch(console.error);
+  }).catch(console.error);
+
+  return c.json({ data: { ok: true } });
+});
+
+// Disconnect
+automationRouter.delete("/whatsapp-connection", async (c) => {
+  const orgId = getOrgId(c);
+  try {
+    const { stopSession } = await import("../lib/whatsapp-qr");
+    await stopSession(orgId);
+  } catch (_) {
+    // If baileys not installed, just update DB
+    await pool.query(
+      `UPDATE whatsapp_connections SET status = 'disconnected', qr_code = NULL, phone_number = NULL, updated_at = NOW() WHERE org_id = $1`,
+      [orgId]
+    );
+  }
+  return c.json({ data: { ok: true } });
+});
+
+// Send test message
+automationRouter.post("/whatsapp-connection/test-send", async (c) => {
+  const orgId = getOrgId(c);
+  const { phone, message } = await c.req.json();
+  if (!phone) return c.json({ error: "رقم الهاتف مطلوب" }, 400);
+
+  const conn = await pool.query(
+    `SELECT mode, status, api_phone_id, api_access_token FROM whatsapp_connections WHERE org_id = $1`,
+    [orgId]
+  );
+  const row = conn.rows[0];
+  if (!row) return c.json({ error: "لا يوجد اتصال مُهيأ" }, 400);
+
+  const testMsg = message || "مرحباً من نسق — هذه رسالة تجريبية";
+  let delivered = false;
+
+  if (row.mode === "api" && row.api_phone_id && row.api_access_token) {
+    // Send via Meta API
+    const decryptedToken = decryptString(row.api_access_token) ?? row.api_access_token;
+    const normalised = phone.replace(/\D/g, "");
+    const res = await fetch(
+      `https://graph.facebook.com/v18.0/${row.api_phone_id}/messages`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${decryptedToken}`,
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: normalised,
+          type: "text",
+          text: { body: testMsg },
+        }),
+      }
+    );
+    delivered = res.ok;
+  } else if (row.mode === "qr" && row.status === "connected") {
+    try {
+      const { sendViaQr } = await import("../lib/whatsapp-qr");
+      delivered = await sendViaQr(orgId, phone, testMsg);
+    } catch (_) {
+      delivered = false;
+    }
+  }
+
+  return c.json({ data: { delivered } });
 });

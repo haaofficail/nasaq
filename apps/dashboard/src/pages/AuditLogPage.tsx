@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ClipboardList, Search, Loader2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { ClipboardList, Search, Loader2, RefreshCw, User, Calendar, MapPin, ChevronDown, ChevronUp } from "lucide-react";
 import { clsx } from "clsx";
 import { auditLogApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
@@ -16,24 +16,157 @@ const RESOURCES = [
   { value: "settings", label: "إعدادات" },
 ];
 
-const ACTION_COLORS: Record<string, string> = {
-  created:  "bg-emerald-50 text-emerald-700 border-emerald-200",
-  updated:  "bg-blue-50 text-blue-700 border-blue-200",
-  deleted:  "bg-red-50 text-red-700 border-red-200",
-  approved: "bg-violet-50 text-violet-700 border-violet-200",
-  rejected: "bg-amber-50 text-amber-700 border-amber-200",
-};
-const ACTION_LABELS: Record<string, string> = {
-  created: "إنشاء", updated: "تعديل", deleted: "حذف",
-  approved: "موافقة", rejected: "رفض",
+const ACTION_STYLES: Record<string, { cls: string; label: string; dot: string }> = {
+  created:  { cls: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "إنشاء",   dot: "bg-emerald-500" },
+  updated:  { cls: "bg-blue-50 text-blue-700 border-blue-200",         label: "تعديل",   dot: "bg-blue-500"    },
+  deleted:  { cls: "bg-red-50 text-red-700 border-red-200",            label: "حذف",     dot: "bg-red-500"     },
+  approved: { cls: "bg-violet-50 text-violet-700 border-violet-200",   label: "موافقة",  dot: "bg-violet-500"  },
+  rejected: { cls: "bg-amber-50 text-amber-700 border-amber-200",      label: "رفض",     dot: "bg-amber-500"   },
+  payment_recorded: { cls: "bg-teal-50 text-teal-700 border-teal-200", label: "دفعة",    dot: "bg-teal-500"    },
+  post:     { cls: "bg-indigo-50 text-indigo-700 border-indigo-200",   label: "ترحيل",   dot: "bg-indigo-500"  },
+  reverse:  { cls: "bg-orange-50 text-orange-700 border-orange-200",   label: "عكس",     dot: "bg-orange-500"  },
 };
 
 const RESOURCE_LABELS: Record<string, string> = {
   booking: "حجز", service: "خدمة", customer: "عميل",
-  invoice: "فاتورة", expense: "مصروف", staff: "موظف", settings: "إعدادات",
+  invoice: "فاتورة", expense: "مصروف", staff: "موظف",
+  settings: "إعدادات", payment: "دفعة", journal_entry: "قيد محاسبي",
+  chart_of_accounts: "حساب", team: "فريق",
 };
 
+const ROLE_LABELS: Record<string, string> = {
+  owner: "مالك", admin: "مدير", manager: "مشرف",
+  staff: "موظف", operator: "مشغّل", branch_manager: "مدير فرع",
+};
+
+function fmtDateTime(ts: string) {
+  const d = new Date(ts);
+  const date = d.toLocaleDateString("ar-SA", { day: "2-digit", month: "2-digit", year: "numeric" });
+  const time = d.toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" });
+  return { date, time };
+}
+
+function timeAgo(ts: string) {
+  const diff = Date.now() - new Date(ts).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "الآن";
+  if (m < 60) return `منذ ${m} دقيقة`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `منذ ${h} ساعة`;
+  const day = Math.floor(h / 24);
+  if (day < 30) return `منذ ${day} يوم`;
+  return fmtDateTime(ts).date;
+}
+
 const PAGE_SIZE = 50;
+
+function LogRow({ log }: { log: any }) {
+  const [expanded, setExpanded] = useState(false);
+  const style = ACTION_STYLES[log.action] || { cls: "bg-gray-50 text-gray-600 border-gray-200", label: log.action, dot: "bg-gray-400" };
+  const { date, time } = log.createdAt ? fmtDateTime(log.createdAt) : { date: "—", time: "—" };
+  const hasDetails = log.metadata || log.newValue || log.oldValue;
+
+  return (
+    <>
+      <tr
+        className={clsx("border-b border-gray-50 transition-colors", expanded ? "bg-brand-50/30" : "hover:bg-gray-50/40")}
+        onClick={() => hasDetails && setExpanded(e => !e)}
+        style={{ cursor: hasDetails ? "pointer" : "default" }}
+      >
+        {/* Action */}
+        <td className="py-3 px-4">
+          <div className="flex items-center gap-2">
+            <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0", style.dot)} />
+            <span className={clsx("px-2.5 py-1 rounded-lg border text-xs font-semibold", style.cls)}>
+              {style.label}
+            </span>
+          </div>
+        </td>
+
+        {/* Where — resource */}
+        <td className="py-3 px-4">
+          <div className="flex items-center gap-1.5">
+            <MapPin className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+            <span className="text-gray-700 font-medium text-sm">
+              {RESOURCE_LABELS[log.resource] || log.resource || "—"}
+            </span>
+            {log.resourceId && (
+              <span className="text-gray-300 font-mono text-[10px]">#{log.resourceId.slice(0, 6)}</span>
+            )}
+          </div>
+        </td>
+
+        {/* Who — user */}
+        <td className="py-3 px-4">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center shrink-0">
+              <User className="w-3.5 h-3.5 text-brand-500" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-800 font-medium leading-tight">
+                {log.userName || <span className="text-gray-400 font-normal">نظام</span>}
+              </p>
+              {log.userRole && (
+                <p className="text-[10px] text-gray-400">{ROLE_LABELS[log.userRole] || log.userRole}</p>
+              )}
+            </div>
+          </div>
+        </td>
+
+        {/* When */}
+        <td className="py-3 px-4">
+          <div className="flex items-center gap-1.5">
+            <Calendar className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+            <div>
+              <p className="text-xs text-gray-700">{date}</p>
+              <p className="text-[10px] text-gray-400">{time} · {log.createdAt ? timeAgo(log.createdAt) : ""}</p>
+            </div>
+          </div>
+        </td>
+
+        {/* IP */}
+        <td className="py-3 px-4 text-xs text-gray-400 font-mono">{log.ip || "—"}</td>
+
+        {/* Expand arrow */}
+        <td className="py-3 px-3 text-gray-300">
+          {hasDetails && (expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />)}
+        </td>
+      </tr>
+
+      {/* Detail row */}
+      {expanded && hasDetails && (
+        <tr className="bg-brand-50/20 border-b border-brand-100">
+          <td colSpan={6} className="px-6 pb-4 pt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              {log.metadata?.description && (
+                <div className="col-span-2 p-3 bg-white rounded-xl border border-gray-100">
+                  <p className="text-gray-400 mb-1 font-medium">الوصف</p>
+                  <p className="text-gray-700">{String(log.metadata.description)}</p>
+                </div>
+              )}
+              {log.newValue && (
+                <div className="p-3 bg-white rounded-xl border border-gray-100">
+                  <p className="text-gray-400 mb-1 font-medium">البيانات الجديدة</p>
+                  <pre className="text-gray-600 whitespace-pre-wrap break-all font-mono text-[10px] max-h-28 overflow-auto">
+                    {typeof log.newValue === "string" ? log.newValue : JSON.stringify(log.newValue, null, 2)}
+                  </pre>
+                </div>
+              )}
+              {log.oldValue && (
+                <div className="p-3 bg-white rounded-xl border border-gray-100">
+                  <p className="text-gray-400 mb-1 font-medium">البيانات السابقة</p>
+                  <pre className="text-gray-600 whitespace-pre-wrap break-all font-mono text-[10px] max-h-28 overflow-auto">
+                    {typeof log.oldValue === "string" ? log.oldValue : JSON.stringify(log.oldValue, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
 
 export function AuditLogPage() {
   const [search, setSearch]     = useState("");
@@ -63,7 +196,11 @@ export function AuditLogPage() {
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <ClipboardList className="w-5 h-5 text-brand-500" /> سجل الأحداث
           </h1>
-          <p className="text-sm text-gray-400 mt-0.5">تتبع جميع العمليات والتغييرات في المنصة</p>
+          <p className="text-sm text-gray-400 mt-0.5">
+            كل إجراء مسجّل بـ <span className="font-semibold text-gray-600">من</span> قام به،
+            <span className="font-semibold text-gray-600"> متى</span>، و
+            <span className="font-semibold text-gray-600"> أين</span> في النظام
+          </p>
         </div>
         <button onClick={refetch}
           className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
@@ -101,42 +238,29 @@ export function AuditLogPage() {
         ) : filtered.length === 0 ? (
           <div className="py-16 text-center text-gray-400">
             <ClipboardList className="w-10 h-10 mx-auto mb-3 text-gray-200" />
-            <p className="text-sm">لا توجد أحداث مسجّلة</p>
+            <p className="text-sm font-medium">لا توجد أحداث مسجّلة</p>
+            <p className="text-xs text-gray-300 mt-1">ستظهر هنا جميع التغييرات والعمليات تلقائياً</p>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100 bg-gray-50/60">
-                <th className="text-right py-3 px-5 text-gray-500 font-medium">الإجراء</th>
-                <th className="text-right py-3 px-4 text-gray-500 font-medium">المورد</th>
-                <th className="text-right py-3 px-4 text-gray-500 font-medium">المعرّف</th>
-                <th className="text-right py-3 px-4 text-gray-500 font-medium">المستخدم</th>
-                <th className="text-right py-3 px-4 text-gray-500 font-medium">IP</th>
-                <th className="text-right py-3 px-4 text-gray-500 font-medium">التاريخ والوقت</th>
+                <th className="text-right py-3 px-4 text-gray-500 font-medium text-xs">الإجراء</th>
+                <th className="text-right py-3 px-4 text-gray-500 font-medium text-xs">
+                  <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> أين</span>
+                </th>
+                <th className="text-right py-3 px-4 text-gray-500 font-medium text-xs">
+                  <span className="flex items-center gap-1"><User className="w-3 h-3" /> من</span>
+                </th>
+                <th className="text-right py-3 px-4 text-gray-500 font-medium text-xs">
+                  <span className="flex items-center gap-1"><Calendar className="w-3 h-3" /> متى</span>
+                </th>
+                <th className="text-right py-3 px-4 text-gray-500 font-medium text-xs">IP</th>
+                <th className="w-8" />
               </tr>
             </thead>
             <tbody>
-              {filtered.map((log: any) => (
-                <tr key={log.id} className="border-b border-gray-50 hover:bg-gray-50/40 transition-colors">
-                  <td className="py-3 px-5">
-                    <span className={clsx("px-2.5 py-1 rounded-lg border text-xs font-semibold",
-                      ACTION_COLORS[log.action] || "bg-gray-50 text-gray-600 border-gray-200")}>
-                      {ACTION_LABELS[log.action] || log.action}
-                    </span>
-                  </td>
-                  <td className="py-3 px-4 text-gray-600 font-medium">
-                    {RESOURCE_LABELS[log.resource] || log.resource}
-                  </td>
-                  <td className="py-3 px-4 text-gray-400 font-mono text-xs">
-                    {log.resourceId ? log.resourceId.slice(0, 8) + "…" : "—"}
-                  </td>
-                  <td className="py-3 px-4 text-gray-600">{log.userName || <span className="text-gray-300">نظام</span>}</td>
-                  <td className="py-3 px-4 text-gray-400 text-xs font-mono">{log.ip || "—"}</td>
-                  <td className="py-3 px-4 text-gray-400 text-xs">
-                    {log.createdAt ? new Date(log.createdAt).toLocaleString("en-US") : "—"}
-                  </td>
-                </tr>
-              ))}
+              {filtered.map((log: any) => <LogRow key={log.id} log={log} />)}
             </tbody>
           </table>
         )}

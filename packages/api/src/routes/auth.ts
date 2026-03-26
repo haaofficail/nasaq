@@ -8,6 +8,8 @@ import { SESSION_DURATION_MS, DEFAULT_TRIAL_DAYS, MAX_FAILED_LOGIN_ATTEMPTS } fr
 import { authMiddleware, type AuthUser } from "../middleware/auth";
 import { getBusinessDefaults, getTrustedIp } from "../lib/helpers";
 import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
+import { sendSms } from "../lib/sms";
+import { seedChartOfAccounts } from "../lib/seed-chart-of-accounts";
 
 // ============================================================
 // PASSWORD HELPERS (scrypt — no extra dependency)
@@ -119,7 +121,8 @@ authRouter.post("/register", async (c) => {
   const result = await db.transaction(async (tx) => {
     const biz = businessType || "general";
     const bizDefaults = getBusinessDefaults(biz);
-    const [seqRow] = await tx.execute(sql`SELECT nextval('org_code_seq') AS n`);
+    const seqResult = await tx.execute(sql`SELECT nextval('org_code_seq') AS n`);
+    const seqRow = (seqResult as any).rows?.[0] ?? (seqResult as any)[0] ?? { n: "0001" };
     const orgCode = `NSQ-${String(seqRow.n).padStart(4, "0")}`;
 
     const [org] = await tx.insert(organizations).values({
@@ -167,6 +170,9 @@ authRouter.post("/register", async (c) => {
 
     return { org, owner };
   });
+
+  // Seed chart of accounts for new org (fire and forget — never throws)
+  seedChartOfAccounts(result.org.id).catch(console.error);
 
   // Email-only registration → create session immediately (password already verified)
   if (!normalizedPhone && email && password) {
@@ -277,19 +283,17 @@ authRouter.post("/otp/request", async (c) => {
     expiresAt,
   });
 
-  // TODO: Send via SMS/WhatsApp (Twilio/Unifonic) — set SMS_ENABLED=true when configured
-  const smsEnabled = process.env.SMS_ENABLED === "true";
+  const smsSent = await sendSms(phone, `رمز التحقق في نسق: ${code}\nصالح لمدة 5 دقائق. لا تشاركه مع أحد.`);
 
-  // Always log to console so it appears in PM2 logs until SMS is configured
-  if (!smsEnabled) {
-    console.log(`\n🔐 OTP [${phone}]: ${code}  (expires in 5 min)\n`);
+  // في حال لم يُهيأ مزود SMS بعد — اطبع الكود في السجلات فقط
+  if (!smsSent) {
+    console.log(`\n[OTP] ${phone}: ${code}\n`);
   }
 
   return c.json({
-    message: smsEnabled ? "تم إرسال رمز التحقق على جوالك" : "رمز التحقق: ظهر في سجلات الخادم",
+    message: smsSent ? "تم إرسال رمز التحقق على جوالك" : "رمز التحقق: ظهر في سجلات الخادم",
     expiresIn: 300,
-    // Return code in response when SMS is not yet configured — remove once SMS is live
-    ...(!smsEnabled ? { _devCode: code } : {}),
+    ...(!smsSent ? { _devCode: code } : {}),
   });
 });
 

@@ -3,6 +3,7 @@ import { eq, and, desc, asc, count, sql, ilike, or, gt, gte, lte } from "drizzle
 import { db } from "@nasaq/db/client";
 import { syncOrgEntitlements } from "../lib/entitlements-sync";
 import { invalidateOrgContext } from "../lib/org-context";
+import { createAlert } from "./alerts";
 import { apiErr } from "../lib/errors";
 import { runDiagnostics } from "../lib/diagnostics";
 import type { Context, Next } from "hono";
@@ -431,21 +432,58 @@ adminRouter.patch("/documents/:id", async (c) => {
 
 adminRouter.get("/tickets", async (c) => {
   const { page, limit, offset } = getPagination(c);
-  const status = c.req.query("status");
+  const status   = c.req.query("status");
   const priority = c.req.query("priority");
+  const orgId    = c.req.query("orgId");
+  const category = c.req.query("category");
 
   const conditions: any[] = [];
-  if (status) conditions.push(eq(supportTickets.status, status));
+  if (status)   conditions.push(eq(supportTickets.status,   status));
   if (priority) conditions.push(eq(supportTickets.priority, priority));
+  if (orgId)    conditions.push(eq(supportTickets.orgId,    orgId));
+  if (category) conditions.push(eq(supportTickets.category, category));
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const [rows, [{ total }]] = await Promise.all([
-    db.select().from(supportTickets).where(where).orderBy(desc(supportTickets.createdAt)).limit(limit).offset(offset),
+  const [rows, [{ total }], statsRows] = await Promise.all([
+    db.select({
+      id: supportTickets.id, orgId: supportTickets.orgId, subject: supportTickets.subject,
+      body: supportTickets.body, category: supportTickets.category, priority: supportTickets.priority,
+      status: supportTickets.status, assignedTo: supportTickets.assignedTo, messages: supportTickets.messages,
+      createdAt: supportTickets.createdAt, updatedAt: supportTickets.updatedAt, resolvedAt: supportTickets.resolvedAt,
+      openedBy: supportTickets.openedBy,
+      orgName: organizations.name,
+    })
+    .from(supportTickets)
+    .leftJoin(organizations, eq(supportTickets.orgId, organizations.id))
+    .where(where)
+    .orderBy(desc(supportTickets.updatedAt))
+    .limit(limit).offset(offset),
     db.select({ total: count() }).from(supportTickets).where(where),
+    db.select({ status: supportTickets.status, cnt: count() })
+      .from(supportTickets).groupBy(supportTickets.status),
   ]);
 
-  return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+  const stats: Record<string, number> = {};
+  for (const r of statsRows) stats[r.status] = Number(r.cnt);
+
+  return c.json({ data: rows, stats, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+});
+
+adminRouter.get("/tickets/:id", async (c) => {
+  const [ticket] = await db.select({
+    id: supportTickets.id, orgId: supportTickets.orgId, subject: supportTickets.subject,
+    body: supportTickets.body, category: supportTickets.category, priority: supportTickets.priority,
+    status: supportTickets.status, assignedTo: supportTickets.assignedTo, messages: supportTickets.messages,
+    createdAt: supportTickets.createdAt, updatedAt: supportTickets.updatedAt, resolvedAt: supportTickets.resolvedAt,
+    openedBy: supportTickets.openedBy,
+    orgName: organizations.name,
+  })
+  .from(supportTickets)
+  .leftJoin(organizations, eq(supportTickets.orgId, organizations.id))
+  .where(eq(supportTickets.id, c.req.param("id")));
+  if (!ticket) return apiErr(c, "SUP_NOT_FOUND", 404);
+  return c.json({ data: ticket });
 });
 
 adminRouter.post("/tickets", async (c) => {
@@ -463,13 +501,53 @@ adminRouter.post("/tickets", async (c) => {
   return c.json({ data: ticket }, 201);
 });
 
+adminRouter.post("/tickets/:id/reply", async (c) => {
+  const adminId   = c.get("adminId") as string;
+  const adminName = c.get("adminName") as string;
+  const body      = await c.req.json();
+  const message   = (body.message || "").trim();
+  if (!message) return apiErr(c, "MSG_REQUIRED", 400);
+
+  const [ticket] = await db.select().from(supportTickets).where(eq(supportTickets.id, c.req.param("id")));
+  if (!ticket) return apiErr(c, "SUP_NOT_FOUND", 404);
+
+  const newMsg = {
+    id:        crypto.randomUUID(),
+    sender:    "admin",
+    senderId:  adminId,
+    senderName: adminName ?? "فريق الدعم",
+    message,
+    createdAt: new Date().toISOString(),
+  };
+  const messages = [...((ticket.messages as any[]) || []), newMsg];
+
+  const [updated] = await db.update(supportTickets)
+    .set({ messages, status: "in_progress", updatedAt: new Date() })
+    .where(eq(supportTickets.id, ticket.id))
+    .returning();
+
+  // Notify the merchant about the admin reply
+  await createAlert({
+    orgId:    ticket.orgId,
+    type:     "support_reply",
+    title:    "رد جديد من فريق الدعم",
+    body:     `تم الرد على تذكرتك: "${ticket.subject}"`,
+    link:     `/dashboard/support`,
+    priority: "high",
+  });
+
+  logAdminAction(adminId, "reply_ticket", "ticket", ticket.id, {}, c.req.header("X-Forwarded-For"));
+  return c.json({ data: updated });
+});
+
 adminRouter.patch("/tickets/:id", async (c) => {
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const updates: Record<string, unknown> = { updatedAt: new Date() };
-  const allowed = ["status", "priority", "assignedTo", "messages", "category"];
+  const allowed = ["status", "priority", "assignedTo", "category"];
   for (const k of allowed) { if (body[k] !== undefined) updates[k] = body[k]; }
-  if (body.status === "resolved" && !body.resolvedAt) updates.resolvedAt = new Date();
+  if (body.status === "resolved") updates.resolvedAt = new Date();
+  if (body.status === "open")     updates.resolvedAt = null;
 
   const [updated] = await db.update(supportTickets).set(updates)
     .where(eq(supportTickets.id, c.req.param("id"))).returning();
@@ -966,8 +1044,9 @@ adminRouter.post("/orgs", async (c) => {
   let ownerRawPass: string | undefined;
 
   const org = await db.transaction(async (tx) => {
-    const [seqRow] = await tx.execute(sql`SELECT nextval('org_code_seq') AS n`);
-    const orgCode = `NSQ-${String((seqRow as any).n).padStart(4, "0")}`;
+    const seqResult = await tx.execute(sql`SELECT nextval('org_code_seq') AS n`);
+    const seqRow = (seqResult as any).rows?.[0] ?? (seqResult as any)[0] ?? { n: "0001" };
+    const orgCode = `NSQ-${String(seqRow.n).padStart(4, "0")}`;
 
     const [newOrg] = await tx.insert(organizations).values({
       orgCode,
@@ -996,11 +1075,11 @@ adminRouter.post("/orgs", async (c) => {
     if (ownerPhone || ownerName || ownerEmail) {
       ownerRawPass = ownerPassword?.trim()
         || Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 4).toUpperCase();
-      const finalHash = hashPassword(ownerRawPass);
+      const finalHash = hashPassword(ownerRawPass!);
       await tx.insert(users).values({
         orgId: newOrg.id,
         name: ownerName || name,
-        phone: ownerPhone || null,
+        phone: ownerPhone || "",
         email: ownerEmail ? ownerEmail.toLowerCase().trim() : null,
         passwordHash: finalHash,
         type: "owner",

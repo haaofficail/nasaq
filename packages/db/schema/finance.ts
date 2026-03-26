@@ -156,6 +156,7 @@ export const invoicePayments = pgTable("invoice_payments", {
   paymentMethod: text("payment_method").notNull().default("cash"), // cash | bank_transfer | card | other
   paymentDate: timestamp("payment_date", { withTimezone: true }).defaultNow().notNull(),
   reference: text("reference"),
+  transferName: text("transfer_name"),
   notes: text("notes"),
 
   createdBy: uuid("created_by").references(() => users.id),

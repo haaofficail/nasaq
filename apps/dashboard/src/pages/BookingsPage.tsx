@@ -190,6 +190,25 @@ export function BookingsPage() {
       )}
 
       {showCreate && <CreateBookingForm open={true} onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); refetch(); }} />}
+
+      {/* FAQ */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
+        <div className="space-y-3">
+          {[
+            { q: "ما الفرق بين «معلّق» و«مؤكد»؟", a: "«معلّق» يعني الحجز وصل لكن لم تتحقق منه بعد، أما «مؤكد» فيعني أنك راجعته وأبلغت العميل." },
+            { q: "ما معنى حالة «مكتمل»؟", a: "يعني الخدمة نُفّذت فعلياً وانتهى الحجز. هذا يؤثر على إحصاءات العملاء وتقارير الإيرادات." },
+            { q: "كيف أحسب «إجمالي المبلغ»؟", a: "هو مجموع أسعار الخدمات المضافة في الحجز بعد تطبيق أي خصم أو إضافات (Add-ons)." },
+            { q: "ما الفرق بين حالة الحجز وحالة الدفع؟", a: "حالة الحجز تعكس مرحلة تنفيذ الخدمة (معلّق، مؤكد، مكتمل...)، بينما حالة الدفع تعكس وضع الفاتورة المالي (مدفوع، بانتظار الدفع...)." },
+            { q: "هل يصل العميل بإشعار عند تأكيد حجزه؟", a: "نعم، يُرسل إشعار واتساب أو رسالة نصية للعميل تلقائياً عند تأكيد الحجز إذا كانت خدمة الرسائل مُفعّلة." },
+          ].map(faq => (
+            <details key={faq.q} className="border border-gray-100 rounded-xl">
+              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+              <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

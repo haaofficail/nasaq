@@ -29,13 +29,13 @@ const BLOCK_TYPES = [
 ];
 
 const BLOCK_DEFAULTS: Record<string, any> = {
-  hero:         { title: "مرحباً بكم", subtitle: "نقدم أفضل الخدمات", buttonText: "احجز الآن", buttonLink: "/book", imageUrl: "", bgColor: "#1A56DB", textColor: "#ffffff" },
+  hero:         { title: "مرحباً بكم", subtitle: "نقدم أفضل الخدمات", buttonText: "احجز الآن", buttonLink: "/book", imageUrl: "", bgColor: "#5b9bd5", textColor: "#ffffff" },
   services:     { title: "خدماتنا", subtitle: "اختر من بين خدماتنا المتميزة", columns: 3 },
   text:         { title: "", content: "أضف نصك هنا...", align: "right" },
   image:        { url: "", alt: "", caption: "", fullWidth: false },
   gallery:      { images: [], columns: 3 },
   testimonials: { title: "آراء عملائنا", showRating: true },
-  booking_cta:  { title: "احجز موعدك الآن", subtitle: "خطوة واحدة تفصلك عن تجربة مميزة", buttonText: "احجز الآن", bgColor: "#1A56DB" },
+  booking_cta:  { title: "احجز موعدك الآن", subtitle: "خطوة واحدة تفصلك عن تجربة مميزة", buttonText: "احجز الآن", bgColor: "#5b9bd5" },
   contact:      { title: "تواصل معنا", showPhone: true, showEmail: true, showMap: false },
   html:         { code: "<p>كود HTML مخصص</p>" },
 };
@@ -137,7 +137,7 @@ export function StorefrontPage() {
     if (config && !designForm) {
       setDesignForm({
         templateId: config.templateId || "default",
-        primaryColor: config.primaryColor || "#1A56DB",
+        primaryColor: config.primaryColor || "#5b9bd5",
         secondaryColor: config.secondaryColor || "#C8A951",
         fontFamily: config.fontFamily || "IBM Plex Sans Arabic",
         logoUrl: config.logoUrl || "",

@@ -358,23 +358,49 @@ export function ServiceDetailPage() {
         <div className="space-y-4">
           {/* Service details */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h2 className="font-semibold text-gray-900 mb-4">معلومات الخدمة</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-gray-900">معلومات الخدمة</h2>
+              <button onClick={() => navigate(`/dashboard/services/${id}/edit`)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-50 text-brand-600 text-xs font-medium hover:bg-brand-100 transition-colors">
+                <Pencil className="w-3 h-3" /> تعديل
+              </button>
+            </div>
             <div className="divide-y divide-gray-50 text-sm">
               <div className="flex items-center justify-between py-2.5">
                 <span className="text-gray-400">السعر الأساسي</span>
                 <p className="font-bold text-base text-brand-600">{Number(service.basePrice || 0).toLocaleString()} ر.س</p>
               </div>
               <div className="flex items-center justify-between py-2.5">
-                <span className="text-gray-400">وحدة التسعير</span>
-                <p className="font-medium text-gray-700">{service.pricingUnit || "لكل حدث"}</p>
+                <span className="text-gray-400">نمط التسعير</span>
+                <p className="font-medium text-gray-700">
+                  {service.servicePricingMode === "fixed" ? "سعر ثابت" : service.servicePricingMode === "from_price" ? "يبدأ من" : service.servicePricingMode === "variable" ? "متغير" : "سعر ثابت"}
+                </p>
               </div>
               <div className="flex items-center justify-between py-2.5">
-                <span className="text-gray-400">السعة</span>
-                <p className="font-medium text-gray-700">{service.capacity || "—"} شخص</p>
+                <span className="text-gray-400">السعة القصوى</span>
+                <p className="font-medium text-gray-700">{service.maxCapacity ? `${service.maxCapacity} شخص` : "—"}</p>
               </div>
               <div className="flex items-center justify-between py-2.5">
                 <span className="text-gray-400">المدة</span>
-                <p className="font-medium text-gray-700">{service.durationHours || "—"} ساعة</p>
+                <p className="font-medium text-gray-700">
+                  {service.durationMinutes
+                    ? service.durationMinutes >= 1440 && service.durationMinutes % 1440 === 0
+                      ? `${service.durationMinutes / 1440} يوم`
+                      : service.durationMinutes >= 60 && service.durationMinutes % 60 === 0
+                        ? `${service.durationMinutes / 60} ساعة`
+                        : `${service.durationMinutes} دقيقة`
+                    : "—"}
+                </p>
+              </div>
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-gray-400">نوع الخدمة</span>
+                <p className="font-medium text-gray-700">
+                  {service.serviceType === "appointment" ? "بموعد" : service.serviceType === "execution" ? "تنفيذ" : service.serviceType === "field_service" ? "ميداني" : service.serviceType === "rental" ? "تأجير" : service.serviceType === "event_rental" ? "تأجير فعالية" : service.serviceType === "product" ? "منتج" : service.serviceType === "package" ? "باقة" : service.serviceType || "—"}
+                </p>
+              </div>
+              <div className="flex items-center justify-between py-2.5">
+                <span className="text-gray-400">التصنيف</span>
+                <p className="font-medium text-gray-700">{service.categoryName || "—"}</p>
               </div>
             </div>
             {service.description && (

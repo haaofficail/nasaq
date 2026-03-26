@@ -47,7 +47,7 @@ export function AboutPage() {
                   وتوفير تجربة استثنائية لعملائه، وبناء عمل ناجح ومستدام.
                 </p>
               </div>
-              <div className="bg-[#1A56DB] rounded-2xl p-8 text-white">
+              <div className="bg-[#5b9bd5] rounded-2xl p-8 text-white">
                 <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center mb-6">
                   <Target className="w-6 h-6 text-white" />
                 </div>
@@ -67,7 +67,7 @@ export function AboutPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
               {stats.map((s) => (
                 <div key={s.label} className="text-center">
-                  <p className="text-4xl font-black text-[#1A56DB] mb-2">{s.val}</p>
+                  <p className="text-4xl font-black text-[#5b9bd5] mb-2">{s.val}</p>
                   <p className="text-sm text-gray-500">{s.label}</p>
                 </div>
               ))}
@@ -82,7 +82,7 @@ export function AboutPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {team.map((member) => (
                 <div key={member.name} className="bg-white rounded-2xl p-6 text-center border border-gray-100">
-                  <div className="w-16 h-16 rounded-2xl bg-blue-100 text-[#1A56DB] font-black text-2xl flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 rounded-2xl bg-blue-100 text-[#5b9bd5] font-black text-2xl flex items-center justify-center mx-auto mb-4">
                     {member.initials}
                   </div>
                   <p className="font-bold text-gray-900 text-sm">{member.name}</p>
@@ -105,7 +105,7 @@ export function AboutPage() {
               ].map((v) => (
                 <div key={v.title} className="bg-gray-50 rounded-2xl p-6 text-center">
                   <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center mx-auto mb-4">
-                    <v.Icon className="w-6 h-6 text-[#1A56DB]" />
+                    <v.Icon className="w-6 h-6 text-[#5b9bd5]" />
                   </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2">{v.title}</h3>
                   <p className="text-sm text-gray-500">{v.desc}</p>
@@ -116,11 +116,11 @@ export function AboutPage() {
         </section>
 
         {/* CTA */}
-        <section className="py-20 bg-[#1A56DB] text-center">
+        <section className="py-20 bg-[#5b9bd5] text-center">
           <div className="max-w-2xl mx-auto px-6">
             <h2 className="text-3xl font-black text-white mb-4">انضم إلى عائلة نسق</h2>
             <p className="text-blue-200 mb-8">نحن هنا لمساعدتك في بناء عمل ناجح</p>
-            <Link to="/register" className="inline-block bg-white text-[#1A56DB] px-8 py-4 rounded-xl font-bold hover:bg-gray-100 transition-colors">
+            <Link to="/register" className="inline-block bg-white text-[#5b9bd5] px-8 py-4 rounded-xl font-bold hover:bg-gray-100 transition-colors">
               ابدأ مجاناً
             </Link>
           </div>

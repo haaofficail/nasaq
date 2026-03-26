@@ -22,7 +22,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#1A56DB] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-[#5b9bd5] flex items-center justify-center">
               <span className="text-white font-black text-sm">ن</span>
             </div>
             <span className="text-xl font-black text-gray-900">نسق</span>
@@ -43,7 +43,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
             </Link>
             <Link
               to="/register"
-              className="bg-[#1A56DB] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors"
+              className="bg-[#5b9bd5] text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors"
             >
               ابدأ مجاناً
             </Link>
@@ -69,7 +69,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
             <Link to="/contact" className="block text-sm font-medium text-gray-700 py-2" onClick={() => setMobileOpen(false)}>تواصل</Link>
             <div className="flex gap-3 pt-2">
               <Link to="/login" className="flex-1 text-center border border-gray-200 text-sm font-medium text-gray-700 py-2.5 rounded-xl" onClick={() => setMobileOpen(false)}>سجّل دخول</Link>
-              <Link to="/register" className="flex-1 text-center bg-[#1A56DB] text-white text-sm font-bold py-2.5 rounded-xl" onClick={() => setMobileOpen(false)}>ابدأ مجاناً</Link>
+              <Link to="/register" className="flex-1 text-center bg-[#5b9bd5] text-white text-sm font-bold py-2.5 rounded-xl" onClick={() => setMobileOpen(false)}>ابدأ مجاناً</Link>
             </div>
           </div>
         )}
@@ -84,7 +84,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-[#1A56DB] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-lg bg-[#5b9bd5] flex items-center justify-center">
                   <span className="text-white font-black text-sm">ن</span>
                 </div>
                 <span className="text-xl font-black text-white">نسق</span>

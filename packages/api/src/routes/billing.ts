@@ -3,11 +3,12 @@ import { createHmac } from "crypto";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db, pool } from "@nasaq/db/client";
-import { organizations, invoices } from "@nasaq/db/schema";
+import { organizations, invoices, paymentGatewayConfigs, bookings, payments } from "@nasaq/db/schema";
 import { getOrgId, getUserId } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { invalidateOrgStatusCache } from "../middleware/auth";
 import { log } from "../lib/logger";
+import { decryptString } from "../lib/encryption";
 
 // ============================================================
 // BILLING ROUTER
@@ -134,16 +135,19 @@ billingRouter.post("/renew", async (c) => {
 billingRouter.post("/webhook/moyasar", async (c) => {
   const rawBody = await c.req.text();
 
-  // التحقق من توقيع Moyasar
+  // التحقق من توقيع Moyasar — الـ secret إلزامي في Production
   const signature = c.req.header("X-Moyasar-Signature") ?? "";
   const secret    = process.env.MOYASAR_WEBHOOK_SECRET ?? "";
 
-  if (secret) {
-    const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
-    if (signature !== expected) {
-      log.warn({ signature }, "[billing/webhook] invalid Moyasar signature");
-      return c.json({ error: "Invalid signature" }, 401);
-    }
+  if (!secret) {
+    log.error({}, "[billing/webhook] MOYASAR_WEBHOOK_SECRET not configured — rejecting all webhook calls");
+    return c.json({ error: "Webhook not configured" }, 503);
+  }
+
+  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+  if (signature !== expected) {
+    log.warn({ signature }, "[billing/webhook] invalid Moyasar signature");
+    return c.json({ error: "Invalid signature" }, 401);
   }
 
   let event: {
@@ -171,6 +175,12 @@ billingRouter.post("/webhook/moyasar", async (c) => {
   const { orgId, plan, billingCycle } = event.data.metadata ?? {};
   if (!orgId || !plan) {
     log.warn({ metadata: event.data.metadata }, "[billing/webhook] missing metadata");
+    return c.json({ received: true });
+  }
+
+  // Validate plan against known plans to prevent arbitrary plan injection
+  if (!PLAN_PRICES[plan]) {
+    log.warn({ plan, orgId }, "[billing/webhook] unknown plan in metadata — rejecting");
     return c.json({ received: true });
   }
 
@@ -205,6 +215,149 @@ billingRouter.post("/webhook/moyasar", async (c) => {
   });
 
   log.info({ orgId, plan, billingCycle, newEndsAt }, "[billing/webhook] subscription renewed");
+  return c.json({ received: true });
+});
+
+// ── POST /billing/booking-payment ──────────────────────────
+// Authenticated: merchant generates a payment link for a booking
+billingRouter.post("/booking-payment", async (c) => {
+  const orgId    = getOrgId(c);
+  const userId   = getUserId(c);
+  const { bookingId } = await c.req.json() as { bookingId: string };
+
+  const [booking] = await db
+    .select({ id: bookings.id, bookingNumber: bookings.bookingNumber, balanceDue: bookings.balanceDue, trackingToken: bookings.trackingToken })
+    .from(bookings)
+    .where(and(eq(bookings.id, bookingId), eq(bookings.orgId, orgId)));
+
+  if (!booking) return c.json({ error: "الحجز غير موجود" }, 404);
+
+  const balanceDue = Number(booking.balanceDue ?? 0);
+  if (balanceDue <= 0) return c.json({ error: "لا يوجد رصيد مستحق لهذا الحجز" }, 400);
+
+  const [gw] = await db
+    .select({ apiKey: paymentGatewayConfigs.apiKey })
+    .from(paymentGatewayConfigs)
+    .where(and(
+      eq(paymentGatewayConfigs.orgId, orgId),
+      eq(paymentGatewayConfigs.provider, "moyasar"),
+      eq(paymentGatewayConfigs.isActive, true),
+    ));
+
+  if (!gw?.apiKey) return c.json({ error: "لم يتم تهيئة بوابة الدفع. يرجى الذهاب إلى إعدادات بوابة الدفع." }, 503);
+
+  const apiKey = decryptString(gw.apiKey);
+  if (!apiKey) return c.json({ error: "خطأ في إعداد بوابة الدفع" }, 503);
+
+  const amountHalala = Math.round(balanceDue * 100);
+  const callbackUrl = `${process.env.PUBLIC_URL || "https://app.nasaq.com"}/track/${booking.trackingToken}?payment=done`;
+
+  const moyasarRes = await fetch("https://api.moyasar.com/v1/payments", {
+    method: "POST",
+    headers: {
+      "Content-Type":  "application/json",
+      "Authorization": `Basic ${Buffer.from(apiKey + ":").toString("base64")}`,
+    },
+    body: JSON.stringify({
+      amount:       amountHalala,
+      currency:     "SAR",
+      description:  `دفع حجز #${booking.bookingNumber}`,
+      callback_url: callbackUrl,
+      metadata: {
+        orgId,
+        bookingId: booking.id,
+        source:   "booking_payment",
+      },
+      source: { type: "creditcard" },
+    }),
+  });
+
+  if (!moyasarRes.ok) {
+    const err = await moyasarRes.text();
+    log.error({ err, orgId, bookingId }, "[billing] Moyasar booking payment creation failed");
+    return c.json({ error: "تعذر إنشاء رابط الدفع" }, 502);
+  }
+
+  const payment = await moyasarRes.json() as { id: string; source: { transaction_url?: string } };
+  const transactionUrl = payment.source?.transaction_url ?? null;
+
+  insertAuditLog({ orgId, userId, action: "created", resource: "booking_payment_link", resourceId: booking.id });
+  log.info({ orgId, bookingId, paymentId: payment.id }, "[billing] booking payment link created");
+
+  return c.json({ data: { transactionUrl, paymentId: payment.id } }, 201);
+});
+
+// ── POST /billing/webhook/booking-payment ──────────────────
+// Public webhook — Moyasar confirms booking payment
+billingRouter.post("/webhook/booking-payment", async (c) => {
+  const rawBody = await c.req.text();
+
+  let event: {
+    type: string;
+    data: {
+      id: string;
+      status: string;
+      amount: number;
+      metadata: { orgId?: string; bookingId?: string; source?: string };
+    };
+  };
+
+  try {
+    event = JSON.parse(rawBody);
+  } catch {
+    return c.json({ error: "Invalid JSON" }, 400);
+  }
+
+  if (event.type !== "payment.paid") return c.json({ received: true });
+
+  const { orgId, bookingId, source } = event.data.metadata ?? {};
+  if (!orgId || !bookingId || source !== "booking_payment") return c.json({ received: true });
+
+  // Verify HMAC using org's webhook secret
+  const signature = c.req.header("X-Moyasar-Signature") ?? "";
+  const [gw] = await db
+    .select({ webhookSecret: paymentGatewayConfigs.webhookSecret })
+    .from(paymentGatewayConfigs)
+    .where(and(
+      eq(paymentGatewayConfigs.orgId, orgId),
+      eq(paymentGatewayConfigs.provider, "moyasar"),
+      eq(paymentGatewayConfigs.isActive, true),
+    ));
+
+  if (gw?.webhookSecret) {
+    const webhookSecret = decryptString(gw.webhookSecret);
+    if (webhookSecret) {
+      const expected = createHmac("sha256", webhookSecret).update(rawBody).digest("hex");
+      if (signature !== expected) {
+        log.warn({ orgId, bookingId }, "[billing/webhook/booking] invalid Moyasar signature");
+        return c.json({ error: "Invalid signature" }, 401);
+      }
+    }
+  }
+
+  const amount = event.data.amount / 100; // halala → SAR
+
+  // Update booking paid amount + balance
+  await pool.query(
+    `UPDATE bookings
+     SET paid_amount  = COALESCE(paid_amount, 0) + $1,
+         balance_due  = GREATEST(0, COALESCE(balance_due, 0) - $1),
+         payment_status = CASE WHEN GREATEST(0, COALESCE(balance_due, 0) - $1) <= 0 THEN 'paid' ELSE 'partial' END,
+         gateway_provider      = 'moyasar',
+         gateway_transaction_id = $2,
+         updated_at   = NOW()
+     WHERE id = $3 AND organization_id = $4`,
+    [amount, event.data.id, bookingId, orgId],
+  );
+
+  // Insert payment record
+  await pool.query(
+    `INSERT INTO payments (org_id, booking_id, amount, currency, method, status, gateway_provider, gateway_transaction_id, paid_at, notes)
+     VALUES ($1, $2, $3, 'SAR', 'payment_link', 'completed', 'moyasar', $4, NOW(), 'دفع إلكتروني عبر Moyasar')`,
+    [orgId, bookingId, amount, event.data.id],
+  );
+
+  log.info({ orgId, bookingId, amount }, "[billing/webhook/booking] payment recorded");
   return c.json({ received: true });
 });
 

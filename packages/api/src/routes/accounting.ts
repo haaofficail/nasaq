@@ -18,6 +18,7 @@ import {
   type JournalLineInput,
 } from "../lib/posting-engine";
 import { logAuditEvent } from "./audit-log";
+import { seedChartOfAccounts } from "../lib/seed-chart-of-accounts";
 
 export const accountingRouter = new Hono();
 
@@ -177,6 +178,17 @@ accountingRouter.delete("/chart-of-accounts/:id", async (c) => {
 
   insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "chart_of_accounts", resourceId: c.req.param("id") });
   return c.json({ success: true });
+});
+
+// ============================================================
+// POST /accounting/init-chart-of-accounts
+// يسمح للمنشآت الموجودة بتهيئة دليل الحسابات يدوياً
+// ============================================================
+
+accountingRouter.post("/init-chart-of-accounts", async (c) => {
+  const orgId = getOrgId(c);
+  await seedChartOfAccounts(orgId);
+  return c.json({ success: true, message: "تم تهيئة دليل الحسابات بنجاح" });
 });
 
 // ============================================================

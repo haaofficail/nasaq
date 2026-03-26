@@ -3,6 +3,8 @@ import { z } from "zod";
 import { pool } from "@nasaq/db/client";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
+import { sendWhatsApp, isWhatsAppConfigured, isSmsConfigured } from "../lib/whatsapp";
+import { sendSms } from "../lib/sms";
 
 const sendBulkSchema = z.object({
   phones: z.array(z.string().min(5).max(20)).min(1).max(500),
@@ -24,35 +26,35 @@ export const messagingRouter = new Hono();
 // GET /messaging/status
 messagingRouter.get("/status", async (c) => {
   const orgId = getOrgId(c);
+  const waConfigured  = isWhatsAppConfigured();
+  const smsConfigured = isSmsConfigured();
+
+  // Check for manually-saved session record (legacy QR-based)
   const result = await pool.query(
     `SELECT * FROM whatsapp_sessions WHERE org_id = $1 LIMIT 1`,
     [orgId]
   );
   const session = result.rows[0];
+
   return c.json({
     data: {
-      connected: session?.status === "connected",
-      status: session?.status || "disconnected",
-      phoneNumber: session?.phone || null,
+      connected:     waConfigured || session?.status === "connected",
+      status:        waConfigured ? "connected" : (session?.status || "disconnected"),
+      phoneNumber:   session?.phone || null,
+      provider:      waConfigured ? "api" : (smsConfigured ? "sms_only" : "none"),
+      waConfigured,
+      smsConfigured,
     },
   });
 });
 
-// POST /messaging/connect — SSE stream for QR code (stub: no real WhatsApp library installed)
+// POST /messaging/connect — يُظهر حالة التهيئة (API-based، لا QR)
 messagingRouter.post("/connect", async (c) => {
-  const orgId = getOrgId(c);
-  // Return SSE stream with an error event since no WA library is configured
-  return new Response(
-    `data: ${JSON.stringify({ type: "error", message: "خدمة واتساب غير مُهيأة على الخادم بعد — تواصل مع الدعم" })}\n\n`,
-    {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-        Connection: "keep-alive",
-        "X-Org-Id": orgId,
-      },
-    }
-  );
+  const waConfigured = isWhatsAppConfigured();
+  if (waConfigured) {
+    return c.json({ data: { connected: true, provider: "api", message: "واتساب مُهيأ عبر API" } });
+  }
+  return c.json({ error: "واتساب غير مُهيأ — أضف UNIFONIC_APP_SID أو بيانات Twilio في متغيرات البيئة" }, 503);
 });
 
 // POST /messaging/disconnect
@@ -67,15 +69,27 @@ messagingRouter.post("/disconnect", async (c) => {
 
 // POST /messaging/test
 messagingRouter.post("/test", async (c) => {
-  const orgId = getOrgId(c);
-  const { phone, message } = await c.req.json();
-  // Log the test attempt
+  const orgId  = getOrgId(c);
+  const { phone, message, channel } = await c.req.json();
+  if (!phone || !message) return c.json({ error: "phone و message مطلوبان" }, 400);
+
+  let delivered = false;
+  const ch = channel || "whatsapp";
+
+  if (ch === "sms") {
+    delivered = await sendSms(phone, message);
+  } else {
+    delivered = await sendWhatsApp(phone, message);
+  }
+
+  const status = delivered ? "sent" : "failed";
   await pool.query(
     `INSERT INTO message_logs (org_id, channel, recipient_phone, message_text, status, category)
-     VALUES ($1, 'whatsapp', $2, $3, 'sent', 'test')`,
-    [orgId, phone, message]
+     VALUES ($1, $2, $3, $4, $5, 'test')`,
+    [orgId, ch, phone, message, status]
   ).catch(() => {});
-  return c.json({ success: true, message: "Test message sent (simulated)" });
+
+  return c.json({ success: delivered, delivered, status });
 });
 
 // Default templates seeded per org on first access
@@ -264,11 +278,13 @@ messagingRouter.get("/logs", async (c) => {
   const category = c.req.query("category");
   const date = c.req.query("date");
 
+  const phone = c.req.query("phone");
   const conditions = ["org_id = $1"];
   const params: any[] = [orgId];
   if (status) { params.push(status); conditions.push(`status = $${params.length}`); }
   if (category) { params.push(category); conditions.push(`category = $${params.length}`); }
   if (date) { params.push(date); conditions.push(`created_at::date = $${params.length}`); }
+  if (phone) { params.push(phone); conditions.push(`recipient_phone = $${params.length}`); }
 
   const where = `WHERE ${conditions.join(" AND ")}`;
   const result = await pool.query(
@@ -343,20 +359,36 @@ messagingRouter.delete("/variables/:id", async (c) => {
 messagingRouter.post("/send-bulk", async (c) => {
   const orgId = getOrgId(c);
   const { phones, message, category } = sendBulkSchema.parse(await c.req.json());
+  const ch = (c.req.query("channel") || "whatsapp") as "whatsapp" | "sms";
 
-  // Log bulk sends
-  const values = (phones || []).map((_: string, i: number) => `($1,$${i * 3 + 2},$${i * 3 + 3},$${i * 3 + 4},'whatsapp','sent')`).join(",");
-  const params: any[] = [orgId];
-  (phones || []).forEach((p: string) => { params.push(p, message, category || "bulk"); });
+  let sent = 0;
+  let failed = 0;
 
-  if (phones?.length) {
-    await pool.query(
-      `INSERT INTO message_logs (org_id, recipient_phone, message_text, category, channel, status) VALUES ${values}`,
-      params
-    ).catch(() => {});
-  }
+  // إرسال فعلي لكل رقم
+  await Promise.all(
+    phones.map(async (phone) => {
+      const ok = ch === "sms"
+        ? await sendSms(phone, message)
+        : await sendWhatsApp(phone, message);
 
-  return c.json({ data: { sent: phones?.length || 0, failed: 0 } });
+      const status = ok ? "sent" : "failed";
+      if (ok) sent++; else failed++;
+
+      await pool.query(
+        `INSERT INTO message_logs (org_id, channel, recipient_phone, message_text, status, category)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [orgId, ch, phone, message, status, category || "bulk"]
+      ).catch(() => {});
+    }),
+  );
+
+  insertAuditLog({
+    orgId, userId: getUserId(c),
+    action: "created", resource: "bulk_message", resourceId: orgId,
+    metadata: { sent, failed, total: phones.length, channel: ch },
+  });
+
+  return c.json({ data: { sent, failed, total: phones.length } });
 });
 
 // POST /messaging/schedule

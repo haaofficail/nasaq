@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowRight, CalendarCheck, MapPin, Phone, User, Banknote, Clock, CheckCircle, XCircle, Plus, Loader2, AlertCircle, CalendarClock, FileText, Sparkles, History } from "lucide-react";
+import { ArrowRight, CalendarCheck, MapPin, Phone, User, Banknote, Clock, CheckCircle, XCircle, Plus, Loader2, AlertCircle, CalendarClock, FileText, Sparkles, History, Link2 } from "lucide-react";
 import { clsx } from "clsx";
 import { bookingsApi, salonApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
@@ -38,6 +38,7 @@ export function BookingDetailPage() {
 
   const [showVisitNote, setShowVisitNote] = useState(false);
   const [vn, setVn] = useState<Record<string, string>>({});
+  const [generatingLink, setGeneratingLink] = useState(false);
 
   const { data: res, loading, error, refetch } = useApi(() => bookingsApi.get(id!), [id]);
   const { data: eventsRes, refetch: refetchEvents } = useApi(() => bookingsApi.events(id!), [id]);
@@ -96,7 +97,7 @@ export function BookingDetailPage() {
 
   const handleReschedule = async () => {
     if (!rescheduleDate) return;
-    await reschedule({ eventDate: rescheduleDate, reason: rescheduleReason, notes: rescheduleNotes || undefined });
+    await reschedule({ eventDate: new Date(rescheduleDate).toISOString(), reason: rescheduleReason, notes: rescheduleNotes || undefined });
     setShowReschedule(false);
     setRescheduleDate("");
     setRescheduleNotes("");
@@ -166,7 +167,33 @@ export function BookingDetailPage() {
           <div className="bg-white rounded-xl border border-gray-200 p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-gray-900">المدفوعات</h2>
-              {remaining > 0 && <button onClick={() => setShowPayment(true)} className="flex items-center gap-1 text-sm text-brand-500 hover:underline"><Plus className="w-4 h-4" /> تسجيل دفعة</button>}
+              {remaining > 0 && (
+                <div className="flex items-center gap-3">
+                  <button onClick={() => setShowPayment(true)} className="flex items-center gap-1 text-sm text-brand-500 hover:underline"><Plus className="w-4 h-4" /> تسجيل دفعة</button>
+                  <button
+                    disabled={generatingLink}
+                    onClick={async () => {
+                      if (!id) return;
+                      setGeneratingLink(true);
+                      try {
+                        const res: any = await bookingsApi.createPaymentLink(id);
+                        if (res?.data?.transactionUrl) {
+                          await navigator.clipboard.writeText(res.data.transactionUrl);
+                          alert("تم نسخ رابط الدفع — أرسله للعميل عبر واتساب");
+                        } else {
+                          alert(res?.error || "تعذر إنشاء رابط الدفع. تأكد من إعداد بوابة الدفع في الإعدادات.");
+                        }
+                      } finally {
+                        setGeneratingLink(false);
+                      }
+                    }}
+                    className="flex items-center gap-1 text-sm text-emerald-600 hover:underline disabled:opacity-50"
+                  >
+                    {generatingLink ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+                    رابط دفع إلكتروني
+                  </button>
+                </div>
+              )}
             </div>
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div className="bg-green-50 rounded-lg p-3 text-center"><p className="text-xs text-green-600">المدفوع</p><p className="text-lg font-bold text-green-700">{paid.toLocaleString()}</p></div>

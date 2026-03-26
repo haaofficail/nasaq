@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Clock, MapPin, Calendar, CreditCard, Shield, Phone, Loader2, AlertCircle } from "lucide-react";
 import { clsx } from "clsx";
 import { publicApi } from "@/lib/api";
@@ -7,9 +7,12 @@ import { fmtDate } from "@/lib/utils";
 
 export function PublicTrackingPage() {
   const { token } = useParams<{ token: string }>();
+  const [searchParams] = useSearchParams();
   const [b, setB] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paying, setPaying] = useState(false);
+  const paymentDone = searchParams.get("payment") === "done";
 
   useEffect(() => {
     if (!token) return;
@@ -39,16 +42,18 @@ export function PublicTrackingPage() {
   const paidAmount = parseFloat(b.paidAmount || 0);
   const balanceDue = parseFloat(b.balanceDue || 0);
   const paidPct = totalAmount > 0 ? Math.round((paidAmount / totalAmount) * 100) : 0;
-  const primaryColor = b.org?.primaryColor || "#1A56DB";
+  const primaryColor = b.config?.primaryColor || b.org?.primaryColor || "#5b9bd5";
+  const font = b.config?.fontFamily || "IBM Plex Sans Arabic";
+  const logo = b.config?.logoUrl || b.org?.logo;
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir="rtl" style={{ fontFamily: font }}>
       {/* Header */}
       <header className="bg-white border-b border-gray-200 py-4 px-6">
         <div className="max-w-xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold" style={{ background: primaryColor }}>
-              {b.org?.logo ? <img src={b.org.logo} className="w-full h-full object-cover rounded-xl" alt="" /> : (b.org?.name?.[0] || "ن")}
+              {logo ? <img src={logo} className="w-full h-full object-cover rounded-xl" alt="" /> : (b.org?.name?.[0] || "ن")}
             </div>
             <div>
               <span className="font-bold text-gray-900">{b.org?.name}</span>
@@ -122,14 +127,39 @@ export function PublicTrackingPage() {
             </div>
           </div>
 
-          {balanceDue > 0 && (
+          {paymentDone && (
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-2 text-sm text-emerald-700 font-medium">
+              <CheckCircle2 className="w-4 h-4 shrink-0" /> تم استلام الدفع — شكراً لك
+            </div>
+          )}
+
+          {balanceDue > 0 && !paymentDone && (
             <div className="p-4 rounded-xl bg-amber-50 border border-amber-200">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-amber-700 font-medium">المبلغ المتبقي</span>
                 <span className="text-lg font-bold text-amber-700">{balanceDue.toLocaleString("en-US")} ر.س</span>
               </div>
-              <button className="w-full py-3 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2" style={{ background: primaryColor }}>
-                <CreditCard className="w-4 h-4" /> ادفع الآن
+              <button
+                disabled={paying}
+                onClick={async () => {
+                  if (!token) return;
+                  setPaying(true);
+                  try {
+                    const res: any = await publicApi.createPaymentLink(token);
+                    if (res?.data?.transactionUrl) {
+                      window.location.href = res.data.transactionUrl;
+                    } else {
+                      alert(res?.error || "تعذر إنشاء رابط الدفع");
+                    }
+                  } finally {
+                    setPaying(false);
+                  }
+                }}
+                className="w-full py-3 rounded-xl text-white font-bold text-sm flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{ background: primaryColor }}
+              >
+                {paying ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
+                {paying ? "جاري التحويل..." : "ادفع الآن"}
               </button>
             </div>
           )}

@@ -147,6 +147,11 @@ eventsRouter.patch("/:id/status", async (c) => {
   const userId = getUserId(c);
   const { status } = await c.req.json();
 
+  const validStatuses = ["draft", "published", "cancelled", "completed", "postponed"];
+  if (!validStatuses.includes(status)) {
+    return c.json({ error: "حالة غير صالحة" }, 400);
+  }
+
   const [updated] = await db.update(events)
     .set({ status, updatedAt: new Date() })
     .where(and(eq(events.id, c.req.param("id")), eq(events.orgId, orgId)))
@@ -286,13 +291,24 @@ eventsRouter.get("/:id/sections", async (c) => {
 eventsRouter.post("/:id/sections", async (c) => {
   const orgId   = getOrgId(c);
   const eventId = c.req.param("id");
-  const body    = await c.req.json();
+  const bodyRaw = await c.req.json();
+
+  const sectionSchema = z.object({
+    name:          z.string().min(1).max(200),
+    nameEn:        z.string().optional().nullable(),
+    capacity:      z.number().int().positive().optional().nullable(),
+    priceModifier: z.number().optional().nullable(),
+    color:         z.string().max(20).optional().nullable(),
+    sortOrder:     z.number().int().optional(),
+  });
+  const parsed = sectionSchema.safeParse(bodyRaw);
+  if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400);
 
   const [event] = await db.select({ id: events.id }).from(events)
     .where(and(eq(events.id, eventId), eq(events.orgId, orgId)));
   if (!event) return apiErr(c, "SVC_NOT_FOUND", 404);
 
-  const [section] = await db.insert(seatSections).values({ orgId, eventId, ...body }).returning();
+  const [section] = await db.insert(seatSections).values({ orgId, eventId, ...parsed.data }).returning();
   return c.json({ data: section }, 201);
 });
 

@@ -51,7 +51,7 @@ export function ProfileSettingsPage() {
   const [form, setForm] = useState({
     name: "", nameEn: "", phone: "", email: "", website: "",
     city: "", address: "", commercialRegister: "", vatNumber: "",
-    primaryColor: "#1A56DB", secondaryColor: "#C8A951",
+    primaryColor: "#5b9bd5", secondaryColor: "#C8A951",
     businessType: "", logo: "",
   });
   const [dirty, setDirty]           = useState(false);
@@ -74,7 +74,7 @@ export function ProfileSettingsPage() {
         address: org.address || "",
         commercialRegister: org.commercialRegister || "",
         vatNumber: org.vatNumber || "",
-        primaryColor: org.primaryColor || "#1A56DB",
+        primaryColor: org.primaryColor || "#5b9bd5",
         secondaryColor: org.secondaryColor || "#C8A951",
         businessType: org.businessType || "",
         logo: org.logo || "",
@@ -257,7 +257,7 @@ export function ProfileSettingsPage() {
                   onChange={e => f("primaryColor", e.target.value)}
                   className="w-10 h-10 rounded-xl border border-gray-200 cursor-pointer p-0.5" />
                 <Input name="primaryColorHex" value={form.primaryColor}
-                  onChange={e => f("primaryColor", e.target.value)} dir="ltr" placeholder="#1A56DB" />
+                  onChange={e => f("primaryColor", e.target.value)} dir="ltr" placeholder="#5b9bd5" />
               </div>
             </div>
             <div className="space-y-2">

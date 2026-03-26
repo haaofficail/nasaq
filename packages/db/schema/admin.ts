@@ -3,6 +3,29 @@ import { organizations } from "./organizations";
 import { users } from "./auth";
 
 // ============================================================
+// ORG IN-APP ALERTS — تنبيهات داخل الداشبورد
+// ============================================================
+
+export const orgAlerts = pgTable("org_alerts", {
+  id:         uuid("id").defaultRandom().primaryKey(),
+  orgId:      uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  userId:     uuid("user_id").references(() => users.id, { onDelete: "cascade" }),  // null = all org users
+
+  type:       text("type").notNull(), // booking_new | booking_cancelled | support_reply | subscription_expiry | payment_due
+  title:      text("title").notNull(),
+  body:       text("body"),
+  link:       text("link"),           // رابط داخلي للانتقال إليه عند الضغط
+  isRead:     boolean("is_read").default(false).notNull(),
+  priority:   text("priority").default("normal"), // low | normal | high | urgent
+
+  createdAt:  timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("org_alerts_org_idx").on(t.orgId),
+  index("org_alerts_user_idx").on(t.userId),
+  index("org_alerts_read_idx").on(t.isRead),
+]);
+
+// ============================================================
 // PLATFORM AUDIT LOG — سجل أعمال السوبر أدمن
 // ============================================================
 

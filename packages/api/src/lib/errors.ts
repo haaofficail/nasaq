@@ -69,6 +69,9 @@ export const E = {
 
   // ── Support Tickets ──────────────────────────────────────
   SUP_NOT_FOUND:      { code: "SUP_NOT_FOUND",      msg: "التذكرة غير موجودة" },
+  TICKET_NOT_FOUND:   { code: "TICKET_NOT_FOUND",   msg: "التذكرة غير موجودة" },
+  TICKET_CLOSED:      { code: "TICKET_CLOSED",      msg: "التذكرة مغلقة ولا يمكن إضافة ردود" },
+  MSG_REQUIRED:       { code: "MSG_REQUIRED",       msg: "محتوى الرسالة مطلوب" },
 
   // ── Announcements ────────────────────────────────────────
   ANN_NOT_FOUND:      { code: "ANN_NOT_FOUND",      msg: "الإعلان غير موجود" },
@@ -123,6 +126,11 @@ export const E = {
   GR_NOT_FOUND:               { code: "GR_NOT_FOUND",               msg: "إيصال الاستلام غير موجود" },
   GR_ALREADY_PROCESSED:       { code: "GR_ALREADY_PROCESSED",       msg: "تمت معالجة إيصال الاستلام مسبقاً" },
   SUPPLIER_INVOICE_NOT_FOUND: { code: "SUPPLIER_INVOICE_NOT_FOUND", msg: "فاتورة المورد غير موجودة" },
+
+  // ── Admin ────────────────────────────────────────────────
+  PASSWORD_TOO_SHORT: { code: "PASSWORD_TOO_SHORT", msg: "كلمة المرور قصيرة جداً — 6 أحرف على الأقل" },
+  OWNER_NOT_FOUND:    { code: "OWNER_NOT_FOUND",    msg: "لا يوجد مالك لهذه المنشأة" },
+  NOT_FOUND:          { code: "NOT_FOUND",          msg: "العنصر المطلوب غير موجود" },
 
   // ── Server ───────────────────────────────────────────────
   SRV_INTERNAL:       { code: "SRV_INTERNAL",       msg: "خطأ في الخادم، يرجى المحاولة لاحقاً" },

@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { pool } from "@nasaq/db/client";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
+import { insertAuditLog } from "../lib/audit";
 
 export const fulfillmentsRouter = new Hono();
 
@@ -463,6 +464,16 @@ fulfillmentsRouter.patch("/:id/stage", async (c) => {
     }
 
     await client.query("COMMIT");
+
+    insertAuditLog({
+      orgId, userId,
+      action: "updated",
+      resource: "fulfillment",
+      resourceId: id,
+      oldValue: { stage: f.stage },
+      newValue: { stage: nextStage },
+    });
+
     return c.json({ data: updated });
   } catch (err) {
     await client.query("ROLLBACK");
@@ -628,5 +639,18 @@ fulfillmentsRouter.patch("/:id/allocations/:allocId", async (c) => {
     [...vals, allocId, fulfId, orgId],
   );
   if (!updated) return c.json({ error: "التخصيص غير موجود" }, 404);
+
+  if (status) {
+    insertAuditLog({
+      orgId, userId,
+      action: "updated",
+      resource: "fulfillment_allocation",
+      resourceId: allocId,
+      oldValue: { status: current.status },
+      newValue: { status },
+      metadata: { fulfillmentId: fulfId },
+    });
+  }
+
   return c.json({ data: updated });
 });

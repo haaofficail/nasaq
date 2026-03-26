@@ -93,6 +93,117 @@ export const SAUDI_CITIES = [
   "الباحة", "سكاكا", "عرعر", "الزلفي", "القصيم", "أخرى",
 ] as const;
 
+// ── Rental Amenities ──────────────────────────────────────────
+// Used by: chalets, apartments, rooms, camps, hotels, equipment rental
+export interface AmenityDef {
+  key: string;
+  label: string;
+  category: string;
+}
+
+export const RENTAL_AMENITIES: AmenityDef[] = [
+  // اتصال وترفيه
+  { key: "wifi",          label: "واي فاي",           category: "connectivity" },
+  { key: "tv",            label: "تلفزيون",            category: "entertainment" },
+  { key: "smart_tv",      label: "شاشة ذكية",          category: "entertainment" },
+  { key: "streaming",     label: "بث مباشر (Netflix...)", category: "entertainment" },
+  // راحة
+  { key: "ac",            label: "تكييف",              category: "comfort" },
+  { key: "heating",       label: "تدفئة",              category: "comfort" },
+  { key: "fan",           label: "مروحة",              category: "comfort" },
+  // مطبخ
+  { key: "kitchen",       label: "مطبخ كامل",          category: "kitchen" },
+  { key: "kitchenette",   label: "مطبخ صغير",          category: "kitchen" },
+  { key: "fridge",        label: "ثلاجة",              category: "kitchen" },
+  { key: "microwave",     label: "مايكروويف",          category: "kitchen" },
+  { key: "coffee_maker",  label: "ماكينة قهوة",        category: "kitchen" },
+  { key: "dishwasher",    label: "غسالة أطباق",        category: "kitchen" },
+  { key: "oven",          label: "فرن",                category: "kitchen" },
+  { key: "bbq",           label: "شواء (باربيكيو)",    category: "kitchen" },
+  // حمام
+  { key: "private_bath",  label: "حمام خاص",           category: "bathroom" },
+  { key: "jacuzzi",       label: "جاكوزي",             category: "bathroom" },
+  { key: "hot_tub",       label: "حوض مائي ساخن",      category: "bathroom" },
+  { key: "hair_dryer",    label: "مجفف شعر",           category: "bathroom" },
+  // خارجي
+  { key: "pool",          label: "مسبح",               category: "outdoor" },
+  { key: "private_pool",  label: "مسبح خاص",           category: "outdoor" },
+  { key: "garden",        label: "حديقة",              category: "outdoor" },
+  { key: "balcony",       label: "شرفة",               category: "outdoor" },
+  { key: "terrace",       label: "تراس",               category: "outdoor" },
+  // إطلالة
+  { key: "sea_view",      label: "إطلالة بحر",         category: "view" },
+  { key: "mountain_view", label: "إطلالة جبال",        category: "view" },
+  { key: "city_view",     label: "إطلالة المدينة",     category: "view" },
+  { key: "garden_view",   label: "إطلالة حديقة",       category: "view" },
+  // نقل وموقف
+  { key: "parking",       label: "موقف سيارات",        category: "transport" },
+  { key: "ev_charging",   label: "شاحن سيارة كهربائي", category: "transport" },
+  // رياضة وترفيه
+  { key: "gym",           label: "صالة رياضية",        category: "recreation" },
+  { key: "games",         label: "ألعاب",              category: "recreation" },
+  { key: "books",         label: "مكتبة",              category: "recreation" },
+  { key: "playground",    label: "ملعب أطفال",         category: "recreation" },
+  // غسيل وتنظيف
+  { key: "washer",        label: "غسالة ملابس",        category: "appliances" },
+  { key: "dryer",         label: "مجفف ملابس",         category: "appliances" },
+  { key: "iron",          label: "مكواة",              category: "appliances" },
+  // أمان
+  { key: "cctv",          label: "كاميرات أمان",       category: "safety" },
+  { key: "safe",          label: "خزنة",               category: "safety" },
+  { key: "fire_ext",      label: "طفاية حريق",         category: "safety" },
+  { key: "first_aid",     label: "إسعافات أولية",      category: "safety" },
+  // عائلة وإضافات
+  { key: "baby_crib",     label: "سرير أطفال",         category: "family" },
+  { key: "high_chair",    label: "كرسي أطفال",         category: "family" },
+  { key: "pet_friendly",  label: "حيوانات أليفة مرحب",  category: "family" },
+  // إمكانية الوصول
+  { key: "wheelchair",    label: "صديق لكرسي متحرك",   category: "accessibility" },
+  { key: "elevator",      label: "مصعد",               category: "accessibility" },
+];
+
+export const AMENITY_MAP: Record<string, AmenityDef> = Object.fromEntries(
+  RENTAL_AMENITIES.map(a => [a.key, a])
+);
+
+export const AMENITY_CATEGORY_LABELS: Record<string, string> = {
+  connectivity:   "الاتصال والترفيه",
+  entertainment:  "الترفيه",
+  comfort:        "الراحة",
+  kitchen:        "المطبخ",
+  bathroom:       "الحمام",
+  outdoor:        "الخارجي",
+  view:           "الإطلالة",
+  transport:      "الموقف والنقل",
+  recreation:     "الرياضة والترفيه",
+  appliances:     "الغسيل والتنظيف",
+  safety:         "الأمان",
+  family:         "العائلة",
+  accessibility:  "إمكانية الوصول",
+};
+
+// ── Maintenance Task Types ────────────────────────────────────
+export const MAINTENANCE_TYPES = [
+  { key: "cleaning",      label: "تنظيف",         color: "bg-blue-50 text-blue-600" },
+  { key: "maintenance",   label: "صيانة",          color: "bg-amber-50 text-amber-600" },
+  { key: "inspection",    label: "فحص وتفتيش",    color: "bg-purple-50 text-purple-600" },
+  { key: "damage_repair", label: "إصلاح تلف",     color: "bg-red-50 text-red-600" },
+] as const;
+
+export const MAINTENANCE_PRIORITIES = [
+  { key: "low",    label: "منخفضة",  color: "bg-gray-100 text-gray-500" },
+  { key: "normal", label: "عادية",   color: "bg-blue-50 text-blue-600" },
+  { key: "high",   label: "عالية",   color: "bg-amber-50 text-amber-600" },
+  { key: "urgent", label: "عاجلة",   color: "bg-red-50 text-red-600" },
+] as const;
+
+export const MAINTENANCE_STATUSES = [
+  { key: "pending",          label: "معلقة",           color: "bg-gray-100 text-gray-500" },
+  { key: "in_progress",      label: "قيد التنفيذ",     color: "bg-blue-50 text-blue-600" },
+  { key: "completed",        label: "مكتملة",          color: "bg-emerald-50 text-emerald-600" },
+  { key: "issue_reported",   label: "تم الإبلاغ عن مشكلة", color: "bg-red-50 text-red-600" },
+] as const;
+
 export const STORAGE_KEYS = {
   TOKEN: "nasaq_token",
   ORG_ID: "nasaq_org_id",

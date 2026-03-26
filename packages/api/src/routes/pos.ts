@@ -11,6 +11,7 @@ import {
 } from "../lib/posting-engine";
 import { nanoid } from "nanoid";
 import { DEFAULT_VAT_RATE } from "@nasaq/db/constants";
+import { lookupByBarcode } from "../lib/barcode";
 
 // ============================================================
 // SCHEMAS
@@ -647,4 +648,16 @@ posRouter.delete("/quick-items/:id", async (c) => {
   );
   if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
   return c.json({ success: true });
+});
+
+// ============================================================
+// GET /pos/barcode/:code — Barcode lookup for POS scanner
+// ============================================================
+
+posRouter.get("/barcode/:code", async (c) => {
+  const orgId   = getOrgId(c);
+  const barcode = c.req.param("code");
+  const match   = await lookupByBarcode(orgId, barcode);
+  if (!match) return c.json({ error: "لا يوجد منتج أو خدمة بهذا الباركود" }, 404);
+  return c.json({ data: match });
 });

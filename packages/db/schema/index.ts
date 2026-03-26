@@ -37,3 +37,4 @@ export * from "./procurement";
 export * from "./relations";
 export * from "./subscriptions";
 export * from "./notifications";
+export * from "./maintenance";

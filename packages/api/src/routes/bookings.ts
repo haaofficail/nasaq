@@ -7,13 +7,15 @@ import {
   services, addons, customers, locations, pricingRules, organizations,
   serviceSupplyRecipes, salonSupplies, salonSupplyAdjustments,
   bookingAssignments, bookingCommissions, serviceCosts, serviceStaff,
-  bookingEvents, bookingConsumptions,
+  bookingEvents, bookingConsumptions, paymentGatewayConfigs,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, generateBookingNumber } from "../lib/helpers";
 import { postCashSale, postDepositReceived, postRefund, isAccountingEnabled } from "../lib/posting-engine";
 import { DEFAULT_VAT_RATE, DEFAULT_DEPOSIT_PERCENT, BOOKING_TRACKING_TOKEN_LENGTH } from "../lib/constants";
 import { insertAuditLog } from "../lib/audit";
 import { awardLoyaltyPoints } from "../lib/segments-engine";
+import { fireBookingEvent } from "../lib/messaging-engine";
+import { decryptString } from "../lib/encryption";
 import type { AuthUser } from "../middleware/auth";
 
 export const bookingsRouter = new Hono<{ Variables: { user: AuthUser | null; orgId: string; locationFilter: string[] | null; requestId: string } }>();
@@ -48,6 +50,13 @@ const createBookingSchema = z.object({
 
   // Coupon
   couponCode: z.string().optional(),
+
+  // Custom question answers (rental metadata: guests, days, fulfillment mode)
+  questionAnswers: z.array(z.object({
+    key: z.string(),
+    label: z.string().optional(),
+    value: z.union([z.string(), z.number(), z.boolean()]),
+  })).default([]),
 
   // UTM tracking
   utmSource: z.string().optional(),
@@ -258,6 +267,12 @@ bookingsRouter.post("/", async (c) => {
   const serviceCostMap = new Map(allServiceCosts.map((c) => [c.serviceId, c]));
   const serviceStaffMap = new Map(allServiceStaffRows.map((s) => [s.serviceId, s]));
 
+  // Rental days multiplier — applies to rental/event_rental service types
+  const RENTAL_SVC_TYPES = new Set(["rental", "event_rental"]);
+  const rentalDays = (body.eventDate && body.eventEndDate)
+    ? Math.max(1, Math.ceil((new Date(body.eventEndDate).getTime() - new Date(body.eventDate).getTime()) / (1000 * 60 * 60 * 24)))
+    : 1;
+
   let subtotal = 0;
   const itemsToInsert: any[] = [];
   const addonsToInsert: any[] = [];
@@ -307,7 +322,8 @@ bookingsRouter.post("/", async (c) => {
       }
     }
 
-    const totalPrice = unitPrice * item.quantity;
+    const daysMultiplier = RENTAL_SVC_TYPES.has(sType ?? "") ? rentalDays : 1;
+    const totalPrice = unitPrice * item.quantity * daysMultiplier;
     subtotal += totalPrice;
 
     const itemId = crypto.randomUUID();
@@ -433,6 +449,7 @@ bookingsRouter.post("/", async (c) => {
         utmCampaign: body.utmCampaign,
         customerNotes: body.customerNotes,
         internalNotes: body.internalNotes,
+        questionAnswers: body.questionAnswers,
       }).returning();
 
       // Bulk insert items (QE8)
@@ -537,6 +554,11 @@ bookingsRouter.post("/", async (c) => {
   }
 
   insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "booking", resourceId: booking.id });
+
+  // إرسال إشعار تأكيد الحجز للعميل + إشعار المالك (fire-and-forget)
+  fireBookingEvent("booking_confirmed",  { orgId, bookingId: booking.id });
+  fireBookingEvent("owner_new_booking",  { orgId, bookingId: booking.id });
+
   return c.json({
     data: {
       ...booking,
@@ -592,6 +614,14 @@ bookingsRouter.patch("/:id/status", async (c) => {
   }).catch(() => {});
 
   insertAuditLog({ orgId, userId: actingUserId, action: "updated", resource: "booking", resourceId: id, metadata: { status: newStatus } });
+
+  // إرسال إشعار للعميل بحسب الحالة الجديدة (fire-and-forget)
+  if (newStatus === "cancelled") {
+    fireBookingEvent("booking_cancelled",  { orgId, bookingId: id });
+    fireBookingEvent("owner_booking_cancelled", { orgId, bookingId: id });
+  } else if (newStatus === "completed") {
+    fireBookingEvent("booking_completed", { orgId, bookingId: id });
+  }
 
   // On completion: deduct supplies + record consumptions (non-blocking)
   if (newStatus === "completed") {
@@ -839,6 +869,11 @@ bookingsRouter.post("/:id/payments", async (c) => {
     }
   }
 
+  // إرسال إشعار استلام الدفعة للعميل (fire-and-forget)
+  if (payment.status === "completed") {
+    fireBookingEvent("payment_received", { orgId, bookingId, amount: parseFloat(body.amount) });
+  }
+
   insertAuditLog({
     orgId, userId,
     action: "payment_recorded",
@@ -931,6 +966,74 @@ bookingsRouter.get("/track/:token", async (c) => {
   if (!booking) return c.json({ error: "الحجز غير موجود" }, 404);
 
   return c.json({ data: booking });
+});
+
+// ============================================================
+// POST /bookings/track/:token/payment — Public: create Moyasar payment link
+// ============================================================
+
+bookingsRouter.post("/track/:token/payment", async (c) => {
+  const token = c.req.param("token");
+
+  const [booking] = await db
+    .select({
+      id:             bookings.id,
+      orgId:          bookings.orgId,
+      bookingNumber:  bookings.bookingNumber,
+      balanceDue:     bookings.balanceDue,
+      trackingToken:  bookings.trackingToken,
+    })
+    .from(bookings)
+    .where(eq(bookings.trackingToken, token));
+
+  if (!booking) return c.json({ error: "الحجز غير موجود" }, 404);
+
+  const balanceDue = Number(booking.balanceDue ?? 0);
+  if (balanceDue <= 0) return c.json({ error: "لا يوجد رصيد مستحق لهذا الحجز" }, 400);
+
+  const [gw] = await db
+    .select({ apiKey: paymentGatewayConfigs.apiKey })
+    .from(paymentGatewayConfigs)
+    .where(and(
+      eq(paymentGatewayConfigs.orgId, booking.orgId),
+      eq(paymentGatewayConfigs.provider, "moyasar"),
+      eq(paymentGatewayConfigs.isActive, true),
+    ));
+
+  if (!gw?.apiKey) return c.json({ error: "لم تُفعَّل خدمة الدفع الإلكتروني لهذه المنشأة" }, 503);
+
+  const apiKey = decryptString(gw.apiKey);
+  if (!apiKey) return c.json({ error: "خطأ في إعداد بوابة الدفع" }, 503);
+
+  const amountHalala = Math.round(balanceDue * 100);
+  const callbackUrl = `${process.env.PUBLIC_URL || "https://app.nasaq.com"}/track/${token}?payment=done`;
+
+  const moyasarRes = await fetch("https://api.moyasar.com/v1/payments", {
+    method: "POST",
+    headers: {
+      "Content-Type":  "application/json",
+      "Authorization": `Basic ${Buffer.from(apiKey + ":").toString("base64")}`,
+    },
+    body: JSON.stringify({
+      amount:       amountHalala,
+      currency:     "SAR",
+      description:  `دفع حجز #${booking.bookingNumber}`,
+      callback_url: callbackUrl,
+      metadata: {
+        orgId:    booking.orgId,
+        bookingId: booking.id,
+        source:   "booking_payment",
+      },
+      source: { type: "creditcard" },
+    }),
+  });
+
+  if (!moyasarRes.ok) {
+    return c.json({ error: "تعذر إنشاء رابط الدفع" }, 502);
+  }
+
+  const payment = await moyasarRes.json() as { id: string; source: { transaction_url?: string } };
+  return c.json({ data: { transactionUrl: payment.source?.transaction_url ?? null, paymentId: payment.id } });
 });
 
 // ============================================================

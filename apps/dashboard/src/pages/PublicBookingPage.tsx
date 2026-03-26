@@ -53,8 +53,12 @@ export function PublicBookingPage() {
   );
 
   const org = siteData.org;
+  const config = siteData.config || null;
   const services: any[] = siteData.services || [];
-  const primaryColor = org?.primaryColor || "#1A56DB";
+  // config.primaryColor (website builder) takes priority over org.primaryColor
+  const primaryColor = config?.primaryColor || org?.primaryColor || "#5b9bd5";
+  const font = config?.fontFamily || "IBM Plex Sans Arabic";
+  const logo = config?.logoUrl || org?.logo;
 
   const toggleAddon = (id: string) =>
     setSelectedAddons(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]);
@@ -104,13 +108,13 @@ export function PublicBookingPage() {
     .every(q => (questionAnswers[q.id] || "").trim() !== "");
 
   return (
-    <div className="min-h-screen bg-gray-50" dir="rtl">
+    <div className="min-h-screen bg-gray-50" dir="rtl" style={{ fontFamily: font }}>
       {/* Header */}
       <header className="bg-white border-b border-gray-200 py-4 px-6 sticky top-0 z-10">
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold overflow-hidden" style={{ background: primaryColor }}>
-              {org?.logo ? <img src={org.logo} className="w-full h-full object-cover" alt="" /> : (org?.name?.[0] || "ن")}
+              {logo ? <img src={logo} className="w-full h-full object-cover" alt="" /> : (org?.name?.[0] || "ن")}
             </div>
             <span className="font-bold text-gray-900">{org?.name}</span>
           </div>

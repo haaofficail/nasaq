@@ -8,6 +8,7 @@ import { autoCancelOverdueBookings } from "../lib/booking-engine";
 import { dispatchReminders } from "./reminder-dispatcher";
 import { checkSubscriptions } from "./subscription-checker";
 import { runAutoBook } from "./auto-book";
+import { processMessageQueue } from "./message-queue-processor";
 
 // ============================================================
 // SCHEDULER — نظام الجدولة المستمر
@@ -33,6 +34,7 @@ const JOBS = {
   AUTO_BOOK:            "auto-book-subscriptions",
   SESSION_CLEANUP:      "session-cleanup",
   HEALTH_SNAPSHOT:      "health-snapshot",
+  MSG_QUEUE:            "message-queue-processor",
 } as const;
 
 async function runForAllOrgs(fn: (orgId: string) => Promise<unknown>, label: string) {
@@ -119,6 +121,7 @@ export async function startScheduler(): Promise<PgBoss> {
     boss.schedule(JOBS.AUTO_BOOK,          "0 6 * * *",    null, { tz: TZ }),
     boss.schedule(JOBS.SESSION_CLEANUP,    "0 3 * * *",    null, { tz: TZ }),
     boss.schedule(JOBS.HEALTH_SNAPSHOT,    "*/5 * * * *",  null, { tz: TZ }),
+    boss.schedule(JOBS.MSG_QUEUE,          "* * * * *",    null, { tz: TZ }),
   ]);
 
   // ── تسجيل المعالجات ────────────────────────────────────────
@@ -130,8 +133,9 @@ export async function startScheduler(): Promise<PgBoss> {
     boss.work(JOBS.AUTO_BOOK,          wrap("auto-book-subscriptions", runAutoBook)),
     boss.work(JOBS.SESSION_CLEANUP,    wrap("session-cleanup",        cleanupSessions)),
     boss.work(JOBS.HEALTH_SNAPSHOT,    wrap("health-snapshot",        snapshotHealth)),
+    boss.work(JOBS.MSG_QUEUE,          wrap("message-queue-processor", processMessageQueue)),
   ]);
 
-  log.info("[scheduler] all 7 jobs registered");
+  log.info("[scheduler] all 8 jobs registered");
   return boss;
 }

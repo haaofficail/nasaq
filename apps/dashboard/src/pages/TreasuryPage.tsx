@@ -576,6 +576,25 @@ export function TreasuryPage() {
           onSuccess={() => { refetchAccounts(); }}
         />
       )}
+
+      {/* FAQ */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 mt-4">
+        <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة — الخزينة</h3>
+        <div className="space-y-3">
+          {[
+            { q: "ما الفرق بين «الصندوق الرئيسي» و«الحساب البنكي»؟", a: "الصندوق الرئيسي يتتبع النقد الفعلي عندك. الحساب البنكي يتتبع أرصدتك في البنوك. كل منهما حساب خزينة مستقل." },
+            { q: "ما «إيصال القبض»؟", a: "وثيقة رسمية تؤكد استلام مبلغ من عميل أو جهة. يُنشئها النظام تلقائياً مع كل دفعة أو يمكنك إنشاؤها يدوياً." },
+            { q: "ما «سند الصرف»؟", a: "وثيقة رسمية تؤكد دفع مبلغ لجهة معينة (مورد، موظف). سجّله دائماً للحفاظ على دقة الأرصدة." },
+            { q: "كيف أسوّي الفرق بين الخزينة والبنك؟", a: "من قسم «التسويات» تستطيع مطابقة رصيد الخزينة مع كشف حساب البنك وتحديد الفروقات." },
+            { q: "هل يمكن إضافة أكثر من حساب خزينة؟", a: "نعم. يمكنك إضافة حسابات منفصلة لكل فرع أو مصدر (صندوق، بنك، محفظة إلكترونية)." },
+          ].map(faq => (
+            <details key={faq.q} className="border border-gray-100 rounded-xl">
+              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+              <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

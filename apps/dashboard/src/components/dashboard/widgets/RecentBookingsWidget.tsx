@@ -22,8 +22,8 @@ export function RecentBookingsWidget() {
   const bookings: any[] = data?.data || [];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 h-full">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
+    <div className="bg-white rounded-2xl border border-gray-100">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
         <h2 className="font-semibold text-gray-900 text-sm">آخر الحجوزات</h2>
         <Link
           to="/dashboard/bookings"
@@ -48,8 +48,8 @@ export function RecentBookingsWidget() {
             ))}
           </div>
         ) : bookings.length === 0 ? (
-          <div className="p-8 text-center">
-            <CalendarCheck className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+          <div className="py-6 text-center">
+            <CalendarCheck className="w-7 h-7 text-gray-200 mx-auto mb-2" />
             <p className="text-sm text-gray-400">لا توجد حجوزات بعد</p>
           </div>
         ) : (
@@ -59,7 +59,7 @@ export function RecentBookingsWidget() {
               <Link
                 key={b.id}
                 to={`/dashboard/bookings/${b.id}`}
-                className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
               >
                 <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", s.color)}>
                   <CalendarCheck className="w-4 h-4" />

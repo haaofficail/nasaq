@@ -18,4 +18,21 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    chunkSizeWarningLimit: 600,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/")) return "react";
+          if (id.includes("react-router")) return "router";
+          if (id.includes("recharts") || id.includes("d3-")) return "charts";
+          if (id.includes("lucide-react")) return "icons";
+          if (id.includes("clsx") || id.includes("class-variance") || id.includes("tailwind-merge")) return "ui-utils";
+          if (id.includes("date-fns") || id.includes("dayjs")) return "date";
+          if (id.includes("@capacitor")) return "capacitor";
+          if (id.includes("node_modules")) return "vendor";
+        },
+      },
+    },
+  },
 });

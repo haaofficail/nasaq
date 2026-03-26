@@ -1,7 +1,10 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   BarChart3, TrendingUp, TrendingDown, Users, CalendarCheck,
   Banknote, Package, Star, Globe, ArrowUpRight, ArrowDownRight,
+  CreditCard, RotateCcw, ShoppingBag, Receipt, UserCheck,
+  Clock, FileText, Percent, ChevronLeft,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { bookingsApi, customersApi, servicesApi, websiteApi } from "@/lib/api";
@@ -122,6 +125,37 @@ export function ReportsPage() {
   const returning    = Number(custStats.returning || 0);
   const retentionRate = totalCustomers > 0 ? Math.round((returning / totalCustomers) * 100) : 0;
 
+  const REPORT_CATEGORIES = [
+    {
+      title: "التقارير المالية",
+      reports: [
+        { label: "تقارير المبيعات",          desc: "تحليل بيانات المبيعات حسب الفترة والخدمة",            icon: TrendingUp,   href: "/dashboard/reports/sales",    color: "text-brand-500",   bg: "bg-brand-50" },
+        { label: "تقارير المدفوعات",          desc: "تتبع طرق الدفع وقيم المدفوعات",                       icon: CreditCard,   href: "/dashboard/reports/payments",  color: "text-emerald-500", bg: "bg-emerald-50" },
+        { label: "تقرير التحصيل",             desc: "عرض تفصيلي لعمليات الدفع والمرتجعات",                 icon: Receipt,      href: "/dashboard/reports/collection",color: "text-blue-500",    bg: "bg-blue-50" },
+        { label: "تقرير المصروفات",           desc: "مراجعة وتتبع المصروفات بسهولة",                        icon: Banknote,     href: "/dashboard/reports/expenses",  color: "text-amber-500",   bg: "bg-amber-50" },
+        { label: "تقارير العمولات",            desc: "تحليل بيانات العمولات للمنتجات والخدمات",              icon: Percent,      href: "/dashboard/reports/commissions",color: "text-violet-500", bg: "bg-violet-50" },
+        { label: "تقارير المسترجعات",          desc: "عرض تفاصيل العمليات المسترجعة",                        icon: RotateCcw,    href: "/dashboard/reports/refunds",   color: "text-red-500",     bg: "bg-red-50" },
+        { label: "تقارير مبيعات الحجوزات",    desc: "تحليل بيانات مبيعات الحجوزات",                        icon: CalendarCheck,href: "/dashboard/reports/booking-sales",color: "text-teal-500", bg: "bg-teal-50" },
+        { label: "تقرير إغلاق الصندوق",       desc: "تقرير شامل لنشاطات النقد والمبيعات اليومية",           icon: ShoppingBag,  href: "/dashboard/reports/cash-close", color: "text-gray-500",   bg: "bg-gray-100" },
+      ],
+    },
+    {
+      title: "التقارير التشغيلية",
+      reports: [
+        { label: "تقارير مقدمي الخدمة",       desc: "تحليل تفاعل وسلوك مقدمي الخدمة",                     icon: UserCheck,    href: "/dashboard/reports/providers", color: "text-indigo-500",  bg: "bg-indigo-50" },
+        { label: "تقارير حضور الحجوزات",      desc: "تقارير تفصيلية لحضور العملاء بالتاريخ",               icon: CalendarCheck,href: "/dashboard/reports/attendance", color: "text-brand-500",   bg: "bg-brand-50" },
+        { label: "تقارير الاشتراكات",          desc: "تحليل بيانات الاشتراكات والباقات",                     icon: Package,      href: "/dashboard/reports/subscriptions",color: "text-purple-500",bg: "bg-purple-50" },
+      ],
+    },
+    {
+      title: "تقارير التحليلات",
+      reports: [
+        { label: "تقارير زوار الموقع",         desc: "سلوك زوار الموقع ومصادر الزيارة",                     icon: Globe,        href: "/dashboard/reports/visitors",  color: "text-cyan-500",    bg: "bg-cyan-50" },
+        { label: "تقرير أوقات الذروة",          desc: "تحليل أوقات الذروة ومقدمي الخدمة الأكثر طلباً",      icon: Clock,        href: "/dashboard/reports/peak-times", color: "text-orange-500",  bg: "bg-orange-50" },
+      ],
+    },
+  ];
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -139,6 +173,36 @@ export function ReportsPage() {
           </div>
         }
       />
+
+      {/* ── Report Categories Hub ─────────────────────────── */}
+      {REPORT_CATEGORIES.map(cat => (
+        <div key={cat.title}>
+          <h2 className="text-sm font-semibold text-gray-500 mb-3">{cat.title}</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+            {cat.reports.map(rpt => {
+              const Icon = rpt.icon;
+              return (
+                <Link key={rpt.href} to={rpt.href}
+                  className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-sm hover:border-gray-200 transition-all group">
+                  <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center mb-3", rpt.bg)}>
+                    <Icon className={clsx("w-4 h-4", rpt.color)} />
+                  </div>
+                  <p className="text-sm font-semibold text-gray-800 group-hover:text-brand-600 transition-colors">{rpt.label}</p>
+                  <p className="text-xs text-gray-400 mt-1 leading-relaxed">{rpt.desc}</p>
+                  <div className="flex items-center gap-1 mt-3 text-xs text-brand-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span>عرض التقرير</span><ChevronLeft className="w-3 h-3" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      {/* divider */}
+      <div className="border-t border-gray-100 pt-2">
+        <h2 className="text-sm font-semibold text-gray-500 mb-3">نظرة عامة سريعة</h2>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">

@@ -110,6 +110,9 @@ export const servicesApi = {
   addStaff:     (id: string, data: any) => api.post<{ data: any }>(`/services/${id}/staff`, data),
   updateStaff:  (id: string, userId: string, data: any) => api.put<{ data: any }>(`/services/${id}/staff/${userId}`, data),
   removeStaff:  (id: string, userId: string) => api.delete(`/services/${id}/staff/${userId}`),
+  // Barcode
+  lookupByBarcode: (barcode: string) => api.get<{ data: any }>(`/services/lookup/barcode/${encodeURIComponent(barcode)}`),
+  generateBarcode: (id: string) => api.post<{ data: { id: string; barcode: string } }>(`/services/${id}/generate-barcode`),
 };
 
 // --- Addons ---
@@ -138,6 +141,7 @@ export const bookingsApi = {
   trend: (months?: number) => api.get<{ data: any[] }>(`/bookings/stats/trend?months=${months || 6}`),
   growth: (period?: string) => api.get<{ data: any }>(`/bookings/stats/growth?period=${period || "month"}`),
   events: (id: string) => api.get<{ data: any[] }>(`/bookings/${id}/events`),
+  createPaymentLink: (id: string) => api.post<{ data: { transactionUrl: string | null; paymentId: string } }>(`/billing/booking-payment`, { bookingId: id }),
 };
 
 // --- Customers ---
@@ -151,6 +155,7 @@ export const customersApi = {
   update: (id: string, data: any) => api.put<{ data: any }>(`/customers/${id}`, data),
   addInteraction: (id: string, data: any) => api.post(`/customers/${id}/interactions`, data),
   stats: () => api.get<{ data: any }>("/customers/stats/summary"),
+  messageLogs: (phone: string) => api.get<{ data: any[] }>(`/messaging/logs?phone=${encodeURIComponent(phone)}&limit=50`),
 };
 
 // --- Finance ---
@@ -163,6 +168,7 @@ export const financeApi = {
   importBooking: (bookingId: string) => api.get<{ data: any }>(`/finance/invoices/import-booking/${bookingId}`),
   invoicePayments: (id: string) => api.get<{ data: any[] }>(`/finance/invoices/${id}/payments`),
   addInvoicePayment: (id: string, data: any) => api.post<{ data: any }>(`/finance/invoices/${id}/payments`, data),
+  sendInvoice: (id: string) => api.post<{ data: { email: boolean; whatsapp: boolean } }>(`/finance/invoices/${id}/send`, {}),
   expenses: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[] }>(`/finance/expenses${qs}`); },
   createExpense: (data: any) => api.post<{ data: any }>("/finance/expenses", data),
   updateExpense: (id: string, data: any) => api.put<{ data: any }>(`/finance/expenses/${id}`, data),
@@ -170,6 +176,24 @@ export const financeApi = {
   pnl: (period?: string) => api.get<{ data: any }>(`/finance/reports/pnl?period=${period || "month"}`),
   cashflow: () => api.get<{ data: any }>("/finance/reports/cashflow"),
   commissionSummary: (year: number, month: number) => api.get<{ data: any[] }>(`/finance/commission-summary?year=${year}&month=${month}`),
+  salesReport: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/finance/reports/sales${qs}`); },
+  paymentsReport: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/finance/reports/payments${qs}`); },
+  expensesReport: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/finance/reports/expenses${qs}`); },
+  collectionReport: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/finance/reports/collection${qs}`); },
+  bookingSalesReport:  (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/finance/reports/booking-sales${qs}`); },
+  commissionsReport:   (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/finance/reports/commissions${qs}`); },
+  refundsReport:       (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/finance/reports/refunds${qs}`); },
+  subscriptionsReport: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/finance/reports/subscriptions${qs}`); },
+  peakTimesReport:     (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/finance/reports/peak-times${qs}`); },
+  providersReport:     (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/finance/reports/providers${qs}`); },
+  cashCloseReport:     (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/finance/reports/cash-close${qs}`); },
+  attendanceReport:    (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/finance/reports/attendance${qs}`); },
+  visitorsReport:      (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/finance/reports/visitors${qs}`); },
+  // Payment gateways
+  gateways:            () => api.get<{ data: any[] }>("/finance/gateways"),
+  createGateway:       (data: any) => api.post<{ data: any }>("/finance/gateways", data),
+  updateGateway:       (id: string, data: any) => api.put<{ data: any }>(`/finance/gateways/${id}`, data),
+  gatewayCredentials:  (id: string) => api.get<{ data: any }>(`/finance/gateways/${id}/credentials`),
 };
 
 // --- Treasury ---
@@ -216,6 +240,7 @@ export const accountingApi = {
   apAging: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/accounting/reports/ap-aging${qs}`); },
   cashFlow: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/accounting/reports/cash-flow${qs}`); },
   generateClosingEntries: (periodId: string) => api.post<{ data: any }>(`/accounting/periods/${periodId}/closing-entries`, {}),
+  initChartOfAccounts: () => api.post<{ success: boolean; message: string }>("/accounting/init-chart-of-accounts", {}),
 };
 
 // --- Reconciliation ---
@@ -258,6 +283,12 @@ export const bundlesApi = {
   removeItem: (bundleId: string, itemId: string) => api.delete(`/bundles/${bundleId}/items/${itemId}`),
   sell: (bundleId: string, data: { customerId: string; startDate?: string }) =>
     api.post<{ data: any[]; count: number }>(`/bundles/${bundleId}/sell`, data),
+  subscriptions: (params?: { status?: string; customerId?: string }) => {
+    const qs = params ? "?" + new URLSearchParams(params as any).toString() : "";
+    return api.get<{ data: any[] }>(`/bundles/subscriptions${qs}`);
+  },
+  updateSubscriptionStatus: (id: string, status: string) =>
+    api.patch<{ data: any }>(`/bundles/subscriptions/${id}/status`, { status }),
 };
 
 // --- Media Library (DAM) ---
@@ -355,18 +386,55 @@ export const automationApi = {
   templates: () => api.get<{ data: any[] }>("/automation/templates"),
   createTemplate: (data: any) => api.post<{ data: any }>("/automation/templates", data),
   logs: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[] }>(`/automation/logs${qs}`); },
+  // WhatsApp Templates
+  whatsappTemplates: () => api.get<{ data: any[] }>("/automation/whatsapp-templates"),
+  createWhatsappTemplate: (data: any) => api.post<{ data: any }>("/automation/whatsapp-templates", data),
+  updateWhatsappTemplate: (id: string, data: any) => api.put<{ data: any }>(`/automation/whatsapp-templates/${id}`, data),
+  deleteWhatsappTemplate: (id: string) => api.delete<{ data: any }>(`/automation/whatsapp-templates/${id}`),
+  testWhatsappTemplate: (id: string, phone: string) => api.post<{ data: any }>(`/automation/whatsapp-templates/${id}/test`, { phone }),
+  // WhatsApp Connection
+  whatsappConnection: () => api.get<{ data: any }>("/automation/whatsapp-connection"),
+  saveApiConnection: (data: { phoneId: string; accessToken: string; webhookVerify?: string }) =>
+    api.post<{ data: any }>("/automation/whatsapp-connection/api", data),
+  startQrSession: () => api.post<{ data: any }>("/automation/whatsapp-connection/qr/start", {}),
+  disconnectWhatsapp: () => api.delete<{ data: any }>("/automation/whatsapp-connection"),
+  testSendWhatsapp: (phone: string, message?: string) =>
+    api.post<{ data: any }>("/automation/whatsapp-connection/test-send", { phone, message }),
 };
 
 // --- Marketing ---
 export const marketingApi = {
+  // Campaigns
   campaigns: () => api.get<{ data: any[] }>("/marketing/campaigns"),
   createCampaign: (data: any) => api.post<{ data: any }>("/marketing/campaigns", data),
-  coupons: () => api.get<{ data: any[] }>("/marketing/coupons"),
+  updateCampaign: (id: string, data: any) => api.patch<{ data: any }>(`/marketing/campaigns/${id}`, data),
+  deleteCampaign: (id: string) => api.delete(`/marketing/campaigns/${id}`),
+  sendCampaign: (id: string) => api.patch<{ data: any }>(`/marketing/campaigns/${id}/send`, {}),
+  // Coupons
+  coupons: () => api.get<{ data: any[] }>("/marketing/coupons/all"),
   createCoupon: (data: any) => api.post<{ data: any }>("/marketing/coupons", data),
+  updateCoupon: (id: string, data: any) => api.patch<{ data: any }>(`/marketing/coupons/${id}`, data),
+  deleteCoupon: (id: string) => api.delete(`/marketing/coupons/${id}`),
+  // Reviews
   reviews: (status?: string) => api.get<{ data: any[] }>(`/marketing/reviews${status ? "?status=" + status : ""}`),
+  reviewStats: () => api.get<{ data: any }>("/marketing/reviews/stats"),
   respondReview: (id: string, text: string) => api.patch<{ data: any }>(`/marketing/reviews/${id}/respond`, { responseText: text }),
+  toggleReviewVisibility: (id: string) => api.patch<{ data: any }>(`/marketing/reviews/${id}/visibility`, {}),
+  updateReviewStatus: (id: string, status: string) => api.patch<{ data: any }>(`/marketing/reviews/${id}/status`, { status }),
+  deleteReview: (id: string) => api.delete(`/marketing/reviews/${id}`),
+  requestReview: (data: { phone: string; customerName?: string; bookingId?: string }) => api.post<{ data: any }>("/marketing/reviews/request", data),
   roi: () => api.get<{ data: any }>("/marketing/reports/roi"),
+  // Segments
+  segments: () => api.get<{ data: any[] }>("/marketing/segments"),
+  createSegment: (data: any) => api.post<{ data: any }>("/marketing/segments", data),
+  updateSegment: (id: string, data: any) => api.patch<{ data: any }>(`/marketing/segments/${id}`, data),
+  deleteSegment: (id: string) => api.delete(`/marketing/segments/${id}`),
+  segmentPreview: (id: string) => api.get<{ data: { count: number; sample: any[] } }>(`/marketing/segments/${id}/preview`),
+  // Abandoned Carts
   abandonedCarts: () => api.get<{ data: any }>("/marketing/abandoned-carts/stats"),
+  abandonedCartsStats: () => api.get<{ data: any }>("/marketing/abandoned-carts/stats"),
+  abandonedCartsList: (status?: string) => api.get<{ data: any[] }>(`/marketing/abandoned-carts${status ? "?status=" + status : ""}`),
+  updateAbandonedCartStatus: (id: string, status: string) => api.patch<{ data: any }>(`/marketing/abandoned-carts/${id}/status`, { status }),
 };
 
 // --- Roles (legacy) ---
@@ -516,6 +584,7 @@ export const posApi = {
   createQuickItem: (data: any) => api.post<{ data: any }>("/pos/quick-items", data),
   deleteQuickItem: (id: string) => api.delete(`/pos/quick-items/${id}`),
   stats: (date?: string) => api.get<{ data: any }>(`/pos/stats${date ? `?date=${date}` : ""}`),
+  lookupByBarcode: (barcode: string) => api.get<{ data: any }>(`/pos/barcode/${encodeURIComponent(barcode)}`),
 };
 
 export const onlineOrdersApi = {
@@ -666,6 +735,8 @@ export const websiteApi = {
 // --- Public tracking (no auth) ---
 export const publicApi = {
   track: (token: string) => fetch(`/api/v1/bookings/track/${token}`).then(r => r.json()),
+  createPaymentLink: (token: string) =>
+    fetch(`/api/v1/bookings/track/${token}/payment`, { method: "POST", headers: { "Content-Type": "application/json" } }).then(r => r.json()),
 };
 
 // --- Marketplace (سوق نسق) ---
@@ -977,6 +1048,23 @@ export const integrationsApi = {
     return api.get<{ data: any[]; total: number }>(`/integrations/sync-jobs${qs}`);
   },
   triggerSync: (data: any) => api.post<{ data: any }>("/integrations/sync-jobs", data),
+
+  // Gen 2: registry-based integrations
+  available: (category?: string) => {
+    const qs = category ? `?category=${encodeURIComponent(category)}` : "";
+    return api.get<{ data: any[] }>(`/integrations/available${qs}`);
+  },
+  connected: () => api.get<{ data: any[] }>("/integrations/connected"),
+  connect: (data: { provider: string; credentials: Record<string, string>; config?: Record<string, unknown> }) =>
+    api.post<{ data: any }>("/integrations/connect", data),
+  test: (id: string) => api.post<{ ok: boolean; message?: string }>(`/integrations/${id}/test`, {}),
+  disconnect: (id: string) => api.delete<{ success: boolean }>(`/integrations/${id}`),
+  logs: (id: string, params?: { limit?: number; offset?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.limit)  q.set("limit",  String(params.limit));
+    if (params?.offset) q.set("offset", String(params.offset));
+    return api.get<{ data: any[]; total: number }>(`/integrations/${id}/logs?${q}`);
+  },
 };
 
 // --- Restaurant Intelligence ---
@@ -1111,14 +1199,19 @@ export const adminApi = {
   createDocument: (data: any) => api.post<{ data: any }>("/admin/documents", data),
   updateDocument: (id: string, data: any) => api.patch<{ data: any }>(`/admin/documents/${id}`, data),
 
-  tickets: (params?: { status?: string; priority?: string }) => {
+  tickets: (params?: { status?: string; priority?: string; orgId?: string; category?: string; page?: number }) => {
     const q = new URLSearchParams();
-    if (params?.status) q.set("status", params.status);
+    if (params?.status)   q.set("status",   params.status);
     if (params?.priority) q.set("priority", params.priority);
-    return api.get<{ data: any[] }>(`/admin/tickets?${q}`);
+    if (params?.orgId)    q.set("orgId",    params.orgId);
+    if (params?.category) q.set("category", params.category);
+    if (params?.page)     q.set("page",     String(params.page));
+    return api.get<{ data: any[]; stats: Record<string, number>; pagination: any }>(`/admin/tickets?${q}`);
   },
-  createTicket: (data: any) => api.post<{ data: any }>("/admin/tickets", data),
+  getTicket:    (id: string)         => api.get<{ data: any }>(`/admin/tickets/${id}`),
+  createTicket: (data: any)          => api.post<{ data: any }>("/admin/tickets", data),
   updateTicket: (id: string, data: any) => api.patch<{ data: any }>(`/admin/tickets/${id}`, data),
+  replyTicket:  (id: string, message: string) => api.post<{ data: any }>(`/admin/tickets/${id}/reply`, { message }),
 
   announcements: () => api.get<{ data: any[] }>("/admin/announcements"),
   createAnnouncement: (data: any) => api.post<{ data: any }>("/admin/announcements", data),
@@ -1312,4 +1405,44 @@ export const procurementApi = {
   advanceInvoice:  (id: string, data: any)           => api.patch<{ invoice: any }>(`/procurement/invoices/${id}/status`, data),
   // Stats
   stats:           ()                                => api.get<{ orders: any; invoices: any; pendingReceipts: any[]; topSuppliers: any[] }>("/procurement/stats"),
+};
+
+// --- In-App Alerts ---
+export const alertsApi = {
+  list:    (limit = 20)   => api.get<{ data: any[]; unread: number }>(`/alerts?limit=${limit}`),
+  markRead:(id: string)   => api.patch<{ data: any }>(`/alerts/${id}/read`),
+  readAll: ()             => api.post<{ ok: boolean }>("/alerts/read-all"),
+};
+
+// --- Merchant Support Portal ---
+export const supportApi = {
+  list:   (params?: { status?: string; category?: string; page?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.status)   q.set("status",   params.status);
+    if (params?.category) q.set("category", params.category);
+    if (params?.page)     q.set("page",     String(params.page));
+    return api.get<{ data: any[]; stats: Record<string, number>; pagination: any }>(`/support/tickets?${q}`);
+  },
+  get:    (id: string)              => api.get<{ data: any }>(`/support/tickets/${id}`),
+  create: (data: { subject: string; body: string; category: string; priority: string }) =>
+    api.post<{ data: any }>("/support/tickets", data),
+  reply:  (id: string, message: string) => api.post<{ data: any }>(`/support/tickets/${id}/reply`, { message }),
+  close:  (id: string)              => api.patch<{ data: any }>(`/support/tickets/${id}/close`),
+};
+
+
+// --- Maintenance & Cleaning Tasks ---
+export const maintenanceApi = {
+  list:   (params?: { status?: string; type?: string; serviceId?: string; bookingId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status)    q.set("status",    params.status);
+    if (params?.type)      q.set("type",      params.type);
+    if (params?.serviceId) q.set("serviceId", params.serviceId);
+    if (params?.bookingId) q.set("bookingId", params.bookingId);
+    return api.get<{ data: any[] }>(`/maintenance?${q}`);
+  },
+  stats:  () => api.get<{ data: any }>("/maintenance/stats"),
+  create: (data: any) => api.post<{ data: any }>("/maintenance", data),
+  update: (id: string, data: any) => api.patch<{ data: any }>(`/maintenance/${id}`, data),
+  delete: (id: string) => api.delete<{ success: boolean }>(`/maintenance/${id}`),
 };

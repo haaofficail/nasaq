@@ -5,7 +5,7 @@ import {
   CreditCard, Banknote, ArrowLeftRight, Receipt, X, CheckCircle2,
   Users, Scissors, ChevronDown, Tag, StickyNote, Percent,
   RotateCcw, Clock, TrendingUp, Wallet, Printer, Smartphone,
-  SplitSquareHorizontal, AlertCircle,
+  SplitSquareHorizontal, AlertCircle, ScanBarcode,
 } from "lucide-react";
 import { posApi, servicesApi, categoriesApi, customersApi, settingsApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
@@ -882,21 +882,43 @@ export function POSPage() {
     clearAll();
   };
 
-  // Barcode handler
+  // Barcode state
   const barcodeBuffer = useRef<string>("");
   const barcodeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [barcodeInput, setBarcodeInput] = useState("");
+  const [barcodeLoading, setBarcodeLoading] = useState(false);
 
-  const handleBarcodeInput = (val: string) => {
+  const handleBarcodeInput = async (val: string) => {
     const trimmed = val.trim();
-    if (trimmed) {
-      const match = services.find(s => s.sku === trimmed || s.barcode === trimmed);
-      if (match) {
-        addToCart(match);
-        toast.success(`أضيف: ${match.name}`);
-      } else {
-        toast.error("المنتج غير موجود");
-      }
+    if (!trimmed) { setBarcodeInput(""); return; }
+
+    // 1. Fast local lookup first
+    const local = services.find((s: any) => s.sku === trimmed || s.barcode === trimmed);
+    if (local) {
+      addToCart(local);
+      toast.success(`أضيف: ${local.name}`);
+      setBarcodeInput("");
+      if (barcodeRef.current) barcodeRef.current.value = "";
+      return;
     }
+
+    // 2. Fallback: API lookup (covers inventory_products)
+    setBarcodeLoading(true);
+    try {
+      const res: any = await posApi.lookupByBarcode(trimmed);
+      if (res?.data) {
+        const item = res.data;
+        addToCart({ id: item.id, name: item.name, basePrice: item.price });
+        toast.success(`أضيف: ${item.name}`);
+      } else {
+        toast.error("الباركود غير مسجل في النظام");
+      }
+    } catch {
+      toast.error("الباركود غير مسجل في النظام");
+    } finally {
+      setBarcodeLoading(false);
+    }
+    setBarcodeInput("");
     if (barcodeRef.current) barcodeRef.current.value = "";
   };
 
@@ -921,17 +943,21 @@ export function POSPage() {
           </div>
         </div>
 
-        {/* Barcode input (hidden — receives scanner input) */}
-        <input
-          ref={barcodeRef}
-          className="sr-only"
-          onKeyDown={e => {
-            if (e.key === "Enter") handleBarcodeInput((e.target as HTMLInputElement).value);
-          }}
-          readOnly={false}
-          tabIndex={-1}
-          aria-hidden="true"
-        />
+        {/* Barcode input — visible, receives scanner or manual input */}
+        <div className="relative flex items-center">
+          <ScanBarcode className={`absolute right-3 w-4 h-4 ${barcodeLoading ? "text-brand-500 animate-pulse" : "text-gray-400"}`} />
+          <input
+            ref={barcodeRef}
+            value={barcodeInput}
+            onChange={e => setBarcodeInput(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === "Enter") handleBarcodeInput(barcodeInput);
+            }}
+            placeholder="امسح الباركود..."
+            className="pr-9 pl-3 py-1.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 w-44 bg-gray-50"
+            dir="ltr"
+          />
+        </div>
       </div>
 
       {/* Tab content */}
@@ -1353,6 +1379,25 @@ export function POSPage() {
           onClose={handleReceiptClose}
         />
       )}
+
+      {/* FAQ */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 mt-4">
+        <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة — نقطة البيع</h3>
+        <div className="space-y-3">
+          {[
+            { q: "ما الفرق بين «نقطة البيع» و«الحجوزات»؟", a: "نقطة البيع للبيع الفوري لعميل حاضر مع إنشاء فاتورة مباشرة. الحجوزات لجدولة خدمة مستقبلية مع تحديد موعد." },
+            { q: "كيف أطبع إيصالاً؟", a: "بعد إتمام البيع يظهر الإيصال تلقائياً. اضغط زر «طباعة» لطباعته مباشرة أو «مشاركة» لإرساله واتساب." },
+            { q: "هل أستطيع قبول دفع مقسّم على طريقتين؟", a: "نعم، اختر «دفع مقسّم» عند إتمام البيع لتوزيع المبلغ بين طريقتي دفع مختلفتين (مثل نقد + بطاقة)." },
+            { q: "هل تُنشأ فاتورة تلقائياً عند البيع؟", a: "نعم. كل عملية بيع من نقطة البيع تُنشئ فاتورة مرتبطة في قسم «المالية > الفواتير» تلقائياً." },
+            { q: "كيف أطبق خصماً على البيع؟", a: "أضف المنتجات للسلة ثم اضغط أيقونة الخصم. يمكنك تطبيق خصم نسبي (%) أو مبلغ ثابت على البند أو على الإجمالي." },
+          ].map(faq => (
+            <details key={faq.q} className="border border-gray-100 rounded-xl">
+              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+              <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

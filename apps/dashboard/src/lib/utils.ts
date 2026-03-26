@@ -13,6 +13,16 @@ export function fmtDate(d: string | Date | null | undefined): string {
 }
 
 /**
+ * Format a monetary value with ر.س suffix and Arabic-friendly number formatting.
+ */
+export function fmtMoney(value: string | number | null | undefined): string {
+  if (value == null || value === "") return "—";
+  const num = typeof value === "string" ? parseFloat(value) : value;
+  if (isNaN(num)) return "—";
+  return `${num.toLocaleString("ar-SA", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} ر.س`;
+}
+
+/**
  * Format a date with full Arabic month name + weekday, but English numerals for day/year.
  * e.g. "الأربعاء، 25 مارس 2026"
  */

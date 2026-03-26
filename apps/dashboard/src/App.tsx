@@ -1,114 +1,151 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
-import { ReactNode } from "react";
+import { ReactNode, lazy, Suspense } from "react";
 
-// ── Auth / Onboarding ──────────────────────────────────────────────
+// ── Eager imports (needed immediately on load) ─────────────────────
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
-import { OnboardingPage } from "./pages/OnboardingPage";
-
-// ── Public ────────────────────────────────────────────────────────
 import { LandingPage } from "./pages/LandingPage";
-import { PricingPage } from "./pages/PricingPage";
-import { FeaturesPage } from "./pages/FeaturesPage";
-import { AboutPage } from "./pages/AboutPage";
-import { ContactPage } from "./pages/ContactPage";
-import { PublicBookingPage } from "./pages/PublicBookingPage";
-import { PublicTrackingPage } from "./pages/PublicTrackingPage";
-import { PublicFlowerPage } from "./pages/PublicFlowerPage";
-import { MarketplaceBrowsePage } from "./pages/MarketplaceBrowsePage";
-
-// ── Core dashboard ────────────────────────────────────────────────
-import { DashboardPage } from "./pages/DashboardPage";
-// ServicesPage imported by CatalogPage directly; /dashboard/services redirects to /dashboard/catalog
-import { ServiceDetailPage } from "./pages/ServiceDetailPage";
-import { ServiceFormPage } from "./pages/ServiceFormPage";
-import { CategoriesPage } from "./pages/CategoriesPage";
-import { AddonsPage } from "./pages/AddonsPage";
-import { BookingsPage } from "./pages/BookingsPage";
-import { BookingDetailPage } from "./pages/BookingDetailPage";
-import { CalendarPage } from "./pages/CalendarPage";
-import { CustomersPage } from "./pages/CustomersPage";
-import { CustomerDetailPage } from "./pages/CustomerDetailPage";
-import { POSPage } from "./pages/POSPage";
-
-// ── Finance ───────────────────────────────────────────────────────
-import { FinancePage } from "./pages/FinancePage";
-import { InvoicesPage } from "./pages/InvoicesPage";
-import { ExpensesPage } from "./pages/ExpensesPage";
-import { ReportsPage } from "./pages/ReportsPage";
-import { TreasuryPage } from "./pages/TreasuryPage";
-import { AccountingPage } from "./pages/AccountingPage";
-import { JournalEntriesPage } from "./pages/JournalEntriesPage";
-import { FinancialStatementsPage } from "./pages/FinancialStatementsPage";
-import { ReconciliationPage } from "./pages/ReconciliationPage";
-
-// ── Operations ────────────────────────────────────────────────────
-import { InventoryPage } from "./pages/InventoryPage";
-import { SuppliersPage } from "./pages/SuppliersPage";
-import { ProvidersPage } from "./pages/ProvidersPage";
-import { StaffPage } from "./pages/StaffPage";
-import { RolesPage } from "./pages/RolesPage";
-import { AttendancePage } from "./pages/AttendancePage";
-import { TeamPage } from "./pages/TeamPage";
-import { DeliveryPage } from "./pages/DeliveryPage";
-
-// ── Channels ──────────────────────────────────────────────────────
-import { StorefrontPage } from "./pages/StorefrontPage";
-import { WebsitePage } from "./pages/WebsitePage";
-import { PublicStorefrontPage } from "./pages/PublicStorefrontPage";
-import { OnlineOrdersPage } from "./pages/OnlineOrdersPage";
-import { AutomationPage } from "./pages/AutomationPage";
-import { MarketingPage } from "./pages/MarketingPage";
-import { MessagingSettingsPage } from "./pages/MessagingSettingsPage";
-
-// ── Settings ──────────────────────────────────────────────────────
-import { SettingsPage } from "./pages/SettingsPage";
-import { BookingSettingsPage } from "./pages/BookingSettingsPage";
-import { ProfileSettingsPage } from "./pages/ProfileSettingsPage";
-import { AccountPage } from "./pages/AccountPage";
-import { WebsiteSettingsPage } from "./pages/WebsiteSettingsPage";
-import { CustomizationPage } from "./pages/CustomizationPage";
-import { PlatformPage } from "./pages/PlatformPage";
-import { AuditLogPage } from "./pages/AuditLogPage";
-import { SubscriptionPage } from "./pages/SubscriptionPage";
-
-// ── New verticals ─────────────────────────────────────────────────
-import HotelPage from "./pages/HotelPage";
-import CarRentalPage from "./pages/CarRentalPage";
-import IntegrationsPage from "./pages/IntegrationsPage";
-
-// ── Business-type specific ────────────────────────────────────────
-import { MenuPage } from "./pages/MenuPage";
-import { MenuCategoriesPage } from "./pages/MenuCategoriesPage";
-import { KitchenPage } from "./pages/KitchenPage";
-import { ReservationsPage } from "./pages/ReservationsPage";
-import { TableMapPage } from "./pages/TableMapPage";
-import { RestaurantAnalyticsPage } from "./pages/RestaurantAnalyticsPage";
-import { RestaurantBookingSettingsPage } from "./pages/RestaurantBookingSettingsPage";
-import { LoyaltyPage } from "./pages/LoyaltyPage";
-import { FlowerAnalyticsPage } from "./pages/FlowerAnalyticsPage";
-import { RentalAnalyticsPage } from "./pages/RentalAnalyticsPage";
-import { SchedulePage } from "./pages/SchedulePage";
-import { CommissionsPage } from "./pages/CommissionsPage";
-import { SalonSuppliesPage } from "./pages/SalonSuppliesPage";
-import { ClientBeautyCardPage } from "./pages/ClientBeautyCardPage";
-import { StaffPerformancePage } from "./pages/StaffPerformancePage";
-import { RecallPage } from "./pages/RecallPage";
-import { FlowerInventoryPage } from "./pages/FlowerInventoryPage";
-import { FlowerMasterPage } from "./pages/FlowerMasterPage";
-import { ArrangementsPage } from "./pages/ArrangementsPage";
-import { AssetsPage } from "./pages/AssetsPage";
-import { ContractsPage } from "./pages/ContractsPage";
-import { InspectionsPage } from "./pages/InspectionsPage";
-import { WarehousePage } from "./pages/WarehousePage";
-import { EventsPage } from "./pages/EventsPage";
-import { PackagesPage } from "./pages/PackagesPage";
-import { MediaLibraryPage } from "./pages/MediaLibraryPage";
-import { AdminPage } from "./pages/AdminPage";
+import { OnboardingPage } from "./pages/OnboardingPage";
 import { AdminLoginPage } from "./pages/AdminLoginPage";
-import { RemindersPage } from "./pages/RemindersPage";
-import { CatalogPage } from "./pages/CatalogPage";
+
+// ── Lazy page loader ───────────────────────────────────────────────
+const lz = (fn: () => Promise<{ default: any } | Record<string, any>>, named?: string) =>
+  lazy(() =>
+    fn().then((m) => ({
+      default: named ? (m as any)[named] : (m as any).default ?? Object.values(m)[0],
+    }))
+  );
+
+// Public
+const PricingPage            = lz(() => import("./pages/PricingPage"), "PricingPage");
+const FeaturesPage           = lz(() => import("./pages/FeaturesPage"), "FeaturesPage");
+const AboutPage              = lz(() => import("./pages/AboutPage"), "AboutPage");
+const ContactPage            = lz(() => import("./pages/ContactPage"), "ContactPage");
+const PublicBookingPage      = lz(() => import("./pages/PublicBookingPage"), "PublicBookingPage");
+const PublicTrackingPage     = lz(() => import("./pages/PublicTrackingPage"), "PublicTrackingPage");
+const PublicFlowerPage       = lz(() => import("./pages/PublicFlowerPage"), "PublicFlowerPage");
+const MarketplaceBrowsePage  = lz(() => import("./pages/MarketplaceBrowsePage"), "MarketplaceBrowsePage");
+const PublicStorefrontPage   = lz(() => import("./pages/PublicStorefrontPage"), "PublicStorefrontPage");
+const PublicPagePage         = lz(() => import("./pages/PublicPagePage"), "PublicPagePage");
+
+// Core dashboard
+const DashboardPage          = lz(() => import("./pages/DashboardPage"), "DashboardPage");
+const ServiceFormPage        = lz(() => import("./pages/ServiceFormPage"), "ServiceFormPage");
+const ServiceDetailPage      = lz(() => import("./pages/ServiceDetailPage"), "ServiceDetailPage");
+const CategoriesPage         = lz(() => import("./pages/CategoriesPage"), "CategoriesPage");
+const AddonsPage             = lz(() => import("./pages/AddonsPage"), "AddonsPage");
+const BookingsPage           = lz(() => import("./pages/BookingsPage"), "BookingsPage");
+const BookingDetailPage      = lz(() => import("./pages/BookingDetailPage"), "BookingDetailPage");
+const CalendarPage           = lz(() => import("./pages/CalendarPage"), "CalendarPage");
+const CustomersPage          = lz(() => import("./pages/CustomersPage"), "CustomersPage");
+const CustomerDetailPage     = lz(() => import("./pages/CustomerDetailPage"), "CustomerDetailPage");
+const POSPage                = lz(() => import("./pages/POSPage"), "POSPage");
+const CatalogPage            = lz(() => import("./pages/CatalogPage"), "CatalogPage");
+
+// Finance
+const FinancePage            = lz(() => import("./pages/FinancePage"), "FinancePage");
+const InvoicesPage           = lz(() => import("./pages/InvoicesPage"), "InvoicesPage");
+const InvoiceDetailPage      = lz(() => import("./pages/InvoiceDetailPage"), "InvoiceDetailPage");
+const ExpensesPage           = lz(() => import("./pages/ExpensesPage"), "ExpensesPage");
+const ReportsPage            = lz(() => import("./pages/ReportsPage"), "ReportsPage");
+const SalesReportPage        = lz(() => import("./pages/SalesReportPage"), "SalesReportPage");
+const PaymentsReportPage     = lz(() => import("./pages/PaymentsReportPage"), "PaymentsReportPage");
+const ExpensesReportPage     = lz(() => import("./pages/ExpensesReportPage"), "ExpensesReportPage");
+const CollectionReportPage   = lz(() => import("./pages/CollectionReportPage"), "CollectionReportPage");
+const BookingSalesReportPage = lz(() => import("./pages/BookingSalesReportPage"), "BookingSalesReportPage");
+const CommissionsReportPage  = lz(() => import("./pages/CommissionsReportPage"), "CommissionsReportPage");
+const RefundsReportPage      = lz(() => import("./pages/RefundsReportPage"), "RefundsReportPage");
+const SubscriptionsReportPage= lz(() => import("./pages/SubscriptionsReportPage"), "SubscriptionsReportPage");
+const PeakTimesReportPage    = lz(() => import("./pages/PeakTimesReportPage"), "PeakTimesReportPage");
+const ProvidersReportPage    = lz(() => import("./pages/ProvidersReportPage"), "ProvidersReportPage");
+const CashCloseReportPage    = lz(() => import("./pages/CashCloseReportPage"), "CashCloseReportPage");
+const AttendanceReportPage   = lz(() => import("./pages/AttendanceReportPage"), "AttendanceReportPage");
+const VisitorsReportPage     = lz(() => import("./pages/VisitorsReportPage"), "VisitorsReportPage");
+const TreasuryPage           = lz(() => import("./pages/TreasuryPage"), "TreasuryPage");
+const AccountingPage         = lz(() => import("./pages/AccountingPage"), "AccountingPage");
+const JournalEntriesPage     = lz(() => import("./pages/JournalEntriesPage"), "JournalEntriesPage");
+const FinancialStatementsPage= lz(() => import("./pages/FinancialStatementsPage"), "FinancialStatementsPage");
+const ReconciliationPage     = lz(() => import("./pages/ReconciliationPage"), "ReconciliationPage");
+
+// Operations
+const InventoryPage          = lz(() => import("./pages/InventoryPage"), "InventoryPage");
+const SuppliersPage          = lz(() => import("./pages/SuppliersPage"), "SuppliersPage");
+const ProvidersPage          = lz(() => import("./pages/ProvidersPage"), "ProvidersPage");
+const StaffPage              = lz(() => import("./pages/StaffPage"), "StaffPage");
+const RolesPage              = lz(() => import("./pages/RolesPage"), "RolesPage");
+const AttendancePage         = lz(() => import("./pages/AttendancePage"), "AttendancePage");
+const TeamPage               = lz(() => import("./pages/TeamPage"), "TeamPage");
+const DeliveryPage           = lz(() => import("./pages/DeliveryPage"), "DeliveryPage");
+
+// Channels / Marketing
+const WebsitePage            = lz(() => import("./pages/WebsitePage"), "WebsitePage");
+const OnlineOrdersPage       = lz(() => import("./pages/OnlineOrdersPage"), "OnlineOrdersPage");
+const AutomationPage         = lz(() => import("./pages/AutomationPage"), "AutomationPage");
+const MarketingPage          = lz(() => import("./pages/MarketingPage"), "MarketingPage");
+const MessagingSettingsPage  = lz(() => import("./pages/MessagingSettingsPage"), "MessagingSettingsPage");
+const ReviewsPage            = lz(() => import("./pages/ReviewsPage"), "ReviewsPage");
+const CustomerSegmentsPage   = lz(() => import("./pages/CustomerSegmentsPage"), "CustomerSegmentsPage");
+const AbandonedCartsPage     = lz(() => import("./pages/AbandonedCartsPage"), "AbandonedCartsPage");
+const CustomerSubscriptionsPage = lz(() => import("./pages/CustomerSubscriptionsPage"), "CustomerSubscriptionsPage");
+
+// Settings
+const SettingsPage           = lz(() => import("./pages/SettingsPage"), "SettingsPage");
+const BookingSettingsPage    = lz(() => import("./pages/BookingSettingsPage"), "BookingSettingsPage");
+const ProfileSettingsPage    = lz(() => import("./pages/ProfileSettingsPage"), "ProfileSettingsPage");
+const AccountPage            = lz(() => import("./pages/AccountPage"), "AccountPage");
+const WebsiteSettingsPage    = lz(() => import("./pages/WebsiteSettingsPage"), "WebsiteSettingsPage");
+const CustomizationPage      = lz(() => import("./pages/CustomizationPage"), "CustomizationPage");
+const PlatformPage           = lz(() => import("./pages/PlatformPage"), "PlatformPage");
+const AuditLogPage           = lz(() => import("./pages/AuditLogPage"), "AuditLogPage");
+const SubscriptionPage       = lz(() => import("./pages/SubscriptionPage"), "SubscriptionPage");
+
+// Verticals
+const HotelPage              = lz(() => import("./pages/HotelPage"));
+const CarRentalPage          = lz(() => import("./pages/CarRentalPage"));
+const IntegrationsPage       = lz(() => import("./pages/IntegrationsPage"));
+const IntegrationLogsPage    = lz(() => import("./pages/IntegrationLogsPage"), "IntegrationLogsPage");
+const MenuPage               = lz(() => import("./pages/MenuPage"), "MenuPage");
+const MenuCategoriesPage     = lz(() => import("./pages/MenuCategoriesPage"), "MenuCategoriesPage");
+const KitchenPage            = lz(() => import("./pages/KitchenPage"), "KitchenPage");
+const ReservationsPage       = lz(() => import("./pages/ReservationsPage"), "ReservationsPage");
+const TableMapPage           = lz(() => import("./pages/TableMapPage"), "TableMapPage");
+const RestaurantAnalyticsPage= lz(() => import("./pages/RestaurantAnalyticsPage"), "RestaurantAnalyticsPage");
+const RestaurantBookingSettingsPage = lz(() => import("./pages/RestaurantBookingSettingsPage"), "RestaurantBookingSettingsPage");
+const LoyaltyPage            = lz(() => import("./pages/LoyaltyPage"), "LoyaltyPage");
+const FlowerAnalyticsPage    = lz(() => import("./pages/FlowerAnalyticsPage"), "FlowerAnalyticsPage");
+const RentalAnalyticsPage    = lz(() => import("./pages/RentalAnalyticsPage"), "RentalAnalyticsPage");
+const SchedulePage           = lz(() => import("./pages/SchedulePage"), "SchedulePage");
+const CommissionsPage        = lz(() => import("./pages/CommissionsPage"), "CommissionsPage");
+const SalonSuppliesPage      = lz(() => import("./pages/SalonSuppliesPage"), "SalonSuppliesPage");
+const ClientBeautyCardPage   = lz(() => import("./pages/ClientBeautyCardPage"), "ClientBeautyCardPage");
+const StaffPerformancePage   = lz(() => import("./pages/StaffPerformancePage"), "StaffPerformancePage");
+const RecallPage             = lz(() => import("./pages/RecallPage"), "RecallPage");
+const FlowerInventoryPage    = lz(() => import("./pages/FlowerInventoryPage"), "FlowerInventoryPage");
+const FlowerMasterPage       = lz(() => import("./pages/FlowerMasterPage"), "FlowerMasterPage");
+const ArrangementsPage       = lz(() => import("./pages/ArrangementsPage"), "ArrangementsPage");
+const AssetsPage             = lz(() => import("./pages/AssetsPage"), "AssetsPage");
+const ContractsPage          = lz(() => import("./pages/ContractsPage"), "ContractsPage");
+const InspectionsPage        = lz(() => import("./pages/InspectionsPage"), "InspectionsPage");
+const MaintenancePage        = lz(() => import("./pages/MaintenancePage"), "MaintenancePage");
+const WarehousePage          = lz(() => import("./pages/WarehousePage"), "WarehousePage");
+const EventsPage             = lz(() => import("./pages/EventsPage"), "EventsPage");
+const PackagesPage           = lz(() => import("./pages/PackagesPage"), "PackagesPage");
+const MediaLibraryPage       = lz(() => import("./pages/MediaLibraryPage"), "MediaLibraryPage");
+const AdminPage              = lz(() => import("./pages/AdminPage"), "AdminPage");
+const RemindersPage          = lz(() => import("./pages/RemindersPage"), "RemindersPage");
+const SupportPage            = lz(() => import("./pages/SupportPage"), "SupportPage");
+const GuidePage              = lz(() => import("./pages/GuidePage"), "GuidePage");
+const BarcodeLabelPage       = lz(() => import("./pages/BarcodeLabelPage"));
+
+// ── Loading fallback ───────────────────────────────────────────────
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-8 h-8 rounded-full border-2 border-[#5b9bd5] border-t-transparent animate-spin" />
+    </div>
+  );
+}
 
 function RequireAuth({ children }: { children: ReactNode }) {
   const token = localStorage.getItem("nasaq_token");
@@ -132,181 +169,166 @@ function RequireAdminAuth({ children }: { children: ReactNode }) {
 
 export default function App() {
   return (
-    <Routes>
-      {/* Public landing pages */}
-      <Route path="/" element={<LandingPage />} />
-      <Route path="/home" element={<LandingPage />} />
-      <Route path="/landing" element={<LandingPage />} />
-      <Route path="/pricing" element={<PricingPage />} />
-      <Route path="/features" element={<FeaturesPage />} />
-      <Route path="/about" element={<AboutPage />} />
-      <Route path="/contact" element={<ContactPage />} />
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* Public landing pages */}
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/home" element={<LandingPage />} />
+        <Route path="/landing" element={<LandingPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
 
-      {/* Auth */}
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/admin-login" element={<AdminLoginPage />} />
+        {/* Auth */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/admin-login" element={<AdminLoginPage />} />
 
-      {/* Super Admin Panel — standalone, no merchant layout */}
-      <Route path="/admin" element={<RequireAdminAuth><AdminPage /></RequireAdminAuth>} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/onboarding" element={<OnboardingPage />} />
+        {/* Super Admin Panel */}
+        <Route path="/admin" element={<RequireAdminAuth><AdminPage /></RequireAdminAuth>} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/onboarding" element={<OnboardingPage />} />
 
-      {/* Public booking / tracking / storefront */}
-      <Route path="/book/:slug" element={<PublicBookingPage />} />
-      <Route path="/track/:token" element={<PublicTrackingPage />} />
-      <Route path="/marketplace" element={<MarketplaceBrowsePage />} />
-      <Route path="/flowers/:slug" element={<PublicFlowerPage />} />
-      <Route path="/s/:orgSlug" element={<PublicStorefrontPage />} />
+        {/* Public booking / tracking / storefront */}
+        <Route path="/book/:slug" element={<PublicBookingPage />} />
+        <Route path="/track/:token" element={<PublicTrackingPage />} />
+        <Route path="/marketplace" element={<MarketplaceBrowsePage />} />
+        <Route path="/flowers/:slug" element={<PublicFlowerPage />} />
+        <Route path="/s/:orgSlug" element={<PublicStorefrontPage />} />
+        <Route path="/s/:orgSlug/p/:pageSlug" element={<PublicPagePage />} />
 
-      {/* ── Dashboard (auth required) ── */}
-      <Route path="/dashboard" element={<RequireAuth><Layout /></RequireAuth>}>
-        <Route index element={<DashboardPage />} />
+        {/* ── Dashboard (auth required) ── */}
+        <Route path="/dashboard" element={<RequireAuth><Layout /></RequireAuth>}>
+          <Route index element={<DashboardPage />} />
 
-        {/* Services — create/edit as full page, detail view */}
-        <Route path="services/new" element={<ServiceFormPage />} />
-        <Route path="services/:id/edit" element={<ServiceFormPage />} />
-        <Route path="services/:id" element={<ServiceDetailPage />} />
-        <Route path="categories" element={<CategoriesPage />} />
-        <Route path="addons" element={<AddonsPage />} />
+          <Route path="services/new" element={<ServiceFormPage />} />
+          <Route path="services/:id/edit" element={<ServiceFormPage />} />
+          <Route path="services/:id" element={<ServiceDetailPage />} />
+          <Route path="categories" element={<CategoriesPage />} />
+          <Route path="addons" element={<AddonsPage />} />
 
-        {/* Bookings */}
-        <Route path="bookings" element={<BookingsPage />} />
-        <Route path="bookings/:id" element={<BookingDetailPage />} />
-        <Route path="calendar" element={<CalendarPage />} />
+          <Route path="bookings" element={<BookingsPage />} />
+          <Route path="bookings/:id" element={<BookingDetailPage />} />
+          <Route path="calendar" element={<CalendarPage />} />
 
-        {/* Customers */}
-        <Route path="customers" element={<CustomersPage />} />
-        <Route path="customers/:id" element={<CustomerDetailPage />} />
+          <Route path="customers" element={<CustomersPage />} />
+          <Route path="customers/:id" element={<CustomerDetailPage />} />
 
-        {/* POS */}
-        <Route path="pos" element={<POSPage />} />
+          <Route path="pos" element={<POSPage />} />
 
-        {/* Finance */}
-        <Route path="finance" element={<FinancePage />} />
-        <Route path="invoices" element={<InvoicesPage />} />
-        <Route path="expenses" element={<ExpensesPage />} />
-        <Route path="reports" element={<ReportsPage />} />
-        <Route path="treasury" element={<TreasuryPage />} />
-        <Route path="accounting" element={<AccountingPage />} />
-        <Route path="accounting/journal-entries" element={<JournalEntriesPage />} />
-        <Route path="financial-statements" element={<FinancialStatementsPage />} />
-        <Route path="reconciliation" element={<ReconciliationPage />} />
+          <Route path="finance" element={<FinancePage />} />
+          <Route path="invoices" element={<InvoicesPage />} />
+          <Route path="invoices/:id" element={<InvoiceDetailPage />} />
+          <Route path="expenses" element={<ExpensesPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="reports/sales" element={<SalesReportPage />} />
+          <Route path="reports/payments" element={<PaymentsReportPage />} />
+          <Route path="reports/collection" element={<CollectionReportPage />} />
+          <Route path="reports/expenses" element={<ExpensesReportPage />} />
+          <Route path="reports/commissions" element={<CommissionsReportPage />} />
+          <Route path="reports/booking-sales" element={<BookingSalesReportPage />} />
+          <Route path="reports/refunds" element={<RefundsReportPage />} />
+          <Route path="reports/cash-close" element={<CashCloseReportPage />} />
+          <Route path="reports/providers" element={<ProvidersReportPage />} />
+          <Route path="reports/attendance" element={<AttendanceReportPage />} />
+          <Route path="reports/subscriptions" element={<SubscriptionsReportPage />} />
+          <Route path="reports/visitors" element={<VisitorsReportPage />} />
+          <Route path="reports/peak-times" element={<PeakTimesReportPage />} />
+          <Route path="treasury" element={<TreasuryPage />} />
+          <Route path="accounting" element={<AccountingPage />} />
+          <Route path="accounting/journal-entries" element={<JournalEntriesPage />} />
+          <Route path="financial-statements" element={<FinancialStatementsPage />} />
+          <Route path="reconciliation" element={<ReconciliationPage />} />
 
-        {/* Operations */}
-        <Route path="inventory" element={<InventoryPage />} />
-        <Route path="suppliers" element={<Navigate to="/dashboard/inventory?tab=suppliers" replace />} />
-        <Route path="providers" element={<ProvidersPage />} />
-        <Route path="staff" element={<StaffPage />} />
-        <Route path="permissions" element={<RolesPage />} />
-        <Route path="attendance" element={<AttendancePage />} />
-        <Route path="team" element={<TeamPage />} />
-        <Route path="delivery" element={<DeliveryPage />} />
+          <Route path="inventory" element={<InventoryPage />} />
+          <Route path="suppliers" element={<Navigate to="/dashboard/inventory?tab=suppliers" replace />} />
+          <Route path="providers" element={<ProvidersPage />} />
+          <Route path="staff" element={<StaffPage />} />
+          <Route path="permissions" element={<RolesPage />} />
+          <Route path="attendance" element={<AttendancePage />} />
+          <Route path="team" element={<TeamPage />} />
+          <Route path="delivery" element={<DeliveryPage />} />
 
-        {/* Channels */}
-        <Route path="website" element={<WebsitePage />} />
-        <Route path="online-orders" element={<OnlineOrdersPage />} />
-        <Route path="automation" element={<AutomationPage />} />
-        <Route path="marketing" element={<MarketingPage />} />
-        <Route path="messaging" element={<MessagingSettingsPage />} />
+          <Route path="website" element={<WebsitePage />} />
+          <Route path="online-orders" element={<OnlineOrdersPage />} />
+          <Route path="automation" element={<AutomationPage />} />
+          <Route path="marketing" element={<MarketingPage />} />
+          <Route path="messaging" element={<MessagingSettingsPage />} />
+          <Route path="reviews" element={<ReviewsPage />} />
+          <Route path="segments" element={<CustomerSegmentsPage />} />
+          <Route path="abandoned-carts" element={<AbandonedCartsPage />} />
+          <Route path="customer-subscriptions" element={<CustomerSubscriptionsPage />} />
 
-        {/* Hotel */}
-        <Route path="hotel" element={<HotelPage />} />
+          <Route path="hotel" element={<HotelPage />} />
+          <Route path="car-rental" element={<CarRentalPage />} />
 
-        {/* Car Rental */}
-        <Route path="car-rental" element={<CarRentalPage />} />
+          <Route path="integrations" element={<IntegrationsPage />} />
+          <Route path="integrations/:id/logs" element={<IntegrationLogsPage />} />
 
-        {/* Integrations */}
-        <Route path="integrations" element={<IntegrationsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings/booking" element={<BookingSettingsPage />} />
+          <Route path="settings/profile" element={<ProfileSettingsPage />} />
+          <Route path="account" element={<AccountPage />} />
+          <Route path="settings/website" element={<WebsiteSettingsPage />} />
+          <Route path="settings/audit-log" element={<AuditLogPage />} />
+          <Route path="subscription" element={<SubscriptionPage />} />
+          <Route path="customization" element={<CustomizationPage />} />
+          <Route path="platform" element={<PlatformPage />} />
 
-        {/* Settings */}
-        <Route path="settings" element={<SettingsPage />} />
-        <Route path="settings/booking" element={<BookingSettingsPage />} />
-        <Route path="settings/profile" element={<ProfileSettingsPage />} />
-        <Route path="account" element={<AccountPage />} />
-        <Route path="settings/website" element={<WebsiteSettingsPage />} />
-        <Route path="settings/audit-log" element={<AuditLogPage />} />
-        <Route path="subscription" element={<SubscriptionPage />} />
-        <Route path="customization" element={<CustomizationPage />} />
-        <Route path="platform" element={<PlatformPage />} />
+          <Route path="menu" element={<MenuPage />} />
+          <Route path="menu/categories" element={<MenuCategoriesPage />} />
+          <Route path="kitchen" element={<KitchenPage />} />
+          <Route path="reservations" element={<ReservationsPage />} />
+          <Route path="table-map" element={<TableMapPage />} />
+          <Route path="restaurant-analytics" element={<RestaurantAnalyticsPage />} />
+          <Route path="restaurant-booking-settings" element={<RestaurantBookingSettingsPage />} />
+          <Route path="loyalty" element={<LoyaltyPage />} />
 
-        {/* Restaurant / Cafe */}
-        <Route path="menu" element={<MenuPage />} />
-        <Route path="menu/categories" element={<MenuCategoriesPage />} />
-        <Route path="kitchen" element={<KitchenPage />} />
-        <Route path="reservations" element={<ReservationsPage />} />
-        <Route path="table-map" element={<TableMapPage />} />
-        <Route path="restaurant-analytics" element={<RestaurantAnalyticsPage />} />
-        <Route path="restaurant-booking-settings" element={<RestaurantBookingSettingsPage />} />
-        <Route path="loyalty" element={<LoyaltyPage />} />
+          <Route path="schedule" element={<SchedulePage />} />
+          <Route path="commissions" element={<CommissionsPage />} />
+          <Route path="salon-supplies" element={<SalonSuppliesPage />} />
+          <Route path="staff-performance" element={<StaffPerformancePage />} />
+          <Route path="customers/:id/beauty-card" element={<ClientBeautyCardPage />} />
+          <Route path="recall" element={<RecallPage />} />
 
-        {/* Salon */}
-        <Route path="schedule" element={<SchedulePage />} />
-        <Route path="commissions" element={<CommissionsPage />} />
-        <Route path="salon-supplies" element={<SalonSuppliesPage />} />
-        <Route path="staff-performance" element={<StaffPerformancePage />} />
-        <Route path="customers/:id/beauty-card" element={<ClientBeautyCardPage />} />
-        <Route path="recall" element={<RecallPage />} />
+          <Route path="flower-inventory" element={<FlowerInventoryPage />} />
+          <Route path="flower-master" element={<FlowerMasterPage />} />
+          <Route path="arrangements" element={<ArrangementsPage />} />
+          <Route path="flower-analytics" element={<FlowerAnalyticsPage />} />
 
-        {/* Flower shop */}
-        <Route path="flower-inventory" element={<FlowerInventoryPage />} />
-        <Route path="flower-master" element={<FlowerMasterPage />} />
-        <Route path="arrangements" element={<ArrangementsPage />} />
-        <Route path="flower-analytics" element={<FlowerAnalyticsPage />} />
+          <Route path="assets" element={<AssetsPage />} />
+          <Route path="contracts" element={<ContractsPage />} />
+          <Route path="inspections" element={<InspectionsPage />} />
+          <Route path="maintenance" element={<MaintenancePage />} />
+          <Route path="warehouse" element={<WarehousePage />} />
+          <Route path="rental-analytics" element={<RentalAnalyticsPage />} />
 
-        {/* Rental */}
-        <Route path="assets" element={<AssetsPage />} />
-        <Route path="contracts" element={<ContractsPage />} />
-        <Route path="inspections" element={<InspectionsPage />} />
-        <Route path="warehouse" element={<WarehousePage />} />
-        <Route path="rental-analytics" element={<RentalAnalyticsPage />} />
+          <Route path="events" element={<EventsPage />} />
+          <Route path="packages" element={<PackagesPage />} />
 
-        {/* Events */}
-        <Route path="events" element={<EventsPage />} />
-        <Route path="packages" element={<PackagesPage />} />
+          <Route path="media" element={<MediaLibraryPage />} />
+          <Route path="catalog" element={<CatalogPage />} />
+          <Route path="barcode-labels" element={<BarcodeLabelPage />} />
+          <Route path="orders" element={<OnlineOrdersPage />} />
+          <Route path="reminders" element={<RemindersPage />} />
+          <Route path="support" element={<SupportPage />} />
+          <Route path="guide" element={<GuidePage />} />
 
-        {/* Media Library */}
-        <Route path="media" element={<MediaLibraryPage />} />
+          {/* ── Redirects from old routes ── */}
+          <Route path="employees"          element={<Navigate to="/dashboard/team" replace />} />
+          <Route path="settings/profile"   element={<Navigate to="/dashboard/settings" replace />} />
+          <Route path="settings/website"   element={<Navigate to="/dashboard/website?tab=settings" replace />} />
+          <Route path="customization"      element={<Navigate to="/dashboard/settings" replace />} />
+          <Route path="platform"           element={<Navigate to="/dashboard/settings" replace />} />
+          <Route path="settings/booking"   element={<Navigate to="/dashboard/settings?tab=booking" replace />} />
+          <Route path="settings/audit-log" element={<Navigate to="/dashboard/settings?tab=audit" replace />} />
+          <Route path="revenue"            element={<Navigate to="/dashboard/finance" replace />} />
+          <Route path="automation"         element={<Navigate to="/dashboard/marketing" replace />} />
+          <Route path="messaging"          element={<Navigate to="/dashboard/marketing?tab=messaging" replace />} />
 
-        {/* Catalog (unified) */}
-        <Route path="catalog" element={<CatalogPage />} />
-
-        {/* Orders (alias for online-orders) */}
-        <Route path="orders" element={<OnlineOrdersPage />} />
-
-        {/* Reminders */}
-        <Route path="reminders" element={<RemindersPage />} />
-
-        {/* Super Admin Panel — moved to /admin (standalone, no merchant layout) */}
-
-        {/* ── Redirects from old routes ── */}
-        <Route path="employees"        element={<Navigate to="/dashboard/team" replace />} />
-        <Route path="providers"        element={<Navigate to="/dashboard/team" replace />} />
-        <Route path="staff"            element={<Navigate to="/dashboard/team" replace />} />
-        <Route path="permissions"      element={<Navigate to="/dashboard/team?tab=roles" replace />} />
-        <Route path="attendance"       element={<Navigate to="/dashboard/team?tab=schedule" replace />} />
-        <Route path="commissions"      element={<Navigate to="/dashboard/team?tab=commissions" replace />} />
-        <Route path="calendar"         element={<Navigate to="/dashboard/bookings" replace />} />
-        <Route path="schedule"         element={<Navigate to="/dashboard/team?tab=schedule" replace />} />
-        <Route path="revenue"          element={<Navigate to="/dashboard/finance" replace />} />
-        <Route path="invoices"         element={<Navigate to="/dashboard/finance?tab=invoices" replace />} />
-        <Route path="expenses"         element={<Navigate to="/dashboard/finance?tab=expenses" replace />} />
-        <Route path="categories"       element={<Navigate to="/dashboard/catalog?tab=categories" replace />} />
-        <Route path="addons"           element={<Navigate to="/dashboard/catalog?tab=addons" replace />} />
-        <Route path="services"         element={<Navigate to="/dashboard/catalog" replace />} />
-        <Route path="suppliers"        element={<Navigate to="/dashboard/inventory?tab=suppliers" replace />} />
-        <Route path="automation"       element={<Navigate to="/dashboard/marketing" replace />} />
-        <Route path="messaging"        element={<Navigate to="/dashboard/marketing?tab=messaging" replace />} />
-        {/* online-orders is now rendered at /orders, but keep old route working */}
-        <Route path="settings/profile" element={<Navigate to="/dashboard/settings" replace />} />
-        <Route path="settings/website" element={<Navigate to="/dashboard/website?tab=settings" replace />} />
-        <Route path="customization"    element={<Navigate to="/dashboard/settings" replace />} />
-        <Route path="platform"         element={<Navigate to="/dashboard/settings" replace />} />
-        <Route path="settings/booking" element={<Navigate to="/dashboard/settings?tab=booking" replace />} />
-        <Route path="settings/audit-log" element={<Navigate to="/dashboard/settings?tab=audit" replace />} />
-        <Route path="media"            element={<Navigate to="/dashboard/website?tab=media" replace />} />
-
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Route>
-    </Routes>
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Route>
+      </Routes>
+    </Suspense>
   );
 }

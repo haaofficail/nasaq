@@ -88,6 +88,16 @@ uploadsRouter.post("/confirm", async (c) => {
     return c.json({ error: "serviceId و publicUrl مطلوبان" }, 400);
   }
 
+  // Validate publicUrl belongs to our R2 domain (prevent storing arbitrary/malicious URLs)
+  if (!publicUrl.startsWith(R2_PUBLIC_URL)) {
+    return c.json({ error: "رابط الملف غير صالح" }, 400);
+  }
+
+  // Verify the service belongs to the authenticated org
+  const [svc] = await db.select({ id: services.id }).from(services)
+    .where(and(eq(services.id, serviceId), eq(services.orgId, orgId)));
+  if (!svc) return c.json({ error: "الخدمة غير موجودة أو غير مصرح" }, 404);
+
   // Get current max sort order
   const existing = await db.select({ sortOrder: serviceMedia.sortOrder })
     .from(serviceMedia)

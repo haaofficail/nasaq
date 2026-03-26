@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { X, Search, Images, ImageIcon, Check, Upload } from "lucide-react";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { X, Search, Images, ImageIcon, Check, Upload, Plus, Loader2, Info } from "lucide-react";
 import { mediaApi } from "@/lib/api";
 import { clsx } from "clsx";
 
@@ -19,7 +19,17 @@ interface MediaPickerModalProps {
   onClose: () => void;
   accept?: "image" | "video" | "document" | "logo" | "all";
   title?: string;
+  hint?: string; // e.g. "الغلاف: 800×600 | الشعار: 300×300"
 }
+
+// Recommended sizes per context
+const SIZE_HINTS: Record<string, string> = {
+  logo:     "مقاس مثالي: 300×300 بكسل — PNG بخلفية شفافة",
+  image:    "الصور: 1200×800 للغلاف — 800×800 للخدمات — PNG أو JPG",
+  all:      "JPG أو PNG أو WebP — بحجم أقصى 10 MB لكل ملف",
+  document: "PDF أو Word — بحجم أقصى 10 MB",
+  video:    "MP4 أو WebM — بحجم أقصى 200 MB",
+};
 
 function fileSizeLabel(bytes: number | null) {
   if (!bytes) return "";
@@ -32,13 +42,18 @@ export function MediaPickerModal({
   onClose,
   accept = "image",
   title = "اختر من المكتبة",
+  hint,
 }: MediaPickerModalProps) {
-  const [assets,   setAssets]   = useState<PickedAsset[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [search,   setSearch]   = useState("");
-  const [selected, setSelected] = useState<PickedAsset | null>(null);
-  const [total,    setTotal]    = useState(0);
-  const [page,     setPage]     = useState(1);
+  const [assets,         setAssets]         = useState<PickedAsset[]>([]);
+  const [loading,        setLoading]        = useState(true);
+  const [search,         setSearch]         = useState("");
+  const [selected,       setSelected]       = useState<PickedAsset | null>(null);
+  const [total,          setTotal]          = useState(0);
+  const [page,           setPage]           = useState(1);
+  const [uploading,      setUploading]      = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError,    setUploadError]    = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async (pg = 1) => {
     setLoading(true);
@@ -64,25 +79,66 @@ export function MediaPickerModal({
 
   const hasMore = assets.length < total;
 
+  const handleUploadFile = async (file: File) => {
+    setUploading(true);
+    setUploadProgress(0);
+    setUploadError(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("category", accept === "logo" ? "logo" : "general");
+      const res = await mediaApi.upload(formData, pct => setUploadProgress(pct)) as { data: PickedAsset };
+      if (res?.data) {
+        setAssets(prev => [res.data, ...prev]);
+        setSelected(res.data);
+      }
+    } catch (err: any) {
+      setUploadError(err?.message || "فشل الرفع — تأكد من نوع الملف وحجمه");
+    }
+    setUploading(false);
+    setUploadProgress(0);
+  };
+
+  const sizeHint = hint || SIZE_HINTS[accept] || SIZE_HINTS.all;
+
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[88vh] flex flex-col">
+
+        {/* Hidden file input */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleUploadFile(f); e.target.value = ""; }}
+        />
 
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
           <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
             <Images className="w-4 h-4 text-brand-500" /> {title}
           </h2>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-400"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-50 text-brand-600 text-xs font-semibold hover:bg-brand-100 transition-colors disabled:opacity-50 border-0 cursor-pointer"
+            >
+              {uploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
+              {uploading ? `${uploadProgress}%` : "رفع صورة"}
+            </button>
+            <button
+              onClick={onClose}
+              className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-400 border-0 bg-transparent cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
-        {/* Search */}
-        <div className="px-6 py-3 border-b border-gray-50 shrink-0">
+        {/* Search + size hint */}
+        <div className="px-6 pt-3 pb-2 border-b border-gray-50 shrink-0 space-y-2">
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
@@ -94,6 +150,13 @@ export function MediaPickerModal({
               autoFocus
             />
           </div>
+          <div className="flex items-start gap-1.5 pb-1">
+            <Info className="w-3 h-3 text-gray-300 mt-0.5 shrink-0" />
+            <p className="text-[11px] text-gray-400 leading-relaxed">{sizeHint}</p>
+          </div>
+          {uploadError && (
+            <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{uploadError}</p>
+          )}
         </div>
 
         {/* Grid */}

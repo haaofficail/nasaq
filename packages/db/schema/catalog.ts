@@ -195,6 +195,13 @@ export const services = pgTable("services", {
   allowsInVenue:      boolean("allows_in_venue").default(false).notNull(),
   deliveryCost:       text("delivery_cost").default("0").notNull(),
 
+  // Amenities — rental, hotel, chalet, apartment, camp (migration 054)
+  amenities: jsonb("amenities").default([]).notNull(),
+  // e.g. ["wifi", "pool", "ac", "parking", "kitchen", "bbq", "gym"]
+
+  // Barcode (Code128 compatible)
+  barcode: text("barcode"),
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [

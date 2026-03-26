@@ -135,6 +135,25 @@ export function CustomersPage() {
       )}
 
       {showCreate && <CreateCustomerForm open={true} onClose={() => setShowCreate(false)} onSuccess={handleCreated} />}
+
+      {/* FAQ */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 mt-5">
+        <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
+        <div className="space-y-3">
+          {[
+            { q: "هل يُضاف العميل تلقائياً؟", a: "نعم. عند أي حجز إلكتروني أو حجز جديد تُدخل فيه رقم الجوال، يُنشأ للعميل ملف تلقائياً ويُربط بكل حجوزاته." },
+            { q: "ما الفرق بين عميل «فرد» وعميل «مؤسسة»؟", a: "الفرد حجوزاته شخصية. المؤسسة (Corporate) لها اسم شركة ورقم سجل تجاري وتُفوتر بشكل مختلف." },
+            { q: "ما معنى «VIP»؟", a: "تصنيف تضعه يدوياً على عميل مميز للتمييز السريع. لا يمنح امتيازات تلقائية إلا إذا ربطته بقواعد خصم." },
+            { q: "كيف أرى تاريخ عميل بالكامل؟", a: "افتح ملف العميل بالضغط على اسمه. ستجد كل حجوزاته ومدفوعاته وتقييماته في مكان واحد." },
+            { q: "كيف أرسل رسالة تسويقية لمجموعة عملاء؟", a: "استخدم «الشرائح» من قسم النمو. صنّف عملاءك ثم أرسل لهم عرضاً مخصصاً أو رسالة متابعة." },
+          ].map(faq => (
+            <details key={faq.q} className="border border-gray-100 rounded-xl">
+              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+              <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
+            </details>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

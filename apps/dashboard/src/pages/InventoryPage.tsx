@@ -628,6 +628,43 @@ export function InventoryPage() {
       {tab === "assets"      && <AssetsTab />}
       {tab === "consumables" && <ConsumablesTab />}
       {tab === "suppliers"   && <SuppliersPage />}
+
+      {/* Guide + FAQ */}
+      <div className="mt-5 space-y-4">
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <h3 className="font-semibold text-gray-900 mb-4 text-sm">دليل المخزون — الفرق بين الأقسام</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { title: "الأصول الثابتة", desc: "معدات ومقتنيات ذات قيمة تستمر لفترة طويلة مثل أجهزة، أثاث، سيارات. لها رقم مسلسل وتتبع حالة (متاح، محجوز، صيانة).", examples: "كاميرا، طاولة، لاب توب، سيارة." },
+              { title: "المواد والمستهلكات", desc: "بنود تُستهلك بالاستخدام وتحتاج إعادة تعبئة دورية. يمكن تتبع كميتها وتنبيهك عند نقصها.", examples: "ورق، حبر، بودر، منظفات، مواد خام." },
+              { title: "الموردون", desc: "الجهات التي تشتري منها الأصول أو المواد. ربط المورد بالمنتج يسهّل تتبع المشتريات والتواصل.", examples: "مورد أثاث، شركة طباعة، مستودع مواد." },
+            ].map(s => (
+              <div key={s.title} className="border border-gray-100 rounded-xl p-4">
+                <p className="text-sm font-semibold text-gray-800 mb-1">{s.title}</p>
+                <p className="text-xs text-gray-500 mb-2">{s.desc}</p>
+                <p className="text-xs text-gray-400">أمثلة: {s.examples}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
+          <div className="space-y-3">
+            {[
+              { q: "متى يظهر تحذير «مخزون منخفض»؟", a: "عندما تصل كمية المادة إلى أقل من الحد الأدنى الذي حددته عند إضافة المنتج (حقل «الحد الأدنى للمخزون»)." },
+              { q: "ما «تسوية المخزون» وكيف تستخدمها؟", a: "هي تعديل يدوي للكمية عند وجود فرق بين الواقع والسجلات (مثل اكتشاف تالف أو خطأ في العد). استخدمها بحذر لأنها تُثبّت الكمية فعلياً." },
+              { q: "كيف أسجّل أن أصلاً في الصيانة؟", a: "افتح الأصل واضغط على حالته ثم اختر «صيانة». سيُخفيه من قائمة المتاح تلقائياً حتى تعيده لحالة «متاح»." },
+              { q: "هل يمكنني ربط الأصل بحجز معين؟", a: "نعم، عند إنشاء حجز يمكن تحديد الأصل المطلوب. سيتحول تلقائياً إلى حالة «محجوز» طوال مدة الحجز." },
+            ].map(faq => (
+              <details key={faq.q} className="border border-gray-100 rounded-xl">
+                <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+                <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
+              </details>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

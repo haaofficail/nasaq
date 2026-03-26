@@ -124,9 +124,9 @@ export function RecentActivityWidget() {
   const entries: any[] = data?.data ?? [];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-50">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
         <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
           <Activity className="w-4 h-4 text-brand-400" />
           الأنشطة الأخيرة
@@ -143,7 +143,7 @@ export function RecentActivityWidget() {
       {loading ? (
         <div className="divide-y divide-gray-50">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="flex items-start gap-3 px-5 py-3 animate-pulse">
+            <div key={i} className="flex items-start gap-3 px-4 py-2.5 animate-pulse">
               <div className="w-7 h-7 rounded-xl bg-gray-100 shrink-0 mt-0.5" />
               <div className="flex-1 space-y-1.5">
                 <div className="h-3 bg-gray-100 rounded w-3/4" />
@@ -153,7 +153,7 @@ export function RecentActivityWidget() {
           ))}
         </div>
       ) : entries.length === 0 ? (
-        <div className="py-10 text-center text-sm text-gray-400">لا توجد أنشطة بعد</div>
+        <div className="py-6 text-center text-sm text-gray-400">لا توجد أنشطة بعد</div>
       ) : (
         <div className="divide-y divide-gray-50">
           {entries.map((entry: any) => {
@@ -163,7 +163,7 @@ export function RecentActivityWidget() {
             const date     = dateLabel(entry.createdAt);
             const time     = timeLabel(entry.createdAt);
             return (
-              <div key={entry.id} className="flex items-start gap-3 px-5 py-3 hover:bg-gray-50/60 transition-colors">
+              <div key={entry.id} className="flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50/60 transition-colors">
                 <div className={clsx("w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5", bg)}>
                   <Icon className={clsx("w-3.5 h-3.5", color)} />
                 </div>

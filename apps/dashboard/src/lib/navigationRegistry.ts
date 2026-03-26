@@ -7,10 +7,11 @@
 import type { LucideIcon } from "lucide-react";
 import {
   LayoutDashboard, CalendarCheck, ShoppingBag, Package, Users,
-  Layers, Box, UsersRound, Wallet, BarChart3, Globe, Send,
-  Settings, Shield, Bell, MessageCircle, ClipboardList, CreditCard,
+  Layers, Box, UsersRound, Wallet, BarChart3, Globe, Send, Star, ShoppingCart, Tag,
+  Settings, Shield, Bell, MessageCircle, ClipboardList, CreditCard, BookOpen,
+  Plug, ScanBarcode,
   // specialty icons
-  Flower2, UtensilsCrossed, Building, Truck, Key, PartyPopper, Camera, Wrench, Warehouse,
+  Flower2, UtensilsCrossed, Building, Truck, Key, PartyPopper, Camera, Wrench, Warehouse, ClipboardCheck,
 } from "lucide-react";
 
 export interface NavItemEntry {
@@ -82,10 +83,12 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "الخدمات والمنتجات", href: "/dashboard/catalog",    icon: Layers,     requiredCapabilities: ["catalog"] },
-      { name: "المخزون",          href: "/dashboard/inventory",  icon: Box,         requiredCapabilities: ["inventory"] },
+      { name: "الخدمات والمنتجات", href: "/dashboard/catalog",        icon: Layers,        requiredCapabilities: ["catalog"] },
+      { name: "بطاقات الباركود",  href: "/dashboard/barcode-labels", icon: ScanBarcode,   requiredCapabilities: ["catalog"] },
+      { name: "المخزون",          href: "/dashboard/inventory",      icon: Box,           requiredCapabilities: ["inventory"] },
       { name: "الفريق",           href: "/dashboard/team",       icon: UsersRound,  requiredCapabilities: [] },
       { name: "المالية",          href: "/dashboard/finance",    icon: Wallet,      requiredCapabilities: [] },
+      { name: "التكاملات",        href: "/dashboard/integrations", icon: Plug,       requiredCapabilities: [] },
     ],
   },
 
@@ -101,7 +104,11 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
       { name: "التقارير",          href: "/dashboard/reports",   icon: BarChart3,      requiredCapabilities: [] },
       { name: "الموقع والمتجر",    href: "/dashboard/website",   icon: Globe,          requiredCapabilities: [] },
       { name: "التسويق",           href: "/dashboard/marketing", icon: Send,           requiredCapabilities: [] },
-      { name: "واتساب",            href: "/dashboard/messaging", icon: MessageCircle,  requiredCapabilities: [] },
+      { name: "التقييمات",         href: "/dashboard/reviews",              icon: Star,          requiredCapabilities: [] },
+      { name: "الشرائح المستهدفة",  href: "/dashboard/segments",             icon: Tag,           requiredCapabilities: [] },
+      { name: "السلات المتروكة",    href: "/dashboard/abandoned-carts",      icon: ShoppingCart,  requiredCapabilities: [] },
+      { name: "اشتراكات العملاء",   href: "/dashboard/customer-subscriptions", icon: CreditCard,   requiredCapabilities: [] },
+      { name: "واتساب",            href: "/dashboard/messaging",            icon: MessageCircle, requiredCapabilities: [] },
     ],
   },
 
@@ -186,10 +193,11 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: ["rental", "real_estate"],
     allowedOperatingProfiles: [],
     items: [
-      { name: "الأصول",    href: "/dashboard/assets",      icon: Key,       requiredCapabilities: ["assets"] },
-      { name: "العقود",    href: "/dashboard/contracts",   icon: Layers,    requiredCapabilities: ["contracts"] },
-      { name: "المستودع",  href: "/dashboard/warehouse",   icon: Warehouse, requiredCapabilities: ["inventory"] },
-      { name: "التفتيش",   href: "/dashboard/inspections", icon: Package,   requiredCapabilities: [] },
+      { name: "الأصول",         href: "/dashboard/assets",       icon: Key,             requiredCapabilities: ["assets"] },
+      { name: "العقود",         href: "/dashboard/contracts",    icon: Layers,          requiredCapabilities: ["contracts"] },
+      { name: "المستودع",       href: "/dashboard/warehouse",    icon: Warehouse,       requiredCapabilities: ["inventory"] },
+      { name: "التفتيش",        href: "/dashboard/inspections",  icon: Package,         requiredCapabilities: [] },
+      { name: "الصيانة والنظافة", href: "/dashboard/maintenance", icon: ClipboardCheck, requiredCapabilities: [] },
     ],
   },
 
@@ -242,6 +250,8 @@ export const BOTTOM_NAV: NavItemEntry[] = [
   { name: "إدارة الباقة",  href: "/dashboard/subscription",       icon: CreditCard,    exact: true,  requiredCapabilities: [] },
   { name: "سجل الأحداث",  href: "/dashboard/settings/audit-log", icon: ClipboardList, exact: false, requiredCapabilities: [] },
   { name: "التذكيرات",    href: "/dashboard/reminders",          icon: Bell,          exact: false, requiredCapabilities: [] },
+  { name: "الدليل الشامل", href: "/dashboard/guide",             icon: BookOpen,      exact: false, requiredCapabilities: [] },
+  { name: "الدعم الفني",  href: "/dashboard/support",            icon: MessageCircle, exact: false, requiredCapabilities: [] },
   { name: "الاعدادات",    href: "/dashboard/settings",           icon: Settings,      exact: false, requiredCapabilities: [] },
 ];
 
