@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { ChevronDown, Check } from "lucide-react";
-import { COLORS, TYPOGRAPHY, SHADOWS, RADIUS } from "@/lib/design-tokens";
+import { clsx } from "clsx";
 
 interface ModernSelectProps {
   options: { value: string; label: string }[];
@@ -11,8 +11,6 @@ interface ModernSelectProps {
   disabled?: boolean;
   error?: string;
 }
-
-const FONT = TYPOGRAPHY.family;
 
 export function ModernSelect({ options, value, onChange, placeholder = "اختر...", label, disabled, error }: ModernSelectProps) {
   const [open, setOpen] = useState(false);
@@ -29,9 +27,9 @@ export function ModernSelect({ options, value, onChange, placeholder = "اختر
   const selected = options.find(o => o.value === value);
 
   return (
-    <div ref={ref} style={{ fontFamily: FONT, direction: "rtl", position: "relative" }}>
+    <div ref={ref} className="relative">
       {label && (
-        <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#374151", marginBottom: 6 }}>
+        <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
           {label}
         </label>
       )}
@@ -39,35 +37,26 @@ export function ModernSelect({ options, value, onChange, placeholder = "اختر
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen(o => !o)}
-        style={{
-          width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "10px 14px", borderRadius: RADIUS.xl,
-          border: `1px solid ${error ? COLORS.danger : open ? COLORS.primary : COLORS.border}`,
-          boxShadow: open ? SHADOWS.focus : "none",
-          background: disabled ? "#f8fafc" : COLORS.surface,
-          cursor: disabled ? "not-allowed" : "pointer",
-          fontFamily: FONT, fontSize: 14, color: selected ? COLORS.dark : COLORS.muted,
-          transition: "border-color 0.15s, box-shadow 0.15s",
-          textAlign: "right",
-        }}
+        className={clsx(
+          "w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm text-right outline-none transition-all",
+          disabled ? "bg-gray-50 cursor-not-allowed" : "bg-white cursor-pointer",
+          error
+            ? "border border-red-400 ring-[3px] ring-red-400/10"
+            : open
+              ? "border border-brand-400 ring-[3px] ring-brand-400/10"
+              : "border border-gray-200 hover:border-gray-300",
+          selected ? "text-gray-900" : "text-gray-400",
+        )}
       >
         <span>{selected ? selected.label : placeholder}</span>
         <ChevronDown
           size={16}
-          color={COLORS.muted}
-          style={{ transform: open ? "rotate(180deg)" : "none", transition: "transform 0.2s", flexShrink: 0 }}
+          className={clsx("text-gray-400 shrink-0 transition-transform duration-200", open && "rotate-180")}
         />
       </button>
 
       {open && (
-        <div style={{
-          position: "absolute", top: "calc(100% + 4px)", right: 0, left: 0, zIndex: 50,
-          background: COLORS.surface, borderRadius: RADIUS.xl,
-          border: `1px solid ${COLORS.border}`,
-          boxShadow: SHADOWS.dropdown,
-          overflow: "hidden",
-          animation: "dropdownIn 0.12s ease",
-        }}>
+        <div className="absolute top-[calc(100%+4px)] right-0 left-0 z-50 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
           {options.map(opt => {
             const active = opt.value === value;
             return (
@@ -75,25 +64,22 @@ export function ModernSelect({ options, value, onChange, placeholder = "اختر
                 key={opt.value}
                 type="button"
                 onClick={() => { onChange(opt.value); setOpen(false); }}
-                style={{
-                  width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
-                  padding: "9px 14px", background: active ? `${COLORS.primary}0a` : "transparent",
-                  border: "none", cursor: "pointer", fontFamily: FONT, fontSize: 13,
-                  color: active ? COLORS.primary : COLORS.dark, textAlign: "right",
-                  transition: "background 0.1s",
-                }}
-                onMouseEnter={e => { if (!active) (e.currentTarget as HTMLElement).style.background = "#f8fafc"; }}
-                onMouseLeave={e => { if (!active) (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                className={clsx(
+                  "w-full flex items-center justify-between px-3.5 py-2 text-sm text-right transition-colors",
+                  active
+                    ? "bg-brand-50 text-brand-600"
+                    : "text-gray-800 hover:bg-gray-50",
+                )}
               >
                 <span>{opt.label}</span>
-                {active && <Check size={14} color={COLORS.primary} />}
+                {active && <Check size={14} className="text-brand-500 shrink-0" />}
               </button>
             );
           })}
         </div>
       )}
 
-      {error && <p style={{ fontSize: 12, color: COLORS.danger, marginTop: 4, fontFamily: FONT }}>{error}</p>}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
     </div>
   );
 }

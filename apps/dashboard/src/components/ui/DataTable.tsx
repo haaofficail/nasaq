@@ -1,6 +1,6 @@
 import { useState, ReactNode } from "react";
 import { Search, Plus, Filter } from "lucide-react";
-import { COLORS, TYPOGRAPHY, SHADOWS } from "@/lib/design-tokens";
+import { clsx } from "clsx";
 
 interface Column<T> {
   key: string;
@@ -23,8 +23,6 @@ interface DataTableProps<T> {
   loading?: boolean;
   emptyText?: string;
 }
-
-const FONT = TYPOGRAPHY.family;
 
 export function DataTable<T extends Record<string, any>>({
   title,
@@ -49,50 +47,49 @@ export function DataTable<T extends Record<string, any>>({
   };
 
   return (
-    <div style={{
-      background: COLORS.surface,
-      borderRadius: 14,
-      border: `1px solid ${COLORS.border}`,
-      boxShadow: SHADOWS.card,
-      fontFamily: FONT, direction: "rtl",
-      overflow: "hidden",
-    }}>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
       {/* Header */}
       {(title || onSearch || onAdd || onFilter) && (
-        <div style={{
-          display: "flex", alignItems: "center", justifyContent: "space-between",
-          padding: "14px 18px", borderBottom: `1px solid ${COLORS.border}`,
-          gap: 12, flexWrap: "wrap",
-        }}>
-          {title && <h3 style={{ fontSize: 15, fontWeight: 700, color: COLORS.dark, margin: 0 }}>{title}</h3>}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginRight: title ? "auto" : 0, flexWrap: "wrap" }}>
+        <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 gap-3 flex-wrap">
+          {title && <h3 className="text-[15px] font-bold text-gray-900">{title}</h3>}
+          <div className={clsx("flex items-center gap-2 flex-wrap", title && "mr-auto")}>
             {onSearch && (
-              <div style={{ position: "relative" }}>
-                <Search size={14} style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", color: searchFocused ? COLORS.primary : COLORS.muted, transition: "color 0.15s" }} />
+              <div className="relative">
+                <Search
+                  size={14}
+                  className={clsx(
+                    "absolute right-2.5 top-1/2 -translate-y-1/2 transition-colors",
+                    searchFocused ? "text-brand-400" : "text-gray-400",
+                  )}
+                />
                 <input
                   value={searchVal}
                   onChange={e => handleSearch(e.target.value)}
                   onFocus={() => setSearchFocused(true)}
                   onBlur={() => setSearchFocused(false)}
                   placeholder={searchPlaceholder}
-                  style={{
-                    paddingRight: 32, paddingLeft: 12, paddingTop: 7, paddingBottom: 7,
-                    borderRadius: 9, border: `1px solid ${searchFocused ? COLORS.primary : COLORS.border}`,
-                    boxShadow: searchFocused ? `0 0 0 3px ${COLORS.primary}15` : "none",
-                    fontFamily: FONT, fontSize: 13, color: COLORS.dark, outline: "none",
-                    background: "#fafbfc", transition: "border-color 0.15s, box-shadow 0.15s",
-                    width: 200,
-                  }}
+                  className={clsx(
+                    "pr-8 pl-3 py-1.5 rounded-xl text-[13px] text-gray-900 bg-gray-50 outline-none transition-all w-48 placeholder:text-gray-400",
+                    searchFocused
+                      ? "border border-brand-400 ring-[3px] ring-brand-400/10"
+                      : "border border-gray-200 hover:border-gray-300",
+                  )}
                 />
               </div>
             )}
             {onFilter && (
-              <button onClick={onFilter} style={{ ...toolBtn }}>
+              <button
+                onClick={onFilter}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-[13px] text-gray-500 hover:bg-gray-50 transition-colors"
+              >
                 <Filter size={14} /> فلتر
               </button>
             )}
             {onAdd && (
-              <button onClick={onAdd} style={{ ...addBtn }}>
+              <button
+                onClick={onAdd}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brand-400 text-white text-[13px] font-medium hover:bg-brand-500 transition-colors"
+              >
                 <Plus size={14} /> {addLabel}
               </button>
             )}
@@ -101,16 +98,16 @@ export function DataTable<T extends Record<string, any>>({
       )}
 
       {/* Table */}
-      <div style={{ overflowX: "auto" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
           <thead>
-            <tr style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+            <tr className="border-b border-gray-100">
               {columns.map(col => (
-                <th key={col.key} style={{
-                  textAlign: "right", padding: "10px 18px",
-                  fontSize: 12, fontWeight: 600, color: COLORS.muted,
-                  width: col.width, whiteSpace: "nowrap",
-                }}>
+                <th
+                  key={col.key}
+                  className="text-right px-4 py-2.5 text-xs font-semibold text-gray-400 whitespace-nowrap"
+                  style={col.width ? { width: col.width } : undefined}
+                >
                   {col.label}
                 </th>
               ))}
@@ -121,37 +118,39 @@ export function DataTable<T extends Record<string, any>>({
               Array.from({ length: 4 }).map((_, i) => (
                 <tr key={i}>
                   {columns.map(col => (
-                    <td key={col.key} style={{ padding: "12px 18px" }}>
-                      <div style={{ height: 14, borderRadius: 6, background: "#f1f5f9", animation: "pulse 1.5s infinite" }} />
+                    <td key={col.key} className="px-4 py-3">
+                      <div className="h-3.5 rounded-lg bg-gray-100 animate-pulse" />
                     </td>
                   ))}
                 </tr>
               ))
             ) : data.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} style={{ textAlign: "center", padding: "48px 18px", color: COLORS.muted, fontSize: 13 }}>
+                <td colSpan={columns.length} className="text-center px-4 py-12 text-[13px] text-gray-400">
                   {emptyText}
                 </td>
               </tr>
             ) : (
-              data.map((row, i) => (
+              data.map((row, i) =>
                 renderRow ? (
                   <tr key={keyExtractor ? keyExtractor(row) : i}>{renderRow(row, i)}</tr>
                 ) : (
                   <tr
                     key={keyExtractor ? keyExtractor(row) : i}
-                    style={{ borderBottom: `1px solid ${COLORS.border}`, transition: "background 0.1s" }}
-                    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = "#fafbfc"; }}
-                    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = "transparent"; }}
+                    className="border-b border-gray-100 hover:bg-gray-50/60 transition-colors"
                   >
                     {columns.map(col => (
-                      <td key={col.key} style={{ padding: "12px 18px", fontSize: 13, color: COLORS.dark, verticalAlign: "middle" }}>
+                      <td
+                        key={col.key}
+                        className="px-4 py-3 text-[13px] text-gray-800 align-middle"
+                        style={col.width ? { width: col.width } : undefined}
+                      >
                         {col.render ? col.render(row) : row[col.key]}
                       </td>
                     ))}
                   </tr>
                 )
-              ))
+              )
             )}
           </tbody>
         </table>
@@ -159,20 +158,3 @@ export function DataTable<T extends Record<string, any>>({
     </div>
   );
 }
-
-const toolBtn: React.CSSProperties = {
-  display: "inline-flex", alignItems: "center", gap: 5,
-  padding: "7px 12px", borderRadius: 9,
-  border: `1px solid ${COLORS.border}`,
-  background: "transparent", cursor: "pointer",
-  fontFamily: TYPOGRAPHY.family, fontSize: 13, color: COLORS.muted,
-  transition: "background 0.15s",
-};
-
-const addBtn: React.CSSProperties = {
-  display: "inline-flex", alignItems: "center", gap: 5,
-  padding: "7px 14px", borderRadius: 9,
-  border: "none", background: COLORS.primary,
-  cursor: "pointer", fontFamily: TYPOGRAPHY.family, fontSize: 13, color: "#fff",
-  fontWeight: 500, transition: "background 0.15s",
-};

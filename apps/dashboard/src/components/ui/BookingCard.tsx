@@ -1,4 +1,4 @@
-import { COLORS, TYPOGRAPHY, SHADOWS } from "@/lib/design-tokens";
+import { clsx } from "clsx";
 import { StatusBadge } from "./StatusBadge";
 
 interface BookingCardProps {
@@ -10,62 +10,34 @@ interface BookingCardProps {
   onClick?: () => void;
 }
 
-const FONT = TYPOGRAPHY.family;
-
 export function BookingCard({ name, service, time, status, avatar, onClick }: BookingCardProps) {
   const initials = name.split(" ").slice(0, 2).map(w => w[0]).join("");
 
   return (
     <div
       onClick={onClick}
-      style={{
-        display: "flex", alignItems: "center", gap: 12,
-        padding: "12px 14px",
-        background: COLORS.surface,
-        borderRadius: 12,
-        border: `1px solid ${COLORS.border}`,
-        boxShadow: SHADOWS.card,
-        cursor: onClick ? "pointer" : "default",
-        transition: "border-color 0.15s, box-shadow 0.15s",
-        fontFamily: FONT, direction: "rtl",
-      }}
-      onMouseEnter={e => {
-        if (onClick) {
-          (e.currentTarget as HTMLElement).style.borderColor = COLORS.primary;
-          (e.currentTarget as HTMLElement).style.boxShadow = SHADOWS.cardHover;
-        }
-      }}
-      onMouseLeave={e => {
-        (e.currentTarget as HTMLElement).style.borderColor = COLORS.border;
-        (e.currentTarget as HTMLElement).style.boxShadow = SHADOWS.card;
-      }}
+      className={clsx(
+        "flex items-center gap-3 px-3.5 py-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all",
+        onClick && "cursor-pointer hover:border-brand-300 hover:shadow-md",
+      )}
     >
       {/* Avatar */}
-      <div style={{
-        width: 42, height: 42, borderRadius: 12, flexShrink: 0,
-        background: avatar ? undefined : `linear-gradient(135deg, ${COLORS.primary}33, ${COLORS.primary}66)`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        overflow: "hidden",
-      }}>
+      <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center overflow-hidden bg-gradient-to-br from-brand-100 to-brand-200">
         {avatar
-          ? <img src={avatar} alt={name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          : <span style={{ fontSize: 15, fontWeight: 700, color: COLORS.primary, fontFamily: FONT }}>{initials}</span>
+          ? <img src={avatar} alt={name} className="w-full h-full object-cover" />
+          : <span className="text-[15px] font-bold text-brand-600">{initials}</span>
         }
       </div>
 
       {/* Info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ fontSize: 13, fontWeight: 600, color: COLORS.dark, margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {name}
-        </p>
-        <p style={{ fontSize: 12, color: COLORS.muted, margin: 0, marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {service}
-        </p>
+      <div className="flex-1 min-w-0">
+        <p className="text-[13px] font-semibold text-gray-900 truncate">{name}</p>
+        <p className="text-xs text-gray-400 mt-0.5 truncate">{service}</p>
       </div>
 
       {/* Right side */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
-        <span style={{ fontSize: 12, color: COLORS.muted, fontVariantNumeric: "tabular-nums" }}>{time}</span>
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        <span className="text-xs text-gray-400 tabular-nums">{time}</span>
         <StatusBadge status={status} size="sm" />
       </div>
     </div>

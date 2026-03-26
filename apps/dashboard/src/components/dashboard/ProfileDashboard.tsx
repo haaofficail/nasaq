@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { clsx } from "clsx";
-import { Plus, Settings2, CreditCard, Hash, Clock, Users, TrendingUp, CalendarCheck, Copy, Check, ExternalLink, BookOpen, Receipt, UserPlus } from "lucide-react";
+import { Plus, Settings2, CreditCard, Hash, Clock, Users, TrendingUp, CalendarCheck, Copy, Check, ExternalLink, BookOpen, Receipt, UserPlus, ChevronLeft } from "lucide-react";
 import type { DashboardProfile, Role, WidgetConfig, QuickActionModal } from "@/lib/dashboardProfiles";
 import { useDashboardPrefs } from "@/hooks/useDashboardPrefs";
 import { passesContextGate } from "@/lib/widgetRegistry";
@@ -138,7 +138,7 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
             </span>
           )}
 
-          <span className="mr-auto text-xs text-gray-300 group-hover:text-brand-400 transition-colors">←</span>
+          <ChevronLeft className="mr-auto w-3.5 h-3.5 text-gray-300 group-hover:text-brand-400 transition-colors shrink-0" />
         </Link>
       )}
 
@@ -146,7 +146,7 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900">
-            مرحباً{user.name ? ` ${user.name}` : ""} 👋
+            مرحباً{user.name ? ` ${user.name}` : ""}
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">
             {new Date().toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
@@ -190,7 +190,7 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
 
       {/* ── Monthly stats bar ── */}
       {stats && (
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {[
             { label: "عملاء الشهر",   value: stats.newCustomersThisMonth, icon: Users,         color: "text-violet-600", bg: "bg-violet-50" },
             { label: "مبيعات الشهر",  value: `${Number(stats.salesThisMonth).toLocaleString("en-US")} ر.س`, icon: TrendingUp, color: "text-emerald-600", bg: "bg-emerald-50" },

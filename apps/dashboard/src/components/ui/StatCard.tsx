@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { TrendingUp, TrendingDown } from "lucide-react";
-import { COLORS, TYPOGRAPHY, SHADOWS } from "@/lib/design-tokens";
+import { clsx } from "clsx";
 
 interface StatCardProps {
   icon: ReactNode;
@@ -11,43 +11,21 @@ interface StatCardProps {
   unit?: string;
 }
 
-const FONT = TYPOGRAPHY.family;
-
 export function StatCard({ icon, label, value, change, changeType, unit }: StatCardProps) {
   const isUp = changeType === "up" || (change !== undefined && change > 0);
 
   return (
-    <div style={{
-      background: COLORS.surface,
-      borderRadius: 14,
-      border: `1px solid ${COLORS.border}`,
-      boxShadow: SHADOWS.card,
-      padding: "18px 20px",
-      fontFamily: FONT,
-      direction: "rtl",
-      display: "flex", flexDirection: "column", gap: 12,
-      transition: "box-shadow 0.15s",
-    }}
-    onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = SHADOWS.cardHover; }}
-    onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = SHADOWS.card; }}
-    >
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all px-5 py-4 flex flex-col gap-3">
       {/* Top row */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
-        <div style={{
-          width: 36, height: 36, borderRadius: 10,
-          background: `${COLORS.primary}10`,
-          display: "flex", alignItems: "center", justifyContent: "center",
-          color: COLORS.primary, flexShrink: 0,
-        }}>
+      <div className="flex items-start justify-between">
+        <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center text-brand-400 shrink-0">
           {icon}
         </div>
         {change !== undefined && (
-          <span style={{
-            display: "inline-flex", alignItems: "center", gap: 3,
-            padding: "3px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600,
-            background: isUp ? COLORS.successBg : COLORS.dangerBg,
-            color: isUp ? COLORS.successText : COLORS.dangerText,
-          }}>
+          <span className={clsx(
+            "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold",
+            isUp ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600",
+          )}>
             {isUp ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
             {Math.abs(change)}%
           </span>
@@ -56,17 +34,13 @@ export function StatCard({ icon, label, value, change, changeType, unit }: StatC
 
       {/* Value + label */}
       <div>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-          <span style={{
-            fontSize: 24, fontWeight: 700, color: COLORS.dark,
-            fontVariantNumeric: "tabular-nums", letterSpacing: -0.5,
-            lineHeight: 1,
-          }}>
+        <div className="flex items-baseline gap-1">
+          <span className="text-2xl font-bold text-gray-900 tabular-nums tracking-tight leading-none">
             {typeof value === "number" ? value.toLocaleString("en-US") : value}
           </span>
-          {unit && <span style={{ fontSize: 12, color: COLORS.muted }}>{unit}</span>}
+          {unit && <span className="text-xs text-gray-400">{unit}</span>}
         </div>
-        <p style={{ fontSize: 12, color: COLORS.muted, marginTop: 4, marginBottom: 0 }}>{label}</p>
+        <p className="text-xs text-gray-400 mt-1">{label}</p>
       </div>
     </div>
   );

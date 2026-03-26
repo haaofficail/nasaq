@@ -6,16 +6,29 @@ import { Users, AlertCircle, UserCheck, UserX, Trash2, Save, Phone, Briefcase, P
 import { membersApi, jobTitlesApi, staffApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { Modal, Input, ModernInput, ModernSelect, PageHeader, Button } from "@/components/ui";
-import { ROLE_COLORS, EMPLOYMENT_TYPE_COLORS } from "@/lib/design-tokens";
 import { RolesPage } from "./RolesPage";
 import { AttendancePage } from "./AttendancePage";
 import { CommissionsPage } from "./CommissionsPage";
 
-const MEMBER_STATUS_MAP: Record<string, { label: string; bg: string; color: string; dot: string }> = {
-  active:    { label: "نشط",     bg: "#ecfdf5", color: "#059669", dot: "#22c55e" },
-  inactive:  { label: "غير نشط", bg: "#f1f5f9", color: "#64748b", dot: "#94a3b8" },
-  suspended: { label: "موقوف",   bg: "#fef2f2", color: "#dc2626", dot: "#ef4444" },
-  pending:   { label: "معلق",    bg: "#fffbeb", color: "#d97706", dot: "#f59e0b" },
+const MEMBER_STATUS_BADGE: Record<string, { badge: string; dot: string; label: string }> = {
+  active:    { badge: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-500", label: "نشط" },
+  inactive:  { badge: "bg-gray-100 text-gray-500",     dot: "bg-gray-400",    label: "غير نشط" },
+  suspended: { badge: "bg-red-50 text-red-700",        dot: "bg-red-500",     label: "موقوف" },
+  pending:   { badge: "bg-amber-50 text-amber-700",    dot: "bg-amber-500",   label: "معلق" },
+};
+
+const ROLE_BADGE: Record<string, string> = {
+  owner:     "bg-purple-50 text-purple-700",
+  manager:   "bg-blue-50 text-blue-700",
+  provider:  "bg-teal-50 text-teal-700",
+  employee:  "bg-gray-100 text-gray-600",
+  reception: "bg-sky-50 text-sky-700",
+};
+
+const EMP_BADGE: Record<string, { badge: string; label: string }> = {
+  internal:   { badge: "bg-brand-50 text-brand-600",   label: "موظف داخلي" },
+  freelance:  { badge: "bg-violet-50 text-violet-700", label: "مستقل" },
+  outsourced: { badge: "bg-amber-50 text-amber-700",   label: "جهة خارجية" },
 };
 
 const SYSTEM_ROLE_LABELS: Record<string, string> = {
@@ -339,9 +352,9 @@ function MembersTab() {
             </thead>
             <tbody>
               {members.map((row: any) => {
-                const st = MEMBER_STATUS_MAP[row.member.status] || MEMBER_STATUS_MAP.active;
-                const roleColor = ROLE_COLORS[row.jobTitle?.systemRole as keyof typeof ROLE_COLORS];
-                const empColor  = EMPLOYMENT_TYPE_COLORS[row.member.employmentType as keyof typeof EMPLOYMENT_TYPE_COLORS];
+                const st        = MEMBER_STATUS_BADGE[row.member.status] || MEMBER_STATUS_BADGE.active;
+                const roleBadge = ROLE_BADGE[row.jobTitle?.systemRole];
+                const empBadge  = EMP_BADGE[row.member.employmentType];
                 return (
                   <tr key={row.member.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors">
                     {/* Member */}
@@ -364,9 +377,8 @@ function MembersTab() {
                         <div className="flex items-center gap-2">
                           <Briefcase className="w-3.5 h-3.5 text-gray-400" />
                           <span className="text-sm text-gray-700">{row.jobTitle.name}</span>
-                          {roleColor && (
-                            <span className="px-2 py-0.5 rounded-full text-[11px] font-medium"
-                              style={{ background: roleColor.bg, color: roleColor.color }}>
+                          {roleBadge && (
+                            <span className={clsx("px-2 py-0.5 rounded-full text-[11px] font-medium", roleBadge)}>
                               {SYSTEM_ROLE_LABELS[row.jobTitle.systemRole]}
                             </span>
                           )}
@@ -377,10 +389,9 @@ function MembersTab() {
                     </td>
                     {/* Employment type */}
                     <td className="py-3.5 px-5">
-                      {empColor ? (
-                        <span className="px-2 py-0.5 rounded-full text-[11px] font-medium"
-                          style={{ background: empColor.bg, color: empColor.color }}>
-                          {empColor.label}
+                      {empBadge ? (
+                        <span className={clsx("px-2 py-0.5 rounded-full text-[11px] font-medium", empBadge.badge)}>
+                          {empBadge.label}
                         </span>
                       ) : (
                         <span className="text-sm text-gray-400">{row.member.employmentType}</span>
@@ -388,9 +399,8 @@ function MembersTab() {
                     </td>
                     {/* Status */}
                     <td className="py-3.5 px-5">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium"
-                        style={{ background: st.bg, color: st.color }}>
-                        <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: st.dot }} />
+                      <span className={clsx("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium", st.badge)}>
+                        <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0", st.dot)} />
                         {st.label}
                       </span>
                     </td>

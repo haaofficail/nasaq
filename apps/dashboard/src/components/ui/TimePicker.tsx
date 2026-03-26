@@ -1,5 +1,9 @@
 import { useState, useCallback } from "react";
-import { COLORS, TYPOGRAPHY, RADIUS } from "@/lib/design-tokens";
+import { clsx } from "clsx";
+
+// Brand color hex — used only for SVG attributes (fill/stroke) which don't accept Tailwind classes
+const BRAND = "#5b9bd5";
+const BORDER_COLOR = "#e2e8f0";
 
 interface TimePickerProps {
   value: string;
@@ -7,10 +11,9 @@ interface TimePickerProps {
   format?: "12" | "24";
 }
 
-const FONT = TYPOGRAPHY.family;
-const SIZE = 220;
-const CX = SIZE / 2;
-const CY = SIZE / 2;
+const SIZE   = 220;
+const CX     = SIZE / 2;
+const CY     = SIZE / 2;
 const HAND_R = 75;
 const NUM_R  = 85;
 
@@ -21,9 +24,9 @@ export function TimePicker({ value, onChange, format = "12" }: TimePickerProps) 
   };
 
   const { hours: initH, minutes: initM } = parseTime(value);
-  const [mode, setMode]     = useState<"hours" | "minutes">("hours");
-  const [period, setPeriod] = useState<"AM" | "PM">(initH >= 12 ? "PM" : "AM");
-  const [hours, setHours]   = useState(format === "12" ? (initH % 12 || 12) : initH);
+  const [mode, setMode]       = useState<"hours" | "minutes">("hours");
+  const [period, setPeriod]   = useState<"AM" | "PM">(initH >= 12 ? "PM" : "AM");
+  const [hours, setHours]     = useState(format === "12" ? (initH % 12 || 12) : initH);
   const [minutes, setMinutes] = useState(initM);
 
   const emitChange = useCallback((h: number, m: number, p: "AM" | "PM") => {
@@ -78,27 +81,33 @@ export function TimePicker({ value, onChange, format = "12" }: TimePickerProps) 
   const handY = CY + HAND_R * Math.sin((activeAngle * Math.PI) / 180);
 
   return (
-    <div style={{ fontFamily: FONT, direction: "rtl", display: "inline-flex", flexDirection: "column", alignItems: "center", gap: 12 }}>
-
+    <div className="inline-flex flex-col items-center gap-3">
       {/* Time display */}
-      <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 38, fontWeight: 600, fontVariantNumeric: "tabular-nums", letterSpacing: -1 }}>
-        <span onClick={() => setMode("hours")} style={{ cursor: "pointer", color: mode === "hours" ? COLORS.primary : COLORS.dark, transition: "color 0.15s" }}>
+      <div className="flex items-center gap-1 text-[38px] font-semibold tabular-nums tracking-tight">
+        <span
+          onClick={() => setMode("hours")}
+          className={clsx("cursor-pointer transition-colors", mode === "hours" ? "text-brand-400" : "text-gray-900")}
+        >
           {displayH}
         </span>
-        <span style={{ color: COLORS.muted }}>:</span>
-        <span onClick={() => setMode("minutes")} style={{ cursor: "pointer", color: mode === "minutes" ? COLORS.primary : COLORS.dark, transition: "color 0.15s" }}>
+        <span className="text-gray-400">:</span>
+        <span
+          onClick={() => setMode("minutes")}
+          className={clsx("cursor-pointer transition-colors", mode === "minutes" ? "text-brand-400" : "text-gray-900")}
+        >
           {displayM}
         </span>
         {format === "12" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 2, marginRight: 8 }}>
+          <div className="flex flex-col gap-0.5 mr-2">
             {(["AM", "PM"] as const).map((p) => (
-              <button key={p} onClick={() => handlePeriod(p)} style={{
-                fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 8,
-                border: "none", cursor: "pointer", fontFamily: FONT,
-                background: period === p ? COLORS.primary : COLORS.border,
-                color: period === p ? "#fff" : COLORS.muted,
-                transition: "all 0.15s",
-              }}>
+              <button
+                key={p}
+                onClick={() => handlePeriod(p)}
+                className={clsx(
+                  "text-[11px] font-semibold px-2 py-0.5 rounded-lg transition-all border-0",
+                  period === p ? "bg-brand-400 text-white" : "bg-gray-200 text-gray-500",
+                )}
+              >
                 {p === "AM" ? "ص" : "م"}
               </button>
             ))}
@@ -106,11 +115,11 @@ export function TimePicker({ value, onChange, format = "12" }: TimePickerProps) 
         )}
       </div>
 
-      {/* Clock face SVG */}
-      <svg width={SIZE} height={SIZE} onClick={handleClockClick} style={{ cursor: "pointer" }}>
-        <circle cx={CX} cy={CY} r={CX - 2} fill="#f8fafc" stroke={COLORS.border} strokeWidth={1} />
-        <line x1={CX} y1={CY} x2={handX} y2={handY} stroke={COLORS.primary} strokeWidth={2} strokeLinecap="round" />
-        <circle cx={CX} cy={CY} r={4} fill={COLORS.primary} />
+      {/* Clock face SVG — fill/stroke are SVG attrs, must use hex */}
+      <svg width={SIZE} height={SIZE} onClick={handleClockClick} className="cursor-pointer">
+        <circle cx={CX} cy={CY} r={CX - 2} fill="#f8fafc" stroke={BORDER_COLOR} strokeWidth={1} />
+        <line x1={CX} y1={CY} x2={handX} y2={handY} stroke={BRAND} strokeWidth={2} strokeLinecap="round" />
+        <circle cx={CX} cy={CY} r={4} fill={BRAND} />
         {items.map((num, i) => {
           const angle = (i / items.length) * 360 - 90;
           const rad   = (angle * Math.PI) / 180;
@@ -119,28 +128,32 @@ export function TimePicker({ value, onChange, format = "12" }: TimePickerProps) 
           const on    = num === activeVal;
           return (
             <g key={num}>
-              {on && <circle cx={nx} cy={ny} r={16} fill={COLORS.primary} />}
-              <text x={nx} y={ny} textAnchor="middle" dominantBaseline="central"
-                fontSize={13} fontWeight={on ? 600 : 400} fontFamily={FONT}
-                fill={on ? "#fff" : COLORS.dark} style={{ userSelect: "none" as const }}>
+              {on && <circle cx={nx} cy={ny} r={16} fill={BRAND} />}
+              <text
+                x={nx} y={ny} textAnchor="middle" dominantBaseline="central"
+                fontSize={13} fontWeight={on ? 600 : 400}
+                fill={on ? "#fff" : "#1a1a2e"}
+                style={{ userSelect: "none" }}
+              >
                 {String(num).padStart(2, "0")}
               </text>
             </g>
           );
         })}
-        <circle cx={handX} cy={handY} r={4} fill="#fff" stroke={COLORS.primary} strokeWidth={2} />
+        <circle cx={handX} cy={handY} r={4} fill="#fff" stroke={BRAND} strokeWidth={2} />
       </svg>
 
       {/* Mode switcher */}
-      <div style={{ display: "flex", gap: 6 }}>
+      <div className="flex gap-1.5">
         {(["hours", "minutes"] as const).map((m) => (
-          <button key={m} onClick={() => setMode(m)} style={{
-            fontSize: 12, fontWeight: 500, padding: "4px 14px",
-            borderRadius: RADIUS.full, border: "none", cursor: "pointer", fontFamily: FONT,
-            background: mode === m ? COLORS.primary : COLORS.border,
-            color: mode === m ? "#fff" : COLORS.muted,
-            transition: "all 0.15s",
-          }}>
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={clsx(
+              "text-xs font-medium px-3.5 py-1 rounded-full transition-all border-0",
+              mode === m ? "bg-brand-400 text-white" : "bg-gray-200 text-gray-500",
+            )}
+          >
             {m === "hours" ? "الساعة" : "الدقائق"}
           </button>
         ))}

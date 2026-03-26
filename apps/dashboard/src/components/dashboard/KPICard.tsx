@@ -1,8 +1,6 @@
+import { clsx } from "clsx";
 import { useApi } from "@/hooks/useApi";
 import type { KPIConfig } from "@/lib/dashboardProfiles";
-import { COLORS, SHADOWS, TYPOGRAPHY } from "@/lib/design-tokens";
-
-const FONT = TYPOGRAPHY.family;
 
 interface KPICardProps {
   config: KPIConfig;
@@ -13,50 +11,25 @@ export function KPICard({ config }: KPICardProps) {
   const value = data != null ? config.transform(data) : null;
 
   return (
-    <div
-      style={{
-        background: COLORS.surface,
-        borderRadius: 14,
-        border: `1px solid ${COLORS.border}`,
-        boxShadow: SHADOWS.card,
-        padding: "16px 18px",
-        fontFamily: FONT,
-        direction: "rtl",
-        transition: "box-shadow 0.15s",
-        display: "flex",
-        flexDirection: "column",
-        gap: 10,
-      }}
-      onMouseEnter={e => { (e.currentTarget as HTMLElement).style.boxShadow = SHADOWS.cardHover; }}
-      onMouseLeave={e => { (e.currentTarget as HTMLElement).style.boxShadow = SHADOWS.card; }}
-    >
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all px-4 py-4 flex flex-col gap-2.5 direction-rtl">
       {/* Icon */}
-      <div style={{
-        width: 36, height: 36, borderRadius: 10,
-        background: `${COLORS.primary}12`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        color: COLORS.primary, flexShrink: 0,
-      }}>
-        <config.icon size={18} />
+      <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", config.bg)}>
+        <config.icon className={clsx("w-4.5 h-4.5", config.iconColor)} />
       </div>
 
       {/* Value */}
       {loading ? (
-        <div style={{ height: 28, width: 80, borderRadius: 6, background: "#f1f5f9", animation: "pulse 1.5s infinite" }} />
+        <div className="h-7 w-20 rounded-lg bg-gray-100 animate-pulse" />
       ) : (
-        <p style={{
-          fontSize: 24, fontWeight: 700, color: COLORS.dark,
-          fontVariantNumeric: "tabular-nums", letterSpacing: -0.5,
-          margin: 0, lineHeight: 1,
-        }}>
+        <p className="text-2xl font-bold text-gray-900 tabular-nums tracking-tight leading-none">
           {value}
         </p>
       )}
 
       {/* Label */}
-      <p style={{ fontSize: 12, color: COLORS.muted, margin: 0 }}>
+      <p className="text-xs text-gray-400">
         {config.label}
-        {config.unit && <span style={{ marginRight: 3 }}>· {config.unit}</span>}
+        {config.unit && <span className="mr-1">· {config.unit}</span>}
       </p>
     </div>
   );

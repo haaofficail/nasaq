@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, AlignJustify, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image } from "lucide-react";
+import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, AlignJustify, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image, Wrench, Home, Package, Truck, Gift, FileText, Star, ShoppingBag, CalendarCheck } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi, membersApi, inventoryApi, settingsApi } from "@/lib/api";
 import { DurationInput } from "@/components/ui/DurationInput";
@@ -18,18 +18,18 @@ function parseDur(mins: number): { v: string; u: DurationUnit } {
   return { v: String(mins), u: "minute" };
 }
 
-const SERVICE_TYPES = [
-  { value: "appointment",      label: "بموعد",         icon: "🗓" },
-  { value: "execution",        label: "تنفيذ",          icon: "🔧" },
-  { value: "field_service",    label: "ميداني",         icon: "📍" },
-  { value: "rental",           label: "تأجير",          icon: "🏠" },
-  { value: "event_rental",     label: "تأجير فعالية",   icon: "⛺" },
-  { value: "product",          label: "منتج",           icon: "📦" },
-  { value: "product_shipping", label: "شحن",            icon: "🚚" },
-  { value: "food_order",       label: "طعام",           icon: "🍽" },
-  { value: "package",          label: "باقة",           icon: "🎁" },
-  { value: "add_on",           label: "إضافة",          icon: "➕" },
-  { value: "project",          label: "مشروع",          icon: "📋" },
+const SERVICE_TYPES: { value: string; label: string; icon: React.ElementType }[] = [
+  { value: "appointment",      label: "بموعد",         icon: CalendarCheck },
+  { value: "execution",        label: "تنفيذ",          icon: Wrench },
+  { value: "field_service",    label: "ميداني",         icon: MapPin },
+  { value: "rental",           label: "تأجير",          icon: Home },
+  { value: "event_rental",     label: "تأجير فعالية",   icon: Star },
+  { value: "product",          label: "منتج",           icon: Package },
+  { value: "product_shipping", label: "شحن",            icon: Truck },
+  { value: "food_order",       label: "طعام",           icon: ShoppingBag },
+  { value: "package",          label: "باقة",           icon: Gift },
+  { value: "add_on",           label: "إضافة",          icon: Plus },
+  { value: "project",          label: "مشروع",          icon: FileText },
 ];
 
 const NEEDS_TIMING   = new Set(["appointment","execution","field_service","rental","event_rental","project"]);
@@ -38,19 +38,21 @@ const NEEDS_CAPACITY = new Set(["event_rental","package","food_order","rental"])
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type Form = {
-  serviceType: string; name: string; categoryId: string;
+  serviceType: string; name: string; nameEn: string; categoryId: string;
   shortDescription: string; description: string;
-  basePrice: string; durationValue: string; durationUnit: DurationUnit; status: string;
-  vatInclusive: boolean; maxCapacity: string;
+  basePrice: string; servicePricingMode: string;
+  durationValue: string; durationUnit: DurationUnit; status: string;
+  vatInclusive: boolean; maxCapacity: string; isFeatured: boolean;
   depositPercent: string; minAdvanceHours: string; maxAdvanceDays: string;
   bufferBeforeMinutes: string; bufferAfterMinutes: string; cancellationFreeHours: string;
   isBookable: boolean; isVisibleInPOS: boolean; isVisibleOnline: boolean;
 };
 
 const INIT: Form = {
-  serviceType: "", name: "", categoryId: "", shortDescription: "", description: "",
-  basePrice: "", durationValue: "60", durationUnit: "minute", status: "active",
-  vatInclusive: true, maxCapacity: "",
+  serviceType: "", name: "", nameEn: "", categoryId: "", shortDescription: "", description: "",
+  basePrice: "", servicePricingMode: "fixed",
+  durationValue: "60", durationUnit: "minute", status: "active",
+  vatInclusive: true, maxCapacity: "", isFeatured: false,
   depositPercent: "30", minAdvanceHours: "", maxAdvanceDays: "",
   bufferBeforeMinutes: "0", bufferAfterMinutes: "0", cancellationFreeHours: "24",
   isBookable: true, isVisibleInPOS: true, isVisibleOnline: true,
@@ -90,7 +92,8 @@ const INIT_COMP: ComponentDraft = { sourceType: "manual", inventoryItemId: "", n
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const iCls = "w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300";
+const iCls = "w-full border border-gray-200 h-10 rounded-xl px-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300";
+const taCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300 resize-none";
 
 function Err({ msg }: { msg?: string }) {
   if (!msg) return null;
@@ -172,15 +175,18 @@ export function ServiceFormPage() {
         setForm({
           serviceType:           s.serviceType || "appointment",
           name:                  s.name || "",
+          nameEn:                s.nameEn || "",
           categoryId:            s.categoryId || "",
           shortDescription:      s.shortDescription || "",
           description:           s.description || "",
           basePrice:             s.basePrice ? String(s.basePrice) : "",
+          servicePricingMode:    s.servicePricingMode || "fixed",
           durationValue:         dur.v,
           durationUnit:          dur.u,
           status:                s.status || "active",
           vatInclusive:          s.vatInclusive ?? true,
           maxCapacity:           s.maxCapacity ? String(s.maxCapacity) : "",
+          isFeatured:            s.isFeatured ?? false,
           depositPercent:        s.depositPercent ? String(s.depositPercent) : "30",
           minAdvanceHours:       s.minAdvanceHours ? String(s.minAdvanceHours) : "",
           maxAdvanceDays:        s.maxAdvanceDays  ? String(s.maxAdvanceDays)  : "",
@@ -280,10 +286,13 @@ export function ServiceFormPage() {
 
       const baseInfo = {
         name: form.name,
+        nameEn: form.nameEn || undefined,
         categoryId: form.categoryId || undefined,
         shortDescription: form.shortDescription || undefined,
         description: form.description || undefined,
         basePrice: form.basePrice,
+        servicePricingMode: form.servicePricingMode as "fixed" | "from_price" | "variable",
+        isFeatured: form.isFeatured,
         status: form.status,
         allowedLocationIds: allowedBranches,
         ...(durationMinutes ? { durationMinutes } : {}),
@@ -450,22 +459,25 @@ export function ServiceFormPage() {
               </p>
             )}
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-              {SERVICE_TYPES.map(t => (
-                <button key={t.value} type="button"
-                  onClick={() => { setForm(f => ({ ...f, serviceType: t.value })); setErrors(p => ({ ...p, serviceType: "" })); }}
-                  className={clsx(
-                    "flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl border text-center transition-all hover:border-brand-300 hover:bg-brand-50/40",
-                    form.serviceType === t.value
-                      ? "border-brand-500 bg-brand-50"
-                      : "border-gray-100 bg-white"
-                  )}
-                >
-                  <span className="text-xl leading-none">{t.icon}</span>
-                  <span className={clsx("text-[11px] font-medium leading-tight",
-                    form.serviceType === t.value ? "text-brand-700" : "text-gray-600"
-                  )}>{t.label}</span>
-                </button>
-              ))}
+              {SERVICE_TYPES.map(t => {
+                const Icon = t.icon;
+                return (
+                  <button key={t.value} type="button"
+                    onClick={() => { setForm(f => ({ ...f, serviceType: t.value })); setErrors(p => ({ ...p, serviceType: "" })); }}
+                    className={clsx(
+                      "flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl border text-center transition-all hover:border-brand-300 hover:bg-brand-50/40",
+                      form.serviceType === t.value
+                        ? "border-brand-500 bg-brand-50"
+                        : "border-gray-100 bg-white"
+                    )}
+                  >
+                    <Icon className={clsx("w-5 h-5", form.serviceType === t.value ? "text-brand-500" : "text-gray-400")} />
+                    <span className={clsx("text-[11px] font-medium leading-tight",
+                      form.serviceType === t.value ? "text-brand-700" : "text-gray-600"
+                    )}>{t.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -479,10 +491,10 @@ export function ServiceFormPage() {
               <div className="space-y-3">
                 {selType && (isEdit || typeAlreadyPicked) && (
                   <div>
-                    <label className="text-xs font-medium text-gray-500 block mb-1.5">نوع الخدمة</label>
+                    <label className="text-xs font-medium text-gray-700 block mb-1.5">نوع الخدمة</label>
                     <div className="flex items-center gap-2">
                       <span className="inline-flex items-center gap-1.5 bg-brand-50 text-brand-700 text-xs font-medium px-3 py-1.5 rounded-lg">
-                        <span>{selType.icon}</span>{selType.label}
+                        {(() => { const Icon = selType.icon; return <Icon className="w-3.5 h-3.5" />; })()}{selType.label}
                       </span>
                       {!isEdit && (
                         <button onClick={() => navigate(-1)}
@@ -494,15 +506,21 @@ export function ServiceFormPage() {
                   </div>
                 )}
                 <div>
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">اسم الخدمة <span className="text-red-400">*</span></label>
+                  <label className="text-xs font-medium text-gray-700 block mb-1.5">اسم الخدمة <span className="text-red-400">*</span></label>
                   <input autoFocus={!isEdit} value={form.name} onChange={upd("name")}
                     placeholder="مثال: حجز جلسة تصوير"
                     className={clsx(iCls, errors.name && "border-red-300")} />
                   <Err msg={errors.name} />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    الوصف المختصر <span className="text-gray-400 font-normal">(يظهر في الكروت)</span>
+                  <label className="text-xs font-medium text-gray-700 block mb-1.5">الاسم بالإنجليزية <span className="text-gray-400 font-normal text-[11px]">(اختياري)</span></label>
+                  <input value={form.nameEn} onChange={upd("nameEn")} dir="ltr"
+                    placeholder="e.g. Photography Session"
+                    className={iCls} />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1.5">
+                    الوصف المختصر <span className="text-gray-400 font-normal text-[11px]">(يظهر في الكروت)</span>
                   </label>
                   <input value={form.shortDescription} onChange={upd("shortDescription")} maxLength={150}
                     placeholder="جملة أو جملتين تصف الخدمة بإيجاز..."
@@ -510,12 +528,12 @@ export function ServiceFormPage() {
                   <p className="text-[10px] text-gray-400 mt-0.5 text-left" dir="ltr">{form.shortDescription.length}/150</p>
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                    الوصف التفصيلي <span className="text-gray-400 font-normal">(اختياري)</span>
+                  <label className="text-xs font-medium text-gray-700 block mb-1.5">
+                    الوصف التفصيلي <span className="text-gray-400 font-normal text-[11px]">(اختياري)</span>
                   </label>
                   <textarea value={form.description} onChange={upd("description")} rows={4}
                     placeholder="تفاصيل الخدمة، ما تشمل، الشروط والأحكام..."
-                    className={clsx(iCls, "resize-none")} />
+                    className={taCls} />
                 </div>
               </div>
             </div>
@@ -524,9 +542,27 @@ export function ServiceFormPage() {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
               <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">السعر والوقت</h2>
               <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-gray-700 block mb-1.5">طريقة التسعير</label>
+                  <div className="flex gap-0.5 bg-gray-100 rounded-xl p-0.5 w-fit">
+                    {[
+                      { v: "fixed",      l: "سعر ثابت" },
+                      { v: "from_price", l: "يبدأ من" },
+                      { v: "variable",   l: "متغير" },
+                    ].map(pm => (
+                      <button key={pm.v} type="button"
+                        onClick={() => setForm(f => ({ ...f, servicePricingMode: pm.v }))}
+                        className={clsx("px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all",
+                          form.servicePricingMode === pm.v ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                        )}>{pm.l}</button>
+                    ))}
+                  </div>
+                </div>
                 <div className="flex flex-wrap gap-4">
                   <div className="w-40">
-                    <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">السعر (ر.س) <span className="text-red-400">*</span></label>
+                    <label className="text-xs font-medium text-gray-700 block mb-1.5">
+                      {form.servicePricingMode === "from_price" ? "السعر يبدأ من (ر.س)" : "السعر (ر.س)"} <span className="text-red-400">*</span>
+                    </label>
                     <input type="number" min={0} value={form.basePrice} onChange={upd("basePrice")}
                       placeholder="0.00" dir="ltr"
                       className={clsx(iCls, errors.basePrice && "border-red-300")} />
@@ -534,7 +570,7 @@ export function ServiceFormPage() {
                   </div>
                   {needsTiming && (
                     <div>
-                      <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">المدة <span className="text-red-400">*</span></label>
+                      <label className="text-xs font-medium text-gray-700 block mb-1.5">المدة <span className="text-red-400">*</span></label>
                       <DurationInput
                         valueMinutes={(parseFloat(form.durationValue) || 0) * UNIT_MINS[form.durationUnit]}
                         onChange={mins => {
@@ -552,16 +588,16 @@ export function ServiceFormPage() {
                   )}
                   {NEEDS_CAPACITY.has(form.serviceType) && (
                     <div className="w-36">
-                      <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                        الطاقة <span className="text-gray-400 font-normal">(أشخاص)</span>
+                      <label className="text-xs font-medium text-gray-700 block mb-1.5">
+                        الطاقة <span className="text-gray-400 font-normal text-[11px]">(أشخاص)</span>
                       </label>
                       <input type="number" min={1} value={form.maxCapacity} onChange={upd("maxCapacity")}
                         placeholder="∞" dir="ltr" className={iCls} />
                     </div>
                   )}
                   <div className="w-32">
-                    <label className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide block mb-1.5">
-                      العربون <span className="text-gray-400 font-normal">(%)</span>
+                    <label className="text-xs font-medium text-gray-700 block mb-1.5">
+                      العربون <span className="text-gray-400 font-normal text-[11px]">(%)</span>
                     </label>
                     <input type="number" min={0} max={100} value={form.depositPercent} onChange={upd("depositPercent")}
                       placeholder="30" dir="ltr" className={iCls} />
@@ -647,7 +683,7 @@ export function ServiceFormPage() {
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+                    <label className="text-xs font-medium text-gray-700">
                       صور الخدمة <span className="text-gray-300 font-normal normal-case">— الأولى تكون الغلاف</span>
                     </label>
                     {mediaItems.length > 0 && (
@@ -723,6 +759,7 @@ export function ServiceFormPage() {
               <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">منافذ الظهور</h2>
               <div className="space-y-2">
                 {[
+                  { key: "isFeatured",      label: "خدمة مميزة",         desc: "تظهر في قسم المميزات أولاً" },
                   { key: "isBookable",      label: "الحجز الإلكتروني",   desc: "يظهر في صفحة الحجز" },
                   { key: "isVisibleInPOS",  label: "نقطة البيع",         desc: "يظهر في الكاشير" },
                   { key: "isVisibleOnline", label: "المتجر الإلكتروني",  desc: "يظهر في المتجر" },
@@ -756,7 +793,7 @@ export function ServiceFormPage() {
               <div className="space-y-4">
                 {/* Branches */}
                 <div>
-                  <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">
+                  <label className="text-xs font-medium text-gray-700 block mb-1.5">
                     الفروع <span className="text-gray-400 font-normal normal-case">— اتركها فارغة لتظهر في كل الفروع</span>
                   </label>
                   {branches.length === 0 ? (
@@ -790,7 +827,7 @@ export function ServiceFormPage() {
                 </div>
                 {/* Category — move it here from info card */}
                 <div>
-                  <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">القسم</label>
+                  <label className="text-xs font-medium text-gray-700 block mb-1.5">القسم</label>
                   <select value={form.categoryId} onChange={upd("categoryId")} className={clsx(iCls, "max-w-xs")}>
                     <option value="">بدون قسم</option>
                     {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -942,7 +979,7 @@ export function ServiceFormPage() {
                       </div>
                       {/* Name / inventory select */}
                       <div>
-                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">
+                        <label className="text-xs font-medium text-gray-700 block mb-1.5">
                           {c.sourceType === "inventory" ? "المنتج من المخزون" : "اسم المكون"} <span className="text-red-400">*</span>
                         </label>
                         {c.sourceType === "inventory" ? (
@@ -968,19 +1005,19 @@ export function ServiceFormPage() {
                       {/* Quantity + unit + cost */}
                       <div className="grid grid-cols-3 gap-3">
                         <div>
-                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">الكمية</label>
+                          <label className="text-xs font-medium text-gray-700 block mb-1.5">الكمية</label>
                           <input type="number" min={0} step="0.1" value={c.quantity} dir="ltr"
                             onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, quantity: e.target.value } : x))}
                             className={iCls} />
                         </div>
                         <div>
-                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">الوحدة</label>
+                          <label className="text-xs font-medium text-gray-700 block mb-1.5">الوحدة</label>
                           <input value={c.unit} placeholder="قطعة"
                             onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, unit: e.target.value } : x))}
                             className={iCls} />
                         </div>
                         <div>
-                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">التكلفة (ر.س)</label>
+                          <label className="text-xs font-medium text-gray-700 block mb-1.5">التكلفة (ر.س)</label>
                           <input type="number" min={0} value={c.unitCost} dir="ltr"
                             onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, unitCost: e.target.value } : x))}
                             className={iCls} />
@@ -1061,7 +1098,7 @@ export function ServiceFormPage() {
                         </div>
                         {/* Name + delete */}
                         <div className="flex-1 min-w-0">
-                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">اسم الإضافة <span className="text-red-400">*</span></label>
+                          <label className="text-xs font-medium text-gray-700 block mb-1.5">اسم الإضافة <span className="text-red-400">*</span></label>
                           <input value={a.name} placeholder="مثال: دفاية غاز"
                             onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
                             className={iCls} />
@@ -1073,7 +1110,7 @@ export function ServiceFormPage() {
                       </div>
                       {/* Description */}
                       <div>
-                        <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">الوصف <span className="text-gray-400 font-normal">(اختياري)</span></label>
+                        <label className="text-xs font-medium text-gray-700 block mb-1.5">الوصف <span className="text-gray-400 font-normal">(اختياري)</span></label>
                         <input value={a.description} placeholder="وصف مختصر للإضافة..."
                           onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, description: e.target.value } : x))}
                           className={iCls} />
@@ -1081,7 +1118,7 @@ export function ServiceFormPage() {
                       {/* Price + type row */}
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">السعر (ر.س) <span className="text-red-400">*</span></label>
+                          <label className="text-xs font-medium text-gray-700 block mb-1.5">السعر (ر.س) <span className="text-red-400">*</span></label>
                           <input type="number" min={0} value={a.price} placeholder="0.00" dir="ltr"
                             onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}
                             className={iCls} />
@@ -1149,7 +1186,7 @@ export function ServiceFormPage() {
                       {/* Row: question text + type + delete */}
                       <div className="flex gap-3 items-end">
                         <div className="flex-1">
-                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">
+                          <label className="text-xs font-medium text-gray-700 block mb-1.5">
                             نص السؤال <span className="text-red-400">*</span>
                           </label>
                           <input value={q.question} placeholder="مثال: ما اللون المفضل للباقة؟"
@@ -1157,7 +1194,7 @@ export function ServiceFormPage() {
                             className={iCls} />
                         </div>
                         <div className="shrink-0">
-                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide block mb-1.5">نوع الإجابة</label>
+                          <label className="text-xs font-medium text-gray-700 block mb-1.5">نوع الإجابة</label>
                           <button type="button"
                             onClick={() => setQuestionPickerIdx(questionPickerIdx === i ? null : i)}
                             className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-brand-300 transition-all text-sm text-gray-700 min-w-[140px]">
@@ -1194,7 +1231,7 @@ export function ServiceFormPage() {
                       </div>
                       {q.isPaid && (
                         <div className="flex items-center gap-2">
-                          <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide shrink-0">رسوم الإجابة</label>
+                          <label className="text-xs font-medium text-gray-700 shrink-0">رسوم الإجابة</label>
                           <div className="flex items-center gap-1.5">
                             <input type="number" min={0} value={q.price} placeholder="0.00" dir="ltr"
                               onChange={e => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, price: e.target.value } : x))}

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { clsx } from "clsx";
 import { useSearchParams } from "react-router-dom";
 import {
   Globe, Palette, Layout, Eye, Settings, Check, ChevronUp, ChevronDown,
@@ -9,10 +10,7 @@ import {
 import { websiteApi, settingsApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { ModernInput, ModernSelect, PageHeader } from "@/components/ui";
-import { COLORS, SHADOWS, TYPOGRAPHY } from "@/lib/design-tokens";
 import { fmtDate } from "@/lib/utils";
-
-const FONT = TYPOGRAPHY.family;
 
 // ── Templates ────────────────────────────────────────────────
 const TEMPLATES = [
@@ -224,13 +222,13 @@ export function WebsitePage() {
     : TEMPLATES.filter(t => t.cat === templateCat || t.cat === "all");
 
   if (configLoading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: 256, fontFamily: FONT, color: COLORS.muted }}>
-      <Loader2 size={24} style={{ animation: "spin 1s linear infinite", color: COLORS.primary }} />
+    <div className="flex items-center justify-center h-64 text-gray-400">
+      <Loader2 size={24} className="animate-spin text-brand-400" />
     </div>
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20, direction: "rtl", fontFamily: FONT }}>
+    <div className="flex flex-col gap-5" dir="rtl">
       <PageHeader
         title="موقعي"
         description="أنشئ موقع احترافي لمنشأتك — البيانات تتحدث تلقائياً"
@@ -257,9 +255,9 @@ export function WebsitePage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              style={{ display: "flex", alignItems: "center", gap: 6, background: COLORS.primary, color: "#fff", border: "none", borderRadius: 10, padding: "9px 18px", fontSize: 13, fontWeight: 600, cursor: saving ? "not-allowed" : "pointer", opacity: saving ? 0.7 : 1, fontFamily: FONT }}
+              className={clsx("flex items-center gap-1.5 bg-brand-400 text-white border-0 rounded-xl px-[18px] py-[9px] text-[13px] font-semibold transition-opacity", saving ? "cursor-not-allowed opacity-70" : "cursor-pointer")}
             >
-              {saving ? <Loader2 size={14} style={{ animation: "spin 1s linear infinite" }} /> : <Save size={14} />}
+              {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               حفظ
             </button>
           </div>
@@ -268,41 +266,41 @@ export function WebsitePage() {
 
       {/* ── Tab 1: Template ──────────────────────────────── */}
       {tabId === "template" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="flex flex-col gap-4">
           {/* Category filter */}
-          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+          <div className="flex gap-1.5 flex-wrap">
             {TEMPLATE_CATS.map(c => (
-              <button key={c.id} onClick={() => setTemplateCat(c.id)} style={{ padding: "6px 14px", borderRadius: 20, border: `1px solid ${templateCat === c.id ? COLORS.primary : COLORS.border}`, background: templateCat === c.id ? `${COLORS.primary}12` : "transparent", color: templateCat === c.id ? COLORS.primary : COLORS.muted, fontSize: 13, fontWeight: templateCat === c.id ? 600 : 400, cursor: "pointer", fontFamily: FONT }}>
+              <button key={c.id} onClick={() => setTemplateCat(c.id)} className={clsx("px-3.5 py-1.5 rounded-full border text-[13px] cursor-pointer transition-colors", templateCat === c.id ? "border-brand-400 bg-brand-50 text-brand-600 font-semibold" : "border-gray-200 bg-transparent text-gray-400 font-normal hover:border-gray-300")}>
                 {c.label}
               </button>
             ))}
           </div>
 
           {/* Template grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 14 }}>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3.5">
             {filteredTemplates.map(t => (
               <div
                 key={t.id}
                 onClick={() => setTemplateId(t.id)}
-                style={{ background: COLORS.surface, borderRadius: 14, border: `2px solid ${templateId === t.id ? COLORS.primary : COLORS.border}`, overflow: "hidden", cursor: "pointer", transition: "all 0.15s", boxShadow: templateId === t.id ? `0 0 0 3px ${COLORS.primary}20` : SHADOWS.card }}
+                className={clsx("bg-white rounded-2xl border-2 overflow-hidden cursor-pointer transition-all", templateId === t.id ? "border-brand-400 ring-[3px] ring-brand-400/20 shadow-sm" : "border-gray-100 shadow-sm hover:border-gray-200")}
               >
-                {/* Thumbnail */}
-                <div style={{ height: 120, background: t.grad, position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                {/* Thumbnail — grad is data-driven, keep inline style */}
+                <div className="h-[120px] relative flex items-center justify-center" style={{ background: t.grad }}>
                   {templateId === t.id && (
-                    <div style={{ position: "absolute", top: 8, left: 8, width: 22, height: 22, borderRadius: "50%", background: "#fff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <Check size={13} color={COLORS.primary} style={{ strokeWidth: 2.5 }} />
+                    <div className="absolute top-2 left-2 w-[22px] h-[22px] rounded-full bg-white flex items-center justify-center">
+                      <Check size={13} className="text-brand-400 stroke-[2.5]" />
                     </div>
                   )}
-                  <div style={{ textAlign: "center" }}>
-                    <div style={{ width: 40, height: 4, background: "rgba(255,255,255,0.4)", borderRadius: 2, margin: "0 auto 6px" }} />
-                    <div style={{ width: 60, height: 4, background: "rgba(255,255,255,0.25)", borderRadius: 2, margin: "0 auto 4px" }} />
-                    <div style={{ width: 50, height: 4, background: "rgba(255,255,255,0.2)", borderRadius: 2, margin: "0 auto" }} />
+                  <div className="text-center">
+                    <div className="w-10 h-1 bg-white/40 rounded mx-auto mb-1.5" />
+                    <div className="w-[60px] h-1 bg-white/25 rounded mx-auto mb-1" />
+                    <div className="w-[50px] h-1 bg-white/20 rounded mx-auto" />
                   </div>
                 </div>
                 {/* Info */}
-                <div style={{ padding: "10px 12px" }}>
-                  <p style={{ fontSize: 13, fontWeight: 700, color: COLORS.dark, margin: 0 }}>{t.name}</p>
-                  <p style={{ fontSize: 11, color: COLORS.muted, margin: "3px 0 0" }}>{t.desc}</p>
+                <div className="px-3 py-2.5">
+                  <p className="text-[13px] font-bold text-gray-900">{t.name}</p>
+                  <p className="text-[11px] text-gray-400 mt-0.5">{t.desc}</p>
                 </div>
               </div>
             ))}
@@ -312,20 +310,20 @@ export function WebsitePage() {
 
       {/* ── Tab 2: Customization ─────────────────────────── */}
       {tabId === "customize" && (
-        <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 16 }}>
+        <div className="grid grid-cols-[280px_1fr] gap-4">
           {/* Options panel */}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="flex flex-col gap-4">
             <Card title="الألوان">
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                <label style={labelStyle}>اللون الرئيسي</label>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} style={{ width: 36, height: 36, border: `1px solid ${COLORS.border}`, borderRadius: 8, cursor: "pointer", padding: 2 }} />
-                  <input value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} style={inputStyle} dir="ltr" placeholder="#5b9bd5" />
+              <div className="flex flex-col gap-3">
+                <label className="block text-xs font-medium text-gray-900">اللون الرئيسي</label>
+                <div className="flex items-center gap-2.5">
+                  <input type="color" value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="w-9 h-9 border border-gray-200 rounded-lg cursor-pointer p-0.5" />
+                  <input value={primaryColor} onChange={e => setPrimaryColor(e.target.value)} className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-[13px] outline-none text-gray-900" dir="ltr" placeholder="#5b9bd5" />
                 </div>
-                <label style={labelStyle}>اللون الثانوي (اختياري)</label>
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <input type="color" value={secondaryColor || "#C8A951"} onChange={e => setSecondaryColor(e.target.value)} style={{ width: 36, height: 36, border: `1px solid ${COLORS.border}`, borderRadius: 8, cursor: "pointer", padding: 2 }} />
-                  <input value={secondaryColor} onChange={e => setSecondaryColor(e.target.value)} style={inputStyle} dir="ltr" placeholder="#C8A951 (اختياري)" />
+                <label className="block text-xs font-medium text-gray-900">اللون الثانوي (اختياري)</label>
+                <div className="flex items-center gap-2.5">
+                  <input type="color" value={secondaryColor || "#C8A951"} onChange={e => setSecondaryColor(e.target.value)} className="w-9 h-9 border border-gray-200 rounded-lg cursor-pointer p-0.5" />
+                  <input value={secondaryColor} onChange={e => setSecondaryColor(e.target.value)} className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-[13px] outline-none text-gray-900" dir="ltr" placeholder="#C8A951 (اختياري)" />
                 </div>
               </div>
             </Card>
@@ -372,34 +370,34 @@ export function WebsitePage() {
           </div>
 
           {/* Live preview mockup */}
-          <div style={{ background: COLORS.surface, borderRadius: 14, border: `1px solid ${COLORS.border}`, boxShadow: SHADOWS.card, padding: 20, display: "flex", flexDirection: "column", gap: 14, alignItems: "center" }}>
-            <div style={{ display: "flex", gap: 8 }}>
-              <button onClick={() => setPreviewSize("desktop")} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, border: `1px solid ${previewSize === "desktop" ? COLORS.primary : COLORS.border}`, background: previewSize === "desktop" ? `${COLORS.primary}10` : "transparent", color: previewSize === "desktop" ? COLORS.primary : COLORS.muted, fontSize: 12, cursor: "pointer", fontFamily: FONT }}>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-col gap-3.5 items-center">
+            <div className="flex gap-2">
+              <button onClick={() => setPreviewSize("desktop")} className={clsx("flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs cursor-pointer transition-colors", previewSize === "desktop" ? "border-brand-400 bg-brand-50 text-brand-600" : "border-gray-200 bg-transparent text-gray-400")}>
                 <Monitor size={13} /> كمبيوتر
               </button>
-              <button onClick={() => setPreviewSize("mobile")} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 12px", borderRadius: 8, border: `1px solid ${previewSize === "mobile" ? COLORS.primary : COLORS.border}`, background: previewSize === "mobile" ? `${COLORS.primary}10` : "transparent", color: previewSize === "mobile" ? COLORS.primary : COLORS.muted, fontSize: 12, cursor: "pointer", fontFamily: FONT }}>
+              <button onClick={() => setPreviewSize("mobile")} className={clsx("flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs cursor-pointer transition-colors", previewSize === "mobile" ? "border-brand-400 bg-brand-50 text-brand-600" : "border-gray-200 bg-transparent text-gray-400")}>
                 <Smartphone size={13} /> جوال
               </button>
             </div>
 
-            <div style={{ width: previewSize === "mobile" ? 375 : "100%", maxWidth: previewSize === "mobile" ? 375 : 700, border: `1px solid ${COLORS.border}`, borderRadius: previewSize === "mobile" ? 24 : 10, overflow: "hidden", boxShadow: SHADOWS.dropdown }}>
-              {/* Mock site preview */}
-              <div style={{ background: primaryColor || COLORS.primary, padding: previewSize === "mobile" ? "24px 16px" : "40px 32px", textAlign: "center" }}>
-                <p style={{ fontSize: previewSize === "mobile" ? 18 : 24, fontWeight: 700, color: "#fff", margin: "0 0 8px", fontFamily: fontFamily }}>
+            <div className={clsx("border border-gray-200 overflow-hidden shadow-lg", previewSize === "mobile" ? "w-[375px] max-w-[375px] rounded-[24px]" : "w-full max-w-[700px] rounded-xl")}>
+              {/* Mock site preview — primaryColor and fontFamily are user-set values, keep inline */}
+              <div className="text-center" style={{ background: primaryColor || "#5b9bd5", padding: previewSize === "mobile" ? "24px 16px" : "40px 32px" }}>
+                <p className="text-white font-bold mb-2" style={{ fontSize: previewSize === "mobile" ? 18 : 24, fontFamily }}>
                   {builder.heroTitle || "اسم منشأتك"}
                 </p>
-                <p style={{ fontSize: previewSize === "mobile" ? 12 : 14, color: "rgba(255,255,255,0.85)", margin: "0 0 16px", fontFamily: fontFamily }}>
+                <p className="text-white/85 mb-4" style={{ fontSize: previewSize === "mobile" ? 12 : 14, fontFamily }}>
                   {builder.heroSubtitle || "عبارة ترحيبية مميزة"}
                 </p>
-                <div style={{ display: "inline-block", background: "#fff", color: primaryColor, padding: "8px 20px", borderRadius: 8, fontSize: 13, fontWeight: 600, fontFamily: fontFamily }}>
+                <div className="inline-block bg-white px-5 py-2 rounded-lg text-[13px] font-semibold" style={{ color: primaryColor, fontFamily }}>
                   احجز الآن
                 </div>
               </div>
-              <div style={{ background: "#f8f9fc", padding: previewSize === "mobile" ? "16px 12px" : "24px 20px" }}>
-                <p style={{ fontSize: 14, fontWeight: 600, color: COLORS.dark, margin: "0 0 12px", fontFamily: fontFamily }}>خدماتنا</p>
-                <div style={{ display: "grid", gridTemplateColumns: previewSize === "mobile" ? "1fr 1fr" : "repeat(3,1fr)", gap: 8 }}>
+              <div className="bg-[#f8f9fc]" style={{ padding: previewSize === "mobile" ? "16px 12px" : "24px 20px" }}>
+                <p className="text-[14px] font-semibold text-gray-900 mb-3" style={{ fontFamily }}>خدماتنا</p>
+                <div className={clsx("grid gap-2", previewSize === "mobile" ? "grid-cols-2" : "grid-cols-3")}>
                   {[1,2,3].map(i => (
-                    <div key={i} style={{ background: "#fff", borderRadius: 8, border: builder.cardStyle === "bordered" ? `1px solid ${COLORS.border}` : "none", boxShadow: builder.cardStyle === "shadow" ? "0 2px 8px rgba(0,0,0,0.08)" : "none", height: 48 }} />
+                    <div key={i} className={clsx("bg-white rounded-lg h-12", builder.cardStyle === "bordered" && "border border-gray-200", builder.cardStyle === "shadow" && "shadow-[0_2px_8px_rgba(0,0,0,0.08)]")} />
                   ))}
                 </div>
               </div>
@@ -410,8 +408,8 @@ export function WebsitePage() {
 
       {/* ── Tab 3: Sections ──────────────────────────────── */}
       {tabId === "sections" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <p style={{ fontSize: 13, color: COLORS.muted, margin: "0 0 4px" }}>
+        <div className="flex flex-col gap-2">
+          <p className="text-[13px] text-gray-400 mb-1">
             رتّب الأقسام وأظهر أو أخفِ ما تريد — البيانات تُسحب تلقائياً
           </p>
 
@@ -428,7 +426,7 @@ export function WebsitePage() {
             onMoveDown={() => {}}
           >
             {expandedSection === "hero" && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "12px 0 4px" }}>
+              <div className="flex flex-col gap-2.5 py-3">
                 <ModernInput label="عنوان البانر" value={builder.heroTitle} onChange={v => setB("heroTitle", v)} placeholder="مرحبًا بكم في منشأتنا" />
                 <ModernInput label="العبارة الفرعية" value={builder.heroSubtitle} onChange={v => setB("heroSubtitle", v)} placeholder="تجربة فريدة تنتظركم" />
               </div>
@@ -450,14 +448,14 @@ export function WebsitePage() {
               onMoveDown={() => moveSection(section.id, 1)}
             >
               {expandedSection === "about" && section.id === "about" && (
-                <div style={{ padding: "12px 0 4px" }}>
-                  <label style={labelStyle}>نبذة عن المنشأة</label>
+                <div className="py-3">
+                  <label className="block text-xs font-medium text-gray-900">نبذة عن المنشأة</label>
                   <textarea
                     value={builder.aboutText}
                     onChange={e => setB("aboutText", e.target.value)}
                     rows={4}
                     placeholder="اكتب نبذة مختصرة عن منشأتك وتاريخها وما يميزها..."
-                    style={{ width: "100%", border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "10px 12px", fontSize: 13, fontFamily: FONT, resize: "vertical", outline: "none", boxSizing: "border-box", marginTop: 6 }}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] resize-y outline-none mt-1.5 box-border"
                   />
                 </div>
               )}
@@ -468,36 +466,36 @@ export function WebsitePage() {
 
       {/* ── Tab 4: Preview + Publish ─────────────────────── */}
       {tabId === "preview" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div className="flex flex-col gap-4">
           {/* Status bar */}
-          <div style={{ background: COLORS.surface, borderRadius: 14, border: `1px solid ${COLORS.border}`, boxShadow: SHADOWS.card, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex items-center justify-between flex-wrap gap-3">
             <div>
-              <p style={{ fontSize: 13, fontWeight: 600, color: COLORS.dark, margin: 0 }}>
+              <p className="text-[13px] font-semibold text-gray-900">
                 رابط موقعك:
-                <span style={{ color: COLORS.primary, fontFamily: "monospace", marginRight: 8 }}>
+                <span className="text-brand-400 font-mono mr-2">
                   {orgSlug ? `nasaq.sa/${orgSlug}` : "—"}
                 </span>
               </p>
-              <p style={{ fontSize: 12, color: COLORS.muted, margin: "3px 0 0" }}>
+              <p className="text-xs text-gray-400 mt-0.5">
                 {builder.isPublished
                   ? `منشور منذ ${builder.publishedAt ? fmtDate(builder.publishedAt) : "—"}`
                   : "مسودة — لم يُنشر بعد"}
               </p>
             </div>
-            <div style={{ display: "flex", gap: 8 }}>
+            <div className="flex gap-2">
               {previewUrl && (
-                <a href={previewUrl} target="_blank" rel="noopener noreferrer" style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 14px", borderRadius: 10, border: `1px solid ${COLORS.border}`, background: "transparent", color: COLORS.dark, fontSize: 13, fontWeight: 500, cursor: "pointer", textDecoration: "none", fontFamily: FONT }}>
+                <a href={previewUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-gray-200 text-gray-900 text-[13px] font-medium cursor-pointer no-underline hover:bg-gray-50 transition-colors">
                   <ExternalLink size={13} /> معاينة في تاب جديد
                 </a>
               )}
               {builder.isPublished ? (
-                <button onClick={handleUnpublish} disabled={publishing} style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 18px", borderRadius: 10, border: "none", background: "#fef2f2", color: COLORS.dangerText, fontSize: 13, fontWeight: 600, cursor: publishing ? "not-allowed" : "pointer", opacity: publishing ? 0.7 : 1, fontFamily: FONT }}>
-                  {publishing ? <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> : <AlertCircle size={13} />}
+                <button onClick={handleUnpublish} disabled={publishing} className={clsx("flex items-center gap-1.5 px-4 py-2 rounded-xl border-0 bg-red-50 text-red-600 text-[13px] font-semibold transition-opacity", publishing ? "cursor-not-allowed opacity-70" : "cursor-pointer")}>
+                  {publishing ? <Loader2 size={13} className="animate-spin" /> : <AlertCircle size={13} />}
                   إيقاف النشر
                 </button>
               ) : (
-                <button onClick={handlePublish} disabled={publishing} style={{ display: "flex", alignItems: "center", gap: 5, padding: "8px 18px", borderRadius: 10, border: "none", background: COLORS.primary, color: "#fff", fontSize: 13, fontWeight: 600, cursor: publishing ? "not-allowed" : "pointer", opacity: publishing ? 0.7 : 1, fontFamily: FONT }}>
-                  {publishing ? <Loader2 size={13} style={{ animation: "spin 1s linear infinite" }} /> : <Zap size={13} />}
+                <button onClick={handlePublish} disabled={publishing} className={clsx("flex items-center gap-1.5 px-4 py-2 rounded-xl border-0 bg-brand-400 text-white text-[13px] font-semibold transition-opacity", publishing ? "cursor-not-allowed opacity-70" : "cursor-pointer")}>
+                  {publishing ? <Loader2 size={13} className="animate-spin" /> : <Zap size={13} />}
                   نشر الموقع
                 </button>
               )}
@@ -505,9 +503,9 @@ export function WebsitePage() {
           </div>
 
           {/* Preview size toggle */}
-          <div style={{ display: "flex", gap: 8, justifyContent: "center" }}>
+          <div className="flex gap-2 justify-center">
             {(["desktop", "mobile"] as const).map(size => (
-              <button key={size} onClick={() => setPreviewSize(size)} style={{ display: "flex", alignItems: "center", gap: 5, padding: "6px 14px", borderRadius: 8, border: `1px solid ${previewSize === size ? COLORS.primary : COLORS.border}`, background: previewSize === size ? `${COLORS.primary}10` : "transparent", color: previewSize === size ? COLORS.primary : COLORS.muted, fontSize: 12, cursor: "pointer", fontFamily: FONT }}>
+              <button key={size} onClick={() => setPreviewSize(size)} className={clsx("flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border text-xs cursor-pointer transition-colors", previewSize === size ? "border-brand-400 bg-brand-50 text-brand-600" : "border-gray-200 bg-transparent text-gray-400")}>
                 {size === "desktop" ? <Monitor size={13} /> : <Smartphone size={13} />}
                 {size === "desktop" ? "كمبيوتر" : "جوال"}
               </button>
@@ -515,17 +513,18 @@ export function WebsitePage() {
           </div>
 
           {/* iframe */}
-          <div style={{ background: COLORS.surface, borderRadius: 14, border: `1px solid ${COLORS.border}`, boxShadow: SHADOWS.card, overflow: "hidden", display: "flex", justifyContent: "center", padding: "16px", minHeight: 600 }}>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden flex justify-center p-4 min-h-[600px]">
             {previewUrl ? (
               <iframe
                 src={previewUrl}
-                style={{ width: previewSize === "mobile" ? 390 : "100%", height: 580, border: "none", borderRadius: previewSize === "mobile" ? 16 : 8, boxShadow: SHADOWS.dropdown }}
+                style={{ width: previewSize === "mobile" ? 390 : "100%", height: 580, border: "none", borderRadius: previewSize === "mobile" ? 16 : 8 }}
+                className="shadow-lg"
                 title="معاينة الموقع"
               />
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: 400, color: COLORS.muted, gap: 12 }}>
-                <Globe size={40} color="#e2e8f0" />
-                <p style={{ fontSize: 14 }}>تعذّر تحميل المعاينة</p>
+              <div className="flex flex-col items-center justify-center h-[400px] text-gray-400 gap-3">
+                <Globe size={40} className="text-gray-200" />
+                <p className="text-[14px]">تعذّر تحميل المعاينة</p>
               </div>
             )}
           </div>
@@ -534,21 +533,21 @@ export function WebsitePage() {
 
       {/* ── Tab 5: Advanced ──────────────────────────────── */}
       {tabId === "advanced" && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+        <div className="grid grid-cols-2 gap-4">
           {/* SEO */}
           <Card title="تحسين محركات البحث (SEO)">
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div className="flex flex-col gap-3">
               <ModernInput label="عنوان الصفحة" value={seo.title} onChange={v => setSeo(s => ({ ...s, title: v }))} placeholder="اسم المنشأة — وصف قصير" />
               <div>
-                <label style={labelStyle}>وصف الصفحة</label>
-                <textarea value={seo.description} onChange={e => setSeo(s => ({ ...s, description: e.target.value }))} rows={3} placeholder="وصف مختصر يظهر في نتائج البحث..." style={{ width: "100%", border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "10px 12px", fontSize: 13, fontFamily: FONT, resize: "none", outline: "none", boxSizing: "border-box", marginTop: 6 }} />
+                <label className="block text-xs font-medium text-gray-900">وصف الصفحة</label>
+                <textarea value={seo.description} onChange={e => setSeo(s => ({ ...s, description: e.target.value }))} rows={3} placeholder="وصف مختصر يظهر في نتائج البحث..." className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] resize-none outline-none mt-1.5 box-border" />
               </div>
             </div>
           </Card>
 
           {/* Analytics */}
           <Card title="التحليلات والتتبع">
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div className="flex flex-col gap-3">
               <ModernInput label="Google Analytics" value={seo.gaId} onChange={v => setSeo(s => ({ ...s, gaId: v }))} placeholder="G-XXXXXXXXXX" dir="ltr" />
               <ModernInput label="Google Tag Manager" value={seo.gtmId} onChange={v => setSeo(s => ({ ...s, gtmId: v }))} placeholder="GTM-XXXXXXX" dir="ltr" />
               <ModernInput label="Facebook Pixel" value={seo.pixelId} onChange={v => setSeo(s => ({ ...s, pixelId: v }))} placeholder="XXXXXXXXXXXXXXXX" dir="ltr" />
@@ -557,10 +556,10 @@ export function WebsitePage() {
 
           {/* Domain */}
           <Card title="الدومين">
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-              <div style={{ background: COLORS.light, borderRadius: 10, padding: "10px 14px" }}>
-                <p style={{ fontSize: 12, color: COLORS.muted, margin: "0 0 2px" }}>نطاق نسق المجاني</p>
-                <p style={{ fontSize: 13, fontWeight: 600, color: COLORS.primary, margin: 0, fontFamily: "monospace" }}>
+            <div className="flex flex-col gap-3">
+              <div className="bg-gray-50 rounded-xl px-3.5 py-2.5">
+                <p className="text-xs text-gray-400 mb-0.5">نطاق نسق المجاني</p>
+                <p className="text-[13px] font-semibold text-brand-400 font-mono">
                   nasaq.sa/{orgSlug || "—"}
                 </p>
               </div>
@@ -570,15 +569,15 @@ export function WebsitePage() {
 
           {/* General settings */}
           <Card title="خيارات عامة">
-            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <div className="flex flex-col gap-3">
               {[
                 { key: "showBookingButton",  label: "إظهار زر الحجز العائم" },
                 { key: "showWhatsappButton", label: "إظهار زر واتساب" },
                 { key: "showPrices",         label: "إظهار الأسعار في الموقع" },
                 { key: "showTeamPhotos",     label: "إظهار صور الفريق" },
               ].map(opt => (
-                <div key={opt.key} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                  <span style={{ fontSize: 13, color: COLORS.dark }}>{opt.label}</span>
+                <div key={opt.key} className="flex items-center justify-between">
+                  <span className="text-[13px] text-gray-900">{opt.label}</span>
                   <ToggleSwitch
                     checked={!!(builder as any)[opt.key]}
                     onChange={v => setB(opt.key, v)}
@@ -600,8 +599,8 @@ export function WebsitePage() {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: COLORS.surface, borderRadius: 14, border: `1px solid ${COLORS.border}`, boxShadow: SHADOWS.card, padding: 18 }}>
-      <p style={{ fontSize: 13, fontWeight: 700, color: COLORS.dark, margin: "0 0 14px" }}>{title}</p>
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <p className="text-[13px] font-bold text-gray-900 mb-3.5">{title}</p>
       {children}
     </div>
   );
@@ -609,8 +608,8 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 
 function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
   return (
-    <button type="button" onClick={() => onChange(!checked)} style={{ width: 36, height: 20, borderRadius: 10, position: "relative", border: "none", cursor: "pointer", background: checked ? COLORS.primary : "#e2e8f0", transition: "background 0.15s", flexShrink: 0 }}>
-      <span style={{ position: "absolute", top: 2, width: 16, height: 16, background: "#fff", borderRadius: "50%", boxShadow: "0 1px 3px rgba(0,0,0,0.15)", transition: "right 0.15s, left 0.15s", ...(checked ? { right: 2 } : { left: 2 }) }} />
+    <button type="button" onClick={() => onChange(!checked)} className={clsx("w-9 h-5 rounded-full relative border-0 cursor-pointer transition-colors shrink-0", checked ? "bg-brand-400" : "bg-gray-200")}>
+      <span className={clsx("absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all", checked ? "right-0.5" : "left-0.5")} />
     </button>
   );
 }
@@ -624,54 +623,44 @@ function SectionRow({ section, isFirst, isLast, isHidden, expanded, onToggle, on
 }) {
   const Icon = section.icon;
   return (
-    <div style={{ background: COLORS.surface, borderRadius: 12, border: `1px solid ${isHidden ? COLORS.border : COLORS.border}`, boxShadow: SHADOWS.card, opacity: isHidden ? 0.55 : 1, overflow: "hidden" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px" }}>
+    <div className={clsx("bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden", isHidden && "opacity-55")}>
+      <div className="flex items-center gap-3 px-4 py-3">
         {/* Icon */}
-        <div style={{ width: 32, height: 32, borderRadius: 8, background: `${COLORS.primary}12`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-          <Icon size={15} color={COLORS.primary} />
+        <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
+          <Icon size={15} className="text-brand-400" />
         </div>
         {/* Name + source */}
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: COLORS.dark, margin: 0 }}>{section.name}</p>
-          <p style={{ fontSize: 11, color: COLORS.muted, margin: "2px 0 0" }}>{section.src}</p>
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-semibold text-gray-900">{section.name}</p>
+          <p className="text-[11px] text-gray-400 mt-0.5">{section.src}</p>
         </div>
         {/* Controls */}
-        <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+        <div className="flex items-center gap-1 shrink-0">
           {section.canHide && (
-            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: isHidden ? "#f1f5f9" : COLORS.successBg, color: isHidden ? COLORS.muted : COLORS.successText, fontFamily: TYPOGRAPHY.family }}>
+            <span className={clsx("text-[11px] px-2 py-0.5 rounded-full", isHidden ? "bg-gray-100 text-gray-500" : "bg-emerald-50 text-emerald-700")}>
               {isHidden ? "مخفي" : "مفعّل"}
             </span>
           )}
           {!section.canHide && (
-            <span style={{ fontSize: 11, padding: "2px 8px", borderRadius: 20, background: "#f1f5f9", color: COLORS.muted, fontFamily: TYPOGRAPHY.family }}>دائم</span>
+            <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">دائم</span>
           )}
           {section.canHide && (
-            <ToggleSwitch checked={!isHidden} onChange={v => onToggle()} />
+            <ToggleSwitch checked={!isHidden} onChange={() => onToggle()} />
           )}
-          <button onClick={onMoveUp} disabled={isFirst} style={{ padding: 4, border: "none", background: "none", cursor: isFirst ? "not-allowed" : "pointer", color: isFirst ? "#d1d5db" : COLORS.muted, borderRadius: 6 }}>
+          <button onClick={onMoveUp} disabled={isFirst} className={clsx("p-1 border-0 bg-transparent rounded-md", isFirst ? "cursor-not-allowed text-gray-200" : "cursor-pointer text-gray-400 hover:text-gray-600")}>
             <ChevronUp size={15} />
           </button>
-          <button onClick={onMoveDown} disabled={isLast} style={{ padding: 4, border: "none", background: "none", cursor: isLast ? "not-allowed" : "pointer", color: isLast ? "#d1d5db" : COLORS.muted, borderRadius: 6 }}>
+          <button onClick={onMoveDown} disabled={isLast} className={clsx("p-1 border-0 bg-transparent rounded-md", isLast ? "cursor-not-allowed text-gray-200" : "cursor-pointer text-gray-400 hover:text-gray-600")}>
             <ChevronDown size={15} />
           </button>
           {(section.id === "hero" || section.id === "about") && (
-            <button onClick={onExpand} style={{ padding: "4px 8px", borderRadius: 7, border: `1px solid ${expanded ? COLORS.primary : COLORS.border}`, background: expanded ? `${COLORS.primary}10` : "transparent", cursor: "pointer", fontSize: 11, color: expanded ? COLORS.primary : COLORS.muted, fontFamily: TYPOGRAPHY.family }}>
+            <button onClick={onExpand} className={clsx("px-2 py-1 rounded-lg border text-[11px] cursor-pointer transition-colors", expanded ? "border-brand-400 bg-brand-50 text-brand-600" : "border-gray-200 bg-transparent text-gray-400")}>
               تعديل
             </button>
           )}
         </div>
       </div>
-      {children && <div style={{ borderTop: `1px solid ${COLORS.border}`, padding: "0 16px 16px" }}>{children}</div>}
+      {children && <div className="border-t border-gray-100 px-4 pb-4">{children}</div>}
     </div>
   );
 }
-
-const labelStyle: React.CSSProperties = {
-  fontSize: 12, fontWeight: 500, color: COLORS.dark,
-  fontFamily: TYPOGRAPHY.family, display: "block",
-};
-
-const inputStyle: React.CSSProperties = {
-  flex: 1, border: `1px solid ${COLORS.border}`, borderRadius: 9, padding: "8px 12px",
-  fontSize: 13, fontFamily: TYPOGRAPHY.family, outline: "none", color: COLORS.dark,
-};

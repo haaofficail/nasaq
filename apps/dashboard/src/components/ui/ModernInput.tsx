@@ -1,5 +1,5 @@
 import { useState, ReactNode } from "react";
-import { COLORS, TYPOGRAPHY, RADIUS } from "@/lib/design-tokens";
+import { clsx } from "clsx";
 
 interface ModernInputProps {
   label?: string;
@@ -19,8 +19,6 @@ interface ModernInputProps {
   suffix?: string;
 }
 
-const FONT = TYPOGRAPHY.family;
-
 export function ModernInput({
   label, placeholder, icon, type = "text", value, onChange,
   name, required, disabled, error, hint, dir, min, max, suffix,
@@ -28,19 +26,18 @@ export function ModernInput({
   const [focused, setFocused] = useState(false);
 
   return (
-    <div style={{ fontFamily: FONT, direction: "rtl" }}>
+    <div>
       {label && (
-        <label style={{ display: "block", fontSize: 13, fontWeight: 500, color: "#374151", marginBottom: 6 }}>
-          {label}{required && <span style={{ color: COLORS.danger, marginRight: 2 }}>*</span>}
+        <label className="block text-[13px] font-medium text-gray-700 mb-1.5">
+          {label}{required && <span className="text-red-500 mr-0.5">*</span>}
         </label>
       )}
-      <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+      <div className="relative flex items-center">
         {icon && (
-          <span style={{
-            position: "absolute", right: 12, top: "50%", transform: "translateY(-50%)",
-            color: focused ? COLORS.primary : COLORS.muted,
-            transition: "color 0.15s", display: "flex", pointerEvents: "none",
-          }}>
+          <span className={clsx(
+            "absolute right-3 top-1/2 -translate-y-1/2 flex pointer-events-none transition-colors",
+            focused ? "text-brand-400" : "text-gray-400",
+          )}>
             {icon}
           </span>
         )}
@@ -57,31 +54,26 @@ export function ModernInput({
           onChange={e => onChange(e.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          style={{
-            width: "100%",
-            padding: `10px 14px`,
-            paddingRight: icon ? 40 : 14,
-            paddingLeft: suffix ? 40 : 14,
-            borderRadius: RADIUS.lg,
-            border: `1px solid ${error ? COLORS.danger : focused ? COLORS.primary : COLORS.border}`,
-            boxShadow: focused ? `0 0 0 3px ${error ? COLORS.danger : COLORS.primary}15` : "none",
-            background: disabled ? "#f8fafc" : COLORS.surface,
-            fontFamily: FONT, fontSize: 14, color: COLORS.dark,
-            outline: "none", transition: "border-color 0.15s, box-shadow 0.15s",
-            cursor: disabled ? "not-allowed" : "text",
-          }}
+          className={clsx(
+            "w-full px-3.5 py-2.5 rounded-xl text-sm text-gray-900 outline-none transition-all placeholder:text-gray-400",
+            icon ? "pr-10" : "pr-3.5",
+            suffix ? "pl-10" : "pl-3.5",
+            disabled ? "bg-gray-50 cursor-not-allowed text-gray-400" : "bg-white",
+            error
+              ? "border border-red-400 ring-[3px] ring-red-400/10"
+              : focused
+                ? "border border-brand-400 ring-[3px] ring-brand-400/10"
+                : "border border-gray-200 hover:border-gray-300",
+          )}
         />
         {suffix && (
-          <span style={{
-            position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)",
-            fontSize: 12, color: COLORS.muted, pointerEvents: "none",
-          }}>
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 pointer-events-none">
             {suffix}
           </span>
         )}
       </div>
-      {error && <p style={{ fontSize: 12, color: COLORS.danger, marginTop: 4, fontFamily: FONT }}>{error}</p>}
-      {hint && !error && <p style={{ fontSize: 12, color: COLORS.muted, marginTop: 4, fontFamily: FONT }}>{hint}</p>}
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      {hint && !error && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
     </div>
   );
 }

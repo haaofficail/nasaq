@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ChevronRight, ChevronLeft } from "lucide-react";
-import { COLORS, TYPOGRAPHY, MONTHS_AR, DAYS_AR } from "@/lib/design-tokens";
+import { clsx } from "clsx";
+import { MONTHS_AR, DAYS_AR } from "@/lib/design-tokens";
 
 interface CalendarProps {
   value: Date;
@@ -9,9 +10,8 @@ interface CalendarProps {
   onDateSelect?: (date: Date) => void;
 }
 
-const FONT = TYPOGRAPHY.family;
-
-const EVENT_COLORS = [COLORS.primary, COLORS.warning, COLORS.success];
+// dot colors: brand / amber / emerald (index 0-2)
+const DOT_CLASSES = ["bg-brand-400", "bg-amber-400", "bg-emerald-400"];
 
 function pad2(n: number) { return String(n).padStart(2, "0"); }
 function toKey(d: Date) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
@@ -24,10 +24,9 @@ export function Calendar({ value, onChange, events = {}, onDateSelect }: Calenda
 
   const firstDay  = new Date(viewYear, viewMonth, 1);
   const lastDay   = new Date(viewYear, viewMonth + 1, 0);
-  const startDow  = firstDay.getDay(); // 0=Sun
+  const startDow  = firstDay.getDay();
   const totalDays = lastDay.getDate();
 
-  // Build grid: 6×7
   const cells: Array<{ date: Date; thisMonth: boolean }> = [];
   for (let i = 0; i < startDow; i++) {
     cells.push({ date: new Date(viewYear, viewMonth, -startDow + i + 1), thisMonth: false });
@@ -59,83 +58,78 @@ export function Calendar({ value, onChange, events = {}, onDateSelect }: Calenda
     onDateSelect?.(cell.date);
   };
 
-  const isToday     = (d: Date) => toKey(d) === toKey(today);
-  const isSelected  = (d: Date) => toKey(d) === toKey(selected);
-  const eventCount  = (d: Date) => events[toKey(d)] || 0;
+  const isToday    = (d: Date) => toKey(d) === toKey(today);
+  const isSelected = (d: Date) => toKey(d) === toKey(selected);
+  const eventCount = (d: Date) => events[toKey(d)] || 0;
 
-  // Events on selected day
-  const selectedKey    = toKey(selected);
-  const selectedEvents = events[selectedKey] || 0;
+  const selectedEvents = events[toKey(selected)] || 0;
 
   return (
-    <div style={{ fontFamily: FONT, direction: "rtl", width: "100%" }}>
+    <div className="w-full">
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
-        <button onClick={prevMonth} style={{ ...btnStyle }}><ChevronRight size={16} /></button>
-        <span style={{ fontWeight: 600, fontSize: 14, color: COLORS.dark }}>
+      <div className="flex items-center justify-between mb-4">
+        <button
+          onClick={prevMonth}
+          className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+        >
+          <ChevronRight size={16} />
+        </button>
+        <span className="text-sm font-semibold text-gray-900">
           {MONTHS_AR[viewMonth]} {viewYear}
         </span>
-        <button onClick={nextMonth} style={{ ...btnStyle }}><ChevronLeft size={16} /></button>
+        <button
+          onClick={nextMonth}
+          className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 transition-colors"
+        >
+          <ChevronLeft size={16} />
+        </button>
       </div>
 
       {/* Day headers */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", marginBottom: 4 }}>
+      <div className="grid grid-cols-7 mb-1">
         {DAYS_AR.map((d) => (
-          <div key={d} style={{ textAlign: "center", fontSize: 11, fontWeight: 600, color: COLORS.muted, padding: "4px 0" }}>
+          <div key={d} className="text-center text-[11px] font-semibold text-gray-400 py-1">
             {d}
           </div>
         ))}
       </div>
 
       {/* Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 1 }}>
+      <div className="grid grid-cols-7 gap-px">
         {cells.map((cell, i) => {
-          const on  = isSelected(cell.date);
-          const tod = isToday(cell.date);
-          const cnt = eventCount(cell.date);
-          const dots = Math.min(cnt, 3);
+          const on   = isSelected(cell.date);
+          const tod  = isToday(cell.date);
+          const dots = Math.min(eventCount(cell.date), 3);
 
           return (
             <div
               key={i}
               onClick={() => selectDay(cell)}
-              style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 2,
-                padding: "6px 2px",
-                cursor: "pointer",
-                borderRadius: 8,
-                transition: "background 0.15s",
-                background: on
-                  ? COLORS.primary
-                  : tod
-                    ? `${COLORS.primary}10`
-                    : "transparent",
-              }}
-              onMouseEnter={e => {
-                if (!on) (e.currentTarget as HTMLElement).style.background = `${COLORS.primary}0d`;
-              }}
-              onMouseLeave={e => {
-                if (!on && !tod) (e.currentTarget as HTMLElement).style.background = "transparent";
-                if (tod && !on) (e.currentTarget as HTMLElement).style.background = `${COLORS.primary}10`;
-              }}
+              className={clsx(
+                "flex flex-col items-center gap-0.5 py-1.5 px-0.5 rounded-lg cursor-pointer transition-colors",
+                on  ? "bg-brand-400"
+                    : tod ? "bg-brand-50 hover:bg-brand-100"
+                           : "hover:bg-brand-50/60",
+              )}
             >
-              <span style={{
-                fontSize: 13,
-                fontVariantNumeric: "tabular-nums",
-                fontWeight: on || tod ? 700 : 400,
-                color: on ? "#fff" : tod ? COLORS.primary : cell.thisMonth ? COLORS.dark : "#d1d5db",
-                lineHeight: 1,
-              }}>
+              <span className={clsx(
+                "text-[13px] tabular-nums leading-none",
+                on  ? "font-bold text-white"
+                    : tod ? "font-bold text-brand-500"
+                           : cell.thisMonth ? "text-gray-800" : "text-gray-300",
+              )}>
                 {cell.date.getDate()}
               </span>
-              {/* Event dots */}
               {dots > 0 && (
-                <div style={{ display: "flex", gap: 2 }}>
+                <div className="flex gap-0.5">
                   {Array.from({ length: dots }).map((_, di) => (
-                    <span key={di} style={{
-                      width: 4, height: 4, borderRadius: "50%",
-                      background: on ? "#ffffff99" : EVENT_COLORS[di % EVENT_COLORS.length],
-                    }} />
+                    <span
+                      key={di}
+                      className={clsx(
+                        "w-1 h-1 rounded-full",
+                        on ? "bg-white/70" : DOT_CLASSES[di % DOT_CLASSES.length],
+                      )}
+                    />
                   ))}
                 </div>
               )}
@@ -144,10 +138,10 @@ export function Calendar({ value, onChange, events = {}, onDateSelect }: Calenda
         })}
       </div>
 
-      {/* Event list for selected day */}
+      {/* Event summary for selected day */}
       {selectedEvents > 0 && (
-        <div style={{ marginTop: 12, padding: "10px 12px", background: `${COLORS.primary}08`, borderRadius: 10, borderRight: `3px solid ${COLORS.primary}` }}>
-          <p style={{ fontSize: 12, fontWeight: 600, color: COLORS.primary, margin: 0 }}>
+        <div className="mt-3 px-3 py-2.5 bg-brand-50 rounded-xl border-r-[3px] border-brand-400">
+          <p className="text-xs font-semibold text-brand-600">
             {selectedEvents} {selectedEvents === 1 ? "موعد" : "مواعيد"} في هذا اليوم
           </p>
         </div>
@@ -155,9 +149,3 @@ export function Calendar({ value, onChange, events = {}, onDateSelect }: Calenda
     </div>
   );
 }
-
-const btnStyle: React.CSSProperties = {
-  width: 28, height: 28, display: "flex", alignItems: "center", justifyContent: "center",
-  borderRadius: 8, border: "none", background: "transparent", cursor: "pointer",
-  color: "#64748b", transition: "background 0.15s",
-};
