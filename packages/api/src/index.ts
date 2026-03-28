@@ -608,6 +608,15 @@ if (missingEnv.length > 0) {
   process.exit(1);
 }
 
+// Startup visibility — يوضح وضع كل مكوّن عند البدء
+import { ASSET_BASE_URL } from "./lib/storage";
+log.info({
+  cacheStore:   process.env.REDIS_URL ? "redis" : "memory",
+  assetBaseUrl: ASSET_BASE_URL,
+  directPool:   process.env.DIRECT_DATABASE_URL ? "DIRECT_DATABASE_URL" : "DATABASE_URL (fallback)",
+  execMode:     process.env.NODE_APP_INSTANCE !== undefined ? `cluster (instance ${process.env.NODE_APP_INSTANCE})` : "fork",
+}, "[startup] nasaq-api initializing");
+
 // DB connectivity check before accepting traffic
 try {
   await pool.query("SELECT 1");
