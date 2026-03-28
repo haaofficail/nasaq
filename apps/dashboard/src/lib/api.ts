@@ -344,6 +344,7 @@ export const inventoryApi = {
   moveAsset: (id: string, data: any) => api.post<{ data: any }>(`/inventory/assets/${id}/move`, data),
   returnAsset: (id: string, data?: any) => api.post<{ data: any }>(`/inventory/assets/${id}/return`, data ?? {}),
   assetMovements: (id: string) => api.get<{ data: any[]; total: number }>(`/inventory/assets/${id}/movements`),
+  assetJourney:   (id: string) => api.get<{ data: any }>(`/inventory/assets/${id}/journey`),
   addMaintenance: (data: any) => api.post<{ data: any }>("/inventory/maintenance", data),
   availability: (date: string, typeId?: string) => api.get<{ data: any }>(`/inventory/availability?date=${date}${typeId ? "&typeId=" + typeId : ""}`),
   report: () => api.get<{ data: any }>("/inventory/reports/summary"),
@@ -1433,12 +1434,13 @@ export const supportApi = {
 
 // --- Maintenance & Cleaning Tasks ---
 export const maintenanceApi = {
-  list:   (params?: { status?: string; type?: string; serviceId?: string; bookingId?: string }) => {
+  list:   (params?: { status?: string; type?: string; serviceId?: string; bookingId?: string; assetId?: string }) => {
     const q = new URLSearchParams();
     if (params?.status)    q.set("status",    params.status);
     if (params?.type)      q.set("type",      params.type);
     if (params?.serviceId) q.set("serviceId", params.serviceId);
     if (params?.bookingId) q.set("bookingId", params.bookingId);
+    if (params?.assetId)   q.set("assetId",   params.assetId);
     return api.get<{ data: any[] }>(`/maintenance?${q}`);
   },
   stats:  () => api.get<{ data: any }>("/maintenance/stats"),

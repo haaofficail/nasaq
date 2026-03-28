@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { useApi } from "@/hooks/useApi";
-import { maintenanceApi, servicesApi, membersApi } from "@/lib/api";
+import { maintenanceApi, servicesApi, membersApi, inventoryApi } from "@/lib/api";
 import {
   ClipboardCheck, Plus, X, Loader2, AlertCircle, CheckCircle2,
   Clock, Wrench, Trash2, Filter, RefreshCw, ChevronDown,
@@ -46,6 +46,7 @@ const EMPTY_FORM = {
   priority: "normal",
   status: "pending",
   serviceId: "",
+  assetId: "",
   assignedToId: "",
   scheduledAt: "",
   notes: "",
@@ -72,12 +73,14 @@ export function MaintenancePage() {
   const { data: listRes, loading, error, refetch } = useApi(() => maintenanceApi.list(params as any), [filterStatus, filterType]);
   const { data: statsRes } = useApi(() => maintenanceApi.stats(), []);
   const { data: servicesRes } = useApi(() => servicesApi.list({ limit: "100" }), []);
-  const { data: membersRes } = useApi(() => membersApi.list({ limit: "100" }), []);
+  const { data: membersRes }  = useApi(() => membersApi.list({ limit: "100" }), []);
+  const { data: assetsRes }   = useApi(() => inventoryApi.assets({ limit: "200" }), []);
 
-  const tasks = listRes?.data ?? [];
-  const stats = statsRes?.data;
+  const tasks    = listRes?.data    ?? [];
+  const stats    = statsRes?.data;
   const services = servicesRes?.data ?? [];
-  const members = membersRes?.data ?? [];
+  const members  = membersRes?.data  ?? [];
+  const allAssets = assetsRes?.data  ?? [];
 
   const openCreate = () => {
     setForm({ ...EMPTY_FORM });
@@ -94,6 +97,7 @@ export function MaintenancePage() {
       priority:     task.priority     || "normal",
       status:       task.status       || "pending",
       serviceId:    task.serviceId    || "",
+      assetId:      task.assetId      || "",
       assignedToId: task.assignedToId || "",
       scheduledAt:  task.scheduledAt  ? task.scheduledAt.slice(0, 16) : "",
       notes:        task.notes        || "",
@@ -120,7 +124,8 @@ export function MaintenancePage() {
         type:         form.type,
         priority:     form.priority,
         status:       form.status,
-        serviceId:    form.serviceId || undefined,
+        serviceId:    form.serviceId    || undefined,
+        assetId:      form.assetId      || undefined,
         assignedToId: form.assignedToId || undefined,
         scheduledAt:  form.scheduledAt ? new Date(form.scheduledAt).toISOString() : undefined,
         notes:        form.notes || undefined,
@@ -254,6 +259,11 @@ export function MaintenancePage() {
                       {task.service && (
                         <p className="text-xs text-gray-400 mt-0.5">{task.service.name}</p>
                       )}
+                      {task.asset && (
+                        <p className="text-xs text-brand-500 mt-0.5">
+                          {task.asset.name || task.asset.serialNumber}
+                        </p>
+                      )}
                     </td>
                     <td className="px-4 py-3">
                       {typeInfo && <Badge label={typeInfo.label} color={typeInfo.color} />}
@@ -365,14 +375,26 @@ export function MaintenancePage() {
                 </Field>
               </div>
 
-              <Field label="الخدمة / الأصل المرتبط">
-                <select value={form.serviceId} onChange={upd("serviceId")} className={selCls}>
-                  <option value="">بدون ربط</option>
-                  {services.map((s: any) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="الخدمة المرتبطة">
+                  <select value={form.serviceId} onChange={upd("serviceId")} className={selCls}>
+                    <option value="">بدون خدمة</option>
+                    {services.map((s: any) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="الأصل المرتبط">
+                  <select value={form.assetId} onChange={upd("assetId")} className={selCls}>
+                    <option value="">بدون أصل</option>
+                    {allAssets.map((a: any) => (
+                      <option key={a.id} value={a.id}>
+                        {a.name || a.serialNumber || a.id.slice(0, 8)}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
 
               <Field label="المسؤول عن التنفيذ">
                 <select value={form.assignedToId} onChange={upd("assignedToId")} className={selCls}>

@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, desc, asc, inArray } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { maintenanceTasks, services, bookings, locations, users } from "@nasaq/db/schema";
+import { maintenanceTasks, services, bookings, locations, users, assets } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, validateBody } from "../lib/helpers";
 
 export const maintenanceRouter = new Hono();
@@ -18,6 +18,7 @@ const createTaskSchema = z.object({
   serviceId:    z.string().uuid().optional(),
   bookingId:    z.string().uuid().optional(),
   locationId:   z.string().uuid().optional(),
+  assetId:      z.string().uuid().optional(),
   assignedToId: z.string().uuid().optional(),
   scheduledAt:  z.string().datetime().optional(),
   notes:        z.string().optional(),
@@ -37,32 +38,36 @@ maintenanceRouter.get("/", async (c) => {
   const type       = c.req.query("type");
   const serviceId  = c.req.query("serviceId");
   const bookingId  = c.req.query("bookingId");
+  const assetId    = c.req.query("assetId");
   const assignedTo = c.req.query("assignedTo");
 
   const conds = [eq(maintenanceTasks.orgId, orgId)];
-  if (status)     conds.push(eq(maintenanceTasks.status,     status));
-  if (type)       conds.push(eq(maintenanceTasks.type,       type));
-  if (serviceId)  conds.push(eq(maintenanceTasks.serviceId,  serviceId));
-  if (bookingId)  conds.push(eq(maintenanceTasks.bookingId,  bookingId));
+  if (status)     conds.push(eq(maintenanceTasks.status,       status));
+  if (type)       conds.push(eq(maintenanceTasks.type,         type));
+  if (serviceId)  conds.push(eq(maintenanceTasks.serviceId,    serviceId));
+  if (bookingId)  conds.push(eq(maintenanceTasks.bookingId,    bookingId));
+  if (assetId)    conds.push(eq(maintenanceTasks.assetId,      assetId));
   if (assignedTo) conds.push(eq(maintenanceTasks.assignedToId, assignedTo));
 
   const rows = await db
     .select({
-      task: maintenanceTasks,
+      task:     maintenanceTasks,
       service:  { id: services.id,   name: services.name },
       location: { id: locations.id,  name: locations.name },
       assignee: { id: users.id,      name: users.name },
+      asset:    { id: assets.id,     name: assets.name,   serialNumber: assets.serialNumber },
     })
     .from(maintenanceTasks)
     .leftJoin(services,  eq(maintenanceTasks.serviceId,    services.id))
     .leftJoin(locations, eq(maintenanceTasks.locationId,   locations.id))
     .leftJoin(users,     eq(maintenanceTasks.assignedToId, users.id))
+    .leftJoin(assets,    eq(maintenanceTasks.assetId,      assets.id))
     .where(and(...conds))
     .orderBy(desc(maintenanceTasks.createdAt))
     .limit(limit)
     .offset(offset);
 
-  return c.json({ data: rows.map(r => ({ ...r.task, service: r.service, location: r.location, assignee: r.assignee })) });
+  return c.json({ data: rows.map(r => ({ ...r.task, service: r.service, location: r.location, assignee: r.assignee, asset: r.asset })) });
 });
 
 // ── GET /maintenance/stats — Summary counts ────────────────────────────────
@@ -99,6 +104,7 @@ maintenanceRouter.post("/", async (c) => {
     serviceId:    body.serviceId  || null,
     bookingId:    body.bookingId  || null,
     locationId:   body.locationId || null,
+    assetId:      body.assetId    || null,
     assignedToId: body.assignedToId || null,
     assignedAt:   body.assignedToId ? new Date() : null,
     scheduledAt:  body.scheduledAt ? new Date(body.scheduledAt) : null,
@@ -125,6 +131,7 @@ maintenanceRouter.patch("/:id", async (c) => {
   if (body.serviceId    !== undefined) updates.serviceId    = body.serviceId;
   if (body.bookingId    !== undefined) updates.bookingId    = body.bookingId;
   if (body.locationId   !== undefined) updates.locationId   = body.locationId;
+  if (body.assetId      !== undefined) updates.assetId      = body.assetId || null;
   if (body.scheduledAt  !== undefined) updates.scheduledAt  = body.scheduledAt ? new Date(body.scheduledAt) : null;
 
   // Status transitions

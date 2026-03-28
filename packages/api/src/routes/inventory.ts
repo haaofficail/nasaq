@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { eq, and, desc, asc, sql, count, gte, lte, inArray } from "drizzle-orm";
 import { db, pool } from "@nasaq/db/client";
-import { assetTypes, assets, assetReservations, maintenanceLogs, assetTransfers, assetMovements } from "@nasaq/db/schema";
+import { assetTypes, assets, assetReservations, maintenanceLogs, assetTransfers, assetMovements, maintenanceTasks, users } from "@nasaq/db/schema";
 import { getOrgId, getPagination, getUserId } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { apiErr } from "../lib/errors";
@@ -377,6 +377,167 @@ inventoryRouter.get("/assets/:id/movements", async (c) => {
   ]);
 
   return c.json({ data: movements, total: Number(total) });
+});
+
+// ============================================================
+// ASSET JOURNEY — رحلة الأصل: أين هو الآن؟ ومن يملكه؟
+// ============================================================
+
+inventoryRouter.get("/assets/:id/journey", async (c) => {
+  const orgId   = getOrgId(c);
+  const assetId = c.req.param("id");
+
+  // Round 1: parallel fetches
+  const [[asset], maintenanceHistory, movementHistory, taskRows] = await Promise.all([
+    db.select().from(assets).where(and(eq(assets.id, assetId), eq(assets.orgId, orgId))),
+    db.select().from(maintenanceLogs)
+      .where(eq(maintenanceLogs.assetId, assetId))
+      .orderBy(desc(maintenanceLogs.startDate)).limit(20),
+    db.select().from(assetMovements)
+      .where(and(eq(assetMovements.assetId, assetId), eq(assetMovements.orgId, orgId)))
+      .orderBy(desc(assetMovements.createdAt)).limit(30),
+    db.select({ task: maintenanceTasks, assignee: { id: users.id, name: users.name } })
+      .from(maintenanceTasks)
+      .leftJoin(users, eq(maintenanceTasks.assignedToId, users.id))
+      .where(and(eq(maintenanceTasks.assetId, assetId), eq(maintenanceTasks.orgId, orgId)))
+      .orderBy(desc(maintenanceTasks.createdAt)).limit(20),
+  ]);
+
+  if (!asset) return apiErr(c, "INV_ASSET_NOT_FOUND", 404);
+
+  // Round 2: parallel — type + name enrichment + rental contracts + inspections
+  const [type, enrichRows, rcRows, inspRows] = await Promise.all([
+    asset.assetTypeId
+      ? db.select().from(assetTypes).where(eq(assetTypes.id, asset.assetTypeId)).then(r => r[0] ?? null)
+      : Promise.resolve(null),
+
+    // Customer, location, assignee names via raw SQL
+    pool.query<{ customer_name: string | null; customer_phone: string | null; location_name: string | null; assignee_name: string | null }>(`
+      SELECT
+        c.name  AS customer_name,
+        c.phone AS customer_phone,
+        l.name  AS location_name,
+        u.name  AS assignee_name
+      FROM (SELECT 1) base
+      LEFT JOIN customers c  ON ($1::uuid IS NOT NULL AND c.id = $1::uuid)
+      LEFT JOIN locations  l ON ($2::uuid IS NOT NULL AND l.id = $2::uuid)
+      LEFT JOIN users      u ON ($3::uuid IS NOT NULL AND u.id = $3::uuid)
+      LIMIT 1
+    `, [asset.rentedToCustomerId ?? null, asset.currentLocationId ?? null, asset.assignedToUserId ?? null]),
+
+    // Active/recent rental contracts that include this asset
+    pool.query(`
+      SELECT
+        rc.id, rc.contract_number, rc.title, rc.status,
+        rc.start_date, rc.end_date, rc.actual_return_date,
+        rc.value, rc.deposit, rc.customer_name, rc.customer_phone,
+        rca.daily_rate, rca.quantity
+      FROM rental_contract_assets rca
+      JOIN rental_contracts rc ON rc.id = rca.contract_id
+      WHERE rca.asset_id = $1
+        AND rc.org_id    = $2
+        AND rc.status NOT IN ('cancelled')
+      ORDER BY rc.created_at DESC
+      LIMIT 5
+    `, [assetId, orgId]),
+
+    // Rental inspections for this asset
+    pool.query(`
+      SELECT ri.id, ri.type, ri.condition, ri.damage_found, ri.damage_description,
+             ri.damage_cost, ri.inspector_name, ri.notes, ri.created_at,
+             rc.contract_number
+      FROM rental_inspections ri
+      LEFT JOIN rental_contracts rc ON rc.id = ri.contract_id
+      WHERE ri.asset_id = $1
+        AND ri.org_id   = $2
+      ORDER BY ri.created_at DESC
+      LIMIT 10
+    `, [assetId, orgId]),
+  ]);
+
+  const names = enrichRows.rows[0] ?? {};
+
+  // Active (non-completed) maintenance tasks
+  const activeTasks = taskRows
+    .filter(r => r.task.status !== "completed")
+    .map(r => ({ ...r.task, assigneeName: r.assignee?.name ?? null }));
+
+  // All tasks (for timeline)
+  const allTasks = taskRows.map(r => ({ ...r.task, assigneeName: r.assignee?.name ?? null }));
+
+  // Build unified timeline — sorted newest first
+  type TimelineItem = { type: string; date: Date | string | null; [k: string]: any };
+  const timeline: TimelineItem[] = [
+    ...movementHistory.map(m => ({
+      type: "movement",
+      date: m.createdAt,
+      fromType: m.fromLocationType,
+      toType:   m.toLocationType,
+      reason:   m.reason,
+      notes:    m.notes,
+    })),
+    ...maintenanceHistory.map(m => ({
+      type:            "maintenance_log",
+      date:            m.startDate,
+      maintenanceType: m.type,
+      description:     m.description,
+      cost:            m.cost,
+      conditionBefore: m.conditionBefore,
+      conditionAfter:  m.conditionAfter,
+      performedBy:     m.performedBy,
+      endDate:         m.endDate,
+    })),
+    ...inspRows.rows.map((i: any) => ({
+      type:               "inspection",
+      date:               i.created_at,
+      inspType:           i.type,
+      condition:          i.condition,
+      damageFound:        i.damage_found,
+      damageDescription:  i.damage_description,
+      damageCost:         i.damage_cost,
+      inspectorName:      i.inspector_name,
+      contractNumber:     i.contract_number,
+      notes:              i.notes,
+    })),
+    ...allTasks.map(t => ({
+      type:         "task",
+      date:         t.createdAt,
+      taskType:     t.type,
+      title:        t.title,
+      status:       t.status,
+      priority:     t.priority,
+      assigneeName: t.assigneeName,
+      scheduledAt:  t.scheduledAt,
+    })),
+  ]
+    .filter(i => i.date)
+    .sort((a, b) => new Date(b.date as string).getTime() - new Date(a.date as string).getTime())
+    .slice(0, 50);
+
+  const activeContract = rcRows.rows.find((r: any) => r.status === "active") ?? rcRows.rows[0] ?? null;
+
+  return c.json({
+    data: {
+      asset: { ...asset, type },
+      currentPosition: {
+        status:         asset.status,
+        locationType:   asset.locationType,
+        locationName:   names.location_name   ?? null,
+        assigneeName:   names.assignee_name   ?? null,
+        customerName:   names.customer_name   ?? null,
+        customerPhone:  names.customer_phone  ?? null,
+        rentalBookingId: asset.rentalBookingId ?? null,
+        condition:      asset.condition,
+        lastMaintenanceAt: asset.lastMaintenanceAt,
+        nextMaintenanceAt: asset.nextMaintenanceAt,
+        totalUses: asset.totalUses,
+      },
+      activeTasks,
+      activeContract,
+      allContracts: rcRows.rows,
+      timeline,
+    },
+  });
 });
 
 // ============================================================

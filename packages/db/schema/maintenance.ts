@@ -4,6 +4,7 @@ import { services } from "./catalog";
 import { bookings } from "./bookings";
 import { locations } from "./organizations";
 import { users } from "./auth";
+import { assets } from "./inventory";
 
 // ============================================================
 // MAINTENANCE TASKS — الصيانة والنظافة
@@ -14,10 +15,11 @@ export const maintenanceTasks = pgTable("maintenance_tasks", {
   id:           uuid("id").defaultRandom().primaryKey(),
   orgId:        uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
 
-  // Optional links — a task can be standalone or linked to a booking / service / location
+  // Optional links — a task can be standalone or linked to a booking / service / location / asset
   serviceId:    uuid("service_id").references(() => services.id,   { onDelete: "set null" }),
   bookingId:    uuid("booking_id").references(() => bookings.id,   { onDelete: "set null" }),
   locationId:   uuid("location_id").references(() => locations.id, { onDelete: "set null" }),
+  assetId:      uuid("asset_id").references(() => assets.id,       { onDelete: "set null" }),
 
   // Task details
   title:        text("title").notNull(),

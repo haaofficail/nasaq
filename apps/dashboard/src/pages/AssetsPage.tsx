@@ -4,10 +4,13 @@ import {
   Package, Plus, Wrench, Search, X, Loader2,
   MapPin, Hash, Edit2, Trash2, Tag, ArrowRightLeft,
   Warehouse, Building2, User2, ShoppingCart, History,
-  RotateCcw, AlertCircle, Lock,
+  RotateCcw, AlertCircle, Lock, Route, CheckCircle2,
+  Clock, FileText, Activity, Phone,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { inventoryApi, settingsApi, teamApi } from "@/lib/api";
+import { fmtDate as fmtDateUtil } from "@/lib/utils";
+import { MAINTENANCE_TYPES, MAINTENANCE_PRIORITIES, MAINTENANCE_STATUSES } from "@/lib/constants";
 import { useApi, useMutation } from "@/hooks/useApi";
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -56,7 +59,7 @@ const MOVE_REASONS = [
 
 function fmtDate(d?: string | null) {
   if (!d) return "—";
-  return fmtDate(d);
+  return fmtDateUtil(d);
 }
 
 // ── UI Primitives ────────────────────────────────────────────────────────────
@@ -192,7 +195,7 @@ export function AssetsPage() {
   const [moveModal,    setMoveModal]    = useState<{ asset: any } | null>(null);
   const [returnModal,  setReturnModal]  = useState<{ asset: any } | null>(null);
   const [confirmDel,   setConfirmDel]   = useState<string | null>(null);
-  const [activeTab,    setActiveTab]    = useState<"info" | "maintenance" | "movements">("info");
+  const [activeTab,    setActiveTab]    = useState<"info" | "maintenance" | "movements" | "journey">("info");
 
   // ── detail fetch
   const {
@@ -202,6 +205,15 @@ export function AssetsPage() {
     [detailId],
   );
   const detail = (detailRes as any)?.data;
+
+  // ── journey fetch
+  const {
+    data: journeyRes, loading: journeyLoading, refetch: refetchJourney,
+  } = useApi(
+    () => detailId ? inventoryApi.assetJourney(detailId) : Promise.resolve(null) as any,
+    [detailId],
+  );
+  const journey = (journeyRes as any)?.data;
 
   // ── mutations
   const saveType    = useMutation((d: any) => d.id ? inventoryApi.updateAssetType(d.id, d) : inventoryApi.createAssetType(d));
@@ -470,7 +482,7 @@ export function AssetsPage() {
             return (
               <div
                 key={asset.id}
-                onClick={() => setDetailId(asset.id)}
+                onClick={() => { setDetailId(asset.id); setActiveTab("journey"); }}
                 className="bg-white rounded-2xl border border-gray-100 p-4 hover:border-brand-200 hover:shadow-sm transition-all cursor-pointer"
               >
                 {/* top */}
@@ -762,7 +774,7 @@ export function AssetsPage() {
           MODAL: Asset Detail
       ══════════════════════════════════════════════════ */}
       {detailId && (
-        <Modal title="تفاصيل الأصل" onClose={() => { setDetailId(null); setActiveTab("info"); }} size="xl">
+        <Modal title="تفاصيل الأصل" onClose={() => { setDetailId(null); setActiveTab("journey"); }} size="xl">
           {detailLoading ? (
             <div className="flex items-center justify-center h-40 gap-2 text-gray-400">
               <Loader2 className="w-5 h-5 animate-spin" /> جاري التحميل...
@@ -814,6 +826,7 @@ export function AssetsPage() {
               {/* Tabs */}
               <div className="flex gap-1 bg-gray-50 rounded-xl p-1">
                 {[
+                  { key: "journey",     label: "رحلة الأصل" },
                   { key: "info",        label: "المعلومات" },
                   { key: "maintenance", label: `الصيانة (${detail.maintenanceHistory?.length ?? 0})` },
                   { key: "movements",   label: `الحركات (${detail.movementHistory?.length ?? 0})` },
@@ -830,6 +843,312 @@ export function AssetsPage() {
                   </button>
                 ))}
               </div>
+
+              {/* Tab: رحلة الأصل */}
+              {activeTab === "journey" && (
+                <div className="space-y-4">
+                  {journeyLoading ? (
+                    <div className="flex items-center justify-center h-32 gap-2 text-gray-400">
+                      <Loader2 className="w-4 h-4 animate-spin" /> جاري التحميل...
+                    </div>
+                  ) : journey ? (
+                    <>
+                      {/* Current Position Card */}
+                      <div className={clsx(
+                        "rounded-2xl border-2 p-4",
+                        journey.currentPosition.status === "available"   && "border-green-200 bg-green-50",
+                        journey.currentPosition.status === "in_use"      && "border-blue-200 bg-blue-50",
+                        journey.currentPosition.status === "maintenance" && "border-orange-200 bg-orange-50",
+                        journey.currentPosition.status === "damaged"     && "border-red-200 bg-red-50",
+                        journey.currentPosition.status === "lost"        && "border-gray-200 bg-gray-50",
+                        journey.currentPosition.status === "retired"     && "border-gray-200 bg-gray-100",
+                      )}>
+                        <p className="text-xs font-semibold text-gray-500 mb-3 flex items-center gap-1.5">
+                          <Activity className="w-3.5 h-3.5" /> الموقع الحالي
+                        </p>
+                        <div className="grid grid-cols-2 gap-2 text-sm">
+                          {journey.currentPosition.locationType === "warehouse" && (
+                            <div className="col-span-2 flex items-center gap-2">
+                              <Warehouse className="w-4 h-4 text-gray-400" />
+                              <span className="font-medium text-gray-900">في المستودع</span>
+                              {journey.currentPosition.locationName && (
+                                <span className="text-gray-400">— {journey.currentPosition.locationName}</span>
+                              )}
+                            </div>
+                          )}
+                          {journey.currentPosition.locationType === "branch" && (
+                            <div className="col-span-2 flex items-center gap-2">
+                              <Building2 className="w-4 h-4 text-blue-500" />
+                              <span className="font-medium text-gray-900">في الفرع</span>
+                              {journey.currentPosition.locationName && (
+                                <span className="text-gray-400">— {journey.currentPosition.locationName}</span>
+                              )}
+                            </div>
+                          )}
+                          {journey.currentPosition.locationType === "assigned" && (
+                            <div className="col-span-2 flex items-center gap-2">
+                              <User2 className="w-4 h-4 text-purple-500" />
+                              <span className="font-medium text-gray-900">معيَّن لموظف</span>
+                              {journey.currentPosition.assigneeName && (
+                                <span className="text-purple-700 font-semibold">{journey.currentPosition.assigneeName}</span>
+                              )}
+                            </div>
+                          )}
+                          {journey.currentPosition.locationType === "rented" && (
+                            <>
+                              <div className="col-span-2 flex items-center gap-2">
+                                <ShoppingCart className="w-4 h-4 text-emerald-500" />
+                                <span className="font-medium text-gray-900">مؤجَّر لعميل</span>
+                                {journey.currentPosition.customerName && (
+                                  <span className="text-emerald-700 font-semibold">{journey.currentPosition.customerName}</span>
+                                )}
+                              </div>
+                              {journey.currentPosition.customerPhone && (
+                                <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                                  <Phone className="w-3.5 h-3.5" />
+                                  <span dir="ltr">{journey.currentPosition.customerPhone}</span>
+                                </div>
+                              )}
+                            </>
+                          )}
+                          {journey.currentPosition.condition && (
+                            <div className="bg-white/60 rounded-xl p-2">
+                              <p className="text-[10px] text-gray-400">الحالة الفيزيائية</p>
+                              <p className="font-medium text-gray-800 text-xs">{CONDITION[journey.currentPosition.condition]?.label ?? journey.currentPosition.condition}</p>
+                            </div>
+                          )}
+                          {journey.currentPosition.totalUses != null && (
+                            <div className="bg-white/60 rounded-xl p-2">
+                              <p className="text-[10px] text-gray-400">مرات الاستخدام</p>
+                              <p className="font-medium text-gray-800 text-xs">{journey.currentPosition.totalUses}</p>
+                            </div>
+                          )}
+                          {journey.currentPosition.lastMaintenanceAt && (
+                            <div className="bg-white/60 rounded-xl p-2">
+                              <p className="text-[10px] text-gray-400">آخر صيانة</p>
+                              <p className="font-medium text-gray-800 text-xs">{fmtDate(journey.currentPosition.lastMaintenanceAt)}</p>
+                            </div>
+                          )}
+                          {journey.currentPosition.nextMaintenanceAt && (
+                            <div className="bg-white/60 rounded-xl p-2">
+                              <p className="text-[10px] text-gray-400">الصيانة القادمة</p>
+                              <p className="font-medium text-gray-800 text-xs">{fmtDate(journey.currentPosition.nextMaintenanceAt)}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Active Maintenance Tasks */}
+                      {journey.activeTasks?.length > 0 && (
+                        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4">
+                          <p className="text-xs font-semibold text-orange-700 mb-3 flex items-center gap-1.5">
+                            <Wrench className="w-3.5 h-3.5" />
+                            مهام صيانة نشطة ({journey.activeTasks.length})
+                          </p>
+                          <div className="space-y-2">
+                            {journey.activeTasks.map((task: any) => {
+                              const typeInfo = MAINTENANCE_TYPES.find(t => t.key === task.type);
+                              const priInfo  = MAINTENANCE_PRIORITIES.find(p => p.key === task.priority);
+                              const stInfo   = MAINTENANCE_STATUSES.find(s => s.key === task.status);
+                              return (
+                                <div key={task.id} className="bg-white rounded-xl p-3 border border-orange-100">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1">
+                                      <p className="font-medium text-gray-900 text-sm">{task.title}</p>
+                                      {task.description && <p className="text-xs text-gray-500 mt-0.5">{task.description}</p>}
+                                    </div>
+                                    {stInfo && (
+                                      <span className={clsx("px-2 py-0.5 rounded-lg text-[10px] font-medium shrink-0", stInfo.color)}>{stInfo.label}</span>
+                                    )}
+                                  </div>
+                                  <div className="flex flex-wrap gap-2 mt-2">
+                                    {typeInfo && <span className={clsx("px-2 py-0.5 rounded-lg text-[10px] font-medium", typeInfo.color)}>{typeInfo.label}</span>}
+                                    {priInfo && <span className={clsx("px-2 py-0.5 rounded-lg text-[10px] font-medium", priInfo.color)}>{priInfo.label}</span>}
+                                    {task.assigneeName && (
+                                      <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                                        <User2 className="w-3 h-3" />{task.assigneeName}
+                                      </span>
+                                    )}
+                                    {task.scheduledAt && (
+                                      <span className="flex items-center gap-1 text-[10px] text-gray-500">
+                                        <Clock className="w-3 h-3" />{fmtDate(task.scheduledAt)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Active Rental Contract */}
+                      {journey.activeContract && (
+                        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4">
+                          <p className="text-xs font-semibold text-emerald-700 mb-3 flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5" />
+                            عقد الإيجار النشط
+                          </p>
+                          <div className="bg-white rounded-xl p-3 border border-emerald-100">
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="font-semibold text-gray-900 text-sm">{journey.activeContract.customer_name}</p>
+                              <span className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded-lg dir-ltr">
+                                {journey.activeContract.contract_number}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs text-gray-500">
+                              <div>
+                                <p className="text-[10px] text-gray-400">من</p>
+                                <p className="font-medium text-gray-700">{fmtDate(journey.activeContract.start_date)}</p>
+                              </div>
+                              <div>
+                                <p className="text-[10px] text-gray-400">إلى</p>
+                                <p className="font-medium text-gray-700">{fmtDate(journey.activeContract.end_date)}</p>
+                              </div>
+                              {journey.activeContract.daily_rate && Number(journey.activeContract.daily_rate) > 0 && (
+                                <div>
+                                  <p className="text-[10px] text-gray-400">الإيجار اليومي</p>
+                                  <p className="font-medium text-gray-700">{Number(journey.activeContract.daily_rate).toLocaleString()} ر.س</p>
+                                </div>
+                              )}
+                              {journey.activeContract.value && Number(journey.activeContract.value) > 0 && (
+                                <div>
+                                  <p className="text-[10px] text-gray-400">قيمة العقد</p>
+                                  <p className="font-medium text-gray-700">{Number(journey.activeContract.value).toLocaleString()} ر.س</p>
+                                </div>
+                              )}
+                              {journey.activeContract.customer_phone && (
+                                <div className="col-span-2 flex items-center gap-1">
+                                  <Phone className="w-3 h-3" />
+                                  <span dir="ltr">{journey.activeContract.customer_phone}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Timeline */}
+                      <div>
+                        <p className="text-xs font-semibold text-gray-500 mb-3 flex items-center gap-1.5">
+                          <History className="w-3.5 h-3.5" />
+                          السجل الزمني الكامل ({journey.timeline?.length ?? 0} حدث)
+                        </p>
+                        {journey.timeline?.length > 0 ? (
+                          <div className="relative">
+                            {/* Timeline line */}
+                            <div className="absolute right-[11px] top-2 bottom-2 w-0.5 bg-gray-100" />
+                            <div className="space-y-3">
+                              {journey.timeline.map((item: any, idx: number) => {
+                                const isMovement    = item.type === "movement";
+                                const isMaintLog    = item.type === "maintenance_log";
+                                const isInspection  = item.type === "inspection";
+                                const isTask        = item.type === "task";
+                                return (
+                                  <div key={idx} className="flex gap-3 items-start">
+                                    {/* Dot */}
+                                    <div className={clsx(
+                                      "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 bg-white z-10",
+                                      isMovement   && "border-blue-300",
+                                      isMaintLog   && "border-orange-300",
+                                      isInspection && "border-purple-300",
+                                      isTask       && "border-amber-300",
+                                    )}>
+                                      {isMovement   && <ArrowRightLeft className="w-2.5 h-2.5 text-blue-400" />}
+                                      {isMaintLog   && <Wrench className="w-2.5 h-2.5 text-orange-400" />}
+                                      {isInspection && <CheckCircle2 className="w-2.5 h-2.5 text-purple-400" />}
+                                      {isTask       && <Clock className="w-2.5 h-2.5 text-amber-400" />}
+                                    </div>
+
+                                    {/* Content */}
+                                    <div className="flex-1 bg-white border border-gray-100 rounded-xl p-3 text-xs">
+                                      {isMovement && (
+                                        <>
+                                          <div className="flex items-center justify-between mb-1">
+                                            <div className="flex items-center gap-2">
+                                              <span className={clsx("flex items-center gap-1", LOCATION_TYPE[item.fromType]?.cls ?? "text-gray-500")}>
+                                                {item.fromType && (() => { const Ic = LOCATION_TYPE[item.fromType]?.icon; return Ic ? <Ic className="w-3 h-3" /> : null; })()}
+                                                {LOCATION_TYPE[item.fromType]?.label ?? item.fromType ?? "—"}
+                                              </span>
+                                              <ArrowRightLeft className="w-2.5 h-2.5 text-gray-300" />
+                                              <span className={clsx("flex items-center gap-1 font-medium", LOCATION_TYPE[item.toType]?.cls ?? "text-gray-700")}>
+                                                {item.toType && (() => { const Ic = LOCATION_TYPE[item.toType]?.icon; return Ic ? <Ic className="w-3 h-3" /> : null; })()}
+                                                {LOCATION_TYPE[item.toType]?.label ?? item.toType ?? "—"}
+                                              </span>
+                                            </div>
+                                            <span className="text-[10px] text-gray-400">{fmtDate(item.date)}</span>
+                                          </div>
+                                          {item.reason && <p className="text-gray-500">{item.reason}</p>}
+                                          {item.notes  && <p className="text-gray-400 mt-0.5">{item.notes}</p>}
+                                        </>
+                                      )}
+                                      {isMaintLog && (
+                                        <>
+                                          <div className="flex items-center justify-between mb-1">
+                                            <span className="font-medium text-orange-700">{MAINT_TYPE[item.maintenanceType] ?? item.maintenanceType}</span>
+                                            <span className="text-[10px] text-gray-400">{fmtDate(item.date)}</span>
+                                          </div>
+                                          {item.description && <p className="text-gray-500">{item.description}</p>}
+                                          <div className="flex flex-wrap gap-3 text-gray-400 mt-0.5">
+                                            {item.conditionBefore && <span>قبل: {CONDITION[item.conditionBefore]?.label ?? item.conditionBefore}</span>}
+                                            {item.conditionAfter  && <span>بعد: {CONDITION[item.conditionAfter]?.label ?? item.conditionAfter}</span>}
+                                            {item.cost && Number(item.cost) > 0 && <span>التكلفة: {Number(item.cost).toLocaleString()} ر.س</span>}
+                                            {item.performedBy && <span>بواسطة: {item.performedBy}</span>}
+                                          </div>
+                                        </>
+                                      )}
+                                      {isInspection && (
+                                        <>
+                                          <div className="flex items-center justify-between mb-1">
+                                            <span className="font-medium text-purple-700">
+                                              {item.inspType === "pre_rental" ? "فحص قبل التأجير" : item.inspType === "post_rental" ? "فحص بعد الاستلام" : "فحص صيانة"}
+                                            </span>
+                                            <span className="text-[10px] text-gray-400">{fmtDate(item.date)}</span>
+                                          </div>
+                                          <div className="flex flex-wrap gap-2 text-gray-500">
+                                            {item.condition && <span>الحالة: {CONDITION[item.condition]?.label ?? item.condition}</span>}
+                                            {item.damageFound && (
+                                              <span className="text-red-500 font-medium">تلف مُبلَّغ عنه</span>
+                                            )}
+                                            {item.damageCost && Number(item.damageCost) > 0 && (
+                                              <span>تكلفة التلف: {Number(item.damageCost).toLocaleString()} ر.س</span>
+                                            )}
+                                            {item.contractNumber && <span className="font-mono text-gray-400">عقد: {item.contractNumber}</span>}
+                                          </div>
+                                          {item.damageDescription && <p className="text-red-400 mt-0.5">{item.damageDescription}</p>}
+                                        </>
+                                      )}
+                                      {isTask && (
+                                        <>
+                                          <div className="flex items-center justify-between mb-1">
+                                            <span className="font-medium text-amber-700">{item.title}</span>
+                                            <span className="text-[10px] text-gray-400">{fmtDate(item.date)}</span>
+                                          </div>
+                                          <div className="flex flex-wrap gap-2 text-gray-400">
+                                            {item.taskType && <span>{MAINTENANCE_TYPES.find(t => t.key === item.taskType)?.label ?? item.taskType}</span>}
+                                            {item.status && <span className={clsx("px-1.5 py-0.5 rounded-md text-[10px]", MAINTENANCE_STATUSES.find(s => s.key === item.status)?.color ?? "bg-gray-100 text-gray-500")}>{MAINTENANCE_STATUSES.find(s => s.key === item.status)?.label ?? item.status}</span>}
+                                            {item.assigneeName && <span>مُكلَّف: {item.assigneeName}</span>}
+                                          </div>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl">
+                            لا يوجد سجل بعد
+                          </p>
+                        )}
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-center text-gray-400 py-10">فشل تحميل البيانات</p>
+                  )}
+                </div>
+              )}
 
               {/* Tab: Info */}
               {activeTab === "info" && (

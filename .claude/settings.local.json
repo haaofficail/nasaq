@@ -168,7 +168,9 @@
       "Bash(/Users/thwany/Desktop/nasaq/node_modules/.bin/tsc -p apps/dashboard/tsconfig.json --noEmit)",
       "Bash(apps/dashboard/node_modules/.bin/tsc -p apps/dashboard/tsconfig.json --noEmit)",
       "Bash(git:*)",
-      "Bash(bash deploy.sh \"إضافة: المرافق على الخدمات، صفحة الصيانة والنظافة\" 2>&1)"
+      "Bash(bash deploy.sh \"إضافة: المرافق على الخدمات، صفحة الصيانة والنظافة\" 2>&1)",
+      "Bash(packages/api/node_modules/.bin/tsc -p packages/api/tsconfig.json --noEmit)",
+      "Bash(bash deploy.sh \"ميزة رحلة الأصل: تكامل شامل بين الأصول والصيانة والعقود والحركات\" 2>&1)"
     ]
   }
 }
