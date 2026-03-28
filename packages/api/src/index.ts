@@ -1,5 +1,6 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
+import { bodyLimit } from "hono/body-limit";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { prettyJSON } from "hono/pretty-json";
@@ -86,6 +87,41 @@ app.use("*", cors({
 }));
 app.use("*", logger());
 app.use("*", prettyJSON());
+
+// Body size limit — رفض أي payload فوق 10MB
+app.use("*", bodyLimit({
+  maxSize: 10 * 1024 * 1024, // 10MB
+  onError: (c) => c.json({ error: "حجم الطلب كبير جداً (الحد الأقصى 10MB)", code: "PAYLOAD_TOO_LARGE" }, 413),
+}));
+
+// Auth rate limiter — 300 طلب/دقيقة لكل token مصادق
+// يحمي من scraping وbrute force على الـ authenticated endpoints
+const _authRlMap = new Map<string, { count: number; resetAt: number }>();
+const AUTH_RL_LIMIT = 300;
+const AUTH_RL_WINDOW = 60_000;
+// تنظيف دوري كل 5 دقائق لمنع نمو الـ Map
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of _authRlMap) {
+    if (entry.resetAt <= now) _authRlMap.delete(key);
+  }
+}, 5 * 60_000).unref();
+
+app.use("*", async (c, next) => {
+  const token = c.req.header("Authorization")?.substring(7);
+  if (!token) return next();
+  const now = Date.now();
+  const entry = _authRlMap.get(token);
+  if (entry && entry.resetAt > now) {
+    if (entry.count >= AUTH_RL_LIMIT) {
+      return c.json({ error: "تجاوزت الحد المسموح من الطلبات، حاول بعد دقيقة", code: "RATE_LIMIT_EXCEEDED" }, 429);
+    }
+    entry.count++;
+  } else {
+    _authRlMap.set(token, { count: 1, resetAt: now + AUTH_RL_WINDOW });
+  }
+  return next();
+});
 
 // Security headers
 app.use("*", async (c, next) => {

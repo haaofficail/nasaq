@@ -255,9 +255,10 @@ export async function superAdminMiddleware(c: Context, next: Next) {
 // HELPERS
 // ============================================================
 
-// ── Org subscription status cache (30s TTL) ────────────────────────────────
+// ── Org subscription status cache (30s TTL, max 2000 entries) ─────────────
 const orgStatusCache = new Map<string, { status: string; expiresAt: number }>();
 const ORG_STATUS_TTL_MS = 30_000;
+const ORG_STATUS_MAX = 2_000;
 
 /** يُبطل cache المنشأة — استدعه بعد تحديث حالة الاشتراك مباشرة */
 export function invalidateOrgStatusCache(orgId: string): void {
@@ -275,6 +276,10 @@ async function getOrgSubscriptionStatus(orgId: string): Promise<string> {
     .where(eq(organizations.id, orgId));
 
   const status = org?.subscriptionStatus ?? "active";
+  if (orgStatusCache.size >= ORG_STATUS_MAX) {
+    // حذف أقدم مدخل عند الامتلاء (FIFO approximation)
+    orgStatusCache.delete(orgStatusCache.keys().next().value!);
+  }
   orgStatusCache.set(orgId, { status, expiresAt: now + ORG_STATUS_TTL_MS });
   return status;
 }
@@ -288,7 +293,7 @@ const SUSPENSION_BYPASS_PREFIXES = [
   "/api/v1/admin",
 ];
 
-// Short-lived permission cache
+// Short-lived permission cache (max 1000 entries, 2min TTL)
 // key: roleId (old) or `jt:${jobTitleId}` (new) or `sys:${userId}` for owner
 const permissionCache = new Map<string, {
   permissions: string[];
@@ -298,12 +303,20 @@ const permissionCache = new Map<string, {
   expiresAt: number;
 }>();
 const PERM_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+const PERM_CACHE_MAX = 1_000;
 
 /** Invalidate cached permissions for a role or job title */
 export function invalidatePermissionCache(key: string): void {
   permissionCache.delete(key);
   // Also try job title key format
   permissionCache.delete(`jt:${key}`);
+}
+
+function setPermCache(key: string, value: typeof permissionCache extends Map<string, infer V> ? V : never) {
+  if (permissionCache.size >= PERM_CACHE_MAX) {
+    permissionCache.delete(permissionCache.keys().next().value!);
+  }
+  permissionCache.set(key, value);
 }
 
 async function loadUser(userId: string): Promise<AuthUser | null> {
@@ -360,7 +373,7 @@ async function loadUser(userId: string): Promise<AuthUser | null> {
           .where(eq(jobTitlePermissions.jobTitleId, jt.id));
 
         dotPermissions = resolvePermissions(systemRole, overrides);
-        permissionCache.set(cacheKey, { permissions: [], dotPermissions, roleName, systemRole, expiresAt: now + PERM_CACHE_TTL_MS });
+        setPermCache(cacheKey, { permissions: [], dotPermissions, roleName, systemRole, expiresAt: now + PERM_CACHE_TTL_MS });
       }
     }
   }
@@ -390,7 +403,7 @@ async function loadUser(userId: string): Promise<AuthUser | null> {
         .where(eq(rolePermissions.roleId, user.roleId));
 
       userPermissions = perms.map((p) => `${p.resource}:${p.action}`);
-      permissionCache.set(user.roleId, {
+      setPermCache(user.roleId, {
         permissions: userPermissions,
         dotPermissions: [],
         roleName: legacyRoleName,
