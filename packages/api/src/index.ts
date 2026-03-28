@@ -7,7 +7,8 @@ import { prettyJSON } from "hono/pretty-json";
 import { requestId } from "hono/request-id";
 import "dotenv/config";
 import { z } from "zod";
-import { db, pool } from "@nasaq/db/client";
+import { db, pool, directPool } from "@nasaq/db/client";
+import { authRlCache } from "./lib/cache";
 import { platformAuditLog } from "@nasaq/db/schema";
 import { log } from "./lib/logger";
 import { startScheduler } from "./jobs/scheduler";
@@ -96,29 +97,22 @@ app.use("*", bodyLimit({
 
 // Auth rate limiter — 300 طلب/دقيقة لكل token مصادق
 // يحمي من scraping وbrute force على الـ authenticated endpoints
-const _authRlMap = new Map<string, { count: number; resetAt: number }>();
+// يستخدم authRlCache من cache.ts — يدعم Redis عند تفعيله
 const AUTH_RL_LIMIT = 300;
 const AUTH_RL_WINDOW = 60_000;
-// تنظيف دوري كل 5 دقائق لمنع نمو الـ Map
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of _authRlMap) {
-    if (entry.resetAt <= now) _authRlMap.delete(key);
-  }
-}, 5 * 60_000).unref();
 
 app.use("*", async (c, next) => {
   const token = c.req.header("Authorization")?.substring(7);
   if (!token) return next();
-  const now = Date.now();
-  const entry = _authRlMap.get(token);
-  if (entry && entry.resetAt > now) {
-    if (entry.count >= AUTH_RL_LIMIT) {
-      return c.json({ error: "تجاوزت الحد المسموح من الطلبات، حاول بعد دقيقة", code: "RATE_LIMIT_EXCEEDED" }, 429);
-    }
-    entry.count++;
+  const rlKey = `rl:${token}`;
+  const current = await authRlCache.get<number>(rlKey);
+  if (current === null) {
+    await authRlCache.set(rlKey, 1, AUTH_RL_WINDOW);
+  } else if (current >= AUTH_RL_LIMIT) {
+    return c.json({ error: "تجاوزت الحد المسموح من الطلبات، حاول بعد دقيقة", code: "RATE_LIMIT_EXCEEDED" }, 429);
   } else {
-    _authRlMap.set(token, { count: 1, resetAt: now + AUTH_RL_WINDOW });
+    // increment — set with same TTL window (conservative: resets window on each req)
+    await authRlCache.set(rlKey, current + 1, AUTH_RL_WINDOW);
   }
   return next();
 });
@@ -624,6 +618,7 @@ try {
 }
 
 // Auto-run pending migrations on startup
+// يستخدم directPool لأن CREATE INDEX CONCURRENTLY تتطلب اتصالاً مباشراً
 try {
   const fs = await import("fs");
   const path = await import("path");
@@ -633,7 +628,7 @@ try {
   const migrationsDir = path.resolve(__dirname, "../../db/migrations");
 
   // Track applied migrations
-  await pool.query(`
+  await directPool.query(`
     CREATE TABLE IF NOT EXISTS _migrations (
       name TEXT PRIMARY KEY,
       applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -641,7 +636,7 @@ try {
   `);
 
   const applied = new Set(
-    (await pool.query<{ name: string }>("SELECT name FROM _migrations")).rows.map(r => r.name)
+    (await directPool.query<{ name: string }>("SELECT name FROM _migrations")).rows.map(r => r.name)
   );
 
   const files = fs.readdirSync(migrationsDir)
@@ -651,27 +646,27 @@ try {
   // First run: seed all existing migrations as applied to avoid re-running them
   if (applied.size === 0 && files.length > 0) {
     // Check if this is an existing database (has core tables)
-    const { rows } = await pool.query<{ count: string }>(
+    const { rows } = await directPool.query<{ count: string }>(
       "SELECT COUNT(*)::text AS count FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'organizations'"
     );
     if (Number(rows[0]?.count ?? 0) > 0) {
       // DB already set up — mark all current files as applied without running them
       for (const file of files) {
-        await pool.query("INSERT INTO _migrations (name) VALUES ($1) ON CONFLICT DO NOTHING", [file]);
+        await directPool.query("INSERT INTO _migrations (name) VALUES ($1) ON CONFLICT DO NOTHING", [file]);
       }
       log.info({ count: files.length }, "migrations seeded (existing db)");
     }
     // Re-fetch applied set after seeding
-    const refreshed = await pool.query<{ name: string }>("SELECT name FROM _migrations");
+    const refreshed = await directPool.query<{ name: string }>("SELECT name FROM _migrations");
     for (const r of refreshed.rows) applied.add(r.name);
   }
 
   let ran = 0;
   for (const file of files) {
     if (applied.has(file)) continue;
-    const sql = fs.readFileSync(path.join(migrationsDir, file), "utf8");
-    await pool.query(sql);
-    await pool.query("INSERT INTO _migrations (name) VALUES ($1) ON CONFLICT DO NOTHING", [file]);
+    const sqlText = fs.readFileSync(path.join(migrationsDir, file), "utf8");
+    await directPool.query(sqlText);
+    await directPool.query("INSERT INTO _migrations (name) VALUES ($1) ON CONFLICT DO NOTHING", [file]);
     log.info({ migration: file }, "migration applied");
     ran++;
   }
@@ -690,12 +685,12 @@ log.info({ port, url: `http://localhost:${port}/api/v1` }, "nasaq-api started");
 
 const server = serve({ fetch: app.fetch, port });
 
-// Graceful shutdown — stop pg-boss, drain connections, close pool
+// Graceful shutdown — stop pg-boss, drain connections, close pools
 const shutdown = () => {
-  log.info("shutting down — stopping scheduler and DB pool");
+  log.info("shutting down — stopping scheduler and DB pools");
   boss.stop({ graceful: true, timeout: 10_000 }).then(() => {
     server.close(async () => {
-      await pool.end();
+      await Promise.all([pool.end(), directPool.end()]);
       log.info("shutdown complete");
       process.exit(0);
     });

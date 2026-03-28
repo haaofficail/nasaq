@@ -1,5 +1,5 @@
 import { PgBoss } from "pg-boss";
-import { db, pool } from "@nasaq/db/client";
+import { db, pool, directPool } from "@nasaq/db/client";
 import { organizations, sessions, otpCodes, systemHealthLog, platformAuditLog } from "@nasaq/db/schema";
 import { lt, sql, count, eq } from "drizzle-orm";
 import { log } from "../lib/logger";
@@ -102,7 +102,8 @@ function wrap(label: string, fn: () => Promise<void>): () => Promise<void> {
 }
 
 export async function startScheduler(): Promise<PgBoss> {
-  const boss = new PgBoss(process.env.DATABASE_URL!);
+  // pg-boss يحتاج LISTEN/NOTIFY وعمليات DDL — يجب اتصال مباشر (ليس pooler)
+  const boss = new PgBoss(process.env.DIRECT_DATABASE_URL ?? process.env.DATABASE_URL!);
 
   boss.on("error", (err) => log.error({ err }, "[pg-boss] internal error"));
 

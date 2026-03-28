@@ -8,6 +8,7 @@ import { db } from "@nasaq/db/client";
 import { mediaAssets } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
+import { ASSET_BASE_URL } from "../lib/storage";
 
 const UPLOAD_DIR     = process.env.UPLOAD_DIR     || "/var/www/nasaq/static/uploads";
 const STATIC_BASE_URL = process.env.STATIC_BASE_URL || "https://nasaqpro.tech/static/uploads";
@@ -33,7 +34,8 @@ async function getR2Client() {
 }
 
 const R2_BUCKET    = process.env.R2_BUCKET_NAME || "nasaq-files";
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL  || "https://files.nasaqpro.tech";
+// R2_PUBLIC_URL مُوحَّد عبر storage.ts (يدعم CDN_URL تلقائياً)
+const R2_PUBLIC_URL = ASSET_BASE_URL;
 
 // ── Allowed MIME types ───────────────────────────────────────────────────────
 

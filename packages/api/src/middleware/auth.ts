@@ -5,6 +5,7 @@ import { sessions, users, roles, rolePermissions, permissions, orgMembers, jobTi
 import { resolvePermissions } from "../lib/default-permissions";
 import type { SystemRole } from "../lib/default-permissions";
 import { orgHasCapability } from "../lib/org-context";
+import { permCache, orgStatusCache } from "../lib/cache";
 
 // ============================================================
 // AUTH MIDDLEWARE
@@ -255,20 +256,18 @@ export async function superAdminMiddleware(c: Context, next: Next) {
 // HELPERS
 // ============================================================
 
-// ── Org subscription status cache (30s TTL, max 2000 entries) ─────────────
-const orgStatusCache = new Map<string, { status: string; expiresAt: number }>();
+// ── Org subscription status cache (30s TTL) ───────────────────────────────
+// المثيل من cache.ts — يدعم Redis عند تفعيله
 const ORG_STATUS_TTL_MS = 30_000;
-const ORG_STATUS_MAX = 2_000;
 
 /** يُبطل cache المنشأة — استدعه بعد تحديث حالة الاشتراك مباشرة */
 export function invalidateOrgStatusCache(orgId: string): void {
-  orgStatusCache.delete(orgId);
+  orgStatusCache.del(orgId);
 }
 
 async function getOrgSubscriptionStatus(orgId: string): Promise<string> {
-  const now = Date.now();
-  const cached = orgStatusCache.get(orgId);
-  if (cached && cached.expiresAt > now) return cached.status;
+  const cached = await orgStatusCache.get<string>(`org:${orgId}`);
+  if (cached !== null) return cached;
 
   const [org] = await db
     .select({ subscriptionStatus: organizations.subscriptionStatus })
@@ -276,11 +275,7 @@ async function getOrgSubscriptionStatus(orgId: string): Promise<string> {
     .where(eq(organizations.id, orgId));
 
   const status = org?.subscriptionStatus ?? "active";
-  if (orgStatusCache.size >= ORG_STATUS_MAX) {
-    // حذف أقدم مدخل عند الامتلاء (FIFO approximation)
-    orgStatusCache.delete(orgStatusCache.keys().next().value!);
-  }
-  orgStatusCache.set(orgId, { status, expiresAt: now + ORG_STATUS_TTL_MS });
+  await orgStatusCache.set(`org:${orgId}`, status, ORG_STATUS_TTL_MS);
   return status;
 }
 
@@ -293,30 +288,21 @@ const SUSPENSION_BYPASS_PREFIXES = [
   "/api/v1/admin",
 ];
 
-// Short-lived permission cache (max 1000 entries, 2min TTL)
-// key: roleId (old) or `jt:${jobTitleId}` (new) or `sys:${userId}` for owner
-const permissionCache = new Map<string, {
+// Short-lived permission cache (2min TTL) — مثيل من cache.ts، يدعم Redis
+// key: roleId (old) or `jt:${jobTitleId}` (new)
+const PERM_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
+
+type PermCacheEntry = {
   permissions: string[];
   dotPermissions: string[];
   roleName: string | null;
   systemRole: SystemRole | null;
-  expiresAt: number;
-}>();
-const PERM_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
-const PERM_CACHE_MAX = 1_000;
+};
 
 /** Invalidate cached permissions for a role or job title */
 export function invalidatePermissionCache(key: string): void {
-  permissionCache.delete(key);
-  // Also try job title key format
-  permissionCache.delete(`jt:${key}`);
-}
-
-function setPermCache(key: string, value: typeof permissionCache extends Map<string, infer V> ? V : never) {
-  if (permissionCache.size >= PERM_CACHE_MAX) {
-    permissionCache.delete(permissionCache.keys().next().value!);
-  }
-  permissionCache.set(key, value);
+  permCache.del(`perm:${key}`);
+  permCache.del(`perm:jt:${key}`);
 }
 
 async function loadUser(userId: string): Promise<AuthUser | null> {
@@ -349,11 +335,10 @@ async function loadUser(userId: string): Promise<AuthUser | null> {
     .where(and(eq(orgMembers.userId, userId), eq(orgMembers.orgId, user.orgId)));
 
   if (member?.jobTitleId) {
-    const cacheKey = `jt:${member.jobTitleId}`;
-    const now = Date.now();
-    const cached = permissionCache.get(cacheKey);
+    const cacheKey = `perm:jt:${member.jobTitleId}`;
+    const cached = await permCache.get<PermCacheEntry>(cacheKey);
 
-    if (cached && cached.expiresAt > now) {
+    if (cached) {
       dotPermissions = cached.dotPermissions;
       roleName = cached.roleName;
       systemRole = cached.systemRole;
@@ -373,16 +358,16 @@ async function loadUser(userId: string): Promise<AuthUser | null> {
           .where(eq(jobTitlePermissions.jobTitleId, jt.id));
 
         dotPermissions = resolvePermissions(systemRole, overrides);
-        setPermCache(cacheKey, { permissions: [], dotPermissions, roleName, systemRole, expiresAt: now + PERM_CACHE_TTL_MS });
+        await permCache.set(cacheKey, { permissions: [], dotPermissions, roleName, systemRole }, PERM_CACHE_TTL_MS);
       }
     }
   }
 
   // ── Legacy RBAC v1: roleId → colon-separated permissions ───────────
   if (user.roleId) {
-    const now = Date.now();
-    const cached = permissionCache.get(user.roleId);
-    if (cached && cached.expiresAt > now) {
+    const cacheKey = `perm:${user.roleId}`;
+    const cached = await permCache.get<PermCacheEntry>(cacheKey);
+    if (cached) {
       userPermissions = cached.permissions;
       if (!roleName) roleName = cached.roleName;
     } else {
@@ -403,13 +388,12 @@ async function loadUser(userId: string): Promise<AuthUser | null> {
         .where(eq(rolePermissions.roleId, user.roleId));
 
       userPermissions = perms.map((p) => `${p.resource}:${p.action}`);
-      setPermCache(user.roleId, {
+      await permCache.set(cacheKey, {
         permissions: userPermissions,
         dotPermissions: [],
         roleName: legacyRoleName,
         systemRole: null,
-        expiresAt: now + PERM_CACHE_TTL_MS,
-      });
+      }, PERM_CACHE_TTL_MS);
       if (!roleName) roleName = legacyRoleName;
     }
   }

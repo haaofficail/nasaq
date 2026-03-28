@@ -5,6 +5,7 @@ import { serviceMedia, services } from "@nasaq/db/schema";
 import { getOrgId, getUserId } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { nanoid } from "nanoid";
+import { assetUrl, thumbUrl, uploadUrl, isAllowedPublicUrl } from "../lib/storage";
 
 // Helper: verify that a media item belongs to the caller's org
 async function verifyMediaOwnership(mediaId: string, orgId: string): Promise<boolean> {
@@ -19,13 +20,10 @@ async function verifyMediaOwnership(mediaId: string, orgId: string): Promise<boo
 export const uploadsRouter = new Hono();
 
 // ============================================================
-// R2 CONFIG
-// في Production: يتصل بـ Cloudflare R2 عبر S3-compatible API
-// في Dev: يحفظ محلياً أو يرجع mock URLs
+// Storage config — القيم تأتي من storage.ts (CDN_URL → R2_PUBLIC_URL → fallback)
 // ============================================================
 
 const R2_BUCKET = process.env.R2_BUCKET_NAME || "nasaq-files";
-const R2_PUBLIC_URL = process.env.R2_PUBLIC_URL || "https://files.nasaq.sa";
 
 /**
  * POST /uploads/presigned — Get presigned URL for direct upload
@@ -54,10 +52,10 @@ uploadsRouter.post("/presigned", async (c) => {
   const key = `${orgId}/${purpose || "media"}/${nanoid(12)}.${ext}`;
 
   // In production: generate actual presigned URL from R2
-  // For now: return the expected URL structure
-  const uploadUrl = `${R2_PUBLIC_URL}/upload/${key}`;
-  const publicUrl = `${R2_PUBLIC_URL}/${key}`;
-  const thumbnailUrl = `${R2_PUBLIC_URL}/thumb/${key}`;
+  // For now: return the expected URL structure (via storage helpers)
+  const presignedUploadUrl = uploadUrl(key);
+  const publicUrl = assetUrl(key);
+  const thumbnailUrl = thumbUrl(key);
 
   // In production with Cloudflare R2:
   // const command = new PutObjectCommand({ Bucket: R2_BUCKET, Key: key, ContentType: contentType });
@@ -65,7 +63,7 @@ uploadsRouter.post("/presigned", async (c) => {
 
   return c.json({
     data: {
-      uploadUrl,           // العميل يرفع لهذا الرابط (PUT)
+      uploadUrl: presignedUploadUrl, // العميل يرفع لهذا الرابط (PUT)
       publicUrl,           // الرابط النهائي بعد الرفع
       thumbnailUrl,        // رابط الصورة المصغرة (يُنشأ تلقائياً بـ Cloudflare Image Resizing)
       key,                 // مفتاح الملف في R2
@@ -88,8 +86,8 @@ uploadsRouter.post("/confirm", async (c) => {
     return c.json({ error: "serviceId و publicUrl مطلوبان" }, 400);
   }
 
-  // Validate publicUrl belongs to our R2 domain (prevent storing arbitrary/malicious URLs)
-  if (!publicUrl.startsWith(R2_PUBLIC_URL)) {
+  // Validate publicUrl belongs to our storage domain (prevent storing arbitrary/malicious URLs)
+  if (!isAllowedPublicUrl(publicUrl)) {
     return c.json({ error: "رابط الملف غير صالح" }, 400);
   }
 
