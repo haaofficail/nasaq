@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { eq, and, desc, asc, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, inArray, count, sql } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { maintenanceTasks, services, bookings, locations, users, assets } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, validateBody } from "../lib/helpers";
@@ -71,21 +71,39 @@ maintenanceRouter.get("/", async (c) => {
 });
 
 // ── GET /maintenance/stats — Summary counts ────────────────────────────────
+// استعلام aggregate واحد بدل full-table scan + JS aggregation
 maintenanceRouter.get("/stats", async (c) => {
   const orgId = getOrgId(c);
-  const all = await db
-    .select({ status: maintenanceTasks.status, type: maintenanceTasks.type })
-    .from(maintenanceTasks)
-    .where(eq(maintenanceTasks.orgId, orgId));
 
-  const byStatus = { pending: 0, in_progress: 0, completed: 0, issue_reported: 0 } as Record<string, number>;
-  const byType   = { cleaning: 0, maintenance: 0, inspection: 0, damage_repair: 0 } as Record<string, number>;
-  for (const r of all) {
-    if (r.status) byStatus[r.status] = (byStatus[r.status] || 0) + 1;
-    if (r.type)   byType[r.type]     = (byType[r.type]     || 0) + 1;
-  }
+  const [stats] = await db.select({
+    total:          count(),
+    pending:        sql<number>`COUNT(*) FILTER (WHERE ${maintenanceTasks.status} = 'pending')::int`,
+    in_progress:    sql<number>`COUNT(*) FILTER (WHERE ${maintenanceTasks.status} = 'in_progress')::int`,
+    completed:      sql<number>`COUNT(*) FILTER (WHERE ${maintenanceTasks.status} = 'completed')::int`,
+    issue_reported: sql<number>`COUNT(*) FILTER (WHERE ${maintenanceTasks.status} = 'issue_reported')::int`,
+    cleaning:       sql<number>`COUNT(*) FILTER (WHERE ${maintenanceTasks.type} = 'cleaning')::int`,
+    maintenance_t:  sql<number>`COUNT(*) FILTER (WHERE ${maintenanceTasks.type} = 'maintenance')::int`,
+    inspection:     sql<number>`COUNT(*) FILTER (WHERE ${maintenanceTasks.type} = 'inspection')::int`,
+    damage_repair:  sql<number>`COUNT(*) FILTER (WHERE ${maintenanceTasks.type} = 'damage_repair')::int`,
+  }).from(maintenanceTasks).where(eq(maintenanceTasks.orgId, orgId));
 
-  return c.json({ data: { byStatus, byType, total: all.length } });
+  return c.json({
+    data: {
+      total: Number(stats.total),
+      byStatus: {
+        pending:        Number(stats.pending),
+        in_progress:    Number(stats.in_progress),
+        completed:      Number(stats.completed),
+        issue_reported: Number(stats.issue_reported),
+      },
+      byType: {
+        cleaning:     Number(stats.cleaning),
+        maintenance:  Number(stats.maintenance_t),
+        inspection:   Number(stats.inspection),
+        damage_repair: Number(stats.damage_repair),
+      },
+    },
+  });
 });
 
 // ── POST /maintenance — Create task ───────────────────────────────────────

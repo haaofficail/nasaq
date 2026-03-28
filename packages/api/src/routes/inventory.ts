@@ -161,20 +161,21 @@ inventoryRouter.get("/assets/:id", async (c) => {
   const orgId   = getOrgId(c);
   const assetId = c.req.param("id");
 
-  // Round 1: asset + reservations + maintenance + recent movements in parallel
-  const [[asset], reservations, maintenance, movements] = await Promise.all([
-    db.select().from(assets).where(and(eq(assets.id, assetId), eq(assets.orgId, orgId))),
+  // Single parallel round: asset+type (LEFT JOIN) + reservations + maintenance + movements
+  const [[assetRow], reservations, maintenance, movements] = await Promise.all([
+    db.select({ asset: assets, type: assetTypes })
+      .from(assets)
+      .leftJoin(assetTypes, eq(assets.assetTypeId, assetTypes.id))
+      .where(and(eq(assets.id, assetId), eq(assets.orgId, orgId))),
     db.select().from(assetReservations).where(eq(assetReservations.assetId, assetId)).orderBy(desc(assetReservations.startDate)).limit(10),
     db.select().from(maintenanceLogs).where(eq(maintenanceLogs.assetId, assetId)).orderBy(desc(maintenanceLogs.startDate)).limit(20),
     db.select().from(assetMovements).where(eq(assetMovements.assetId, assetId)).orderBy(desc(assetMovements.createdAt)).limit(20),
   ]);
 
-  if (!asset) return apiErr(c, "INV_ASSET_NOT_FOUND", 404);
-
-  // Round 2: type (needs assetTypeId from round 1)
-  const [type] = asset.assetTypeId
-    ? await db.select().from(assetTypes).where(eq(assetTypes.id, asset.assetTypeId))
-    : [];
+  if (!assetRow) return apiErr(c, "INV_ASSET_NOT_FOUND", 404);
+  const { asset, type: typeRow } = assetRow;
+  // LEFT JOIN قد يُعيد object بكل حقوله null عند عدم التطابق
+  const type = typeRow?.id ? typeRow : null;
 
   return c.json({ data: { ...asset, type, reservations, maintenanceHistory: maintenance, movementHistory: movements } });
 });
@@ -664,17 +665,29 @@ inventoryRouter.get("/products", async (c) => {
   const category = c.req.query("category") || "";
   const lowStock = c.req.query("low_stock") === "1";
 
+  // Build query safely — لا dynamic parameter numbering
+  const clauses: string[] = ["p.org_id = $1", "p.is_active = true"];
+  const params: unknown[] = [orgId];
+
+  if (search) {
+    params.push(`%${search}%`);
+    clauses.push(`(p.name ILIKE $${params.length} OR p.sku ILIKE $${params.length})`);
+  }
+  if (category) {
+    params.push(category);
+    clauses.push(`p.category = $${params.length}`);
+  }
+  if (lowStock) {
+    clauses.push("p.current_stock <= p.min_stock");
+  }
+
   const { rows } = await pool.query(
     `SELECT p.*,
        CASE WHEN p.current_stock <= p.min_stock THEN true ELSE false END AS is_low_stock
      FROM inventory_products p
-     WHERE p.org_id = $1
-       AND p.is_active = true
-       ${search   ? "AND (p.name ILIKE $2 OR p.sku ILIKE $2)" : ""}
-       ${category ? `AND p.category = ${search ? "$3" : "$2"}` : ""}
-       ${lowStock ? "AND p.current_stock <= p.min_stock" : ""}
+     WHERE ${clauses.join(" AND ")}
      ORDER BY p.category ASC, p.name ASC`,
-    [orgId, ...(search ? [`%${search}%`] : []), ...(category ? [category] : [])],
+    params,
   );
   return c.json({ data: rows });
 });
@@ -758,13 +771,19 @@ inventoryRouter.post("/products/:id/adjust", async (c) => {
 inventoryRouter.get("/products/movements", async (c) => {
   const orgId     = getOrgId(c);
   const productId = c.req.query("productId") || "";
+  const params: unknown[] = [orgId];
+  let productFilter = "";
+  if (productId) {
+    params.push(productId);
+    productFilter = `AND m.product_id = $${params.length}`;
+  }
   const { rows }  = await pool.query(
     `SELECT m.*, p.name AS product_name, p.unit
      FROM stock_movements m
      JOIN inventory_products p ON p.id = m.product_id
-     WHERE m.org_id = $1 ${productId ? "AND m.product_id = $2" : ""}
+     WHERE m.org_id = $1 ${productFilter}
      ORDER BY m.created_at DESC LIMIT 100`,
-    [orgId, ...(productId ? [productId] : [])],
+    params,
   );
   return c.json({ data: rows });
 });

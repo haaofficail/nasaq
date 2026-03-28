@@ -44,6 +44,19 @@ export async function dispatchReminders(): Promise<void> {
 
   if (reminders.length === 0) return;
 
+  // Pre-fetch owner phones for all distinct orgs in ONE query (N+1 → 1)
+  const distinctOrgIds = [...new Set(reminders.map((r) => r.org_id))];
+  const { rows: ownerRows } = await pool.query<{ org_id: string; phone: string }>(
+    `SELECT DISTINCT ON (om.org_id) om.org_id, u.phone
+     FROM org_members om
+     JOIN users u ON u.id = om.user_id
+     WHERE om.org_id = ANY($1::uuid[])
+       AND om.role = 'owner'
+       AND u.phone IS NOT NULL`,
+    [distinctOrgIds],
+  );
+  const ownerPhoneMap = new Map(ownerRows.map((r) => [r.org_id, r.phone]));
+
   let dispatched = 0;
 
   for (const reminder of reminders) {
@@ -57,30 +70,24 @@ export async function dispatchReminders(): Promise<void> {
     // أرسل عبر القنوات الخارجية (sms / whatsapp) مع إرسال فعلي
     for (const channel of externalChannels) {
       try {
-        // جلب رقم المالك
-        const { rows: [owner] } = await pool.query(
-          `SELECT u.phone FROM users u
-           JOIN org_members om ON om.user_id = u.id
-           WHERE om.org_id = $1 AND om.role = 'owner' AND u.phone IS NOT NULL
-           LIMIT 1`,
-          [reminder.org_id],
-        );
-        if (!owner?.phone) continue;
+        // رقم المالك من الـ map المُعبّأة مسبقاً
+        const ownerPhone = ownerPhoneMap.get(reminder.org_id);
+        if (!ownerPhone) continue;
 
         const msgText = `تذكير: ${reminder.title} — تاريخ الاستحقاق: ${reminder.due_date}`;
         let delivered = false;
 
         if (channel === "whatsapp") {
-          delivered = await sendWhatsApp(owner.phone, msgText);
+          delivered = await sendWhatsApp(ownerPhone, msgText);
         } else if (channel === "sms") {
-          delivered = await sendSms(owner.phone, msgText);
+          delivered = await sendSms(ownerPhone, msgText);
         }
 
         await pool.query(
           `INSERT INTO message_logs
              (org_id, channel, recipient_phone, message_text, status, category)
            VALUES ($1, $2, $3, $4, $5, 'reminder')`,
-          [reminder.org_id, channel, owner.phone, msgText, delivered ? "sent" : "failed"],
+          [reminder.org_id, channel, ownerPhone, msgText, delivered ? "sent" : "failed"],
         );
       } catch (err) {
         log.warn({ err, reminderId: reminder.id, channel }, "[reminder-dispatcher] send failed");
