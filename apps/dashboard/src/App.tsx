@@ -152,6 +152,7 @@ const SchoolCasesPage              = lz(() => import("./pages/school/SchoolCases
 const SchoolTimetableTemplatesPage = lz(() => import("./pages/school/SchoolTimetableTemplatesPage"), "SchoolTimetableTemplatesPage");
 const SchoolScheduleWeeksPage      = lz(() => import("./pages/school/SchoolScheduleWeeksPage"), "SchoolScheduleWeeksPage");
 const SchoolImportPage             = lz(() => import("./pages/school/SchoolImportPage"), "SchoolImportPage");
+const SchoolAccountPage            = lz(() => import("./pages/school/SchoolAccountPage"), "SchoolAccountPage");
 
 // ── Loading fallback ───────────────────────────────────────────────
 function PageLoader() {
@@ -368,6 +369,7 @@ export default function App() {
           <Route path="timetable-templates" element={<SchoolTimetableTemplatesPage />} />
           <Route path="schedules/weeks"    element={<SchoolScheduleWeeksPage />} />
           <Route path="import"             element={<SchoolImportPage />} />
+          <Route path="account"            element={<SchoolAccountPage />} />
           <Route path="*" element={<Navigate to="/school/dashboard" replace />} />
         </Route>
       </Routes>

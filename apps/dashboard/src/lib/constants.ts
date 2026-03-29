@@ -84,6 +84,7 @@ export const BUSINESS_TYPE_LIST: BusinessTypeDef[] = [
   { key: "logistics",        name: "لوجستيات" },
   { key: "construction",     name: "مقاولات" },
   { key: "photography",      name: "تصوير" },
+  { key: "school",           name: "مدرسة" },
 ];
 
 export const BUSINESS_TYPE_MAP: Record<string, string> = Object.fromEntries(

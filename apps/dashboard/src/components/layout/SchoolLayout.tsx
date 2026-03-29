@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Outlet, NavLink, useLocation, useNavigate, Navigate } from "react-router-dom";
 import {
   GraduationCap, ChevronLeft, ChevronRight, Bell, Search, LogOut, Menu, X, User,
-  WifiOff, CheckCheck, ExternalLink, Clock,
+  WifiOff, CheckCheck, ExternalLink, Clock, Settings,
   LayoutDashboard, ClipboardCheck, Users, DoorOpen, CalendarDays,
   AlertCircle, BookOpenCheck, ClipboardPen, Upload,
 } from "lucide-react";
@@ -26,6 +26,7 @@ const SCHOOL_NAV = [
   { name: "قوالب الجداول",       href: "/school/timetable-templates", icon: BookOpenCheck,   exact: false },
   { name: "الأسابيع والجداول",   href: "/school/schedules/weeks",     icon: ClipboardPen,    exact: false },
   { name: "الاستيراد",           href: "/school/import",              icon: Upload,          exact: false },
+  { name: "الإعدادات",           href: "/school/account",             icon: Settings,        exact: false },
 ];
 
 export function SchoolLayout() {
@@ -204,10 +205,14 @@ export function SchoolLayout() {
           "relative border-t border-white/10 p-2 shrink-0 space-y-1",
           collapsed && "flex flex-col items-center space-y-1"
         )}>
-          <div
-            className={clsx(
-              "flex items-center gap-3 p-2 rounded-xl text-gray-300 w-full",
-              collapsed && "justify-center w-auto"
+          <NavLink
+            to="/school/account"
+            onClick={() => setMobileOpen(false)}
+            title="الإعدادات"
+            className={({ isActive: a }) => clsx(
+              "flex items-center gap-3 p-2 rounded-xl transition-colors w-full",
+              collapsed && "justify-center w-auto",
+              a ? "bg-emerald-600 text-white" : "hover:bg-white/10 text-gray-300"
             )}
           >
             <div className="w-8 h-8 rounded-full bg-emerald-600 border border-emerald-500 flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden">
@@ -219,10 +224,10 @@ export function SchoolLayout() {
             {!collapsed && (
               <div className="flex-1 min-w-0 text-right">
                 <p className="text-sm font-medium text-white truncate">{user?.name || "المستخدم"}</p>
-                <p className="text-xs text-gray-500 flex items-center gap-1"><User className="w-3 h-3" />مدير المدرسة</p>
+                <p className="text-xs text-gray-500 flex items-center gap-1"><User className="w-3 h-3" />الإعدادات</p>
               </div>
             )}
-          </div>
+          </NavLink>
           <button
             onClick={handleLogout}
             title="تسجيل الخروج"
