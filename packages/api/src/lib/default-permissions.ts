@@ -28,6 +28,7 @@ export const ALL_PERMISSIONS = [
   "school.settings.manage",
   "school.preparations.write",
   "school.daily_logs.write",
+  "school.teacher.dashboard",
 ] as const;
 
 export const PERMISSION_GROUPS: Record<string, { label: string; permissions: string[] }> = {
@@ -54,6 +55,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: str
     "school.settings.manage",
     "school.preparations.write",
     "school.daily_logs.write",
+    "school.teacher.dashboard",
   ]},
 };
 
@@ -90,6 +92,7 @@ export const PERMISSION_LABELS: Record<string, string> = {
   "school.settings.manage": "اعدادات المدرسة",
   "school.preparations.write": "تحضير الدروس",
   "school.daily_logs.write": "يومية التدريس",
+  "school.teacher.dashboard": "لوحة المعلم اليومية",
 };
 
 export const DEFAULT_PERMISSIONS: Record<SystemRole, string[]> = {

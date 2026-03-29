@@ -49,13 +49,13 @@ type ActiveFlow =
 function PreparationSheet({
   entry,
   weekId,
-  subjectId,
+  dayCode,
   onClose,
   onSaved,
 }: {
   entry: DashboardData["todayEntries"][0];
   weekId: string | null;
-  subjectId: string | null;
+  dayCode: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -69,14 +69,15 @@ function PreparationSheet({
   const [error, setError] = useState<string | null>(null);
 
   const save = async () => {
-    if (!weekId || !subjectId) { setError("بيانات ناقصة"); return; }
+    const subjectId = (entry as any).subjectId;
+    if (!weekId || !subjectId) { setError("لم يتم ربط المادة بـ subjectId — تأكد من إعداد المواد"); return; }
     setSaving(true);
     try {
       await schoolApi.upsertTeacherPreparation({
         weekId,
-        periodId: entry.periodId,
+        periodId:    entry.periodId,
         classRoomId: entry.classRoomId,
-        dayOfWeek: entry.period ? "sun" : "sun", // سيُحدَّد من dayCode
+        dayOfWeek:   dayCode,
         subjectId,
         ...form,
       });
@@ -119,13 +120,11 @@ function PreparationSheet({
 
 function DailyLogSheet({
   entry,
-  subjectId,
   date,
   onClose,
   onSaved,
 }: {
   entry: DashboardData["todayEntries"][0];
-  subjectId: string | null;
   date: string;
   onClose: () => void;
   onSaved: () => void;
@@ -142,7 +141,8 @@ function DailyLogSheet({
   const ENGAGEMENT_LABELS = { low: "ضعيف", normal: "متوسط", high: "ممتاز" };
 
   const save = async () => {
-    if (!subjectId) { setError("بيانات ناقصة"); return; }
+    const subjectId = (entry as any).subjectId;
+    if (!subjectId) { setError("لم يتم ربط المادة — تأكد من إعداد المواد"); return; }
     if (!form.topicCovered.trim()) { setError("أدخل الموضوع المغطى"); return; }
     setSaving(true);
     try {
@@ -608,11 +608,9 @@ export function SchoolTeacherWorkPage() {
   }, [refetch, showToast]);
 
   // Get context for quick actions
-  const currentEntry = dashboard?.todayEntries.find(e => e.periodStatus === "current");
-  const activeWeekId = null; // سيتم جلبه من API لاحقًا إذا لزم
-
-  // Subject ID map (from entries)
-  // For now we pass null and the API will need subjectId — we'll get it from a separate call if needed
+  const currentEntry = (dashboard?.todayEntries ?? []).find(e => e.periodStatus === "current");
+  const activeWeekId = (dashboard as any)?.activeWeekId ?? null;
+  const todayDayCode = dashboard?.today?.dayCode ?? "sun";
 
   if (loading) {
     return (
@@ -622,26 +620,33 @@ export function SchoolTeacherWorkPage() {
     );
   }
 
+  // API returns 403 for non-teachers
+  if (error?.includes("403") || error?.includes("المعلم") || (data as any)?.error?.includes("للمعلمين")) {
+    return (
+      <div className="p-6 text-center" dir="rtl">
+        <p className="text-gray-500 text-sm">هذه الصفحة مخصصة للمعلمين فقط</p>
+      </div>
+    );
+  }
+
   if (error || !dashboard) {
     return (
       <div className="p-6 text-center" dir="rtl">
-        <p className="text-gray-500 text-sm">
-          {dashboard === null && !error ? "لا توجد بيانات — تأكد من إعداد الجدول" : "حدث خطأ في تحميل البيانات"}
-        </p>
+        <p className="text-gray-500 text-sm">حدث خطأ في تحميل البيانات</p>
       </div>
     );
   }
 
-  // مدير / وكيل — عرض مبسط
+  // مدير / وكيل — عرض مبسط (fallback)
   if (!dashboard.teacher) {
     return (
       <div className="p-6 text-center" dir="rtl">
-        <p className="text-gray-500 text-sm">هذه الصفحة مخصصة للمعلمين</p>
+        <p className="text-gray-500 text-sm">هذه الصفحة مخصصة للمعلمين فقط</p>
       </div>
     );
   }
 
-  const { teacher, today, currentStatus, todayEntries, alerts } = dashboard;
+  const { teacher, today, currentStatus, todayEntries = [], alerts } = dashboard;
 
   const defaultClassRoomId = currentEntry?.classRoomId ?? todayEntries[0]?.classRoomId ?? null;
 
@@ -695,7 +700,7 @@ export function SchoolTeacherWorkPage() {
             icon={<BookOpen size={20} />}
             label="تحضير الحصة"
             color="blue"
-            onClick={() => setActiveFlow({ type: "preparation", entry: currentEntry ?? todayEntries[0] })}
+            onClick={() => { const e = currentEntry ?? todayEntries[0]; if (e) setActiveFlow({ type: "preparation", entry: e }); }}
             disabled={!currentEntry && todayEntries.length === 0}
           />
           <QuickAction
@@ -704,7 +709,8 @@ export function SchoolTeacherWorkPage() {
             color="green"
             onClick={() => {
               const lastPassed = [...todayEntries].reverse().find(e => e.periodStatus === "passed");
-              setActiveFlow({ type: "daily_log", entry: lastPassed ?? todayEntries[0] });
+              const target = lastPassed ?? todayEntries[0];
+              if (target) setActiveFlow({ type: "daily_log", entry: target });
             }}
             disabled={todayEntries.length === 0}
           />
@@ -749,7 +755,7 @@ export function SchoolTeacherWorkPage() {
         <PreparationSheet
           entry={activeFlow.entry}
           weekId={activeWeekId}
-          subjectId={null}
+          dayCode={todayDayCode}
           onClose={() => setActiveFlow(null)}
           onSaved={() => handleSaved("تم حفظ التحضير")}
         />
@@ -757,7 +763,6 @@ export function SchoolTeacherWorkPage() {
       {activeFlow?.type === "daily_log" && activeFlow.entry && (
         <DailyLogSheet
           entry={activeFlow.entry}
-          subjectId={null}
           date={today.date}
           onClose={() => setActiveFlow(null)}
           onSaved={() => handleSaved("تم حفظ سجل الحصة")}

@@ -3583,7 +3583,7 @@ router.post("/setup/complete", async (c) => {
       permissions: [
         "school.students.read","school.timetable.view","school.attendance.record",
         "school.behavior.view","school.behavior.write","school.referrals.create",
-        "school.preparations.write","school.daily_logs.write",
+        "school.preparations.write","school.daily_logs.write","school.teacher.dashboard",
       ],
     },
     {
@@ -5032,57 +5032,62 @@ const JS_DAY_TO_CODE: Record<number, string> = {
 };
 
 // ── GET /teacher/dashboard — لوحة التحكم اليومية ─────────────
-router.get("/teacher/dashboard", requirePerm("school.timetable.view"), withSchoolScope, async (c) => {
+// الصلاحية: school.teacher.dashboard — للمعلمين فقط
+router.get("/teacher/dashboard", requirePerm("school.teacher.dashboard"), withSchoolScope, async (c) => {
   const orgId  = getOrgId(c);
-  const userId = getUserId(c)!;
   const scope  = c.get("schoolScope");
 
-  // تحديد teacherProfileId
+  // ✅ معلمون فقط — بقية الأدوار ترجع 403
   const teacherProfileId = scope?.teacherProfileId;
-
   if (!teacherProfileId) {
-    // مدير / وكيل — بيانات الجدول الكلي
-    return c.json({ data: { role: scope?.staffType ?? "unknown", teacherProfileId: null } });
+    return c.json({ error: "هذه الصفحة للمعلمين فقط", staffType: scope?.staffType ?? null }, 403);
   }
 
-  // بيانات المعلم
-  const [teacher] = await db.select().from(teacherProfiles)
-    .where(and(eq(teacherProfiles.id, teacherProfileId), eq(teacherProfiles.orgId, orgId)))
-    .limit(1);
-
-  if (!teacher) return c.json({ error: "المعلم غير موجود" }, 404);
-
-  // الأسبوع النشط
-  const [settings] = await db.select({ activeWeekId: schoolSettings.activeWeekId })
-    .from(schoolSettings).where(eq(schoolSettings.orgId, orgId)).limit(1);
-
-  const activeWeekId = settings?.activeWeekId ?? null;
-
-  // يوم اليوم
-  const nowJs   = new Date();
-  const dayCode = JS_DAY_TO_CODE[nowJs.getDay()] ?? "sun";
-  const todayIso = nowJs.toISOString().split("T")[0];
-  const nowTime  = `${String(nowJs.getHours()).padStart(2, "0")}:${String(nowJs.getMinutes()).padStart(2, "0")}`;
+  // ── Timezone: Asia/Riyadh (UTC+3) ──
+  // نستخدم Intl لحساب الوقت الصحيح بغض النظر عن timezone السيرفر
+  const TZ = "Asia/Riyadh";
+  const nowInTZ   = new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
+  const dayCode   = JS_DAY_TO_CODE[nowInTZ.getDay()] ?? "sun";
+  const todayIso  = nowInTZ.toLocaleDateString("en-CA"); // YYYY-MM-DD
+  const nowTime   = `${String(nowInTZ.getHours()).padStart(2, "0")}:${String(nowInTZ.getMinutes()).padStart(2, "0")}`;
+  const nowMins   = nowInTZ.getHours() * 60 + nowInTZ.getMinutes();
 
   const DAY_LABELS: Record<string, string> = {
     sun: "الأحد", mon: "الاثنين", tue: "الثلاثاء",
     wed: "الأربعاء", thu: "الخميس",
   };
 
-  // حصص المعلم اليوم
+  // بيانات المعلم
+  const [teacher] = await db.select().from(teacherProfiles)
+    .where(and(eq(teacherProfiles.id, teacherProfileId), eq(teacherProfiles.orgId, orgId)))
+    .limit(1);
+  if (!teacher) return c.json({ error: "المعلم غير موجود" }, 404);
+
+  // الأسبوع النشط
+  const [settings] = await db.select({ activeWeekId: schoolSettings.activeWeekId })
+    .from(schoolSettings).where(eq(schoolSettings.orgId, orgId)).limit(1);
+  const activeWeekId = settings?.activeWeekId ?? null;
+
+  // حصص المعلم اليوم — مع join subjects للحصول على subjectId
   let todayEntries: any[] = [];
   let allPeriods:   any[] = [];
 
   if (activeWeekId) {
-    todayEntries = await db
+    // جلب الحصص مع join subjects (by name + orgId)
+    const rawEntries = await db
       .select({
-        id:           scheduleEntries.id,
-        periodId:     scheduleEntries.periodId,
-        classRoomId:  scheduleEntries.classRoomId,
-        subject:      scheduleEntries.subject,
-        dayOfWeek:    scheduleEntries.dayOfWeek,
+        id:          scheduleEntries.id,
+        periodId:    scheduleEntries.periodId,
+        classRoomId: scheduleEntries.classRoomId,
+        subjectName: scheduleEntries.subject,
+        dayOfWeek:   scheduleEntries.dayOfWeek,
+        subjectId:   subjects.id,
       })
       .from(scheduleEntries)
+      .leftJoin(subjects, and(
+        eq(subjects.orgId, orgId),
+        eq(subjects.name, scheduleEntries.subject),
+      ))
       .where(and(
         eq(scheduleEntries.orgId, orgId),
         eq(scheduleEntries.weekId, activeWeekId),
@@ -5090,17 +5095,17 @@ router.get("/teacher/dashboard", requirePerm("school.timetable.view"), withSchoo
         eq(scheduleEntries.dayOfWeek, dayCode as any),
       ));
 
-    // الحصص من القالب (للوقت)
-    if (todayEntries.length > 0 || true) {
-      const [activeWeek] = await db.select({ templateId: scheduleWeeks.templateId })
-        .from(scheduleWeeks).where(eq(scheduleWeeks.id, activeWeekId)).limit(1);
+    todayEntries = rawEntries;
 
-      if (activeWeek?.templateId) {
-        allPeriods = await db.select()
-          .from(timetableTemplatePeriods)
-          .where(eq(timetableTemplatePeriods.templateId, activeWeek.templateId))
-          .orderBy(asc(timetableTemplatePeriods.periodNumber));
-      }
+    // الحصص من القالب (للوقت)
+    const [activeWeek] = await db.select({ templateId: scheduleWeeks.templateId })
+      .from(scheduleWeeks).where(eq(scheduleWeeks.id, activeWeekId)).limit(1);
+
+    if (activeWeek?.templateId) {
+      allPeriods = await db.select()
+        .from(timetableTemplatePeriods)
+        .where(eq(timetableTemplatePeriods.templateId, activeWeek.templateId))
+        .orderBy(asc(timetableTemplatePeriods.periodNumber));
     }
   }
 
@@ -5113,19 +5118,19 @@ router.get("/teacher/dashboard", requirePerm("school.timetable.view"), withSchoo
     classRoomMap = Object.fromEntries(rooms.map(r => [r.id, `${r.grade} ${r.name}`.trim()]));
   }
 
-  // الحصة الحالية والتالية (نستخدم الدالة الموجودة بنفس التوقيع)
+  // الحصة الحالية والتالية
   const currentPeriodInfo = getCurrentPeriod(nowTime, allPeriods);
 
   // حصص بدون تحضير
   const todayPeriodIds = todayEntries.map(e => e.periodId).filter(Boolean);
   let preparedPeriodIds: string[] = [];
-  if (todayPeriodIds.length > 0) {
+  if (todayPeriodIds.length > 0 && activeWeekId) {
     const preps = await db.select({ periodId: teacherPreparations.periodId })
       .from(teacherPreparations)
       .where(and(
         eq(teacherPreparations.orgId, orgId),
         eq(teacherPreparations.teacherProfileId, teacherProfileId),
-        eq(teacherPreparations.weekId, activeWeekId ?? ""),
+        eq(teacherPreparations.weekId, activeWeekId),
         inArray(teacherPreparations.periodId, todayPeriodIds),
         eq(teacherPreparations.dayOfWeek, dayCode as any),
       ));
@@ -5134,15 +5139,16 @@ router.get("/teacher/dashboard", requirePerm("school.timetable.view"), withSchoo
 
   const unpreparedEntries = todayEntries.filter(e => !preparedPeriodIds.includes(e.periodId));
 
-  // تنبيه: طلاب عليهم مخالفات هذا الأسبوع (للفصول التي يدرسها)
+  // تنبيه: طلاب متكررون في المخالفات هذا الأسبوع — مرتب تنازلياً
   const teacherClassRoomIds = scope?.classRoomIds;
   let violationAlerts: any[] = [];
   if (teacherClassRoomIds && teacherClassRoomIds.length > 0) {
-    const weekStart = new Date(nowJs);
-    weekStart.setDate(nowJs.getDate() - nowJs.getDay());
-    const weekStartStr = weekStart.toISOString().split("T")[0];
+    // بداية الأسبوع (الأحد) بتوقيت المدرسة
+    const weekStartInTZ = new Date(nowInTZ);
+    weekStartInTZ.setDate(nowInTZ.getDate() - nowInTZ.getDay());
+    const weekStartStr = weekStartInTZ.toLocaleDateString("en-CA");
 
-    const recentViolations = await db
+    violationAlerts = await db
       .select({
         studentId:   behaviorIncidents.studentId,
         studentName: students.fullName,
@@ -5157,18 +5163,17 @@ router.get("/teacher/dashboard", requirePerm("school.timetable.view"), withSchoo
       ))
       .groupBy(behaviorIncidents.studentId, students.fullName)
       .having(sql`count(*) >= 2`)
-      .limit(10);
-
-    violationAlerts = recentViolations;
+      .orderBy(desc(count()))       // ← الأكثر مخالفات أولاً
+      .limit(5);                    // ← حد منطقي
   }
 
   // حصص منجزة بدون يومية (لليوم الحالي)
   let unloggedEntries: any[] = [];
   const passedEntries = todayEntries.filter(e => {
-    const period = allPeriods.find(p => p.id === e.periodId);
+    const period = allPeriods.find((p: any) => p.id === e.periodId);
     if (!period || period.isBreak) return false;
     const [h, m] = period.endTime.split(":").map(Number);
-    return nowJs.getHours() * 60 + nowJs.getMinutes() > h * 60 + m;
+    return nowMins > h * 60 + m;
   });
   if (passedEntries.length > 0) {
     const passedPeriodIds = passedEntries.map(e => e.periodId).filter(Boolean);
@@ -5186,19 +5191,19 @@ router.get("/teacher/dashboard", requirePerm("school.timetable.view"), withSchoo
 
   // بناء قائمة الحصص مع الحالة
   const enrichedEntries = todayEntries.map(entry => {
-    const period = allPeriods.find(p => p.id === entry.periodId);
+    const period = allPeriods.find((p: any) => p.id === entry.periodId);
     const isPrepared = preparedPeriodIds.includes(entry.periodId);
     const isLogged = !unloggedEntries.find(u => u.periodId === entry.periodId);
     let periodStatus: "upcoming" | "current" | "passed" | "break" = "upcoming";
     if (period) {
       const [sh, sm] = period.startTime.split(":").map(Number);
       const [eh, em] = period.endTime.split(":").map(Number);
-      const nowM = nowJs.getHours() * 60 + nowJs.getMinutes();
-      if (nowM >= sh * 60 + sm && nowM <= eh * 60 + em) periodStatus = "current";
-      else if (nowM > eh * 60 + em) periodStatus = "passed";
+      if (nowMins >= sh * 60 + sm && nowMins <= eh * 60 + em) periodStatus = "current";
+      else if (nowMins > eh * 60 + em) periodStatus = "passed";
     }
     return {
       ...entry,
+      subject:       entry.subjectName,   // للتوافق مع الواجهة
       classRoomName: classRoomMap[entry.classRoomId] ?? null,
       period: period ?? null,
       isPrepared,
@@ -5210,10 +5215,11 @@ router.get("/teacher/dashboard", requirePerm("school.timetable.view"), withSchoo
   return c.json({
     data: {
       teacher,
-      today:            { date: todayIso, dayCode, dayLabel: DAY_LABELS[dayCode] ?? dayCode },
+      today:            { date: todayIso, dayCode, dayLabel: DAY_LABELS[dayCode] ?? dayCode, nowTime },
       currentStatus:    currentPeriodInfo,
       todayEntries:     enrichedEntries,
       allPeriods,
+      activeWeekId,
       alerts: {
         unpreparedCount:  unpreparedEntries.length,
         unpreparedEntries,
