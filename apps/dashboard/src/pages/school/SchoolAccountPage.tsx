@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   User, Lock, Shield, Monitor, Smartphone, Globe, LogOut,
   Save, Eye, EyeOff, Clock, Key, GraduationCap, Building2,
-  MapPin, Phone, Mail, BookOpen,
+  MapPin, Phone, Mail, BookOpen, AlarmClock,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { authApi, settingsApi, schoolApi } from "@/lib/api";
@@ -12,6 +12,25 @@ import { useOrgContext } from "@/hooks/useOrgContext";
 import { toast } from "@/hooks/useToast";
 import { invalidateOrgContextCache } from "@/hooks/useOrgContext";
 import { useNavigate } from "react-router-dom";
+import { PageFAQ } from "@/components/school/PageFAQ";
+
+// توقيتات افتراضية مقترحة حسب المنطقة (شتاء)
+const REGION_DEFAULTS: Record<string, { start: string; end: string; hint: string }> = {
+  "تبوك":             { start: "08:00", end: "15:00", hint: "المنطقة الشمالية — شتاء" },
+  "الجوف":            { start: "08:00", end: "15:00", hint: "المنطقة الشمالية — شتاء" },
+  "الحدود الشمالية":  { start: "08:00", end: "15:00", hint: "المنطقة الشمالية — شتاء" },
+  "الرياض":           { start: "07:30", end: "14:30", hint: "المنطقة الوسطى — شتاء" },
+  "القصيم":           { start: "07:30", end: "14:30", hint: "المنطقة الوسطى — شتاء" },
+  "حائل":             { start: "07:30", end: "15:00", hint: "المنطقة الوسطى الشمالية" },
+  "مكة المكرمة":      { start: "07:30", end: "14:30", hint: "المنطقة الغربية — شتاء" },
+  "المدينة المنورة":   { start: "07:30", end: "14:30", hint: "المنطقة الغربية — شتاء" },
+  "جدة":              { start: "07:30", end: "14:30", hint: "المنطقة الغربية — شتاء" },
+  "الدمام":           { start: "07:30", end: "14:30", hint: "المنطقة الشرقية — شتاء" },
+  "الأحساء":          { start: "07:30", end: "14:30", hint: "المنطقة الشرقية — شتاء" },
+  "أبها":             { start: "07:30", end: "14:30", hint: "المنطقة الجنوبية — شتاء" },
+  "جيزان":            { start: "07:30", end: "14:30", hint: "المنطقة الجنوبية — شتاء" },
+  "نجران":            { start: "07:30", end: "14:30", hint: "المنطقة الجنوبية — شتاء" },
+};
 
 const EDUCATION_LEVEL_MAP: Record<string, string> = {
   "ابتدائية": "المرحلة الابتدائية",
@@ -303,6 +322,112 @@ export function SchoolAccountPage() {
           </div>
         </Section>
 
+        {/* ── Session Timing ── */}
+        <Section
+          title="توقيت الدوام المدرسي"
+          subtitle="ضبط بداية الدوام ونهايته — يختلف حسب المنطقة الجغرافية في فصل الشتاء"
+          icon={AlarmClock}
+        >
+          {(() => {
+            const regionKey = Object.keys(REGION_DEFAULTS).find(k =>
+              (currentSchool.schoolRegion || "").includes(k)
+            );
+            const hint = regionKey ? REGION_DEFAULTS[regionKey] : null;
+            return (
+              <>
+                {hint && (
+                  <div className="mb-4 px-4 py-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700">
+                    <span className="font-bold">توقيت مقترح ({hint.hint}):</span> من {hint.start} حتى {hint.end}
+                    <button
+                      type="button"
+                      onClick={() => { sf("sessionStartTime", hint.start); sf("sessionEndTime", hint.end); }}
+                      className="mr-3 px-2.5 py-0.5 bg-blue-100 hover:bg-blue-200 rounded-lg font-semibold transition-colors"
+                    >
+                      تطبيق
+                    </button>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <Field label="بداية الدوام">
+                    <input
+                      type="time"
+                      value={currentSchool.sessionStartTime || "07:30"}
+                      onChange={e => sf("sessionStartTime", e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      dir="ltr"
+                    />
+                  </Field>
+                  <Field label="نهاية الدوام">
+                    <input
+                      type="time"
+                      value={currentSchool.sessionEndTime || "14:30"}
+                      onChange={e => sf("sessionEndTime", e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      dir="ltr"
+                    />
+                  </Field>
+                  <Field label="مدة الحصة (دقيقة)">
+                    <input
+                      type="number"
+                      min={30}
+                      max={90}
+                      value={currentSchool.periodDurationMinutes ?? 45}
+                      onChange={e => sf("periodDurationMinutes", e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                    />
+                  </Field>
+                  <Field label="مدة الفسحة (دقيقة)">
+                    <input
+                      type="number"
+                      min={5}
+                      max={45}
+                      value={currentSchool.breakDurationMinutes ?? 30}
+                      onChange={e => sf("breakDurationMinutes", e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                    />
+                  </Field>
+                  <Field label="عدد الحصص اليومية">
+                    <input
+                      type="number"
+                      min={1}
+                      max={12}
+                      value={currentSchool.numberOfPeriods ?? 7}
+                      onChange={e => sf("numberOfPeriods", e.target.value)}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                    />
+                  </Field>
+                  <Field label="نوع الجدول">
+                    <select
+                      value={currentSchool.sessionType || "winter"}
+                      onChange={e => {
+                        const t = e.target.value;
+                        sf("sessionType", t);
+                        if (t === "ramadan") { sf("sessionStartTime", "10:00"); sf("sessionEndTime", "14:00"); sf("periodDurationMinutes", "30"); sf("numberOfPeriods", "6"); }
+                        else if (t === "summer") { sf("sessionStartTime", "07:00"); sf("sessionEndTime", "13:00"); }
+                      }}
+                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                    >
+                      <option value="winter">جدول الشتاء</option>
+                      <option value="summer">جدول الصيف</option>
+                      <option value="ramadan">جدول رمضان</option>
+                    </select>
+                  </Field>
+                </div>
+                <div className="flex justify-end mt-4">
+                  <button
+                    onClick={handleSaveSchool}
+                    disabled={savingSchool}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-40 transition-colors shadow-sm"
+                  >
+                    <Save className="w-4 h-4" />
+                    {savingSchool ? "جاري الحفظ..." : "حفظ توقيت الدوام"}
+                  </button>
+                </div>
+              </>
+            );
+          })()}
+        </Section>
+
         {/* ── Password ── */}
         <Section title="كلمة المرور" subtitle="يُنصح بتغييرها دورياً للحفاظ على أمان حسابك" icon={Lock}>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -341,6 +466,7 @@ export function SchoolAccountPage() {
 
         {/* ── Sessions ── */}
         <Section title="الجلسات النشطة" subtitle={`${sessions.length} جلسة مفتوحة على أجهزتك`} icon={Shield}>
+
           {sessions.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-6">لا توجد جلسات نشطة</p>
           ) : (

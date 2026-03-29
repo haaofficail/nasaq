@@ -7,6 +7,7 @@ import {
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
 import { Modal } from "@/components/ui";
+import { PageFAQ } from "@/components/school/PageFAQ";
 
 const GRADE_GROUPS = [
   { label: "المرحلة الابتدائية", grades: ["الأول الابتدائي","الثاني الابتدائي","الثالث الابتدائي","الرابع الابتدائي","الخامس الابتدائي","السادس الابتدائي"] },
@@ -370,6 +371,8 @@ export function SchoolStudentsPage() {
           )}
         </>
       )}
+
+      <PageFAQ pageId="students" />
 
       {/* Add/Edit Modal */}
       <Modal

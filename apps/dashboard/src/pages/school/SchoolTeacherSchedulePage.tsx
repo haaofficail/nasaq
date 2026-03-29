@@ -157,16 +157,10 @@ export function SchoolTeacherSchedulePage() {
     [teacherId]
   );
 
-  const { data: scheduleData, loading: schedLoading } = useApi(
-    () => schoolApi.getTeacherSchedule(teacherId!),
-    [teacherId]
-  );
-
   const { data: classRoomsData } = useApi(() => schoolApi.listClassRooms(), []);
 
   const teacher    = assignData?.data?.teacher ?? null;
   const assignments: any[] = assignData?.data?.assignments ?? [];
-  const entries: any[]     = scheduleData?.data?.entries ?? [];
   const classRooms: any[]  = classRoomsData?.data ?? [];
 
   const handleAdd = async () => {
@@ -323,24 +317,6 @@ export function SchoolTeacherSchedulePage() {
             )}
           </div>
 
-          {/* Schedule section */}
-          <div className="space-y-3">
-            <div>
-              <h2 className="text-base font-bold text-gray-900">الجدول الأسبوعي</h2>
-              <p className="text-xs text-gray-500">جدول المعلم في الأسبوع النشط الحالي</p>
-            </div>
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden p-4">
-              {schedLoading ? (
-                <div className="space-y-2">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-12 w-full" />
-                  ))}
-                </div>
-              ) : (
-                <ScheduleGrid entries={entries} />
-              )}
-            </div>
-          </div>
         </>
       )}
 

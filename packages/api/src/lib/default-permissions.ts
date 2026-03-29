@@ -16,6 +16,18 @@ export const ALL_PERMISSIONS = [
   "content.website", "content.menu", "content.offers", "content.notifications",
   "delivery.view_own", "delivery.view_all", "delivery.assign", "delivery.manage_zones", "delivery.manage_fees",
   "pos.sell", "pos.refund", "pos.discount", "pos.close_shift", "pos.view_shifts",
+  // School module
+  "school.students.read", "school.students.write",
+  "school.timetable.view", "school.timetable.edit",
+  "school.attendance.record", "school.attendance.view_all",
+  "school.behavior.view", "school.behavior.write",
+  "school.cases.access", "school.cases.manage",
+  "school.referrals.create", "school.referrals.manage",
+  "school.counseling.access",
+  "school.reports.view",
+  "school.settings.manage",
+  "school.preparations.write",
+  "school.daily_logs.write",
 ] as const;
 
 export const PERMISSION_GROUPS: Record<string, { label: string; permissions: string[] }> = {
@@ -30,6 +42,19 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: str
   content:   { label: "المحتوى",            permissions: ["content.website", "content.menu", "content.offers", "content.notifications"] },
   delivery:  { label: "التوصيل",            permissions: ["delivery.view_own", "delivery.view_all", "delivery.assign", "delivery.manage_zones", "delivery.manage_fees"] },
   pos:       { label: "نقطة البيع",         permissions: ["pos.sell", "pos.refund", "pos.discount", "pos.close_shift", "pos.view_shifts"] },
+  school:    { label: "المدرسة", permissions: [
+    "school.students.read", "school.students.write",
+    "school.timetable.view", "school.timetable.edit",
+    "school.attendance.record", "school.attendance.view_all",
+    "school.behavior.view", "school.behavior.write",
+    "school.cases.access", "school.cases.manage",
+    "school.referrals.create", "school.referrals.manage",
+    "school.counseling.access",
+    "school.reports.view",
+    "school.settings.manage",
+    "school.preparations.write",
+    "school.daily_logs.write",
+  ]},
 };
 
 export const PERMISSION_LABELS: Record<string, string> = {
@@ -54,6 +79,17 @@ export const PERMISSION_LABELS: Record<string, string> = {
   "delivery.assign": "اسناد توصيل", "delivery.manage_zones": "ادارة المناطق", "delivery.manage_fees": "ادارة الرسوم",
   "pos.sell": "البيع", "pos.refund": "الاسترداد", "pos.discount": "الخصومات",
   "pos.close_shift": "اغلاق الوردية", "pos.view_shifts": "عرض الورديات",
+  "school.students.read": "عرض الطلاب", "school.students.write": "تعديل بيانات الطلاب",
+  "school.timetable.view": "عرض الجدول الدراسي", "school.timetable.edit": "تعديل الجدول الدراسي",
+  "school.attendance.record": "تسجيل الحضور", "school.attendance.view_all": "عرض كل الحضور",
+  "school.behavior.view": "عرض السلوك والمخالفات", "school.behavior.write": "تسجيل مخالفة",
+  "school.cases.access": "الوصول للحالات", "school.cases.manage": "ادارة كل الحالات",
+  "school.referrals.create": "احالة طالب", "school.referrals.manage": "ادارة الاحالات",
+  "school.counseling.access": "الجلسات الارشادية",
+  "school.reports.view": "تقارير المدرسة",
+  "school.settings.manage": "اعدادات المدرسة",
+  "school.preparations.write": "تحضير الدروس",
+  "school.daily_logs.write": "يومية التدريس",
 };
 
 export const DEFAULT_PERMISSIONS: Record<SystemRole, string[]> = {

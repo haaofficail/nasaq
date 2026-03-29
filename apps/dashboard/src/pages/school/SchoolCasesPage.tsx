@@ -7,6 +7,7 @@ import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
 import { Modal } from "@/components/ui";
 import { fmtHijri } from "@/lib/utils";
+import { PageFAQ } from "@/components/school/PageFAQ";
 
 // ── Constants ────────────────────────────────────────────────
 
@@ -247,6 +248,8 @@ export function SchoolCasesPage() {
           </div>
         )}
       </div>
+
+      <PageFAQ pageId="cases" />
 
       {/* Add Case Modal */}
       <Modal

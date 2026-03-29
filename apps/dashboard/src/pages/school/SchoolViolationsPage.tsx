@@ -8,6 +8,7 @@ import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
 import { Modal } from "@/components/ui";
 import { fmtHijri } from "@/lib/utils";
+import { PageFAQ } from "@/components/school/PageFAQ";
 
 // ── Severity config ──────────────────────────────────────────
 
@@ -21,6 +22,10 @@ const STATUSES: Record<string, { label: string; color: string; bg: string; borde
   open:       { label: "مفتوحة",   color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200" },
   resolved:   { label: "محلولة",   color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },
   cancelled:  { label: "ملغاة",    color: "text-gray-600",    bg: "bg-gray-100",   border: "border-gray-200" },
+};
+
+const SEVERITY_DEFAULT_DEGREE: Record<string, string> = {
+  low: "1", medium: "3", high: "5",
 };
 
 const PRESET_COLORS = [
@@ -56,18 +61,27 @@ function CategoryModal({
   editing: any | null;
   onSaved: () => void;
 }) {
-  const [name,        setName]        = useState(editing?.name        ?? "");
-  const [description, setDescription] = useState(editing?.description ?? "");
-  const [severity,    setSeverity]    = useState(editing?.severity    ?? "medium");
-  const [color,       setColor]       = useState(editing?.color       ?? "#f59e0b");
-  const [saving,      setSaving]      = useState(false);
-  const [error,       setError]       = useState<string | null>(null);
+  const [name,          setName]          = useState(editing?.name          ?? "");
+  const [description,   setDescription]   = useState(editing?.description   ?? "");
+  const [severity,      setSeverity]      = useState(editing?.severity      ?? "medium");
+  const [color,         setColor]         = useState(editing?.color         ?? "#f59e0b");
+  const [defaultDegree, setDefaultDegree] = useState<string>(
+    editing?.defaultDegree ?? SEVERITY_DEFAULT_DEGREE[editing?.severity ?? "medium"] ?? "3"
+  );
+  const [saving,        setSaving]        = useState(false);
+  const [error,         setError]         = useState<string | null>(null);
+
+  const handleSeverityChange = (sev: string) => {
+    setSeverity(sev);
+    // auto-suggest matching degree unless user has manually deviated
+    setDefaultDegree(SEVERITY_DEFAULT_DEGREE[sev] ?? "1");
+  };
 
   const handleSave = async () => {
     if (!name.trim()) { setError("اسم التصنيف مطلوب"); return; }
     setSaving(true); setError(null);
     try {
-      const payload = { name: name.trim(), description: description.trim() || null, severity, color };
+      const payload = { name: name.trim(), description: description.trim() || null, severity, color, defaultDegree };
       if (editing) {
         await schoolApi.updateViolationCategory(editing.id, payload);
       } else {
@@ -115,7 +129,7 @@ function CategoryModal({
             {(["low", "medium", "high"] as const).map((sev) => (
               <button
                 key={sev}
-                onClick={() => setSeverity(sev)}
+                onClick={() => handleSeverityChange(sev)}
                 className={clsx(
                   "flex-1 py-2 rounded-xl text-sm font-medium border transition-all",
                   severity === sev
@@ -126,6 +140,37 @@ function CategoryModal({
                 {SEVERITIES[sev].label}
               </button>
             ))}
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            الدرجة الافتراضية
+            <span className="text-xs text-gray-400 font-normal mr-1">(تُقترح تلقائياً عند اختيار هذا التصنيف)</span>
+          </label>
+          <div className="grid grid-cols-5 gap-1.5">
+            {(["1","2","3","4","5"] as const).map((d) => {
+              const cfg = DEGREES[d];
+              const isSuggested = SEVERITY_DEFAULT_DEGREE[severity] === d;
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => setDefaultDegree(d)}
+                  className={clsx(
+                    "relative flex flex-col items-center gap-0.5 py-2 px-1 rounded-xl border text-center transition-all",
+                    defaultDegree === d
+                      ? `${cfg.bg} ${cfg.color} ${cfg.border} shadow-sm font-semibold`
+                      : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                  )}
+                >
+                  {isSuggested && defaultDegree !== d && (
+                    <span className="absolute -top-1.5 right-1 text-[8px] bg-amber-100 text-amber-600 rounded px-0.5 leading-tight">مقترح</span>
+                  )}
+                  <span className="text-xs font-bold">{cfg.label}</span>
+                  <span className="text-[9px] leading-tight opacity-75">{cfg.sub}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
         <div>
@@ -168,38 +213,168 @@ function CategoryModal({
   );
 }
 
+// ── Degree config ────────────────────────────────────────────
+
+const DEGREES: Record<string, {
+  label: string; sub: string;
+  color: string; bg: string; border: string; iconBg: string;
+  procedures: string[];
+}> = {
+  "1": {
+    label: "درجة ١", sub: "تنبيه شفهي",
+    color: "text-blue-700", bg: "bg-blue-50", border: "border-blue-200", iconBg: "bg-blue-100",
+    procedures: [
+      "تنبيه الطالب شفهياً من قِبل المعلم أو المرشد الطلابي",
+      "توضيح طبيعة المخالفة وأثرها على الطالب والبيئة المدرسية",
+      "توثيق التنبيه في سجل الفصل",
+      "متابعة سلوك الطالب خلال الأسبوع التالي",
+    ],
+  },
+  "2": {
+    label: "درجة ٢", sub: "إنذار كتابي",
+    color: "text-sky-700", bg: "bg-sky-50", border: "border-sky-200", iconBg: "bg-sky-100",
+    procedures: [
+      "إصدار إنذار كتابي رسمي موقّع من المرشد الطلابي ومدير المدرسة",
+      "إشعار ولي الأمر هاتفياً بالمخالفة والإنذار الصادر",
+      "تسجيل الإنذار في ملف الطالب الأكاديمي",
+      "جلسة إرشادية للطالب مع المرشد الطلابي",
+    ],
+  },
+  "3": {
+    label: "درجة ٣", sub: "إخطار ولي الأمر",
+    color: "text-amber-700", bg: "bg-amber-50", border: "border-amber-200", iconBg: "bg-amber-100",
+    procedures: [
+      "استدعاء ولي الأمر رسمياً للمدرسة خلال ٤٨ ساعة",
+      "توقيع ولي الأمر على إقرار بالعلم والالتزام بالتعديل السلوكي",
+      "إحالة الطالب للمرشد الطلابي لوضع خطة متابعة أسبوعية",
+      "تسجيل الإجراء كاملاً في ملف الطالب",
+      "رفع تقرير للإدارة إذا تكررت المخالفة ذاتها",
+    ],
+  },
+  "4": {
+    label: "درجة ٤", sub: "توبيخ وحرمان",
+    color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200", iconBg: "bg-orange-100",
+    procedures: [
+      "توبيخ رسمي أمام مجلس تأديبي يضم مدير المدرسة والمرشد الطلابي",
+      "إشعار إدارة التعليم بالحالة التأديبية",
+      "حرمان الطالب من المشاركة في الأنشطة المدرسية لمدة تحددها الإدارة",
+      "استدعاء ولي الأمر وإطلاعه على قرار مجلس التأديب",
+      "متابعة مكثفة من المرشد الطلابي بتقارير دورية",
+      "وضع الطالب تحت الرقابة السلوكية المستمرة",
+    ],
+  },
+  "5": {
+    label: "درجة ٥", sub: "فصل انقطاعي",
+    color: "text-red-700", bg: "bg-red-50", border: "border-red-200", iconBg: "bg-red-100",
+    procedures: [
+      "إيقاف الطالب انقطاعياً لمدة لا تتجاوز أسبوعاً بقرار من مدير المدرسة",
+      "رفع تقرير تفصيلي لمدير التعليم خلال ٢٤ ساعة",
+      "إشعار ولي الأمر رسمياً بقرار الفصل وأسبابه وأمد المدة",
+      "تحويل الطالب للاستشارة النفسية أو الاجتماعية إذا اقتضى الأمر",
+      "وضع خطة إعادة تأهيل وتكامل سلوكي قبل العودة",
+      "متابعة صارمة بعد العودة مع تقارير أسبوعية لمدة شهر",
+    ],
+  },
+};
+
+function DegreeBadge({ degree }: { degree: string }) {
+  const d = DEGREES[degree] ?? DEGREES["1"];
+  return (
+    <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border", d.color, d.bg, d.border)}>
+      {d.label}
+    </span>
+  );
+}
+
 // ── Violation Modal ──────────────────────────────────────────
 
 function ViolationModal({
-  open, onClose, editing, categories, students: studentList, onSaved,
+  open, onClose, editing, categories, classRooms, onSaved,
 }: {
   open: boolean;
   onClose: () => void;
   editing: any | null;
   categories: any[];
-  students: any[];
+  classRooms: any[];
   onSaved: () => void;
 }) {
-  const [studentId,   setStudentId]   = useState(editing?.studentId    ?? "");
-  const [categoryId,  setCategoryId]  = useState(editing?.categoryId   ?? "");
-  const [description, setDescription] = useState(editing?.description  ?? "");
-  const [date,        setDate]        = useState(editing?.violationDate ?? new Date().toISOString().split("T")[0]);
-  const [saving,      setSaving]      = useState(false);
-  const [error,       setError]       = useState<string | null>(null);
-  const [query,       setQuery]       = useState("");
+  const [studentId,     setStudentId]     = useState(editing?.studentId    ?? "");
+  const [selectedName,  setSelectedName]  = useState(editing?.studentName  ?? "");
+  const [categoryId,    setCategoryId]    = useState(editing?.categoryId   ?? "");
+  const [description,   setDescription]  = useState(editing?.description  ?? "");
+  const [degree,        setDegree]        = useState<string>(editing?.degree ?? "1");
+  const [degreeAutoSet, setDegreeAutoSet] = useState(false);
+  const [date,          setDate]          = useState(editing?.violationDate ?? new Date().toISOString().split("T")[0]);
+  const [saving,        setSaving]        = useState(false);
+  const [error,         setError]         = useState<string | null>(null);
+  const [query,         setQuery]         = useState("");
+  const [gradeFilter,   setGradeFilter]   = useState("");
+  const [roomFilter,    setRoomFilter]    = useState("");
+  const [listOpen,      setListOpen]      = useState(!editing);
 
-  const filtered = studentList.filter((s) =>
-    !query || s.fullName?.includes(query) || s.studentNumber?.includes(query)
+  // ── Server-side student search ────────────────────────────
+  const { data: stuData, loading: stuLoading } = useApi(
+    () => schoolApi.listStudents({
+      search:      query      || undefined,
+      classRoomId: roomFilter || undefined,
+      grade:       gradeFilter || undefined,
+      limit:       "100",
+    }),
+    [query, roomFilter, gradeFilter]
   );
+  const filtered: any[] = stuData?.data ?? [];
+
+  const handleCategoryChange = (id: string) => {
+    setCategoryId(id);
+    if (id) {
+      const cat = categories.find((c) => c.id === id);
+      if (cat?.defaultDegree) {
+        setDegree(cat.defaultDegree);
+        setDegreeAutoSet(true);
+      }
+    } else {
+      setDegreeAutoSet(false);
+    }
+  };
+
+  const handleDegreeClick = (d: string) => {
+    setDegree(d);
+    setDegreeAutoSet(false);
+  };
+
+  // Build grade list from classRooms
+  const grades = Array.from(new Set(classRooms.map((cr: any) => cr.grade).filter(Boolean)));
+  const roomsForGrade = gradeFilter
+    ? classRooms.filter((cr: any) => cr.grade === gradeFilter)
+    : classRooms;
+
+  const selectStudent = (s: any) => {
+    setStudentId(s.id);
+    setSelectedName(s.fullName);
+    setQuery("");
+    setListOpen(false);
+    setError(null);
+  };
+
+  const hijriLabel = (() => {
+    try {
+      const d = new Date(date);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleDateString("ar-SA-u-ca-islamic-umalqura-nu-arab", {
+        day: "2-digit", month: "long", year: "numeric",
+      });
+    } catch { return ""; }
+  })();
 
   const handleSave = async () => {
-    if (!studentId) { setError("اختر الطالب"); return; }
+    if (!studentId) { setError("يجب اختيار الطالب أولاً"); setListOpen(true); return; }
     setSaving(true); setError(null);
     try {
       const payload = {
         studentId,
         categoryId:    categoryId || null,
         description:   description.trim() || null,
+        degree,
         violationDate: date,
       };
       if (editing) {
@@ -216,52 +391,123 @@ function ViolationModal({
     }
   };
 
+  const footerNode = (
+    <div className="w-full space-y-2">
+      {error && (
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
+          <XCircle className="w-4 h-4 shrink-0" /> {error}
+        </div>
+      )}
+      <div className="flex items-center gap-3">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+        >
+          {saving ? "جاري الحفظ..." : editing ? "حفظ التعديلات" : "تسجيل المخالفة"}
+        </button>
+        <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">
+          إلغاء
+        </button>
+      </div>
+    </div>
+  );
+
   return (
-    <Modal open={open} onClose={onClose} title={editing ? "تعديل المخالفة" : "تسجيل مخالفة"}>
-      <div className="space-y-4 p-4">
-        {error && (
-          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm">
-            <XCircle className="w-4 h-4 shrink-0" /> {error}
-          </div>
-        )}
+    <Modal open={open} onClose={onClose} title={editing ? "تعديل المخالفة" : "تسجيل مخالفة"} footer={footerNode}>
+      <div className="space-y-4">
 
         {/* Student picker */}
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1.5">الطالب <span className="text-red-400">*</span></label>
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="ابحث باسم الطالب أو رقمه..."
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 mb-2"
-          />
-          <div className="max-h-36 overflow-y-auto rounded-xl border border-gray-200 divide-y divide-gray-50">
-            {filtered.slice(0, 30).map((s) => (
+          <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+            الطالب <span className="text-red-400">*</span>
+          </label>
+
+          {/* Selected student chip */}
+          {studentId && !listOpen ? (
+            <div className="flex items-center justify-between px-3 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span className="text-sm font-semibold text-emerald-800">{selectedName}</span>
+              </div>
               <button
-                key={s.id}
-                onClick={() => { setStudentId(s.id); setQuery(s.fullName); }}
-                className={clsx(
-                  "w-full text-right px-3 py-2 text-sm transition-colors flex items-center justify-between",
-                  studentId === s.id
-                    ? "bg-emerald-50 text-emerald-700 font-semibold"
-                    : "hover:bg-gray-50 text-gray-700"
-                )}
+                onClick={() => setListOpen(true)}
+                className="text-xs text-emerald-600 hover:text-emerald-800 font-medium"
               >
-                <span>{s.fullName}</span>
-                <span className="text-xs text-gray-400">{s.studentNumber ?? ""}</span>
+                تغيير
               </button>
-            ))}
-            {filtered.length === 0 && (
-              <p className="px-3 py-3 text-sm text-gray-400 text-center">لا توجد نتائج</p>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {/* Filters row */}
+              <div className="flex gap-2">
+                <select
+                  value={gradeFilter}
+                  onChange={(e) => { setGradeFilter(e.target.value); setRoomFilter(""); }}
+                  className="flex-1 rounded-xl border border-gray-200 px-2.5 py-2 text-xs focus:outline-none focus:border-emerald-400 bg-white"
+                >
+                  <option value="">كل الصفوف</option>
+                  {grades.map((g: string) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
+                <select
+                  value={roomFilter}
+                  onChange={(e) => setRoomFilter(e.target.value)}
+                  className="flex-1 rounded-xl border border-gray-200 px-2.5 py-2 text-xs focus:outline-none focus:border-emerald-400 bg-white"
+                >
+                  <option value="">كل الفصول</option>
+                  {roomsForGrade.map((cr: any) => (
+                    <option key={cr.id} value={cr.id}>{cr.name}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Search */}
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="ابحث باسم الطالب أو رقمه..."
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              />
+              {/* List */}
+              <div className="max-h-44 overflow-y-auto rounded-xl border border-gray-200 divide-y divide-gray-50">
+                {stuLoading ? (
+                  <div className="flex items-center justify-center py-6 gap-2 text-gray-400 text-sm">
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-emerald-500 rounded-full animate-spin" />
+                    جاري البحث...
+                  </div>
+                ) : filtered.length === 0 ? (
+                  <p className="px-3 py-4 text-sm text-gray-400 text-center">
+                    {query || gradeFilter || roomFilter ? "لا توجد نتائج" : "ابحث باسم الطالب أو اختر صفاً لعرض الطلاب"}
+                  </p>
+                ) : (
+                  filtered.map((s: any) => {
+                    const room = classRooms.find((cr: any) => cr.id === s.classRoomId);
+                    return (
+                      <button
+                        key={s.id}
+                        onClick={() => selectStudent(s)}
+                        className="w-full text-right px-3 py-2 text-sm transition-colors flex items-center justify-between hover:bg-emerald-50"
+                      >
+                        <span className="font-medium text-gray-800">{s.fullName}</span>
+                        <span className="text-xs text-gray-400 shrink-0">
+                          {room ? `${room.grade} — ${room.name}` : (s.classRoomGrade ? `${s.classRoomGrade} — ${s.classRoomName ?? ""}` : (s.studentNumber ?? ""))}
+                        </span>
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Category */}
+        {/* Category — يأتي أولاً لأنه يُفعّل الربط الذكي */}
         <div>
           <label className="block text-sm font-semibold text-gray-700 mb-1.5">نوع المخالفة</label>
           <select
             value={categoryId}
-            onChange={(e) => setCategoryId(e.target.value)}
+            onChange={(e) => handleCategoryChange(e.target.value)}
             className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 bg-white"
           >
             <option value="">— بدون تصنيف —</option>
@@ -270,6 +516,108 @@ function ViolationModal({
             ))}
           </select>
         </div>
+
+        {/* Smart bridge: category → degree */}
+        {(() => {
+          const cat = categoryId ? categories.find((c) => c.id === categoryId) : null;
+          return (
+            <div className={clsx(
+              "rounded-2xl border transition-all overflow-hidden",
+              cat ? "border-emerald-200 bg-emerald-50/60" : "border-gray-100 bg-gray-50"
+            )}>
+              {/* Category info row */}
+              {cat && (
+                <div className="flex items-center gap-2.5 px-4 py-3 border-b border-emerald-200/60">
+                  <span
+                    className="w-3 h-3 rounded-full shrink-0 border-2"
+                    style={{ backgroundColor: cat.color ?? "#f59e0b", borderColor: cat.color ?? "#f59e0b" }}
+                  />
+                  <span className="text-sm font-semibold text-gray-800 flex-1">{cat.name}</span>
+                  <SeverityBadge severity={cat.severity} />
+                  {degreeAutoSet && (
+                    <span className="text-[10px] bg-emerald-600 text-white rounded-full px-2 py-0.5 font-semibold shrink-0">
+                      الدرجة مقترحة تلقائياً
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Degree selector */}
+              <div className="p-3">
+                {!cat && (
+                  <p className="text-xs text-gray-400 mb-2.5">
+                    درجة المخالفة <span className="font-normal">(وفق لائحة وزارة التعليم)</span>
+                  </p>
+                )}
+                {cat && (
+                  <p className="text-xs text-emerald-700 font-medium mb-2.5">
+                    درجة المخالفة — اختر أو اقبل المقترح
+                  </p>
+                )}
+                <div className="grid grid-cols-5 gap-1.5">
+                  {(["1","2","3","4","5"] as const).map((d) => {
+                    const cfg = DEGREES[d];
+                    const isSelected = degree === d;
+                    const isSuggested = degreeAutoSet && isSelected;
+                    return (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => handleDegreeClick(d)}
+                        className={clsx(
+                          "relative flex flex-col items-center gap-0.5 py-2.5 px-1 rounded-xl border text-center transition-all",
+                          isSelected
+                            ? `${cfg.bg} ${cfg.color} ${cfg.border} shadow-sm font-semibold`
+                            : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+                        )}
+                      >
+                        {isSuggested && (
+                          <span className="absolute -top-2 inset-x-0 flex justify-center">
+                            <span className="text-[8px] bg-emerald-600 text-white rounded-full px-1.5 leading-4 font-bold shadow-sm">مقترح</span>
+                          </span>
+                        )}
+                        <span className="text-xs font-bold">{cfg.label}</span>
+                        <span className="text-[9px] leading-tight opacity-75">{cfg.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Procedures for selected degree */}
+                {(() => {
+                  const degCfg = DEGREES[degree];
+                  if (!degCfg) return null;
+                  return (
+                    <div className={clsx(
+                      "mt-3 rounded-xl border p-3 space-y-1.5",
+                      degCfg.border, degCfg.bg
+                    )}>
+                      <p className={clsx("text-xs font-bold mb-2 flex items-center gap-1.5", degCfg.color)}>
+                        <span className={clsx("w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black shrink-0", degCfg.iconBg, degCfg.color)}>
+                          {degree}
+                        </span>
+                        الإجراءات الواجب تنفيذها — {degCfg.sub}
+                      </p>
+                      <ol className="space-y-1">
+                        {degCfg.procedures.map((proc, i) => (
+                          <li key={i} className={clsx("flex items-start gap-2 text-xs", degCfg.color)}>
+                            <span className={clsx(
+                              "shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-bold mt-px",
+                              degCfg.iconBg
+                            )}>
+                              {i + 1}
+                            </span>
+                            <span className="leading-relaxed opacity-90">{proc}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Date */}
         <div>
@@ -280,6 +628,9 @@ function ViolationModal({
             onChange={(e) => setDate(e.target.value)}
             className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           />
+          {hijriLabel && (
+            <p className="mt-1 text-xs text-gray-400">{hijriLabel}</p>
+          )}
         </div>
 
         {/* Description */}
@@ -294,18 +645,6 @@ function ViolationModal({
           />
         </div>
 
-        <div className="flex items-center gap-3 pt-2">
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-          >
-            {saving ? "جاري الحفظ..." : editing ? "حفظ التعديلات" : "تسجيل المخالفة"}
-          </button>
-          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">
-            إلغاء
-          </button>
-        </div>
       </div>
     </Modal>
   );
@@ -393,11 +732,11 @@ export function SchoolViolationsPage() {
     () => schoolApi.listViolations({ status: filterStatus || undefined, categoryId: filterCatId || undefined }),
     [filterStatus, filterCatId]
   );
-  const { data: stuData } = useApi(() => schoolApi.listStudents({}), []);
+  const { data: roomData } = useApi(() => schoolApi.listClassRooms(), []);
 
   const categories: any[]  = catData?.data  ?? [];
   const violations: any[]  = vData?.data    ?? [];
-  const studentList: any[] = stuData?.data  ?? [];
+  const classRooms: any[]  = roomData?.data ?? [];
 
   const handleDeleteViolation = async (id: string) => {
     if (!confirm("حذف هذه المخالفة نهائياً؟")) return;
@@ -550,6 +889,7 @@ export function SchoolViolationsPage() {
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-100">
                         <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs">الطالب</th>
+                        <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs">الدرجة</th>
                         <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs">نوع المخالفة</th>
                         <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs">التاريخ</th>
                         <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs">الحالة</th>
@@ -565,6 +905,9 @@ export function SchoolViolationsPage() {
                             {v.studentNumber && (
                               <p className="text-xs text-gray-400">{v.studentNumber}</p>
                             )}
+                          </td>
+                          <td className="px-4 py-3">
+                            <DegreeBadge degree={v.degree ?? "1"} />
                           </td>
                           <td className="px-4 py-3">
                             {v.categoryName ? (
@@ -712,8 +1055,11 @@ export function SchoolViolationsPage() {
                         </button>
                       </div>
                     </div>
-                    <div className="mt-3 flex items-center gap-2">
+                    <div className="mt-3 flex items-center gap-2 flex-wrap">
                       <SeverityBadge severity={cat.severity} />
+                      {cat.defaultDegree && (
+                        <DegreeBadge degree={cat.defaultDegree} />
+                      )}
                       {cat.isActive === false && (
                         <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">غير نشط</span>
                       )}
@@ -726,6 +1072,8 @@ export function SchoolViolationsPage() {
         )}
       </div>
 
+      <PageFAQ pageId="violations" />
+
       {/* Modals */}
       {showAddViolation && (
         <ViolationModal
@@ -733,7 +1081,7 @@ export function SchoolViolationsPage() {
           onClose={() => { setShowAddViolation(false); setEditingViolation(null); }}
           editing={editingViolation}
           categories={categories}
-          students={studentList}
+          classRooms={classRooms}
           onSaved={refetchViolations}
         />
       )}

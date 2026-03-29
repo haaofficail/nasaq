@@ -147,10 +147,7 @@ const SchoolDashboardPage          = lz(() => import("./pages/school/SchoolDashb
 const SchoolDayMonitorPage         = lz(() => import("./pages/school/SchoolDayMonitorPage"), "SchoolDayMonitorPage");
 const SchoolStudentsPage           = lz(() => import("./pages/school/SchoolStudentsPage"), "SchoolStudentsPage");
 const SchoolClassesPage            = lz(() => import("./pages/school/SchoolClassesPage"), "SchoolClassesPage");
-const SchoolPeriodsPage            = lz(() => import("./pages/school/SchoolPeriodsPage"), "SchoolPeriodsPage");
 const SchoolCasesPage              = lz(() => import("./pages/school/SchoolCasesPage"), "SchoolCasesPage");
-const SchoolTimetableTemplatesPage = lz(() => import("./pages/school/SchoolTimetableTemplatesPage"), "SchoolTimetableTemplatesPage");
-const SchoolScheduleWeeksPage      = lz(() => import("./pages/school/SchoolScheduleWeeksPage"), "SchoolScheduleWeeksPage");
 const SchoolImportPage             = lz(() => import("./pages/school/SchoolImportPage"), "SchoolImportPage");
 const SchoolAccountPage            = lz(() => import("./pages/school/SchoolAccountPage"), "SchoolAccountPage");
 const SchoolTeachersPage           = lz(() => import("./pages/school/SchoolTeachersPage"), "SchoolTeachersPage");
@@ -165,6 +162,9 @@ const SchoolClassRoomDetailPage    = lz(() => import("./pages/school/SchoolClass
 const SchoolSubjectsPage           = lz(() => import("./pages/school/SchoolSubjectsPage"), "SchoolSubjectsPage");
 const SchoolTeacherAttendancePage  = lz(() => import("./pages/school/SchoolTeacherAttendancePage"), "SchoolTeacherAttendancePage");
 const SchoolAcademicCalendarPage   = lz(() => import("./pages/school/SchoolAcademicCalendarPage"), "SchoolAcademicCalendarPage");
+const SchoolGuidePage              = lz(() => import("./pages/school/SchoolGuidePage"), "SchoolGuidePage");
+const SchoolTimetablePage          = lz(() => import("./pages/school/SchoolTimetablePage"), "SchoolTimetablePage");
+const SchoolTeacherWorkPage        = lz(() => import("./pages/school/SchoolTeacherWorkPage"), "SchoolTeacherWorkPage");
 
 // ── Loading fallback ───────────────────────────────────────────────
 function PageLoader() {
@@ -384,10 +384,7 @@ export default function App() {
           <Route path="students"           element={<SchoolStudentsPage />} />
           <Route path="classes"            element={<SchoolClassesPage />} />
           <Route path="classes/:classRoomId" element={<SchoolClassRoomDetailPage />} />
-          <Route path="periods"            element={<SchoolPeriodsPage />} />
           <Route path="cases"              element={<SchoolCasesPage />} />
-          <Route path="timetable-templates" element={<SchoolTimetableTemplatesPage />} />
-          <Route path="schedules/weeks"    element={<SchoolScheduleWeeksPage />} />
           <Route path="import"             element={<SchoolImportPage />} />
           <Route path="teachers"           element={<SchoolTeachersPage />} />
           <Route path="teachers/:teacherId/schedule" element={<SchoolTeacherSchedulePage />} />
@@ -398,9 +395,13 @@ export default function App() {
           <Route path="attendance"              element={<SchoolAttendancePage />} />
           <Route path="teacher-attendance"    element={<SchoolTeacherAttendancePage />} />
           <Route path="academic-calendar"    element={<SchoolAcademicCalendarPage />} />
+          <Route path="schedule"             element={<SchoolAcademicCalendarPage />} />
+          <Route path="guide"                element={<SchoolGuidePage />} />
+          <Route path="timetable"            element={<SchoolTimetablePage />} />
           <Route path="behavior"           element={<SchoolBehaviorPage />} />
           <Route path="setup"             element={<SchoolSetupPage />} />
           <Route path="subjects"          element={<SchoolSubjectsPage />} />
+          <Route path="teacher-work"      element={<SchoolTeacherWorkPage />} />
         </Route>
       </Routes>
     </Suspense>

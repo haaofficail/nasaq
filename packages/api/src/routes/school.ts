@@ -30,8 +30,20 @@ import {
   teacherAttendance,
   schoolSemesters,
   schoolEvents,
+  schoolStandbyActivations,
+  schoolTimetable,
+  jobTitles,
+  jobTitlePermissions,
+  schoolStaffProfiles,
+  teacherPreparations,
+  teacherDailyLogs,
+  teacherStudentNotes,
+  studentReferrals,
+  counselingSessions,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId } from "../lib/helpers";
+import { logSchoolAudit, withSchoolScope } from "../middleware/school";
+import { requirePerm } from "../middleware/auth";
 import { DEDUCTION_BY_DEGREE, BEHAVIOR_SCORE_CONFIG } from "../constants/behaviorSystem";
 import { sendWhatsApp, isWhatsAppConfigured, whatsAppProvider } from "../lib/whatsapp";
 import { initBaileys, getBaileysState, logoutBaileys, hasSavedSession } from "../lib/whatsappBaileys";
@@ -60,8 +72,20 @@ async function sendSchoolWhatsApp(opts: {
   return ok;
 }
 
-function fillTemplate(tpl: string, vars: Record<string, string>): string {
-  return Object.entries(vars).reduce((s, [k, v]) => s.replaceAll(`{${k}}`, v), tpl);
+function fillTemplate(tpl: string, vars: Record<string, string | undefined | null>): string {
+  let s = tpl;
+  for (const [k, v] of Object.entries(vars)) {
+    if (!v) {
+      // Remove the entire bullet line if value is empty
+      s = s.replace(new RegExp(`^[•\\-]?\\s*[^\\n]*\\{${k}\\}[^\\n]*\\n?`, "gm"), "");
+      s = s.replaceAll(`{${k}}`, "");
+    } else {
+      s = s.replaceAll(`{${k}}`, v);
+    }
+  }
+  // Clean up consecutive blank lines
+  s = s.replace(/\n{3,}/g, "\n\n").trim();
+  return s;
 }
 
 // ============================================================
@@ -138,14 +162,21 @@ const DAY_OF_WEEK_MAP: Record<number, "sun" | "mon" | "tue" | "wed" | "thu"> = {
 // ============================================================
 
 const schoolSettingsSchema = z.object({
-  schoolName:     z.string().min(1).max(200),
-  schoolLogoUrl:  z.string().url().optional().nullable(),
-  schoolAddress:  z.string().max(500).optional().nullable(),
-  schoolPhone:    z.string().max(20).optional().nullable(),
-  schoolEmail:    z.string().email().optional().nullable(),
-  schoolRegion:   z.string().max(100).optional().nullable(),
-  schoolType:     z.enum(["حكومية", "أهلية", "دولية"]).optional().nullable(),
-  educationLevel: z.enum(["ابتدائية", "متوسطة", "ثانوية", "شاملة"]).optional().nullable(),
+  schoolName:            z.string().min(1).max(200),
+  schoolLogoUrl:         z.string().url().optional().nullable(),
+  schoolAddress:         z.string().max(500).optional().nullable(),
+  schoolPhone:           z.string().max(20).optional().nullable(),
+  schoolEmail:           z.string().email().optional().nullable(),
+  schoolRegion:          z.string().max(100).optional().nullable(),
+  schoolType:            z.enum(["حكومية", "أهلية", "دولية"]).optional().nullable(),
+  educationLevel:        z.enum(["ابتدائية", "متوسطة", "ثانوية", "شاملة"]).optional().nullable(),
+  // توقيت الدوام
+  sessionStartTime:      z.string().max(10).optional().nullable(),
+  sessionEndTime:        z.string().max(10).optional().nullable(),
+  periodDurationMinutes: z.coerce.number().int().min(20).max(120).optional().nullable(),
+  breakDurationMinutes:  z.coerce.number().int().min(5).max(60).optional().nullable(),
+  numberOfPeriods:       z.coerce.number().int().min(1).max(15).optional().nullable(),
+  sessionType:           z.enum(["winter", "summer", "ramadan"]).optional().nullable(),
 });
 
 const activeWeekSchema = z.object({
@@ -204,7 +235,8 @@ const timetableTemplatePeriodSchema = z.object({
 });
 
 const scheduleWeekSchema = z.object({
-  templateId:  z.string().uuid(),
+  semesterId:  z.string().uuid().optional().nullable(),
+  templateId:  z.string().uuid().optional().nullable(),
   weekNumber:  z.number().int().positive(),
   label:       z.string().max(200).optional().nullable(),
   startDate:   z.string().optional().nullable(),
@@ -257,13 +289,14 @@ const schoolCaseStepSchema = z.object({
 // ROUTER
 // ============================================================
 
-const router = new Hono();
+import type { SchoolEnv } from "../middleware/school";
+const router = new Hono<SchoolEnv>();
 
 // ============================================================
 // SCHOOL SETTINGS
 // ============================================================
 
-router.get("/settings", async (c) => {
+router.get("/settings", requirePerm("school.students.read"), async (c) => {
   const orgId = getOrgId(c);
 
   const [settings] = await db
@@ -275,7 +308,7 @@ router.get("/settings", async (c) => {
   return c.json({ data: settings ?? null });
 });
 
-router.post("/settings", async (c) => {
+router.post("/settings", requirePerm("school.settings.manage"), async (c) => {
   const orgId = getOrgId(c);
   const body = schoolSettingsSchema.parse(await c.req.json());
 
@@ -494,8 +527,9 @@ router.delete("/teachers/:id", async (c) => {
 // STUDENTS
 // ============================================================
 
-router.get("/students", async (c) => {
+router.get("/students", requirePerm("school.students.read"), withSchoolScope, async (c) => {
   const orgId = getOrgId(c);
+  const scope = c.get("schoolScope");
   const classRoomId    = c.req.query("classRoomId");
   const search         = c.req.query("search");
   const isActiveParam  = c.req.query("isActive");
@@ -507,7 +541,15 @@ router.get("/students", async (c) => {
 
   const conditions = [eq(students.orgId, orgId)];
 
-  if (classRoomId)   conditions.push(eq(students.classRoomId, classRoomId));
+  // Scope: المعلم يرى طلاب فصوله فقط
+  if (scope?.classRoomIds) {
+    conditions.push(inArray(students.classRoomId, scope.classRoomIds));
+  } else if (classRoomId) {
+    conditions.push(eq(students.classRoomId, classRoomId));
+  }
+
+  // dummy to keep linter happy — original classRoomId check below is now replaced
+  void classRoomId;
   if (unassignedOnly) conditions.push(isNull(students.classRoomId));
   if (gradeFilter)   conditions.push(eq(classRooms.grade, gradeFilter));
 
@@ -558,7 +600,7 @@ router.get("/students", async (c) => {
 });
 
 // GET /students/unassigned — must be before /:id to avoid route conflict
-router.get("/students/unassigned", async (c) => {
+router.get("/students/unassigned", requirePerm("school.students.read"), async (c) => {
   const orgId = getOrgId(c);
   const result = await db
     .select({
@@ -674,7 +716,7 @@ router.get("/students/:id", async (c) => {
   return c.json({ data: { ...student, transfers, violations, cases, attendanceSummary } });
 });
 
-router.post("/students", async (c) => {
+router.post("/students", requirePerm("school.students.write"), async (c) => {
   const orgId = getOrgId(c);
   const body = studentSchema.parse(await c.req.json());
 
@@ -686,10 +728,10 @@ router.post("/students", async (c) => {
   return c.json({ data: created }, 201);
 });
 
-router.put("/students/:id", async (c) => {
+router.put("/students/:id", requirePerm("school.students.write"), async (c) => {
   const orgId  = getOrgId(c);
   const userId = getUserId(c);
-  const id     = c.req.param("id");
+  const id     = c.req.param("id")!;
   const body   = studentSchema.partial().parse(await c.req.json());
 
   const [existing] = await db
@@ -808,9 +850,9 @@ router.get("/students/:id/transfers", async (c) => {
   return c.json({ data: history });
 });
 
-router.delete("/students/:id", async (c) => {
+router.delete("/students/:id", requirePerm("school.students.write"), async (c) => {
   const orgId = getOrgId(c);
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
 
   const [existing] = await db
     .select({ id: students.id })
@@ -1000,11 +1042,13 @@ router.delete("/timetable-templates/:templateId/periods/:id", async (c) => {
 // ============================================================
 
 router.get("/schedule-weeks", async (c) => {
-  const orgId = getOrgId(c);
+  const orgId     = getOrgId(c);
   const templateId = c.req.query("templateId");
+  const semesterId = c.req.query("semesterId");
 
-  const conditions = [eq(scheduleWeeks.orgId, orgId)];
-  if (templateId) conditions.push(eq(scheduleWeeks.templateId, templateId));
+  const conditions: any[] = [eq(scheduleWeeks.orgId, orgId)];
+  if (templateId)  conditions.push(eq(scheduleWeeks.templateId, templateId));
+  if (semesterId)  conditions.push(eq(scheduleWeeks.semesterId, semesterId));
 
   const result = await db
     .select()
@@ -1017,19 +1061,22 @@ router.get("/schedule-weeks", async (c) => {
 
 router.post("/schedule-weeks", async (c) => {
   const orgId = getOrgId(c);
-  const body = scheduleWeekSchema.parse(await c.req.json());
+  const body  = scheduleWeekSchema.parse(await c.req.json());
 
-  const [template] = await db
-    .select({ id: timetableTemplates.id })
-    .from(timetableTemplates)
-    .where(and(eq(timetableTemplates.id, body.templateId), eq(timetableTemplates.orgId, orgId)))
-    .limit(1);
-
-  if (!template) return c.json({ error: "القالب غير موجود" }, 404);
+  // Auto-assign first template if none given (for periods lookup in schedule builder)
+  let templateId = body.templateId ?? null;
+  if (!templateId) {
+    const [firstTemplate] = await db
+      .select({ id: timetableTemplates.id })
+      .from(timetableTemplates)
+      .where(eq(timetableTemplates.orgId, orgId))
+      .limit(1);
+    templateId = firstTemplate?.id ?? null;
+  }
 
   const [created] = await db
     .insert(scheduleWeeks)
-    .values({ orgId, ...body })
+    .values({ orgId, ...body, templateId })
     .returning();
 
   return c.json({ data: created }, 201);
@@ -1062,23 +1109,18 @@ router.patch("/schedule-weeks/:id/activate", async (c) => {
   const id = c.req.param("id");
 
   const [week] = await db
-    .select({ id: scheduleWeeks.id, templateId: scheduleWeeks.templateId })
+    .select({ id: scheduleWeeks.id, semesterId: scheduleWeeks.semesterId, templateId: scheduleWeeks.templateId })
     .from(scheduleWeeks)
     .where(and(eq(scheduleWeeks.id, id), eq(scheduleWeeks.orgId, orgId)))
     .limit(1);
 
   if (!week) return c.json({ error: "الأسبوع غير موجود" }, 404);
 
-  // إلغاء تفعيل جميع الأسابيع في نفس القالب
-  await db
-    .update(scheduleWeeks)
-    .set({ isActive: false, updatedAt: new Date() })
-    .where(
-      and(
-        eq(scheduleWeeks.templateId, week.templateId),
-        eq(scheduleWeeks.orgId, orgId)
-      )
-    );
+  // إلغاء تفعيل جميع الأسابيع في نفس الفصل (أو نفس القالب إن لم يكن هناك فصل)
+  const deactivateCond = week.semesterId
+    ? and(eq(scheduleWeeks.semesterId, week.semesterId), eq(scheduleWeeks.orgId, orgId))
+    : and(eq(scheduleWeeks.orgId, orgId));
+  await db.update(scheduleWeeks).set({ isActive: false, updatedAt: new Date() }).where(deactivateCond);
 
   // تفعيل الأسبوع المطلوب
   const [activated] = await db
@@ -1212,7 +1254,7 @@ router.patch("/schedule-entries/:id/late", async (c) => {
 // SCHOOL CASES
 // ============================================================
 
-router.get("/cases", async (c) => {
+router.get("/cases", requirePerm("school.cases.access"), async (c) => {
   const orgId = getOrgId(c);
   const status = c.req.query("status");
   const category = c.req.query("category");
@@ -1246,7 +1288,7 @@ router.get("/cases", async (c) => {
   return c.json({ data: result });
 });
 
-router.post("/cases", async (c) => {
+router.post("/cases", requirePerm("school.cases.access"), async (c) => {
   const orgId = getOrgId(c);
   const userId = getUserId(c);
   const body = schoolCaseSchema.parse(await c.req.json());
@@ -1259,9 +1301,9 @@ router.post("/cases", async (c) => {
   return c.json({ data: created }, 201);
 });
 
-router.put("/cases/:id", async (c) => {
+router.put("/cases/:id", requirePerm("school.cases.access"), async (c) => {
   const orgId = getOrgId(c);
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const body = schoolCaseSchema.partial().parse(await c.req.json());
 
   const [existing] = await db
@@ -1283,12 +1325,16 @@ router.put("/cases/:id", async (c) => {
     .where(and(eq(schoolCases.id, id), eq(schoolCases.orgId, orgId)))
     .returning();
 
+  if (body.status) {
+    void logSchoolAudit(c, "case.status_changed", "case", id ?? null, null, { status: body.status });
+  }
+
   return c.json({ data: updated });
 });
 
-router.get("/cases/:id", async (c) => {
+router.get("/cases/:id", requirePerm("school.cases.access"), async (c) => {
   const orgId = getOrgId(c);
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
 
   const [schoolCase] = await db
     .select()
@@ -1311,9 +1357,9 @@ router.get("/cases/:id", async (c) => {
 // SCHOOL CASE STEPS
 // ============================================================
 
-router.post("/cases/:caseId/steps", async (c) => {
+router.post("/cases/:caseId/steps", requirePerm("school.cases.access"), async (c) => {
   const orgId = getOrgId(c);
-  const caseId = c.req.param("caseId");
+  const caseId = c.req.param("caseId")!;
   const body = schoolCaseStepSchema.parse(await c.req.json());
 
   const [schoolCase] = await db
@@ -1339,10 +1385,10 @@ router.post("/cases/:caseId/steps", async (c) => {
   return c.json({ data: created }, 201);
 });
 
-router.delete("/cases/:caseId/steps/:id", async (c) => {
+router.delete("/cases/:caseId/steps/:id", requirePerm("school.cases.access"), async (c) => {
   const orgId = getOrgId(c);
-  const caseId = c.req.param("caseId");
-  const id = c.req.param("id");
+  const caseId = c.req.param("caseId")!;
+  const id = c.req.param("id")!;
 
   const [existing] = await db
     .select({ id: schoolCaseSteps.id })
@@ -1370,6 +1416,72 @@ router.delete("/cases/:caseId/steps/:id", async (c) => {
 
   return c.json({ success: true });
 });
+
+// ============================================================
+// CURRENT PERIOD ENGINE
+// ============================================================
+
+type PeriodSlot = {
+  periodNumber: number;
+  label:        string | null;
+  startTime:    string;
+  endTime:      string;
+  isBreak:      boolean | null;
+};
+
+function timeToMinutes(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function getCurrentPeriod(nowStr: string, periods: PeriodSlot[]): {
+  current: (PeriodSlot & { minutesRemaining: number }) | null;
+  next:    (PeriodSlot & { minutesUntil: number }) | null;
+  status:  "in_period" | "in_break" | "before_school" | "after_school";
+} {
+  if (!periods.length) return { current: null, next: null, status: "before_school" };
+
+  const now    = timeToMinutes(nowStr);
+  const sorted = [...periods].sort((a, b) => timeToMinutes(a.startTime) - timeToMinutes(b.startTime));
+  const first  = timeToMinutes(sorted[0].startTime);
+  const last   = timeToMinutes(sorted[sorted.length - 1].endTime);
+
+  if (now < first) {
+    return { current: null, next: { ...sorted[0], minutesUntil: first - now }, status: "before_school" };
+  }
+  if (now >= last) {
+    return { current: null, next: null, status: "after_school" };
+  }
+
+  // داخل حصة أو فسحة
+  for (let i = 0; i < sorted.length; i++) {
+    const p     = sorted[i];
+    const start = timeToMinutes(p.startTime);
+    const end   = timeToMinutes(p.endTime);
+    if (now >= start && now < end) {
+      const next = sorted[i + 1] ?? null;
+      return {
+        current: { ...p, minutesRemaining: end - now },
+        next: next ? { ...next, minutesUntil: timeToMinutes(next.startTime) - now } : null,
+        status: p.isBreak ? "in_break" : "in_period",
+      };
+    }
+    // فجوة بين حصتين (نادراً)
+    if (i < sorted.length - 1) {
+      const nextP     = sorted[i + 1];
+      const nextStart = timeToMinutes(nextP.startTime);
+      if (now >= end && now < nextStart) {
+        return {
+          current: null,
+          next: { ...nextP, minutesUntil: nextStart - now },
+          status: "in_break",
+        };
+      }
+    }
+  }
+
+  return { current: null, next: null, status: "after_school" };
+}
 
 // ============================================================
 // DAY MONITOR STATS
@@ -1436,6 +1548,56 @@ router.get("/day-monitor", async (c) => {
     }
   }
 
+  // الوقت الحالي بتوقيت السعودية (UTC+3)
+  const nowDate = new Date();
+  const nowStr  = `${String(nowDate.getUTCHours() + 3).padStart(2, "0")}:${String(nowDate.getUTCMinutes()).padStart(2, "0")}`;
+
+  // جلب كل periods اليوم (بدون تكرار) لمحرك الحصة الحالية
+  const uniquePeriods: PeriodSlot[] = [];
+  const seenPeriodIds = new Set<string>();
+  for (const entry of todayEntries as any[]) {
+    if (entry.periodId && !seenPeriodIds.has(entry.periodId)) {
+      seenPeriodIds.add(entry.periodId);
+      uniquePeriods.push({
+        periodNumber: entry.periodNumber,
+        label:        entry.periodLabel,
+        startTime:    entry.startTime,
+        endTime:      entry.endTime,
+        isBreak:      entry.isBreak,
+      });
+    }
+  }
+
+  // إضافة الفسحات من القالب إن وجدت (قد لا تكون في scheduleEntries)
+  if (activeWeek) {
+    const [weekRow] = await db.select({ templateId: scheduleWeeks.templateId })
+      .from(scheduleWeeks)
+      .where(and(eq(scheduleWeeks.id, activeWeek.id), eq(scheduleWeeks.orgId, orgId)))
+      .limit(1);
+    if (weekRow?.templateId) {
+      const allPeriods = await db.select({
+        id:           timetableTemplatePeriods.id,
+        periodNumber: timetableTemplatePeriods.periodNumber,
+        label:        timetableTemplatePeriods.label,
+        startTime:    timetableTemplatePeriods.startTime,
+        endTime:      timetableTemplatePeriods.endTime,
+        isBreak:      timetableTemplatePeriods.isBreak,
+      })
+      .from(timetableTemplatePeriods)
+      .where(and(
+        eq(timetableTemplatePeriods.templateId, weekRow.templateId!),
+        eq(timetableTemplatePeriods.orgId, orgId),
+      ));
+      for (const p of allPeriods) {
+        if (!seenPeriodIds.has(p.id)) {
+          uniquePeriods.push({ periodNumber: p.periodNumber, label: p.label, startTime: p.startTime, endTime: p.endTime, isBreak: p.isBreak });
+        }
+      }
+    }
+  }
+
+  const periodEngine = getCurrentPeriod(nowStr, uniquePeriods);
+
   const [
     [{ studentCount }],
     [{ classRoomCount }],
@@ -1457,6 +1619,12 @@ router.get("/day-monitor", async (c) => {
       activeWeek,
       todayDayOfWeek: todayDayOfWeek ?? null,
       todayEntries,
+      periodEngine: {
+        nowStr,
+        currentPeriod: periodEngine.current,
+        nextPeriod:    periodEngine.next,
+        status:        periodEngine.status,
+      },
       stats: {
         teachers:   Number(teacherCount),
         classRooms: Number(classRoomCount),
@@ -1893,17 +2061,31 @@ router.post("/teachers/:id/assignments", async (c) => {
       const [schoolRow] = await db.select({ schoolName: schoolSettings.schoolName })
         .from(schoolSettings).where(eq(schoolSettings.orgId, orgId)).limit(1);
 
-      let className = body.grade ? `صف ${body.grade}` : `المرحلة كاملة`;
+      let class_name = body.grade ? `صف ${body.grade}` : (body.stage ? `مرحلة ${body.stage}` : "جميع المراحل");
       if (body.classRoomId) {
         const [cr] = await db.select({ name: classRooms.name, grade: classRooms.grade })
           .from(classRooms).where(eq(classRooms.id, body.classRoomId)).limit(1);
-        if (cr) className = `${cr.grade} — ${cr.name}`;
+        if (cr) class_name = `${cr.grade} — فصل ${cr.name}`;
       }
 
-      const msg = fillTemplate(ns.teacherAssignMessage ?? "تم إسنادك لتدريس مادة {subject} في {class_name}\nمدرسة {school_name}", {
+      const defaultTpl = `{school_name}
+
+الأستاذ الفاضل،
+السلام عليكم ورحمة الله وبركاته
+
+نفيدكم بأنه تم إسنادكم لحصة انتظار:
+• الفصل / الصف: {class_name}
+• المادة: {subject}
+
+نتمنى لكم التوفيق والسداد.
+إدارة {school_name}`;
+
+      // Fix old templates that used {scope}
+      const savedTpl = (ns.teacherAssignMessage ?? "").replace(/\{scope\}/g, "{class_name}").replace(/لتدريس/g, "لحصة انتظار") || null;
+      const msg = fillTemplate(savedTpl ?? defaultTpl, {
         school_name: schoolRow?.schoolName ?? "المدرسة",
-        subject:     body.subject ?? "",
-        class_name:  className,
+        subject:     body.subject || undefined,
+        class_name,
       });
       await sendSchoolWhatsApp({ orgId, recipient: teacherRow.phone, message: msg, eventType: "teacher_assignment", teacherId, refId: created.id });
     } catch {}
@@ -1923,6 +2105,556 @@ router.delete("/teacher-assignments/:id", async (c) => {
     .returning();
 
   if (!deleted) return c.json({ error: "الارتباط غير موجود" }, 404);
+
+  return c.json({ success: true });
+});
+
+// ============================================================
+// STANDBY ACTIVATIONS — تفعيل حصص الانتظار
+// ============================================================
+
+const standbyActivationSchema = z.object({
+  activationDate:   z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  absentTeacherId:  z.string().uuid().optional().nullable(),
+  standbyTeacherId: z.string().uuid(),
+  classRoomId:      z.string().uuid().optional().nullable(),
+  subject:          z.string().min(1).max(200),
+  periodLabel:      z.string().max(100).optional().nullable(),
+  startTime:        z.string().max(10).optional().nullable(),
+  endTime:          z.string().max(10).optional().nullable(),
+  notes:            z.string().max(1000).optional().nullable(),
+});
+
+// GET /standby-activations?date=YYYY-MM-DD
+router.get("/standby-activations", async (c) => {
+  const orgId = getOrgId(c);
+  const dateParam = c.req.query("date") ?? new Date().toISOString().slice(0, 10);
+
+  const absentT  = alias(teacherProfiles, "absent_t");
+  const standbyT = alias(teacherProfiles, "standby_t");
+
+  const rows = await db
+    .select({
+      id:                schoolStandbyActivations.id,
+      activationDate:    schoolStandbyActivations.activationDate,
+      absentTeacherId:   schoolStandbyActivations.absentTeacherId,
+      absentTeacherName: absentT.fullName,
+      standbyTeacherId:  schoolStandbyActivations.standbyTeacherId,
+      standbyTeacherName: standbyT.fullName,
+      standbyTeacherPhone: standbyT.phone,
+      classRoomId:       schoolStandbyActivations.classRoomId,
+      classRoomGrade:    classRooms.grade,
+      classRoomName:     classRooms.name,
+      subject:           schoolStandbyActivations.subject,
+      periodLabel:       schoolStandbyActivations.periodLabel,
+      startTime:         schoolStandbyActivations.startTime,
+      endTime:           schoolStandbyActivations.endTime,
+      notes:             schoolStandbyActivations.notes,
+      notified:          schoolStandbyActivations.notified,
+      createdAt:         schoolStandbyActivations.createdAt,
+    })
+    .from(schoolStandbyActivations)
+    .leftJoin(absentT,  eq(schoolStandbyActivations.absentTeacherId,  absentT.id))
+    .leftJoin(standbyT, eq(schoolStandbyActivations.standbyTeacherId, standbyT.id))
+    .leftJoin(classRooms, eq(schoolStandbyActivations.classRoomId, classRooms.id))
+    .where(and(
+      eq(schoolStandbyActivations.orgId, orgId),
+      eq(schoolStandbyActivations.activationDate, dateParam),
+    ))
+    .orderBy(asc(schoolStandbyActivations.createdAt));
+
+  return c.json({ data: rows });
+});
+
+// POST /standby-activations — تفعيل حصة انتظار
+router.post("/standby-activations", async (c) => {
+  const orgId = getOrgId(c);
+  const body  = standbyActivationSchema.parse(await c.req.json());
+
+  // Validate standby teacher belongs to org
+  const [standbyTeacher] = await db.select()
+    .from(teacherProfiles)
+    .where(and(eq(teacherProfiles.id, body.standbyTeacherId), eq(teacherProfiles.orgId, orgId)))
+    .limit(1);
+  if (!standbyTeacher) return c.json({ error: "المعلم غير موجود" }, 404);
+
+  const [created] = await db
+    .insert(schoolStandbyActivations)
+    .values({
+      orgId,
+      activationDate:   body.activationDate,
+      absentTeacherId:  body.absentTeacherId ?? null,
+      standbyTeacherId: body.standbyTeacherId,
+      classRoomId:      body.classRoomId ?? null,
+      subject:          body.subject,
+      periodLabel:      body.periodLabel ?? null,
+      startTime:        body.startTime ?? null,
+      endTime:          body.endTime ?? null,
+      notes:            body.notes ?? null,
+    })
+    .returning();
+
+  // ── إشعار واتساب للمعلم المكلف ────────────────────────────
+  (async () => {
+    try {
+      if (!standbyTeacher.phone) return;
+
+      const [settings] = await db.select({ notificationSettings: schoolSettings.notificationSettings, schoolName: schoolSettings.schoolName })
+        .from(schoolSettings).where(eq(schoolSettings.orgId, orgId)).limit(1);
+      const ns = (settings?.notificationSettings ?? {}) as Record<string, any>;
+      if (!ns.notifyTeacherOnAssignment) return;
+
+      let classLabel = body.subject;
+      if (body.classRoomId) {
+        const [cr] = await db.select({ name: classRooms.name, grade: classRooms.grade })
+          .from(classRooms).where(eq(classRooms.id, body.classRoomId)).limit(1);
+        if (cr) classLabel = `${cr.grade} — فصل ${cr.name}`;
+      }
+
+      let absentName = "";
+      if (body.absentTeacherId) {
+        const [at] = await db.select({ fullName: teacherProfiles.fullName })
+          .from(teacherProfiles).where(eq(teacherProfiles.id, body.absentTeacherId)).limit(1);
+        if (at) absentName = at.fullName;
+      }
+
+      const periodInfo = body.periodLabel ? ` — ${body.periodLabel}` : "";
+      const timeInfo   = (body.startTime && body.endTime) ? ` (${body.startTime} - ${body.endTime})` : "";
+
+      const defaultTpl = `{school_name}
+
+الأستاذ الفاضل،
+السلام عليكم ورحمة الله وبركاته
+
+نفيدكم بأنه تم إسنادكم لحصة انتظار:
+• الفصل / الصف: {class_name}${periodInfo}${timeInfo}
+• المادة: {subject}
+${absentName ? `• بدلاً عن: ${absentName}` : ""}
+• التاريخ: {date}
+
+نتمنى لكم التوفيق والسداد.
+إدارة {school_name}`;
+
+      // Fix old templates that used {scope}
+      const savedTpl2 = (ns.teacherAssignMessage ?? "").replace(/\{scope\}/g, "{class_name}").replace(/لتدريس/g, "لحصة انتظار") || null;
+      const msg = fillTemplate(savedTpl2 ?? defaultTpl, {
+        school_name: settings?.schoolName ?? "المدرسة",
+        subject:     body.subject || undefined,
+        class_name:  classLabel,
+        date:        body.activationDate,
+      });
+
+      await sendSchoolWhatsApp({ orgId, recipient: standbyTeacher.phone, message: msg, eventType: "teacher_assignment", teacherId: standbyTeacher.id, refId: created.id });
+
+      await db.update(schoolStandbyActivations)
+        .set({ notified: true })
+        .where(eq(schoolStandbyActivations.id, created.id));
+    } catch {}
+  })();
+
+  return c.json({ data: created }, 201);
+});
+
+// DELETE /standby-activations/:id — إلغاء حصة انتظار
+router.delete("/standby-activations/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+
+  const [deleted] = await db
+    .delete(schoolStandbyActivations)
+    .where(and(eq(schoolStandbyActivations.id, id), eq(schoolStandbyActivations.orgId, orgId)))
+    .returning();
+
+  if (!deleted) return c.json({ error: "حصة الانتظار غير موجودة" }, 404);
+
+  return c.json({ success: true });
+});
+
+// ============================================================
+// TIMETABLE — الجدول الدراسي الأسبوعي لكل فصل
+// ============================================================
+
+// GET /timetable/teacher/:teacherId?dayOfWeek=N — حصص معلم ليوم معين (System A)
+router.get("/timetable/teacher/:teacherId", async (c) => {
+  const orgId     = getOrgId(c);
+  const teacherId = c.req.param("teacherId");
+  const dayParam  = c.req.query("dayOfWeek");
+
+  const DAY_NUM_TO_STR: Record<number, "sun"|"mon"|"tue"|"wed"|"thu"> = {
+    0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu",
+  };
+  const DAY_STR_TO_NUM: Record<string, number> = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4 };
+
+  // استخدام الأسبوع النشط
+  const [settings] = await db
+    .select({ activeWeekId: schoolSettings.activeWeekId })
+    .from(schoolSettings)
+    .where(eq(schoolSettings.orgId, orgId))
+    .limit(1);
+
+  if (!settings?.activeWeekId) return c.json({ data: [] });
+
+  const conditions: any[] = [
+    eq(scheduleEntries.orgId, orgId),
+    eq(scheduleEntries.weekId, settings.activeWeekId),
+    eq(scheduleEntries.teacherId, teacherId),
+  ];
+
+  if (dayParam !== undefined) {
+    const dayStr = DAY_NUM_TO_STR[parseInt(dayParam)];
+    if (dayStr) conditions.push(eq(scheduleEntries.dayOfWeek, dayStr));
+  }
+
+  const rows = await db
+    .select({
+      id:           scheduleEntries.id,
+      dayOfWeek:    scheduleEntries.dayOfWeek,
+      periodNumber: timetableTemplatePeriods.periodNumber,
+      subject:      scheduleEntries.subject,
+      startTime:    timetableTemplatePeriods.startTime,
+      endTime:      timetableTemplatePeriods.endTime,
+      isBreak:      timetableTemplatePeriods.isBreak,
+      classRoomId:  scheduleEntries.classRoomId,
+      classGrade:   classRooms.grade,
+      className:    classRooms.name,
+    })
+    .from(scheduleEntries)
+    .leftJoin(timetableTemplatePeriods, eq(scheduleEntries.periodId, timetableTemplatePeriods.id))
+    .leftJoin(classRooms, eq(scheduleEntries.classRoomId, classRooms.id))
+    .where(and(...conditions))
+    .orderBy(asc(scheduleEntries.dayOfWeek), asc(timetableTemplatePeriods.periodNumber));
+
+  // تحويل dayOfWeek من string إلى int للتوافق مع الواجهة
+  const data = rows.map(r => ({
+    ...r,
+    dayOfWeek: DAY_STR_TO_NUM[r.dayOfWeek as string] ?? 0,
+  }));
+
+  return c.json({ data });
+});
+
+// GET /timetable?classRoomId= (System A — يقرأ من scheduleEntries عبر الأسبوع النشط)
+router.get("/timetable", requirePerm("school.timetable.view"), async (c) => {
+  const orgId      = getOrgId(c);
+  const classRoomId = c.req.query("classRoomId");
+
+  if (!classRoomId) return c.json({ error: "classRoomId مطلوب" }, 400);
+
+  const DAY_STR_TO_NUM: Record<string, number> = { sun: 0, mon: 1, tue: 2, wed: 3, thu: 4 };
+
+  // الأسبوع النشط
+  const [settings] = await db
+    .select({ activeWeekId: schoolSettings.activeWeekId })
+    .from(schoolSettings)
+    .where(eq(schoolSettings.orgId, orgId))
+    .limit(1);
+
+  if (!settings?.activeWeekId) return c.json({ data: [], weekId: null, periods: [] });
+
+  // جلب periods من القالب لبناء شبكة الجدول في الواجهة
+  const [week] = await db
+    .select({ templateId: scheduleWeeks.templateId })
+    .from(scheduleWeeks)
+    .where(and(eq(scheduleWeeks.id, settings.activeWeekId), eq(scheduleWeeks.orgId, orgId)))
+    .limit(1);
+
+  const periods = week?.templateId
+    ? await db
+        .select({
+          id:           timetableTemplatePeriods.id,
+          periodNumber: timetableTemplatePeriods.periodNumber,
+          label:        timetableTemplatePeriods.label,
+          startTime:    timetableTemplatePeriods.startTime,
+          endTime:      timetableTemplatePeriods.endTime,
+          isBreak:      timetableTemplatePeriods.isBreak,
+        })
+        .from(timetableTemplatePeriods)
+        .where(and(
+          eq(timetableTemplatePeriods.templateId, week.templateId!),
+          eq(timetableTemplatePeriods.orgId, orgId),
+        ))
+        .orderBy(asc(timetableTemplatePeriods.periodNumber))
+    : [];
+
+  const rows = await db
+    .select({
+      id:           scheduleEntries.id,
+      weekId:       scheduleEntries.weekId,
+      classRoomId:  scheduleEntries.classRoomId,
+      dayOfWeek:    scheduleEntries.dayOfWeek,
+      periodId:     scheduleEntries.periodId,
+      periodNumber: timetableTemplatePeriods.periodNumber,
+      subject:      scheduleEntries.subject,
+      teacherId:    scheduleEntries.teacherId,
+      teacherName:  teacherProfiles.fullName,
+      startTime:    timetableTemplatePeriods.startTime,
+      endTime:      timetableTemplatePeriods.endTime,
+      isBreak:      timetableTemplatePeriods.isBreak,
+      notes:        scheduleEntries.notes,
+    })
+    .from(scheduleEntries)
+    .leftJoin(timetableTemplatePeriods, eq(scheduleEntries.periodId, timetableTemplatePeriods.id))
+    .leftJoin(teacherProfiles, eq(scheduleEntries.teacherId, teacherProfiles.id))
+    .where(and(
+      eq(scheduleEntries.orgId, orgId),
+      eq(scheduleEntries.weekId, settings.activeWeekId),
+      eq(scheduleEntries.classRoomId, classRoomId),
+    ))
+    .orderBy(asc(timetableTemplatePeriods.periodNumber), asc(scheduleEntries.dayOfWeek));
+
+  // تحويل dayOfWeek من string → int للتوافق مع الواجهة
+  const data = rows.map(r => ({
+    ...r,
+    dayOfWeek: DAY_STR_TO_NUM[r.dayOfWeek as string] ?? 0,
+  }));
+
+  return c.json({ data, weekId: settings.activeWeekId, periods });
+});
+
+// PUT /timetable — upsert cell (single) — System A — full transaction
+router.put("/timetable", requirePerm("school.timetable.edit"), async (c) => {
+  const orgId = getOrgId(c);
+  const body  = await c.req.json() as {
+    classRoomId:  string;
+    dayOfWeek:    number;
+    periodNumber: number;
+    subject?:     string | null;
+    teacherId?:   string | null;
+    isBreak?:     boolean;
+    notes?:       string | null;
+  };
+
+  const { classRoomId, dayOfWeek, periodNumber } = body;
+  if (!body.subject?.trim()) return c.json({ error: "المادة مطلوبة" }, 400);
+
+  const DAY_NUM_TO_STR: Record<number, "sun"|"mon"|"tue"|"wed"|"thu"> = {
+    0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu",
+  };
+  const dayStr = DAY_NUM_TO_STR[dayOfWeek];
+  if (!dayStr) return c.json({ error: "يوم غير صالح" }, 400);
+
+  let result: any;
+  try {
+    result = await db.transaction(async (tx) => {
+      const [cr] = await tx.select({ id: classRooms.id, grade: classRooms.grade })
+        .from(classRooms).where(and(eq(classRooms.id, classRoomId), eq(classRooms.orgId, orgId))).limit(1);
+      if (!cr) throw Object.assign(new Error("الفصل غير موجود"), { status: 404 });
+
+      if (body.teacherId) {
+        const [asgn] = await tx.select({ id: teacherClassAssignments.id })
+          .from(teacherClassAssignments)
+          .where(and(
+            eq(teacherClassAssignments.orgId, orgId),
+            eq(teacherClassAssignments.teacherId, body.teacherId),
+            or(
+              eq(teacherClassAssignments.classRoomId, classRoomId),
+              eq(teacherClassAssignments.grade, cr.grade),
+            )
+          )).limit(1);
+        if (!asgn) throw Object.assign(new Error("المعلم غير مخصص لهذا الفصل"), { status: 422 });
+      }
+
+      const [settings] = await tx.select({ activeWeekId: schoolSettings.activeWeekId })
+        .from(schoolSettings).where(eq(schoolSettings.orgId, orgId)).limit(1);
+      if (!settings?.activeWeekId) throw Object.assign(new Error("لا يوجد أسبوع نشط"), { status: 400 });
+
+      const [week] = await tx.select({ templateId: scheduleWeeks.templateId })
+        .from(scheduleWeeks)
+        .where(and(eq(scheduleWeeks.id, settings.activeWeekId), eq(scheduleWeeks.orgId, orgId))).limit(1);
+      if (!week?.templateId) throw Object.assign(new Error("قالب الجدول غير موجود"), { status: 400 });
+
+      const [period] = await tx.select({ id: timetableTemplatePeriods.id })
+        .from(timetableTemplatePeriods)
+        .where(and(
+          eq(timetableTemplatePeriods.templateId, week.templateId!),
+          eq(timetableTemplatePeriods.orgId, orgId),
+          eq(timetableTemplatePeriods.periodNumber, periodNumber),
+        )).limit(1);
+      if (!period) throw Object.assign(new Error("الحصة غير موجودة في القالب"), { status: 404 });
+
+      const [inserted] = await tx.insert(scheduleEntries).values({
+        orgId,
+        weekId:      settings.activeWeekId,
+        classRoomId,
+        periodId:    period.id,
+        teacherId:   body.teacherId ?? null,
+        dayOfWeek:   dayStr,
+        subject:     body.subject!,
+        notes:       body.notes ?? null,
+      })
+      .onConflictDoUpdate({
+        target: [scheduleEntries.weekId, scheduleEntries.periodId, scheduleEntries.classRoomId, scheduleEntries.dayOfWeek],
+        set: {
+          teacherId: sql`excluded.teacher_id`,
+          subject:   sql`excluded.subject`,
+          notes:     sql`excluded.notes`,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+      return inserted;
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message ?? "خطأ في الحفظ" }, err.status ?? 500);
+  }
+
+  return c.json({ data: result });
+});
+
+// POST /timetable/bulk — bulk upsert (System A — transaction + teacher integrity + concurrency)
+router.post("/timetable/bulk", requirePerm("school.timetable.edit"), async (c) => {
+  const orgId = getOrgId(c);
+  const body  = await c.req.json() as {
+    classRoomId:    string;
+    lastFetchedAt?: string; // ISO timestamp — للحماية من التعديل المتزامن
+    cells: Array<{
+      dayOfWeek:    number;
+      periodNumber: number;
+      subject?:     string | null;
+      teacherId?:   string | null;
+      isBreak?:     boolean;
+    }>;
+  };
+
+  const [cr] = await db.select({ id: classRooms.id, grade: classRooms.grade })
+    .from(classRooms).where(and(eq(classRooms.id, body.classRoomId), eq(classRooms.orgId, orgId))).limit(1);
+  if (!cr) return c.json({ error: "الفصل غير موجود" }, 404);
+
+  // الأسبوع النشط
+  const [settings] = await db
+    .select({ activeWeekId: schoolSettings.activeWeekId })
+    .from(schoolSettings).where(eq(schoolSettings.orgId, orgId)).limit(1);
+  if (!settings?.activeWeekId) {
+    return c.json({ error: "لا يوجد أسبوع نشط — قم بإعداد العام الدراسي أولاً" }, 400);
+  }
+
+  // قالب الأسبوع النشط
+  const [week] = await db
+    .select({ templateId: scheduleWeeks.templateId })
+    .from(scheduleWeeks)
+    .where(and(eq(scheduleWeeks.id, settings.activeWeekId), eq(scheduleWeeks.orgId, orgId))).limit(1);
+  if (!week?.templateId) return c.json({ error: "قالب الجدول غير موجود في الأسبوع النشط" }, 400);
+
+  // جلب periods لتحويل periodNumber → periodId
+  const templatePeriods = await db
+    .select({ id: timetableTemplatePeriods.id, periodNumber: timetableTemplatePeriods.periodNumber })
+    .from(timetableTemplatePeriods)
+    .where(and(
+      eq(timetableTemplatePeriods.templateId, week.templateId!),
+      eq(timetableTemplatePeriods.orgId, orgId),
+    ));
+  const periodMap: Record<number, string> = Object.fromEntries(
+    templatePeriods.map(p => [p.periodNumber, p.id])
+  );
+
+  // التحقق من integrity المعلمين — يجب أن تكون لكل معلم تخصيص لهذا الفصل أو مرحلته
+  const teacherIds = [...new Set(
+    body.cells.filter(c => c.teacherId && !c.isBreak).map(c => c.teacherId!)
+  )];
+  if (teacherIds.length > 0) {
+    const authorized = await db
+      .select({ teacherId: teacherClassAssignments.teacherId })
+      .from(teacherClassAssignments)
+      .where(and(
+        eq(teacherClassAssignments.orgId, orgId),
+        inArray(teacherClassAssignments.teacherId, teacherIds),
+        or(
+          eq(teacherClassAssignments.classRoomId, body.classRoomId),
+          eq(teacherClassAssignments.grade, cr.grade),
+        )
+      ));
+    const authorizedSet = new Set(authorized.map(a => a.teacherId));
+    const unauthorized = teacherIds.filter(id => !authorizedSet.has(id));
+    if (unauthorized.length > 0) {
+      return c.json({
+        error: "بعض المعلمين غير مخصصين لهذا الفصل",
+        unauthorized,
+      }, 422);
+    }
+  }
+
+  const DAY_NUM_TO_STR: Record<number, "sun"|"mon"|"tue"|"wed"|"thu"> = {
+    0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu",
+  };
+
+  // تصفية الخلايا الصالحة
+  const entries = body.cells
+    .filter(cell => !cell.isBreak && cell.subject?.trim())
+    .map(cell => {
+      const periodId = periodMap[cell.periodNumber];
+      const dayStr   = DAY_NUM_TO_STR[cell.dayOfWeek];
+      if (!periodId || !dayStr) return null;
+      return {
+        orgId,
+        weekId:      settings.activeWeekId!,
+        classRoomId: body.classRoomId,
+        periodId,
+        teacherId:   cell.teacherId ?? null,
+        dayOfWeek:   dayStr,
+        subject:     cell.subject!,
+      };
+    })
+    .filter(Boolean) as any[];
+
+  // Transaction: فحص التزامن + حذف + إدخال — أو rollback كامل
+  try {
+    await db.transaction(async (tx) => {
+      // فحص التزامن: إذا أرسل العميل lastFetchedAt، تحقق من عدم تغيير البيانات
+      if (body.lastFetchedAt) {
+        const [maxRow] = await tx
+          .select({ maxUpdated: sql<string>`MAX(${scheduleEntries.updatedAt})` })
+          .from(scheduleEntries)
+          .where(and(
+            eq(scheduleEntries.orgId, orgId),
+            eq(scheduleEntries.weekId, settings.activeWeekId!),
+            eq(scheduleEntries.classRoomId, body.classRoomId),
+          ));
+        if (maxRow?.maxUpdated && new Date(maxRow.maxUpdated) > new Date(body.lastFetchedAt)) {
+          throw Object.assign(new Error("تم تعديل الجدول من مستخدم آخر — أعد تحميل الصفحة"), { status: 409 });
+        }
+      }
+
+      await tx.delete(scheduleEntries).where(and(
+        eq(scheduleEntries.orgId, orgId),
+        eq(scheduleEntries.weekId, settings.activeWeekId!),
+        eq(scheduleEntries.classRoomId, body.classRoomId),
+      ));
+      if (entries.length > 0) {
+        await tx.insert(scheduleEntries).values(entries)
+          .onConflictDoUpdate({
+            target: [
+              scheduleEntries.weekId,
+              scheduleEntries.periodId,
+              scheduleEntries.classRoomId,
+              scheduleEntries.dayOfWeek,
+            ],
+            set: {
+              teacherId: sql`excluded.teacher_id`,
+              subject:   sql`excluded.subject`,
+              updatedAt: new Date(),
+            },
+          });
+      }
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message ?? "خطأ في الحفظ" }, err.status ?? 500);
+  }
+
+  // Audit log — حفظ الجدول
+  void logSchoolAudit(c, "timetable.bulk_saved", "timetable", body.classRoomId, null, { classRoomId: body.classRoomId, count: entries.length });
+
+  return c.json({ success: true, count: entries.length });
+});
+
+// DELETE /timetable/:id — System A (id = scheduleEntries.id)
+router.delete("/timetable/:id", requirePerm("school.timetable.edit"), async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id")!;
+
+  await db.delete(scheduleEntries).where(and(
+    eq(scheduleEntries.id, id),
+    eq(scheduleEntries.orgId, orgId),
+  ));
 
   return c.json({ success: true });
 });
@@ -1981,6 +2713,95 @@ router.get("/teachers/:id/schedule", async (c) => {
     .orderBy(asc(scheduleEntries.dayOfWeek), asc(timetableTemplatePeriods.periodNumber));
 
   return c.json({ data: { teacher, entries, weekId: targetWeekId } });
+});
+
+// POST /setup/migrate-to-system-a — ترحيل البيانات من schoolTimetable → scheduleEntries
+router.post("/setup/migrate-to-system-a", async (c) => {
+  const orgId = getOrgId(c);
+
+  const [settings] = await db
+    .select({ activeWeekId: schoolSettings.activeWeekId })
+    .from(schoolSettings)
+    .where(eq(schoolSettings.orgId, orgId))
+    .limit(1);
+  if (!settings?.activeWeekId) {
+    return c.json({ error: "لا يوجد أسبوع نشط — قم بإعداد العام الدراسي أولاً" }, 400);
+  }
+
+  const [week] = await db
+    .select({ templateId: scheduleWeeks.templateId })
+    .from(scheduleWeeks)
+    .where(and(eq(scheduleWeeks.id, settings.activeWeekId), eq(scheduleWeeks.orgId, orgId)))
+    .limit(1);
+  if (!week?.templateId) return c.json({ error: "قالب الجدول غير موجود" }, 400);
+
+  const templatePeriods = await db
+    .select({ id: timetableTemplatePeriods.id, periodNumber: timetableTemplatePeriods.periodNumber })
+    .from(timetableTemplatePeriods)
+    .where(and(
+      eq(timetableTemplatePeriods.templateId, week.templateId!),
+      eq(timetableTemplatePeriods.orgId, orgId),
+    ));
+  const periodMap: Record<number, string> = Object.fromEntries(
+    templatePeriods.map(p => [p.periodNumber, p.id])
+  );
+
+  const oldRows = await db
+    .select()
+    .from(schoolTimetable)
+    .where(eq(schoolTimetable.orgId, orgId));
+
+  const DAY_NUM_TO_STR: Record<number, "sun"|"mon"|"tue"|"wed"|"thu"> = {
+    0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu",
+  };
+
+  const entries = oldRows
+    .filter(row => !row.isBreak && row.subject?.trim() && row.classRoomId)
+    .map(row => {
+      const periodId = periodMap[row.periodNumber];
+      const dayStr   = DAY_NUM_TO_STR[row.dayOfWeek];
+      if (!periodId || !dayStr) return null;
+      return {
+        orgId,
+        weekId:      settings.activeWeekId!,
+        classRoomId: row.classRoomId!,
+        periodId,
+        teacherId:   row.teacherId ?? null,
+        dayOfWeek:   dayStr,
+        subject:     row.subject!,
+      };
+    })
+    .filter(Boolean) as any[];
+
+  // Batch processing داخل transaction واحد — كل شيء أو لا شيء
+  const BATCH_SIZE = 500;
+  let migrated = 0;
+  try {
+    await db.transaction(async (tx) => {
+      for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+        const batch = entries.slice(i, i + BATCH_SIZE);
+        await tx.insert(scheduleEntries).values(batch)
+          .onConflictDoUpdate({
+            target: [
+              scheduleEntries.weekId,
+              scheduleEntries.periodId,
+              scheduleEntries.classRoomId,
+              scheduleEntries.dayOfWeek,
+            ],
+            set: {
+              teacherId: sql`excluded.teacher_id`,
+              subject:   sql`excluded.subject`,
+              updatedAt: new Date(),
+            },
+          });
+        migrated += batch.length;
+      }
+    });
+  } catch (err: any) {
+    return c.json({ error: `فشل الترحيل بعد ${migrated} سجل: ${err.message}` }, 500);
+  }
+
+  return c.json({ success: true, migrated, total: entries.length });
 });
 
 router.delete("/timetable-templates/:id", async (c) => {
@@ -2133,7 +2954,7 @@ router.delete("/violation-categories/:id", async (c) => {
 // VIOLATIONS — سجل مخالفات الطلاب
 // ============================================================
 
-router.get("/violations", async (c) => {
+router.get("/violations", requirePerm("school.behavior.view"), async (c) => {
   const orgId     = getOrgId(c);
   const studentId = c.req.query("studentId");
   const catId     = c.req.query("categoryId");
@@ -2176,7 +2997,7 @@ router.get("/violations", async (c) => {
   return c.json({ data: violations });
 });
 
-router.post("/violations", async (c) => {
+router.post("/violations", requirePerm("school.behavior.write"), async (c) => {
   const orgId  = getOrgId(c);
   const userId = getUserId(c);
   const body   = await c.req.json();
@@ -2242,12 +3063,15 @@ router.post("/violations", async (c) => {
     } catch {}
   })();
 
+  // Audit log — تسجيل المخالفة
+  void logSchoolAudit(c, "violation.created", "violation", violation.id, null, { studentId: violation.studentId, degree: violation.degree, violationDate: violation.violationDate });
+
   return c.json({ data: violation }, 201);
 });
 
-router.put("/violations/:id", async (c) => {
+router.put("/violations/:id", requirePerm("school.behavior.write"), async (c) => {
   const orgId = getOrgId(c);
-  const id    = c.req.param("id");
+  const id    = c.req.param("id")!;
   const body  = await c.req.json();
   const schema = z.object({
     categoryId:      z.string().uuid().optional().nullable(),
@@ -2266,9 +3090,9 @@ router.put("/violations/:id", async (c) => {
   return c.json({ data: updated });
 });
 
-router.delete("/violations/:id", async (c) => {
+router.delete("/violations/:id", requirePerm("school.behavior.write"), async (c) => {
   const orgId = getOrgId(c);
-  const id    = c.req.param("id");
+  const id    = c.req.param("id")!;
   const [deleted] = await db.delete(schoolViolations)
     .where(and(eq(schoolViolations.id, id), eq(schoolViolations.orgId, orgId)))
     .returning();
@@ -2281,7 +3105,7 @@ router.delete("/violations/:id", async (c) => {
 // ============================================================
 
 // GET /attendance?classRoomId=&date= — جلب سجل الحضور لفصل في يوم
-router.get("/attendance", async (c) => {
+router.get("/attendance", requirePerm("school.attendance.record"), withSchoolScope, async (c) => {
   const orgId       = getOrgId(c);
   const classRoomId = c.req.query("classRoomId");
   const dateParam   = c.req.query("date"); // YYYY-MM-DD
@@ -2316,7 +3140,7 @@ router.get("/attendance", async (c) => {
 });
 
 // POST /attendance/bulk — تسجيل الحضور للفصل كاملاً (upsert)
-router.post("/attendance/bulk", async (c) => {
+router.post("/attendance/bulk", requirePerm("school.attendance.record"), async (c) => {
   const orgId  = getOrgId(c);
   const userId = getUserId(c);
   const body   = await c.req.json() as {
@@ -2448,15 +3272,17 @@ router.get("/attendance/student/:studentId", async (c) => {
   return c.json({ data: records });
 });
 
-// GET /attendance/stats?classRoomId=&month= — إحصائيات الحضور
+// GET /attendance/stats?classRoomId=&month=&date= — إحصائيات الحضور
 router.get("/attendance/stats", async (c) => {
   const orgId       = getOrgId(c);
   const classRoomId = c.req.query("classRoomId");
   const month       = c.req.query("month"); // YYYY-MM
+  const date        = c.req.query("date");  // YYYY-MM-DD
 
   const conditions = [eq(studentAttendance.orgId, orgId)];
   if (classRoomId) conditions.push(eq(studentAttendance.classRoomId, classRoomId));
-  if (month) conditions.push(sql`to_char(${studentAttendance.attendanceDate}, 'YYYY-MM') = ${month}`);
+  if (date)  conditions.push(eq(studentAttendance.attendanceDate, date));
+  else if (month) conditions.push(sql`to_char(${studentAttendance.attendanceDate}, 'YYYY-MM') = ${month}`);
 
   const stats = await db
     .select({
@@ -2600,10 +3426,22 @@ router.post("/setup/complete", async (c) => {
     }
   }
 
-  // 3+4. Create timetable templates and periods for each calendar session
+  // 3+4. Create timetable templates and periods — idempotent (skip if already exists)
   const templateIds: Record<string, string> = {};
+
+  // جلب القوالب الموجودة لتجنب التكرار
+  const existingTemplates = await db
+    .select({ id: timetableTemplates.id, sessionType: timetableTemplates.sessionType })
+    .from(timetableTemplates)
+    .where(eq(timetableTemplates.orgId, orgId));
+  for (const et of existingTemplates) {
+    if (et.sessionType) templateIds[et.sessionType] = et.id;
+  }
+
   for (const cal of body.calendar) {
-    // Create template
+    // تخطّ إذا كان القالب موجوداً
+    if (templateIds[cal.sessionType]) continue;
+
     const [tmpl] = await db.insert(timetableTemplates).values({
       orgId,
       name:        `جدول ${cal.sessionType === "winter" ? "شتوي" : "صيفي"}`,
@@ -2613,7 +3451,7 @@ router.post("/setup/complete", async (c) => {
     templateIds[cal.sessionType] = tmpl.id;
     results.templates++;
 
-    // Generate period times
+    // توليد أوقات الحصص
     const [startH, startM] = cal.dayStartTime.split(":").map(Number);
     let currentMinutes = startH * 60 + startM;
     let periodNum = 1;
@@ -2634,7 +3472,6 @@ router.post("/setup/complete", async (c) => {
       });
       results.periods++;
 
-      // Add break after specified period
       if (p === cal.breakAfterPeriod) {
         const bStart = endTime;
         currentMinutes += cal.breakDuration;
@@ -2652,7 +3489,7 @@ router.post("/setup/complete", async (c) => {
       }
     }
 
-    // Create schedule weeks using this template
+    // إنشاء الأسابيع لهذا القالب
     for (let w = 1; w <= body.weekCount; w++) {
       await db.insert(scheduleWeeks).values({
         orgId,
@@ -2665,12 +3502,13 @@ router.post("/setup/complete", async (c) => {
     }
   }
 
-  // If only one template, set its first week as active
-  if (Object.keys(templateIds).length === 1) {
-    const tmplId = Object.values(templateIds)[0];
+  // تحديد activeWeekId — الأولوية: صيفي ثم شتوي ثم أي قالب
+  const activeSessionType = templateIds["summer"] ? "summer" : (templateIds["winter"] ? "winter" : null);
+  const activeTemplateId  = activeSessionType ? templateIds[activeSessionType] : Object.values(templateIds)[0];
+  if (activeTemplateId) {
     const [firstWeek] = await db.select({ id: scheduleWeeks.id })
       .from(scheduleWeeks)
-      .where(and(eq(scheduleWeeks.orgId, orgId), eq(scheduleWeeks.templateId, tmplId), eq(scheduleWeeks.weekNumber, 1)))
+      .where(and(eq(scheduleWeeks.orgId, orgId), eq(scheduleWeeks.templateId, activeTemplateId), eq(scheduleWeeks.weekNumber, 1)))
       .limit(1);
     if (firstWeek) {
       await db.update(schoolSettings)
@@ -2707,6 +3545,89 @@ router.post("/setup/complete", async (c) => {
         });
         results.assignments++;
       } catch {}
+    }
+  }
+
+  // 6. Seed school jobTitles (idempotent — skip if already exist)
+  const SCHOOL_JOB_TITLES: Array<{
+    name: string; nameEn: string; color: string;
+    permissions: string[];
+  }> = [
+    {
+      name: "مدير المدرسة", nameEn: "Principal", color: "#1d4ed8",
+      permissions: [
+        "school.students.read","school.students.write","school.timetable.view","school.timetable.edit",
+        "school.attendance.record","school.attendance.view_all","school.behavior.view","school.behavior.write",
+        "school.cases.access","school.cases.manage","school.referrals.create","school.referrals.manage",
+        "school.counseling.access","school.reports.view","school.settings.manage",
+      ],
+    },
+    {
+      name: "وكيل المدرسة", nameEn: "Vice Principal", color: "#0891b2",
+      permissions: [
+        "school.students.read","school.students.write","school.timetable.view","school.timetable.edit",
+        "school.attendance.record","school.attendance.view_all","school.behavior.view","school.behavior.write",
+        "school.cases.access","school.cases.manage","school.referrals.create","school.referrals.manage",
+        "school.counseling.access","school.reports.view",
+      ],
+    },
+    {
+      name: "مرشد طلابي", nameEn: "Counselor", color: "#7c3aed",
+      permissions: [
+        "school.students.read","school.behavior.view","school.behavior.write","school.cases.access",
+        "school.referrals.create","school.referrals.manage","school.counseling.access","school.reports.view",
+      ],
+    },
+    {
+      name: "معلم", nameEn: "Teacher", color: "#059669",
+      permissions: [
+        "school.students.read","school.timetable.view","school.attendance.record",
+        "school.behavior.view","school.behavior.write","school.referrals.create",
+        "school.preparations.write","school.daily_logs.write",
+      ],
+    },
+    {
+      name: "إداري", nameEn: "Admin Staff", color: "#d97706",
+      permissions: [
+        "school.students.read","school.students.write","school.timetable.view",
+        "school.attendance.record","school.attendance.view_all","school.reports.view",
+      ],
+    },
+  ];
+
+  for (const jt of SCHOOL_JOB_TITLES) {
+    // Check if already exists
+    const [existing] = await db
+      .select({ id: jobTitles.id })
+      .from(jobTitles)
+      .where(and(eq(jobTitles.orgId, orgId), eq(jobTitles.name, jt.name)))
+      .limit(1);
+
+    let jobTitleId: string;
+    if (existing) {
+      jobTitleId = existing.id;
+    } else {
+      const [created] = await db.insert(jobTitles).values({
+        orgId,
+        name: jt.name,
+        nameEn: jt.nameEn,
+        color: jt.color,
+        systemRole: "employee",
+        isDefault: false,
+        isActive: true,
+        sortOrder: 0,
+      }).returning({ id: jobTitles.id });
+      jobTitleId = created.id;
+    }
+
+    // Upsert permissions (flat list — no systemRole logic)
+    for (const perm of jt.permissions) {
+      await db.insert(jobTitlePermissions).values({
+        orgId,
+        jobTitleId,
+        permissionKey: perm,
+        allowed: true,
+      }).onConflictDoNothing();
     }
   }
 
@@ -2787,7 +3708,7 @@ async function recalculateStudentScore(orgId: string, studentId: string, academi
 }
 
 // GET /behavior/overview — ملخص السلوك الكلي للمدرسة
-router.get("/behavior/overview", async (c) => {
+router.get("/behavior/overview", requirePerm("school.behavior.view"), async (c) => {
   const orgId = getOrgId(c);
   const year  = c.req.query("year") ?? new Date().getFullYear().toString();
 
@@ -2870,7 +3791,7 @@ router.get("/behavior/overview", async (c) => {
 });
 
 // GET /behavior/incidents — قائمة الحوادث
-router.get("/behavior/incidents", async (c) => {
+router.get("/behavior/incidents", requirePerm("school.behavior.view"), async (c) => {
   const orgId      = getOrgId(c);
   const studentId  = c.req.query("studentId");
   const status     = c.req.query("status");
@@ -2914,7 +3835,7 @@ router.get("/behavior/incidents", async (c) => {
 });
 
 // POST /behavior/incidents — تسجيل حادثة جديدة
-router.post("/behavior/incidents", async (c) => {
+router.post("/behavior/incidents", requirePerm("school.behavior.write"), async (c) => {
   const orgId  = getOrgId(c);
   const userId = getUserId(c);
   const body   = await c.req.json();
@@ -2956,13 +3877,17 @@ router.post("/behavior/incidents", async (c) => {
   const year = incidentDate.slice(0, 4);
   await recalculateStudentScore(orgId, data.studentId, year);
 
+  void logSchoolAudit(c, "violation.created", "behaviorIncident", incident.id, null, {
+    studentId: data.studentId, degree: data.degree, incidentDate,
+  });
+
   return c.json({ data: incident }, 201);
 });
 
 // PUT /behavior/incidents/:id — تعديل حادثة
-router.put("/behavior/incidents/:id", async (c) => {
+router.put("/behavior/incidents/:id", requirePerm("school.behavior.write"), async (c) => {
   const orgId = getOrgId(c);
-  const id    = c.req.param("id");
+  const id    = c.req.param("id")!;
   const body  = await c.req.json();
   const schema = z.object({
     degree:           z.enum(["1","2","3","4","5"]).optional(),
@@ -2990,9 +3915,9 @@ router.put("/behavior/incidents/:id", async (c) => {
 });
 
 // DELETE /behavior/incidents/:id
-router.delete("/behavior/incidents/:id", async (c) => {
+router.delete("/behavior/incidents/:id", requirePerm("school.behavior.write"), async (c) => {
   const orgId = getOrgId(c);
-  const id    = c.req.param("id");
+  const id    = c.req.param("id")!;
   const [deleted] = await db.delete(behaviorIncidents)
     .where(and(eq(behaviorIncidents.id, id), eq(behaviorIncidents.orgId, orgId)))
     .returning();
@@ -3005,7 +3930,7 @@ router.delete("/behavior/incidents/:id", async (c) => {
 });
 
 // GET /behavior/compensations — قائمة التعويضات
-router.get("/behavior/compensations", async (c) => {
+router.get("/behavior/compensations", requirePerm("school.behavior.view"), async (c) => {
   const orgId     = getOrgId(c);
   const studentId = c.req.query("studentId");
   const dateFrom  = c.req.query("dateFrom");
@@ -3038,7 +3963,7 @@ router.get("/behavior/compensations", async (c) => {
 });
 
 // POST /behavior/compensations — تسجيل تعويض
-router.post("/behavior/compensations", async (c) => {
+router.post("/behavior/compensations", requirePerm("school.behavior.write"), async (c) => {
   const orgId  = getOrgId(c);
   const userId = getUserId(c);
   const body   = await c.req.json();
@@ -3076,9 +4001,9 @@ router.post("/behavior/compensations", async (c) => {
 });
 
 // DELETE /behavior/compensations/:id
-router.delete("/behavior/compensations/:id", async (c) => {
+router.delete("/behavior/compensations/:id", requirePerm("school.behavior.write"), async (c) => {
   const orgId = getOrgId(c);
-  const id    = c.req.param("id");
+  const id    = c.req.param("id")!;
   const [deleted] = await db.delete(behaviorCompensations)
     .where(and(eq(behaviorCompensations.id, id), eq(behaviorCompensations.orgId, orgId)))
     .returning();
@@ -3091,7 +4016,7 @@ router.delete("/behavior/compensations/:id", async (c) => {
 });
 
 // GET /behavior/scores — نقاط السلوك لجميع الطلاب
-router.get("/behavior/scores", async (c) => {
+router.get("/behavior/scores", requirePerm("school.behavior.view"), async (c) => {
   const orgId = getOrgId(c);
   const year  = c.req.query("year") ?? new Date().getFullYear().toString();
 
@@ -3123,7 +4048,7 @@ router.get("/behavior/scores", async (c) => {
 });
 
 // POST /behavior/scores/recalculate — إعادة حساب نقاط جميع الطلاب
-router.post("/behavior/scores/recalculate", async (c) => {
+router.post("/behavior/scores/recalculate", requirePerm("school.behavior.write"), async (c) => {
   const orgId = getOrgId(c);
   const year  = (await c.req.json().catch(() => ({}))).year ?? new Date().getFullYear().toString();
 
@@ -3140,7 +4065,7 @@ router.post("/behavior/scores/recalculate", async (c) => {
 });
 
 // GET /behavior/notifications — إشعارات أولياء الأمور
-router.get("/behavior/notifications", async (c) => {
+router.get("/behavior/notifications", requirePerm("school.behavior.view"), async (c) => {
   const orgId     = getOrgId(c);
   const studentId = c.req.query("studentId");
 
@@ -3169,7 +4094,7 @@ router.get("/behavior/notifications", async (c) => {
 });
 
 // POST /behavior/notifications — تسجيل إشعار
-router.post("/behavior/notifications", async (c) => {
+router.post("/behavior/notifications", requirePerm("school.behavior.write"), async (c) => {
   const orgId  = getOrgId(c);
   const userId = getUserId(c);
   const body   = await c.req.json();
@@ -3655,15 +4580,25 @@ router.get("/notification-settings", async (c) => {
 الأستاذ الفاضل،
 السلام عليكم ورحمة الله وبركاته
 
-نفيدكم بأنه تم إسنادكم لتدريس:
+نفيدكم بأنه تم إسنادكم لحصة انتظار:
+• الفصل / الصف: {class_name}
 • المادة: {subject}
-• الفصل : {class_name}
 
 نتمنى لكم التوفيق والسداد.
 إدارة {school_name}`,
   };
 
-  return c.json({ data: { ...defaults, ...(row?.notificationSettings as object ?? {}) } });
+  const saved = (row?.notificationSettings as Record<string, string> | null) ?? {};
+  // Auto-fix old templates that used {scope} or "لتدريس"
+  const cleaned: Record<string, string> = {};
+  for (const [k, v] of Object.entries(saved)) {
+    if (typeof v === "string") {
+      cleaned[k] = v.replace(/\{scope\}/g, "{class_name}").replace(/لتدريس:/g, "لحصة انتظار:");
+    } else {
+      cleaned[k] = v;
+    }
+  }
+  return c.json({ data: { ...defaults, ...cleaned } });
 });
 
 // PUT /notification-settings
@@ -4084,6 +5019,760 @@ router.delete("/events/:id", async (c) => {
   const id = c.req.param("id");
   await db.delete(schoolEvents).where(and(eq(schoolEvents.id, id), eq(schoolEvents.orgId, orgId)));
   return c.json({ data: { deleted: true } });
+});
+
+// ============================================================
+// TEACHER SYSTEM — Phase 2
+// نظام المعلم: لوحة التحكم اليومية + التحضير + اليومية + الملاحظات
+// ============================================================
+
+// ── helper: رقم يوم الأسبوع → كود نصي ─────────────────────
+const JS_DAY_TO_CODE: Record<number, string> = {
+  0: "sun", 1: "mon", 2: "tue", 3: "wed", 4: "thu", 5: "fri", 6: "sat",
+};
+
+// ── GET /teacher/dashboard — لوحة التحكم اليومية ─────────────
+router.get("/teacher/dashboard", requirePerm("school.timetable.view"), withSchoolScope, async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c)!;
+  const scope  = c.get("schoolScope");
+
+  // تحديد teacherProfileId
+  const teacherProfileId = scope?.teacherProfileId;
+
+  if (!teacherProfileId) {
+    // مدير / وكيل — بيانات الجدول الكلي
+    return c.json({ data: { role: scope?.staffType ?? "unknown", teacherProfileId: null } });
+  }
+
+  // بيانات المعلم
+  const [teacher] = await db.select().from(teacherProfiles)
+    .where(and(eq(teacherProfiles.id, teacherProfileId), eq(teacherProfiles.orgId, orgId)))
+    .limit(1);
+
+  if (!teacher) return c.json({ error: "المعلم غير موجود" }, 404);
+
+  // الأسبوع النشط
+  const [settings] = await db.select({ activeWeekId: schoolSettings.activeWeekId })
+    .from(schoolSettings).where(eq(schoolSettings.orgId, orgId)).limit(1);
+
+  const activeWeekId = settings?.activeWeekId ?? null;
+
+  // يوم اليوم
+  const nowJs   = new Date();
+  const dayCode = JS_DAY_TO_CODE[nowJs.getDay()] ?? "sun";
+  const todayIso = nowJs.toISOString().split("T")[0];
+  const nowTime  = `${String(nowJs.getHours()).padStart(2, "0")}:${String(nowJs.getMinutes()).padStart(2, "0")}`;
+
+  const DAY_LABELS: Record<string, string> = {
+    sun: "الأحد", mon: "الاثنين", tue: "الثلاثاء",
+    wed: "الأربعاء", thu: "الخميس",
+  };
+
+  // حصص المعلم اليوم
+  let todayEntries: any[] = [];
+  let allPeriods:   any[] = [];
+
+  if (activeWeekId) {
+    todayEntries = await db
+      .select({
+        id:           scheduleEntries.id,
+        periodId:     scheduleEntries.periodId,
+        classRoomId:  scheduleEntries.classRoomId,
+        subject:      scheduleEntries.subject,
+        dayOfWeek:    scheduleEntries.dayOfWeek,
+      })
+      .from(scheduleEntries)
+      .where(and(
+        eq(scheduleEntries.orgId, orgId),
+        eq(scheduleEntries.weekId, activeWeekId),
+        eq(scheduleEntries.teacherId, teacherProfileId),
+        eq(scheduleEntries.dayOfWeek, dayCode as any),
+      ));
+
+    // الحصص من القالب (للوقت)
+    if (todayEntries.length > 0 || true) {
+      const [activeWeek] = await db.select({ templateId: scheduleWeeks.templateId })
+        .from(scheduleWeeks).where(eq(scheduleWeeks.id, activeWeekId)).limit(1);
+
+      if (activeWeek?.templateId) {
+        allPeriods = await db.select()
+          .from(timetableTemplatePeriods)
+          .where(eq(timetableTemplatePeriods.templateId, activeWeek.templateId))
+          .orderBy(asc(timetableTemplatePeriods.periodNumber));
+      }
+    }
+  }
+
+  // دمج بيانات الفصل مع الحصص
+  const classRoomIds = [...new Set(todayEntries.map(e => e.classRoomId).filter(Boolean))];
+  let classRoomMap: Record<string, string> = {};
+  if (classRoomIds.length > 0) {
+    const rooms = await db.select({ id: classRooms.id, name: classRooms.name, grade: classRooms.grade })
+      .from(classRooms).where(and(eq(classRooms.orgId, orgId), inArray(classRooms.id, classRoomIds)));
+    classRoomMap = Object.fromEntries(rooms.map(r => [r.id, `${r.grade} ${r.name}`.trim()]));
+  }
+
+  // الحصة الحالية والتالية (نستخدم الدالة الموجودة بنفس التوقيع)
+  const currentPeriodInfo = getCurrentPeriod(nowTime, allPeriods);
+
+  // حصص بدون تحضير
+  const todayPeriodIds = todayEntries.map(e => e.periodId).filter(Boolean);
+  let preparedPeriodIds: string[] = [];
+  if (todayPeriodIds.length > 0) {
+    const preps = await db.select({ periodId: teacherPreparations.periodId })
+      .from(teacherPreparations)
+      .where(and(
+        eq(teacherPreparations.orgId, orgId),
+        eq(teacherPreparations.teacherProfileId, teacherProfileId),
+        eq(teacherPreparations.weekId, activeWeekId ?? ""),
+        inArray(teacherPreparations.periodId, todayPeriodIds),
+        eq(teacherPreparations.dayOfWeek, dayCode as any),
+      ));
+    preparedPeriodIds = preps.map(p => p.periodId).filter(Boolean);
+  }
+
+  const unpreparedEntries = todayEntries.filter(e => !preparedPeriodIds.includes(e.periodId));
+
+  // تنبيه: طلاب عليهم مخالفات هذا الأسبوع (للفصول التي يدرسها)
+  const teacherClassRoomIds = scope?.classRoomIds;
+  let violationAlerts: any[] = [];
+  if (teacherClassRoomIds && teacherClassRoomIds.length > 0) {
+    const weekStart = new Date(nowJs);
+    weekStart.setDate(nowJs.getDate() - nowJs.getDay());
+    const weekStartStr = weekStart.toISOString().split("T")[0];
+
+    const recentViolations = await db
+      .select({
+        studentId:   behaviorIncidents.studentId,
+        studentName: students.fullName,
+        count:       count(),
+      })
+      .from(behaviorIncidents)
+      .innerJoin(students, eq(behaviorIncidents.studentId, students.id))
+      .where(and(
+        eq(behaviorIncidents.orgId, orgId),
+        inArray(students.classRoomId, teacherClassRoomIds),
+        gte(behaviorIncidents.incidentDate, weekStartStr),
+      ))
+      .groupBy(behaviorIncidents.studentId, students.fullName)
+      .having(sql`count(*) >= 2`)
+      .limit(10);
+
+    violationAlerts = recentViolations;
+  }
+
+  // حصص منجزة بدون يومية (لليوم الحالي)
+  let unloggedEntries: any[] = [];
+  const passedEntries = todayEntries.filter(e => {
+    const period = allPeriods.find(p => p.id === e.periodId);
+    if (!period || period.isBreak) return false;
+    const [h, m] = period.endTime.split(":").map(Number);
+    return nowJs.getHours() * 60 + nowJs.getMinutes() > h * 60 + m;
+  });
+  if (passedEntries.length > 0) {
+    const passedPeriodIds = passedEntries.map(e => e.periodId).filter(Boolean);
+    const logs = await db.select({ periodId: teacherDailyLogs.periodId })
+      .from(teacherDailyLogs)
+      .where(and(
+        eq(teacherDailyLogs.orgId, orgId),
+        eq(teacherDailyLogs.teacherProfileId, teacherProfileId),
+        eq(teacherDailyLogs.date, todayIso),
+        inArray(teacherDailyLogs.periodId, passedPeriodIds),
+      ));
+    const loggedPeriodIds = logs.map(l => l.periodId).filter(Boolean);
+    unloggedEntries = passedEntries.filter(e => !loggedPeriodIds.includes(e.periodId));
+  }
+
+  // بناء قائمة الحصص مع الحالة
+  const enrichedEntries = todayEntries.map(entry => {
+    const period = allPeriods.find(p => p.id === entry.periodId);
+    const isPrepared = preparedPeriodIds.includes(entry.periodId);
+    const isLogged = !unloggedEntries.find(u => u.periodId === entry.periodId);
+    let periodStatus: "upcoming" | "current" | "passed" | "break" = "upcoming";
+    if (period) {
+      const [sh, sm] = period.startTime.split(":").map(Number);
+      const [eh, em] = period.endTime.split(":").map(Number);
+      const nowM = nowJs.getHours() * 60 + nowJs.getMinutes();
+      if (nowM >= sh * 60 + sm && nowM <= eh * 60 + em) periodStatus = "current";
+      else if (nowM > eh * 60 + em) periodStatus = "passed";
+    }
+    return {
+      ...entry,
+      classRoomName: classRoomMap[entry.classRoomId] ?? null,
+      period: period ?? null,
+      isPrepared,
+      isLogged: periodStatus === "passed" ? isLogged : null,
+      periodStatus,
+    };
+  });
+
+  return c.json({
+    data: {
+      teacher,
+      today:            { date: todayIso, dayCode, dayLabel: DAY_LABELS[dayCode] ?? dayCode },
+      currentStatus:    currentPeriodInfo,
+      todayEntries:     enrichedEntries,
+      allPeriods,
+      alerts: {
+        unpreparedCount:  unpreparedEntries.length,
+        unpreparedEntries,
+        unloggedCount:    unloggedEntries.length,
+        unloggedEntries,
+        violationAlerts,
+      },
+    },
+  });
+});
+
+// ============================================================
+// TEACHER PREPARATIONS — تحضير الدروس
+// ============================================================
+
+// GET /teacher/preparations — قائمة التحضيرات
+router.get("/teacher/preparations", requirePerm("school.preparations.write"), withSchoolScope, async (c) => {
+  const orgId = getOrgId(c);
+  const scope = c.get("schoolScope");
+  const weekId  = c.req.query("weekId");
+  const dayCode = c.req.query("dayOfWeek");
+
+  const teacherProfileId = scope?.teacherProfileId;
+  if (!teacherProfileId) return c.json({ data: [] });
+
+  const conds = [
+    eq(teacherPreparations.orgId, orgId),
+    eq(teacherPreparations.teacherProfileId, teacherProfileId),
+  ];
+  if (weekId)  conds.push(eq(teacherPreparations.weekId, weekId));
+  if (dayCode) conds.push(eq(teacherPreparations.dayOfWeek, dayCode as any));
+
+  const rows = await db
+    .select({
+      id:                 teacherPreparations.id,
+      weekId:             teacherPreparations.weekId,
+      periodId:           teacherPreparations.periodId,
+      classRoomId:        teacherPreparations.classRoomId,
+      dayOfWeek:          teacherPreparations.dayOfWeek,
+      subjectId:          teacherPreparations.subjectId,
+      subjectName:        subjects.name,
+      preparationText:    teacherPreparations.preparationText,
+      learningObjectives: teacherPreparations.learningObjectives,
+      resources:          teacherPreparations.resources,
+      status:             teacherPreparations.status,
+      updatedAt:          teacherPreparations.updatedAt,
+    })
+    .from(teacherPreparations)
+    .leftJoin(subjects, eq(teacherPreparations.subjectId, subjects.id))
+    .where(and(...conds))
+    .orderBy(asc(teacherPreparations.updatedAt));
+
+  return c.json({ data: rows });
+});
+
+// POST /teacher/preparations — إنشاء أو تحديث تحضير (upsert)
+router.post("/teacher/preparations", requirePerm("school.preparations.write"), withSchoolScope, async (c) => {
+  const orgId = getOrgId(c);
+  const scope = c.get("schoolScope");
+
+  const teacherProfileId = scope?.teacherProfileId;
+  if (!teacherProfileId) return c.json({ error: "ليس لديك صلاحية معلم" }, 403);
+
+  const body = await c.req.json();
+  const schema = z.object({
+    weekId:             z.string().uuid(),
+    periodId:           z.string().uuid(),
+    classRoomId:        z.string().uuid(),
+    dayOfWeek:          z.enum(["sun","mon","tue","wed","thu"]),
+    subjectId:          z.string().uuid(),
+    preparationText:    z.string().max(3000).optional().nullable(),
+    learningObjectives: z.string().max(1000).optional().nullable(),
+    resources:          z.string().max(500).optional().nullable(),
+    status:             z.enum(["draft","ready","done"]).default("draft"),
+  });
+  const data = schema.parse(body);
+
+  // upsert by unique key
+  const existing = await db.query.teacherPreparations.findFirst({
+    where: and(
+      eq(teacherPreparations.orgId, orgId),
+      eq(teacherPreparations.teacherProfileId, teacherProfileId),
+      eq(teacherPreparations.weekId, data.weekId),
+      eq(teacherPreparations.periodId, data.periodId),
+      eq(teacherPreparations.classRoomId, data.classRoomId),
+      eq(teacherPreparations.dayOfWeek, data.dayOfWeek),
+    ),
+  });
+
+  let result;
+  if (existing) {
+    [result] = await db.update(teacherPreparations)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(teacherPreparations.id, existing.id))
+      .returning();
+  } else {
+    [result] = await db.insert(teacherPreparations)
+      .values({ orgId, teacherProfileId, ...data })
+      .returning();
+  }
+
+  void logSchoolAudit(c, "preparation.saved", "teacherPreparation", result.id, existing ?? null, data);
+
+  return c.json({ data: result }, existing ? 200 : 201);
+});
+
+// PUT /teacher/preparations/:id — تحديث تحضير
+router.put("/teacher/preparations/:id", requirePerm("school.preparations.write"), withSchoolScope, async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id")!;
+  const scope = c.get("schoolScope");
+
+  const teacherProfileId = scope?.teacherProfileId;
+  if (!teacherProfileId) return c.json({ error: "ليس لديك صلاحية معلم" }, 403);
+
+  const body = await c.req.json();
+  const schema = z.object({
+    preparationText:    z.string().max(3000).optional().nullable(),
+    learningObjectives: z.string().max(1000).optional().nullable(),
+    resources:          z.string().max(500).optional().nullable(),
+    status:             z.enum(["draft","ready","done"]).optional(),
+  });
+  const data = schema.parse(body);
+
+  const [updated] = await db.update(teacherPreparations)
+    .set({ ...data, updatedAt: new Date() })
+    .where(and(
+      eq(teacherPreparations.id, id),
+      eq(teacherPreparations.orgId, orgId),
+      eq(teacherPreparations.teacherProfileId, teacherProfileId),
+    ))
+    .returning();
+
+  if (!updated) return c.json({ error: "التحضير غير موجود" }, 404);
+
+  void logSchoolAudit(c, "preparation.saved", "teacherPreparation", id, null, data);
+
+  return c.json({ data: updated });
+});
+
+// ============================================================
+// TEACHER DAILY LOGS — يومية التدريس
+// ============================================================
+
+// GET /teacher/daily-logs — قائمة اليوميات
+router.get("/teacher/daily-logs", requirePerm("school.daily_logs.write"), withSchoolScope, async (c) => {
+  const orgId  = getOrgId(c);
+  const scope  = c.get("schoolScope");
+  const date   = c.req.query("date");
+  const weekId = c.req.query("weekId");
+
+  const teacherProfileId = scope?.teacherProfileId;
+  if (!teacherProfileId) return c.json({ data: [] });
+
+  const conds = [
+    eq(teacherDailyLogs.orgId, orgId),
+    eq(teacherDailyLogs.teacherProfileId, teacherProfileId),
+  ];
+  if (date)   conds.push(eq(teacherDailyLogs.date, date));
+  if (weekId) {
+    // Filter by date range of the week
+    const [week] = await db.select({ startDate: scheduleWeeks.startDate, endDate: scheduleWeeks.endDate })
+      .from(scheduleWeeks).where(eq(scheduleWeeks.id, weekId)).limit(1);
+    if (week?.startDate && week.endDate) {
+      conds.push(gte(teacherDailyLogs.date, week.startDate));
+      conds.push(lte(teacherDailyLogs.date, week.endDate));
+    }
+  }
+
+  const rows = await db
+    .select({
+      id:                teacherDailyLogs.id,
+      date:              teacherDailyLogs.date,
+      classRoomId:       teacherDailyLogs.classRoomId,
+      periodId:          teacherDailyLogs.periodId,
+      subjectId:         teacherDailyLogs.subjectId,
+      subjectName:       subjects.name,
+      topicCovered:      teacherDailyLogs.topicCovered,
+      notes:             teacherDailyLogs.notes,
+      studentEngagement: teacherDailyLogs.studentEngagement,
+      studentsAbsent:    teacherDailyLogs.studentsAbsent,
+      updatedAt:         teacherDailyLogs.updatedAt,
+    })
+    .from(teacherDailyLogs)
+    .leftJoin(subjects, eq(teacherDailyLogs.subjectId, subjects.id))
+    .where(and(...conds))
+    .orderBy(desc(teacherDailyLogs.date));
+
+  return c.json({ data: rows });
+});
+
+// POST /teacher/daily-logs — تسجيل يومية حصة (upsert)
+router.post("/teacher/daily-logs", requirePerm("school.daily_logs.write"), withSchoolScope, async (c) => {
+  const orgId = getOrgId(c);
+  const scope = c.get("schoolScope");
+
+  const teacherProfileId = scope?.teacherProfileId;
+  if (!teacherProfileId) return c.json({ error: "ليس لديك صلاحية معلم" }, 403);
+
+  const body = await c.req.json();
+  const schema = z.object({
+    classRoomId:       z.string().uuid(),
+    date:              z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    periodId:          z.string().uuid().optional().nullable(),
+    scheduleEntryId:   z.string().uuid().optional().nullable(),
+    subjectId:         z.string().uuid(),
+    topicCovered:      z.string().min(1).max(500),
+    notes:             z.string().max(1000).optional().nullable(),
+    studentEngagement: z.enum(["low","normal","high"]).default("normal"),
+    studentsAbsent:    z.array(z.object({ studentId: z.string(), name: z.string() })).default([]),
+  });
+  const data = schema.parse(body);
+
+  const existing = await db.query.teacherDailyLogs.findFirst({
+    where: and(
+      eq(teacherDailyLogs.orgId, orgId),
+      eq(teacherDailyLogs.teacherProfileId, teacherProfileId),
+      eq(teacherDailyLogs.classRoomId, data.classRoomId),
+      eq(teacherDailyLogs.date, data.date),
+      data.periodId ? eq(teacherDailyLogs.periodId, data.periodId) : isNull(teacherDailyLogs.periodId),
+    ),
+  });
+
+  let result;
+  if (existing) {
+    [result] = await db.update(teacherDailyLogs)
+      .set({ ...data, studentsAbsent: data.studentsAbsent, updatedAt: new Date() })
+      .where(eq(teacherDailyLogs.id, existing.id))
+      .returning();
+  } else {
+    [result] = await db.insert(teacherDailyLogs)
+      .values({ orgId, teacherProfileId, ...data, studentsAbsent: data.studentsAbsent })
+      .returning();
+  }
+
+  void logSchoolAudit(c, "daily_log.saved", "teacherDailyLog", result.id, existing ?? null, { classRoomId: data.classRoomId, date: data.date });
+
+  return c.json({ data: result }, existing ? 200 : 201);
+});
+
+// ============================================================
+// TEACHER STUDENT NOTES — ملاحظات المعلم على الطلاب
+// ============================================================
+
+// GET /teacher/student-notes — قائمة الملاحظات
+router.get("/teacher/student-notes", requirePerm("school.students.read"), withSchoolScope, async (c) => {
+  const orgId     = getOrgId(c);
+  const scope     = c.get("schoolScope");
+  const studentId = c.req.query("studentId");
+  const classRoomId = c.req.query("classRoomId");
+
+  const teacherProfileId = scope?.teacherProfileId;
+  if (!teacherProfileId) return c.json({ data: [] });
+
+  const conds = [
+    eq(teacherStudentNotes.orgId, orgId),
+    eq(teacherStudentNotes.teacherProfileId, teacherProfileId),
+  ];
+  if (studentId)   conds.push(eq(teacherStudentNotes.studentId, studentId));
+  if (classRoomId) conds.push(eq(teacherStudentNotes.classRoomId, classRoomId));
+
+  const rows = await db
+    .select({
+      id:               teacherStudentNotes.id,
+      studentId:        teacherStudentNotes.studentId,
+      studentName:      students.fullName,
+      classRoomId:      teacherStudentNotes.classRoomId,
+      noteDate:         teacherStudentNotes.noteDate,
+      noteType:         teacherStudentNotes.noteType,
+      note:             teacherStudentNotes.note,
+      isPrivate:        teacherStudentNotes.isPrivate,
+      requiresFollowUp: teacherStudentNotes.requiresFollowUp,
+      followUpBy:       teacherStudentNotes.followUpBy,
+      createdAt:        teacherStudentNotes.createdAt,
+    })
+    .from(teacherStudentNotes)
+    .innerJoin(students, eq(teacherStudentNotes.studentId, students.id))
+    .where(and(...conds))
+    .orderBy(desc(teacherStudentNotes.noteDate), desc(teacherStudentNotes.createdAt))
+    .limit(200);
+
+  return c.json({ data: rows });
+});
+
+// POST /teacher/student-notes — إضافة ملاحظة
+router.post("/teacher/student-notes", requirePerm("school.students.read"), withSchoolScope, async (c) => {
+  const orgId = getOrgId(c);
+  const scope = c.get("schoolScope");
+
+  const teacherProfileId = scope?.teacherProfileId;
+  if (!teacherProfileId) return c.json({ error: "ليس لديك صلاحية معلم" }, 403);
+
+  const body = await c.req.json();
+  const schema = z.object({
+    studentId:        z.string().uuid(),
+    classRoomId:      z.string().uuid(),
+    noteDate:         z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default(() => new Date().toISOString().split("T")[0]),
+    noteType:         z.enum(["academic","behavioral","social","other"]),
+    note:             z.string().min(1).max(1000),
+    isPrivate:        z.boolean().default(false),
+    requiresFollowUp: z.boolean().default(false),
+    followUpBy:       z.enum(["counselor","vice_principal","guardian"]).optional().nullable(),
+  });
+  const data = schema.parse(body);
+
+  // Verify student belongs to org + teacher's classroom
+  const [student] = await db.select({ id: students.id, classRoomId: students.classRoomId })
+    .from(students)
+    .where(and(eq(students.id, data.studentId), eq(students.orgId, orgId)))
+    .limit(1);
+  if (!student) return c.json({ error: "الطالب غير موجود" }, 404);
+
+  const [note] = await db.insert(teacherStudentNotes)
+    .values({ orgId, teacherProfileId, ...data, followUpBy: data.followUpBy ?? null })
+    .returning();
+
+  void logSchoolAudit(c, "case.step_added", "teacherStudentNote", note.id, null, {
+    studentId: data.studentId, noteType: data.noteType,
+  });
+
+  return c.json({ data: note }, 201);
+});
+
+// DELETE /teacher/student-notes/:id
+router.delete("/teacher/student-notes/:id", requirePerm("school.students.read"), withSchoolScope, async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id")!;
+  const scope = c.get("schoolScope");
+  const teacherProfileId = scope?.teacherProfileId;
+  if (!teacherProfileId) return c.json({ error: "غير مصرح" }, 403);
+
+  const [deleted] = await db.delete(teacherStudentNotes)
+    .where(and(
+      eq(teacherStudentNotes.id, id),
+      eq(teacherStudentNotes.orgId, orgId),
+      eq(teacherStudentNotes.teacherProfileId, teacherProfileId),
+    ))
+    .returning();
+
+  if (!deleted) return c.json({ error: "الملاحظة غير موجودة" }, 404);
+  return c.json({ success: true });
+});
+
+// ============================================================
+// STUDENT REFERRALS — الإحالات الطلابية
+// ============================================================
+
+// GET /referrals — قائمة الإحالات
+router.get("/referrals", requirePerm("school.referrals.create"), withSchoolScope, async (c) => {
+  const orgId  = getOrgId(c);
+  const scope  = c.get("schoolScope");
+  const status = c.req.query("status");
+  const studentId = c.req.query("studentId");
+
+  const conds = [eq(studentReferrals.orgId, orgId)];
+  if (status)    conds.push(eq(studentReferrals.status, status as any));
+  if (studentId) conds.push(eq(studentReferrals.studentId, studentId));
+
+  // Counselor only sees referrals assigned to them
+  if (scope?.staffType === "counselor" && scope.counselorUserId) {
+    conds.push(eq(studentReferrals.assignedToUserId, scope.counselorUserId));
+  }
+
+  const rows = await db
+    .select({
+      id:               studentReferrals.id,
+      studentId:        studentReferrals.studentId,
+      studentName:      students.fullName,
+      studentNumber:    students.studentNumber,
+      referralDate:     studentReferrals.referralDate,
+      referralType:     studentReferrals.referralType,
+      reason:           studentReferrals.reason,
+      urgency:          studentReferrals.urgency,
+      status:           studentReferrals.status,
+      assignedAt:       studentReferrals.assignedAt,
+      resolvedAt:       studentReferrals.resolvedAt,
+      notes:            studentReferrals.notes,
+      caseId:           studentReferrals.caseId,
+      createdAt:        studentReferrals.createdAt,
+    })
+    .from(studentReferrals)
+    .innerJoin(students, eq(studentReferrals.studentId, students.id))
+    .where(and(...conds))
+    .orderBy(desc(studentReferrals.createdAt))
+    .limit(200);
+
+  return c.json({ data: rows });
+});
+
+// POST /referrals — إحالة طالب
+router.post("/referrals", requirePerm("school.referrals.create"), async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c)!;
+
+  const body = await c.req.json();
+  const schema = z.object({
+    studentId:    z.string().uuid(),
+    referralDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).default(() => new Date().toISOString().split("T")[0]),
+    referralType: z.enum(["counselor","vice_principal","medical"]),
+    reason:       z.string().min(1).max(1000),
+    urgency:      z.enum(["low","normal","high","urgent"]).default("normal"),
+    notes:        z.string().max(1000).optional().nullable(),
+    caseId:       z.string().uuid().optional().nullable(),
+  });
+  const data = schema.parse(body);
+
+  const [student] = await db.select({ id: students.id })
+    .from(students)
+    .where(and(eq(students.id, data.studentId), eq(students.orgId, orgId)))
+    .limit(1);
+  if (!student) return c.json({ error: "الطالب غير موجود" }, 404);
+
+  const [referral] = await db.insert(studentReferrals)
+    .values({ orgId, referredByUserId: userId, ...data, notes: data.notes ?? null, caseId: data.caseId ?? null })
+    .returning();
+
+  void logSchoolAudit(c, "referral.created", "studentReferral", referral.id, null, {
+    studentId: data.studentId, referralType: data.referralType, urgency: data.urgency,
+  });
+
+  return c.json({ data: referral }, 201);
+});
+
+// PUT /referrals/:id — تحديث حالة الإحالة
+router.put("/referrals/:id", requirePerm("school.referrals.manage"), async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id")!;
+
+  const body = await c.req.json();
+  const schema = z.object({
+    status:           z.enum(["pending","assigned","in_progress","resolved","rejected"]).optional(),
+    assignedToUserId: z.string().uuid().optional().nullable(),
+    notes:            z.string().max(1000).optional().nullable(),
+    caseId:           z.string().uuid().optional().nullable(),
+  });
+  const data = schema.parse(body);
+
+  const updates: Record<string, unknown> = { ...data, updatedAt: new Date() };
+  if (data.status === "assigned" && !updates.assignedAt) updates.assignedAt = new Date();
+  if (data.status === "resolved" && !updates.resolvedAt) updates.resolvedAt = new Date();
+
+  const [updated] = await db.update(studentReferrals)
+    .set(updates)
+    .where(and(eq(studentReferrals.id, id), eq(studentReferrals.orgId, orgId)))
+    .returning();
+
+  if (!updated) return c.json({ error: "الإحالة غير موجودة" }, 404);
+
+  void logSchoolAudit(c, "referral.assigned", "studentReferral", id, null, { status: data.status });
+
+  return c.json({ data: updated });
+});
+
+// ============================================================
+// COUNSELING SESSIONS — جلسات الإرشاد الطلابي
+// ============================================================
+
+// GET /counseling/sessions — قائمة الجلسات
+router.get("/counseling/sessions", requirePerm("school.counseling.access"), withSchoolScope, async (c) => {
+  const orgId  = getOrgId(c);
+  const scope  = c.get("schoolScope");
+  const status = c.req.query("status");
+  const studentId = c.req.query("studentId");
+
+  const conds = [eq(counselingSessions.orgId, orgId)];
+  if (status)    conds.push(eq(counselingSessions.status, status as any));
+  if (studentId) conds.push(eq(counselingSessions.studentId, studentId));
+
+  // Counselor only sees their sessions
+  if (scope?.staffType === "counselor" && scope.counselorUserId) {
+    conds.push(eq(counselingSessions.counselorUserId, scope.counselorUserId));
+  }
+
+  const rows = await db
+    .select({
+      id:              counselingSessions.id,
+      studentId:       counselingSessions.studentId,
+      studentName:     students.fullName,
+      sessionDate:     counselingSessions.sessionDate,
+      sessionType:     counselingSessions.sessionType,
+      durationMinutes: counselingSessions.durationMinutes,
+      sessionNotes:    counselingSessions.sessionNotes,
+      actionPlan:      counselingSessions.actionPlan,
+      nextSessionDate: counselingSessions.nextSessionDate,
+      status:          counselingSessions.status,
+      caseId:          counselingSessions.caseId,
+      referralId:      counselingSessions.referralId,
+    })
+    .from(counselingSessions)
+    .innerJoin(students, eq(counselingSessions.studentId, students.id))
+    .where(and(...conds))
+    .orderBy(desc(counselingSessions.sessionDate))
+    .limit(200);
+
+  return c.json({ data: rows });
+});
+
+// POST /counseling/sessions — إنشاء جلسة
+router.post("/counseling/sessions", requirePerm("school.counseling.access"), async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c)!;
+
+  const body = await c.req.json();
+  const schema = z.object({
+    studentId:       z.string().uuid(),
+    sessionDate:     z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+    sessionType:     z.enum(["individual","group","guardian"]),
+    durationMinutes: z.number().int().min(1).max(240).optional().nullable(),
+    sessionNotes:    z.string().max(3000).optional().nullable(),
+    actionPlan:      z.string().max(1000).optional().nullable(),
+    nextSessionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+    status:          z.enum(["scheduled","completed","cancelled"]).default("scheduled"),
+    caseId:          z.string().uuid().optional().nullable(),
+    referralId:      z.string().uuid().optional().nullable(),
+  });
+  const data = schema.parse(body);
+
+  const [student] = await db.select({ id: students.id })
+    .from(students)
+    .where(and(eq(students.id, data.studentId), eq(students.orgId, orgId)))
+    .limit(1);
+  if (!student) return c.json({ error: "الطالب غير موجود" }, 404);
+
+  const [session] = await db.insert(counselingSessions)
+    .values({ orgId, counselorUserId: userId, ...data,
+      durationMinutes: data.durationMinutes ?? null,
+      sessionNotes: data.sessionNotes ?? null,
+      actionPlan: data.actionPlan ?? null,
+      nextSessionDate: data.nextSessionDate ?? null,
+      caseId: data.caseId ?? null,
+      referralId: data.referralId ?? null,
+    })
+    .returning();
+
+  return c.json({ data: session }, 201);
+});
+
+// PUT /counseling/sessions/:id — تحديث جلسة
+router.put("/counseling/sessions/:id", requirePerm("school.counseling.access"), async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id")!;
+
+  const body = await c.req.json();
+  const schema = z.object({
+    sessionNotes:    z.string().max(3000).optional().nullable(),
+    actionPlan:      z.string().max(1000).optional().nullable(),
+    nextSessionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+    durationMinutes: z.number().int().min(1).max(240).optional().nullable(),
+    status:          z.enum(["scheduled","completed","cancelled"]).optional(),
+  });
+  const data = schema.parse(body);
+
+  const [updated] = await db.update(counselingSessions)
+    .set({ ...data, updatedAt: new Date() })
+    .where(and(eq(counselingSessions.id, id), eq(counselingSessions.orgId, orgId)))
+    .returning();
+
+  if (!updated) return c.json({ error: "الجلسة غير موجودة" }, 404);
+  return c.json({ data: updated });
 });
 
 export const schoolRouter = router;

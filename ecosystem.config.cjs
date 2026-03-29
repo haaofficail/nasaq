@@ -38,9 +38,9 @@ module.exports = {
       script: "./packages/api/src/index.ts",
       interpreter: "node",
       interpreter_args: "--import ./packages/api/node_modules/tsx/dist/esm/index.cjs",
-      exec_mode: "cluster",
-      instances: "max",           // استخدم كل الـ cores المتاحة
-      max_memory_restart: "512M", // restart عند تجاوز 512MB لكل instance
+      exec_mode: "fork",
+      instances: 1,               // fork مطلوب لـ Baileys (singleton WhatsApp session per org)
+      max_memory_restart: "768M", // أكثر بسبب Baileys sessions في الذاكرة
       env: {
         NODE_ENV: "production",
         PORT: 3000,

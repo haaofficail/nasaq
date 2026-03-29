@@ -7,6 +7,7 @@ import { clsx } from "clsx";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
 import { Modal } from "@/components/ui";
+import { PageFAQ } from "@/components/school/PageFAQ";
 
 // Saudi education system — 3 stages, 12 grades
 const GRADE_GROUPS = [
@@ -481,6 +482,8 @@ export function SchoolClassesPage() {
           deleting={deleting}
         />
       )}
+
+      <PageFAQ pageId="classes" />
 
       {/* Add/Edit Modal */}
       <Modal

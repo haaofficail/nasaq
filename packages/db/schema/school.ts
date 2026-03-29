@@ -13,6 +13,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { organizations } from "./organizations";
+import { users } from "./auth";
 
 // ============================================================
 // ENUMS
@@ -78,6 +79,14 @@ export const schoolSettings = pgTable(
 
     // الأسبوع النشط — بدون FK constraint لتجنب الدائرية مع scheduleWeeks
     activeWeekId:    uuid("active_week_id"),
+
+    // توقيت الدوام — مرن حسب المنطقة والفصل
+    sessionStartTime:      text("session_start_time").default("07:30"),
+    sessionEndTime:        text("session_end_time").default("14:30"),
+    periodDurationMinutes: integer("period_duration_minutes").default(45),
+    breakDurationMinutes:  integer("break_duration_minutes").default(30),
+    numberOfPeriods:       integer("number_of_periods").default(7),
+    sessionType:           text("session_type").default("winter"),   // 'winter' | 'summer'
 
     // إعدادات الإشعارات (JSONB)
     notificationSettings: jsonb("notification_settings").notNull().default({}),
@@ -250,7 +259,8 @@ export const scheduleWeeks = pgTable(
     id:         uuid("id").defaultRandom().primaryKey(),
     orgId:      uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
 
-    templateId: uuid("template_id").notNull().references(() => timetableTemplates.id, { onDelete: "cascade" }),
+    templateId:  uuid("template_id").references(() => timetableTemplates.id, { onDelete: "set null" }),
+    semesterId:  uuid("semester_id").references(() => schoolSemesters.id, { onDelete: "set null" }),
 
     weekNumber: integer("week_number").notNull(),
     label:      text("label"),          // "الأسبوع الأول" أو "1-5 مارس 2026"
@@ -817,5 +827,321 @@ export const schoolEvents = pgTable(
     index("school_events_org_idx").on(t.orgId),
     index("school_events_semester_idx").on(t.orgId, t.semesterId),
     index("school_events_date_idx").on(t.orgId, t.startDate),
+  ]
+);
+
+// ============================================================
+// school_standby_activations — تفعيل حصص الانتظار
+// يُسجَّل عند تكليف معلم لتغطية فصل في حال غياب المعلم الأصلي
+// ============================================================
+
+export const schoolStandbyActivations = pgTable(
+  "school_standby_activations",
+  {
+    id:               uuid("id").defaultRandom().primaryKey(),
+    orgId:            uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+
+    activationDate:   date("activation_date").notNull(),          // تاريخ الحصة
+
+    absentTeacherId:  uuid("absent_teacher_id").references(() => teacherProfiles.id, { onDelete: "set null" }),
+    standbyTeacherId: uuid("standby_teacher_id").notNull().references(() => teacherProfiles.id, { onDelete: "cascade" }),
+
+    classRoomId:      uuid("class_room_id").references(() => classRooms.id, { onDelete: "set null" }),
+    subject:          text("subject").notNull(),
+
+    periodLabel:      text("period_label"),                       // "الحصة الأولى"
+    startTime:        text("start_time"),                         // "08:00"
+    endTime:          text("end_time"),                           // "08:45"
+
+    notes:            text("notes"),
+    notified:         boolean("notified").notNull().default(false),
+
+    createdAt:        timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("standby_activations_org_date_idx").on(t.orgId, t.activationDate),
+    index("standby_activations_absent_idx").on(t.orgId, t.absentTeacherId),
+    index("standby_activations_standby_idx").on(t.orgId, t.standbyTeacherId),
+  ]
+);
+
+// ============================================================
+// school_timetable — الجدول الدراسي الأسبوعي لكل فصل
+// ============================================================
+
+export const schoolTimetable = pgTable(
+  "school_timetable",
+  {
+    id:            uuid("id").defaultRandom().primaryKey(),
+    orgId:         uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    classRoomId:   uuid("class_room_id").notNull().references(() => classRooms.id, { onDelete: "cascade" }),
+
+    dayOfWeek:     integer("day_of_week").notNull(),    // 0=الأحد … 4=الخميس
+    periodNumber:  integer("period_number").notNull(),  // 1..15
+
+    subject:       text("subject"),
+    teacherId:     uuid("teacher_id").references(() => teacherProfiles.id, { onDelete: "set null" }),
+
+    startTime:     text("start_time"),     // "07:30"
+    endTime:       text("end_time"),       // "08:15"
+    isBreak:       boolean("is_break").notNull().default(false),
+    notes:         text("notes"),
+
+    createdAt:     timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt:     timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("school_timetable_class_idx").on(t.orgId, t.classRoomId),
+    index("school_timetable_teacher_idx").on(t.orgId, t.teacherId),
+    uniqueIndex("school_timetable_unique").on(t.orgId, t.classRoomId, t.dayOfWeek, t.periodNumber),
+  ]
+);
+
+// ============================================================
+// SCHOOL STAFF PROFILES — ربط المستخدم ببيانات الكادر المدرسي
+// الصلاحيات تبقى في RBAC (jobTitles + jobTitlePermissions)
+// هذا الجدول لربط userId بـ teacherProfileId وتحديد نوع الـ scope
+// ============================================================
+
+export const schoolStaffTypeEnum = pgEnum("school_staff_type", [
+  "principal",
+  "vice_principal",
+  "counselor",
+  "teacher",
+  "admin_staff",
+]);
+
+export const schoolStaffProfiles = pgTable(
+  "school_staff_profiles",
+  {
+    id:               uuid("id").defaultRandom().primaryKey(),
+    orgId:            uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    userId:           uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+    staffType:        schoolStaffTypeEnum("staff_type").notNull(),
+    teacherProfileId: uuid("teacher_profile_id").references(() => teacherProfiles.id, { onDelete: "set null" }),
+    isActive:         boolean("is_active").notNull().default(true),
+    createdAt:        timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt:        timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("school_staff_profiles_org_user_unique").on(t.orgId, t.userId),
+    index("school_staff_profiles_org_idx").on(t.orgId),
+    index("school_staff_profiles_teacher_idx").on(t.orgId, t.teacherProfileId),
+  ]
+);
+
+// ============================================================
+// TEACHER PREPARATIONS — تحضير الدروس
+// مرتبط بـ: scheduleWeeks + timetableTemplatePeriods + classRooms + subjects
+// ============================================================
+
+export const teacherPrepStatusEnum = pgEnum("teacher_prep_status", [
+  "draft",
+  "ready",
+  "done",
+]);
+
+export const teacherPreparations = pgTable(
+  "teacher_preparations",
+  {
+    id:                 uuid("id").defaultRandom().primaryKey(),
+    orgId:              uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    teacherProfileId:   uuid("teacher_profile_id").notNull().references(() => teacherProfiles.id, { onDelete: "cascade" }),
+    classRoomId:        uuid("class_room_id").notNull().references(() => classRooms.id, { onDelete: "cascade" }),
+    weekId:             uuid("week_id").notNull().references(() => scheduleWeeks.id, { onDelete: "cascade" }),
+    periodId:           uuid("period_id").notNull().references(() => timetableTemplatePeriods.id, { onDelete: "cascade" }),
+    dayOfWeek:          schoolDayOfWeekEnum("day_of_week").notNull(),
+    subjectId:          uuid("subject_id").notNull().references(() => subjects.id, { onDelete: "restrict" }),
+    preparationText:    text("preparation_text"),
+    learningObjectives: text("learning_objectives"),
+    resources:          text("resources"),
+    status:             teacherPrepStatusEnum("status").notNull().default("draft"),
+    createdAt:          timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt:          timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("teacher_preparations_unique").on(t.teacherProfileId, t.weekId, t.periodId, t.classRoomId, t.dayOfWeek),
+    index("teacher_preparations_teacher_idx").on(t.orgId, t.teacherProfileId),
+    index("teacher_preparations_week_idx").on(t.orgId, t.weekId),
+    index("teacher_preparations_subject_idx").on(t.orgId, t.subjectId),
+  ]
+);
+
+// ============================================================
+// TEACHER DAILY LOGS — يومية التدريس
+// مرتبط بـ: scheduleEntries + classRooms + subjects
+// ============================================================
+
+export const teacherEngagementEnum = pgEnum("teacher_engagement_level", [
+  "low",
+  "normal",
+  "high",
+]);
+
+export const teacherDailyLogs = pgTable(
+  "teacher_daily_logs",
+  {
+    id:                uuid("id").defaultRandom().primaryKey(),
+    orgId:             uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    teacherProfileId:  uuid("teacher_profile_id").notNull().references(() => teacherProfiles.id, { onDelete: "cascade" }),
+    classRoomId:       uuid("class_room_id").notNull().references(() => classRooms.id, { onDelete: "cascade" }),
+    scheduleEntryId:   uuid("schedule_entry_id").references(() => scheduleEntries.id, { onDelete: "set null" }),
+    date:              date("date").notNull(),
+    periodId:          uuid("period_id").references(() => timetableTemplatePeriods.id, { onDelete: "set null" }),
+    subjectId:         uuid("subject_id").notNull().references(() => subjects.id, { onDelete: "restrict" }),
+    topicCovered:      text("topic_covered").notNull(),
+    notes:             text("notes"),
+    studentEngagement: teacherEngagementEnum("student_engagement").notNull().default("normal"),
+    studentsAbsent:    jsonb("students_absent").notNull().default([]),  // [{studentId, name}]
+    createdAt:         timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt:         timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("teacher_daily_logs_unique").on(t.teacherProfileId, t.classRoomId, t.date, t.periodId),
+    index("teacher_daily_logs_teacher_idx").on(t.orgId, t.teacherProfileId),
+    index("teacher_daily_logs_date_idx").on(t.orgId, t.date),
+    index("teacher_daily_logs_subject_idx").on(t.orgId, t.subjectId),
+  ]
+);
+
+// ============================================================
+// TEACHER STUDENT NOTES — ملاحظات المعلم على الطلاب
+// ============================================================
+
+export const teacherNoteTypeEnum = pgEnum("teacher_note_type", [
+  "academic",
+  "behavioral",
+  "social",
+  "other",
+]);
+
+export const teacherFollowUpEnum = pgEnum("teacher_follow_up_by", [
+  "counselor",
+  "vice_principal",
+  "guardian",
+]);
+
+export const teacherStudentNotes = pgTable(
+  "teacher_student_notes",
+  {
+    id:               uuid("id").defaultRandom().primaryKey(),
+    orgId:            uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    teacherProfileId: uuid("teacher_profile_id").notNull().references(() => teacherProfiles.id, { onDelete: "cascade" }),
+    studentId:        uuid("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
+    classRoomId:      uuid("class_room_id").notNull().references(() => classRooms.id, { onDelete: "cascade" }),
+    noteDate:         date("note_date").notNull(),
+    noteType:         teacherNoteTypeEnum("note_type").notNull(),
+    note:             text("note").notNull(),
+    isPrivate:        boolean("is_private").notNull().default(false),
+    requiresFollowUp: boolean("requires_follow_up").notNull().default(false),
+    followUpBy:       teacherFollowUpEnum("follow_up_by"),
+    createdAt:        timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt:        timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("teacher_student_notes_teacher_idx").on(t.orgId, t.teacherProfileId),
+    index("teacher_student_notes_student_idx").on(t.orgId, t.studentId),
+    index("teacher_student_notes_date_idx").on(t.orgId, t.noteDate),
+    index("teacher_student_notes_follow_up_idx").on(t.orgId, t.requiresFollowUp),
+  ]
+);
+
+// ============================================================
+// STUDENT REFERRALS — إحالات الطلاب
+// workflow: pending → assigned → in_progress → resolved | rejected
+// ============================================================
+
+export const studentReferralTypeEnum = pgEnum("student_referral_type", [
+  "counselor",
+  "vice_principal",
+  "medical",
+]);
+
+export const studentReferralStatusEnum = pgEnum("student_referral_status", [
+  "pending",
+  "assigned",
+  "in_progress",
+  "resolved",
+  "rejected",
+]);
+
+export const studentReferralUrgencyEnum = pgEnum("student_referral_urgency", [
+  "low",
+  "normal",
+  "high",
+  "urgent",
+]);
+
+export const studentReferrals = pgTable(
+  "student_referrals",
+  {
+    id:               uuid("id").defaultRandom().primaryKey(),
+    orgId:            uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    studentId:        uuid("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
+    referredByUserId: uuid("referred_by_user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+    referralDate:     date("referral_date").notNull(),
+    referralType:     studentReferralTypeEnum("referral_type").notNull(),
+    reason:           text("reason").notNull(),
+    urgency:          studentReferralUrgencyEnum("urgency").notNull().default("normal"),
+    status:           studentReferralStatusEnum("status").notNull().default("pending"),
+    assignedToUserId: uuid("assigned_to_user_id").references(() => users.id, { onDelete: "set null" }),
+    assignedAt:       timestamp("assigned_at", { withTimezone: true }),
+    resolvedAt:       timestamp("resolved_at", { withTimezone: true }),
+    caseId:           uuid("case_id").references(() => schoolCases.id, { onDelete: "set null" }),
+    notes:            text("notes"),
+    createdAt:        timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt:        timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("student_referrals_org_idx").on(t.orgId, t.referralDate),
+    index("student_referrals_student_idx").on(t.orgId, t.studentId),
+    index("student_referrals_status_idx").on(t.orgId, t.status),
+    index("student_referrals_assigned_idx").on(t.orgId, t.assignedToUserId),
+    index("student_referrals_urgency_idx").on(t.orgId, t.urgency),
+  ]
+);
+
+// ============================================================
+// COUNSELING SESSIONS — جلسات الإرشاد الطلابي
+// مرتبطة بـ: schoolCases + studentReferrals
+// ============================================================
+
+export const counselingSessionTypeEnum = pgEnum("counseling_session_type", [
+  "individual",
+  "group",
+  "guardian",
+]);
+
+export const counselingSessionStatusEnum = pgEnum("counseling_session_status", [
+  "scheduled",
+  "completed",
+  "cancelled",
+]);
+
+export const counselingSessions = pgTable(
+  "counseling_sessions",
+  {
+    id:              uuid("id").defaultRandom().primaryKey(),
+    orgId:           uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    counselorUserId: uuid("counselor_user_id").notNull().references(() => users.id, { onDelete: "restrict" }),
+    studentId:       uuid("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
+    caseId:          uuid("case_id").references(() => schoolCases.id, { onDelete: "set null" }),
+    referralId:      uuid("referral_id").references(() => studentReferrals.id, { onDelete: "set null" }),
+    sessionDate:     date("session_date").notNull(),
+    sessionType:     counselingSessionTypeEnum("session_type").notNull(),
+    durationMinutes: integer("duration_minutes"),
+    sessionNotes:    text("session_notes"),
+    actionPlan:      text("action_plan"),
+    nextSessionDate: date("next_session_date"),
+    status:          counselingSessionStatusEnum("status").notNull().default("scheduled"),
+    createdAt:       timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt:       timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("counseling_sessions_org_idx").on(t.orgId, t.sessionDate),
+    index("counseling_sessions_counselor_idx").on(t.orgId, t.counselorUserId),
+    index("counseling_sessions_student_idx").on(t.orgId, t.studentId),
+    index("counseling_sessions_case_idx").on(t.orgId, t.caseId),
+    index("counseling_sessions_status_idx").on(t.orgId, t.status),
   ]
 );

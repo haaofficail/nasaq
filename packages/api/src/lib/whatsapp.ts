@@ -1,17 +1,63 @@
 import { log } from "./logger";
+import { sendViaBaileys } from "./whatsappBaileys";
 
 // ============================================================
-// WHATSAPP SERVICE — Unifonic WhatsApp API | Twilio WhatsApp
+// WHATSAPP SERVICE — Meta Cloud API | Unifonic | Twilio
 // ENV:
-//   UNIFONIC_APP_SID      — Unifonic App SID (also used for SMS)
-//   UNIFONIC_SENDER_ID    — WhatsApp sender number (e.g. "966xxxxxxxxx")
+//   META_WA_TOKEN         — Meta WhatsApp Cloud API token (permanent)
+//   META_WA_PHONE_ID      — Meta phone number ID
+//   UNIFONIC_APP_SID      — Unifonic App SID
+//   UNIFONIC_WHATSAPP_SENDER / UNIFONIC_SENDER_ID
 //   TWILIO_ACCOUNT_SID    — Twilio account SID
 //   TWILIO_AUTH_TOKEN     — Twilio auth token
 //   TWILIO_WHATSAPP_FROM  — Twilio WhatsApp sender (e.g. "whatsapp:+14155238886")
 // ============================================================
 
-export async function sendWhatsApp(phone: string, message: string): Promise<boolean> {
+/**
+ * Send WhatsApp message.
+ * Priority: Baileys QR session (per-org) → Meta Cloud → Unifonic → Twilio
+ */
+export async function sendWhatsApp(phone: string, message: string, orgId?: string): Promise<boolean> {
   const normalised = phone.startsWith("+") ? phone : `+${phone}`;
+
+  // ── Baileys QR session (org's own WhatsApp number) ────────
+  if (orgId) {
+    const sent = await sendViaBaileys(orgId, normalised, message).catch(() => false);
+    if (sent) return true;
+  }
+
+  // ── Meta WhatsApp Cloud API (highest priority) ────────────
+  const metaToken   = process.env.META_WA_TOKEN;
+  const metaPhoneId = process.env.META_WA_PHONE_ID;
+
+  if (metaToken && metaPhoneId) {
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/v19.0/${metaPhoneId}/messages`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type":  "application/json",
+            "Authorization": `Bearer ${metaToken}`,
+          },
+          body: JSON.stringify({
+            messaging_product: "whatsapp",
+            to:   normalised.replace("+", ""),
+            type: "text",
+            text: { body: message },
+          }),
+        },
+      );
+      const data = await res.json() as { messages?: { id: string }[] };
+      if (data.messages?.length) {
+        log.info({ phone: normalised, provider: "meta-wa" }, "[whatsapp] sent");
+        return true;
+      }
+      log.warn({ phone: normalised, data }, "[whatsapp] meta failed");
+    } catch (err) {
+      log.error({ err, phone: normalised }, "[whatsapp] meta error");
+    }
+  }
 
   // ── Unifonic WhatsApp ────────────────────────────────────
   const unifonicSid    = process.env.UNIFONIC_APP_SID;
@@ -80,9 +126,18 @@ export async function sendWhatsApp(phone: string, message: string): Promise<bool
 // ── Check if WhatsApp provider is configured ─────────────────
 export function isWhatsAppConfigured(): boolean {
   return !!(
-    (process.env.UNIFONIC_APP_SID && process.env.UNIFONIC_WHATSAPP_SENDER) ||
+    (process.env.META_WA_TOKEN && process.env.META_WA_PHONE_ID) ||
+    (process.env.UNIFONIC_APP_SID && (process.env.UNIFONIC_WHATSAPP_SENDER ?? process.env.UNIFONIC_SENDER_ID)) ||
     (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_WHATSAPP_FROM)
   );
+}
+
+// ── Return active provider name ───────────────────────────────
+export function whatsAppProvider(): string | null {
+  if (process.env.META_WA_TOKEN && process.env.META_WA_PHONE_ID)            return "meta";
+  if (process.env.UNIFONIC_APP_SID && (process.env.UNIFONIC_WHATSAPP_SENDER ?? process.env.UNIFONIC_SENDER_ID)) return "unifonic";
+  if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN)      return "twilio";
+  return null;
 }
 
 // ── Check if SMS provider is configured ──────────────────────

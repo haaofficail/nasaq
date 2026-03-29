@@ -251,6 +251,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
       { name: "الأسابيع والجداول",   href: "/dashboard/school/schedules/weeks",       icon: ClipboardPen,    requiredCapabilities: [] },
       { name: "الاستيراد",           href: "/dashboard/school/import",                icon: Upload,          requiredCapabilities: [] },
       { name: "إعدادات المدرسة",     href: "/dashboard/school/account",              icon: Settings,        requiredCapabilities: [] },
+      { name: "المواد الدراسية",      href: "/dashboard/school/subjects",             icon: BookOpen,        requiredCapabilities: [] },
       { name: "تهيئة النظام",        href: "/dashboard/school/setup",                icon: Wrench,          requiredCapabilities: [] },
     ],
   },

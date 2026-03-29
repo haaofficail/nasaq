@@ -8,6 +8,7 @@ import { clsx } from "clsx";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
 import { fmtHijri } from "@/lib/utils";
+import { PageFAQ } from "@/components/school/PageFAQ";
 
 // ── Template definitions (mirrors backend IMPORT_TEMPLATES) ────
 
@@ -602,6 +603,8 @@ export function SchoolImportPage() {
 
       {/* Tab Content */}
       <ImportTab key={activeTab} type={activeTab} />
+
+      <PageFAQ pageId="import" />
     </div>
   );
 }

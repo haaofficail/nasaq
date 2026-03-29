@@ -1497,10 +1497,6 @@ export const schoolApi = {
     api.post<{ data: any }>(`/school/teachers/${teacherId}/assignments`, data),
   deleteTeacherAssignment: (id: string) =>
     api.delete<{ success: boolean }>(`/school/teacher-assignments/${id}`),
-  getTeacherSchedule: (teacherId: string, weekId?: string) => {
-    const q = weekId ? `?weekId=${weekId}` : "";
-    return api.get<{ data: { teacher: any; entries: any[]; weekId: string | null } }>(`/school/teachers/${teacherId}/schedule${q}`);
-  },
 
   // Students (الطلاب)
   listStudents:    (params?: { classRoomId?: string; search?: string; grade?: string; unassigned?: string; page?: string; limit?: string }) => {
@@ -1531,7 +1527,7 @@ export const schoolApi = {
     api.post<{ data: { saved: number } }>("/school/attendance/bulk", data),
   getStudentAttendance:      (studentId: string, month?: string) =>
     api.get<{ data: any[] }>(`/school/attendance/student/${studentId}${month ? `?month=${month}` : ""}`),
-  getAttendanceStats:        (params: { classRoomId?: string; month?: string }) => {
+  getAttendanceStats:        (params: { classRoomId?: string; month?: string; date?: string }) => {
     const qs = new URLSearchParams(params as any).toString();
     return api.get<{ data: any[] }>(`/school/attendance/stats?${qs}`);
   },
@@ -1561,35 +1557,6 @@ export const schoolApi = {
   createGuardianNotification: (data: any) => api.post<{ data: any }>("/school/behavior/notifications", data),
   getBehaviorConstants:      () => api.get<{ data: any }>("/school/behavior/constants"),
 
-  // Timetable Templates (القوالب)
-  listTemplates:   () => api.get<{ data: any[] }>("/school/timetable-templates"),
-  createTemplate:  (data: any) => api.post<{ data: any }>("/school/timetable-templates", data),
-  deleteTemplate:  (id: string) => api.delete<{ success: boolean }>(`/school/timetable-templates/${id}`),
-  updateTemplate:  (id: string, data: any) => api.put<{ data: any }>(`/school/timetable-templates/${id}`, data),
-  listPeriods:     (templateId: string) => api.get<{ data: any[] }>(`/school/timetable-templates/${templateId}/periods`),
-  createPeriod:    (templateId: string, data: any) => api.post<{ data: any }>(`/school/timetable-templates/${templateId}/periods`, data),
-  updatePeriod:    (templateId: string, id: string, data: any) => api.put<{ data: any }>(`/school/timetable-templates/${templateId}/periods/${id}`, data),
-  deletePeriod:    (templateId: string, id: string) => api.delete<{ success: boolean }>(`/school/timetable-templates/${templateId}/periods/${id}`),
-
-  // Schedule Weeks (الأسابيع)
-  listWeeks:       (params?: { templateId?: string }) => {
-    const q = new URLSearchParams();
-    if (params?.templateId) q.set("templateId", params.templateId);
-    return api.get<{ data: any[] }>(`/school/schedule-weeks${q.toString() ? "?" + q : ""}`);
-  },
-  createWeek:      (data: any) => api.post<{ data: any }>("/school/schedule-weeks", data),
-  updateWeek:      (id: string, data: any) => api.put<{ data: any }>(`/school/schedule-weeks/${id}`, data),
-  activateWeek:    (id: string) => api.patch<{ data: any }>(`/school/schedule-weeks/${id}/activate`, {}),
-
-  // Schedule Entries (مدخلات الجدول)
-  getScheduleEntries: (params: { weekId: string; dayOfWeek?: string }) => {
-    const q = new URLSearchParams({ weekId: params.weekId });
-    if (params.dayOfWeek) q.set("dayOfWeek", params.dayOfWeek);
-    return api.get<{ data: any[] }>(`/school/schedule-entries?${q}`);
-  },
-  upsertEntries:   (entries: any[]) => api.put<{ data: any }>("/school/schedule-entries", { entries }),
-  markLate:        (id: string, data: { teacher_late_minutes: number; teacher_arrived_at?: string }) =>
-    api.patch<{ data: any }>(`/school/schedule-entries/${id}/late`, data),
 
   // Cases (الحالات)
   listCases:       (params?: { status?: string; category?: string }) => {
@@ -1707,4 +1674,145 @@ export const schoolApi = {
     api.post<{ data: any }>("/school/events", data),
   updateSchoolEvent: (id: string, data: any) => api.put<{ data: any }>(`/school/events/${id}`, data),
   deleteSchoolEvent: (id: string) => api.delete<{ data: any }>(`/school/events/${id}`),
+
+  // Standby activations — حصص الانتظار
+  getStandbyActivations: (date?: string) => {
+    const q = date ? `?date=${date}` : "";
+    return api.get<{ data: any[] }>(`/school/standby-activations${q}`);
+  },
+  createStandbyActivation: (data: {
+    activationDate: string;
+    absentTeacherId?: string | null;
+    standbyTeacherId: string;
+    classRoomId?: string | null;
+    subject: string;
+    periodLabel?: string | null;
+    startTime?: string | null;
+    endTime?: string | null;
+    notes?: string | null;
+  }) => api.post<{ data: any }>("/school/standby-activations", data),
+  deleteStandbyActivation: (id: string) => api.delete<{ success: boolean }>(`/school/standby-activations/${id}`),
+
+  // Timetable — الجدول الدراسي
+  getTimetable: (classRoomId: string) => api.get<{ data: any[] }>(`/school/timetable?classRoomId=${classRoomId}`),
+  getTeacherDayTimetable: (teacherId: string, dayOfWeek: number) =>
+    api.get<{ data: any[] }>(`/school/timetable/teacher/${teacherId}?dayOfWeek=${dayOfWeek}`),
+  upsertTimetableCell: (cell: {
+    classRoomId: string; dayOfWeek: number; periodNumber: number;
+    subject?: string | null; teacherId?: string | null;
+    startTime?: string | null; endTime?: string | null;
+    isBreak?: boolean; notes?: string | null;
+  }) => api.put<{ data: any }>("/school/timetable", cell),
+  bulkUpsertTimetable: (classRoomId: string, cells: any[], lastFetchedAt?: string) =>
+    api.post<{ success: boolean; count: number }>("/school/timetable/bulk", {
+      classRoomId, cells, ...(lastFetchedAt ? { lastFetchedAt } : {}),
+    }),
+  deleteTimetableCell: (id: string) => api.delete<{ success: boolean }>(`/school/timetable/${id}`),
+
+  // Timetable Templates — قوالب الدوام
+  listTimetableTemplates: () => api.get<{ data: any[] }>("/school/timetable-templates"),
+  createTimetableTemplate: (data: { name: string; sessionType?: string; description?: string }) =>
+    api.post<{ data: any }>("/school/timetable-templates", data),
+  createTimetableTemplatePeriod: (templateId: string, data: {
+    periodNumber: number; label?: string;
+    startTime: string; endTime: string; isBreak: boolean;
+  }) => api.post<{ data: any }>(`/school/timetable-templates/${templateId}/periods`, data),
+
+  // System A — ترحيل ومزامنة
+  migrateToSystemA: () =>
+    api.post<{ success: boolean; migrated: number }>("/school/setup/migrate-to-system-a", {}),
+
+  // ── Teacher System — Phase 2 ──────────────────────────────
+
+  // Teacher Dashboard
+  getTeacherDashboard: () =>
+    api.get<{ data: any }>("/school/teacher/dashboard"),
+
+  // Teacher Preparations
+  getTeacherPreparations: (params?: { weekId?: string; dayOfWeek?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.weekId)    q.set("weekId",    params.weekId);
+    if (params?.dayOfWeek) q.set("dayOfWeek", params.dayOfWeek);
+    const qs = q.toString();
+    return api.get<{ data: any[] }>(`/school/teacher/preparations${qs ? "?" + qs : ""}`);
+  },
+  upsertTeacherPreparation: (data: {
+    weekId: string; periodId: string; classRoomId: string;
+    dayOfWeek: string; subjectId: string;
+    preparationText?: string | null; learningObjectives?: string | null;
+    resources?: string | null; status?: string;
+  }) => api.post<{ data: any }>("/school/teacher/preparations", data),
+  updateTeacherPreparation: (id: string, data: {
+    preparationText?: string | null; learningObjectives?: string | null;
+    resources?: string | null; status?: string;
+  }) => api.put<{ data: any }>(`/school/teacher/preparations/${id}`, data),
+
+  // Teacher Daily Logs
+  getTeacherDailyLogs: (params?: { date?: string; weekId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.date)   q.set("date",   params.date);
+    if (params?.weekId) q.set("weekId", params.weekId);
+    const qs = q.toString();
+    return api.get<{ data: any[] }>(`/school/teacher/daily-logs${qs ? "?" + qs : ""}`);
+  },
+  upsertTeacherDailyLog: (data: {
+    classRoomId: string; date: string; periodId?: string | null;
+    scheduleEntryId?: string | null; subjectId: string;
+    topicCovered: string; notes?: string | null;
+    studentEngagement?: string;
+    studentsAbsent?: Array<{ studentId: string; name: string }>;
+  }) => api.post<{ data: any }>("/school/teacher/daily-logs", data),
+
+  // Teacher Student Notes
+  getTeacherStudentNotes: (params?: { studentId?: string; classRoomId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.studentId)   q.set("studentId",   params.studentId);
+    if (params?.classRoomId) q.set("classRoomId", params.classRoomId);
+    const qs = q.toString();
+    return api.get<{ data: any[] }>(`/school/teacher/student-notes${qs ? "?" + qs : ""}`);
+  },
+  createTeacherStudentNote: (data: {
+    studentId: string; classRoomId: string; noteDate?: string;
+    noteType: string; note: string;
+    isPrivate?: boolean; requiresFollowUp?: boolean; followUpBy?: string | null;
+  }) => api.post<{ data: any }>("/school/teacher/student-notes", data),
+  deleteTeacherStudentNote: (id: string) =>
+    api.delete<{ success: boolean }>(`/school/teacher/student-notes/${id}`),
+
+  // Referrals
+  listReferrals: (params?: { status?: string; studentId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status)    q.set("status",    params.status);
+    if (params?.studentId) q.set("studentId", params.studentId);
+    const qs = q.toString();
+    return api.get<{ data: any[] }>(`/school/referrals${qs ? "?" + qs : ""}`);
+  },
+  createReferral: (data: {
+    studentId: string; referralDate?: string;
+    referralType: string; reason: string;
+    urgency?: string; notes?: string | null; caseId?: string | null;
+  }) => api.post<{ data: any }>("/school/referrals", data),
+  updateReferral: (id: string, data: {
+    status?: string; assignedToUserId?: string | null;
+    notes?: string | null; caseId?: string | null;
+  }) => api.put<{ data: any }>(`/school/referrals/${id}`, data),
+
+  // Counseling Sessions
+  listCounselingSessions: (params?: { status?: string; studentId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status)    q.set("status",    params.status);
+    if (params?.studentId) q.set("studentId", params.studentId);
+    const qs = q.toString();
+    return api.get<{ data: any[] }>(`/school/counseling/sessions${qs ? "?" + qs : ""}`);
+  },
+  createCounselingSession: (data: {
+    studentId: string; sessionDate: string; sessionType: string;
+    durationMinutes?: number | null; sessionNotes?: string | null;
+    actionPlan?: string | null; nextSessionDate?: string | null;
+    status?: string; caseId?: string | null; referralId?: string | null;
+  }) => api.post<{ data: any }>("/school/counseling/sessions", data),
+  updateCounselingSession: (id: string, data: {
+    sessionNotes?: string | null; actionPlan?: string | null;
+    nextSessionDate?: string | null; durationMinutes?: number | null; status?: string;
+  }) => api.put<{ data: any }>(`/school/counseling/sessions/${id}`, data),
 };

@@ -8,6 +8,7 @@ import {
 import { clsx } from "clsx";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
+import { PageFAQ } from "@/components/school/PageFAQ";
 
 // ─────────────────────────────────────────────
 // Constants
@@ -57,9 +58,10 @@ const TPL_VARS: Record<string, { var: string; label: string }[]> = {
     { var: "{date}",         label: "التاريخ"     },
   ],
   teacherAssignMessage: [
-    { var: "{school_name}", label: "اسم المدرسة" },
-    { var: "{subject}",     label: "المادة"      },
-    { var: "{class_name}",  label: "الفصل"       },
+    { var: "{school_name}", label: "اسم المدرسة"         },
+    { var: "{class_name}",  label: "الفصل / الصف"        },
+    { var: "{subject}",     label: "المادة (اختياري)"    },
+    { var: "{date}",        label: "التاريخ"              },
   ],
 };
 
@@ -581,7 +583,7 @@ export function SchoolNotificationsPage() {
                 vars={TPL_VARS.teacherAbsenceMessage}
               />
               <TemplateEditor
-                label="رسالة الإسناد (للمعلم)"
+                label="رسالة حصة الانتظار (للمعلم)"
                 field="teacherAssignMessage"
                 value={merged.teacherAssignMessage ?? ""}
                 onChange={setProp}
@@ -703,6 +705,8 @@ export function SchoolNotificationsPage() {
           </div>
         </div>
       )}
+
+      <PageFAQ pageId="notifications" />
     </div>
   );
 }

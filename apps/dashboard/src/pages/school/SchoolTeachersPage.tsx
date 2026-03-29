@@ -3,8 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { Users, Plus, Search, Pencil, Trash2, X, Loader2, CheckCircle2, UserCheck, Calendar, Link2 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
+import { PageFAQ } from "@/components/school/PageFAQ";
 
-// ── Classroom Assignment Modal ────────────────────────────
+// ── Assignment Modal ──────────────────────────────────────
+
+type ScopeType = "class" | "grade" | "stage";
+
+const SCOPE_OPTIONS: { value: ScopeType; label: string; desc: string }[] = [
+  { value: "class", label: "فصل محدد",     desc: "اختر فصلاً أو أكثر" },
+  { value: "grade", label: "صف كامل",      desc: "جميع فصول الصف" },
+  { value: "stage", label: "مرحلة كاملة",  desc: "جميع فصول المرحلة" },
+];
 
 function TeacherAssignModal({
   teacher,
@@ -15,64 +24,73 @@ function TeacherAssignModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const [scope,       setScope]       = useState<ScopeType>("class");
   const [subject,     setSubject]     = useState("");
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [notes,       setNotes]       = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set()); // classRoomIds
+  const [selGrades,   setSelGrades]   = useState<Set<string>>(new Set()); // grade names
   const [saving,      setSaving]      = useState(false);
 
-  const { data: classData }  = useApi(() => schoolApi.listClassRooms(), []);
-  const classRooms: any[]    = classData?.data ?? [];
+  const { data: classData }    = useApi(() => schoolApi.listClassRooms(), []);
+  const classRooms: any[]      = classData?.data ?? [];
+  const { data: subjectsData } = useApi(() => schoolApi.listSubjects(), []);
+  const subjectsList: any[]    = subjectsData?.data ?? [];
+  const { data: setupData }    = useApi(() => schoolApi.getSetupStatus(), []);
+  const stage: string          = setupData?.data?.stage ?? "متوسط";
 
-  const { data: assignData, refetch: refetchAssignments } = useApi(
+  const { data: assignData, refetch } = useApi(
     () => schoolApi.getTeacherAssignments(teacher.id),
     [teacher.id]
   );
   const existing: any[] = assignData?.data?.assignments ?? [];
 
-  // Group classrooms by grade for display
+  // Group classrooms by grade
   const byGrade = new Map<string, any[]>();
   classRooms.forEach((cr: any) => {
     if (!byGrade.has(cr.grade)) byGrade.set(cr.grade, []);
     byGrade.get(cr.grade)!.push(cr);
   });
+  const grades = [...byGrade.keys()];
 
-  const toggle = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
+  const toggleClass = (id: string) =>
+    setSelectedIds(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleGrade = (g: string) =>
+    setSelGrades(prev => { const n = new Set(prev); n.has(g) ? n.delete(g) : n.add(g); return n; });
+
+  const canSubmit = !!subject &&
+    (scope === "stage" || (scope === "class" && selectedIds.size > 0) || (scope === "grade" && selGrades.size > 0));
 
   const handleAdd = async () => {
-    if (!subject.trim() || selectedIds.size === 0) return;
+    if (!canSubmit) return;
     setSaving(true);
     try {
-      for (const classRoomId of selectedIds) {
-        await schoolApi.createTeacherAssignment(teacher.id, { classRoomId, subject: subject.trim() });
+      if (scope === "class") {
+        for (const classRoomId of selectedIds)
+          await schoolApi.createTeacherAssignment(teacher.id, { classRoomId, subject, notes: notes || undefined });
+      } else if (scope === "grade") {
+        for (const grade of selGrades)
+          await schoolApi.createTeacherAssignment(teacher.id, { grade, subject, notes: notes || undefined });
+      } else {
+        await schoolApi.createTeacherAssignment(teacher.id, { stage, subject, notes: notes || undefined });
       }
-      setSelectedIds(new Set());
-      setSubject("");
-      refetchAssignments();
-      onDone();
+      setSelectedIds(new Set()); setSelGrades(new Set()); setSubject(""); setNotes("");
+      refetch(); onDone();
     } catch {} finally { setSaving(false); }
   };
 
-  const handleDelete = async (assignmentId: string) => {
-    await schoolApi.deleteTeacherAssignment(assignmentId);
-    refetchAssignments();
-    onDone();
+  const handleDelete = async (id: string) => {
+    await schoolApi.deleteTeacherAssignment(id);
+    refetch(); onDone();
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
-            <h2 className="text-base font-black text-gray-900">إسناد الفصول</h2>
+            <h2 className="text-base font-black text-gray-900">إسناد حصة انتظار</h2>
             <p className="text-xs text-gray-500 mt-0.5">{teacher.fullName}</p>
           </div>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
@@ -80,54 +98,70 @@ function TeacherAssignModal({
           </button>
         </div>
 
-        <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto">
-          {/* Add new assignment */}
-          <div className="bg-gray-50 rounded-2xl p-4 space-y-4">
-            <p className="text-xs font-bold text-gray-700">إضافة إسناد جديد</p>
+        <div className="p-5 space-y-5 max-h-[72vh] overflow-y-auto">
 
-            {/* Subject */}
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">المادة الدراسية</label>
-              <input
-                type="text"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                placeholder="مثال: رياضيات"
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
-              />
+          {/* نوع الارتباط */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-2">نوع الارتباط</label>
+            <div className="grid grid-cols-3 gap-2">
+              {SCOPE_OPTIONS.map(opt => (
+                <button
+                  key={opt.value}
+                  onClick={() => { setScope(opt.value); setSelectedIds(new Set()); setSelGrades(new Set()); }}
+                  className={`px-3 py-2.5 rounded-xl border text-xs font-semibold text-right transition-all ${
+                    scope === opt.value
+                      ? "bg-emerald-600 border-emerald-600 text-white"
+                      : "bg-white border-gray-200 text-gray-600 hover:border-emerald-300"
+                  }`}
+                >
+                  <p className="font-bold">{opt.label}</p>
+                  <p className={`text-[10px] mt-0.5 ${scope === opt.value ? "text-emerald-100" : "text-gray-400"}`}>{opt.desc}</p>
+                </button>
+              ))}
             </div>
+          </div>
 
-            {/* Classrooms checkboxes grouped by grade */}
+          {/* المادة الدراسية */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">المادة الدراسية</label>
+            <select
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 bg-white"
+            >
+              <option value="">اختر المادة...</option>
+              {subjectsList.map((s: any) => (
+                <option key={s.id} value={s.name}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* النطاق حسب النوع */}
+          {scope === "class" && (
             <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-2">الفصول التي يدرسها</label>
+              <label className="block text-xs font-bold text-gray-700 mb-2">
+                الفصول الدراسية
+                {selectedIds.size > 0 && <span className="mr-1.5 text-emerald-600">{selectedIds.size} محدد</span>}
+              </label>
               {classRooms.length === 0 ? (
-                <p className="text-xs text-gray-400 py-3 text-center">لا توجد فصول مضافة بعد</p>
+                <p className="text-xs text-gray-400 py-4 text-center bg-gray-50 rounded-xl">لا توجد فصول</p>
               ) : (
-                <div className="space-y-3 max-h-52 overflow-y-auto">
+                <div className="space-y-3 max-h-48 overflow-y-auto">
                   {[...byGrade.entries()].map(([grade, rooms]) => (
                     <div key={grade}>
-                      <p className="text-[10px] font-black text-gray-400 uppercase mb-1.5">{grade}</p>
-                      <div className="flex flex-wrap gap-2">
+                      <p className="text-[10px] font-black text-gray-500 mb-1.5 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                        {grade}
+                      </p>
+                      <div className="flex flex-wrap gap-1.5">
                         {rooms.map((cr: any) => {
-                          const checked = selectedIds.has(cr.id);
+                          const on = selectedIds.has(cr.id);
                           return (
-                            <label
-                              key={cr.id}
-                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
-                                checked
-                                  ? "bg-emerald-600 text-white border-emerald-600"
-                                  : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300"
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => toggle(cr.id)}
-                                className="sr-only"
-                              />
-                              <span>{cr.grade.replace(/[^٠-٩0-9]/g, "").trim() || cr.name}</span>
-                              <span>-</span>
-                              <span>{cr.name}</span>
+                            <label key={cr.id} className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all select-none ${
+                              on ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300"
+                            }`}>
+                              <input type="checkbox" checked={on} onChange={() => toggleClass(cr.id)} className="sr-only" />
+                              فصل {cr.name}
                             </label>
                           );
                         })}
@@ -137,41 +171,64 @@ function TeacherAssignModal({
                 </div>
               )}
             </div>
+          )}
 
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                onClick={handleAdd}
-                disabled={saving || !subject.trim() || selectedIds.size === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-                إسناد {selectedIds.size > 0 ? `(${selectedIds.size} فصل)` : ""}
-              </button>
-              <p className="text-xs text-gray-400">
-                {selectedIds.size === 0 ? "اختر فصلاً أو أكثر" : `${selectedIds.size} فصل محدد`}
-              </p>
+          {scope === "grade" && (
+            <div>
+              <label className="block text-xs font-bold text-gray-700 mb-2">
+                الصفوف الدراسية
+                {selGrades.size > 0 && <span className="mr-1.5 text-emerald-600">{selGrades.size} محدد</span>}
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {grades.map(g => {
+                  const on = selGrades.has(g);
+                  return (
+                    <label key={g} className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs font-semibold cursor-pointer transition-all select-none ${
+                      on ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300"
+                    }`}>
+                      <input type="checkbox" checked={on} onChange={() => toggleGrade(g)} className="sr-only" />
+                      {g}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
+          )}
+
+          {scope === "stage" && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3">
+              <p className="text-xs font-bold text-emerald-800">المرحلة الدراسية</p>
+              <p className="text-sm font-black text-emerald-700 mt-0.5">{stage === "متوسط" ? "المرحلة المتوسطة" : stage === "ابتدائي" ? "المرحلة الابتدائية" : "المرحلة الثانوية"}</p>
+              <p className="text-[11px] text-emerald-600 mt-1">سيُطبَّق على جميع فصول ومراحل المدرسة</p>
+            </div>
+          )}
+
+          {/* ملاحظات */}
+          <div>
+            <label className="block text-xs font-bold text-gray-700 mb-1.5">ملاحظات <span className="text-gray-400 font-normal">(اختياري)</span></label>
+            <input
+              type="text"
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              placeholder="ملاحظة إضافية"
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            />
           </div>
 
-          {/* Existing assignments */}
+          {/* إسنادات قائمة */}
           {existing.length > 0 && (
             <div>
-              <p className="text-xs font-bold text-gray-700 mb-2">الإسنادات الحالية</p>
+              <p className="text-xs font-bold text-gray-700 mb-2">حصص الانتظار المسندة</p>
               <div className="space-y-1.5">
                 {existing.map((a: any) => (
-                  <div key={a.id} className="flex items-center justify-between gap-2 bg-white border border-gray-100 rounded-xl px-3 py-2">
-                    <div className="flex items-center gap-2 text-xs">
-                      <span className="font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-0.5">
-                        {a.classRoomGrade
-                          ? `${a.classRoomGrade.replace(/[^٠-٩0-9]/g, "").trim() || a.classRoomGrade}-${a.classRoomName}`
-                          : (a.grade ?? a.stage ?? "—")}
+                  <div key={a.id} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-xl px-3 py-2">
+                    <div className="flex items-center gap-2 text-xs min-w-0">
+                      <span className="shrink-0 font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-0.5">
+                        {a.classRoomGrade ? `${a.classRoomGrade} - فصل ${a.classRoomName}` : a.grade ? `صف: ${a.grade}` : `مرحلة: ${a.stage ?? "—"}`}
                       </span>
-                      <span className="text-gray-600">{a.subject}</span>
+                      <span className="text-gray-600 truncate">{a.subject}</span>
                     </div>
-                    <button
-                      onClick={() => handleDelete(a.id)}
-                      className="p-1 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-400 transition-colors shrink-0"
-                    >
+                    <button onClick={() => handleDelete(a.id)} className="p-1 mr-1 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-400 transition-colors shrink-0">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -181,8 +238,17 @@ function TeacherAssignModal({
           )}
         </div>
 
-        <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
-          <button onClick={onClose} className="w-full py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+        {/* Footer */}
+        <div className="px-5 py-3.5 border-t border-gray-100 flex gap-2">
+          <button
+            onClick={handleAdd}
+            disabled={saving || !canSubmit}
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-40 transition-colors"
+          >
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+            إسناد
+          </button>
+          <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
             إغلاق
           </button>
         </div>
@@ -239,6 +305,11 @@ export function SchoolTeachersPage() {
     []
   );
   const refresh = refetch;
+
+  const { data: setupData } = useApi(() => schoolApi.getSetupStatus(), []);
+  const schoolStage: string = setupData?.data?.stage ?? "متوسط";
+  const { data: gradesData } = useApi(() => schoolApi.getSetupGrades(schoolStage), [schoolStage]);
+  const subjectOptions: string[] = gradesData?.data?.subjects ?? [];
 
   const teachers: Teacher[] = (data as any)?.data ?? [];
 
@@ -523,6 +594,8 @@ export function SchoolTeachersPage() {
         </div>
       )}
 
+      <PageFAQ pageId="teachers" />
+
       {/* ── Assignment Modal ── */}
       {assigningTeacher && (
         <TeacherAssignModal
@@ -581,13 +654,45 @@ export function SchoolTeachersPage() {
                 {/* المادة */}
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">المادة</label>
-                  <input
-                    type="text"
-                    value={form.subject}
-                    onChange={(e) => set("subject", e.target.value)}
-                    className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-colors"
-                    placeholder="الرياضيات"
-                  />
+                  {subjectOptions.length > 0 ? (
+                    <>
+                      <select
+                        value={subjectOptions.includes(form.subject) ? form.subject : (form.subject ? "__other__" : "")}
+                        onChange={(e) => {
+                          if (e.target.value === "__other__") {
+                            set("subject", "");
+                          } else {
+                            set("subject", e.target.value);
+                          }
+                        }}
+                        className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-colors bg-white"
+                      >
+                        <option value="">اختر المادة...</option>
+                        {subjectOptions.map((s) => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                        <option value="__other__">أخرى...</option>
+                      </select>
+                      {!subjectOptions.includes(form.subject) && (
+                        <input
+                          type="text"
+                          value={form.subject}
+                          onChange={(e) => set("subject", e.target.value)}
+                          className="mt-1.5 w-full px-3 py-2.5 text-sm border border-emerald-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-colors"
+                          placeholder="اكتب اسم المادة"
+                          autoFocus={!subjectOptions.includes(form.subject) && form.subject === ""}
+                        />
+                      )}
+                    </>
+                  ) : (
+                    <input
+                      type="text"
+                      value={form.subject}
+                      onChange={(e) => set("subject", e.target.value)}
+                      className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 transition-colors"
+                      placeholder="الرياضيات"
+                    />
+                  )}
                 </div>
 
                 {/* الجنس */}
