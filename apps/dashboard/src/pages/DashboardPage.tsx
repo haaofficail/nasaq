@@ -3,6 +3,7 @@ import { ProfileDashboard } from "@/components/dashboard/ProfileDashboard";
 import { useOrgContext } from "@/hooks/useOrgContext";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
+import { Navigate } from "react-router-dom";
 
 export function DashboardPage() {
   const { context, loading } = useOrgContext();
@@ -11,6 +12,12 @@ export function DashboardPage() {
   const user = (() => {
     try { return JSON.parse(localStorage.getItem("nasaq_user") || "{}"); } catch { return {}; }
   })();
+
+  // School accounts go directly to their day monitor
+  const businessType = context?.businessType ?? user?.businessType ?? "";
+  if (!loading && businessType === "school") {
+    return <Navigate to="/school/dashboard" replace />;
+  }
 
   if (loading) {
     return (

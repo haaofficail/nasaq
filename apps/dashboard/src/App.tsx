@@ -1,11 +1,15 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
+import { SchoolLayout } from "./components/layout/SchoolLayout";
 import { ReactNode, lazy, Suspense } from "react";
 
 // ── Eager imports (needed immediately on load) ─────────────────────
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { LandingPage } from "./pages/LandingPage";
+import { SchoolLandingPage } from "./pages/SchoolLandingPage";
+import { SchoolLoginPage } from "./pages/SchoolLoginPage";
+import { SchoolRegisterPage } from "./pages/SchoolRegisterPage";
 import { OnboardingPage } from "./pages/OnboardingPage";
 import { AdminLoginPage } from "./pages/AdminLoginPage";
 
@@ -138,6 +142,17 @@ const SupportPage            = lz(() => import("./pages/SupportPage"), "SupportP
 const GuidePage              = lz(() => import("./pages/GuidePage"), "GuidePage");
 const BarcodeLabelPage       = lz(() => import("./pages/BarcodeLabelPage"));
 
+// School System
+const SchoolDashboardPage          = lz(() => import("./pages/school/SchoolDashboardPage"), "SchoolDashboardPage");
+const SchoolDayMonitorPage         = lz(() => import("./pages/school/SchoolDayMonitorPage"), "SchoolDayMonitorPage");
+const SchoolStudentsPage           = lz(() => import("./pages/school/SchoolStudentsPage"), "SchoolStudentsPage");
+const SchoolClassesPage            = lz(() => import("./pages/school/SchoolClassesPage"), "SchoolClassesPage");
+const SchoolPeriodsPage            = lz(() => import("./pages/school/SchoolPeriodsPage"), "SchoolPeriodsPage");
+const SchoolCasesPage              = lz(() => import("./pages/school/SchoolCasesPage"), "SchoolCasesPage");
+const SchoolTimetableTemplatesPage = lz(() => import("./pages/school/SchoolTimetableTemplatesPage"), "SchoolTimetableTemplatesPage");
+const SchoolScheduleWeeksPage      = lz(() => import("./pages/school/SchoolScheduleWeeksPage"), "SchoolScheduleWeeksPage");
+const SchoolImportPage             = lz(() => import("./pages/school/SchoolImportPage"), "SchoolImportPage");
+
 // ── Loading fallback ───────────────────────────────────────────────
 function PageLoader() {
   return (
@@ -148,7 +163,7 @@ function PageLoader() {
 }
 
 function RequireAuth({ children }: { children: ReactNode }) {
-  const token = localStorage.getItem("nasaq_token");
+  const token = localStorage.getItem("nasaq_token") || sessionStorage.getItem("nasaq_token");
   const location = useLocation();
   if (!token) return <Navigate to="/login" state={{ from: location }} replace />;
   return <>{children}</>;
@@ -175,6 +190,9 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/home" element={<LandingPage />} />
         <Route path="/landing" element={<LandingPage />} />
+        <Route path="/school" element={<SchoolLandingPage />} />
+        <Route path="/school/login" element={<SchoolLoginPage />} />
+        <Route path="/school/register" element={<SchoolRegisterPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/features" element={<FeaturesPage />} />
         <Route path="/about" element={<AboutPage />} />
@@ -314,6 +332,16 @@ export default function App() {
           <Route path="support" element={<SupportPage />} />
           <Route path="guide" element={<GuidePage />} />
 
+          {/* ── Old school routes → redirect to /school/* ── */}
+          <Route path="school/day-monitor"         element={<Navigate to="/school/day-monitor" replace />} />
+          <Route path="school/students"            element={<Navigate to="/school/students" replace />} />
+          <Route path="school/classes"             element={<Navigate to="/school/classes" replace />} />
+          <Route path="school/periods/today"       element={<Navigate to="/school/periods" replace />} />
+          <Route path="school/cases"               element={<Navigate to="/school/cases" replace />} />
+          <Route path="school/timetable-templates" element={<Navigate to="/school/timetable-templates" replace />} />
+          <Route path="school/schedules/weeks"     element={<Navigate to="/school/schedules/weeks" replace />} />
+          <Route path="school/import"              element={<Navigate to="/school/import" replace />} />
+
           {/* ── Redirects from old routes ── */}
           <Route path="employees"          element={<Navigate to="/dashboard/team" replace />} />
           <Route path="settings/profile"   element={<Navigate to="/dashboard/settings" replace />} />
@@ -327,6 +355,20 @@ export default function App() {
           <Route path="messaging"          element={<Navigate to="/dashboard/marketing?tab=messaging" replace />} />
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Route>
+        {/* ── School System (auth required, isolated layout) ── */}
+        <Route path="/school" element={<RequireAuth><SchoolLayout /></RequireAuth>}>
+          <Route index element={<Navigate to="/school/dashboard" replace />} />
+          <Route path="dashboard"          element={<SchoolDashboardPage />} />
+          <Route path="day-monitor"        element={<SchoolDayMonitorPage />} />
+          <Route path="students"           element={<SchoolStudentsPage />} />
+          <Route path="classes"            element={<SchoolClassesPage />} />
+          <Route path="periods"            element={<SchoolPeriodsPage />} />
+          <Route path="cases"              element={<SchoolCasesPage />} />
+          <Route path="timetable-templates" element={<SchoolTimetableTemplatesPage />} />
+          <Route path="schedules/weeks"    element={<SchoolScheduleWeeksPage />} />
+          <Route path="import"             element={<SchoolImportPage />} />
+          <Route path="*" element={<Navigate to="/school/dashboard" replace />} />
         </Route>
       </Routes>
     </Suspense>

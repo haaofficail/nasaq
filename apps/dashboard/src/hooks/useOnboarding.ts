@@ -40,7 +40,7 @@ export function useOnboarding() {
       .finally(() => setLoading(false));
   }, []);
 
-  const shouldShow = !loading && !_dismissed && status !== null && !status.onboardingCompleted;
+  const shouldShow = !loading && !_dismissed && status !== null && !status.onboardingCompleted && status.businessType !== "school";
 
   return { status, loading, shouldShow, setStatus };
 }

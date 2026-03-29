@@ -441,11 +441,13 @@ authRouter.post("/login", async (c) => {
   }
 
   const body = await c.req.json();
-  const { email, password } = body;
+  const { email, phone: rawPhone, password } = body;
 
-  if (!email || !password) {
-    return c.json({ error: "الإيميل وكلمة المرور مطلوبان" }, 400);
+  if ((!email && !rawPhone) || !password) {
+    return c.json({ error: "رقم الجوال أو الإيميل وكلمة المرور مطلوبان" }, 400);
   }
+
+  const normalizedLoginPhone = rawPhone ? normalizePhone(rawPhone) : null;
 
   const [user] = await db
     .select({
@@ -463,10 +465,14 @@ authRouter.post("/login", async (c) => {
       nasaqRole: users.nasaqRole,
     })
     .from(users)
-    .where(eq(users.email, email.toLowerCase().trim()));
+    .where(
+      normalizedLoginPhone
+        ? eq(users.phone, normalizedLoginPhone)
+        : eq(users.email, email.toLowerCase().trim())
+    );
 
   if (!user) {
-    return c.json({ error: "الإيميل أو كلمة المرور غير صحيحة" }, 401);
+    return c.json({ error: "رقم الجوال أو كلمة المرور غير صحيحة" }, 401);
   }
 
   if (user.status === "suspended") {
@@ -489,7 +495,7 @@ authRouter.post("/login", async (c) => {
     await db.update(users)
       .set({ failedLoginAttempts: (user.failedLoginAttempts || 0) + 1 })
       .where(eq(users.id, user.id));
-    return c.json({ error: "الإيميل أو كلمة المرور غير صحيحة" }, 401);
+    return c.json({ error: "رقم الجوال أو كلمة المرور غير صحيحة" }, 401);
   }
 
   const [org] = await db

@@ -57,6 +57,10 @@ export const authApi = {
   loginWithEmail: (email: string, password: string) => api.post<{ token: string; user: any }>("/auth/login", { email, password }),
   registerWithEmail: (businessName: string, email: string, password: string, businessType?: string) =>
     api.post<{ token: string; user: any }>("/auth/register", { businessName, email, password, businessType }),
+  registerWithPhone: (businessName: string, phone: string, businessType?: string, password?: string) =>
+    api.post<{ orgId: string; phone: string; _devCode?: string }>("/auth/register", { businessName, phone, businessType, ...(password ? { password } : {}) }),
+  loginWithPhone: (phone: string, password: string) =>
+    api.post<{ token: string; user: any }>("/auth/login", { phone, password }),
   changePassword: (currentPassword: string, newPassword: string) =>
     api.post("/auth/password/change", { currentPassword, newPassword }),
   logout: () => api.post("/auth/logout"),
@@ -1447,4 +1451,102 @@ export const maintenanceApi = {
   create: (data: any) => api.post<{ data: any }>("/maintenance", data),
   update: (id: string, data: any) => api.patch<{ data: any }>(`/maintenance/${id}`, data),
   delete: (id: string) => api.delete<{ success: boolean }>(`/maintenance/${id}`),
+};
+
+
+// --- School System ---
+export const schoolApi = {
+  // Settings
+  getSettings:    () => api.get<{ data: any }>("/school/settings"),
+  saveSettings:   (data: any) => api.post<{ data: any }>("/school/settings", data),
+  setActiveWeek:  (weekId: string) => api.patch<{ data: any }>("/school/settings/active-week", { weekId }),
+
+  // Day Monitor
+  dayMonitor:     () => api.get<{ data: any }>("/school/day-monitor"),
+
+  // Class Rooms (الفصول)
+  listClassRooms:  (params?: { grade?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.grade) q.set("grade", params.grade);
+    return api.get<{ data: any[] }>(`/school/class-rooms${q.toString() ? "?" + q : ""}`);
+  },
+  createClassRoom: (data: any) => api.post<{ data: any }>("/school/class-rooms", data),
+  updateClassRoom: (id: string, data: any) => api.put<{ data: any }>(`/school/class-rooms/${id}`, data),
+  deleteClassRoom: (id: string) => api.delete<{ success: boolean }>(`/school/class-rooms/${id}`),
+
+  // Teachers (المعلمون)
+  listTeachers:    (params?: { active?: boolean }) => {
+    const q = new URLSearchParams();
+    if (params?.active !== undefined) q.set("active", String(params.active));
+    return api.get<{ data: any[] }>(`/school/teachers${q.toString() ? "?" + q : ""}`);
+  },
+  createTeacher:   (data: any) => api.post<{ data: any }>("/school/teachers", data),
+  updateTeacher:   (id: string, data: any) => api.put<{ data: any }>(`/school/teachers/${id}`, data),
+  deleteTeacher:   (id: string) => api.delete<{ success: boolean }>(`/school/teachers/${id}`),
+
+  // Students (الطلاب)
+  listStudents:    (params?: { classRoomId?: string; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.classRoomId) q.set("classRoomId", params.classRoomId);
+    if (params?.search)      q.set("search", params.search);
+    return api.get<{ data: any[] }>(`/school/students${q.toString() ? "?" + q : ""}`);
+  },
+  createStudent:   (data: any) => api.post<{ data: any }>("/school/students", data),
+  updateStudent:   (id: string, data: any) => api.put<{ data: any }>(`/school/students/${id}`, data),
+  deleteStudent:   (id: string) => api.delete<{ success: boolean }>(`/school/students/${id}`),
+
+  // Timetable Templates (القوالب)
+  listTemplates:   () => api.get<{ data: any[] }>("/school/timetable-templates"),
+  createTemplate:  (data: any) => api.post<{ data: any }>("/school/timetable-templates", data),
+  updateTemplate:  (id: string, data: any) => api.put<{ data: any }>(`/school/timetable-templates/${id}`, data),
+  listPeriods:     (templateId: string) => api.get<{ data: any[] }>(`/school/timetable-templates/${templateId}/periods`),
+  createPeriod:    (templateId: string, data: any) => api.post<{ data: any }>(`/school/timetable-templates/${templateId}/periods`, data),
+  updatePeriod:    (templateId: string, id: string, data: any) => api.put<{ data: any }>(`/school/timetable-templates/${templateId}/periods/${id}`, data),
+  deletePeriod:    (templateId: string, id: string) => api.delete<{ success: boolean }>(`/school/timetable-templates/${templateId}/periods/${id}`),
+
+  // Schedule Weeks (الأسابيع)
+  listWeeks:       (params?: { templateId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.templateId) q.set("templateId", params.templateId);
+    return api.get<{ data: any[] }>(`/school/schedule-weeks${q.toString() ? "?" + q : ""}`);
+  },
+  createWeek:      (data: any) => api.post<{ data: any }>("/school/schedule-weeks", data),
+  updateWeek:      (id: string, data: any) => api.put<{ data: any }>(`/school/schedule-weeks/${id}`, data),
+  activateWeek:    (id: string) => api.patch<{ data: any }>(`/school/schedule-weeks/${id}/activate`, {}),
+
+  // Schedule Entries (مدخلات الجدول)
+  getScheduleEntries: (params: { weekId: string; dayOfWeek?: string }) => {
+    const q = new URLSearchParams({ weekId: params.weekId });
+    if (params.dayOfWeek) q.set("dayOfWeek", params.dayOfWeek);
+    return api.get<{ data: any[] }>(`/school/schedule-entries?${q}`);
+  },
+  upsertEntries:   (entries: any[]) => api.put<{ data: any }>("/school/schedule-entries", { entries }),
+  markLate:        (id: string, data: { teacher_late_minutes: number; teacher_arrived_at?: string }) =>
+    api.patch<{ data: any }>(`/school/schedule-entries/${id}/late`, data),
+
+  // Cases (الحالات)
+  listCases:       (params?: { status?: string; category?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status)   q.set("status", params.status);
+    if (params?.category) q.set("category", params.category);
+    return api.get<{ data: any[] }>(`/school/cases${q.toString() ? "?" + q : ""}`);
+  },
+  getCase:         (id: string) => api.get<{ data: any }>(`/school/cases/${id}`),
+  createCase:      (data: any) => api.post<{ data: any }>("/school/cases", data),
+  updateCase:      (id: string, data: any) => api.put<{ data: any }>(`/school/cases/${id}`, data),
+  addCaseStep:     (caseId: string, data: any) => api.post<{ data: any }>(`/school/cases/${caseId}/steps`, data),
+  deleteCaseStep:  (caseId: string, id: string) => api.delete<{ success: boolean }>(`/school/cases/${caseId}/steps/${id}`),
+
+  // Import
+  getImportTemplate: (type: string) => api.get<{ data: any }>(`/school/import/templates/${type}`),
+  previewImport:   (type: string, rows: any[], columnMap?: Record<string, string>) =>
+    api.post<{ data: any }>("/school/import/preview", { type, rows, column_map: columnMap }),
+  confirmImport:   (type: string, rows: any[], columnMap?: Record<string, string>) =>
+    api.post<{ data: any }>("/school/import/confirm", { type, rows, column_map: columnMap }),
+  listImportLogs:  (params?: { type?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.type) q.set("type", params.type);
+    return api.get<{ data: any[] }>(`/school/import/logs${q.toString() ? "?" + q : ""}`);
+  },
+  getImportLog:    (id: string) => api.get<{ data: any }>(`/school/import/logs/${id}`),
 };

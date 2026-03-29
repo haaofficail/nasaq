@@ -73,6 +73,8 @@ import { notificationsRouter } from "./routes/notifications";
 import { subscriptionRouter, orgStatsRouter } from "./routes/subscription";
 import { supportRouter } from "./routes/support";
 import { alertsRouter } from "./routes/alerts";
+import { schoolRouter } from "./routes/school";
+import { schoolImportRouter } from "./routes/school-import";
 
 // ============================================================
 // APP
@@ -541,6 +543,12 @@ app.route("/support", supportRouter);
 // --- In-App Alerts ---
 app.use("/alerts/*", authMiddleware);
 app.route("/alerts", alertsRouter);
+
+// --- School System ---
+app.use("/school/*", authMiddleware);
+app.use("/school/*", methodGuard("settings"));
+app.route("/school", schoolRouter);
+app.route("/school", schoolImportRouter);
 
 // --- Super Admin Panel ---
 // Note: admin router has its own super-admin middleware, no outer guards needed

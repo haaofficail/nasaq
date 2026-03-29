@@ -1,26 +1,209 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Calendar,
-  Monitor,
-  Package,
-  Globe,
-  BarChart3,
-  Truck,
-  CheckCircle2,
-  ArrowLeft,
-  Twitter,
-  Linkedin,
-  Instagram,
-  Star,
-  Scissors,
-  Coffee,
-  Flower2,
-  Utensils,
-  Car,
-  Camera,
-  Home,
+  Calendar, Monitor, Package, Globe, BarChart3, Truck,
+  CheckCircle2, ArrowLeft, Twitter, Linkedin, Instagram,
+  Star, Scissors, Coffee, Flower2, Utensils, Car, Camera,
+  Home, Building2, ShoppingBag, Users, Zap, Bell, Megaphone,
+  ChefHat, Smartphone, Layers, CreditCard, ClipboardList,
+  Wrench, FileText, Warehouse, Receipt, Briefcase, GraduationCap,
+  ChevronDown, Key, PartyPopper, Wallet, BarChart2, Plug,
+  ScanBarcode, Box, UsersRound, Send, MessageCircle,
 } from "lucide-react";
+
+// ─── Products Mega Menu Data ───────────────────────────────────────────────────
+const SPECIALIZATIONS = [
+  {
+    key: "salon",
+    label: "صالون وسبا",
+    icon: Scissors,
+    color: "text-pink-600",
+    bg: "bg-pink-50",
+    modules: ["الحجوزات", "الجدول الزمني", "العمولات", "الاستدعاء", "مستلزمات الصالون"],
+  },
+  {
+    key: "restaurant",
+    label: "مطعم وكافيه",
+    icon: Utensils,
+    color: "text-orange-600",
+    bg: "bg-orange-50",
+    modules: ["قائمة الطعام", "إدارة المطبخ", "خريطة الطاولات", "الطلبات الإلكترونية"],
+  },
+  {
+    key: "flower",
+    label: "محل ورد",
+    icon: Flower2,
+    color: "text-rose-600",
+    bg: "bg-rose-50",
+    modules: ["مخزون الورد", "بيانات الورد", "التنسيقات", "الطلبات"],
+  },
+  {
+    key: "hotel",
+    label: "فندق",
+    icon: Building2,
+    color: "text-blue-600",
+    bg: "bg-blue-50",
+    modules: ["إدارة الغرف", "الحجوزات", "تسجيل الدخول", "طلبات التنظيف"],
+  },
+  {
+    key: "car_rental",
+    label: "تأجير سيارات",
+    icon: Car,
+    color: "text-cyan-600",
+    bg: "bg-cyan-50",
+    modules: ["إدارة الأسطول", "عقود التأجير", "تسليم واستلام", "التقارير"],
+  },
+  {
+    key: "rental",
+    label: "تأجير وعقارات",
+    icon: Key,
+    color: "text-teal-600",
+    bg: "bg-teal-50",
+    modules: ["الأصول", "العقود", "المستودع", "الصيانة", "التفتيش"],
+  },
+  {
+    key: "events",
+    label: "فعاليات",
+    icon: PartyPopper,
+    color: "text-purple-600",
+    bg: "bg-purple-50",
+    modules: ["إدارة الفعاليات", "الباقات", "الحجوزات", "العقود"],
+  },
+  {
+    key: "photography",
+    label: "استوديو تصوير",
+    icon: Camera,
+    color: "text-indigo-600",
+    bg: "bg-indigo-50",
+    modules: ["الحجوزات", "مكتبة الوسائط", "العملاء", "العقود"],
+  },
+  {
+    key: "school",
+    label: "مدرسة",
+    icon: GraduationCap,
+    color: "text-emerald-600",
+    bg: "bg-emerald-50",
+    modules: ["الطلاب والفصول", "الجداول الدراسية", "رصد التأخر", "الحالات والمتابعة"],
+  },
+];
+
+const CORE_MODULES = [
+  { icon: ShoppingBag,   label: "نقطة البيع",     color: "text-blue-600" },
+  { icon: Box,           label: "المخزون",         color: "text-amber-600" },
+  { icon: Users,         label: "العملاء",         color: "text-violet-600" },
+  { icon: UsersRound,    label: "الفريق",          color: "text-teal-600" },
+  { icon: Wallet,        label: "المالية",         color: "text-emerald-600" },
+  { icon: BarChart2,     label: "التقارير",        color: "text-orange-600" },
+  { icon: Globe,         label: "الموقع والمتجر",  color: "text-sky-600" },
+  { icon: Send,          label: "التسويق",         color: "text-pink-600" },
+  { icon: MessageCircle, label: "واتساب",          color: "text-green-600" },
+  { icon: ScanBarcode,   label: "بطاقات الباركود", color: "text-gray-600" },
+  { icon: Plug,          label: "التكاملات",       color: "text-indigo-600" },
+  { icon: CreditCard,    label: "الاشتراكات",      color: "text-rose-600" },
+];
+
+// ─── Products Dropdown ─────────────────────────────────────────────────────────
+function ProductsDropdown({ scrolled }: { scrolled: boolean }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className={`flex items-center gap-1.5 text-sm font-medium transition-colors hover:text-[#5b9bd5] ${
+          scrolled ? "text-gray-600" : "text-white/80"
+        }`}
+      >
+        المنتجات
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div
+          className="absolute top-full mt-3 right-0 w-[680px] bg-white rounded-2xl shadow-xl border border-gray-100 p-5 z-50"
+          dir="rtl"
+        >
+          {/* Core modules */}
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">وحدات أساسية — لكل الأعمال</p>
+            <div className="grid grid-cols-4 gap-1.5">
+              {CORE_MODULES.map((m) => (
+                <div
+                  key={m.label}
+                  className="flex items-center gap-2 px-2.5 py-2 rounded-xl hover:bg-gray-50 transition-colors cursor-default"
+                >
+                  <m.icon className={`w-3.5 h-3.5 flex-shrink-0 ${m.color}`} />
+                  <span className="text-xs text-gray-700">{m.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="border-t border-gray-100 pt-4">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">التخصصات</p>
+            <div className="grid grid-cols-3 gap-2">
+              {SPECIALIZATIONS.map((s) => {
+                const isSchool = s.key === "school";
+                const inner = (
+                  <>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className={`w-7 h-7 rounded-lg ${s.bg} flex items-center justify-center flex-shrink-0`}>
+                        <s.icon className={`w-3.5 h-3.5 ${s.color}`} />
+                      </div>
+                      <span className="text-sm font-semibold text-gray-800">{s.label}</span>
+                      {isSchool && <span className="text-[10px] bg-emerald-100 text-emerald-700 rounded-full px-1.5 py-0.5 font-semibold mr-auto">صفحة خاصة</span>}
+                    </div>
+                    <div className="space-y-0.5 pr-9">
+                      {s.modules.map((mod) => (
+                        <p key={mod} className="text-xs text-gray-500">{mod}</p>
+                      ))}
+                    </div>
+                    {isSchool && <p className="text-xs text-emerald-600 font-semibold mt-2 pr-9 flex items-center gap-1">اكتشف نسق للمدارس <ArrowLeft className="w-3 h-3" /></p>}
+                  </>
+                );
+                return isSchool ? (
+                  <Link
+                    key={s.key}
+                    to="/school"
+                    onClick={() => setOpen(false)}
+                    className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3 hover:border-emerald-400 hover:bg-emerald-50 transition-all block"
+                  >
+                    {inner}
+                  </Link>
+                ) : (
+                  <div key={s.key} className="rounded-xl border border-gray-100 p-3 hover:border-[#5b9bd5]/30 hover:bg-[#5b9bd5]/5 transition-all cursor-default">
+                    {inner}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="border-t border-gray-100 mt-4 pt-3 flex items-center justify-between">
+            <p className="text-xs text-gray-400">9 تخصصات — 40+ وحدة تشغيلية</p>
+            <Link
+              to="/register"
+              onClick={() => setOpen(false)}
+              className="text-xs font-semibold text-[#5b9bd5] hover:text-[#4a8ac4] flex items-center gap-1"
+            >
+              ابدأ مجاناً
+              <ArrowLeft className="w-3 h-3" />
+            </Link>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── Counter Hook ─────────────────────────────────────────────────────────────
 function useCounter(target: number, duration = 1800, start = false) {
@@ -92,9 +275,11 @@ function PublicHeader() {
           <span className={`text-lg font-bold transition-colors ${scrolled ? "text-gray-900" : "text-white"}`}>نسق</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-7">
+          <ProductsDropdown scrolled={scrolled} />
           {[
-            { to: "#features", label: "المميزات" },
+            { to: "#specializations", label: "التخصصات" },
+            { to: "#features", label: "الإمكانيات" },
             { to: "#pricing", label: "الأسعار" },
             { to: "#testimonials", label: "آراء العملاء" },
           ].map((item) => (
@@ -109,6 +294,13 @@ function PublicHeader() {
         </nav>
 
         <div className="hidden md:flex items-center gap-3">
+          <Link
+            to="/school"
+            className={`flex items-center gap-1.5 text-sm font-medium px-3 py-1.5 rounded-xl border transition-all ${scrolled ? "border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100" : "border-emerald-400/40 text-emerald-300 hover:border-emerald-300 hover:text-emerald-200"}`}
+          >
+            <GraduationCap className="w-3.5 h-3.5" />
+            للمدارس
+          </Link>
           <Link to="/login" className={`text-sm font-medium px-4 py-2 rounded-xl transition-all ${scrolled ? "text-gray-600 hover:bg-gray-100" : "text-white/80 hover:text-white"}`}>
             تسجيل الدخول
           </Link>
@@ -126,9 +318,25 @@ function PublicHeader() {
 
       {mobileOpen && (
         <div className="md:hidden bg-white border-t border-gray-100 px-6 py-4 space-y-3 shadow-lg">
-          <a href="#features" className="block text-sm font-medium text-gray-700 py-2" onClick={() => setMobileOpen(false)}>المميزات</a>
+          <div className="py-2">
+            <p className="text-xs font-semibold text-gray-400 mb-2">التخصصات</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {SPECIALIZATIONS.map((s) => (
+                <div key={s.key} className={`flex items-center gap-1.5 px-2 py-1.5 rounded-lg ${s.bg}`}>
+                  <s.icon className={`w-3 h-3 flex-shrink-0 ${s.color}`} />
+                  <span className="text-xs text-gray-700 truncate">{s.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <a href="#specializations" className="block text-sm font-medium text-gray-700 py-2" onClick={() => setMobileOpen(false)}>التخصصات</a>
+          <a href="#features" className="block text-sm font-medium text-gray-700 py-2" onClick={() => setMobileOpen(false)}>الإمكانيات</a>
           <a href="#pricing" className="block text-sm font-medium text-gray-700 py-2" onClick={() => setMobileOpen(false)}>الأسعار</a>
           <a href="#testimonials" className="block text-sm font-medium text-gray-700 py-2" onClick={() => setMobileOpen(false)}>آراء العملاء</a>
+          <Link to="/school" className="flex items-center gap-2 text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 py-2.5 px-3 rounded-xl" onClick={() => setMobileOpen(false)}>
+            <GraduationCap className="w-4 h-4" />
+            نسق للمدارس
+          </Link>
           <div className="flex gap-3 pt-2 border-t border-gray-100">
             <Link to="/login" className="flex-1 text-center border border-gray-200 text-sm font-medium text-gray-700 py-2.5 rounded-xl" onClick={() => setMobileOpen(false)}>تسجيل الدخول</Link>
             <Link to="/register" className="flex-1 text-center bg-[#5b9bd5] text-white text-sm font-semibold py-2.5 rounded-xl" onClick={() => setMobileOpen(false)}>ابدأ مجاناً</Link>
@@ -151,10 +359,8 @@ export function LandingPage() {
       <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden"
         style={{ background: "linear-gradient(145deg, #1a1a2e 0%, #16213e 40%, #0f3460 70%, #5b9bd5 100%)" }}>
 
-        {/* Dot pattern */}
         <div className="absolute inset-0 dot-pattern pointer-events-none" />
 
-        {/* Animated SVG background blobs */}
         <div className="absolute inset-0 pointer-events-none overflow-hidden">
           <svg className="absolute -top-32 -right-32 w-[600px] h-[600px] opacity-10" viewBox="0 0 600 600">
             <circle cx="300" cy="300" r="250" fill="#5b9bd5" />
@@ -162,49 +368,37 @@ export function LandingPage() {
           <svg className="absolute -bottom-48 -left-48 w-[700px] h-[700px] opacity-[0.06]" viewBox="0 0 700 700">
             <circle cx="350" cy="350" r="300" fill="#5b9bd5" />
           </svg>
-          {/* Animated paths */}
           <svg className="absolute bottom-0 left-0 right-0 w-full" viewBox="0 0 1440 120" preserveAspectRatio="none">
-            <path
-              d="M0,80 C360,120 720,40 1080,80 C1260,100 1380,60 1440,80 L1440,120 L0,120 Z"
-              fill="white"
-              fillOpacity="1"
-            />
+            <path d="M0,80 C360,120 720,40 1080,80 C1260,100 1380,60 1440,80 L1440,120 L0,120 Z" fill="white" fillOpacity="1" />
           </svg>
-          {/* Floating circles */}
           <div className="absolute top-1/4 left-1/4 w-2 h-2 rounded-full bg-[#5b9bd5]/40 animate-float" style={{ animationDelay: "0s" }} />
           <div className="absolute top-1/3 right-1/3 w-3 h-3 rounded-full bg-[#f59e0b]/30 animate-float" style={{ animationDelay: "1s" }} />
           <div className="absolute bottom-1/3 left-1/3 w-2 h-2 rounded-full bg-white/20 animate-float" style={{ animationDelay: "2s" }} />
           <div className="absolute top-2/3 right-1/4 w-1.5 h-1.5 rounded-full bg-[#5b9bd5]/30 animate-float" style={{ animationDelay: "3s" }} />
         </div>
 
-        {/* Hero content */}
         <div className="relative z-10 max-w-4xl mx-auto px-6 text-center pt-24 pb-32">
-          {/* Logo mark */}
           <div className="animate-fade-in-up flex justify-center mb-8">
             <div className="w-16 h-16 rounded-2xl bg-[#5b9bd5] shadow-2xl flex items-center justify-center">
               <span className="text-white font-black text-2xl">ن</span>
             </div>
           </div>
 
-          {/* Badge */}
           <div className="animate-fade-in-up-delay-1 inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white/90 px-4 py-1.5 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
             <span className="w-2 h-2 rounded-full bg-[#10b981] pulse-dot" />
-            نظام نسق — الإصدار الجديد متاح الآن
+            9 تخصصات — 40+ وحدة تشغيلية — نظام واحد متكامل
           </div>
 
-          {/* Title */}
           <h1 className="animate-fade-in-up-delay-2 text-4xl md:text-6xl lg:text-7xl font-black text-white leading-tight mb-6 tracking-tight">
             نظام تشغيل واحد
             <br />
             <span className="gradient-text">لكل نشاطك التجاري</span>
           </h1>
 
-          {/* Description */}
           <p className="animate-fade-in-up-delay-3 text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-10 leading-relaxed font-light">
-            صالون؟ مطعم؟ كوفي؟ ورد؟ تأجير؟ — نسق يديرهم كلهم من مكان واحد
+            صالون، ورد، فندق، مطعم، تأجير سيارات، تجزئة، تصوير — كل نشاط له نظامه المتخصص، ويعمل كلهم من منصة واحدة
           </p>
 
-          {/* CTAs */}
           <div className="animate-fade-in-delay-4 flex items-center justify-center gap-4 flex-wrap">
             <Link
               to="/register"
@@ -213,16 +407,16 @@ export function LandingPage() {
               ابدأ مجاناً
             </Link>
             <a
-              href="#features"
+              href="#specializations"
               className="border border-white/30 text-white px-8 py-3.5 rounded-xl font-semibold text-base hover:bg-white/10 transition-all backdrop-blur-sm flex items-center gap-2"
             >
-              شاهد العرض
+              استكشف التخصصات
               <ArrowLeft size={16} />
             </a>
           </div>
 
           <p className="animate-fade-in-delay-4 mt-5 text-sm text-white/40 font-light">
-            لا بطاقة ائتمانية مطلوبة — 14 يوم مجاناً — إلغاء في أي وقت
+            لا بطاقة ائتمانية مطلوبة — 15 حجز مجاناً — ابدأ الآن
           </p>
         </div>
       </section>
@@ -231,122 +425,378 @@ export function LandingPage() {
       <section className="py-20 bg-white border-b border-gray-100" ref={statsRef}>
         <div className="max-w-5xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
-            <StatItem target={44530} suffix="+" label="حجز مكتمل" start={statsInView} />
-            <StatItem target={7} suffix="+" label="أنواع أنشطة" start={statsInView} />
-            <StatItem target={11} suffix="+" label="سنة خبرة" start={statsInView} />
-            <StatItem target={999} suffix="‰" label="استمرارية الخدمة" start={statsInView} />
+            <StatItem target={8}   suffix="+" label="تخصصات نشاط" start={statsInView} />
+            <StatItem target={40}  suffix="+" label="وحدة تشغيلية" start={statsInView} />
+            <StatItem target={50000} suffix="+" label="حجز مكتمل" start={statsInView} />
+            <StatItem target={99}  suffix="%" label="استمرارية الخدمة" start={statsInView} />
           </div>
         </div>
       </section>
 
-      {/* ── Section 3: For Every Business ────────────────────────────────── */}
-      <section className="py-24 md:py-32 bg-gray-50 overflow-hidden">
+      {/* ── Section 3: Specializations ────────────────────────────────────── */}
+      <section id="specializations" className="py-24 md:py-32 bg-gray-50">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-            {/* Left: text */}
-            <div>
-              <p className="text-xs font-semibold text-[#5b9bd5] uppercase tracking-widest mb-3">منصة شاملة</p>
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900 leading-tight mb-5">
-                لكل نشاط تجاري
-                <br />
-                <span className="text-[#5b9bd5]">حل مخصص</span>
-              </h2>
-              <p className="text-gray-500 text-base leading-relaxed mb-8 max-w-md">
-                سواء كنت تدير صالون حلاقة، مطعماً، محل ورد، أو خدمة تأجير — نسق يتكيف مع طبيعة نشاطك ويعطيك الأدوات التي تحتاجها بالضبط.
-              </p>
-              <div className="space-y-3 mb-8">
-                {["حجوزات ذكية مع تقويم تفاعلي", "إدارة عملاء وبناء علاقات طويلة", "تقارير تساعدك على اتخاذ قرارات أفضل"].map((item) => (
-                  <div key={item} className="flex items-center gap-3">
-                    <CheckCircle2 size={16} className="text-[#10b981] shrink-0" />
-                    <span className="text-sm text-gray-600">{item}</span>
+          <div className="text-center mb-14">
+            <p className="text-xs font-semibold text-[#5b9bd5] uppercase tracking-widest mb-3">التخصصات</p>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">كل نشاط له نظامه</h2>
+            <p className="text-gray-500 max-w-xl mx-auto leading-relaxed">
+              نسق لا يقدم نظاماً عاماً — كل تخصص يحمل وحدات حصرية مصممة لطبيعة ذلك النشاط تحديداً
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              {
+                icon: <Scissors size={20} />,
+                color: "bg-pink-50 text-pink-600 border-pink-100",
+                badge: "bg-pink-100 text-pink-700",
+                name: "الصالون",
+                tagline: "صالونات الحلاقة والتجميل",
+                modules: ["تقويم الموظفين الذكي", "خدمات منزلية وتنقل", "سجل عناية العميل", "إدارة الطاقم والحضور"],
+              },
+              {
+                icon: <Flower2 size={20} />,
+                color: "bg-emerald-50 text-emerald-600 border-emerald-100",
+                badge: "bg-emerald-100 text-emerald-700",
+                name: "محل الورد",
+                tagline: "ورد، هدايا، وكوشات",
+                modules: ["محرر التنسيقات البصري", "إدارة الكوشة والمناسبات", "تتبع انتهاء الصلاحية", "باقات جاهزة وتسعير ذكي"],
+              },
+              {
+                icon: <Utensils size={20} />,
+                color: "bg-orange-50 text-orange-600 border-orange-100",
+                badge: "bg-orange-100 text-orange-700",
+                name: "المطعم",
+                tagline: "مطاعم، كافيهات، وسحب سحاب",
+                modules: ["منيو رقمي تفاعلي", "نظام المطبخ KDS", "طلبات إلكترونية", "توصيل وتتبع سائقين"],
+              },
+              {
+                icon: <Building2 size={20} />,
+                color: "bg-blue-50 text-blue-600 border-blue-100",
+                badge: "bg-blue-100 text-blue-700",
+                name: "الفندق",
+                tagline: "فنادق، شقق، وإيجار قصير",
+                modules: ["إدارة الغرف والإتاحة", "تسجيل دخول وخروج", "خدمات الغرف", "تقارير الإشغال"],
+              },
+              {
+                icon: <Car size={20} />,
+                color: "bg-indigo-50 text-indigo-600 border-indigo-100",
+                badge: "bg-indigo-100 text-indigo-700",
+                name: "تأجير السيارات",
+                tagline: "أساطيل، تأجير يومي وعقود",
+                modules: ["إدارة الأسطول", "عقود التأجير الذكية", "جدولة الصيانة", "تسليم واستلام موثق"],
+              },
+              {
+                icon: <ShoppingBag size={20} />,
+                color: "bg-violet-50 text-violet-600 border-violet-100",
+                badge: "bg-violet-100 text-violet-700",
+                name: "التجزئة",
+                tagline: "محلات، سوبرماركت، وبيع بالجملة",
+                modules: ["نقطة بيع كاملة + باركود", "مخزون متعدد المستودعات", "عروض وخصومات", "تقارير مبيعات تفصيلية"],
+              },
+              {
+                icon: <Layers size={20} />,
+                color: "bg-teal-50 text-teal-600 border-teal-100",
+                badge: "bg-teal-100 text-teal-700",
+                name: "التأجير",
+                tagline: "تأجير معدات، شقق، وأصول",
+                modules: ["عقود تأجير متكاملة", "إدارة الأصول والجاهزية", "جدولة التوافر", "فواتير وتحصيل تلقائي"],
+              },
+              {
+                icon: <Camera size={20} />,
+                color: "bg-purple-50 text-purple-600 border-purple-100",
+                badge: "bg-purple-100 text-purple-700",
+                name: "التصوير",
+                tagline: "استوديوهات ومصورون",
+                modules: ["جلسات تصوير مجدولة", "مشاريع ومراحل التسليم", "عقود وعروض أسعار", "معرض أعمال للعميل"],
+              },
+              {
+                icon: <GraduationCap size={20} />,
+                color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+                badge: "bg-emerald-100 text-emerald-700",
+                name: "المدرسة",
+                tagline: "وكيل طلابي وإدارة مدرسية",
+                modules: ["مراقب اليوم والحصص", "جداول شتوية وصيفية", "رصد تأخر المعلمين", "حالات الطلاب ومتابعتها"],
+                link: "/school",
+              },
+            ].map((spec) => {
+              const card = (
+                <>
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${spec.color.split(" ").slice(0, 2).join(" ")}`}>
+                      {spec.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-gray-900">{spec.name}</p>
+                        {"link" in spec && <span className="text-[10px] bg-emerald-100 text-emerald-700 rounded-full px-1.5 py-0.5 font-semibold">نظام مستقل</span>}
+                      </div>
+                      <p className="text-[11px] text-gray-400">{spec.tagline}</p>
+                    </div>
                   </div>
-                ))}
-              </div>
-              <Link to="/register" className="inline-flex items-center gap-2 bg-[#5b9bd5] text-white px-6 py-3 rounded-xl font-semibold text-sm hover:bg-[#4a8ac4] transition-all shadow-sm hover:shadow-md">
-                ابدأ تجربتك المجانية
-                <ArrowLeft size={15} />
-              </Link>
-            </div>
-
-            {/* Right: orbit animation */}
-            <div className="relative flex items-center justify-center" style={{ height: 360 }}>
-              {/* Center logo */}
-              <div className="absolute z-10 w-20 h-20 rounded-2xl bg-[#5b9bd5] shadow-2xl flex items-center justify-center animate-float">
-                <span className="text-white font-black text-2xl">ن</span>
-              </div>
-
-              {/* Ring 1 */}
-              <div className="absolute w-[200px] h-[200px] rounded-full border border-[#5b9bd5]/20 orbit-ring-1">
-                <div className="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-xl bg-pink-50 border border-pink-100 flex items-center justify-center shadow-sm">
-                  <Scissors size={16} className="text-pink-500" />
+                  <ul className="space-y-1.5">
+                    {spec.modules.map((m) => (
+                      <li key={m} className="flex items-center gap-2 text-xs text-gray-600">
+                        <CheckCircle2 size={11} className="text-[#10b981] shrink-0" />
+                        {m}
+                      </li>
+                    ))}
+                  </ul>
+                  {"link" in spec && (
+                    <div className="mt-3 pt-3 border-t border-emerald-100 flex items-center gap-1 text-xs text-emerald-700 font-semibold">
+                      اكتشف نسق للمدارس
+                      <ArrowLeft size={11} />
+                    </div>
+                  )}
+                </>
+              );
+              return "link" in spec ? (
+                <Link
+                  key={spec.name}
+                  to={spec.link!}
+                  className={`bg-white rounded-2xl border ${spec.color.split(" ")[2]} p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 block`}
+                >
+                  {card}
+                </Link>
+              ) : (
+                <div key={spec.name} className={`bg-white rounded-2xl border ${spec.color.split(" ")[2]} p-5 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300`}>
+                  {card}
                 </div>
-                <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center shadow-sm">
-                  <Coffee size={16} className="text-amber-600" />
-                </div>
-              </div>
-
-              {/* Ring 2 */}
-              <div className="absolute w-[300px] h-[300px] rounded-full border border-dashed border-[#5b9bd5]/15 orbit-ring-2">
-                <div className="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-xl bg-red-50 border border-red-100 flex items-center justify-center shadow-sm">
-                  <Utensils size={16} className="text-red-500" />
-                </div>
-                <div className="absolute top-1/2 -right-5 -translate-y-1/2 w-10 h-10 rounded-xl bg-green-50 border border-green-100 flex items-center justify-center shadow-sm">
-                  <Flower2 size={16} className="text-green-500" />
-                </div>
-                <div className="absolute top-1/2 -left-5 -translate-y-1/2 w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center shadow-sm">
-                  <Home size={16} className="text-blue-500" />
-                </div>
-              </div>
-
-              {/* Ring 3 */}
-              <div className="absolute w-[350px] h-[350px] rounded-full border border-[#5b9bd5]/10 orbit-ring-3">
-                <div className="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center shadow-sm">
-                  <Car size={16} className="text-indigo-500" />
-                </div>
-                <div className="absolute -bottom-5 right-1/4 w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center shadow-sm">
-                  <Camera size={16} className="text-purple-500" />
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
         </div>
       </section>
 
-      {/* ── Section 4: Features ──────────────────────────────────────────── */}
+      {/* ── School Banner ────────────────────────────────────────────────── */}
+      <section className="py-16 bg-gradient-to-r from-emerald-950 via-emerald-900 to-gray-900 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-[0.05]" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px)", backgroundSize: "32px 32px" }} />
+        <div className="relative max-w-5xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex items-center gap-5">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-900/50 flex-shrink-0">
+              <GraduationCap className="w-7 h-7 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-emerald-400 text-xs font-bold uppercase tracking-widest">تخصص المدارس</span>
+                <span className="bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[10px] font-semibold rounded-full px-2 py-0.5">نظام مستقل</span>
+              </div>
+              <h3 className="text-xl md:text-2xl font-black text-white">نسق للمدارس — نظام تشغيل يومي</h3>
+              <p className="text-gray-400 text-sm mt-1">مراقب الحصص، جداول المعلمين، الطلاب، الحالات — كل شيء في بوابة مستقلة</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3 flex-shrink-0">
+            <div className="flex flex-col gap-2 text-right hidden md:flex">
+              {["مراقب اليوم اللحظي", "جداول شتوية وصيفية", "رصد التأخر والحالات"].map((f) => (
+                <span key={f} className="flex items-center gap-2 text-sm text-gray-300">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                  {f}
+                </span>
+              ))}
+            </div>
+            <Link
+              to="/school"
+              className="flex items-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-emerald-500 transition-all shadow-md hover:shadow-lg whitespace-nowrap self-center"
+            >
+              اكتشف نسق للمدارس
+              <ArrowLeft className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Section 4: Core Platform ──────────────────────────────────────── */}
       <section id="features" className="py-24 md:py-32 bg-white">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="text-center mb-16">
-            <p className="text-xs font-semibold text-[#5b9bd5] uppercase tracking-widest mb-3">الإمكانيات</p>
-            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">كل ما يحتاجه نشاطك</h2>
-            <p className="text-gray-500 max-w-xl mx-auto leading-relaxed">أدوات احترافية مدمجة في منصة واحدة — لا حاجة لأنظمة متعددة</p>
+          <div className="text-center mb-14">
+            <p className="text-xs font-semibold text-[#5b9bd5] uppercase tracking-widest mb-3">النواة المشتركة</p>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">40+ وحدة تشغيلية شاملة</h2>
+            <p className="text-gray-500 max-w-xl mx-auto leading-relaxed">
+              كل منشأة تحصل على هذه الوحدات مدمجة — لا إضافات مدفوعة، لا تكاملات معقدة
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: <Calendar size={22} />, title: "إدارة الحجوزات", desc: "تقويم تفاعلي مع إشعارات فورية وتتبع كل حجز من اللحظة الأولى حتى الإغلاق.", color: "bg-blue-50 text-[#5b9bd5]" },
-              { icon: <Monitor size={22} />, title: "نقطة البيع", desc: "كاشير متكامل لمعالجة المدفوعات، إصدار الفواتير، وإدارة الطلبات في الوقت الفعلي.", color: "bg-indigo-50 text-indigo-600" },
-              { icon: <Package size={22} />, title: "إدارة المخزون", desc: "تتبع أصولك ومعداتك وجدولة استخدامها مع تنبيهات الصيانة والنفاد.", color: "bg-amber-50 text-amber-600" },
-              { icon: <Globe size={22} />, title: "الموقع الإلكتروني", desc: "موقع احترافي جاهز لنشاطك مع رابط حجز مباشر يمكن مشاركته بسهولة.", color: "bg-emerald-50 text-emerald-600" },
-              { icon: <BarChart3 size={22} />, title: "التقارير والتحليلات", desc: "لوحة بيانات شاملة تعطيك رؤية واضحة عن أداء نشاطك واتجاهات الإيرادات.", color: "bg-purple-50 text-purple-600" },
-              { icon: <Truck size={22} />, title: "إدارة الطلبات", desc: "تتبع الطلبات الميدانية والتوصيل مع تحديثات حالة فورية لكل طلب.", color: "bg-rose-50 text-rose-600" },
+              { icon: <Calendar size={20} />,       title: "الحجوزات الذكية",       desc: "تقويم تفاعلي، تأكيد تلقائي، وإدارة كاملة لكل موعد من البداية للإغلاق",        color: "bg-blue-50 text-[#5b9bd5]" },
+              { icon: <Users size={20} />,           title: "إدارة العملاء CRM",      desc: "ملفات عملاء كاملة، تاريخ التعامل، تصنيفات، وتواصل مباشر من النظام",          color: "bg-sky-50 text-sky-600" },
+              { icon: <Monitor size={20} />,         title: "نقطة البيع POS",         desc: "كاشير متكامل، طباعة فواتير، خصومات، ووسائل دفع متعددة",                        color: "bg-indigo-50 text-indigo-600" },
+              { icon: <Warehouse size={20} />,       title: "إدارة المخزون",          desc: "تتبع كميات، تنبيهات نفاد، طلبات شراء تلقائية، وسجل حركة كامل",              color: "bg-amber-50 text-amber-600" },
+              { icon: <ClipboardList size={20} />,   title: "الموظفون والحضور",       desc: "سجل الدوام، الإجازات، المهام اليومية، وملفات الفريق",                          color: "bg-teal-50 text-teal-600" },
+              { icon: <Receipt size={20} />,         title: "المحاسبة والمالية",      desc: "قيود محاسبية تلقائية، ميزانية، حسابات ختامية، وتقارير ربحية",                color: "bg-emerald-50 text-emerald-600" },
+              { icon: <Globe size={20} />,           title: "الموقع والحجز الإلكتروني","desc": "موقع احترافي جاهز مع رابط حجز مباشر وصفحة نشاطك المخصصة",               color: "bg-cyan-50 text-cyan-600" },
+              { icon: <BarChart3 size={20} />,       title: "التقارير والتحليلات",    desc: "داشبورد تنفيذي، تقارير إيرادات، أداء موظفين، واتجاهات النشاط",              color: "bg-purple-50 text-purple-600" },
+              { icon: <Megaphone size={20} />,       title: "التسويق والحملات",       desc: "رسائل SMS وبريد، حملات موسمية، متابعة العروض، وولاء العملاء",               color: "bg-rose-50 text-rose-600" },
+              { icon: <Zap size={20} />,             title: "الأتمتة والقواعد",       desc: "قواعد تلقائية لإرسال التذكيرات، إغلاق الحجوزات، وتحريك المخزون",           color: "bg-yellow-50 text-yellow-600" },
+              { icon: <Truck size={20} />,           title: "الموردون والمشتريات",    desc: "قائمة موردين، طلبات شراء، استلام وفحص بضاعة، وسجل تكاليف",                 color: "bg-orange-50 text-orange-600" },
+              { icon: <Bell size={20} />,            title: "الإشعارات الفورية",      desc: "إشعارات تلقائية للعميل والموظف عند كل حدث — حجز، إلغاء، تأكيد",           color: "bg-fuchsia-50 text-fuchsia-600" },
+              { icon: <Briefcase size={20} />,       title: "العقود والموافقات",      desc: "إدارة عقود الخدمة، موافقات متعددة المستويات، وتوقيع رقمي",                  color: "bg-slate-50 text-slate-600" },
+              { icon: <CreditCard size={20} />,      title: "الفواتير والتحصيل",      desc: "إصدار فواتير احترافية، متابعة المديونيات، ورسائل تحصيل تلقائية",           color: "bg-green-50 text-green-600" },
+              { icon: <Wrench size={20} />,          title: "الصيانة الدورية",        desc: "جدولة صيانة الأصول والمعدات، تنبيهات استحقاق، وسجل أعمال",                color: "bg-stone-50 text-stone-600" },
+              { icon: <FileText size={20} />,        title: "سجل التدقيق",            desc: "تتبع كامل لكل عملية داخل النظام — من فعلها، متى، وماذا غيّر",               color: "bg-gray-50 text-gray-600" },
             ].map((feature) => (
               <div
                 key={feature.title}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 hover:shadow-lg hover:-translate-y-1 transition-all duration-300 group"
               >
-                <div className={`w-11 h-11 rounded-xl ${feature.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                <div className={`w-10 h-10 rounded-xl ${feature.color} flex items-center justify-center mb-3 group-hover:scale-110 transition-transform duration-300`}>
                   {feature.icon}
                 </div>
-                <h3 className="text-sm font-bold text-gray-900 mb-2">{feature.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
+                <h3 className="text-sm font-bold text-gray-900 mb-1.5">{feature.title}</h3>
+                <p className="text-xs text-gray-500 leading-relaxed">{feature.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── Section 5: How it works ──────────────────────────────────────── */}
+      {/* ── Section 5: Deep Specialty Showcase ────────────────────────────── */}
       <section className="py-24 md:py-32 bg-gray-50">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-14">
+            <p className="text-xs font-semibold text-[#5b9bd5] uppercase tracking-widest mb-3">التخصص العميق</p>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">وحدات حصرية لكل قطاع</h2>
+            <p className="text-gray-500 max-w-xl mx-auto">لا قوالب عامة — كل قطاع له منطقه التشغيلي الخاص</p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Restaurant */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg transition-all">
+              <div className="px-6 pt-6 pb-4 border-b border-gray-50">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center">
+                    <Utensils size={18} className="text-orange-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">نظام المطعم والكافيه</p>
+                    <p className="text-xs text-gray-400">من المطبخ إلى الطاولة إلى التوصيل</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 grid grid-cols-2 gap-3">
+                {[
+                  { icon: <ChefHat size={15} />, label: "نظام المطبخ KDS", sub: "طباعة أوامر وأولويات فورية" },
+                  { icon: <Smartphone size={15} />, label: "الطلبات الإلكترونية", sub: "QR menu وأوردر إلكتروني" },
+                  { icon: <Truck size={15} />, label: "إدارة التوصيل", sub: "سائقون، مسارات، وتتبع" },
+                  { icon: <Globe size={15} />, label: "منيو رقمي", sub: "تحديث فوري لصفحة النشاط" },
+                ].map((item) => (
+                  <div key={item.label} className="flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center shrink-0 mt-0.5 text-orange-600">
+                      {item.icon}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-800">{item.label}</p>
+                      <p className="text-[11px] text-gray-400">{item.sub}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Flower */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg transition-all">
+              <div className="px-6 pt-6 pb-4 border-b border-gray-50">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
+                    <Flower2 size={18} className="text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">نظام الورد والتنسيقات</p>
+                    <p className="text-xs text-gray-400">من الزهرة إلى الكوشة إلى التوصيل</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 grid grid-cols-2 gap-3">
+                {[
+                  { icon: <Flower2 size={15} />, label: "محرر التنسيقات", sub: "بناء باقات بصرية وتسعير" },
+                  { icon: <Calendar size={15} />, label: "حجوزات الكوشة", sub: "مناسبات وأعراس" },
+                  { icon: <Bell size={15} />, label: "انتهاء الصلاحية", sub: "تنبيهات قبل 3 أيام" },
+                  { icon: <Package size={15} />, label: "إدارة الأسهم", sub: "تتبع السيقان والأصناف" },
+                ].map((item) => (
+                  <div key={item.label} className="flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5 text-emerald-600">
+                      {item.icon}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-800">{item.label}</p>
+                      <p className="text-[11px] text-gray-400">{item.sub}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Hotel */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg transition-all">
+              <div className="px-6 pt-6 pb-4 border-b border-gray-50">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <Building2 size={18} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">نظام الفندق والشقق</p>
+                    <p className="text-xs text-gray-400">إدارة الإشغال والخدمات بدقة</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 grid grid-cols-2 gap-3">
+                {[
+                  { icon: <Building2 size={15} />, label: "خريطة الغرف", sub: "إتاحة فورية وتصنيف" },
+                  { icon: <ClipboardList size={15} />, label: "Check-in/out", sub: "استقبال رقمي سريع" },
+                  { icon: <Bell size={15} />, label: "خدمات الغرف", sub: "طلبات وتتبع التسليم" },
+                  { icon: <BarChart3 size={15} />, label: "تقارير الإشغال", sub: "RevPAR وإيرادات الغرفة" },
+                ].map((item) => (
+                  <div key={item.label} className="flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 mt-0.5 text-blue-600">
+                      {item.icon}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-800">{item.label}</p>
+                      <p className="text-[11px] text-gray-400">{item.sub}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Car Rental */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg transition-all">
+              <div className="px-6 pt-6 pb-4 border-b border-gray-50">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center">
+                    <Car size={18} className="text-indigo-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">نظام تأجير السيارات</p>
+                    <p className="text-xs text-gray-400">من العقد إلى التسليم إلى الصيانة</p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 grid grid-cols-2 gap-3">
+                {[
+                  { icon: <Car size={15} />, label: "إدارة الأسطول", sub: "سيارات، جاهزية، وحالة" },
+                  { icon: <FileText size={15} />, label: "عقود التأجير", sub: "إنشاء ورقمنة العقود" },
+                  { icon: <Wrench size={15} />, label: "جدولة الصيانة", sub: "تنبيه قبل الاستحقاق" },
+                  { icon: <ClipboardList size={15} />, label: "التسليم والاستلام", sub: "تقارير حالة موثقة" },
+                ].map((item) => (
+                  <div key={item.label} className="flex gap-3 items-start">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0 mt-0.5 text-indigo-600">
+                      {item.icon}
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-gray-800">{item.label}</p>
+                      <p className="text-[11px] text-gray-400">{item.sub}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Section 6: How it works ──────────────────────────────────────── */}
+      <section className="py-24 md:py-32 bg-white">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-16">
             <p className="text-xs font-semibold text-[#5b9bd5] uppercase tracking-widest mb-3">كيف يعمل</p>
@@ -355,13 +805,12 @@ export function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative">
-            {/* Connector lines (desktop) */}
             <div className="hidden md:block absolute top-10 right-1/3 left-1/3 h-px" style={{ background: "repeating-linear-gradient(90deg, #5b9bd5 0px, #5b9bd5 8px, transparent 8px, transparent 16px)" }} />
 
             {[
-              { step: "01", icon: <CheckCircle2 size={20} />, title: "سجّل حسابك", desc: "أنشئ حسابك في دقيقتين بالبريد أو رقم الجوال. لا بطاقة ائتمانية." },
-              { step: "02", icon: <Package size={20} />, title: "خصّص نشاطك", desc: "أدخل خدماتك وأسعارك وأوقات العمل. القالب يتكيف مع نوع نشاطك تلقائياً." },
-              { step: "03", icon: <Calendar size={20} />, title: "استقبل الحجوزات", desc: "شارك رابط الحجز الخاص بك واستقبل عملاءك فوراً مع إشعارات تلقائية." },
+              { step: "01", title: "سجّل حسابك", desc: "أنشئ حسابك في دقيقتين واختر نوع نشاطك. النظام يُهيئ الوحدات المناسبة تلقائياً." },
+              { step: "02", title: "خصّص نشاطك", desc: "أدخل خدماتك، أسعارك، وأوقات العمل. كل إعداد يتكيف مع نموذج تشغيلك." },
+              { step: "03", title: "استقبل الحجوزات", desc: "شارك رابط الحجز وابدأ استقبال العملاء فوراً مع إشعارات وتأكيدات تلقائية." },
             ].map((item, i) => (
               <div key={item.step} className="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-7 text-center hover:shadow-md transition-all">
                 <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#5b9bd5]/10 text-[#5b9bd5] mb-5 mx-auto">
@@ -375,8 +824,8 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ── Section 6: Pricing ───────────────────────────────────────────── */}
-      <section id="pricing" className="py-24 md:py-32 bg-white">
+      {/* ── Section 7: Pricing ───────────────────────────────────────────── */}
+      <section id="pricing" className="py-24 md:py-32 bg-gray-50">
         <div className="max-w-5xl mx-auto px-6">
           <div className="text-center mb-16">
             <p className="text-xs font-semibold text-[#5b9bd5] uppercase tracking-widest mb-3">الأسعار</p>
@@ -389,28 +838,31 @@ export function LandingPage() {
               {
                 name: "مجاني",
                 price: "0",
-                period: "ر.س / شهرياً",
-                desc: "لتجربة النظام والبدء الصغير",
-                features: ["3 خدمات", "50 حجز / شهر", "موقع أساسي", "دعم عبر البريد"],
+                period: "لا رسوم شهرية",
+                desc: "استكشف كامل النظام بلا تكلفة",
+                features: ["جميع وحدات النظام", "15 حجز مدى الحياة", "5 موظفين", "موقع حجز كامل", "دعم عبر البريد"],
                 cta: "ابدأ مجاناً",
+                href: "/register",
                 popular: false,
               },
               {
-                name: "احترافي",
+                name: "الأساسي",
                 price: "199",
                 period: "ر.س / شهرياً",
-                desc: "للأنشطة النامية والمحترفين",
-                features: ["خدمات غير محدودة", "حجوزات غير محدودة", "تقارير متقدمة", "دعم أولوي", "تطبيق جوال", "نقطة بيع كاملة"],
-                cta: "ابدأ التجربة",
+                desc: "للأنشطة النامية التي تحتاج استمرارية",
+                features: ["حجوزات غير محدودة", "10 موظفين", "فرع واحد", "تقارير متقدمة", "تسويق وحملات", "دعم أولوي"],
+                cta: "ابدأ الآن",
+                href: "/register",
                 popular: true,
               },
               {
-                name: "مؤسسي",
-                price: "499",
+                name: "الاحترافي",
+                price: "999",
                 period: "ر.س / شهرياً",
                 desc: "للشركات والفروع المتعددة",
-                features: ["كل مميزات الاحترافي", "فروع متعددة", "API مخصص", "مدير حساب", "تخصيص كامل", "SLA 99.9%"],
+                features: ["حجوزات غير محدودة", "50 موظف", "5 فروع", "API مخصص", "مدير حساب", "SLA 99.9%"],
                 cta: "تواصل معنا",
+                href: "/contact",
                 popular: false,
               },
             ].map((plan) => (
@@ -446,7 +898,7 @@ export function LandingPage() {
                   ))}
                 </ul>
                 <Link
-                  to="/register"
+                  to={plan.href}
                   className={`block text-center py-3 rounded-xl text-sm font-semibold transition-all ${
                     plan.popular
                       ? "bg-[#5b9bd5] text-white hover:bg-[#4a8ac4] shadow-sm hover:shadow-md"
@@ -458,55 +910,93 @@ export function LandingPage() {
               </div>
             ))}
           </div>
+
+          <p className="text-center text-sm text-gray-400 mt-8">
+            هل أنت شركة كبيرة أو لديك فروع متعددة؟
+            <Link to="/contact" className="text-[#5b9bd5] font-semibold mr-1 hover:underline">تواصل معنا للخطة المؤسسية</Link>
+          </p>
         </div>
       </section>
 
-      {/* ── Section 7: Testimonials ──────────────────────────────────────── */}
+      {/* ── Section 8: Testimonials ──────────────────────────────────────── */}
       <section id="testimonials" className="py-24 md:py-32" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%)" }}>
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-16">
             <p className="text-xs font-semibold text-[#5b9bd5] uppercase tracking-widest mb-3">آراء العملاء</p>
             <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">يقولون عن نسق</h2>
-            <p className="text-gray-500">تجارب حقيقية من أصحاب أنشطة يستخدمون نسق يومياً</p>
+            <p className="text-gray-500">من صالونات الرياض إلى فنادق جدة — تجارب حقيقية من قطاعات مختلفة</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
                 name: "أحمد الغامدي",
-                role: "مدير صالون حلاقة — الرياض",
-                text: "قبل نسق كنت أدير كل شيء يدوياً. الآن الحجوزات تأتي تلقائياً والعملاء يتابعون حجوزاتهم بأنفسهم. وفّرت 3 ساعات يومياً.",
+                role: "مدير صالون — الرياض",
+                text: "قبل نسق كنت أدير كل شيء يدوياً. الآن تقويم الموظفين يعمل تلقائياً والعملاء يحجزون بأنفسهم. وفّرت 3 ساعات يومياً.",
                 stars: 5,
                 initials: "أغ",
+                type: "صالون",
+                typeColor: "bg-pink-50 text-pink-600",
               },
               {
                 name: "سارة العمري",
                 role: "صاحبة محل ورد — جدة",
-                text: "النظام بسيط جداً وتعلمت استخدامه في يوم واحد. الجزء المفضل لدي هو تقارير المبيعات — أعرف الآن أي باقات تبيع أكثر.",
+                text: "محرر التنسيقات غيّر طريقة عملي تماماً. الآن أبني باقات الكوشة وأسعّرها في دقائق، وتنبيهات انتهاء الصلاحية وفّرت عليّ خسائر كثيرة.",
                 stars: 5,
                 initials: "سع",
+                type: "ورد",
+                typeColor: "bg-emerald-50 text-emerald-600",
               },
               {
                 name: "محمد الحربي",
                 role: "مالك كافيه — الدمام",
-                text: "نسق غيّر طريقة عمل كافيهي بالكامل. الطلبات والحجوزات في مكان واحد، والفريق يعرف مهامه بوضوح. ممتاز.",
+                text: "نظام المطبخ والطلبات الإلكترونية غيّرا الكافيه بالكامل. الطلبات تذهب مباشرة للمطبخ، ولا أحد يفوّت أمر. الإيرادات زادت 30% بعد ستة أشهر.",
                 stars: 5,
                 initials: "مح",
+                type: "مطعم",
+                typeColor: "bg-orange-50 text-orange-600",
+              },
+              {
+                name: "فيصل السعدون",
+                role: "مدير فندق — مكة",
+                text: "إدارة الغرف وخريطة الإشغال أصبحت بصرية وفورية. تقارير RevPAR تساعدني على قرارات التسعير يومياً. نظام متكامل فعلاً.",
+                stars: 5,
+                initials: "فس",
+                type: "فندق",
+                typeColor: "bg-blue-50 text-blue-600",
+              },
+              {
+                name: "نورة القحطاني",
+                role: "مديرة استوديو تصوير — الرياض",
+                text: "جدولة الجلسات وإرسال تأكيدات للعملاء كان مشكلة كبيرة. نسق حلها بالكامل. الآن أتابع كل مشروع من الحجز للتسليم من شاشة واحدة.",
+                stars: 5,
+                initials: "نق",
+                type: "تصوير",
+                typeColor: "bg-purple-50 text-purple-600",
+              },
+              {
+                name: "خالد المطيري",
+                role: "مالك شركة تأجير سيارات — الخبر",
+                text: "عقود التأجير والصيانة الدورية كانت تضيع في أوراق. الآن الأسطول كله في نسق — إتاحة كل سيارة، موعد صيانتها، وحالة كل عقد.",
+                stars: 5,
+                initials: "خم",
+                type: "تأجير سيارات",
+                typeColor: "bg-indigo-50 text-indigo-600",
               },
             ].map((t) => (
               <div key={t.name} className="glass-card rounded-2xl p-6 hover:shadow-lg transition-all duration-300">
-                {/* Stars */}
-                <div className="flex gap-1 mb-4">
-                  {Array.from({ length: t.stars }).map((_, i) => (
-                    <Star key={i} size={14} className="fill-[#f59e0b] text-[#f59e0b]" />
-                  ))}
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex gap-1">
+                    {Array.from({ length: t.stars }).map((_, i) => (
+                      <Star key={i} size={13} className="fill-[#f59e0b] text-[#f59e0b]" />
+                    ))}
+                  </div>
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${t.typeColor}`}>{t.type}</span>
                 </div>
-                {/* Quote */}
-                <p className="text-gray-700 text-sm leading-loose mb-6">"{t.text}"</p>
-                {/* Author */}
+                <p className="text-gray-700 text-sm leading-loose mb-5">"{t.text}"</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#5b9bd5]/15 flex items-center justify-center">
-                    <span className="text-[#5b9bd5] text-sm font-bold">{t.initials}</span>
+                  <div className="w-9 h-9 rounded-xl bg-[#5b9bd5]/15 flex items-center justify-center">
+                    <span className="text-[#5b9bd5] text-xs font-bold">{t.initials}</span>
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{t.name}</p>
@@ -519,7 +1009,7 @@ export function LandingPage() {
         </div>
       </section>
 
-      {/* ── Section 8: CTA ───────────────────────────────────────────────── */}
+      {/* ── Section 9: CTA ───────────────────────────────────────────────── */}
       <section className="py-24 md:py-32 relative overflow-hidden"
         style={{ background: "linear-gradient(145deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)" }}>
         <div className="absolute inset-0 dot-pattern pointer-events-none" />
@@ -528,11 +1018,16 @@ export function LandingPage() {
             <span className="text-white font-black text-xl">ن</span>
           </div>
           <h2 className="text-3xl md:text-5xl font-black text-white mb-5 leading-tight">
-            ابدأ رحلتك مع نسق اليوم
+            نظامك التشغيلي جاهز
           </h2>
-          <p className="text-white/60 text-lg mb-10 font-light leading-relaxed">
-            انضم إلى آلاف أصحاب الأنشطة الذين يديرون أعمالهم بذكاء وسهولة
+          <p className="text-white/60 text-lg mb-4 font-light leading-relaxed">
+            سجّل الآن واختر تخصص نشاطك — النظام يُهيئ نفسه تلقائياً
           </p>
+          <div className="flex flex-wrap justify-center gap-3 mb-10 text-white/40 text-sm">
+            {["صالون", "ورد", "مطعم", "فندق", "تأجير سيارات", "تجزئة", "تأجير", "تصوير", "مدرسة"].map((t) => (
+              <span key={t} className="bg-white/5 border border-white/10 px-3 py-1 rounded-full">{t}</span>
+            ))}
+          </div>
           <Link
             to="/register"
             className="inline-flex items-center gap-3 bg-white text-[#1a1a2e] px-10 py-4 rounded-xl font-bold text-base hover:bg-gray-100 transition-all shadow-2xl hover:shadow-xl"
@@ -540,7 +1035,7 @@ export function LandingPage() {
             ابدأ مجاناً الآن
             <ArrowLeft size={16} />
           </Link>
-          <p className="mt-4 text-white/30 text-sm">لا بطاقة ائتمانية — 14 يوم مجاناً</p>
+          <p className="mt-4 text-white/30 text-sm">لا بطاقة ائتمانية — 15 حجز مجاناً</p>
         </div>
       </section>
 
@@ -548,7 +1043,6 @@ export function LandingPage() {
       <footer className="bg-[#0d0d1a] text-gray-400 py-16">
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
-            {/* Brand */}
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2.5 mb-4">
                 <div className="w-8 h-8 rounded-xl bg-[#5b9bd5] flex items-center justify-center">
@@ -557,7 +1051,7 @@ export function LandingPage() {
                 <span className="text-lg font-bold text-white">نسق</span>
               </div>
               <p className="text-sm leading-relaxed mb-5 max-w-[200px]">
-                منصة إدارة الأنشطة التجارية المتكاملة
+                نظام تشغيل متكامل لكل أنواع الأنشطة التجارية
               </p>
               <div className="flex gap-3">
                 {[
@@ -573,17 +1067,20 @@ export function LandingPage() {
               </div>
             </div>
 
-            {/* Product */}
             <div>
               <h4 className="text-white font-semibold mb-5 text-sm">المنتج</h4>
               <div className="space-y-3">
-                <Link to="/features" className="block text-sm hover:text-white transition-colors">المميزات</Link>
+                <a href="#specializations" className="block text-sm hover:text-white transition-colors">التخصصات</a>
+                <a href="#features" className="block text-sm hover:text-white transition-colors">الإمكانيات</a>
                 <Link to="/pricing" className="block text-sm hover:text-white transition-colors">الأسعار</Link>
                 <Link to="/register" className="block text-sm hover:text-white transition-colors">ابدأ مجاناً</Link>
+                <Link to="/school" className="flex items-center gap-1.5 text-sm text-emerald-400 hover:text-emerald-300 transition-colors font-medium">
+                  <GraduationCap className="w-3.5 h-3.5" />
+                  نسق للمدارس
+                </Link>
               </div>
             </div>
 
-            {/* Company */}
             <div>
               <h4 className="text-white font-semibold mb-5 text-sm">الشركة</h4>
               <div className="space-y-3">
@@ -592,7 +1089,6 @@ export function LandingPage() {
               </div>
             </div>
 
-            {/* Contact */}
             <div>
               <h4 className="text-white font-semibold mb-5 text-sm">تواصل</h4>
               <div className="space-y-3 text-sm">

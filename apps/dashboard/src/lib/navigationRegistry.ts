@@ -12,6 +12,7 @@ import {
   Plug, ScanBarcode,
   // specialty icons
   Flower2, UtensilsCrossed, Building, Truck, Key, PartyPopper, Camera, Wrench, Warehouse, ClipboardCheck,
+  GraduationCap, BookOpenCheck, ClipboardPen, Calendar, AlertCircle, Upload,
 } from "lucide-react";
 
 export interface NavItemEntry {
@@ -228,6 +229,26 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     ],
   },
 
+  // ── SPECIALTY: School ─────────────────────────────────────
+  {
+    id: "specialty_school",
+    label: "إدارة المدرسة",
+    requiredCapabilities: [],
+    anyCapability: [],
+    allowedBusinessTypes: ["school"],
+    allowedOperatingProfiles: [],
+    items: [
+      { name: "مراقب اليوم",        href: "/dashboard/school/day-monitor",          icon: ClipboardCheck,  requiredCapabilities: [] },
+      { name: "الطلاب",              href: "/dashboard/school/students",              icon: Users,           requiredCapabilities: [] },
+      { name: "الفصول",              href: "/dashboard/school/classes",               icon: GraduationCap,   requiredCapabilities: [] },
+      { name: "حصص اليوم",           href: "/dashboard/school/periods/today",         icon: Calendar,        requiredCapabilities: [] },
+      { name: "الحالات والمتابعة",   href: "/dashboard/school/cases",                icon: AlertCircle,     requiredCapabilities: [] },
+      { name: "قوالب الجداول",       href: "/dashboard/school/timetable-templates",  icon: BookOpenCheck,   requiredCapabilities: [] },
+      { name: "الأسابيع والجداول",   href: "/dashboard/school/schedules/weeks",       icon: ClipboardPen,    requiredCapabilities: [] },
+      { name: "الاستيراد",           href: "/dashboard/school/import",                icon: Upload,          requiredCapabilities: [] },
+    ],
+  },
+
   // ── SPECIALTY: Field Service ──────────────────────────────
   {
     id: "specialty_field",
@@ -283,6 +304,15 @@ export function buildVisibleNav(ctx: OrgNavContext): NavGroupEntry[] {
   const isSpecialty = (g: NavGroupEntry) => g.id.startsWith("specialty_");
   const universal   = visible.filter((g) => !isSpecialty(g));
   const specialty   = visible.filter((g) => isSpecialty(g));
+
+  // School accounts: show only school-specific modules + home (no commercial nav)
+  if (ctx.businessType === "school") {
+    const homeGroup = universal.find((g) => g.id === "home");
+    return [
+      ...(homeGroup ? [homeGroup] : []),
+      ...specialty,
+    ];
+  }
 
   if (specialty.length === 0) return universal;
 

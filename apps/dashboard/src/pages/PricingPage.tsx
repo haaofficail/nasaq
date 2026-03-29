@@ -5,54 +5,52 @@ import { PublicLayout } from "../components/public/PublicLayout";
 
 const plans = [
   {
-    id: "basic",
-    name: "أساسي",
-    monthly: 99,
-    yearly: 79,
-    desc: "للمشاريع الناشئة والأفراد",
+    id: "free",
+    name: "المجاني",
+    monthly: 0,
+    yearly: 0,
+    desc: "جميع الميزات — 15 حجز مدى الحياة",
     features: [
-      "5 خدمات نشطة",
-      "100 حجز شهرياً",
-      "عميل واحد افتراضي",
-      "موقع حجز أساسي",
-      "دعم عبر البريد الإلكتروني",
+      "جميع ميزات النظام",
+      "15 حجز مدى الحياة",
+      "5 موظفين",
+      "موقع حجز كامل",
+      "دعم عبر البريد",
     ],
     cta: "ابدأ مجاناً",
     href: "/register",
     highlight: false,
   },
   {
-    id: "pro",
-    name: "احترافي",
-    monthly: 299,
-    yearly: 239,
-    desc: "للشركات المتنامية",
+    id: "basic",
+    name: "الأساسي",
+    monthly: 199,
+    yearly: 159,
+    desc: "للأنشطة النامية والمحترفين",
     features: [
-      "خدمات غير محدودة",
       "حجوزات غير محدودة",
-      "3 أعضاء فريق",
-      "موقع حجز مخصص",
-      "إدارة المخزون",
+      "10 موظفين",
+      "فرع واحد",
       "تقارير متقدمة",
       "دعم أولوي",
     ],
-    cta: "ابدأ مجاناً",
+    cta: "ابدأ الآن",
     href: "/register",
     highlight: true,
   },
   {
-    id: "enterprise",
-    name: "مؤسسي",
-    monthly: null,
-    yearly: null,
-    desc: "للشركات الكبيرة",
+    id: "pro",
+    name: "الاحترافي",
+    monthly: 999,
+    yearly: 799,
+    desc: "للشركات والفروع المتعددة",
     features: [
-      "كل ميزات الاحترافي",
-      "فريق غير محدود",
-      "تخصيص كامل",
-      "تكاملات API",
+      "حجوزات غير محدودة",
+      "50 موظف",
+      "5 فروع",
+      "API مخصص",
       "مدير حساب مخصص",
-      "SLA مضمون",
+      "SLA 99.9%",
     ],
     cta: "تواصل معنا",
     href: "/contact",
@@ -61,21 +59,21 @@ const plans = [
 ];
 
 const comparison = [
-  { feature: "الخدمات النشطة", basic: "5", pro: "غير محدود", enterprise: "غير محدود" },
-  { feature: "الحجوزات الشهرية", basic: "100", pro: "غير محدود", enterprise: "غير محدود" },
-  { feature: "أعضاء الفريق", basic: "1", pro: "3", enterprise: "غير محدود" },
-  { feature: "إدارة المخزون", basic: false, pro: true,  enterprise: true  },
-  { feature: "التسويق والحملات", basic: false, pro: true,  enterprise: true  },
-  { feature: "التقارير المتقدمة", basic: false, pro: true,  enterprise: true  },
-  { feature: "تكامل API", basic: false, pro: false, enterprise: true  },
-  { feature: "مدير حساب", basic: false, pro: false, enterprise: true  },
+  { feature: "الحجوزات",        free: "15 مدى الحياة", basic: "غير محدود", pro: "غير محدود" },
+  { feature: "أعضاء الفريق",    free: "5",             basic: "10",         pro: "50"         },
+  { feature: "الفروع",          free: "1",             basic: "1",          pro: "5"          },
+  { feature: "إدارة المخزون",   free: true,            basic: true,         pro: true         },
+  { feature: "التقارير المتقدمة", free: false,          basic: true,         pro: true         },
+  { feature: "التسويق والحملات", free: false,           basic: true,         pro: true         },
+  { feature: "تكامل API",       free: false,           basic: false,        pro: true         },
+  { feature: "مدير حساب",       free: false,           basic: false,        pro: true         },
 ];
 
 const faqs = [
   { q: "هل يمكنني تغيير خطتي لاحقاً؟", a: "نعم، يمكنك الترقية أو التخفيض في أي وقت." },
   { q: "ما طرق الدفع المتاحة؟", a: "نقبل بطاقات مدى، فيزا، ماستركارد، وتحويل بنكي." },
   { q: "هل هناك عروض للدفع السنوي؟", a: "نعم، توفر خصم 20% على جميع الخطط عند الدفع سنوياً." },
-  { q: "ماذا يحدث بعد انتهاء الفترة التجريبية؟", a: "ستتلقى إشعاراً لاختيار خطة. إذا لم تختر، سيتحول حسابك لوضع القراءة فقط." },
+  { q: "ماذا يحدث بعد استنفاد الحجوزات المجانية؟", a: "ستتلقى إشعاراً تدريجياً عند الاقتراب من الحد ثم عند بلوغه. لمواصلة استقبال الحجوزات، اختر إحدى الخطط المدفوعة." },
 ];
 
 export function PricingPage() {
@@ -178,9 +176,9 @@ export function PricingPage() {
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-right py-4 pr-4 text-sm font-semibold text-gray-500 w-1/2">الميزة</th>
-                    <th className="text-center py-4 text-sm font-semibold text-gray-700">أساسي</th>
-                    <th className="text-center py-4 text-sm font-bold text-[#5b9bd5]">احترافي</th>
-                    <th className="text-center py-4 text-sm font-semibold text-gray-700">مؤسسي</th>
+                    <th className="text-center py-4 text-sm font-semibold text-gray-700">المجاني</th>
+                    <th className="text-center py-4 text-sm font-bold text-[#5b9bd5]">الأساسي</th>
+                    <th className="text-center py-4 text-sm font-semibold text-gray-700">الاحترافي</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -196,9 +194,9 @@ export function PricingPage() {
                     return (
                       <tr key={row.feature} className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}>
                         <td className="py-3.5 pr-4 text-sm text-gray-700">{row.feature}</td>
-                        <td className="py-3.5 text-center text-sm text-gray-500">{cell(row.basic)}</td>
-                        <td className="py-3.5 text-center text-sm">{cell(row.pro, true)}</td>
-                        <td className="py-3.5 text-center text-sm text-gray-500">{cell(row.enterprise)}</td>
+                        <td className="py-3.5 text-center text-sm text-gray-500">{cell(row.free)}</td>
+                        <td className="py-3.5 text-center text-sm">{cell(row.basic, true)}</td>
+                        <td className="py-3.5 text-center text-sm text-gray-500">{cell(row.pro)}</td>
                       </tr>
                     );
                   })}
