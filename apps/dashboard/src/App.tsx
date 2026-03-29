@@ -166,7 +166,10 @@ function PageLoader() {
 function RequireAuth({ children }: { children: ReactNode }) {
   const token = localStorage.getItem("nasaq_token") || sessionStorage.getItem("nasaq_token");
   const location = useLocation();
-  if (!token) return <Navigate to="/login" state={{ from: location }} replace />;
+  if (!token) {
+    const loginPath = location.pathname.startsWith("/school") ? "/school/login" : "/login";
+    return <Navigate to={loginPath} state={{ from: location }} replace />;
+  }
   return <>{children}</>;
 }
 
@@ -370,7 +373,6 @@ export default function App() {
           <Route path="schedules/weeks"    element={<SchoolScheduleWeeksPage />} />
           <Route path="import"             element={<SchoolImportPage />} />
           <Route path="account"            element={<SchoolAccountPage />} />
-          <Route path="*" element={<Navigate to="/school/dashboard" replace />} />
         </Route>
       </Routes>
     </Suspense>

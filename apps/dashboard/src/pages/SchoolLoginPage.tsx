@@ -49,7 +49,7 @@ export function SchoolLoginPage() {
     try {
       const res: any = await authApi.loginWithPhone(phone, password);
       saveSession(res, remember);
-      navigate("/dashboard");
+      navigate("/school/dashboard");
     } catch (err: any) {
       setError(err.message ?? "رقم الجوال أو كلمة المرور غير صحيحة");
     } finally {
