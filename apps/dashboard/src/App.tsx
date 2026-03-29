@@ -154,6 +154,7 @@ const SchoolScheduleWeeksPage      = lz(() => import("./pages/school/SchoolSched
 const SchoolImportPage             = lz(() => import("./pages/school/SchoolImportPage"), "SchoolImportPage");
 const SchoolAccountPage            = lz(() => import("./pages/school/SchoolAccountPage"), "SchoolAccountPage");
 const SchoolTeachersPage           = lz(() => import("./pages/school/SchoolTeachersPage"), "SchoolTeachersPage");
+const SchoolTeacherSchedulePage    = lz(() => import("./pages/school/SchoolTeacherSchedulePage"), "SchoolTeacherSchedulePage");
 
 // ── Loading fallback ───────────────────────────────────────────────
 function PageLoader() {
@@ -374,6 +375,7 @@ export default function App() {
           <Route path="schedules/weeks"    element={<SchoolScheduleWeeksPage />} />
           <Route path="import"             element={<SchoolImportPage />} />
           <Route path="teachers"           element={<SchoolTeachersPage />} />
+          <Route path="teachers/:teacherId/schedule" element={<SchoolTeacherSchedulePage />} />
           <Route path="account"            element={<SchoolAccountPage />} />
         </Route>
       </Routes>

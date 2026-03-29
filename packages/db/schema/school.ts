@@ -359,6 +359,33 @@ export const schoolCaseSteps = pgTable(
 );
 
 // ============================================================
+// teacher_class_assignments — ربط المعلمين بالفصول/الصفوف/المراحل
+// scope: classRoomId | grade | stage (يُحدَّد واحد فقط)
+// ============================================================
+
+export const teacherClassAssignments = pgTable(
+  "teacher_class_assignments",
+  {
+    id:          uuid("id").defaultRandom().primaryKey(),
+    orgId:       uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    teacherId:   uuid("teacher_id").notNull().references(() => teacherProfiles.id, { onDelete: "cascade" }),
+
+    classRoomId: uuid("class_room_id").references(() => classRooms.id, { onDelete: "cascade" }),
+    grade:       text("grade"),
+    stage:       text("stage"),
+
+    subject:     text("subject").notNull(),
+    notes:       text("notes"),
+
+    createdAt:   timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("teacher_class_assignments_teacher_idx").on(t.orgId, t.teacherId),
+    index("teacher_class_assignments_classroom_idx").on(t.orgId, t.classRoomId),
+  ]
+);
+
+// ============================================================
 // school_import_logs — سجل عمليات الاستيراد (Excel / CSV)
 // ============================================================
 

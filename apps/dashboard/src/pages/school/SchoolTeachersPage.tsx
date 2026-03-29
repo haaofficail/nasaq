@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Users, Plus, Search, Pencil, Trash2, X, Loader2, CheckCircle2, UserCheck } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Users, Plus, Search, Pencil, Trash2, X, Loader2, CheckCircle2, UserCheck, Calendar } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
 
@@ -35,6 +36,7 @@ type FormState = typeof EMPTY_FORM;
 
 // ── Page ──────────────────────────────────────────────────
 export function SchoolTeachersPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState<"all" | "active" | "inactive">("all");
   const [showForm, setShowForm] = useState(false);
@@ -298,6 +300,13 @@ export function SchoolTeachersPage() {
               </div>
 
               <div className="flex gap-2 mt-4 pt-3 border-t border-gray-50 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={() => navigate(`/school/teachers/${t.id}/schedule`)}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-emerald-700 hover:bg-emerald-50 py-1.5 rounded-lg transition-colors"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  الجدول
+                </button>
                 <button
                   onClick={() => openEdit(t)}
                   className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-emerald-700 hover:bg-emerald-50 py-1.5 rounded-lg transition-colors"

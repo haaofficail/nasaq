@@ -6,6 +6,7 @@ import {
   schoolSettings,
   classRooms,
   teacherProfiles,
+  teacherClassAssignments,
   students,
   timetableTemplates,
   timetableTemplatePeriods,
@@ -1283,6 +1284,150 @@ router.post("/import/confirm", async (c) => {
   } as any);
 
   return c.json({ data: { imported, errors, errorList } });
+});
+
+// ============================================================
+// TEACHER CLASS ASSIGNMENTS — صلاحيات المعلمين وربطهم بالفصول
+// ============================================================
+
+const teacherAssignmentSchema = z.object({
+  classRoomId: z.string().uuid().optional().nullable(),
+  grade:       z.string().max(100).optional().nullable(),
+  stage:       z.string().max(100).optional().nullable(),
+  subject:     z.string().min(1).max(200),
+  notes:       z.string().max(1000).optional().nullable(),
+});
+
+// GET /teachers/:id/assignments — قائمة ارتباطات معلم
+router.get("/teachers/:id/assignments", async (c) => {
+  const orgId = getOrgId(c);
+  const teacherId = c.req.param("id");
+
+  // Verify teacher belongs to org
+  const [teacher] = await db
+    .select()
+    .from(teacherProfiles)
+    .where(and(eq(teacherProfiles.id, teacherId), eq(teacherProfiles.orgId, orgId)))
+    .limit(1);
+
+  if (!teacher) return c.json({ error: "المعلم غير موجود" }, 404);
+
+  const assignments = await db
+    .select({
+      id:          teacherClassAssignments.id,
+      classRoomId: teacherClassAssignments.classRoomId,
+      grade:       teacherClassAssignments.grade,
+      stage:       teacherClassAssignments.stage,
+      subject:     teacherClassAssignments.subject,
+      notes:       teacherClassAssignments.notes,
+      createdAt:   teacherClassAssignments.createdAt,
+      // classRoom info if linked
+      classRoomGrade: classRooms.grade,
+      classRoomName:  classRooms.name,
+    })
+    .from(teacherClassAssignments)
+    .leftJoin(classRooms, eq(teacherClassAssignments.classRoomId, classRooms.id))
+    .where(and(
+      eq(teacherClassAssignments.teacherId, teacherId),
+      eq(teacherClassAssignments.orgId, orgId)
+    ))
+    .orderBy(asc(teacherClassAssignments.createdAt));
+
+  return c.json({ data: { teacher, assignments } });
+});
+
+// POST /teachers/:id/assignments — إضافة ارتباط
+router.post("/teachers/:id/assignments", async (c) => {
+  const orgId = getOrgId(c);
+  const teacherId = c.req.param("id");
+
+  const [teacher] = await db
+    .select({ id: teacherProfiles.id })
+    .from(teacherProfiles)
+    .where(and(eq(teacherProfiles.id, teacherId), eq(teacherProfiles.orgId, orgId)))
+    .limit(1);
+
+  if (!teacher) return c.json({ error: "المعلم غير موجود" }, 404);
+
+  const body = teacherAssignmentSchema.parse(await c.req.json());
+
+  const [created] = await db
+    .insert(teacherClassAssignments)
+    .values({ orgId, teacherId, ...body })
+    .returning();
+
+  return c.json({ data: created }, 201);
+});
+
+// DELETE /teacher-assignments/:id — حذف ارتباط
+router.delete("/teacher-assignments/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+
+  const [deleted] = await db
+    .delete(teacherClassAssignments)
+    .where(and(eq(teacherClassAssignments.id, id), eq(teacherClassAssignments.orgId, orgId)))
+    .returning();
+
+  if (!deleted) return c.json({ error: "الارتباط غير موجود" }, 404);
+
+  return c.json({ success: true });
+});
+
+// GET /teachers/:id/schedule — جدول معلم للأسبوع النشط
+router.get("/teachers/:id/schedule", async (c) => {
+  const orgId = getOrgId(c);
+  const teacherId = c.req.param("id");
+  const weekId = c.req.query("weekId");
+
+  const [teacher] = await db
+    .select()
+    .from(teacherProfiles)
+    .where(and(eq(teacherProfiles.id, teacherId), eq(teacherProfiles.orgId, orgId)))
+    .limit(1);
+
+  if (!teacher) return c.json({ error: "المعلم غير موجود" }, 404);
+
+  // If no weekId, use active week
+  let targetWeekId = weekId;
+  if (!targetWeekId) {
+    const [settings] = await db
+      .select({ activeWeekId: schoolSettings.activeWeekId })
+      .from(schoolSettings)
+      .where(eq(schoolSettings.orgId, orgId))
+      .limit(1);
+    targetWeekId = settings?.activeWeekId ?? null;
+  }
+
+  if (!targetWeekId) return c.json({ data: { teacher, entries: [], weekId: null } });
+
+  const entries = await db
+    .select({
+      id:           scheduleEntries.id,
+      dayOfWeek:    scheduleEntries.dayOfWeek,
+      subject:      scheduleEntries.subject,
+      notes:        scheduleEntries.notes,
+      periodId:     scheduleEntries.periodId,
+      periodNumber: timetableTemplatePeriods.periodNumber,
+      startTime:    timetableTemplatePeriods.startTime,
+      endTime:      timetableTemplatePeriods.endTime,
+      isBreak:      timetableTemplatePeriods.isBreak,
+      label:        timetableTemplatePeriods.label,
+      classRoomId:  scheduleEntries.classRoomId,
+      classGrade:   classRooms.grade,
+      className:    classRooms.name,
+    })
+    .from(scheduleEntries)
+    .innerJoin(timetableTemplatePeriods, eq(scheduleEntries.periodId, timetableTemplatePeriods.id))
+    .innerJoin(classRooms, eq(scheduleEntries.classRoomId, classRooms.id))
+    .where(and(
+      eq(scheduleEntries.teacherId, teacherId),
+      eq(scheduleEntries.weekId, targetWeekId),
+      eq(scheduleEntries.orgId, orgId)
+    ))
+    .orderBy(asc(scheduleEntries.dayOfWeek), asc(timetableTemplatePeriods.periodNumber));
+
+  return c.json({ data: { teacher, entries, weekId: targetWeekId } });
 });
 
 router.delete("/timetable-templates/:id", async (c) => {

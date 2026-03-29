@@ -1484,6 +1484,18 @@ export const schoolApi = {
   updateTeacher:   (id: string, data: any) => api.put<{ data: any }>(`/school/teachers/${id}`, data),
   deleteTeacher:   (id: string) => api.delete<{ success: boolean }>(`/school/teachers/${id}`),
 
+  // Teacher Assignments (ارتباطات المعلمين)
+  getTeacherAssignments: (teacherId: string) =>
+    api.get<{ data: { teacher: any; assignments: any[] } }>(`/school/teachers/${teacherId}/assignments`),
+  createTeacherAssignment: (teacherId: string, data: any) =>
+    api.post<{ data: any }>(`/school/teachers/${teacherId}/assignments`, data),
+  deleteTeacherAssignment: (id: string) =>
+    api.delete<{ success: boolean }>(`/school/teacher-assignments/${id}`),
+  getTeacherSchedule: (teacherId: string, weekId?: string) => {
+    const q = weekId ? `?weekId=${weekId}` : "";
+    return api.get<{ data: { teacher: any; entries: any[]; weekId: string | null } }>(`/school/teachers/${teacherId}/schedule${q}`);
+  },
+
   // Students (الطلاب)
   listStudents:    (params?: { classRoomId?: string; search?: string }) => {
     const q = new URLSearchParams();
