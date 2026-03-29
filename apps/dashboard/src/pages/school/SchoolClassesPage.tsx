@@ -36,6 +36,145 @@ const GRADE_GROUPS = [
   },
 ];
 
+// ── Grade sort order ─────────────────────────────────────
+const GRADE_ORDER: Record<string, number> = {};
+GRADE_GROUPS.forEach((group, gi) => {
+  group.grades.forEach((g, i) => {
+    GRADE_ORDER[g] = gi * 100 + i;
+  });
+});
+
+const STAGE_FOR_GRADE: Record<string, string> = {};
+GRADE_GROUPS.forEach((group) => {
+  group.grades.forEach((g) => {
+    STAGE_FOR_GRADE[g] = group.label;
+  });
+});
+
+// Arabic letter sort order for classroom names (أ=0, ب=1, ج=2 ...)
+const AR_LETTERS = "أبتثجحخدذرزسشصضطظعغفقكلمنهوي";
+function arabicLetterOrder(name: string): number {
+  const ch = name.trim()[0] ?? "";
+  const idx = AR_LETTERS.indexOf(ch);
+  return idx === -1 ? 999 : idx;
+}
+
+function GroupedClassRooms({
+  classRooms,
+  onEdit,
+}: {
+  classRooms: any[];
+  onEdit: (cr: any) => void;
+}) {
+  // Group by grade
+  const byGrade = new Map<string, any[]>();
+  [...classRooms]
+    .sort((a, b) => {
+      const gradeDiff = (GRADE_ORDER[a.grade] ?? 9999) - (GRADE_ORDER[b.grade] ?? 9999);
+      if (gradeDiff !== 0) return gradeDiff;
+      return arabicLetterOrder(a.name) - arabicLetterOrder(b.name);
+    })
+    .forEach((cr) => {
+      if (!byGrade.has(cr.grade)) byGrade.set(cr.grade, []);
+      byGrade.get(cr.grade)!.push(cr);
+    });
+
+  // Build display sections grouped by stage
+  const sections = GRADE_GROUPS.map((group) => ({
+    stageLabel: group.label,
+    grades: group.grades.filter((g) => byGrade.has(g)).map((g) => ({
+      grade: g,
+      rooms: byGrade.get(g)!,
+    })),
+  })).filter((s) => s.grades.length > 0);
+
+  // Grades not in our known structure (custom entries)
+  const knownGrades = new Set(GRADE_GROUPS.flatMap((g) => g.grades));
+  const unknownRooms = classRooms.filter((cr) => !knownGrades.has(cr.grade));
+
+  return (
+    <div className="space-y-8">
+      {sections.map((section) => (
+        <div key={section.stageLabel}>
+          {/* Stage header */}
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-full px-3 py-1">
+              {section.stageLabel}
+            </span>
+            <div className="flex-1 h-px bg-gray-100" />
+            <span className="text-xs text-gray-400">
+              {section.grades.reduce((n, g) => n + g.rooms.length, 0)} فصل
+            </span>
+          </div>
+
+          {/* Grades within stage */}
+          <div className="space-y-4">
+            {section.grades.map(({ grade, rooms }) => (
+              <div key={grade}>
+                {/* Grade sub-header */}
+                <p className="text-xs font-semibold text-gray-500 mb-2 pr-1">{grade}</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                  {rooms.map((cr: any) => (
+                    <button
+                      key={cr.id}
+                      onClick={() => onEdit(cr)}
+                      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-right hover:border-emerald-300 hover:shadow-md transition-all space-y-2.5 group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="w-9 h-9 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
+                          <DoorOpen className="w-4.5 h-4.5 text-emerald-600" />
+                        </div>
+                        <span className="text-lg font-black text-gray-900">{cr.name}</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-xs text-gray-500">
+                        <Users className="w-3 h-3 shrink-0" />
+                        <span>{cr.studentCount ?? 0} طالب</span>
+                      </div>
+                      <FillIndicator count={cr.studentCount ?? 0} capacity={cr.capacity ?? 0} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {/* Unknown/custom grades */}
+      {unknownRooms.length > 0 && (
+        <div>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-xs font-black text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-3 py-1">أخرى</span>
+            <div className="flex-1 h-px bg-gray-100" />
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {unknownRooms.map((cr: any) => (
+              <button
+                key={cr.id}
+                onClick={() => onEdit(cr)}
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-right hover:border-emerald-300 hover:shadow-md transition-all space-y-2.5"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center">
+                    <DoorOpen className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <span className="text-lg font-black text-gray-900">{cr.name}</span>
+                </div>
+                <p className="text-[10px] text-gray-400 truncate">{cr.grade}</p>
+                <div className="flex items-center gap-1 text-xs text-gray-500">
+                  <Users className="w-3 h-3 shrink-0" />
+                  <span>{cr.studentCount ?? 0} طالب</span>
+                </div>
+                <FillIndicator count={cr.studentCount ?? 0} capacity={cr.capacity ?? 0} />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 const emptyForm = { grade: "", name: "", capacity: "" };
 
 function FillIndicator({ count, capacity }: { count: number; capacity: number }) {
@@ -140,32 +279,7 @@ export function SchoolClassesPage() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {classRooms.map((cr: any) => (
-            <button
-              key={cr.id}
-              onClick={() => openEdit(cr)}
-              className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 text-right hover:border-emerald-300 hover:shadow-md transition-all space-y-3"
-            >
-              <div className="flex items-start justify-between">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
-                  <DoorOpen className="w-5 h-5 text-emerald-600" />
-                </div>
-                <span className="text-xs text-gray-400 mt-1">{cr.grade}</span>
-              </div>
-              <div>
-                <p className="font-bold text-gray-900 text-lg">
-                  {cr.grade} / {cr.name}
-                </p>
-                <div className="flex items-center gap-1 mt-1 text-xs text-gray-500">
-                  <Users className="w-3.5 h-3.5" />
-                  {cr.studentCount} طالب
-                </div>
-              </div>
-              <FillIndicator count={cr.studentCount ?? 0} capacity={cr.capacity ?? 0} />
-            </button>
-          ))}
-        </div>
+        <GroupedClassRooms classRooms={classRooms} onEdit={openEdit} />
       )}
 
       {/* Add/Edit Modal */}
