@@ -17,7 +17,12 @@ export interface PlanDef {
   label?: string;   // للعرض عند السعر 0
 }
 
+export const FREE_BOOKING_LIMIT = 15;
+export const FREE_BOOKING_NEAR_THRESHOLD = 10;
+export const FREE_BOOKING_LAST_THRESHOLD = 13;
+
 export const PLANS: PlanDef[] = [
+  { key: "free",       name: "المجاني",      price: 0, label: "مجاني" },
   { key: "basic",      name: "الأساسي",      price: 199 },
   { key: "advanced",   name: "المتقدم",      price: 499 },
   { key: "pro",        name: "الاحترافي",    price: 999 },

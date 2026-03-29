@@ -22,6 +22,11 @@ export const AUTO_CANCEL_INTERVAL_MS = 24 * 60 * 60 * 1000;   // 1 day
 export const HEALTH_SNAPSHOT_INTERVAL_MS = 5 * 60 * 1000;     // 5 minutes
 export const ONE_DAY_MS = 24 * 60 * 60 * 1000;
 
+// Free plan
+export const FREE_BOOKING_LIMIT = 15;        // الحد الأقصى للحجوزات المجانية
+export const FREE_BOOKING_NEAR_THRESHOLD = 10; // تنبيه أول عند هذا الحد
+export const FREE_BOOKING_LAST_THRESHOLD = 13; // تنبيه أخير عند هذا الحد
+
 // Booking
 export const AUTO_CANCEL_OVERDUE_DAYS = 3;
 export const BOOKING_TRACKING_TOKEN_LENGTH = 16;

@@ -14,6 +14,8 @@ import { useNetwork } from "@/hooks/useNetwork";
 import { isNative } from "@/hooks/usePlatform";
 import { PLAN_MAP } from "@/lib/constants";
 import { useAlerts } from "@/hooks/useAlerts";
+import { FreePlanBanner } from "@/components/FreePlanBanner";
+import { FreeLimitModal } from "@/components/FreeLimitModal";
 
 const COLLAPSED_KEY = "nasaq_sidebar_collapsed";
 
@@ -322,6 +324,25 @@ export function Layout() {
 
       {/* ── Main content ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        {/* Free plan banner */}
+        {!isSuperAdmin && sub?.plan === "free" && sub.freeState && sub.freeState !== "active" && (
+          <FreePlanBanner
+            bookingUsed={sub.bookingUsed ?? 0}
+            bookingLimit={sub.bookingLimit ?? 15}
+            freeState={sub.freeState as "near_limit" | "last_warning" | "reached"}
+          />
+        )}
+
+        {/* Free plan modals (soft warning + hard stop) */}
+        {!isSuperAdmin && sub?.plan === "free" && sub.freeState && sub.freeState !== "active" && (
+          <FreeLimitModal
+            orgId={sub.id ?? ""}
+            freeState={sub.freeState as "near_limit" | "last_warning" | "reached"}
+            bookingUsed={sub.bookingUsed ?? 0}
+            bookingLimit={sub.bookingLimit ?? 15}
+          />
+        )}
+
         {/* Impersonate Banner */}
         {user?.isImpersonating && (
           <div className="bg-amber-500 text-white text-xs flex items-center justify-between px-4 py-2 shrink-0">
@@ -369,11 +390,11 @@ export function Layout() {
               <input type="text" placeholder="بحث..." className="bg-transparent border-none outline-none text-sm text-gray-600 placeholder-gray-400 w-full" />
             </div>
             <button
-              onClick={() => navigate("/dashboard/bookings")}
+              onClick={() => navigate(sub?.freeState === "reached" ? "/dashboard/subscription" : "/dashboard/bookings")}
               className="flex items-center gap-1.5 bg-brand-500 text-white rounded-xl px-3.5 py-2 text-sm font-medium hover:bg-brand-600 transition-colors shadow-sm shadow-brand-500/20"
             >
               <Plus className="w-4 h-4" />
-              <span className="hidden sm:inline">حجز جديد</span>
+              <span className="hidden sm:inline">{sub?.freeState === "reached" ? "ترقية الباقة" : "حجز جديد"}</span>
             </button>
             {/* Bell — real-time alerts */}
             <div ref={bellRef} className="relative">

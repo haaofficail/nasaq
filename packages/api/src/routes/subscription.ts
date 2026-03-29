@@ -24,6 +24,7 @@ subscriptionRouter.get("/", async (c) => {
       subscriptionStatus: organizations.subscriptionStatus,
       trialEndsAt:        organizations.trialEndsAt,
       subscriptionEndsAt: organizations.subscriptionEndsAt,
+      bookingUsed:        organizations.bookingUsed,
     })
     .from(organizations)
     .where(eq(organizations.id, orgId));
@@ -36,8 +37,19 @@ subscriptionRouter.get("/", async (c) => {
     ? Math.max(0, Math.ceil((endDate.getTime() - now.getTime()) / 86_400_000))
     : null;
 
-  const planPrices: Record<string, number> = { basic: 199, advanced: 499, pro: 999, enterprise: 0 };
-  const planNames:  Record<string, string> = { basic: "الأساسي", advanced: "المتقدم", pro: "الاحترافي", enterprise: "المؤسسي" };
+  const planPrices: Record<string, number> = { free: 0, basic: 199, advanced: 499, pro: 999, enterprise: 0 };
+  const planNames:  Record<string, string> = { free: "المجاني", basic: "الأساسي", advanced: "المتقدم", pro: "الاحترافي", enterprise: "المؤسسي" };
+
+  const FREE_LIMIT = 15;
+  const used = org.bookingUsed ?? 0;
+
+  // حالة الخطة المجانية — تتحكم في نوع التنبيه في الداشبورد
+  const freeState: string | null = org.plan === "free"
+    ? used >= FREE_LIMIT   ? "reached"
+    : used >= 13           ? "last_warning"
+    : used >= 10           ? "near_limit"
+    : "active"
+    : null;
 
   const addons = await db
     .select()
@@ -46,6 +58,7 @@ subscriptionRouter.get("/", async (c) => {
 
   return c.json({
     data: {
+      id:                 org.id,
       plan:               org.plan,
       planName:           planNames[org.plan] ?? org.plan,
       planPrice:          planPrices[org.plan] ?? 0,
@@ -53,6 +66,10 @@ subscriptionRouter.get("/", async (c) => {
       startDate:          org.trialEndsAt,
       endDate,
       daysRemaining,
+      // Free plan fields (null للمشتركين المدفوعين)
+      bookingUsed:        org.plan === "free" ? used : null,
+      bookingLimit:       org.plan === "free" ? FREE_LIMIT : null,
+      freeState,
       addons,
     },
   });

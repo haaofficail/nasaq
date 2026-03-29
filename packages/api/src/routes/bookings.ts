@@ -11,7 +11,7 @@ import {
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, generateBookingNumber } from "../lib/helpers";
 import { postCashSale, postDepositReceived, postRefund, isAccountingEnabled } from "../lib/posting-engine";
-import { DEFAULT_VAT_RATE, DEFAULT_DEPOSIT_PERCENT, BOOKING_TRACKING_TOKEN_LENGTH } from "../lib/constants";
+import { DEFAULT_VAT_RATE, DEFAULT_DEPOSIT_PERCENT, BOOKING_TRACKING_TOKEN_LENGTH, FREE_BOOKING_LIMIT } from "../lib/constants";
 import { insertAuditLog } from "../lib/audit";
 import { awardLoyaltyPoints } from "../lib/segments-engine";
 import { fireBookingEvent } from "../lib/messaging-engine";
@@ -259,8 +259,17 @@ bookingsRouter.post("/", async (c) => {
       ? db.select().from(serviceStaff)
           .where(and(inArray(serviceStaff.serviceId, serviceIds), eq(serviceStaff.userId, userId)))
       : Promise.resolve([] as (typeof serviceStaff.$inferSelect)[]),
-    db.select({ settings: organizations.settings }).from(organizations).where(eq(organizations.id, orgId)),
+    db.select({ settings: organizations.settings, plan: organizations.plan, bookingUsed: organizations.bookingUsed }).from(organizations).where(eq(organizations.id, orgId)),
   ]);
+
+  // Free plan limit check — fail fast before any pricing logic
+  const org = orgRow[0];
+  if (org?.plan === "free" && (org.bookingUsed ?? 0) >= FREE_BOOKING_LIMIT) {
+    return c.json({
+      error: `لقد استخدمت جميع الحجوزات المجانية (${FREE_BOOKING_LIMIT} حجز). للمتابعة واستقبال حجوزات جديدة، قم بالترقية إلى إحدى الباقات.`,
+      code: "FREE_LIMIT_REACHED",
+    }, 403);
+  }
 
   const serviceMap = new Map(allServices.map((s) => [s.id, s]));
   const addonMap = new Map(allAddons.map((a) => [a.id, a]));
@@ -554,6 +563,13 @@ bookingsRouter.post("/", async (c) => {
   }
 
   insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "booking", resourceId: booking.id });
+
+  // Free plan: increment counter after successful booking
+  if (org?.plan === "free") {
+    await db.update(organizations)
+      .set({ bookingUsed: sql`${organizations.bookingUsed} + 1` })
+      .where(eq(organizations.id, orgId));
+  }
 
   // إرسال إشعار تأكيد الحجز للعميل + إشعار المالك (fire-and-forget)
   fireBookingEvent("booking_confirmed",  { orgId, bookingId: booking.id });

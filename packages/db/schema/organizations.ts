@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum, jsonb, uuid, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, jsonb, uuid, index, uniqueIndex, integer } from "drizzle-orm/pg-core";
 import { DEFAULT_VAT_RATE } from "../constants";
 
 // ============================================================
@@ -6,6 +6,7 @@ import { DEFAULT_VAT_RATE } from "../constants";
 // ============================================================
 
 export const subscriptionPlanEnum = pgEnum("subscription_plan", [
+  "free",       // مجاني — جميع الميزات + 15 حجز مدى الحياة
   "basic",      // 199 SAR — كتالوج + حجوزات + CRM أساسي
   "advanced",   // 499 SAR — + مالية + مخزون + فريق + أتمتة
   "pro",        // 999 SAR — + تسويق + موقع + تحليلات + تطبيق
@@ -53,6 +54,7 @@ export const organizations = pgTable("organizations", {
   subscriptionStatus: subscriptionStatusEnum("subscription_status").default("trialing").notNull(),
   trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
   subscriptionEndsAt: timestamp("subscription_ends_at", { withTimezone: true }),
+  bookingUsed: integer("booking_used").default(0).notNull(), // عداد حجوزات الخطة المجانية
   
   // Settings (flexible JSON for org-level config)
   settings: jsonb("settings").default({
