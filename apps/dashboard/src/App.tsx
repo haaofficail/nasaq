@@ -160,6 +160,7 @@ const SchoolStudentDetailPage      = lz(() => import("./pages/school/SchoolStude
 const SchoolAttendancePage         = lz(() => import("./pages/school/SchoolAttendancePage"), "SchoolAttendancePage");
 const SchoolBehaviorPage           = lz(() => import("./pages/school/SchoolBehaviorPage"), "SchoolBehaviorPage");
 const SchoolSetupPage              = lz(() => import("./pages/school/SchoolSetupPage"), "SchoolSetupPage");
+const SchoolClassRoomDetailPage    = lz(() => import("./pages/school/SchoolClassRoomDetailPage"), "SchoolClassRoomDetailPage");
 
 // ── Loading fallback ───────────────────────────────────────────────
 function PageLoader() {
@@ -378,6 +379,7 @@ export default function App() {
           <Route path="day-monitor"        element={<SchoolDayMonitorPage />} />
           <Route path="students"           element={<SchoolStudentsPage />} />
           <Route path="classes"            element={<SchoolClassesPage />} />
+          <Route path="classes/:classRoomId" element={<SchoolClassRoomDetailPage />} />
           <Route path="periods"            element={<SchoolPeriodsPage />} />
           <Route path="cases"              element={<SchoolCasesPage />} />
           <Route path="timetable-templates" element={<SchoolTimetableTemplatesPage />} />
