@@ -28,9 +28,9 @@ CREATE INDEX IF NOT EXISTS assets_org_created_idx
 CREATE INDEX IF NOT EXISTS maintenance_tasks_org_status_idx
   ON maintenance_tasks (org_id, status);
 
--- services: خدمات المنشأة النشطة
-CREATE INDEX IF NOT EXISTS services_org_active_idx
-  ON services (org_id, is_active);
+-- services: خدمات المنشأة مفلترة بالحالة
+CREATE INDEX IF NOT EXISTS services_org_status_idx
+  ON services (org_id, status);
 
 -- sessions: token lookup — أهم index في النظام (كل request يمر به)
 -- تأكد أنه موجود (قد يكون موجوداً من migration سابق)
