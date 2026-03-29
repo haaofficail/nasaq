@@ -156,11 +156,15 @@ const SchoolAccountPage            = lz(() => import("./pages/school/SchoolAccou
 const SchoolTeachersPage           = lz(() => import("./pages/school/SchoolTeachersPage"), "SchoolTeachersPage");
 const SchoolTeacherSchedulePage    = lz(() => import("./pages/school/SchoolTeacherSchedulePage"), "SchoolTeacherSchedulePage");
 const SchoolViolationsPage         = lz(() => import("./pages/school/SchoolViolationsPage"), "SchoolViolationsPage");
+const SchoolNotificationsPage      = lz(() => import("./pages/school/SchoolNotificationsPage"), "SchoolNotificationsPage");
 const SchoolStudentDetailPage      = lz(() => import("./pages/school/SchoolStudentDetailPage"), "SchoolStudentDetailPage");
 const SchoolAttendancePage         = lz(() => import("./pages/school/SchoolAttendancePage"), "SchoolAttendancePage");
 const SchoolBehaviorPage           = lz(() => import("./pages/school/SchoolBehaviorPage"), "SchoolBehaviorPage");
 const SchoolSetupPage              = lz(() => import("./pages/school/SchoolSetupPage"), "SchoolSetupPage");
 const SchoolClassRoomDetailPage    = lz(() => import("./pages/school/SchoolClassRoomDetailPage"), "SchoolClassRoomDetailPage");
+const SchoolSubjectsPage           = lz(() => import("./pages/school/SchoolSubjectsPage"), "SchoolSubjectsPage");
+const SchoolTeacherAttendancePage  = lz(() => import("./pages/school/SchoolTeacherAttendancePage"), "SchoolTeacherAttendancePage");
+const SchoolAcademicCalendarPage   = lz(() => import("./pages/school/SchoolAcademicCalendarPage"), "SchoolAcademicCalendarPage");
 
 // ── Loading fallback ───────────────────────────────────────────────
 function PageLoader() {
@@ -388,11 +392,15 @@ export default function App() {
           <Route path="teachers"           element={<SchoolTeachersPage />} />
           <Route path="teachers/:teacherId/schedule" element={<SchoolTeacherSchedulePage />} />
           <Route path="violations"         element={<SchoolViolationsPage />} />
+          <Route path="notifications"      element={<SchoolNotificationsPage />} />
           <Route path="account"            element={<SchoolAccountPage />} />
           <Route path="students/:studentId" element={<SchoolStudentDetailPage />} />
-          <Route path="attendance"         element={<SchoolAttendancePage />} />
+          <Route path="attendance"              element={<SchoolAttendancePage />} />
+          <Route path="teacher-attendance"    element={<SchoolTeacherAttendancePage />} />
+          <Route path="academic-calendar"    element={<SchoolAcademicCalendarPage />} />
           <Route path="behavior"           element={<SchoolBehaviorPage />} />
           <Route path="setup"             element={<SchoolSetupPage />} />
+          <Route path="subjects"          element={<SchoolSubjectsPage />} />
         </Route>
       </Routes>
     </Suspense>

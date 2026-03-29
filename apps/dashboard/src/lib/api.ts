@@ -1637,4 +1637,74 @@ export const schoolApi = {
   createViolation: (data: any) => api.post<{ data: any }>("/school/violations", data),
   updateViolation: (id: string, data: any) => api.put<{ data: any }>(`/school/violations/${id}`, data),
   deleteViolation: (id: string) => api.delete<{ success: boolean }>(`/school/violations/${id}`),
+
+  // Grade Levels
+  listGradeLevels:  (stage?: string) => api.get<{ data: any[] }>(`/school/grade-levels${stage ? "?stage=" + encodeURIComponent(stage) : ""}`),
+  createGradeLevel: (data: any) => api.post<{ data: any }>("/school/grade-levels", data),
+  updateGradeLevel: (id: string, data: any) => api.put<{ data: any }>(`/school/grade-levels/${id}`, data),
+  deleteGradeLevel: (id: string) => api.delete<{ success: boolean }>(`/school/grade-levels/${id}`),
+
+  // Subjects
+  listSubjects:         (type?: string) => api.get<{ data: any[] }>(`/school/subjects${type ? "?type=" + type : ""}`),
+  createSubject:        (data: any) => api.post<{ data: any }>("/school/subjects", data),
+  updateSubject:        (id: string, data: any) => api.put<{ data: any }>(`/school/subjects/${id}`, data),
+  deleteSubject:        (id: string) => api.delete<{ success: boolean }>(`/school/subjects/${id}`),
+  getSubjectsByGrade:   (gradeLevelId: string) => api.get<{ data: any[] }>(`/school/subjects/by-grade/${gradeLevelId}`),
+  getSubjectsByGradeName: (grade: string) => api.get<{ data: any[] }>(`/school/subjects/by-grade-name?grade=${encodeURIComponent(grade)}`),
+  seedDefaultSubjects:  (stage: string) => api.post<{ data: any }>(`/school/subjects/seed-defaults?stage=${encodeURIComponent(stage)}`, {}),
+
+  // Subject-Grade Links
+  linkSubjectToGrade:   (data: { subjectId: string; gradeLevelId: string; weeklyHours?: number }) => api.post<{ data: any }>("/school/subject-grade-levels", data),
+  unlinkSubjectFromGrade: (linkId: string) => api.delete<{ success: boolean }>(`/school/subject-grade-levels/${linkId}`),
+
+  // WhatsApp Notifications
+  getNotificationSettings: () => api.get<{ data: any }>("/school/notification-settings"),
+  updateNotificationSettings: (data: any) => api.put<{ data: any }>("/school/notification-settings", data),
+  getNotificationLogs: (params?: { eventType?: string; status?: string; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.eventType) q.set("eventType", params.eventType);
+    if (params?.status)    q.set("status",    params.status);
+    if (params?.limit)     q.set("limit",     String(params.limit));
+    const qs = q.toString();
+    return api.get<{ data: any[]; total: number }>(`/school/notification-logs${qs ? "?" + qs : ""}`);
+  },
+  testNotification: (phone: string, message: string) => api.post<{ data: { sent: boolean } }>("/school/notification-logs/test", { phone, message }),
+  getWhatsAppStatus: () => api.get<{ data: { configured: boolean; provider: string | null; setupGuide: Record<string, string> | null } }>("/school/whatsapp-status"),
+  getWhatsAppSession: () => api.get<{ data: { baileys: { status: string; qrBase64: string | null; phone: string | null; hasSaved: boolean; updatedAt: string }; api: { configured: boolean; provider: string | null } } }>("/school/whatsapp/session"),
+  startWhatsAppSession: () => api.post<{ data: { starting: boolean } }>("/school/whatsapp/session", {}),
+  logoutWhatsApp: () => api.delete<{ data: { loggedOut: boolean } }>("/school/whatsapp/session"),
+
+  // Teacher attendance
+  getTeacherAttendance: (params?: { date?: string; classRoomId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.date)        q.set("date",        params.date);
+    if (params?.classRoomId) q.set("classRoomId", params.classRoomId);
+    const qs = q.toString();
+    return api.get<{ data: any[] }>(`/school/teacher-attendance${qs ? "?" + qs : ""}`);
+  },
+  recordTeacherAttendance: (data: { date?: string; entries: Array<{ teacherId: string; classRoomId?: string; status: string; periodNumber?: number; notes?: string }> }) =>
+    api.post<{ data: { inserted: number } }>("/school/teacher-attendance/bulk", data),
+  deleteTeacherAttendance: (id: string) => api.delete<{ data: { deleted: boolean } }>(`/school/teacher-attendance/${id}`),
+
+  // Academic calendar
+  getSemesters: () => api.get<{ data: any[] }>("/school/semesters"),
+  createSemester: (data: { yearLabel: string; semesterNumber: number; label?: string; startDate?: string; endDate?: string; isActive?: boolean; notes?: string }) =>
+    api.post<{ data: any }>("/school/semesters", data),
+  updateSemester: (id: string, data: Partial<{ yearLabel: string; semesterNumber: number; label: string; startDate: string; endDate: string; isActive: boolean; notes: string }>) =>
+    api.put<{ data: any }>(`/school/semesters/${id}`, data),
+  deleteSemester: (id: string) => api.delete<{ data: any }>(`/school/semesters/${id}`),
+
+  getSchoolEvents: (params?: { semesterId?: string; from?: string; to?: string; eventType?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.semesterId) q.set("semesterId", params.semesterId);
+    if (params?.from)       q.set("from",       params.from);
+    if (params?.to)         q.set("to",         params.to);
+    if (params?.eventType)  q.set("eventType",  params.eventType);
+    const qs = q.toString();
+    return api.get<{ data: any[] }>(`/school/events${qs ? "?" + qs : ""}`);
+  },
+  createSchoolEvent: (data: { semesterId?: string; title: string; eventType: string; startDate: string; endDate?: string; description?: string; color?: string; affectsAttendance?: boolean }) =>
+    api.post<{ data: any }>("/school/events", data),
+  updateSchoolEvent: (id: string, data: any) => api.put<{ data: any }>(`/school/events/${id}`, data),
+  deleteSchoolEvent: (id: string) => api.delete<{ data: any }>(`/school/events/${id}`),
 };

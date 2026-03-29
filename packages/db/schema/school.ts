@@ -79,6 +79,9 @@ export const schoolSettings = pgTable(
     // الأسبوع النشط — بدون FK constraint لتجنب الدائرية مع scheduleWeeks
     activeWeekId:    uuid("active_week_id"),
 
+    // إعدادات الإشعارات (JSONB)
+    notificationSettings: jsonb("notification_settings").notNull().default({}),
+
     createdAt:       timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt:       timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },
@@ -130,10 +133,11 @@ export const teacherProfiles = pgTable(
     subject:        text("subject"),         // التخصص الرئيسي
     phone:          text("phone"),
     email:          text("email"),
-    nationalId:     text("national_id"),
-    gender:         text("gender"),          // ذكر | أنثى
-    qualification:  text("qualification"),
-    notes:          text("notes"),
+    nationalId:          text("national_id"),
+    dateOfBirthHijri:    text("date_of_birth_hijri"),
+    gender:              text("gender"),          // ذكر | أنثى
+    qualification:       text("qualification"),
+    notes:               text("notes"),
 
     isActive:       boolean("is_active").notNull().default(true),
 
@@ -404,9 +408,10 @@ export const schoolViolationCategories = pgTable(
     orgId:       uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
     name:        text("name").notNull(),
     description: text("description"),
-    severity:    text("severity").notNull().default("medium"),  // low | medium | high
-    color:       text("color").notNull().default("#f59e0b"),
-    isActive:    boolean("is_active").notNull().default(true),
+    severity:       text("severity").notNull().default("medium"),      // low | medium | high
+    defaultDegree:  text("default_degree").notNull().default("1"),    // 1-5 الدرجة الافتراضية
+    color:          text("color").notNull().default("#f59e0b"),
+    isActive:       boolean("is_active").notNull().default(true),
     createdAt:   timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [
@@ -426,6 +431,7 @@ export const schoolViolations = pgTable(
     studentId:        uuid("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
     categoryId:       uuid("category_id").references(() => schoolViolationCategories.id, { onDelete: "set null" }),
     description:      text("description"),
+    degree:           text("degree").notNull().default("1"),  // 1-5 درجة المخالفة وفق لائحة وزارة التعليم
     violationDate:    date("violation_date").notNull().default(sql`CURRENT_DATE`),
     status:           text("status").notNull().default("open"),  // open | resolved | cancelled
     resolutionNotes:  text("resolution_notes"),
@@ -435,6 +441,7 @@ export const schoolViolations = pgTable(
   (t) => [
     index("school_violations_org_idx").on(t.orgId, t.violationDate),
     index("school_violations_student_idx").on(t.orgId, t.studentId),
+    index("school_violations_degree_idx").on(t.orgId, t.degree),
   ]
 );
 
@@ -601,6 +608,55 @@ export const guardianNotifications = pgTable(
   ]
 );
 
+// ============================================================
+// teacher_attendance — حضور وغياب المعلمين (يسجّله الوكيل)
+// ============================================================
+
+export const teacherAttendance = pgTable(
+  "teacher_attendance",
+  {
+    id:             uuid("id").defaultRandom().primaryKey(),
+    orgId:          uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    teacherId:      uuid("teacher_id").notNull().references(() => teacherProfiles.id, { onDelete: "cascade" }),
+    classRoomId:    uuid("class_room_id").references(() => classRooms.id, { onDelete: "set null" }),
+    attendanceDate: date("attendance_date").notNull(),
+    status:         text("status").notNull().default("absent"),  // present | absent | late | excused
+    periodNumber:   integer("period_number"),
+    notes:          text("notes"),
+    recordedBy:     uuid("recorded_by"),
+    notified:       boolean("notified").notNull().default(false),
+    createdAt:      timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("teacher_attendance_org_date_idx").on(t.orgId, t.attendanceDate),
+    index("teacher_attendance_teacher_idx").on(t.orgId, t.teacherId),
+  ]
+);
+
+// ============================================================
+// school_whatsapp_logs — سجل رسائل واتساب المدرسة
+// ============================================================
+
+export const schoolWhatsappLogs = pgTable(
+  "school_whatsapp_logs",
+  {
+    id:         uuid("id").defaultRandom().primaryKey(),
+    orgId:      uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    studentId:  uuid("student_id").references(() => students.id, { onDelete: "set null" }),
+    teacherId:  uuid("teacher_id").references(() => teacherProfiles.id, { onDelete: "set null" }),
+    recipient:  text("recipient").notNull(),
+    eventType:  text("event_type").notNull(),   // violation | absence | teacher_assignment
+    message:    text("message").notNull(),
+    status:     text("status").notNull().default("sent"),   // sent | failed | pending
+    refId:      uuid("ref_id"),
+    createdAt:  timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("school_whatsapp_logs_org_idx").on(t.orgId, t.createdAt),
+    index("school_whatsapp_logs_student_idx").on(t.orgId, t.studentId),
+  ]
+);
+
 export const schoolImportLogs = pgTable(
   "school_import_logs",
   {
@@ -632,5 +688,134 @@ export const schoolImportLogs = pgTable(
     index("school_import_logs_org_idx").on(t.orgId),
     index("school_import_logs_status_idx").on(t.orgId, t.status),
     index("school_import_logs_type_idx").on(t.orgId, t.importType),
+  ]
+);
+
+// ============================================================
+// SUBJECT SYSTEM — نظام المواد الدراسية الديناميكي
+// ============================================================
+
+export const subjects = pgTable(
+  "subjects",
+  {
+    id:        uuid("id").defaultRandom().primaryKey(),
+    orgId:     uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    code:      text("code"),                               // مفتاح ثابت: 'math' | 'critical_thinking' ...
+    name:      text("name").notNull(),                     // للعرض فقط
+    type:      text("type").notNull().default("core"),     // core | skill | activity
+    isActive:  boolean("is_active").notNull().default(true),
+    sortOrder: integer("sort_order").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("subjects_org_idx").on(t.orgId, t.type),
+    uniqueIndex("subjects_org_name_idx").on(t.orgId, t.name),
+    uniqueIndex("subjects_org_code_idx").on(t.orgId, t.code),
+  ]
+);
+
+export const gradeLevels = pgTable(
+  "grade_levels",
+  {
+    id:        uuid("id").defaultRandom().primaryKey(),
+    orgId:     uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    code:      text("code"),                               // مفتاح ثابت: 'middle_1' | 'middle_3' ...
+    name:      text("name").notNull(),                     // للعرض: "الأول المتوسط"
+    stage:     text("stage").notNull().default("متوسط"),   // ابتدائي | متوسط | ثانوي
+    sortOrder: integer("sort_order").notNull().default(0),
+    isActive:  boolean("is_active").notNull().default(true),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("grade_levels_org_stage_idx").on(t.orgId, t.stage),
+    uniqueIndex("grade_levels_org_name_idx").on(t.orgId, t.name),
+    uniqueIndex("grade_levels_org_code_idx").on(t.orgId, t.code),
+  ]
+);
+
+export const subjectGradeLevels = pgTable(
+  "subject_grade_levels",
+  {
+    id:            uuid("id").defaultRandom().primaryKey(),
+    orgId:         uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    subjectId:     uuid("subject_id").notNull().references(() => subjects.id, { onDelete: "cascade" }),
+    gradeLevelId:  uuid("grade_level_id").notNull().references(() => gradeLevels.id, { onDelete: "cascade" }),
+    weeklyHours:   integer("weekly_hours").notNull().default(4),   // legacy — kept for compat
+    weeklyPeriods: integer("weekly_periods").default(4),           // الحصص الأسبوعية الرسمية
+    isRequired:    boolean("is_required").notNull().default(true),
+    isActive:      boolean("is_active").notNull().default(true),
+    createdAt:     timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt:     timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("sgl_grade_idx").on(t.orgId, t.gradeLevelId),
+    index("sgl_subject_idx").on(t.orgId, t.subjectId),
+    uniqueIndex("sgl_unique_idx").on(t.orgId, t.subjectId, t.gradeLevelId),
+  ]
+);
+
+// ============================================================
+// ACADEMIC CALENDAR — الفصول الدراسية والأحداث
+// ============================================================
+
+export const schoolSemesters = pgTable(
+  "school_semesters",
+  {
+    id:             uuid("id").defaultRandom().primaryKey(),
+    orgId:          uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+
+    yearLabel:      text("year_label").notNull(),             // "1446-1447"
+    semesterNumber: integer("semester_number").notNull(),     // 1 | 2
+    label:          text("label"),                            // "الفصل الدراسي الأول"
+
+    startDate:      date("start_date"),
+    endDate:        date("end_date"),
+
+    isActive:       boolean("is_active").notNull().default(false),
+    notes:          text("notes"),
+
+    createdAt:      timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt:      timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("school_semesters_org_idx").on(t.orgId),
+    uniqueIndex("school_semesters_unique").on(t.orgId, t.yearLabel, t.semesterNumber),
+  ]
+);
+
+export const schoolEventTypeEnum = pgEnum("school_event_type", [
+  "holiday",      // إجازة
+  "national_day", // مناسبة وطنية
+  "exam",         // اختبار
+  "activity",     // نشاط مدرسي
+  "other",        // أخرى
+]);
+
+export const schoolEvents = pgTable(
+  "school_events",
+  {
+    id:                 uuid("id").defaultRandom().primaryKey(),
+    orgId:              uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    semesterId:         uuid("semester_id").references(() => schoolSemesters.id, { onDelete: "set null" }),
+
+    title:              text("title").notNull(),
+    eventType:          schoolEventTypeEnum("event_type").notNull().default("other"),
+
+    startDate:          date("start_date").notNull(),
+    endDate:            date("end_date"),                     // null = single day
+
+    description:        text("description"),
+    color:              text("color"),                        // hex للعرض مثل "#ef4444"
+    affectsAttendance:  boolean("affects_attendance").notNull().default(false),
+
+    createdAt:          timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt:          timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("school_events_org_idx").on(t.orgId),
+    index("school_events_semester_idx").on(t.orgId, t.semesterId),
+    index("school_events_date_idx").on(t.orgId, t.startDate),
   ]
 );
