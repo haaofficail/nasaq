@@ -101,10 +101,19 @@ export function SchoolCasesPage() {
   const steps: any[] = detailData?.data?.steps ?? [];
 
   const handleAddCase = async () => {
+    if (!form.title.trim()) { setCreateError("عنوان الحالة مطلوب"); return; }
+    if (!form.category) { setCreateError("الفئة مطلوبة"); return; }
     setSubmitting(true);
     setCreateError("");
     try {
-      await schoolApi.createCase(form);
+      const payload: Record<string, any> = {
+        title: form.title.trim(),
+        category: form.category,
+        priority: form.priority,
+        description: form.description || null,
+        studentId: form.student_id || null,
+      };
+      await schoolApi.createCase(payload);
       setAddModal(false);
       setForm({ ...emptyForm });
       refetch();
