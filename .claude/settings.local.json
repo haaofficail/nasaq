@@ -184,7 +184,8 @@
       "Bash(packages/api/node_modules/.bin/tsc --noEmit)",
       "Bash(apps/dashboard/node_modules/.bin/tsc --noEmit --project apps/dashboard/tsconfig.json)",
       "Bash(bash deploy.sh \"إضافة صفحة تهيئة المدرسة، نظام التواريخ الهجرية، وإصلاح صفحة الفصول\")",
-      "Bash(bash deploy.sh \"كل فصل له صفحة مستقلة /school/classes/:id\")"
+      "Bash(bash deploy.sh \"كل فصل له صفحة مستقلة /school/classes/:id\")",
+      "Bash(bash deploy.sh \"إصلاح migration 065: DO-EXCEPTION بدل CREATE TYPE IF NOT EXISTS\")"
     ]
   }
 }

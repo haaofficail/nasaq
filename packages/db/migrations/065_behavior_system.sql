@@ -4,7 +4,10 @@
 -- الإصدار الخامس 1447هـ
 -- ============================================================
 
-CREATE TYPE IF NOT EXISTS behavior_incident_degree AS ENUM ('1', '2', '3', '4', '5');
+DO $$ BEGIN
+  CREATE TYPE behavior_incident_degree AS ENUM ('1', '2', '3', '4', '5');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- student_behavior_scores — نقاط السلوك التراكمية لكل طالب
 CREATE TABLE IF NOT EXISTS student_behavior_scores (
