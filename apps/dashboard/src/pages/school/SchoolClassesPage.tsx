@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { DoorOpen, Plus, Users } from "lucide-react";
+import { DoorOpen, Plus, Users, Trash2, Loader2 } from "lucide-react";
 import { clsx } from "clsx";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
@@ -62,9 +62,13 @@ function arabicLetterOrder(name: string): number {
 function GroupedClassRooms({
   classRooms,
   onEdit,
+  onDelete,
+  deleting,
 }: {
   classRooms: any[];
   onEdit: (cr: any) => void;
+  onDelete: (id: string) => void;
+  deleting: string | null;
 }) {
   // Group by grade
   const byGrade = new Map<string, any[]>();
@@ -115,14 +119,13 @@ function GroupedClassRooms({
                 <p className="text-xs font-semibold text-gray-500 mb-2 pr-1">{grade}</p>
                 <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
                   {rooms.map((cr: any) => (
-                    <button
+                    <div
                       key={cr.id}
-                      onClick={() => onEdit(cr)}
-                      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-right hover:border-emerald-300 hover:shadow-md transition-all space-y-2.5 group"
+                      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-right hover:border-emerald-300 hover:shadow-md transition-all space-y-2.5 group relative"
                     >
                       <div className="flex items-center justify-between">
                         <div className="w-9 h-9 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
-                          <DoorOpen className="w-4.5 h-4.5 text-emerald-600" />
+                          <DoorOpen className="w-4 h-4 text-emerald-600" />
                         </div>
                         <span className="text-lg font-black text-gray-900">{cr.name}</span>
                       </div>
@@ -131,7 +134,22 @@ function GroupedClassRooms({
                         <span>{cr.studentCount ?? 0} طالب</span>
                       </div>
                       <FillIndicator count={cr.studentCount ?? 0} capacity={cr.capacity ?? 0} />
-                    </button>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity pt-1 border-t border-gray-50">
+                        <button
+                          onClick={() => onEdit(cr)}
+                          className="flex-1 py-1 text-xs text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+                        >
+                          تعديل
+                        </button>
+                        <button
+                          onClick={() => onDelete(cr.id)}
+                          disabled={deleting === cr.id}
+                          className="flex-1 py-1 text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {deleting === cr.id ? "..." : "حذف"}
+                        </button>
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -149,10 +167,9 @@ function GroupedClassRooms({
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {unknownRooms.map((cr: any) => (
-              <button
+              <div
                 key={cr.id}
-                onClick={() => onEdit(cr)}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-right hover:border-emerald-300 hover:shadow-md transition-all space-y-2.5"
+                className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-right hover:border-emerald-300 hover:shadow-md transition-all space-y-2.5 group relative"
               >
                 <div className="flex items-center justify-between">
                   <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center">
@@ -166,7 +183,22 @@ function GroupedClassRooms({
                   <span>{cr.studentCount ?? 0} طالب</span>
                 </div>
                 <FillIndicator count={cr.studentCount ?? 0} capacity={cr.capacity ?? 0} />
-              </button>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity pt-1 border-t border-gray-50">
+                  <button
+                    onClick={() => onEdit(cr)}
+                    className="flex-1 py-1 text-xs text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition-colors"
+                  >
+                    تعديل
+                  </button>
+                  <button
+                    onClick={() => onDelete(cr.id)}
+                    disabled={deleting === cr.id}
+                    className="flex-1 py-1 text-xs text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    {deleting === cr.id ? "..." : "حذف"}
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         </div>
@@ -204,6 +236,7 @@ export function SchoolClassesPage() {
   });
   const [form, setForm] = useState({ ...emptyForm });
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const { data, loading, error, refetch } = useApi(() => schoolApi.listClassRooms(), []);
 
@@ -239,6 +272,16 @@ export function SchoolClassesPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("حذف هذا الفصل؟ سيتم إلغاء ربط الطلاب المرتبطين به.")) return;
+    setDeleting(id);
+    try {
+      await schoolApi.deleteClassRoom(id);
+      refetch();
+    } catch {}
+    finally { setDeleting(null); }
   };
 
   return (
@@ -279,7 +322,7 @@ export function SchoolClassesPage() {
           </button>
         </div>
       ) : (
-        <GroupedClassRooms classRooms={classRooms} onEdit={openEdit} />
+        <GroupedClassRooms classRooms={classRooms} onEdit={openEdit} onDelete={handleDelete} deleting={deleting} />
       )}
 
       {/* Add/Edit Modal */}

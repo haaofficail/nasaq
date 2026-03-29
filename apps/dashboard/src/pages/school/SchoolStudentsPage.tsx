@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, Search, Plus, Pencil, Phone, User, Upload } from "lucide-react";
+import { GraduationCap, Search, Plus, Pencil, Phone, User, Upload, Trash2, Loader2 } from "lucide-react";
 import { clsx } from "clsx";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
@@ -33,6 +33,7 @@ export function SchoolStudentsPage() {
   });
   const [form, setForm] = useState({ ...emptyForm });
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const filters: Record<string, string> = {};
   if (search) filters.search = search;
@@ -79,6 +80,16 @@ export function SchoolStudentsPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`حذف الطالب "${name}"؟ لا يمكن التراجع.`)) return;
+    setDeleting(id);
+    try {
+      await schoolApi.deleteStudent(id);
+      refetch();
+    } catch {}
+    finally { setDeleting(null); }
   };
 
   return (
@@ -204,12 +215,22 @@ export function SchoolStudentsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => openEdit(s)}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => openEdit(s)}
+                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(s.id, s.fullName)}
+                          disabled={deleting === s.id}
+                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                          title="حذف"
+                        >
+                          {deleting === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

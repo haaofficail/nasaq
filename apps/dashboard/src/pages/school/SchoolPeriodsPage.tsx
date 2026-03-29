@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Clock, CalendarDays } from "lucide-react";
 import { clsx } from "clsx";
 import { useApi } from "@/hooks/useApi";
@@ -62,6 +63,7 @@ function groupByPeriod(entries: Entry[]): GroupedPeriod[] {
 }
 
 export function SchoolPeriodsPage() {
+  const navigate = useNavigate();
   const [selectedDay, setSelectedDay] = useState<number>(todayDayOfWeek);
 
   // Fetch active week first
@@ -123,9 +125,21 @@ export function SchoolPeriodsPage() {
       ) : error ? (
         <div className="text-center py-12 text-red-400">{error}</div>
       ) : !activeWeekId ? (
-        <div className="py-16 flex flex-col items-center gap-3 text-gray-400">
-          <CalendarDays className="w-12 h-12" />
-          <p className="text-sm">لا يوجد أسبوع نشط. يرجى تعيين أسبوع نشط من صفحة الأسابيع.</p>
+        <div className="py-16 flex flex-col items-center gap-4 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 flex items-center justify-center">
+            <CalendarDays className="w-7 h-7 text-amber-500" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-gray-700">لا يوجد أسبوع دراسي نشط</p>
+            <p className="text-xs text-gray-400 mt-1">افتح صفحة الأسابيع وفعّل الأسبوع الحالي</p>
+          </div>
+          <button
+            onClick={() => navigate("/school/schedules/weeks")}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors"
+          >
+            <CalendarDays className="w-4 h-4" />
+            الأسابيع والجداول
+          </button>
         </div>
       ) : periods.length === 0 ? (
         <div className="py-16 flex flex-col items-center gap-3 text-gray-400">

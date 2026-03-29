@@ -1459,7 +1459,7 @@ export const schoolApi = {
   // Settings
   getSettings:    () => api.get<{ data: any }>("/school/settings"),
   saveSettings:   (data: any) => api.post<{ data: any }>("/school/settings", data),
-  setActiveWeek:  (weekId: string) => api.patch<{ data: any }>("/school/settings/active-week", { weekId }),
+  setActiveWeek:  (weekId: string) => api.patch<{ data: any }>("/school/settings/active-week", { activeWeekId: weekId }),
 
   // Day Monitor
   dayMonitor:     () => api.get<{ data: any }>("/school/day-monitor"),
@@ -1498,6 +1498,7 @@ export const schoolApi = {
   // Timetable Templates (القوالب)
   listTemplates:   () => api.get<{ data: any[] }>("/school/timetable-templates"),
   createTemplate:  (data: any) => api.post<{ data: any }>("/school/timetable-templates", data),
+  deleteTemplate:  (id: string) => api.delete<{ success: boolean }>(`/school/timetable-templates/${id}`),
   updateTemplate:  (id: string, data: any) => api.put<{ data: any }>(`/school/timetable-templates/${id}`, data),
   listPeriods:     (templateId: string) => api.get<{ data: any[] }>(`/school/timetable-templates/${templateId}/periods`),
   createPeriod:    (templateId: string, data: any) => api.post<{ data: any }>(`/school/timetable-templates/${templateId}/periods`, data),

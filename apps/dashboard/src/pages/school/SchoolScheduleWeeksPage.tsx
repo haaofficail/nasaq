@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   CalendarDays, Plus, CheckCircle2, Circle, ChevronLeft, Grid3x3,
 } from "lucide-react";
+
 import { clsx } from "clsx";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
@@ -24,6 +25,60 @@ const emptyWeekForm = {
   start_date: "",
   end_date: "",
 };
+
+function ScheduleEntryRow({
+  period,
+  entry,
+  classRooms,
+  teachers,
+  onSave,
+}: {
+  period: any;
+  entry: any | undefined;
+  classRooms: any[];
+  teachers: any[];
+  onSave: (classRoomId: string, teacherId: string, subject: string) => void;
+}) {
+  const [classRoomId, setClassRoomId] = useState(entry?.classRoomId ?? "");
+  const [teacherId, setTeacherId]     = useState(entry?.teacherId ?? "");
+  const [subject, setSubject]         = useState(entry?.subject ?? "");
+
+  return (
+    <div className="px-4 py-3 grid grid-cols-4 gap-2 items-center hover:bg-gray-50">
+      <div>
+        <p className="text-xs font-semibold text-gray-700">{period.label}</p>
+        <p className="text-xs text-gray-400 tabular-nums">{period.startTime} — {period.endTime}</p>
+      </div>
+      <select
+        value={classRoomId}
+        onChange={(e) => { setClassRoomId(e.target.value); onSave(e.target.value, teacherId, subject); }}
+        className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+      >
+        <option value="">الفصل</option>
+        {classRooms.map((cr: any) => (
+          <option key={cr.id} value={cr.id}>{cr.grade}/{cr.name}</option>
+        ))}
+      </select>
+      <select
+        value={teacherId}
+        onChange={(e) => { setTeacherId(e.target.value); onSave(classRoomId, e.target.value, subject); }}
+        className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+      >
+        <option value="">المعلم</option>
+        {teachers.map((t: any) => (
+          <option key={t.id} value={t.id}>{t.fullName}</option>
+        ))}
+      </select>
+      <input
+        value={subject}
+        onChange={(e) => setSubject(e.target.value)}
+        onBlur={() => onSave(classRoomId, teacherId, subject)}
+        placeholder="المادة"
+        className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+      />
+    </div>
+  );
+}
 
 export function SchoolScheduleWeeksPage() {
   const [templateFilter, setTemplateFilter] = useState("");
@@ -106,9 +161,6 @@ export function SchoolScheduleWeeksPage() {
       // handled
     }
   };
-
-  const getEntry = (periodId: string): any | undefined =>
-    builderEntries.find((e) => e.periodId === periodId);
 
   return (
     <div dir="rtl" className="p-6 space-y-6">
@@ -270,48 +322,18 @@ export function SchoolScheduleWeeksPage() {
                 {templatePeriods
                   .filter((p) => !p.isBreak)
                   .map((period: any) => {
-                    const entry = getEntry(period.id);
+                    const entry = builderEntries.find((e) => e.periodId === period.id);
                     return (
-                      <div key={period.id} className="px-4 py-3 grid grid-cols-4 gap-2 items-center hover:bg-gray-50">
-                        <div>
-                          <p className="text-xs font-semibold text-gray-700">{period.label}</p>
-                          <p className="text-xs text-gray-400 tabular-nums">{period.startTime} — {period.endTime}</p>
-                        </div>
-                        <select
-                          defaultValue={entry?.classRoomId ?? ""}
-                          onChange={(e) =>
-                            handleUpdateEntry(period.id, e.target.value, entry?.teacherId ?? "", entry?.subject ?? "")
-                          }
-                          className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
-                        >
-                          <option value="">الفصل</option>
-                          {classRooms.map((cr: any) => (
-                            <option key={cr.id} value={cr.id}>
-                              {cr.grade}/{cr.name}
-                            </option>
-                          ))}
-                        </select>
-                        <select
-                          defaultValue={entry?.teacherId ?? ""}
-                          onChange={(e) =>
-                            handleUpdateEntry(period.id, entry?.classRoomId ?? "", e.target.value, entry?.subject ?? "")
-                          }
-                          className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
-                        >
-                          <option value="">المعلم</option>
-                          {teachers.map((t: any) => (
-                            <option key={t.id} value={t.id}>{t.name ?? t.fullName}</option>
-                          ))}
-                        </select>
-                        <input
-                          defaultValue={entry?.subject ?? ""}
-                          onBlur={(e) =>
-                            handleUpdateEntry(period.id, entry?.classRoomId ?? "", entry?.teacherId ?? "", e.target.value)
-                          }
-                          placeholder="المادة"
-                          className="rounded-lg border border-gray-200 px-2 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-                        />
-                      </div>
+                      <ScheduleEntryRow
+                        key={`${period.id}-${selectedDay}-${builderWeek?.id}`}
+                        period={period}
+                        entry={entry}
+                        classRooms={classRooms}
+                        teachers={teachers}
+                        onSave={(classRoomId, teacherId, subject) =>
+                          handleUpdateEntry(period.id, classRoomId, teacherId, subject)
+                        }
+                      />
                     );
                   })}
               </div>

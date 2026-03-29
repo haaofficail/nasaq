@@ -10,11 +10,12 @@ import { Modal } from "@/components/ui";
 // ── Constants ────────────────────────────────────────────────
 
 const CATEGORIES = [
-  { value: "behavioral", label: "سلوكي" },
-  { value: "academic", label: "أكاديمي" },
-  { value: "health", label: "صحي" },
-  { value: "social", label: "اجتماعي" },
-  { value: "other", label: "أخرى" },
+  { value: "سلوكية", label: "سلوكي" },
+  { value: "أكاديمية", label: "أكاديمي" },
+  { value: "صحية", label: "صحي" },
+  { value: "اجتماعية", label: "اجتماعي" },
+  { value: "إدارية", label: "إداري" },
+  { value: "أخرى", label: "أخرى" },
 ];
 
 const PRIORITIES: Record<string, { label: string; color: string; bg: string; border: string }> = {
@@ -72,6 +73,9 @@ export function SchoolCasesPage() {
   });
   const [stepText, setStepText] = useState("");
   const [addingStep, setAddingStep] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [createError, setCreateError] = useState("");
 
   const filters: Record<string, string> = {};
   if (statusFilter) filters.status = statusFilter;
@@ -96,13 +100,14 @@ export function SchoolCasesPage() {
 
   const handleAddCase = async () => {
     setSubmitting(true);
+    setCreateError("");
     try {
       await schoolApi.createCase(form);
       setAddModal(false);
       setForm({ ...emptyForm });
       refetch();
-    } catch {
-      // handled
+    } catch (err: any) {
+      setCreateError(err.message ?? "حدث خطأ");
     } finally {
       setSubmitting(false);
     }
@@ -120,6 +125,17 @@ export function SchoolCasesPage() {
     } finally {
       setAddingStep(false);
     }
+  };
+
+  const handleUpdateStatus = async (newStatus: string) => {
+    if (!detailModal.caseId) return;
+    setUpdatingStatus(true);
+    try {
+      await schoolApi.updateCase(detailModal.caseId, { status: newStatus });
+      refetchDetail();
+      refetch();
+    } catch {}
+    finally { setUpdatingStatus(false); }
   };
 
   return (
@@ -315,6 +331,7 @@ export function SchoolCasesPage() {
               className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 resize-none"
             />
           </div>
+          {createError && <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{createError}</p>}
         </div>
       </Modal>
 
@@ -343,6 +360,23 @@ export function SchoolCasesPage() {
               {caseDetail.description && (
                 <p className="text-sm text-gray-600 leading-relaxed">{caseDetail.description}</p>
               )}
+            </div>
+
+            {/* Status actions */}
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(STATUSES).map(([k, v]) => (
+                <button
+                  key={k}
+                  disabled={updatingStatus || caseDetail.status === k}
+                  onClick={() => handleUpdateStatus(k)}
+                  className={clsx(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all disabled:opacity-40",
+                    caseDetail.status === k ? `${v.bg} ${v.color} ${v.border}` : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                  )}
+                >
+                  {v.label}
+                </button>
+              ))}
             </div>
 
             {/* Steps */}

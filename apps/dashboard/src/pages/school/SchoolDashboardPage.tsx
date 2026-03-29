@@ -137,6 +137,7 @@ export function SchoolDashboardPage() {
             <ModuleCard label="الطلاب"             desc="قاعدة بيانات الطلاب" icon={Users}         href="/school/students" />
             <ModuleCard label="الفصول"             desc="إدارة الفصول والمراحل" icon={DoorOpen}     href="/school/classes" />
             <ModuleCard label="حصص اليوم"          desc="الجدول اليومي الحالي" icon={CalendarDays} href="/school/periods" />
+            <ModuleCard label="المعلمون"           desc="هيئة التدريس"         icon={Users}         href="/school/teachers" />
             <ModuleCard label="الاستيراد"          desc="Excel / CSV"          icon={Upload}        href="/school/import" />
           </div>
         </div>

@@ -1088,6 +1088,7 @@ router.get("/day-monitor", async (c) => {
     [{ studentCount }],
     [{ classRoomCount }],
     [{ teacherCount }],
+    [{ openCasesCount }],
   ] = await Promise.all([
     db.select({ studentCount: count() }).from(students)
       .where(and(eq(students.orgId, orgId), eq(students.isActive, true))),
@@ -1095,6 +1096,8 @@ router.get("/day-monitor", async (c) => {
       .where(and(eq(classRooms.orgId, orgId), eq(classRooms.isActive, true))),
     db.select({ teacherCount: count() }).from(teacherProfiles)
       .where(and(eq(teacherProfiles.orgId, orgId), eq(teacherProfiles.isActive, true))),
+    db.select({ openCasesCount: count() }).from(schoolCases)
+      .where(and(eq(schoolCases.orgId, orgId), or(eq(schoolCases.status, "open"), eq(schoolCases.status, "in_progress")))),
   ]);
 
   return c.json({
@@ -1108,6 +1111,7 @@ router.get("/day-monitor", async (c) => {
         students:   Number(studentCount),
         lateToday:  lateCount,
       },
+      openCasesCount: Number(openCasesCount),
     },
   });
 });
@@ -1279,6 +1283,20 @@ router.post("/import/confirm", async (c) => {
   } as any);
 
   return c.json({ data: { imported, errors, errorList } });
+});
+
+router.delete("/timetable-templates/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+  // Delete periods first
+  await db.delete(timetableTemplatePeriods)
+    .where(and(eq(timetableTemplatePeriods.templateId, id), eq(timetableTemplatePeriods.orgId, orgId)));
+  // Delete template
+  const [deleted] = await db.delete(timetableTemplates)
+    .where(and(eq(timetableTemplates.id, id), eq(timetableTemplates.orgId, orgId)))
+    .returning();
+  if (!deleted) return c.json({ error: "القالب غير موجود" }, 404);
+  return c.json({ success: true });
 });
 
 export const schoolRouter = router;

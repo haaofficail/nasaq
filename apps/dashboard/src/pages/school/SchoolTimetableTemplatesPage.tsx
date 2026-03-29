@@ -187,15 +187,14 @@ export function SchoolTimetableTemplatesPage() {
   };
 
   const handleDeleteTemplate = async (id: string) => {
-    if (!confirm("حذف هذا القالب وجميع حصصه؟")) return;
+    if (!confirm("حذف هذا القالب وجميع حصصه؟ لا يمكن التراجع.")) return;
     try {
-      // Delete all periods first then template (graceful)
-      if (selectedId === id) setSelectedId(null);
-      await schoolApi.createTemplate({ name: "__DELETE__" }); // placeholder — delete API call below
-      // Actual delete: use the schoolApi if available; if not, warn user
-      // schoolApi doesn't expose deleteTemplate currently — show guidance
-      alert("لحذف القالب يرجى التواصل مع الدعم أو إعادة تسميته (ميزة الحذف قيد التطوير)");
-    } catch {}
+      if (selectedId === id) { setSelectedId(null); setExpanded((e) => { const n = { ...e }; delete n[id]; return n; }); }
+      await schoolApi.deleteTemplate(id);
+      await refetch();
+    } catch (err: any) {
+      alert(err?.message ?? "حدث خطأ في الحذف");
+    }
   };
 
   const handleDuplicateTemplate = async (tpl: any) => {
@@ -423,6 +422,13 @@ export function SchoolTimetableTemplatesPage() {
                     </p>
                   </div>
                   <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <button
+                      onClick={() => handleDeleteTemplate(tpl.id)}
+                      className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                      title="حذف القالب"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       onClick={() => handleDuplicateTemplate(tpl)}
                       className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
