@@ -370,7 +370,7 @@ export function Layout() {
 
         {/* Header */}
         <header
-          className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-5 shrink-0"
+          className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-5 shrink-0 overflow-visible relative z-30"
           style={{ paddingTop: "var(--safe-area-top)" }}
         >
           <div className="flex items-center gap-3">
@@ -417,7 +417,7 @@ export function Layout() {
               </button>
 
               {bellOpen && (
-                <div className="absolute left-0 top-11 w-80 bg-white border border-gray-100 rounded-2xl shadow-xl shadow-black/8 z-50 overflow-hidden" dir="rtl">
+                <div className="absolute left-0 top-11 w-80 bg-white border border-gray-100 rounded-2xl shadow-xl shadow-black/8 z-[200] overflow-hidden" dir="rtl">
                   {/* Header */}
                   <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                     <div className="flex items-center gap-2">
