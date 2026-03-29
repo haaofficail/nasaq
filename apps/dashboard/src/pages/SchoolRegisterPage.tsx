@@ -138,7 +138,7 @@ export function SchoolRegisterPage() {
         localStorage.setItem("nasaq_user", JSON.stringify(stored));
       }
 
-      navigate("/dashboard");
+      navigate("/school/dashboard");
     } catch (err: any) {
       setError(err.message ?? "حدث خطأ غير متوقع");
     } finally {

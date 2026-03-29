@@ -106,52 +106,74 @@ export function SchoolLayout() {
       )}
 
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
-      {/* ── Sidebar ── */}
+      {/* ── Sidebar — dark gradient matching landing hero ── */}
       <aside
         className={clsx(
-          "fixed inset-y-0 right-0 z-50 flex flex-col bg-white border-l border-emerald-100 transition-all duration-300 ease-in-out md:static shadow-xl md:shadow-none",
+          "fixed inset-y-0 right-0 z-50 flex flex-col transition-all duration-300 ease-in-out md:static shadow-2xl md:shadow-none",
+          "bg-gradient-to-b from-gray-900 via-emerald-950 to-gray-900",
           collapsed ? "w-[68px]" : "w-[220px]",
           mobileOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
         )}
         style={{ paddingBottom: "var(--safe-area-bottom)" }}
       >
-        {/* Logo */}
+        {/* Subtle grid pattern like hero */}
+        <div
+          className="absolute inset-0 opacity-[0.04] pointer-events-none"
+          style={{
+            backgroundImage: "linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        {/* Emerald glow */}
+        <div className="absolute bottom-1/3 right-1/2 translate-x-1/2 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Logo — identical to landing header logo */}
         <div className={clsx(
-          "flex items-center border-b border-emerald-100 h-16 px-4 shrink-0",
+          "relative flex items-center border-b border-white/10 h-16 px-4 shrink-0",
           collapsed ? "justify-center" : "justify-between"
         )}>
           {!collapsed && (
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm shadow-emerald-600/30">
-                <GraduationCap className="w-4 h-4 text-white" />
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-900/40">
+                <GraduationCap className="w-5 h-5 text-white" />
               </div>
-              <div className="leading-tight">
-                <span className="text-base font-bold text-emerald-700 tracking-tight block">نسق</span>
-                <span className="text-[10px] text-emerald-500 font-medium">للمدارس</span>
+              <div className="leading-none">
+                <span className="text-base font-black text-white block">نسق</span>
+                <span className="text-[10px] font-semibold text-emerald-400">للمدارس</span>
               </div>
             </div>
           )}
           {collapsed && (
-            <div className="w-8 h-8 rounded-xl bg-emerald-600 flex items-center justify-center shadow-sm shadow-emerald-600/30">
-              <GraduationCap className="w-4 h-4 text-white" />
+            <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-900/40">
+              <GraduationCap className="w-5 h-5 text-white" />
             </div>
           )}
-          <button
-            onClick={toggleCollapsed}
-            className="hidden lg:flex w-7 h-7 items-center justify-center rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-600 transition-colors"
-          >
-            {collapsed ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-          </button>
-          <button onClick={() => setMobileOpen(false)} className="md:hidden w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
+          {!collapsed && (
+            <button
+              onClick={toggleCollapsed}
+              className="hidden lg:flex w-7 h-7 items-center justify-center rounded-lg hover:bg-white/10 text-white/40 hover:text-white/80 transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
+          {collapsed && (
+            <button
+              onClick={toggleCollapsed}
+              className="hidden lg:absolute lg:flex lg:-left-2.5 lg:top-1/2 lg:-translate-y-1/2 w-5 h-5 items-center justify-center rounded-full bg-emerald-600 shadow text-white transition-colors hover:bg-emerald-500"
+            >
+              <ChevronLeft className="w-3 h-3" />
+            </button>
+          )}
+          <button onClick={() => setMobileOpen(false)} className="md:hidden w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/60">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Nav */}
-        <nav className="flex-1 overflow-y-auto py-3 px-2 scrollbar-thin">
+        <nav className="relative flex-1 overflow-y-auto py-4 px-2 scrollbar-thin">
           <div className="space-y-0.5">
             {SCHOOL_NAV.map((item) => {
               const active = isActive(item.href, item.exact);
@@ -162,14 +184,14 @@ export function SchoolLayout() {
                   onClick={() => setMobileOpen(false)}
                   title={collapsed ? item.name : undefined}
                   className={clsx(
-                    "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
+                    "flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150",
                     collapsed && "justify-center px-2",
                     active
-                      ? "bg-emerald-50 text-emerald-700"
-                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-900/40"
+                      : "text-gray-300 hover:bg-white/10 hover:text-white"
                   )}
                 >
-                  <item.icon className={clsx("w-4 h-4 shrink-0", active ? "text-emerald-600" : "text-gray-400")} />
+                  <item.icon className={clsx("w-4 h-4 shrink-0", active ? "text-white" : "text-gray-400")} />
                   {!collapsed && <span className="flex-1 truncate">{item.name}</span>}
                 </NavLink>
               );
@@ -178,17 +200,17 @@ export function SchoolLayout() {
         </nav>
 
         {/* User footer */}
-        <div className={clsx("border-t border-emerald-100 p-2 shrink-0 space-y-1", collapsed && "flex flex-col items-center space-y-1")}>
-          <NavLink
-            to="/dashboard/account"
-            title="حسابي"
-            className={({ isActive: a }) => clsx(
-              "flex items-center gap-3 p-2 rounded-lg transition-colors w-full",
-              collapsed && "justify-center w-auto",
-              a ? "bg-emerald-50 text-emerald-700" : "hover:bg-gray-50 text-gray-700"
+        <div className={clsx(
+          "relative border-t border-white/10 p-2 shrink-0 space-y-1",
+          collapsed && "flex flex-col items-center space-y-1"
+        )}>
+          <div
+            className={clsx(
+              "flex items-center gap-3 p-2 rounded-xl text-gray-300 w-full",
+              collapsed && "justify-center w-auto"
             )}
           >
-            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm shrink-0 overflow-hidden">
+            <div className="w-8 h-8 rounded-full bg-emerald-600 border border-emerald-500 flex items-center justify-center text-white font-bold text-sm shrink-0 overflow-hidden">
               {user?.avatar
                 ? <img src={user.avatar} className="w-full h-full object-cover" />
                 : user?.name?.[0] || "م"
@@ -196,16 +218,16 @@ export function SchoolLayout() {
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0 text-right">
-                <p className="text-sm font-medium text-gray-800 truncate">{user?.name || "المستخدم"}</p>
-                <p className="text-xs text-gray-400 flex items-center gap-1"><User className="w-3 h-3" />حسابي</p>
+                <p className="text-sm font-medium text-white truncate">{user?.name || "المستخدم"}</p>
+                <p className="text-xs text-gray-500 flex items-center gap-1"><User className="w-3 h-3" />مدير المدرسة</p>
               </div>
             )}
-          </NavLink>
+          </div>
           <button
             onClick={handleLogout}
             title="تسجيل الخروج"
             className={clsx(
-              "flex items-center gap-2 p-2 rounded-lg hover:bg-red-50 group transition-colors text-gray-500 hover:text-red-500 w-full",
+              "flex items-center gap-2 p-2 rounded-xl hover:bg-red-500/20 transition-colors text-gray-400 hover:text-red-400 w-full",
               collapsed && "justify-center w-auto"
             )}
           >
@@ -239,21 +261,28 @@ export function SchoolLayout() {
           </div>
         )}
 
-        {/* Header */}
+        {/* Topbar — like landing header when scrolled: white + subtle border */}
         <header
-          className="h-16 bg-white border-b border-emerald-100 flex items-center justify-between px-4 md:px-5 shrink-0"
+          className="h-16 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm flex items-center justify-between px-4 md:px-5 shrink-0"
           style={{ paddingTop: "var(--safe-area-top)" }}
         >
           <div className="flex items-center gap-3">
-            <button onClick={() => setMobileOpen(true)} className="md:hidden w-9 h-9 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500">
+            <button onClick={() => setMobileOpen(true)} className="md:hidden w-9 h-9 flex items-center justify-center rounded-xl hover:bg-gray-100 text-gray-500">
               <Menu className="w-5 h-5" />
             </button>
+            {/* Breadcrumb */}
             <nav className="flex items-center gap-1.5 text-sm">
-              <span className="text-emerald-600 font-semibold">{orgName}</span>
+              <div className="hidden sm:flex items-center gap-1.5">
+                <div className="w-6 h-6 rounded-lg bg-emerald-600 flex items-center justify-center">
+                  <GraduationCap className="w-3.5 h-3.5 text-white" />
+                </div>
+                <span className="font-black text-gray-900">نسق</span>
+                <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">للمدارس</span>
+              </div>
               {currentPage && (
                 <>
-                  <ChevronLeft className="w-3.5 h-3.5 text-gray-300" />
-                  <span className="text-gray-700 font-medium">{currentPage.name}</span>
+                  <ChevronLeft className="w-3.5 h-3.5 text-gray-300 hidden sm:block" />
+                  <span className="text-gray-700 font-semibold">{currentPage.name}</span>
                 </>
               )}
             </nav>
@@ -261,7 +290,7 @@ export function SchoolLayout() {
 
           <div className="flex items-center gap-2">
             {/* Search */}
-            <div className="hidden sm:flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 w-52 focus-within:border-emerald-200 focus-within:bg-white transition-all">
+            <div className="hidden sm:flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 w-48 focus-within:border-emerald-300 focus-within:bg-white focus-within:shadow-sm transition-all">
               <Search className="w-4 h-4 text-gray-400 shrink-0" />
               <input type="text" placeholder="بحث..." className="bg-transparent border-none outline-none text-sm text-gray-600 placeholder-gray-400 w-full" />
             </div>
@@ -332,7 +361,7 @@ export function SchoolLayout() {
                     )}
                   </div>
                   <div className="px-4 py-2.5 bg-gray-50/60 border-t border-gray-100">
-                    <button onClick={() => { navigate("/dashboard/support"); setBellOpen(false); }}
+                    <button onClick={() => { navigate("/school/support"); setBellOpen(false); }}
                       className="w-full text-center text-xs text-emerald-600 hover:text-emerald-700 font-medium transition-colors">
                       عرض بوابة الدعم
                     </button>
@@ -342,14 +371,14 @@ export function SchoolLayout() {
             </div>
 
             {/* Avatar */}
-            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm cursor-pointer hover:ring-2 hover:ring-emerald-200 transition-all">
+            <div className="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold text-sm cursor-pointer hover:ring-2 hover:ring-emerald-400 hover:ring-offset-1 transition-all shadow-sm">
               {user?.name?.[0] || "م"}
             </div>
           </div>
         </header>
 
         {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-4 md:p-6" style={{ paddingBottom: "calc(var(--safe-area-bottom) + 1.5rem)" }}>
+        <main className="flex-1 overflow-y-auto" style={{ paddingBottom: "var(--safe-area-bottom)" }}>
           <Outlet />
         </main>
       </div>

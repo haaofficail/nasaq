@@ -82,6 +82,9 @@ export function Layout() {
   // Super admins have their own standalone panel — redirect them out of the merchant layout
   if (isSuperAdmin) return <Navigate to="/admin" replace />;
 
+  // School accounts must NEVER enter the commerce layout — redirect to their own domain
+  if (isSchool) return <Navigate to="/school/dashboard" replace />;
+
   const allGroups = isSuperAdmin
     ? []
     : buildVisibleNav(
