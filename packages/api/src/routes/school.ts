@@ -1112,4 +1112,173 @@ router.get("/day-monitor", async (c) => {
   });
 });
 
+// ============================================================
+// IMPORT — templates / preview / confirm / logs
+// ============================================================
+
+import { schoolImportLogs } from "@nasaq/db/schema";
+
+const IMPORT_TEMPLATES: Record<string, { headers: string[]; sample: Record<string, string>; required: string[] }> = {
+  students: {
+    headers:  ["الاسم الكامل", "رقم الطالب", "رقم الهوية", "تاريخ الميلاد", "الجنس", "الصف", "اسم الفصل", "اسم ولي الأمر", "جوال ولي الأمر", "صلة القرابة"],
+    sample:   { "الاسم الكامل": "أحمد علي الزهراني", "رقم الطالب": "S-001", "رقم الهوية": "", "تاريخ الميلاد": "2015-03-10", "الجنس": "ذكر", "الصف": "الأول الابتدائي", "اسم الفصل": "أ", "اسم ولي الأمر": "علي الزهراني", "جوال ولي الأمر": "0512345678", "صلة القرابة": "الأب" },
+    required: ["الاسم الكامل"],
+  },
+  teachers: {
+    headers:  ["الاسم الكامل", "الرقم الوظيفي", "المادة", "الجوال", "البريد الإلكتروني", "رقم الهوية", "الجنس", "المؤهل العلمي"],
+    sample:   { "الاسم الكامل": "محمد سعد العتيبي", "الرقم الوظيفي": "EMP-001", "المادة": "الرياضيات", "الجوال": "0556789012", "البريد الإلكتروني": "teacher@school.sa", "رقم الهوية": "", "الجنس": "ذكر", "المؤهل العلمي": "بكالوريوس تربية" },
+    required: ["الاسم الكامل"],
+  },
+  classRooms: {
+    headers:  ["الصف", "اسم الفصل", "الطاقة الاستيعابية"],
+    sample:   { "الصف": "الأول الابتدائي", "اسم الفصل": "أ", "الطاقة الاستيعابية": "30" },
+    required: ["الصف", "اسم الفصل"],
+  },
+  schedules: {
+    headers:  ["الصف", "اسم الفصل", "اليوم", "رقم الحصة", "المادة", "اسم المعلم"],
+    sample:   { "الصف": "الأول الابتدائي", "اسم الفصل": "أ", "اليوم": "الأحد", "رقم الحصة": "1", "المادة": "الرياضيات", "اسم المعلم": "محمد العتيبي" },
+    required: ["الصف", "اسم الفصل", "اليوم", "رقم الحصة"],
+  },
+};
+
+router.get("/import/templates/:type", async (c) => {
+  const type = c.req.param("type") as string;
+  const tpl = IMPORT_TEMPLATES[type];
+  if (!tpl) return c.json({ error: "نوع الاستيراد غير مدعوم" }, 400);
+  return c.json({ data: { headers: tpl.headers, sample: tpl.sample } });
+});
+
+router.get("/import/logs", async (c) => {
+  const orgId = getOrgId(c);
+  const type  = c.req.query("type");
+  const conditions = [eq(schoolImportLogs.orgId, orgId)];
+  if (type) conditions.push(eq(schoolImportLogs.importType, type));
+  const logs = await db
+    .select()
+    .from(schoolImportLogs)
+    .where(and(...conditions))
+    .orderBy(desc(schoolImportLogs.createdAt))
+    .limit(50);
+  return c.json({ data: logs });
+});
+
+router.post("/import/preview", async (c) => {
+  const orgId  = getOrgId(c);
+  const body   = await c.req.json();
+  const type   = body.type as string;
+  const rows   = body.rows as Record<string, string>[];
+  const tpl    = IMPORT_TEMPLATES[type];
+  if (!tpl) return c.json({ error: "نوع غير مدعوم" }, 400);
+
+  const result = rows.map((row) => {
+    const missing = tpl.required.filter((k) => !row[k]?.trim());
+    if (missing.length > 0) {
+      return { data: row, valid: false, error: `حقول مطلوبة: ${missing.join("، ")}` };
+    }
+    return { data: row, valid: true };
+  });
+
+  return c.json({ data: { rows: result } });
+});
+
+router.post("/import/confirm", async (c) => {
+  const orgId   = getOrgId(c);
+  const userId  = getUserId(c);
+  const body    = await c.req.json();
+  const type    = body.type as string;
+  const rows    = body.rows as Record<string, string>[];
+
+  let imported = 0; let errors = 0;
+  const errorList: any[] = [];
+
+  if (type === "students") {
+    // Fetch all classrooms for lookup
+    const allRooms = await db.select().from(classRooms).where(eq(classRooms.orgId, orgId));
+    for (const row of rows) {
+      try {
+        const fullName = row["الاسم الكامل"]?.trim();
+        if (!fullName) { errors++; continue; }
+        // find classRoomId
+        const gradeName = row["الصف"]?.trim();
+        const roomName  = row["اسم الفصل"]?.trim();
+        const room = allRooms.find((r) =>
+          (!gradeName || r.grade === gradeName) && (!roomName || r.name === roomName)
+        );
+        await db.insert(students).values({
+          orgId,
+          fullName,
+          studentNumber: row["رقم الطالب"] || null,
+          nationalId:    row["رقم الهوية"] || null,
+          birthDate:     row["تاريخ الميلاد"] || null,
+          gender:        (row["الجنس"] === "أنثى" ? "أنثى" : row["الجنس"] === "ذكر" ? "ذكر" : null) as any,
+          classRoomId:   room?.id ?? null,
+          guardianName:  row["اسم ولي الأمر"] || null,
+          guardianPhone: row["جوال ولي الأمر"] || null,
+          guardianRelation: row["صلة القرابة"] || null,
+        });
+        imported++;
+      } catch (e: any) {
+        errors++;
+        errorList.push({ row, error: e.message });
+      }
+    }
+  } else if (type === "teachers") {
+    for (const row of rows) {
+      try {
+        const fullName = row["الاسم الكامل"]?.trim();
+        if (!fullName) { errors++; continue; }
+        await db.insert(teacherProfiles).values({
+          orgId,
+          fullName,
+          employeeNumber: row["الرقم الوظيفي"] || null,
+          subject:        row["المادة"] || null,
+          phone:          row["الجوال"] || null,
+          email:          row["البريد الإلكتروني"] || null,
+          nationalId:     row["رقم الهوية"] || null,
+          gender:         (row["الجنس"] as any) || null,
+          qualification:  row["المؤهل العلمي"] || null,
+        });
+        imported++;
+      } catch (e: any) {
+        errors++;
+        errorList.push({ row, error: e.message });
+      }
+    }
+  } else if (type === "classRooms") {
+    for (const row of rows) {
+      try {
+        const grade = row["الصف"]?.trim();
+        const name  = row["اسم الفصل"]?.trim();
+        if (!grade || !name) { errors++; continue; }
+        await db.insert(classRooms).values({
+          orgId,
+          grade,
+          name,
+          capacity: row["الطاقة الاستيعابية"] ? Number(row["الطاقة الاستيعابية"]) || null : null,
+        });
+        imported++;
+      } catch (e: any) {
+        errors++;
+        errorList.push({ row, error: e.message });
+      }
+    }
+  }
+
+  // Log the import
+  await db.insert(schoolImportLogs).values({
+    orgId,
+    importType:   type,
+    status:       errors === 0 ? "completed" : imported > 0 ? "completed" : "failed",
+    totalRows:    rows.length,
+    importedRows: imported,
+    errorRows:    errors,
+    errors:       errorList,
+    createdBy:    userId ?? undefined,
+    startedAt:    new Date(),
+    completedAt:  new Date(),
+  } as any);
+
+  return c.json({ data: { imported, errors, errorList } });
+});
+
 export const schoolRouter = router;

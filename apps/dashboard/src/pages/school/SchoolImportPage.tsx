@@ -104,8 +104,8 @@ function ImportTab({ type }: { type: ImportType }) {
     setValidating(true);
     try {
       const objects = rowsToObjects(rawRows);
-      const result = await schoolApi.previewImport(type, objects);
-      setPreview((result as any).data?.rows ?? (result as any).rows ?? []);
+      const result: any = await schoolApi.previewImport(type, objects);
+      setPreview(result?.data?.rows ?? result?.rows ?? []);
     } catch {
       // handled
     } finally {
@@ -117,7 +117,8 @@ function ImportTab({ type }: { type: ImportType }) {
     if (!preview) return;
     setImporting(true);
     try {
-      await schoolApi.confirmImport(type, preview.filter((r) => r.valid).map((r) => r.data));
+      const validRows = preview.filter((r) => r.valid).map((r) => r.data);
+      await schoolApi.confirmImport(type, validRows);
       setImportDone(true);
       setPreview(null);
       setRawRows([]);
@@ -329,17 +330,23 @@ export function SchoolImportPage() {
   return (
     <div dir="rtl" className="p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">استيراد البيانات</h1>
-        <p className="text-sm text-gray-500 mt-1">استورد بيانات الطلاب والفصول والمعلمين والجداول من ملفات CSV</p>
-      </div>
-
-      {/* Info banner */}
-      <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-blue-50 border border-blue-200">
-        <FileSpreadsheet className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-        <div className="text-sm text-blue-800">
-          <p className="font-medium">تعليمات الاستيراد</p>
-          <p className="mt-0.5 text-blue-700">حمّل القالب أولاً، أدخل البيانات بالتنسيق الصحيح، ثم ارفع الملف للمعاينة والتحقق قبل التأكيد.</p>
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gray-900 via-emerald-950 to-gray-900 p-6 text-white">
+        <div
+          className="absolute inset-0 opacity-[0.04] pointer-events-none"
+          style={{
+            backgroundImage: "linear-gradient(rgba(255,255,255,.5) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.5) 1px,transparent 1px)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        <div className="relative">
+          <h1 className="text-xl font-black">استيراد البيانات</h1>
+          <p className="text-sm text-gray-400 mt-1">
+            حمّل قالب CSV، عبّئه ببياناتك، ثم ارفعه للمعاينة والتحقق قبل التأكيد النهائي.
+          </p>
+          <div className="flex items-center gap-2 mt-3">
+            <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            <span className="text-xs text-emerald-300 font-medium">طلاب · فصول · معلمون · جداول</span>
+          </div>
         </div>
       </div>
 

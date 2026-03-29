@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { GraduationCap, Search, Plus, Pencil, Phone, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { GraduationCap, Search, Plus, Pencil, Phone, User, Upload } from "lucide-react";
 import { clsx } from "clsx";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
@@ -23,6 +24,7 @@ const emptyForm = {
 };
 
 export function SchoolStudentsPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [classRoomFilter, setClassRoomFilter] = useState("");
   const [modal, setModal] = useState<{ open: boolean; mode: "add" | "edit"; studentId?: string }>({
@@ -87,13 +89,23 @@ export function SchoolStudentsPage() {
           <h1 className="text-2xl font-bold text-gray-900">الطلاب</h1>
           <p className="text-sm text-gray-500 mt-1">إدارة بيانات الطلاب وأولياء الأمور</p>
         </div>
-        <button
-          onClick={openAdd}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          إضافة طالب
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => navigate("/school/import")}
+            className="flex items-center gap-2 px-3 py-2 border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition-colors"
+            title="استيراد طلاب من CSV"
+          >
+            <Upload className="w-4 h-4" />
+            <span className="hidden sm:inline">استيراد</span>
+          </button>
+          <button
+            onClick={openAdd}
+            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            إضافة طالب
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -133,15 +145,28 @@ export function SchoolStudentsPage() {
         ) : error ? (
           <div className="text-center py-12 text-red-400">{error}</div>
         ) : students.length === 0 ? (
-          <div className="py-16 flex flex-col items-center gap-3 text-gray-400">
-            <GraduationCap className="w-12 h-12" />
-            <p className="text-sm">لا يوجد طلاب مسجلون</p>
-            <button
-              onClick={openAdd}
-              className="mt-1 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm hover:bg-emerald-700"
-            >
-              إضافة أول طالب
-            </button>
+          <div className="py-16 flex flex-col items-center gap-3 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-1">
+              <GraduationCap className="w-7 h-7 text-emerald-500" />
+            </div>
+            <p className="text-sm font-semibold text-gray-700">لا يوجد طلاب مسجلون</p>
+            <p className="text-xs text-gray-400">أضف طلاباً يدوياً أو استورد ملف CSV لتعبئة سريعة</p>
+            <div className="flex gap-2 mt-2">
+              <button
+                onClick={() => navigate("/school/import")}
+                className="flex items-center gap-2 px-4 py-2 border border-emerald-200 text-emerald-700 rounded-xl text-sm font-medium hover:bg-emerald-50 transition-colors"
+              >
+                <Upload className="w-4 h-4" />
+                استيراد CSV
+              </button>
+              <button
+                onClick={openAdd}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
+              >
+                <Plus className="w-4 h-4" />
+                إضافة طالب
+              </button>
+            </div>
           </div>
         ) : (
           <div className="overflow-x-auto">
