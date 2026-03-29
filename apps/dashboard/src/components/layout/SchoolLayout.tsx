@@ -4,7 +4,7 @@ import {
   GraduationCap, ChevronLeft, ChevronRight, Bell, Search, LogOut, Menu, X, User,
   WifiOff, CheckCheck, ExternalLink, Clock, Settings,
   LayoutDashboard, ClipboardCheck, Users, DoorOpen, CalendarDays,
-  AlertCircle, Upload, UserRoundCheck, ShieldAlert, Timer, MessageCircle, CalendarCheck2, CalendarRange, BookOpenCheck, Grid3X3, Tablet,
+  AlertCircle, Upload, UserRoundCheck, ShieldAlert, Timer, MessageCircle, CalendarCheck2, CalendarRange, BookOpenCheck, Grid3X3, Tablet, Headphones,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { authApi } from "@/lib/api";
@@ -30,6 +30,7 @@ const SCHOOL_NAV = [
   { name: "الجدول الدراسي",        href: "/school/timetable",           icon: Grid3X3,         exact: false },
   { name: "الإشعارات",            href: "/school/notifications",       icon: MessageCircle,   exact: false },
   { name: "الاستيراد",           href: "/school/import",              icon: Upload,          exact: false },
+  { name: "الدعم الفني",          href: "/school/support",             icon: Headphones,      exact: false },
   { name: "الإعدادات",           href: "/school/account",             icon: Settings,        exact: false },
   { name: "دليل المستخدم",       href: "/school/guide",               icon: BookOpenCheck,   exact: false },
 ];

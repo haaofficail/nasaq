@@ -402,6 +402,7 @@ export default function App() {
           <Route path="setup"             element={<SchoolSetupPage />} />
           <Route path="subjects"          element={<SchoolSubjectsPage />} />
           <Route path="teacher-work"      element={<SchoolTeacherWorkPage />} />
+          <Route path="support"           element={<SupportPage />} />
         </Route>
       </Routes>
     </Suspense>

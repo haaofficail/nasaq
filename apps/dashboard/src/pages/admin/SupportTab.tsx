@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Building2, RefreshCw, Search, MessageSquare, ChevronLeft, Send, Loader2, X, Headphones } from "lucide-react";
+import { Building2, RefreshCw, Search, MessageSquare, ChevronLeft, Send, Loader2, X, Headphones, GraduationCap } from "lucide-react";
 import { clsx } from "clsx";
 import { adminApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
@@ -59,6 +59,7 @@ function AdminTicketDetail({ ticketId, onClose, onRefresh }: { ticketId: string;
                       <Building2 className="w-3 h-3" />{ticket.orgName}
                     </span>
                   )}
+                  <OrgTypeBadge type={ticket.orgBusinessType} />
                   <span className={clsx("text-[10px] font-semibold px-2 py-0.5 rounded-full",
                     ticket.status === "open"        ? "bg-blue-50 text-blue-600"
                   : ticket.status === "in_progress" ? "bg-amber-50 text-amber-600"
@@ -179,14 +180,26 @@ function AdminTicketDetail({ ticketId, onClose, onRefresh }: { ticketId: string;
   );
 }
 
+function OrgTypeBadge({ type }: { type?: string }) {
+  if (type === "education") {
+    return (
+      <span className="flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+        <GraduationCap className="w-3 h-3" />مدرسة
+      </span>
+    );
+  }
+  return null;
+}
+
 function SupportTab() {
   const [statusFilter, setStatusFilter]     = useState("open");
   const [categoryFilter, setCategoryFilter] = useState("");
+  const [orgTypeFilter, setOrgTypeFilter]   = useState("");
   const [search, setSearch]                 = useState("");
   const [activeTicket, setActiveTicket]     = useState<string | null>(null);
   const { data, loading, refetch } = useApi(
-    () => adminApi.tickets({ status: statusFilter || undefined, category: categoryFilter || undefined }),
-    [statusFilter, categoryFilter]
+    () => adminApi.tickets({ status: statusFilter || undefined, category: categoryFilter || undefined, orgType: orgTypeFilter || undefined }),
+    [statusFilter, categoryFilter, orgTypeFilter]
   );
 
   const tickets: any[] = data?.data || [];
@@ -245,6 +258,18 @@ function SupportTab() {
           <option value="">كل التصنيفات</option>
           {Object.entries(TICKET_CATEGORIES).map(([v, c]) => <option key={v} value={v}>{c.label}</option>)}
         </select>
+        <button
+          onClick={() => setOrgTypeFilter(orgTypeFilter === "education" ? "" : "education")}
+          className={clsx(
+            "flex items-center gap-1.5 h-9 px-3 rounded-xl border text-xs font-medium transition-all",
+            orgTypeFilter === "education"
+              ? "bg-emerald-50 border-emerald-300 text-emerald-700"
+              : "bg-white border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-600"
+          )}
+        >
+          <GraduationCap className="w-3.5 h-3.5" />
+          المدارس فقط
+        </button>
       </div>
 
       {/* List */}
@@ -262,6 +287,7 @@ function SupportTab() {
                         <Building2 className="w-3 h-3" />{t.orgName}
                       </span>
                     )}
+                    <OrgTypeBadge type={t.orgBusinessType} />
                     <span className={clsx("text-[10px] font-semibold px-2 py-0.5 rounded-full",
                       t.status === "open"        ? "bg-blue-50 text-blue-600"
                     : t.status === "in_progress" ? "bg-amber-50 text-amber-600"

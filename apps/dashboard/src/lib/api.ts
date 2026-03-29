@@ -1204,12 +1204,13 @@ export const adminApi = {
   createDocument: (data: any) => api.post<{ data: any }>("/admin/documents", data),
   updateDocument: (id: string, data: any) => api.patch<{ data: any }>(`/admin/documents/${id}`, data),
 
-  tickets: (params?: { status?: string; priority?: string; orgId?: string; category?: string; page?: number }) => {
+  tickets: (params?: { status?: string; priority?: string; orgId?: string; category?: string; orgType?: string; page?: number }) => {
     const q = new URLSearchParams();
     if (params?.status)   q.set("status",   params.status);
     if (params?.priority) q.set("priority", params.priority);
     if (params?.orgId)    q.set("orgId",    params.orgId);
     if (params?.category) q.set("category", params.category);
+    if (params?.orgType)  q.set("orgType",  params.orgType);
     if (params?.page)     q.set("page",     String(params.page));
     return api.get<{ data: any[]; stats: Record<string, number>; pagination: any }>(`/admin/tickets?${q}`);
   },

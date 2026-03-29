@@ -432,16 +432,18 @@ adminRouter.patch("/documents/:id", async (c) => {
 
 adminRouter.get("/tickets", async (c) => {
   const { page, limit, offset } = getPagination(c);
-  const status   = c.req.query("status");
-  const priority = c.req.query("priority");
-  const orgId    = c.req.query("orgId");
-  const category = c.req.query("category");
+  const status      = c.req.query("status");
+  const priority    = c.req.query("priority");
+  const orgId       = c.req.query("orgId");
+  const category    = c.req.query("category");
+  const orgTypeFilter = c.req.query("orgType"); // e.g. "education"
 
   const conditions: any[] = [];
-  if (status)   conditions.push(eq(supportTickets.status,   status));
-  if (priority) conditions.push(eq(supportTickets.priority, priority));
-  if (orgId)    conditions.push(eq(supportTickets.orgId,    orgId));
-  if (category) conditions.push(eq(supportTickets.category, category));
+  if (status)        conditions.push(eq(supportTickets.status,   status));
+  if (priority)      conditions.push(eq(supportTickets.priority, priority));
+  if (orgId)         conditions.push(eq(supportTickets.orgId,    orgId));
+  if (category)      conditions.push(eq(supportTickets.category, category));
+  if (orgTypeFilter) conditions.push(eq(organizations.businessType, orgTypeFilter));
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
@@ -453,6 +455,7 @@ adminRouter.get("/tickets", async (c) => {
       createdAt: supportTickets.createdAt, updatedAt: supportTickets.updatedAt, resolvedAt: supportTickets.resolvedAt,
       openedBy: supportTickets.openedBy,
       orgName: organizations.name,
+      orgBusinessType: organizations.businessType,
     })
     .from(supportTickets)
     .leftJoin(organizations, eq(supportTickets.orgId, organizations.id))
@@ -478,6 +481,7 @@ adminRouter.get("/tickets/:id", async (c) => {
     createdAt: supportTickets.createdAt, updatedAt: supportTickets.updatedAt, resolvedAt: supportTickets.resolvedAt,
     openedBy: supportTickets.openedBy,
     orgName: organizations.name,
+    orgBusinessType: organizations.businessType,
   })
   .from(supportTickets)
   .leftJoin(organizations, eq(supportTickets.orgId, organizations.id))
