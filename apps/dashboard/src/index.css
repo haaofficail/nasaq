@@ -23,9 +23,31 @@
   }
 }
 
+/* ── System Theme Tokens ─────────────────────────────────── */
+:root {
+  --sys-brand:        #5b9bd5;
+  --sys-brand-dark:   #3a7abf;
+  --sys-brand-light:  #dbeafe;
+  --sys-brand-focus:  rgba(91,155,213,0.25);
+}
+
+[data-system="commerce"] {
+  --sys-brand:        #5b9bd5;
+  --sys-brand-dark:   #3a7abf;
+  --sys-brand-light:  #dbeafe;
+  --sys-brand-focus:  rgba(91,155,213,0.25);
+}
+
+[data-system="school"] {
+  --sys-brand:        #059669;   /* emerald-600 */
+  --sys-brand-dark:   #047857;   /* emerald-700 */
+  --sys-brand-light:  #d1fae5;   /* emerald-100 */
+  --sys-brand-focus:  rgba(5,150,105,0.20);
+}
+
 /* Focus visible */
 :focus-visible {
-  outline: 2px solid #5b9bd5;
+  outline: 2px solid var(--sys-brand, #5b9bd5);
   outline-offset: 2px;
 }
 

@@ -4,7 +4,7 @@ import {
   GraduationCap, ChevronLeft, ChevronRight, Bell, Search, LogOut, Menu, X, User,
   WifiOff, CheckCheck, ExternalLink, Clock, Settings,
   LayoutDashboard, ClipboardCheck, Users, DoorOpen, CalendarDays,
-  AlertCircle, BookOpenCheck, ClipboardPen, Upload,
+  AlertCircle, BookOpenCheck, ClipboardPen, Upload, UserRoundCheck,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { authApi } from "@/lib/api";
@@ -20,6 +20,7 @@ const SCHOOL_NAV = [
   { name: "الرئيسية",           href: "/school/dashboard",           icon: LayoutDashboard, exact: true },
   { name: "مراقب اليوم",        href: "/school/day-monitor",         icon: ClipboardCheck,  exact: false },
   { name: "الطلاب",              href: "/school/students",            icon: Users,           exact: false },
+  { name: "المعلمون",             href: "/school/teachers",            icon: UserRoundCheck,  exact: false },
   { name: "الفصول",              href: "/school/classes",             icon: DoorOpen,        exact: false },
   { name: "حصص اليوم",           href: "/school/periods",             icon: CalendarDays,    exact: false },
   { name: "الحالات والمتابعة",   href: "/school/cases",               icon: AlertCircle,     exact: false },
@@ -96,7 +97,7 @@ export function SchoolLayout() {
   const orgName = user?.name || "المدرسة";
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50" dir="rtl">
+    <div className="flex h-screen overflow-hidden bg-gray-50" dir="rtl" data-system="school">
 
       {/* Offline banner */}
       {!isOnline && (

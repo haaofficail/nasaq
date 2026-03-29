@@ -100,7 +100,7 @@ export function Layout() {
     (isSuperAdmin && isActive(SUPER_ADMIN_NAV.href) ? SUPER_ADMIN_NAV : undefined);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-gray-50" dir="rtl">
+    <div className="flex h-screen overflow-hidden bg-gray-50" dir="rtl" data-system="commerce">
       {/* Offline banner */}
       {!isOnline && (
         <div className="fixed top-0 inset-x-0 z-[100] bg-red-500 text-white text-xs flex items-center justify-center gap-1.5 py-1.5">
