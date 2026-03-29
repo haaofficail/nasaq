@@ -1,8 +1,195 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, Search, Pencil, Trash2, X, Loader2, CheckCircle2, UserCheck, Calendar } from "lucide-react";
+import { Users, Plus, Search, Pencil, Trash2, X, Loader2, CheckCircle2, UserCheck, Calendar, Link2 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
+
+// ── Classroom Assignment Modal ────────────────────────────
+
+function TeacherAssignModal({
+  teacher,
+  onClose,
+  onDone,
+}: {
+  teacher: any;
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [subject,     setSubject]     = useState("");
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [saving,      setSaving]      = useState(false);
+
+  const { data: classData }  = useApi(() => schoolApi.listClassRooms(), []);
+  const classRooms: any[]    = classData?.data ?? [];
+
+  const { data: assignData, refetch: refetchAssignments } = useApi(
+    () => schoolApi.getTeacherAssignments(teacher.id),
+    [teacher.id]
+  );
+  const existing: any[] = assignData?.data?.assignments ?? [];
+
+  // Group classrooms by grade for display
+  const byGrade = new Map<string, any[]>();
+  classRooms.forEach((cr: any) => {
+    if (!byGrade.has(cr.grade)) byGrade.set(cr.grade, []);
+    byGrade.get(cr.grade)!.push(cr);
+  });
+
+  const toggle = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const handleAdd = async () => {
+    if (!subject.trim() || selectedIds.size === 0) return;
+    setSaving(true);
+    try {
+      for (const classRoomId of selectedIds) {
+        await schoolApi.createTeacherAssignment(teacher.id, { classRoomId, subject: subject.trim() });
+      }
+      setSelectedIds(new Set());
+      setSubject("");
+      refetchAssignments();
+      onDone();
+    } catch {} finally { setSaving(false); }
+  };
+
+  const handleDelete = async (assignmentId: string) => {
+    await schoolApi.deleteTeacherAssignment(assignmentId);
+    refetchAssignments();
+    onDone();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div
+        className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-base font-black text-gray-900">إسناد الفصول</h2>
+            <p className="text-xs text-gray-500 mt-0.5">{teacher.fullName}</p>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-5 max-h-[70vh] overflow-y-auto">
+          {/* Add new assignment */}
+          <div className="bg-gray-50 rounded-2xl p-4 space-y-4">
+            <p className="text-xs font-bold text-gray-700">إضافة إسناد جديد</p>
+
+            {/* Subject */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">المادة الدراسية</label>
+              <input
+                type="text"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                placeholder="مثال: رياضيات"
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              />
+            </div>
+
+            {/* Classrooms checkboxes grouped by grade */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-2">الفصول التي يدرسها</label>
+              {classRooms.length === 0 ? (
+                <p className="text-xs text-gray-400 py-3 text-center">لا توجد فصول مضافة بعد</p>
+              ) : (
+                <div className="space-y-3 max-h-52 overflow-y-auto">
+                  {[...byGrade.entries()].map(([grade, rooms]) => (
+                    <div key={grade}>
+                      <p className="text-[10px] font-black text-gray-400 uppercase mb-1.5">{grade}</p>
+                      <div className="flex flex-wrap gap-2">
+                        {rooms.map((cr: any) => {
+                          const checked = selectedIds.has(cr.id);
+                          return (
+                            <label
+                              key={cr.id}
+                              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
+                                checked
+                                  ? "bg-emerald-600 text-white border-emerald-600"
+                                  : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300"
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => toggle(cr.id)}
+                                className="sr-only"
+                              />
+                              <span>{cr.grade.replace(/[^٠-٩0-9]/g, "").trim() || cr.name}</span>
+                              <span>-</span>
+                              <span>{cr.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                onClick={handleAdd}
+                disabled={saving || !subject.trim() || selectedIds.size === 0}
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+              >
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+                إسناد {selectedIds.size > 0 ? `(${selectedIds.size} فصل)` : ""}
+              </button>
+              <p className="text-xs text-gray-400">
+                {selectedIds.size === 0 ? "اختر فصلاً أو أكثر" : `${selectedIds.size} فصل محدد`}
+              </p>
+            </div>
+          </div>
+
+          {/* Existing assignments */}
+          {existing.length > 0 && (
+            <div>
+              <p className="text-xs font-bold text-gray-700 mb-2">الإسنادات الحالية</p>
+              <div className="space-y-1.5">
+                {existing.map((a: any) => (
+                  <div key={a.id} className="flex items-center justify-between gap-2 bg-white border border-gray-100 rounded-xl px-3 py-2">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-0.5">
+                        {a.classRoomGrade
+                          ? `${a.classRoomGrade.replace(/[^٠-٩0-9]/g, "").trim() || a.classRoomGrade}-${a.classRoomName}`
+                          : (a.grade ?? a.stage ?? "—")}
+                      </span>
+                      <span className="text-gray-600">{a.subject}</span>
+                    </div>
+                    <button
+                      onClick={() => handleDelete(a.id)}
+                      className="p-1 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-400 transition-colors shrink-0"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/60">
+          <button onClick={onClose} className="w-full py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+            إغلاق
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Types ──────────────────────────────────────────────────
 interface Teacher {
@@ -45,6 +232,7 @@ export function SchoolTeachersPage() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [formError, setFormError] = useState("");
+  const [assigningTeacher, setAssigningTeacher] = useState<Teacher | null>(null);
 
   const { data, loading, error, refetch } = useApi(
     () => schoolApi.listTeachers(),
@@ -301,6 +489,13 @@ export function SchoolTeachersPage() {
 
               <div className="flex gap-2 mt-4 pt-3 border-t border-gray-50 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
+                  onClick={() => setAssigningTeacher(t)}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 py-1.5 rounded-lg transition-colors"
+                >
+                  <Link2 className="w-3.5 h-3.5" />
+                  الفصول
+                </button>
+                <button
                   onClick={() => navigate(`/school/teachers/${t.id}/schedule`)}
                   className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-600 hover:text-emerald-700 hover:bg-emerald-50 py-1.5 rounded-lg transition-colors"
                 >
@@ -326,6 +521,15 @@ export function SchoolTeachersPage() {
             </div>
           ))}
         </div>
+      )}
+
+      {/* ── Assignment Modal ── */}
+      {assigningTeacher && (
+        <TeacherAssignModal
+          teacher={assigningTeacher}
+          onClose={() => setAssigningTeacher(null)}
+          onDone={() => {}}
+        />
       )}
 
       {/* ── Form modal ── */}

@@ -173,7 +173,17 @@
       "Bash(bash deploy.sh \"ميزة رحلة الأصل: تكامل شامل بين الأصول والصيانة والعقود والحركات\" 2>&1)",
       "Bash(wc:*)",
       "Bash(ssh nasaq-server:*)",
-      "Bash(pnpm --filter @nasaq/dashboard exec tsc --noEmit)"
+      "Bash(pnpm --filter @nasaq/dashboard exec tsc --noEmit)",
+      "Bash(./packages/api/node_modules/.bin/tsc --noEmit -p packages/api/tsconfig.json)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(pnpm --filter api tsc --noEmit)",
+      "Bash(pnpm --filter dashboard tsc --noEmit)",
+      "Bash(pnpm --filter api build)",
+      "Bash(npx --no turbo run typecheck)",
+      "Bash(packages/api/node_modules/.bin/tsc --noEmit --project packages/api/tsconfig.json)",
+      "Bash(packages/api/node_modules/.bin/tsc --noEmit)",
+      "Bash(apps/dashboard/node_modules/.bin/tsc --noEmit --project apps/dashboard/tsconfig.json)",
+      "Bash(bash deploy.sh \"إضافة صفحة تهيئة المدرسة، نظام التواريخ الهجرية، وإصلاح صفحة الفصول\")"
     ]
   }
 }

@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
 import { Modal } from "@/components/ui";
+import { fmtHijri } from "@/lib/utils";
 
 // ── Constants ────────────────────────────────────────────────
 
@@ -229,7 +230,7 @@ export function SchoolCasesPage() {
                     <td className="px-4 py-3"><PriorityBadge priority={c.priority} /></td>
                     <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
                     <td className="px-4 py-3 text-gray-500 tabular-nums">
-                      {c.createdAt ? new Date(c.createdAt).toLocaleDateString("ar-SA") : "—"}
+                      {fmtHijri(c.createdAt)}
                     </td>
                     <td className="px-4 py-3">
                       <button
@@ -392,7 +393,7 @@ export function SchoolCasesPage() {
                       <div>
                         <p className="text-sm text-gray-700">{step.description}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {step.createdAt ? new Date(step.createdAt).toLocaleString("ar-SA") : ""}
+                          {fmtHijri(step.createdAt)}
                         </p>
                       </div>
                     </div>

@@ -2,10 +2,11 @@ import { useNavigate } from "react-router-dom";
 import {
   ClipboardCheck, Users, DoorOpen, AlertCircle, CalendarDays,
   ChevronLeft, BookOpenCheck, ClipboardPen, Upload, MonitorCheck,
-  GraduationCap,
+  GraduationCap, Timer, ShieldAlert,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
+import { fmtHijriFull } from "@/lib/utils";
 
 // ─── KPI Card — styled like landing features section ───────────────────────
 function KpiCard({
@@ -67,7 +68,7 @@ export function SchoolDashboardPage() {
   const openCases: number = (monitorData as any)?.data?.openCasesCount ?? 0;
 
   const now = new Date();
-  const todayLabel = now.toLocaleDateString("ar-SA", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+  const todayLabel = fmtHijriFull(now);
 
   return (
     <div dir="rtl" className="space-y-0">
@@ -131,7 +132,9 @@ export function SchoolDashboardPage() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <ModuleCard label="مراقب اليوم"       desc="لوحة الحصص اللحظية"  icon={MonitorCheck}  href="/school/day-monitor" />
+            <ModuleCard label="رصد التأخير"        desc="تسجيل التأخيرات"      icon={Timer}         href="/school/day-monitor" />
             <ModuleCard label="الحالات والمتابعة" desc="رصد وتتبع الحالات"    icon={AlertCircle}   href="/school/cases" />
+            <ModuleCard label="المخالفات"           desc="إدارة مخالفات الطلاب" icon={ShieldAlert}   href="/school/violations" />
             <ModuleCard label="قوالب الجداول"      desc="صيفي وشتوي"          icon={BookOpenCheck} href="/school/timetable-templates" />
             <ModuleCard label="الأسابيع والجداول"  desc="بناء الجدول الأسبوعي" icon={ClipboardPen}  href="/school/schedules/weeks" />
             <ModuleCard label="الطلاب"             desc="قاعدة بيانات الطلاب" icon={Users}         href="/school/students" />

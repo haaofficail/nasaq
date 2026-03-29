@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { authApi, settingsApi, schoolApi } from "@/lib/api";
+import { fmtHijri } from "@/lib/utils";
 import { useApi } from "@/hooks/useApi";
 import { useOrgContext } from "@/hooks/useOrgContext";
 import { toast } from "@/hooks/useToast";
@@ -360,11 +361,11 @@ export function SchoolAccountPage() {
                         {s.lastUsedAt && (
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3" />
-                            {new Date(s.lastUsedAt).toLocaleString("ar-SA", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}
+                            {fmtHijri(s.lastUsedAt)}
                           </span>
                         )}
                         {s.expiresAt && (
-                          <span>تنتهي {new Date(s.expiresAt).toLocaleDateString("ar-SA")}</span>
+                          <span>تنتهي {fmtHijri(s.expiresAt)}</span>
                         )}
                       </div>
                     </div>

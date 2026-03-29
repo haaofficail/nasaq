@@ -1459,6 +1459,12 @@ export const schoolApi = {
   // Settings
   getSettings:    () => api.get<{ data: any }>("/school/settings"),
   saveSettings:   (data: any) => api.post<{ data: any }>("/school/settings", data),
+
+  // Setup Wizard
+  getSetupStatus:   () => api.get<{ data: any }>("/school/setup-status"),
+  updateSetupStatus: (data: any) => api.put<{ success: boolean }>("/school/setup-status", data),
+  completeSetup:    (data: any) => api.post<{ data: any }>("/school/setup/complete", data),
+  getSetupGrades:   (stage: string) => api.get<{ data: any }>(`/school/setup/grades?stage=${stage}`),
   setActiveWeek:  (weekId: string) => api.patch<{ data: any }>("/school/settings/active-week", { activeWeekId: weekId }),
 
   // Day Monitor
@@ -1497,15 +1503,63 @@ export const schoolApi = {
   },
 
   // Students (الطلاب)
-  listStudents:    (params?: { classRoomId?: string; search?: string }) => {
+  listStudents:    (params?: { classRoomId?: string; search?: string; grade?: string; unassigned?: string; page?: string; limit?: string }) => {
     const q = new URLSearchParams();
     if (params?.classRoomId) q.set("classRoomId", params.classRoomId);
-    if (params?.search)      q.set("search", params.search);
-    return api.get<{ data: any[] }>(`/school/students${q.toString() ? "?" + q : ""}`);
+    if (params?.search)      q.set("search",      params.search);
+    if (params?.grade)       q.set("grade",        params.grade);
+    if (params?.unassigned)  q.set("unassigned",   params.unassigned);
+    if (params?.page)        q.set("page",         params.page);
+    if (params?.limit)       q.set("limit",        params.limit);
+    return api.get<{ data: any[]; total: number; page: number; pages: number }>(`/school/students${q.toString() ? "?" + q : ""}`);
   },
-  createStudent:   (data: any) => api.post<{ data: any }>("/school/students", data),
-  updateStudent:   (id: string, data: any) => api.put<{ data: any }>(`/school/students/${id}`, data),
-  deleteStudent:   (id: string) => api.delete<{ success: boolean }>(`/school/students/${id}`),
+  createStudent:      (data: any) => api.post<{ data: any }>("/school/students", data),
+  updateStudent:      (id: string, data: any) => api.put<{ data: any }>(`/school/students/${id}`, data),
+  deleteStudent:      (id: string) => api.delete<{ success: boolean }>(`/school/students/${id}`),
+  listUnassignedStudents:    () => api.get<{ data: any[] }>("/school/students/unassigned"),
+  assignStudentsToClassroom: (data: { studentIds: string[]; classRoomId: string }) =>
+    api.post<{ data: { assigned: number } }>("/school/students/assign-classroom", data),
+  transferStudent:           (id: string, data: { classRoomId: string; reason?: string }) =>
+    api.post<{ data: any }>(`/school/students/${id}/transfer`, data),
+  getStudentTransfers:       (id: string) => api.get<{ data: any[] }>(`/school/students/${id}/transfers`),
+  getStudent:                (id: string) => api.get<{ data: any }>(`/school/students/${id}`),
+
+  // Attendance (الحضور والغياب)
+  getAttendance:             (classRoomId: string, date: string) =>
+    api.get<{ data: any[]; date: string; classRoomId: string }>(`/school/attendance?classRoomId=${classRoomId}&date=${date}`),
+  saveAttendance:            (data: { classRoomId: string; date: string; records: any[] }) =>
+    api.post<{ data: { saved: number } }>("/school/attendance/bulk", data),
+  getStudentAttendance:      (studentId: string, month?: string) =>
+    api.get<{ data: any[] }>(`/school/attendance/student/${studentId}${month ? `?month=${month}` : ""}`),
+  getAttendanceStats:        (params: { classRoomId?: string; month?: string }) => {
+    const qs = new URLSearchParams(params as any).toString();
+    return api.get<{ data: any[] }>(`/school/attendance/stats?${qs}`);
+  },
+
+  // Behavior System (السلوك والمواظبة)
+  getBehaviorOverview:       (year?: string) =>
+    api.get<{ data: any }>(`/school/behavior/overview${year ? `?year=${year}` : ""}`),
+  getBehaviorIncidents:      (params?: { studentId?: string; status?: string; dateFrom?: string; dateTo?: string }) => {
+    const qs = params ? new URLSearchParams(params as any).toString() : "";
+    return api.get<{ data: any[] }>(`/school/behavior/incidents${qs ? `?${qs}` : ""}`);
+  },
+  createBehaviorIncident:    (data: any) => api.post<{ data: any }>("/school/behavior/incidents", data),
+  updateBehaviorIncident:    (id: string, data: any) => api.put<{ data: any }>(`/school/behavior/incidents/${id}`, data),
+  deleteBehaviorIncident:    (id: string) => api.delete<{ success: boolean }>(`/school/behavior/incidents/${id}`),
+  getBehaviorCompensations:  (params?: { studentId?: string; dateFrom?: string; dateTo?: string }) => {
+    const qs = params ? new URLSearchParams(params as any).toString() : "";
+    return api.get<{ data: any[] }>(`/school/behavior/compensations${qs ? `?${qs}` : ""}`);
+  },
+  createBehaviorCompensation: (data: any) => api.post<{ data: any }>("/school/behavior/compensations", data),
+  deleteBehaviorCompensation: (id: string) => api.delete<{ success: boolean }>(`/school/behavior/compensations/${id}`),
+  getBehaviorScores:         (year?: string) =>
+    api.get<{ data: any[] }>(`/school/behavior/scores${year ? `?year=${year}` : ""}`),
+  recalculateBehaviorScores: (year?: string) =>
+    api.post<{ data: any }>("/school/behavior/scores/recalculate", { year }),
+  getGuardianNotifications:  (studentId?: string) =>
+    api.get<{ data: any[] }>(`/school/behavior/notifications${studentId ? `?studentId=${studentId}` : ""}`),
+  createGuardianNotification: (data: any) => api.post<{ data: any }>("/school/behavior/notifications", data),
+  getBehaviorConstants:      () => api.get<{ data: any }>("/school/behavior/constants"),
 
   // Timetable Templates (القوالب)
   listTemplates:   () => api.get<{ data: any[] }>("/school/timetable-templates"),
@@ -1562,4 +1616,25 @@ export const schoolApi = {
     return api.get<{ data: any[] }>(`/school/import/logs${q.toString() ? "?" + q : ""}`);
   },
   getImportLog:    (id: string) => api.get<{ data: any }>(`/school/import/logs/${id}`),
+
+  // Violation categories
+  listViolationCategories: () => api.get<{ data: any[] }>("/school/violation-categories"),
+  seedDefaultViolationCategories: () => api.post<{ data: any[] }>("/school/violation-categories/seed-defaults", {}),
+  createViolationCategory: (data: any) => api.post<{ data: any }>("/school/violation-categories", data),
+  updateViolationCategory: (id: string, data: any) => api.put<{ data: any }>(`/school/violation-categories/${id}`, data),
+  deleteViolationCategory: (id: string) => api.delete<{ success: boolean }>(`/school/violation-categories/${id}`),
+
+  // Violations
+  listViolations: (params?: { studentId?: string; categoryId?: string; status?: string; dateFrom?: string; dateTo?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.studentId)  q.set("studentId",  params.studentId);
+    if (params?.categoryId) q.set("categoryId", params.categoryId);
+    if (params?.status)     q.set("status",     params.status);
+    if (params?.dateFrom)   q.set("dateFrom",   params.dateFrom);
+    if (params?.dateTo)     q.set("dateTo",     params.dateTo);
+    return api.get<{ data: any[] }>(`/school/violations${q.toString() ? "?" + q : ""}`);
+  },
+  createViolation: (data: any) => api.post<{ data: any }>("/school/violations", data),
+  updateViolation: (id: string, data: any) => api.put<{ data: any }>(`/school/violations/${id}`, data),
+  deleteViolation: (id: string) => api.delete<{ success: boolean }>(`/school/violations/${id}`),
 };

@@ -11,6 +11,7 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { organizations } from "./organizations";
 
 // ============================================================
@@ -69,6 +70,11 @@ export const schoolSettings = pgTable(
     schoolRegion:    text("school_region"),
     schoolType:      text("school_type"),          // حكومية | أهلية | دولية
     educationLevel:  text("education_level"),      // ابتدائية | متوسطة | ثانوية | مختلطة
+    schoolGender:    text("school_gender"),         // بنين | بنات
+
+    // إعداد النظام
+    setupStatus:     text("setup_status").notNull().default("not_started"),  // not_started | in_progress | completed
+    setupStep:       integer("setup_step").notNull().default(0),
 
     // الأسبوع النشط — بدون FK constraint لتجنب الدائرية مع scheduleWeeks
     activeWeekId:    uuid("active_week_id"),
@@ -155,6 +161,7 @@ export const students = pgTable(
     fullName:         text("full_name").notNull(),
     studentNumber:    text("student_number"),
     nationalId:       text("national_id"),
+    grade:            text("grade"),               // الصف — مخزّن مستقل عن الفصل
     birthDate:        date("birth_date"),
     gender:           text("gender"),          // ذكر | أنثى
     guardianName:     text("guardian_name"),
@@ -172,6 +179,7 @@ export const students = pgTable(
     index("students_org_idx").on(t.orgId),
     index("students_class_room_idx").on(t.orgId, t.classRoomId),
     index("students_active_idx").on(t.orgId, t.isActive),
+    index("students_grade_idx").on(t.orgId, t.grade),
   ]
 );
 
@@ -386,8 +394,212 @@ export const teacherClassAssignments = pgTable(
 );
 
 // ============================================================
+// school_violation_categories — أنواع وتصنيفات المخالفات
+// ============================================================
+
+export const schoolViolationCategories = pgTable(
+  "school_violation_categories",
+  {
+    id:          uuid("id").defaultRandom().primaryKey(),
+    orgId:       uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    name:        text("name").notNull(),
+    description: text("description"),
+    severity:    text("severity").notNull().default("medium"),  // low | medium | high
+    color:       text("color").notNull().default("#f59e0b"),
+    isActive:    boolean("is_active").notNull().default(true),
+    createdAt:   timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("school_violation_categories_org_idx").on(t.orgId),
+  ]
+);
+
+// ============================================================
+// school_violations — سجل مخالفات الطلاب
+// ============================================================
+
+export const schoolViolations = pgTable(
+  "school_violations",
+  {
+    id:               uuid("id").defaultRandom().primaryKey(),
+    orgId:            uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    studentId:        uuid("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
+    categoryId:       uuid("category_id").references(() => schoolViolationCategories.id, { onDelete: "set null" }),
+    description:      text("description"),
+    violationDate:    date("violation_date").notNull().default(sql`CURRENT_DATE`),
+    status:           text("status").notNull().default("open"),  // open | resolved | cancelled
+    resolutionNotes:  text("resolution_notes"),
+    recordedBy:       uuid("recorded_by"),
+    createdAt:        timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("school_violations_org_idx").on(t.orgId, t.violationDate),
+    index("school_violations_student_idx").on(t.orgId, t.studentId),
+  ]
+);
+
+// ============================================================
 // school_import_logs — سجل عمليات الاستيراد (Excel / CSV)
 // ============================================================
+
+// ============================================================
+// student_transfers — سجل تنقلات الطلاب بين الفصول
+// ============================================================
+
+export const studentTransfers = pgTable(
+  "student_transfers",
+  {
+    id:             uuid("id").defaultRandom().primaryKey(),
+    orgId:          uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    studentId:      uuid("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
+    fromClassId:    uuid("from_class_id").references(() => classRooms.id, { onDelete: "set null" }),
+    toClassId:      uuid("to_class_id").notNull().references(() => classRooms.id, { onDelete: "cascade" }),
+    reason:         text("reason"),
+    transferredBy:  uuid("transferred_by"),
+    transferredAt:  timestamp("transferred_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("student_transfers_student_idx").on(t.orgId, t.studentId),
+    index("student_transfers_date_idx").on(t.orgId, t.transferredAt),
+  ]
+);
+
+// ============================================================
+// student_attendance — سجل الحضور والغياب اليومي
+// ============================================================
+
+export const studentAttendanceStatusEnum = pgEnum("student_attendance_status", [
+  "present",
+  "absent",
+  "late",
+  "excused",
+]);
+
+export const studentAttendance = pgTable(
+  "student_attendance",
+  {
+    id:              uuid("id").defaultRandom().primaryKey(),
+    orgId:           uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    studentId:       uuid("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
+    classRoomId:     uuid("class_room_id").notNull().references(() => classRooms.id, { onDelete: "cascade" }),
+    attendanceDate:  date("attendance_date").notNull(),
+    status:          studentAttendanceStatusEnum("status").notNull().default("present"),
+    lateMinutes:     integer("late_minutes"),
+    notes:           text("notes"),
+    recordedBy:      uuid("recorded_by"),
+    createdAt:       timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt:       timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("student_attendance_unique_idx").on(t.orgId, t.studentId, t.attendanceDate),
+    index("student_attendance_org_date_idx").on(t.orgId, t.attendanceDate),
+    index("student_attendance_student_idx").on(t.studentId),
+    index("student_attendance_classroom_idx").on(t.classRoomId, t.attendanceDate),
+  ]
+);
+
+// ============================================================
+// BEHAVIOR SYSTEM — نظام السلوك والمواظبة (لائحة وزارة التعليم)
+// ============================================================
+
+export const behaviorIncidentDegreeEnum = pgEnum("behavior_incident_degree", [
+  "1", "2", "3", "4", "5",
+]);
+
+export const studentBehaviorScores = pgTable(
+  "student_behavior_scores",
+  {
+    id:                 uuid("id").defaultRandom().primaryKey(),
+    orgId:              uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    studentId:          uuid("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
+    academicYear:       text("academic_year").notNull().default(sql`to_char(CURRENT_DATE, 'YYYY')`),
+    behaviorScore:      integer("behavior_score").notNull().default(80),
+    attendanceScore:    integer("attendance_score").notNull().default(100),
+    totalScore:         integer("total_score").notNull().default(90),
+    lastCalculatedAt:   timestamp("last_calculated_at", { withTimezone: true }).defaultNow().notNull(),
+    createdAt:          timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt:          timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    uniqueIndex("student_behavior_scores_unique").on(t.orgId, t.studentId, t.academicYear),
+    index("student_behavior_scores_org_idx").on(t.orgId, t.studentId),
+  ]
+);
+
+export const behaviorIncidents = pgTable(
+  "behavior_incidents",
+  {
+    id:               uuid("id").defaultRandom().primaryKey(),
+    orgId:            uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    studentId:        uuid("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
+    categoryId:       uuid("category_id").references(() => schoolViolationCategories.id, { onDelete: "set null" }),
+
+    incidentDate:     date("incident_date").notNull().default(sql`CURRENT_DATE`),
+    degree:           behaviorIncidentDegreeEnum("degree").notNull().default("1"),
+    violationCode:    text("violation_code"),
+    description:      text("description"),
+    deductionPoints:  integer("deduction_points").notNull().default(0),
+
+    actionTaken:      text("action_taken"),
+    guardianNotified: boolean("guardian_notified").notNull().default(false),
+
+    status:           text("status").notNull().default("open"),
+    resolutionNotes:  text("resolution_notes"),
+
+    recordedBy:       uuid("recorded_by"),
+    createdAt:        timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+    updatedAt:        timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("behavior_incidents_org_idx").on(t.orgId, t.incidentDate),
+    index("behavior_incidents_student_idx").on(t.orgId, t.studentId),
+    index("behavior_incidents_status_idx").on(t.orgId, t.status),
+  ]
+);
+
+export const behaviorCompensations = pgTable(
+  "behavior_compensations",
+  {
+    id:                uuid("id").defaultRandom().primaryKey(),
+    orgId:             uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    studentId:         uuid("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
+
+    compensationDate:  date("compensation_date").notNull().default(sql`CURRENT_DATE`),
+    compensationType:  text("compensation_type").notNull(),
+    description:       text("description"),
+    pointsAdded:       integer("points_added").notNull().default(5),
+
+    recordedBy:        uuid("recorded_by"),
+    createdAt:         timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("behavior_compensations_org_idx").on(t.orgId, t.compensationDate),
+    index("behavior_compensations_student_idx").on(t.orgId, t.studentId),
+  ]
+);
+
+export const guardianNotifications = pgTable(
+  "guardian_notifications",
+  {
+    id:               uuid("id").defaultRandom().primaryKey(),
+    orgId:            uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+    studentId:        uuid("student_id").notNull().references(() => students.id, { onDelete: "cascade" }),
+    incidentId:       uuid("incident_id").references(() => behaviorIncidents.id, { onDelete: "set null" }),
+
+    notificationDate: date("notification_date").notNull().default(sql`CURRENT_DATE`),
+    notificationType: text("notification_type").notNull(),
+    message:          text("message"),
+    sentTo:           text("sent_to"),
+    status:           text("status").notNull().default("sent"),
+
+    sentBy:           uuid("sent_by"),
+    createdAt:        timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (t) => [
+    index("guardian_notifications_org_idx").on(t.orgId, t.notificationDate),
+    index("guardian_notifications_student_idx").on(t.orgId, t.studentId),
+  ]
+);
 
 export const schoolImportLogs = pgTable(
   "school_import_logs",

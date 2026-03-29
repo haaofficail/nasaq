@@ -155,6 +155,11 @@ const SchoolImportPage             = lz(() => import("./pages/school/SchoolImpor
 const SchoolAccountPage            = lz(() => import("./pages/school/SchoolAccountPage"), "SchoolAccountPage");
 const SchoolTeachersPage           = lz(() => import("./pages/school/SchoolTeachersPage"), "SchoolTeachersPage");
 const SchoolTeacherSchedulePage    = lz(() => import("./pages/school/SchoolTeacherSchedulePage"), "SchoolTeacherSchedulePage");
+const SchoolViolationsPage         = lz(() => import("./pages/school/SchoolViolationsPage"), "SchoolViolationsPage");
+const SchoolStudentDetailPage      = lz(() => import("./pages/school/SchoolStudentDetailPage"), "SchoolStudentDetailPage");
+const SchoolAttendancePage         = lz(() => import("./pages/school/SchoolAttendancePage"), "SchoolAttendancePage");
+const SchoolBehaviorPage           = lz(() => import("./pages/school/SchoolBehaviorPage"), "SchoolBehaviorPage");
+const SchoolSetupPage              = lz(() => import("./pages/school/SchoolSetupPage"), "SchoolSetupPage");
 
 // ── Loading fallback ───────────────────────────────────────────────
 function PageLoader() {
@@ -347,6 +352,10 @@ export default function App() {
           <Route path="school/timetable-templates" element={<Navigate to="/school/timetable-templates" replace />} />
           <Route path="school/schedules/weeks"     element={<Navigate to="/school/schedules/weeks" replace />} />
           <Route path="school/import"              element={<Navigate to="/school/import" replace />} />
+          <Route path="school/attendance"          element={<Navigate to="/school/attendance" replace />} />
+          <Route path="school/teachers"            element={<Navigate to="/school/teachers" replace />} />
+          <Route path="school/violations"          element={<Navigate to="/school/violations" replace />} />
+          <Route path="school/account"             element={<Navigate to="/school/account" replace />} />
 
           {/* ── Redirects from old routes ── */}
           <Route path="employees"          element={<Navigate to="/dashboard/team" replace />} />
@@ -376,7 +385,12 @@ export default function App() {
           <Route path="import"             element={<SchoolImportPage />} />
           <Route path="teachers"           element={<SchoolTeachersPage />} />
           <Route path="teachers/:teacherId/schedule" element={<SchoolTeacherSchedulePage />} />
+          <Route path="violations"         element={<SchoolViolationsPage />} />
           <Route path="account"            element={<SchoolAccountPage />} />
+          <Route path="students/:studentId" element={<SchoolStudentDetailPage />} />
+          <Route path="attendance"         element={<SchoolAttendancePage />} />
+          <Route path="behavior"           element={<SchoolBehaviorPage />} />
+          <Route path="setup"             element={<SchoolSetupPage />} />
         </Route>
       </Routes>
     </Suspense>

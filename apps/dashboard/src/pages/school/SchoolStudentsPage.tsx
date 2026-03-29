@@ -1,68 +1,89 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { GraduationCap, Search, Plus, Pencil, Phone, User, Upload, Trash2, Loader2 } from "lucide-react";
-import { clsx } from "clsx";
+import {
+  GraduationCap, Search, Plus, Pencil, Phone, User, Upload,
+  Trash2, Loader2, ChevronRight, ChevronLeft, AlertTriangle, IdCard,
+} from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
 import { Modal } from "@/components/ui";
 
+const GRADE_GROUPS = [
+  { label: "المرحلة الابتدائية", grades: ["الأول الابتدائي","الثاني الابتدائي","الثالث الابتدائي","الرابع الابتدائي","الخامس الابتدائي","السادس الابتدائي"] },
+  { label: "المرحلة المتوسطة",  grades: ["الأول المتوسط","الثاني المتوسط","الثالث المتوسط"] },
+  { label: "المرحلة الثانوية",  grades: ["الأول الثانوي","الثاني الثانوي","الثالث الثانوي"] },
+];
+
 const GUARDIAN_RELATIONS = [
-  { value: "father", label: "الأب" },
-  { value: "mother", label: "الأم" },
-  { value: "brother", label: "الأخ" },
-  { value: "sister", label: "الأخت" },
+  { value: "father",   label: "الأب" },
+  { value: "mother",   label: "الأم" },
+  { value: "brother",  label: "الأخ" },
+  { value: "sister",   label: "الأخت" },
   { value: "guardian", label: "ولي أمر" },
 ];
 
 const emptyForm = {
-  full_name: "",
-  student_number: "",
-  class_room_id: "",
-  guardian_name: "",
-  guardian_phone: "",
-  guardian_relation: "",
+  fullName: "",
+  studentNumber: "",
+  nationalId: "",
+  classRoomId: "",
+  guardianName: "",
+  guardianPhone: "",
+  guardianRelation: "",
 };
 
 export function SchoolStudentsPage() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState("");
+
+  const [search,        setSearch]        = useState("");
   const [classRoomFilter, setClassRoomFilter] = useState("");
+  const [gradeFilter,   setGradeFilter]   = useState("");
+  const [unassignedOnly, setUnassignedOnly] = useState(false);
+  const [page,          setPage]          = useState(1);
   const [modal, setModal] = useState<{ open: boolean; mode: "add" | "edit"; studentId?: string }>({
-    open: false,
-    mode: "add",
+    open: false, mode: "add",
   });
-  const [form, setForm] = useState({ ...emptyForm });
+  const [form,       setForm]       = useState({ ...emptyForm });
   const [submitting, setSubmitting] = useState(false);
-  const [deleting, setDeleting] = useState<string | null>(null);
+  const [deleting,   setDeleting]   = useState<string | null>(null);
 
-  const filters: Record<string, string> = {};
-  if (search) filters.search = search;
+  const filters: Record<string, string> = { page: String(page), limit: "50" };
+  if (search)          filters.search      = search;
   if (classRoomFilter) filters.classRoomId = classRoomFilter;
+  if (gradeFilter)     filters.grade       = gradeFilter;
+  if (unassignedOnly)  filters.unassigned  = "true";
 
-  const { data: studentsData, loading, error, refetch } = useApi(
+  const { data: studentsResp, loading, error, refetch } = useApi(
     () => schoolApi.listStudents(filters),
-    [search, classRoomFilter]
+    [search, classRoomFilter, gradeFilter, unassignedOnly, page]
   );
   const { data: classRoomsData } = useApi(() => schoolApi.listClassRooms(), []);
 
-  const students: any[] = studentsData?.data ?? [];
+  const students: any[]  = (studentsResp as any)?.data  ?? [];
+  const total: number    = (studentsResp as any)?.total ?? 0;
+  const pages: number    = (studentsResp as any)?.pages ?? 1;
   const classRooms: any[] = classRoomsData?.data ?? [];
+
+  const resetFilters = () => {
+    setSearch(""); setClassRoomFilter(""); setGradeFilter(""); setUnassignedOnly(false); setPage(1);
+  };
 
   const openAdd = () => {
     setForm({ ...emptyForm });
     setModal({ open: true, mode: "add" });
   };
 
-  const openEdit = (student: any) => {
+  const openEdit = (s: any) => {
     setForm({
-      full_name: student.fullName ?? "",
-      student_number: student.studentNumber ?? "",
-      class_room_id: student.classRoomId ?? "",
-      guardian_name: student.guardianName ?? "",
-      guardian_phone: student.guardianPhone ?? "",
-      guardian_relation: student.guardianRelation ?? "",
+      fullName:          s.fullName          ?? "",
+      studentNumber:     s.studentNumber     ?? "",
+      nationalId:        s.nationalId        ?? "",
+      classRoomId:       s.classRoomId       ?? "",
+      guardianName:      s.guardianName      ?? "",
+      guardianPhone:     s.guardianPhone     ?? "",
+      guardianRelation:  s.guardianRelation  ?? "",
     });
-    setModal({ open: true, mode: "edit", studentId: student.id });
+    setModal({ open: true, mode: "edit", studentId: s.id });
   };
 
   const handleSubmit = async () => {
@@ -75,11 +96,7 @@ export function SchoolStudentsPage() {
       }
       setModal({ open: false, mode: "add" });
       refetch();
-    } catch {
-      // handled by api layer
-    } finally {
-      setSubmitting(false);
-    }
+    } catch {} finally { setSubmitting(false); }
   };
 
   const handleDelete = async (id: string, name: string) => {
@@ -88,23 +105,23 @@ export function SchoolStudentsPage() {
     try {
       await schoolApi.deleteStudent(id);
       refetch();
-    } catch {}
-    finally { setDeleting(null); }
+    } catch {} finally { setDeleting(null); }
   };
 
   return (
-    <div dir="rtl" className="p-6 space-y-6">
+    <div dir="rtl" className="p-6 space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">الطلاب</h1>
-          <p className="text-sm text-gray-500 mt-1">إدارة بيانات الطلاب وأولياء الأمور</p>
+          <p className="text-sm text-gray-500 mt-0.5">
+            {total > 0 ? `${total} طالب مسجّل` : "إدارة بيانات الطلاب وأولياء الأمور"}
+          </p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => navigate("/school/import")}
             className="flex items-center gap-2 px-3 py-2 border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition-colors"
-            title="استيراد طلاب من CSV"
           >
             <Upload className="w-4 h-4" />
             <span className="hidden sm:inline">استيراد</span>
@@ -126,119 +143,233 @@ export function SchoolStudentsPage() {
           <input
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="بحث بالاسم أو الرقم..."
+            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+            placeholder="بحث بالاسم، الرقم، أو الهوية..."
             className="w-full pr-9 pl-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
           />
         </div>
+
+        {/* Grade filter */}
         <select
-          value={classRoomFilter}
-          onChange={(e) => setClassRoomFilter(e.target.value)}
-          className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+          value={gradeFilter}
+          onChange={(e) => { setGradeFilter(e.target.value); setClassRoomFilter(""); setPage(1); }}
+          className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
         >
-          <option value="">كل الفصول</option>
-          {classRooms.map((cr: any) => (
-            <option key={cr.id} value={cr.id}>
-              {cr.grade} / {cr.name}
-            </option>
+          <option value="">كل الصفوف</option>
+          {GRADE_GROUPS.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.grades.map((g) => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </optgroup>
           ))}
         </select>
+
+        {/* Classroom filter */}
+        <select
+          value={classRoomFilter}
+          onChange={(e) => { setClassRoomFilter(e.target.value); setPage(1); }}
+          className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+        >
+          <option value="">كل الفصول</option>
+          {classRooms
+            .filter((cr) => !gradeFilter || cr.grade === gradeFilter)
+            .map((cr: any) => (
+              <option key={cr.id} value={cr.id}>{cr.grade} / فصل {cr.name}</option>
+            ))}
+        </select>
+
+        {/* Unassigned toggle */}
+        <button
+          onClick={() => { setUnassignedOnly(!unassignedOnly); setPage(1); }}
+          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm transition-colors ${
+            unassignedOnly
+              ? "bg-amber-50 border-amber-300 text-amber-700 font-semibold"
+              : "border-gray-200 text-gray-600 hover:bg-gray-50"
+          }`}
+        >
+          <AlertTriangle className="w-3.5 h-3.5" />
+          بدون فصل
+        </button>
+
+        {(search || classRoomFilter || gradeFilter || unassignedOnly) && (
+          <button
+            onClick={resetFilters}
+            className="px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-500 hover:bg-gray-50"
+          >
+            مسح الفلاتر
+          </button>
+        )}
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="p-6 space-y-3">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-10 w-full" />
-            ))}
+      {/* Content */}
+      {loading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[...Array(9)].map((_, i) => (
+            <div key={i} className="animate-pulse bg-white rounded-2xl border border-gray-100 h-36" />
+          ))}
+        </div>
+      ) : error ? (
+        <div className="bg-white rounded-2xl border border-red-100 py-12 text-center text-red-400 text-sm">{error}</div>
+      ) : students.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-gray-100 py-16 flex flex-col items-center gap-3 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center">
+            <GraduationCap className="w-7 h-7 text-emerald-500" />
           </div>
-        ) : error ? (
-          <div className="text-center py-12 text-red-400">{error}</div>
-        ) : students.length === 0 ? (
-          <div className="py-16 flex flex-col items-center gap-3 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-1">
-              <GraduationCap className="w-7 h-7 text-emerald-500" />
-            </div>
-            <p className="text-sm font-semibold text-gray-700">لا يوجد طلاب مسجلون</p>
-            <p className="text-xs text-gray-400">أضف طلاباً يدوياً أو استورد ملف CSV لتعبئة سريعة</p>
+          <p className="text-sm font-semibold text-gray-700">
+            {unassignedOnly ? "لا يوجد طلاب بدون فصل" : "لا يوجد طلاب مطابقون"}
+          </p>
+          {!search && !classRoomFilter && !gradeFilter && !unassignedOnly && (
             <div className="flex gap-2 mt-2">
               <button
                 onClick={() => navigate("/school/import")}
-                className="flex items-center gap-2 px-4 py-2 border border-emerald-200 text-emerald-700 rounded-xl text-sm font-medium hover:bg-emerald-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border border-emerald-200 text-emerald-700 rounded-xl text-sm font-medium hover:bg-emerald-50"
               >
                 <Upload className="w-4 h-4" />
-                استيراد CSV
+                استيراد Excel
               </button>
               <button
                 onClick={openAdd}
-                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl text-sm font-medium hover:bg-emerald-700"
               >
                 <Plus className="w-4 h-4" />
                 إضافة طالب
               </button>
             </div>
+          )}
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {students.map((s: any, idx: number) => {
+              const hasClass    = !!s.classRoomId;
+              const gradeLabel  = s.classRoomGrade ?? s.grade ?? null;
+              const roomLabel   = s.classRoomName  ?? null;
+              const initials    = s.fullName?.trim().split(/\s+/).slice(0, 2).map((w: string) => w[0]).join("") ?? "؟";
+              const rowNum      = (page - 1) * 50 + idx + 1;
+
+              return (
+                <div
+                  key={s.id}
+                  className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:border-emerald-200 hover:shadow-md transition-all"
+                >
+                  {/* Number badge */}
+                  <span className="absolute top-3 left-3 text-[10px] font-bold text-gray-300 tabular-nums">
+                    #{rowNum}
+                  </span>
+
+                  {/* Top row: avatar + name + grade badge */}
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-600/10 flex items-center justify-center shrink-0 text-emerald-700 font-bold text-sm select-none">
+                      {initials}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-900 text-sm truncate leading-tight">{s.fullName}</p>
+                      <div className="mt-1">
+                        {hasClass ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5">
+                            {gradeLabel} · فصل {roomLabel}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5">
+                            <AlertTriangle className="w-2.5 h-2.5" />
+                            {gradeLabel ?? "غير مسند"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Info row */}
+                  <div className="mt-3 pt-3 border-t border-gray-50 grid grid-cols-2 gap-2">
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 min-w-0">
+                      <IdCard className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                      <span className="truncate tabular-nums">{s.nationalId || s.studentNumber || "—"}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500 min-w-0">
+                      <Phone className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                      <span className="truncate tabular-nums">{s.guardianPhone || "—"}</span>
+                    </div>
+                    {s.guardianName && (
+                      <div className="col-span-2 flex items-center gap-1.5 text-xs text-gray-500 min-w-0">
+                        <User className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                        <span className="truncate">{s.guardianName}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions — show on hover */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => navigate(`/school/students/${s.id}`)}
+                      className="p-1.5 rounded-lg bg-white border border-gray-100 shadow-sm hover:bg-blue-50 hover:border-blue-200 text-gray-400 hover:text-blue-600 transition-colors"
+                      title="ملف الطالب"
+                    >
+                      <IdCard className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => openEdit(s)}
+                      className="p-1.5 rounded-lg bg-white border border-gray-100 shadow-sm hover:bg-emerald-50 hover:border-emerald-200 text-gray-400 hover:text-emerald-600 transition-colors"
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(s.id, s.fullName)}
+                      disabled={deleting === s.id}
+                      className="p-1.5 rounded-lg bg-white border border-gray-100 shadow-sm hover:bg-red-50 hover:border-red-200 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                    >
+                      {deleting === s.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 text-gray-500 text-xs">
-                  <th className="text-right px-4 py-3 font-medium">اسم الطالب</th>
-                  <th className="text-right px-4 py-3 font-medium">الرقم</th>
-                  <th className="text-right px-4 py-3 font-medium">الفصل</th>
-                  <th className="text-right px-4 py-3 font-medium">ولي الأمر</th>
-                  <th className="text-right px-4 py-3 font-medium">الجوال</th>
-                  <th className="text-right px-4 py-3 font-medium"></th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {students.map((s: any) => (
-                  <tr key={s.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-900">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-emerald-600/10 flex items-center justify-center">
-                          <User className="w-3.5 h-3.5 text-emerald-600" />
-                        </div>
-                        {s.fullName}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-gray-600 tabular-nums">{s.studentNumber}</td>
-                    <td className="px-4 py-3 text-gray-700">
-                      {s.classRoomGrade} / {s.classRoomName}
-                    </td>
-                    <td className="px-4 py-3 text-gray-700">{s.guardianName}</td>
-                    <td className="px-4 py-3 text-gray-600">
-                      <div className="flex items-center gap-1">
-                        <Phone className="w-3.5 h-3.5 text-gray-400" />
-                        {s.guardianPhone}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => openEdit(s)}
-                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(s.id, s.fullName)}
-                          disabled={deleting === s.id}
-                          className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
-                          title="حذف"
-                        >
-                          {deleting === s.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+
+          {/* Pagination */}
+          {pages > 1 && (
+            <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 px-4 py-3">
+              <span className="text-xs text-gray-500">
+                صفحة {page} من {pages} · {total} طالب
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                {Array.from({ length: Math.min(pages, 7) }, (_, i) => {
+                  const pg = pages <= 7 ? i + 1 : page <= 4 ? i + 1 : page >= pages - 3 ? pages - 6 + i : page - 3 + i;
+                  return (
+                    <button
+                      key={pg}
+                      onClick={() => setPage(pg)}
+                      className={`w-7 h-7 rounded-lg text-xs font-medium transition-colors ${
+                        pg === page ? "bg-emerald-600 text-white" : "hover:bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {pg}
+                    </button>
+                  );
+                })}
+                <button
+                  onClick={() => setPage((p) => Math.min(pages, p + 1))}
+                  disabled={page >= pages}
+                  className="p-1.5 rounded-lg hover:bg-gray-100 disabled:opacity-40 transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
 
       {/* Add/Edit Modal */}
       <Modal
@@ -269,8 +400,8 @@ export function SchoolStudentsPage() {
             <div className="col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">اسم الطالب الكامل</label>
               <input
-                value={form.full_name}
-                onChange={(e) => setForm((f) => ({ ...f, full_name: e.target.value }))}
+                value={form.fullName}
+                onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 placeholder="الاسم الرباعي"
               />
@@ -278,25 +409,42 @@ export function SchoolStudentsPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">رقم الطالب</label>
               <input
-                value={form.student_number}
-                onChange={(e) => setForm((f) => ({ ...f, student_number: e.target.value }))}
+                value={form.studentNumber}
+                onChange={(e) => setForm((f) => ({ ...f, studentNumber: e.target.value }))}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 placeholder="مثال: 2024001"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">الفصل</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">رقم الهوية</label>
+              <input
+                value={form.nationalId}
+                onChange={(e) => setForm((f) => ({ ...f, nationalId: e.target.value }))}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                placeholder="10 أرقام"
+              />
+            </div>
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">الفصل الدراسي</label>
               <select
-                value={form.class_room_id}
-                onChange={(e) => setForm((f) => ({ ...f, class_room_id: e.target.value }))}
+                value={form.classRoomId}
+                onChange={(e) => setForm((f) => ({ ...f, classRoomId: e.target.value }))}
                 className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
               >
-                <option value="">اختر الفصل</option>
-                {classRooms.map((cr: any) => (
-                  <option key={cr.id} value={cr.id}>
-                    {cr.grade} / {cr.name}
-                  </option>
-                ))}
+                <option value="">اختر الفصل (اختياري)</option>
+                {GRADE_GROUPS.map((group) => {
+                  const groupRooms = classRooms.filter((cr) => group.grades.includes(cr.grade));
+                  if (!groupRooms.length) return null;
+                  return (
+                    <optgroup key={group.label} label={group.label}>
+                      {groupRooms
+                        .sort((a, b) => a.grade.localeCompare(b.grade) || a.name.localeCompare(b.name))
+                        .map((cr: any) => (
+                          <option key={cr.id} value={cr.id}>{cr.grade} / فصل {cr.name}</option>
+                        ))}
+                    </optgroup>
+                  );
+                })}
               </select>
             </div>
           </div>
@@ -307,16 +455,16 @@ export function SchoolStudentsPage() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">اسم ولي الأمر</label>
                 <input
-                  value={form.guardian_name}
-                  onChange={(e) => setForm((f) => ({ ...f, guardian_name: e.target.value }))}
+                  value={form.guardianName}
+                  onChange={(e) => setForm((f) => ({ ...f, guardianName: e.target.value }))}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">الجوال</label>
                 <input
-                  value={form.guardian_phone}
-                  onChange={(e) => setForm((f) => ({ ...f, guardian_phone: e.target.value }))}
+                  value={form.guardianPhone}
+                  onChange={(e) => setForm((f) => ({ ...f, guardianPhone: e.target.value }))}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                   placeholder="05xxxxxxxx"
                 />
@@ -324,15 +472,13 @@ export function SchoolStudentsPage() {
               <div className="col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">صلة القرابة</label>
                 <select
-                  value={form.guardian_relation}
-                  onChange={(e) => setForm((f) => ({ ...f, guardian_relation: e.target.value }))}
+                  value={form.guardianRelation}
+                  onChange={(e) => setForm((f) => ({ ...f, guardianRelation: e.target.value }))}
                   className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
                 >
                   <option value="">اختر الصلة</option>
                   {GUARDIAN_RELATIONS.map((r) => (
-                    <option key={r.value} value={r.value}>
-                      {r.label}
-                    </option>
+                    <option key={r.value} value={r.value}>{r.label}</option>
                   ))}
                 </select>
               </div>

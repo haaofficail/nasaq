@@ -34,3 +34,43 @@ export function fmtDateFull(d: string | Date | null | undefined): string {
     weekday: "long", year: "numeric", month: "long", day: "numeric",
   });
 }
+
+/**
+ * Format a Gregorian date as Hijri (Umm al-Qura) DD/MM/YYYY using Arabic numerals.
+ * Dates are stored as Gregorian in DB; this is display-only conversion.
+ * e.g. "١٥/٠٩/١٤٤٦"
+ */
+export function fmtHijri(d: string | Date | null | undefined): string {
+  if (!d) return "—";
+  const date = typeof d === "string" ? new Date(d) : d;
+  if (isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("ar-SA-u-ca-islamic-umalqura-nu-arab", {
+    day: "2-digit", month: "2-digit", year: "numeric",
+  });
+}
+
+/**
+ * Format a Gregorian date as full Hijri (Umm al-Qura) with weekday and month name.
+ * e.g. "الأربعاء، ١٥ رمضان ١٤٤٦"
+ */
+export function fmtHijriFull(d: string | Date | null | undefined): string {
+  if (!d) return "—";
+  const date = typeof d === "string" ? new Date(d) : d;
+  if (isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("ar-SA-u-ca-islamic-umalqura-nu-arab", {
+    weekday: "long", year: "numeric", month: "long", day: "numeric",
+  });
+}
+
+/**
+ * Format a Gregorian date as short Hijri label (day + month name + year).
+ * e.g. "١٥ رمضان ١٤٤٦"
+ */
+export function fmtHijriShort(d: string | Date | null | undefined): string {
+  if (!d) return "—";
+  const date = typeof d === "string" ? new Date(d) : d;
+  if (isNaN(date.getTime())) return "—";
+  return date.toLocaleDateString("ar-SA-u-ca-islamic-umalqura-nu-arab", {
+    year: "numeric", month: "long", day: "numeric",
+  });
+}

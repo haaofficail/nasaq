@@ -12,7 +12,7 @@ import {
   Plug, ScanBarcode,
   // specialty icons
   Flower2, UtensilsCrossed, Building, Truck, Key, PartyPopper, Camera, Wrench, Warehouse, ClipboardCheck,
-  GraduationCap, BookOpenCheck, ClipboardPen, Calendar, AlertCircle, Upload,
+  GraduationCap, BookOpenCheck, ClipboardPen, Calendar, AlertCircle, Upload, UserCheck, ShieldAlert, ShieldCheck,
 } from "lucide-react";
 
 export interface NavItemEntry {
@@ -241,11 +241,17 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
       { name: "مراقب اليوم",        href: "/dashboard/school/day-monitor",          icon: ClipboardCheck,  requiredCapabilities: [] },
       { name: "الطلاب",              href: "/dashboard/school/students",              icon: Users,           requiredCapabilities: [] },
       { name: "الفصول",              href: "/dashboard/school/classes",               icon: GraduationCap,   requiredCapabilities: [] },
+      { name: "الحضور والغياب",      href: "/dashboard/school/attendance",            icon: UserCheck,       requiredCapabilities: [] },
+      { name: "المعلمون",            href: "/dashboard/school/teachers",              icon: UsersRound,      requiredCapabilities: [] },
       { name: "حصص اليوم",           href: "/dashboard/school/periods/today",         icon: Calendar,        requiredCapabilities: [] },
       { name: "الحالات والمتابعة",   href: "/dashboard/school/cases",                icon: AlertCircle,     requiredCapabilities: [] },
+      { name: "المخالفات",           href: "/dashboard/school/violations",            icon: ShieldAlert,     requiredCapabilities: [] },
+      { name: "السلوك والمواظبة",    href: "/dashboard/school/behavior",             icon: ShieldCheck,     requiredCapabilities: [] },
       { name: "قوالب الجداول",       href: "/dashboard/school/timetable-templates",  icon: BookOpenCheck,   requiredCapabilities: [] },
       { name: "الأسابيع والجداول",   href: "/dashboard/school/schedules/weeks",       icon: ClipboardPen,    requiredCapabilities: [] },
       { name: "الاستيراد",           href: "/dashboard/school/import",                icon: Upload,          requiredCapabilities: [] },
+      { name: "إعدادات المدرسة",     href: "/dashboard/school/account",              icon: Settings,        requiredCapabilities: [] },
+      { name: "تهيئة النظام",        href: "/dashboard/school/setup",                icon: Wrench,          requiredCapabilities: [] },
     ],
   },
 

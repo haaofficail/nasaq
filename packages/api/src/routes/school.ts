@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { eq, and, desc, asc, ilike, or, count, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, ilike, or, count, sql, inArray, isNull, gte, lte, between } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@nasaq/db/client";
 import {
   schoolSettings,
@@ -14,8 +15,74 @@ import {
   scheduleEntries,
   schoolCases,
   schoolCaseSteps,
+  schoolViolationCategories,
+  schoolViolations,
+  studentTransfers,
+  studentAttendance,
+  studentBehaviorScores,
+  behaviorIncidents,
+  behaviorCompensations,
+  guardianNotifications,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId } from "../lib/helpers";
+import { DEDUCTION_BY_DEGREE, BEHAVIOR_SCORE_CONFIG } from "../constants/behaviorSystem";
+
+// ============================================================
+// GRADE NORMALIZATION — canonical Arabic grade forms
+// ============================================================
+
+// Maps any variant spelling to the canonical form stored in classRooms.grade
+const GRADE_VARIANTS: Record<string, string> = {
+  // ابتدائي
+  "الأول الابتدائي":    "الأول الابتدائي",
+  "الأول ابتدائي":      "الأول الابتدائي",
+  "اول ابتدائي":        "الأول الابتدائي",
+  "الثاني الابتدائي":   "الثاني الابتدائي",
+  "الثاني ابتدائي":     "الثاني الابتدائي",
+  "ثاني ابتدائي":       "الثاني الابتدائي",
+  "الثالث الابتدائي":   "الثالث الابتدائي",
+  "الثالث ابتدائي":     "الثالث الابتدائي",
+  "ثالث ابتدائي":       "الثالث الابتدائي",
+  "الرابع الابتدائي":   "الرابع الابتدائي",
+  "الرابع ابتدائي":     "الرابع الابتدائي",
+  "رابع ابتدائي":       "الرابع الابتدائي",
+  "الخامس الابتدائي":   "الخامس الابتدائي",
+  "الخامس ابتدائي":     "الخامس الابتدائي",
+  "خامس ابتدائي":       "الخامس الابتدائي",
+  "السادس الابتدائي":   "السادس الابتدائي",
+  "السادس ابتدائي":     "السادس الابتدائي",
+  "سادس ابتدائي":       "السادس الابتدائي",
+  // متوسط
+  "الأول المتوسط":      "الأول المتوسط",
+  "الأول متوسط":        "الأول المتوسط",
+  "اول متوسط":          "الأول المتوسط",
+  "الثاني المتوسط":     "الثاني المتوسط",
+  "الثاني متوسط":       "الثاني المتوسط",
+  "ثاني متوسط":         "الثاني المتوسط",
+  "الثالث المتوسط":     "الثالث المتوسط",
+  "الثالث متوسط":       "الثالث المتوسط",
+  "ثالث متوسط":         "الثالث المتوسط",
+  // ثانوي
+  "الأول الثانوي":      "الأول الثانوي",
+  "الأول ثانوي":        "الأول الثانوي",
+  "اول ثانوي":          "الأول الثانوي",
+  "الثاني الثانوي":     "الثاني الثانوي",
+  "الثاني ثانوي":       "الثاني الثانوي",
+  "ثاني ثانوي":         "الثاني الثانوي",
+  "الثالث الثانوي":     "الثالث الثانوي",
+  "الثالث ثانوي":       "الثالث الثانوي",
+  "ثالث ثانوي":         "الثالث الثانوي",
+};
+
+function normalizeGrade(raw: string): string {
+  if (!raw) return raw;
+  // Normalize alef variants: أ إ آ → ا, alef maqsura: ى → ي
+  const normalized = raw.trim()
+    .replace(/[أإآ]/g, "ا")
+    .replace(/ى\b/g, "ي");
+  // Lookup exact first, then normalized
+  return GRADE_VARIANTS[raw.trim()] ?? GRADE_VARIANTS[normalized] ?? raw.trim();
+}
 
 // ============================================================
 // DAY OF WEEK MAPPING
@@ -226,10 +293,23 @@ router.patch("/settings/active-week", async (c) => {
 router.get("/class-rooms", async (c) => {
   const orgId = getOrgId(c);
 
+  // Get classrooms with student count in one query
   const result = await db
-    .select()
+    .select({
+      id:          classRooms.id,
+      orgId:       classRooms.orgId,
+      grade:       classRooms.grade,
+      name:        classRooms.name,
+      capacity:    classRooms.capacity,
+      isActive:    classRooms.isActive,
+      createdAt:   classRooms.createdAt,
+      updatedAt:   classRooms.updatedAt,
+      studentCount: sql<number>`CAST(COUNT(${students.id}) AS INTEGER)`,
+    })
     .from(classRooms)
+    .leftJoin(students, and(eq(students.classRoomId, classRooms.id), eq(students.orgId, orgId)))
     .where(eq(classRooms.orgId, orgId))
+    .groupBy(classRooms.id)
     .orderBy(asc(classRooms.grade), asc(classRooms.name));
 
   return c.json({ data: result });
@@ -379,13 +459,20 @@ router.delete("/teachers/:id", async (c) => {
 
 router.get("/students", async (c) => {
   const orgId = getOrgId(c);
-  const classRoomId = c.req.query("classRoomId");
-  const search = c.req.query("search");
-  const isActiveParam = c.req.query("isActive");
+  const classRoomId    = c.req.query("classRoomId");
+  const search         = c.req.query("search");
+  const isActiveParam  = c.req.query("isActive");
+  const gradeFilter    = c.req.query("grade");
+  const unassignedOnly = c.req.query("unassigned") === "true";
+  const pageParam      = parseInt(c.req.query("page") ?? "1", 10);
+  const limitParam     = Math.min(parseInt(c.req.query("limit") ?? "50", 10), 200);
+  const offset         = (pageParam - 1) * limitParam;
 
   const conditions = [eq(students.orgId, orgId)];
 
-  if (classRoomId) conditions.push(eq(students.classRoomId, classRoomId));
+  if (classRoomId)   conditions.push(eq(students.classRoomId, classRoomId));
+  if (unassignedOnly) conditions.push(isNull(students.classRoomId));
+  if (gradeFilter)   conditions.push(eq(classRooms.grade, gradeFilter));
 
   if (isActiveParam !== undefined) {
     conditions.push(eq(students.isActive, isActiveParam === "true"));
@@ -394,18 +481,26 @@ router.get("/students", async (c) => {
   if (search) {
     conditions.push(
       or(
-        ilike(students.fullName, `%${search}%`),
-        ilike(students.studentNumber, `%${search}%`)
+        ilike(students.fullName,      `%${search}%`),
+        ilike(students.studentNumber, `%${search}%`),
+        ilike(students.nationalId,    `%${search}%`)
       )!
     );
   }
 
+  const [{ total }] = await db
+    .select({ total: count() })
+    .from(students)
+    .leftJoin(classRooms, eq(students.classRoomId, classRooms.id))
+    .where(and(...conditions));
+
   const result = await db
     .select({
       id:               students.id,
-      orgId:            students.orgId,
       fullName:         students.fullName,
       studentNumber:    students.studentNumber,
+      nationalId:       students.nationalId,
+      grade:            students.grade,
       classRoomId:      students.classRoomId,
       guardianName:     students.guardianName,
       guardianPhone:    students.guardianPhone,
@@ -418,9 +513,127 @@ router.get("/students", async (c) => {
     .from(students)
     .leftJoin(classRooms, eq(students.classRoomId, classRooms.id))
     .where(and(...conditions))
-    .orderBy(asc(students.fullName));
+    .orderBy(asc(students.fullName))
+    .limit(limitParam)
+    .offset(offset);
 
+  return c.json({ data: result, total, page: pageParam, limit: limitParam, pages: Math.ceil(total / limitParam) });
+});
+
+// GET /students/unassigned — must be before /:id to avoid route conflict
+router.get("/students/unassigned", async (c) => {
+  const orgId = getOrgId(c);
+  const result = await db
+    .select({
+      id:            students.id,
+      fullName:      students.fullName,
+      studentNumber: students.studentNumber,
+      nationalId:    students.nationalId,
+      grade:         students.grade,
+    })
+    .from(students)
+    .where(and(eq(students.orgId, orgId), isNull(students.classRoomId)))
+    .orderBy(asc(students.fullName));
   return c.json({ data: result });
+});
+
+// GET /students/:id — ملف الطالب الكامل
+router.get("/students/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+
+  const [student] = await db
+    .select({
+      id:               students.id,
+      fullName:         students.fullName,
+      studentNumber:    students.studentNumber,
+      nationalId:       students.nationalId,
+      grade:            students.grade,
+      birthDate:        students.birthDate,
+      gender:           students.gender,
+      classRoomId:      students.classRoomId,
+      guardianName:     students.guardianName,
+      guardianPhone:    students.guardianPhone,
+      guardianRelation: students.guardianRelation,
+      isActive:         students.isActive,
+      createdAt:        students.createdAt,
+      classRoomGrade:   classRooms.grade,
+      classRoomName:    classRooms.name,
+    })
+    .from(students)
+    .leftJoin(classRooms, eq(students.classRoomId, classRooms.id))
+    .where(and(eq(students.id, id), eq(students.orgId, orgId)))
+    .limit(1);
+
+  if (!student) return c.json({ error: "الطالب غير موجود" }, 404);
+
+  // Transfers history — alias classRooms twice for from/to joins
+  const fromClassAlias = alias(classRooms, "fc");
+  const toClassAlias   = alias(classRooms, "tc");
+
+  const transfers = await db
+    .select({
+      id:            studentTransfers.id,
+      fromClassId:   studentTransfers.fromClassId,
+      toClassId:     studentTransfers.toClassId,
+      reason:        studentTransfers.reason,
+      transferredAt: studentTransfers.transferredAt,
+      fromGrade:     fromClassAlias.grade,
+      fromName:      fromClassAlias.name,
+      toGrade:       toClassAlias.grade,
+      toName:        toClassAlias.name,
+    })
+    .from(studentTransfers)
+    .leftJoin(fromClassAlias, eq(studentTransfers.fromClassId, fromClassAlias.id))
+    .leftJoin(toClassAlias,   eq(studentTransfers.toClassId,   toClassAlias.id))
+    .where(and(eq(studentTransfers.studentId, id), eq(studentTransfers.orgId, orgId)))
+    .orderBy(desc(studentTransfers.transferredAt));
+
+  // Violations
+  const violations = await db
+    .select({
+      id:              schoolViolations.id,
+      description:     schoolViolations.description,
+      violationDate:   schoolViolations.violationDate,
+      status:          schoolViolations.status,
+      categoryName:    schoolViolationCategories.name,
+      categoryColor:   schoolViolationCategories.color,
+      categorySeverity: schoolViolationCategories.severity,
+    })
+    .from(schoolViolations)
+    .leftJoin(schoolViolationCategories, eq(schoolViolations.categoryId, schoolViolationCategories.id))
+    .where(and(eq(schoolViolations.studentId, id), eq(schoolViolations.orgId, orgId)))
+    .orderBy(desc(schoolViolations.violationDate));
+
+  // Cases
+  const cases = await db
+    .select({
+      id:        schoolCases.id,
+      title:     schoolCases.title,
+      category:  schoolCases.category,
+      status:    schoolCases.status,
+      priority:  schoolCases.priority,
+      createdAt: schoolCases.createdAt,
+    })
+    .from(schoolCases)
+    .where(and(eq(schoolCases.studentId, id), eq(schoolCases.orgId, orgId)))
+    .orderBy(desc(schoolCases.createdAt));
+
+  // Attendance summary (last 30 days)
+  const attendanceSummary = await db
+    .select({
+      status: studentAttendance.status,
+      cnt:    sql<number>`CAST(COUNT(*) AS INTEGER)`,
+    })
+    .from(studentAttendance)
+    .where(and(
+      eq(studentAttendance.studentId, id),
+      eq(studentAttendance.orgId, orgId),
+      sql`${studentAttendance.attendanceDate} >= CURRENT_DATE - INTERVAL '30 days'`
+    ))
+    .groupBy(studentAttendance.status);
+
+  return c.json({ data: { ...student, transfers, violations, cases, attendanceSummary } });
 });
 
 router.post("/students", async (c) => {
@@ -436,12 +649,13 @@ router.post("/students", async (c) => {
 });
 
 router.put("/students/:id", async (c) => {
-  const orgId = getOrgId(c);
-  const id = c.req.param("id");
-  const body = studentSchema.partial().parse(await c.req.json());
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const id     = c.req.param("id");
+  const body   = studentSchema.partial().parse(await c.req.json());
 
   const [existing] = await db
-    .select({ id: students.id })
+    .select({ id: students.id, classRoomId: students.classRoomId })
     .from(students)
     .where(and(eq(students.id, id), eq(students.orgId, orgId)))
     .limit(1);
@@ -454,7 +668,106 @@ router.put("/students/:id", async (c) => {
     .where(and(eq(students.id, id), eq(students.orgId, orgId)))
     .returning();
 
+  // Log classroom change if it happened
+  if (body.classRoomId && body.classRoomId !== existing.classRoomId) {
+    await db.insert(studentTransfers).values({
+      orgId,
+      studentId:     id,
+      fromClassId:   existing.classRoomId ?? null,
+      toClassId:     body.classRoomId,
+      reason:        (body as any).transferReason ?? null,
+      transferredBy: userId ?? null,
+    });
+  }
+
   return c.json({ data: updated });
+});
+
+// POST /students/:id/transfer — نقل رسمي بين فصول نفس الصف مع تسجيل
+router.post("/students/:id/transfer", async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const id     = c.req.param("id");
+  const body   = await c.req.json() as { classRoomId: string; reason?: string };
+
+  if (!body.classRoomId) return c.json({ error: "الفصل المستهدف مطلوب" }, 400);
+
+  // Fetch student
+  const [student] = await db
+    .select({ id: students.id, classRoomId: students.classRoomId })
+    .from(students)
+    .where(and(eq(students.id, id), eq(students.orgId, orgId)))
+    .limit(1);
+  if (!student) return c.json({ error: "الطالب غير موجود" }, 404);
+
+  // Fetch target classroom — must be in same grade
+  const [targetRoom] = await db
+    .select({ id: classRooms.id, grade: classRooms.grade })
+    .from(classRooms)
+    .where(and(eq(classRooms.id, body.classRoomId), eq(classRooms.orgId, orgId)))
+    .limit(1);
+  if (!targetRoom) return c.json({ error: "الفصل المستهدف غير موجود" }, 404);
+
+  // Validate: if student has a current classroom, new one must be same grade
+  if (student.classRoomId) {
+    const [currentRoom] = await db
+      .select({ grade: classRooms.grade })
+      .from(classRooms)
+      .where(eq(classRooms.id, student.classRoomId))
+      .limit(1);
+    if (currentRoom && currentRoom.grade !== targetRoom.grade) {
+      return c.json({ error: `لا يمكن نقل الطالب إلى صف مختلف (${currentRoom.grade} → ${targetRoom.grade}). استخدم تغيير الصف بدلاً من النقل.` }, 422);
+    }
+  }
+
+  if (student.classRoomId === body.classRoomId) {
+    return c.json({ error: "الطالب موجود في هذا الفصل بالفعل" }, 422);
+  }
+
+  // Update student classroom
+  const [updated] = await db
+    .update(students)
+    .set({ classRoomId: body.classRoomId, updatedAt: new Date() })
+    .where(and(eq(students.id, id), eq(students.orgId, orgId)))
+    .returning();
+
+  // Log the transfer
+  await db.insert(studentTransfers).values({
+    orgId,
+    studentId:     id,
+    fromClassId:   student.classRoomId ?? null,
+    toClassId:     body.classRoomId,
+    reason:        body.reason ?? null,
+    transferredBy: userId ?? null,
+  });
+
+  return c.json({ data: updated });
+});
+
+// GET /students/:id/transfers — سجل تنقلات طالب
+router.get("/students/:id/transfers", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+
+  const fromRoom = { grade: classRooms.grade, name: classRooms.name };
+
+  const history = await db
+    .select({
+      id:            studentTransfers.id,
+      fromClassId:   studentTransfers.fromClassId,
+      toClassId:     studentTransfers.toClassId,
+      reason:        studentTransfers.reason,
+      transferredAt: studentTransfers.transferredAt,
+      toGrade:       sql<string>`(SELECT grade FROM class_rooms WHERE id = ${studentTransfers.toClassId})`,
+      toName:        sql<string>`(SELECT name  FROM class_rooms WHERE id = ${studentTransfers.toClassId})`,
+      fromGrade:     sql<string>`(SELECT grade FROM class_rooms WHERE id = ${studentTransfers.fromClassId})`,
+      fromName:      sql<string>`(SELECT name  FROM class_rooms WHERE id = ${studentTransfers.fromClassId})`,
+    })
+    .from(studentTransfers)
+    .where(and(eq(studentTransfers.orgId, orgId), eq(studentTransfers.studentId, id)))
+    .orderBy(desc(studentTransfers.transferredAt));
+
+  return c.json({ data: history });
 });
 
 router.delete("/students/:id", async (c) => {
@@ -1123,6 +1436,48 @@ router.get("/day-monitor", async (c) => {
 
 import { schoolImportLogs } from "@nasaq/db/schema";
 
+// قاموس مرادفات أعمدة الاستيراد — يتحمل اختلاف أسماء الأعمدة في ملفات المستخدمين
+const COLUMN_ALIASES: Record<string, string[]> = {
+  "الاسم الكامل":    ["الاسم", "اسم الطالب", "اسم المعلم", "اسم المعلمة", "الاسم الكامل للطالب", "full name", "name"],
+  "رقم الطالب":     ["رقم الطالب", "رقم_الطالب", "student number", "student_number", "رقم"],
+  "رقم الهوية":     ["رقم الهوية", "الهوية", "رقم_الهوية", "national id", "national_id", "هوية"],
+  "تاريخ الميلاد":  ["تاريخ الميلاد", "الميلاد", "birth date", "birthdate"],
+  "الجنس":          ["الجنس", "النوع", "gender"],
+  "الصف":           ["الصف", "الصف الدراسي", "المرحلة", "المرحلة الدراسية", "grade", "الدراسي"],
+  "اسم الفصل":      ["اسم الفصل", "الفصل", "رقم الفصل", "رمز الفصل", "class", "classroom", "section", "class name"],
+  "اسم ولي الأمر":  ["اسم ولي الأمر", "ولي الأمر", "الوالد", "parent name", "guardian"],
+  "جوال ولي الأمر": ["جوال ولي الأمر", "جوال الولي", "هاتف ولي الأمر", "phone", "جوال"],
+  "صلة القرابة":    ["صلة القرابة", "القرابة", "العلاقة", "relation"],
+  "الرقم الوظيفي":  ["الرقم الوظيفي", "رقم الموظف", "employee number", "employee_number"],
+  "المادة":         ["المادة", "التخصص", "subject"],
+  "الجوال":         ["الجوال", "الهاتف", "phone", "mobile"],
+  "البريد الإلكتروني": ["البريد الإلكتروني", "الايميل", "email"],
+  "المؤهل العلمي":  ["المؤهل العلمي", "المؤهل", "qualification"],
+  "الطاقة الاستيعابية": ["الطاقة الاستيعابية", "السعة", "capacity", "max students"],
+  "اليوم":          ["اليوم", "day"],
+  "رقم الحصة":      ["رقم الحصة", "الحصة", "period", "session"],
+  "اسم المعلم":     ["اسم المعلم", "المعلم", "المدرس", "teacher"],
+};
+
+// بناء خريطة عكسية: alias → canonical
+const ALIAS_REVERSE: Record<string, string> = {};
+for (const [canonical, aliases] of Object.entries(COLUMN_ALIASES)) {
+  for (const alias of aliases) {
+    ALIAS_REVERSE[alias.trim().toLowerCase()] = canonical;
+  }
+  ALIAS_REVERSE[canonical.trim().toLowerCase()] = canonical;
+}
+
+// تطبيع صف واحد بتحويل أعمدته إلى الأسماء القياسية
+function normalizeRowKeys(row: Record<string, string>): Record<string, string> {
+  const normalized: Record<string, string> = {};
+  for (const [key, val] of Object.entries(row)) {
+    const canonical = ALIAS_REVERSE[key.trim().toLowerCase()] ?? key.trim();
+    normalized[canonical] = val;
+  }
+  return normalized;
+}
+
 const IMPORT_TEMPLATES: Record<string, { headers: string[]; sample: Record<string, string>; required: string[] }> = {
   students: {
     headers:  ["الاسم الكامل", "رقم الطالب", "رقم الهوية", "تاريخ الميلاد", "الجنس", "الصف", "اسم الفصل", "اسم ولي الأمر", "جوال ولي الأمر", "صلة القرابة"],
@@ -1171,16 +1526,49 @@ router.post("/import/preview", async (c) => {
   const orgId  = getOrgId(c);
   const body   = await c.req.json();
   const type   = body.type as string;
-  const rows   = body.rows as Record<string, string>[];
+  const rawRows = body.rows as Record<string, string>[];
+  const rows   = rawRows.map(normalizeRowKeys);  // تطبيع أسماء الأعمدة
   const tpl    = IMPORT_TEMPLATES[type];
   if (!tpl) return c.json({ error: "نوع غير مدعوم" }, 400);
+
+  // For students: pre-check classroom matches
+  let roomMap: Map<string, "found" | "will_create"> | null = null;
+  if (type === "students") {
+    const existingRooms = await db.select({ id: classRooms.id, grade: classRooms.grade, name: classRooms.name })
+      .from(classRooms).where(eq(classRooms.orgId, orgId));
+    roomMap = new Map();
+    for (const r of existingRooms) {
+      const key = `${normalizeGrade(r.grade ?? "")}::${(r.name ?? "").trim()}`;
+      roomMap.set(key, "found");
+    }
+    // Pre-scan all rows to mark will_create
+    for (const row of rows) {
+      const normGrade = normalizeGrade(row["الصف"]?.trim() ?? "");
+      const roomName  = (row["اسم الفصل"]?.trim() ?? "");
+      if (normGrade && roomName) {
+        const key = `${normGrade}::${roomName}`;
+        if (!roomMap.has(key)) roomMap.set(key, "will_create");
+      }
+    }
+  }
 
   const result = rows.map((row) => {
     const missing = tpl.required.filter((k) => !row[k]?.trim());
     if (missing.length > 0) {
       return { data: row, valid: false, error: `حقول مطلوبة: ${missing.join("، ")}` };
     }
-    return { data: row, valid: true };
+    const entry: Record<string, any> = { data: row, valid: true };
+    if (roomMap) {
+      const normGrade = normalizeGrade(row["الصف"]?.trim() ?? "");
+      const roomName  = (row["اسم الفصل"]?.trim() ?? "");
+      if (!normGrade || !roomName) {
+        entry.classroomStatus = "unspecified";
+      } else {
+        entry.classroomStatus = roomMap.get(`${normGrade}::${roomName}`) ?? "will_create";
+      }
+      entry.normalizedGrade = normGrade;
+    }
+    return entry;
   });
 
   return c.json({ data: { rows: result } });
@@ -1191,42 +1579,115 @@ router.post("/import/confirm", async (c) => {
   const userId  = getUserId(c);
   const body    = await c.req.json();
   const type    = body.type as string;
-  const rows    = body.rows as Record<string, string>[];
+  const rows    = (body.rows as Record<string, string>[]).map(normalizeRowKeys);  // تطبيع أسماء الأعمدة
 
-  let imported = 0; let errors = 0;
+  let imported = 0; let updated = 0; let errors = 0;
   const errorList: any[] = [];
 
   if (type === "students") {
-    // Fetch all classrooms for lookup
-    const allRooms = await db.select().from(classRooms).where(eq(classRooms.orgId, orgId));
+    // Build a lookup map: "normalizedGrade::roomName" → classRoomId
+    const existingRooms = await db.select().from(classRooms).where(eq(classRooms.orgId, orgId));
+    const roomMap = new Map<string, string>();
+    for (const r of existingRooms) {
+      const key = `${normalizeGrade(r.grade ?? "")}::${(r.name ?? "").trim()}`;
+      roomMap.set(key, r.id);
+    }
+
+    let classroomsCreated = 0;
+
     for (const row of rows) {
       try {
         const fullName = row["الاسم الكامل"]?.trim();
         if (!fullName) { errors++; continue; }
-        // find classRoomId
-        const gradeName = row["الصف"]?.trim();
-        const roomName  = row["اسم الفصل"]?.trim();
-        const room = allRooms.find((r) =>
-          (!gradeName || r.grade === gradeName) && (!roomName || r.name === roomName)
-        );
-        await db.insert(students).values({
-          orgId,
+
+        const gradeName = row["الصف"]?.trim() ?? "";
+        const roomName  = row["اسم الفصل"]?.trim() ?? "";
+        const normGrade = normalizeGrade(gradeName);
+        const lookupKey = `${normGrade}::${roomName}`;
+
+        let classRoomId: string | null = null;
+
+        if (normGrade && roomName) {
+          if (roomMap.has(lookupKey)) {
+            classRoomId = roomMap.get(lookupKey)!;
+          } else {
+            // Auto-create missing classroom
+            const [created] = await db.insert(classRooms).values({
+              orgId,
+              grade: normGrade,
+              name:  roomName,
+            }).onConflictDoNothing().returning({ id: classRooms.id });
+
+            if (created) {
+              roomMap.set(lookupKey, created.id);
+              classRoomId = created.id;
+              classroomsCreated++;
+            } else {
+              // Race condition — fetch the existing one
+              const [existing] = await db.select({ id: classRooms.id })
+                .from(classRooms)
+                .where(and(eq(classRooms.orgId, orgId), eq(classRooms.grade, normGrade), eq(classRooms.name, roomName)))
+                .limit(1);
+              if (existing) {
+                roomMap.set(lookupKey, existing.id);
+                classRoomId = existing.id;
+              }
+            }
+          }
+        }
+
+        const studentNumber = row["رقم الطالب"]?.trim() || null;
+        const nationalId    = row["رقم الهوية"]?.trim()  || null;
+
+        // Try to find an existing student by nationalId or studentNumber to avoid duplicates
+        let existingStudent: { id: string } | null = null;
+        if (nationalId) {
+          const [found] = await db.select({ id: students.id })
+            .from(students)
+            .where(and(eq(students.orgId, orgId), eq(students.nationalId, nationalId)))
+            .limit(1);
+          existingStudent = found ?? null;
+        }
+        if (!existingStudent && studentNumber) {
+          const [found] = await db.select({ id: students.id })
+            .from(students)
+            .where(and(eq(students.orgId, orgId), eq(students.studentNumber, studentNumber)))
+            .limit(1);
+          existingStudent = found ?? null;
+        }
+
+        const payload = {
           fullName,
-          studentNumber: row["رقم الطالب"] || null,
-          nationalId:    row["رقم الهوية"] || null,
-          birthDate:     row["تاريخ الميلاد"] || null,
-          gender:        (row["الجنس"] === "أنثى" ? "أنثى" : row["الجنس"] === "ذكر" ? "ذكر" : null) as any,
-          classRoomId:   room?.id ?? null,
-          guardianName:  row["اسم ولي الأمر"] || null,
-          guardianPhone: row["جوال ولي الأمر"] || null,
+          studentNumber,
+          nationalId,
+          grade:            normGrade || null,  // تخزين الصف مستقلاً عن الفصل
+          birthDate:        row["تاريخ الميلاد"] || null,
+          gender:           (row["الجنس"] === "أنثى" ? "أنثى" : row["الجنس"] === "ذكر" ? "ذكر" : null) as any,
+          classRoomId,
+          guardianName:     row["اسم ولي الأمر"] || null,
+          guardianPhone:    row["جوال ولي الأمر"] || null,
           guardianRelation: row["صلة القرابة"] || null,
-        });
-        imported++;
+          updatedAt:        new Date(),
+        };
+
+        if (existingStudent) {
+          // Update existing — especially classRoomId if it was null before
+          await db.update(students)
+            .set(payload)
+            .where(and(eq(students.id, existingStudent.id), eq(students.orgId, orgId)));
+          updated++;
+        } else {
+          await db.insert(students).values({ orgId, ...payload });
+          imported++;
+        }
       } catch (e: any) {
         errors++;
         errorList.push({ row, error: e.message });
       }
     }
+
+    // Append classroomsCreated to response later
+    (c as any).__classroomsCreated = classroomsCreated;
   } else if (type === "teachers") {
     for (const row of rows) {
       try {
@@ -1283,7 +1744,31 @@ router.post("/import/confirm", async (c) => {
     completedAt:  new Date(),
   } as any);
 
-  return c.json({ data: { imported, errors, errorList } });
+  const classroomsCreated: number = (c as any).__classroomsCreated ?? 0;
+  return c.json({ data: { imported, updated, errors, errorList, classroomsCreated } });
+});
+
+// ============================================================
+// STUDENTS REPAIR — إصلاح الطلاب غير المسندين لفصول
+// ============================================================
+
+// POST /students/assign-classroom — إسناد طلاب لفصل (مجمّع)
+router.post("/students/assign-classroom", async (c) => {
+  const orgId = getOrgId(c);
+  const body = await c.req.json() as { studentIds: string[]; classRoomId: string };
+  const { studentIds, classRoomId } = body;
+  if (!studentIds?.length || !classRoomId) return c.json({ error: "بيانات ناقصة" }, 400);
+
+  // Verify classroom belongs to org
+  const [room] = await db.select({ id: classRooms.id }).from(classRooms)
+    .where(and(eq(classRooms.id, classRoomId), eq(classRooms.orgId, orgId))).limit(1);
+  if (!room) return c.json({ error: "الفصل غير موجود" }, 404);
+
+  await db.update(students)
+    .set({ classRoomId, updatedAt: new Date() })
+    .where(and(eq(students.orgId, orgId), inArray(students.id, studentIds)));
+
+  return c.json({ data: { assigned: studentIds.length } });
 });
 
 // ============================================================
@@ -1396,7 +1881,7 @@ router.get("/teachers/:id/schedule", async (c) => {
       .from(schoolSettings)
       .where(eq(schoolSettings.orgId, orgId))
       .limit(1);
-    targetWeekId = settings?.activeWeekId ?? null;
+    targetWeekId = settings?.activeWeekId ?? undefined;
   }
 
   if (!targetWeekId) return c.json({ data: { teacher, entries: [], weekId: null } });
@@ -1442,6 +1927,1103 @@ router.delete("/timetable-templates/:id", async (c) => {
     .returning();
   if (!deleted) return c.json({ error: "القالب غير موجود" }, 404);
   return c.json({ success: true });
+});
+
+// ============================================================
+// VIOLATION CATEGORIES — أنواع وتصنيفات المخالفات
+// ============================================================
+
+router.get("/violation-categories", async (c) => {
+  const orgId = getOrgId(c);
+  const categories = await db
+    .select()
+    .from(schoolViolationCategories)
+    .where(eq(schoolViolationCategories.orgId, orgId))
+    .orderBy(asc(schoolViolationCategories.name));
+  return c.json({ data: categories });
+});
+
+// Default categories from Saudi MOE "لائحة تنظيم السلوك والمواظبة"
+const DEFAULT_VIOLATION_CATEGORIES = [
+  // منخفضة
+  { name: "التأخر عن الحضور",            severity: "low",    color: "#3b82f6", description: "الحضور بعد موعد الطابور الصباحي أو بداية الحصة" },
+  { name: "عدم ارتداء الزي المدرسي",     severity: "low",    color: "#8b5cf6", description: "الحضور بزي غير نظامي أو غير مكتمل" },
+  { name: "إهمال الواجبات المنزلية",     severity: "low",    color: "#6366f1", description: "عدم أداء أو تسليم الواجبات المطلوبة" },
+  { name: "عدم إحضار الأدوات الدراسية", severity: "low",    color: "#a78bfa", description: "نسيان الكتب أو الأدوات اللازمة للدرس" },
+  { name: "عدم الانضباط في الطابور",    severity: "low",    color: "#7c3aed", description: "التصرف بشكل غير منظم أثناء الطابور الصباحي" },
+  { name: "الإخلال بالنظام داخل الفصل", severity: "low",    color: "#2563eb", description: "التشويش على سير الدرس أو إزعاج الزملاء" },
+  // متوسطة
+  { name: "الغياب غير المبرر",           severity: "medium", color: "#f59e0b", description: "الغياب عن المدرسة أو الحصص بدون مسوّغ نظامي" },
+  { name: "استخدام الجوال أثناء الدراسة",severity: "medium", color: "#d97706", description: "استخدام الهاتف أو الأجهزة الإلكترونية داخل الفصل" },
+  { name: "الإساءة اللفظية",             severity: "medium", color: "#b45309", description: "توجيه كلام مسيء أو غير لائق للمعلمين أو الزملاء" },
+  { name: "الخروج من المدرسة بدون إذن", severity: "medium", color: "#92400e", description: "مغادرة المدرسة أو الفصل بدون تصريح رسمي" },
+  { name: "التقصير في الاختبارات",       severity: "medium", color: "#78350f", description: "عدم الاستعداد أو إهمال الاختبارات والتقييمات" },
+  // مرتفعة
+  { name: "الغش في الاختبارات",          severity: "high",   color: "#ef4444", description: "محاولة الغش أو إدخال مواد مساعدة غير مسموح بها" },
+  { name: "الاعتداء الجسدي",             severity: "high",   color: "#dc2626", description: "الاعتداء بالضرب أو الإيذاء الجسدي على أي شخص" },
+  { name: "التنمر والإيذاء",             severity: "high",   color: "#b91c1c", description: "الإيذاء المتكرر للزملاء سواء جسدياً أو نفسياً أو إلكترونياً" },
+  { name: "التخريب في ممتلكات المدرسة", severity: "high",   color: "#991b1b", description: "إتلاف أو تكسير أو العبث بممتلكات المدرسة" },
+  { name: "التدخين",                     severity: "high",   color: "#7f1d1d", description: "التدخين داخل نطاق المدرسة أو الحافلة المدرسية" },
+];
+
+router.post("/violation-categories/seed-defaults", async (c) => {
+  const orgId = getOrgId(c);
+  // Only seed if org has no categories yet
+  const [existing] = await db.select({ id: schoolViolationCategories.id })
+    .from(schoolViolationCategories)
+    .where(eq(schoolViolationCategories.orgId, orgId))
+    .limit(1);
+  if (existing) {
+    return c.json({ data: [], message: "التصنيفات موجودة بالفعل" });
+  }
+  const inserted = await db.insert(schoolViolationCategories)
+    .values(DEFAULT_VIOLATION_CATEGORIES.map((cat) => ({ orgId, ...cat })))
+    .returning();
+  return c.json({ data: inserted });
+});
+
+router.post("/violation-categories", async (c) => {
+  const orgId = getOrgId(c);
+  const body = await c.req.json();
+  const schema = z.object({
+    name:        z.string().min(1).max(100),
+    description: z.string().max(500).optional().nullable(),
+    severity:    z.enum(["low", "medium", "high"]).default("medium"),
+    color:       z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#f59e0b"),
+  });
+  const data = schema.parse(body);
+  const [cat] = await db.insert(schoolViolationCategories).values({
+    orgId,
+    ...data,
+  }).returning();
+  return c.json({ data: cat }, 201);
+});
+
+router.put("/violation-categories/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+  const body = await c.req.json();
+  const schema = z.object({
+    name:        z.string().min(1).max(100).optional(),
+    description: z.string().max(500).optional().nullable(),
+    severity:    z.enum(["low", "medium", "high"]).optional(),
+    color:       z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(),
+    isActive:    z.boolean().optional(),
+  });
+  const data = schema.parse(body);
+  const [updated] = await db.update(schoolViolationCategories)
+    .set({ ...data })
+    .where(and(eq(schoolViolationCategories.id, id), eq(schoolViolationCategories.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "التصنيف غير موجود" }, 404);
+  return c.json({ data: updated });
+});
+
+router.delete("/violation-categories/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+  // Nullify category on violations before deleting
+  await db.update(schoolViolations)
+    .set({ categoryId: null })
+    .where(and(eq(schoolViolations.orgId, orgId), eq(schoolViolations.categoryId, id)));
+  const [deleted] = await db.delete(schoolViolationCategories)
+    .where(and(eq(schoolViolationCategories.id, id), eq(schoolViolationCategories.orgId, orgId)))
+    .returning();
+  if (!deleted) return c.json({ error: "التصنيف غير موجود" }, 404);
+  return c.json({ success: true });
+});
+
+// ============================================================
+// VIOLATIONS — سجل مخالفات الطلاب
+// ============================================================
+
+router.get("/violations", async (c) => {
+  const orgId     = getOrgId(c);
+  const studentId = c.req.query("studentId");
+  const catId     = c.req.query("categoryId");
+  const status    = c.req.query("status");
+  const dateFrom  = c.req.query("dateFrom");
+  const dateTo    = c.req.query("dateTo");
+
+  const conditions = [eq(schoolViolations.orgId, orgId)];
+  if (studentId) conditions.push(eq(schoolViolations.studentId, studentId));
+  if (catId)     conditions.push(eq(schoolViolations.categoryId, catId));
+  if (status)    conditions.push(eq(schoolViolations.status, status));
+  if (dateFrom)  conditions.push(sql`${schoolViolations.violationDate} >= ${dateFrom}`);
+  if (dateTo)    conditions.push(sql`${schoolViolations.violationDate} <= ${dateTo}`);
+
+  const violations = await db
+    .select({
+      id:              schoolViolations.id,
+      description:     schoolViolations.description,
+      violationDate:   schoolViolations.violationDate,
+      status:          schoolViolations.status,
+      resolutionNotes: schoolViolations.resolutionNotes,
+      createdAt:       schoolViolations.createdAt,
+      studentId:       schoolViolations.studentId,
+      studentName:     students.fullName,
+      studentNumber:   students.studentNumber,
+      classRoomId:     students.classRoomId,
+      categoryId:      schoolViolations.categoryId,
+      categoryName:    schoolViolationCategories.name,
+      categorySeverity: schoolViolationCategories.severity,
+      categoryColor:   schoolViolationCategories.color,
+    })
+    .from(schoolViolations)
+    .innerJoin(students, eq(schoolViolations.studentId, students.id))
+    .leftJoin(schoolViolationCategories, eq(schoolViolations.categoryId, schoolViolationCategories.id))
+    .where(and(...conditions))
+    .orderBy(desc(schoolViolations.violationDate), desc(schoolViolations.createdAt))
+    .limit(200);
+
+  return c.json({ data: violations });
+});
+
+router.post("/violations", async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const body   = await c.req.json();
+  const schema = z.object({
+    studentId:      z.string().uuid(),
+    categoryId:     z.string().uuid().optional().nullable(),
+    description:    z.string().max(1000).optional().nullable(),
+    violationDate:  z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  });
+  const data = schema.parse(body);
+
+  // Verify student belongs to org
+  const [student] = await db.select({ id: students.id })
+    .from(students)
+    .where(and(eq(students.id, data.studentId), eq(students.orgId, orgId)))
+    .limit(1);
+  if (!student) return c.json({ error: "الطالب غير موجود" }, 404);
+
+  const [violation] = await db.insert(schoolViolations).values({
+    orgId,
+    studentId:     data.studentId,
+    categoryId:    data.categoryId ?? null,
+    description:   data.description ?? null,
+    violationDate: data.violationDate ?? new Date().toISOString().split("T")[0],
+    recordedBy:    userId ?? undefined,
+  }).returning();
+
+  return c.json({ data: violation }, 201);
+});
+
+router.put("/violations/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+  const body  = await c.req.json();
+  const schema = z.object({
+    categoryId:      z.string().uuid().optional().nullable(),
+    description:     z.string().max(1000).optional().nullable(),
+    violationDate:   z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    status:          z.enum(["open", "resolved", "cancelled"]).optional(),
+    resolutionNotes: z.string().max(1000).optional().nullable(),
+  });
+  const data = schema.parse(body);
+  const [updated] = await db.update(schoolViolations)
+    .set({ ...data })
+    .where(and(eq(schoolViolations.id, id), eq(schoolViolations.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "المخالفة غير موجودة" }, 404);
+  return c.json({ data: updated });
+});
+
+router.delete("/violations/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+  const [deleted] = await db.delete(schoolViolations)
+    .where(and(eq(schoolViolations.id, id), eq(schoolViolations.orgId, orgId)))
+    .returning();
+  if (!deleted) return c.json({ error: "المخالفة غير موجودة" }, 404);
+  return c.json({ success: true });
+});
+
+// ============================================================
+// ATTENDANCE — حضور وغياب الطلاب
+// ============================================================
+
+// GET /attendance?classRoomId=&date= — جلب سجل الحضور لفصل في يوم
+router.get("/attendance", async (c) => {
+  const orgId       = getOrgId(c);
+  const classRoomId = c.req.query("classRoomId");
+  const dateParam   = c.req.query("date"); // YYYY-MM-DD
+
+  if (!classRoomId || !dateParam) return c.json({ error: "classRoomId و date مطلوبان" }, 400);
+
+  // Get all students in this classroom
+  const classStudents = await db
+    .select({ id: students.id, fullName: students.fullName, studentNumber: students.studentNumber })
+    .from(students)
+    .where(and(eq(students.classRoomId, classRoomId), eq(students.orgId, orgId)))
+    .orderBy(asc(students.fullName));
+
+  // Get existing attendance records for this date
+  const records = await db
+    .select()
+    .from(studentAttendance)
+    .where(and(
+      eq(studentAttendance.orgId, orgId),
+      eq(studentAttendance.classRoomId, classRoomId),
+      eq(studentAttendance.attendanceDate, dateParam)
+    ));
+
+  const recordMap = Object.fromEntries(records.map(r => [r.studentId, r]));
+
+  const result = classStudents.map(s => ({
+    ...s,
+    attendance: recordMap[s.id] ?? null,
+  }));
+
+  return c.json({ data: result, date: dateParam, classRoomId });
+});
+
+// POST /attendance/bulk — تسجيل الحضور للفصل كاملاً (upsert)
+router.post("/attendance/bulk", async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const body   = await c.req.json() as {
+    classRoomId: string;
+    date: string; // YYYY-MM-DD
+    records: Array<{ studentId: string; status: string; lateMinutes?: number; notes?: string }>;
+  };
+
+  if (!body.classRoomId || !body.date || !Array.isArray(body.records)) {
+    return c.json({ error: "بيانات ناقصة" }, 400);
+  }
+
+  // Verify classroom
+  const [room] = await db.select({ id: classRooms.id })
+    .from(classRooms)
+    .where(and(eq(classRooms.id, body.classRoomId), eq(classRooms.orgId, orgId)))
+    .limit(1);
+  if (!room) return c.json({ error: "الفصل غير موجود" }, 404);
+
+  const values = body.records.map(r => ({
+    orgId,
+    studentId:      r.studentId,
+    classRoomId:    body.classRoomId,
+    attendanceDate: body.date,
+    status:         (r.status as any) ?? "present",
+    lateMinutes:    r.lateMinutes ?? null,
+    notes:          r.notes ?? null,
+    recordedBy:     userId ?? null,
+    updatedAt:      new Date(),
+  }));
+
+  await db.insert(studentAttendance)
+    .values(values)
+    .onConflictDoUpdate({
+      target: [studentAttendance.orgId, studentAttendance.studentId, studentAttendance.attendanceDate],
+      set: {
+        status:      sql`excluded.status`,
+        lateMinutes: sql`excluded.late_minutes`,
+        notes:       sql`excluded.notes`,
+        recordedBy:  sql`excluded.recorded_by`,
+        updatedAt:   sql`excluded.updated_at`,
+      },
+    });
+
+  return c.json({ data: { saved: values.length } });
+});
+
+// GET /attendance/student/:studentId — سجل حضور طالب
+router.get("/attendance/student/:studentId", async (c) => {
+  const orgId     = getOrgId(c);
+  const studentId = c.req.param("studentId");
+  const month     = c.req.query("month"); // YYYY-MM optional
+
+  const conditions = [eq(studentAttendance.studentId, studentId), eq(studentAttendance.orgId, orgId)];
+  if (month) conditions.push(sql`to_char(${studentAttendance.attendanceDate}, 'YYYY-MM') = ${month}`);
+
+  const records = await db
+    .select()
+    .from(studentAttendance)
+    .where(and(...conditions))
+    .orderBy(desc(studentAttendance.attendanceDate));
+
+  return c.json({ data: records });
+});
+
+// GET /attendance/stats?classRoomId=&month= — إحصائيات الحضور
+router.get("/attendance/stats", async (c) => {
+  const orgId       = getOrgId(c);
+  const classRoomId = c.req.query("classRoomId");
+  const month       = c.req.query("month"); // YYYY-MM
+
+  const conditions = [eq(studentAttendance.orgId, orgId)];
+  if (classRoomId) conditions.push(eq(studentAttendance.classRoomId, classRoomId));
+  if (month) conditions.push(sql`to_char(${studentAttendance.attendanceDate}, 'YYYY-MM') = ${month}`);
+
+  const stats = await db
+    .select({
+      status: studentAttendance.status,
+      cnt:    sql<number>`CAST(COUNT(*) AS INTEGER)`,
+    })
+    .from(studentAttendance)
+    .where(and(...conditions))
+    .groupBy(studentAttendance.status);
+
+  return c.json({ data: stats });
+});
+
+// ============================================================
+// SETUP WIZARD — معالج التهيئة
+// ============================================================
+
+// Helper: convert Arabic/Western digit string to Arabic digits
+function toArabicNum(n: number): string {
+  return String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[parseInt(d)]);
+}
+
+const STAGE_GRADES: Record<string, string[]> = {
+  "ابتدائي": [
+    "الأول الابتدائي", "الثاني الابتدائي", "الثالث الابتدائي",
+    "الرابع الابتدائي", "الخامس الابتدائي", "السادس الابتدائي",
+  ],
+  "متوسط": ["الأول المتوسط", "الثاني المتوسط", "الثالث المتوسط"],
+  "ثانوي": ["الأول الثانوي", "الثاني الثانوي", "الثالث الثانوي"],
+};
+
+const DEFAULT_SUBJECTS_BY_STAGE: Record<string, string[]> = {
+  "ابتدائي": ["رياضيات", "علوم", "لغتي", "دراسات إسلامية", "دراسات اجتماعية", "إنجليزي", "مهارات رقمية", "تربية فنية", "تربية بدنية"],
+  "متوسط":  ["رياضيات", "علوم", "لغتي", "دراسات إسلامية", "اجتماعيات", "إنجليزي", "مهارات رقمية", "تربية فنية", "تربية بدنية"],
+  "ثانوي":  ["رياضيات", "فيزياء", "كيمياء", "أحياء", "اللغة العربية", "دراسات إسلامية", "إنجليزي", "حاسب آلي", "تربية بدنية"],
+};
+
+// GET /setup-status — حالة التهيئة
+router.get("/setup-status", async (c) => {
+  const orgId = getOrgId(c);
+  const [settings] = await db
+    .select({
+      setupStatus: schoolSettings.setupStatus,
+      setupStep:   schoolSettings.setupStep,
+      schoolName:  schoolSettings.schoolName,
+    })
+    .from(schoolSettings)
+    .where(eq(schoolSettings.orgId, orgId))
+    .limit(1);
+  return c.json({ data: settings ?? { setupStatus: "not_started", setupStep: 0, schoolName: null } });
+});
+
+// PUT /setup-status — تحديث خطوة التهيئة
+router.put("/setup-status", async (c) => {
+  const orgId = getOrgId(c);
+  const body  = await c.req.json() as { setupStatus?: string; setupStep?: number };
+  await db.update(schoolSettings)
+    .set({ setupStatus: body.setupStatus ?? "in_progress", setupStep: body.setupStep ?? 1, updatedAt: new Date() })
+    .where(eq(schoolSettings.orgId, orgId));
+  return c.json({ success: true });
+});
+
+// POST /setup/complete — الإنشاء الكامل للهيكل الدراسي
+router.post("/setup/complete", async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const body   = await c.req.json() as {
+    // Step 1: school info
+    schoolName:     string;
+    schoolGender:   string;
+    educationLevel: string;  // ابتدائي | متوسط | ثانوي
+    // Step 2: classrooms per grade
+    classroomsPerGrade: Record<string, number>;  // { "الأول المتوسط": 3, ... }
+    // Step 3: weeks
+    weekCount: number;
+    // Step 4: calendar
+    calendar: Array<{
+      sessionType: "winter" | "summer";
+      startDate: string;
+      endDate: string;
+      dayStartTime: string; // "07:30"
+      periodCount: number;
+      periodDuration: number; // minutes
+      breakDuration: number;  // minutes
+      breakAfterPeriod: number;
+    }>;
+    // Step 5+6: teachers with assignments
+    teachers: Array<{
+      fullName: string;
+      subject:  string;
+      classRoomIds: string[];
+    }>;
+  };
+
+  const results = {
+    classrooms: 0, weeks: 0, teachers: 0, assignments: 0, templates: 0, periods: 0,
+  };
+
+  // 1. Upsert school settings
+  const [existingSettings] = await db.select({ id: schoolSettings.id })
+    .from(schoolSettings).where(eq(schoolSettings.orgId, orgId)).limit(1);
+
+  if (existingSettings) {
+    await db.update(schoolSettings)
+      .set({
+        schoolName:     body.schoolName,
+        schoolGender:   body.schoolGender,
+        educationLevel: body.educationLevel,
+        setupStatus:    "completed",
+        setupStep:      7,
+        updatedAt:      new Date(),
+      })
+      .where(eq(schoolSettings.orgId, orgId));
+  } else {
+    await db.insert(schoolSettings).values({
+      orgId,
+      schoolName:     body.schoolName,
+      schoolGender:   body.schoolGender,
+      educationLevel: body.educationLevel,
+      setupStatus:    "completed",
+      setupStep:      7,
+    });
+  }
+
+  // 2. Create classrooms
+  const createdRooms: Record<string, string> = {}; // "grade:name" -> id
+  for (const [grade, count] of Object.entries(body.classroomsPerGrade)) {
+    for (let i = 1; i <= count; i++) {
+      const name = toArabicNum(i);
+      try {
+        const [room] = await db.insert(classRooms)
+          .values({ orgId, grade, name })
+          .onConflictDoUpdate({
+            target: [classRooms.orgId, classRooms.grade, classRooms.name],
+            set: { updatedAt: new Date() },
+          })
+          .returning({ id: classRooms.id });
+        createdRooms[`${grade}:${name}`] = room.id;
+        results.classrooms++;
+      } catch {}
+    }
+  }
+
+  // 3+4. Create timetable templates and periods for each calendar session
+  const templateIds: Record<string, string> = {};
+  for (const cal of body.calendar) {
+    // Create template
+    const [tmpl] = await db.insert(timetableTemplates).values({
+      orgId,
+      name:        `جدول ${cal.sessionType === "winter" ? "شتوي" : "صيفي"}`,
+      sessionType: cal.sessionType,
+      isActive:    true,
+    }).returning({ id: timetableTemplates.id });
+    templateIds[cal.sessionType] = tmpl.id;
+    results.templates++;
+
+    // Generate period times
+    const [startH, startM] = cal.dayStartTime.split(":").map(Number);
+    let currentMinutes = startH * 60 + startM;
+    let periodNum = 1;
+
+    for (let p = 1; p <= cal.periodCount; p++) {
+      const startTime = `${String(Math.floor(currentMinutes / 60)).padStart(2, "0")}:${String(currentMinutes % 60).padStart(2, "0")}`;
+      currentMinutes += cal.periodDuration;
+      const endTime   = `${String(Math.floor(currentMinutes / 60)).padStart(2, "0")}:${String(currentMinutes % 60).padStart(2, "0")}`;
+
+      await db.insert(timetableTemplatePeriods).values({
+        orgId,
+        templateId:   tmpl.id,
+        periodNumber: periodNum++,
+        label:        `الحصة ${toArabicNum(p)}`,
+        startTime,
+        endTime,
+        isBreak:      false,
+      });
+      results.periods++;
+
+      // Add break after specified period
+      if (p === cal.breakAfterPeriod) {
+        const bStart = endTime;
+        currentMinutes += cal.breakDuration;
+        const bEnd = `${String(Math.floor(currentMinutes / 60)).padStart(2, "0")}:${String(currentMinutes % 60).padStart(2, "0")}`;
+        await db.insert(timetableTemplatePeriods).values({
+          orgId,
+          templateId:   tmpl.id,
+          periodNumber: periodNum++,
+          label:        "الفسحة",
+          startTime:    bStart,
+          endTime:      bEnd,
+          isBreak:      true,
+        });
+        results.periods++;
+      }
+    }
+
+    // Create schedule weeks using this template
+    for (let w = 1; w <= body.weekCount; w++) {
+      await db.insert(scheduleWeeks).values({
+        orgId,
+        templateId: tmpl.id,
+        weekNumber: w,
+        label:      `الأسبوع ${toArabicNum(w)}`,
+        isActive:   w === 1,
+      });
+      results.weeks++;
+    }
+  }
+
+  // If only one template, set its first week as active
+  if (Object.keys(templateIds).length === 1) {
+    const tmplId = Object.values(templateIds)[0];
+    const [firstWeek] = await db.select({ id: scheduleWeeks.id })
+      .from(scheduleWeeks)
+      .where(and(eq(scheduleWeeks.orgId, orgId), eq(scheduleWeeks.templateId, tmplId), eq(scheduleWeeks.weekNumber, 1)))
+      .limit(1);
+    if (firstWeek) {
+      await db.update(schoolSettings)
+        .set({ activeWeekId: firstWeek.id, updatedAt: new Date() })
+        .where(eq(schoolSettings.orgId, orgId));
+    }
+  }
+
+  // 5+6. Create teachers and assignments
+  for (const t of body.teachers) {
+    if (!t.fullName?.trim()) continue;
+    const [teacher] = await db.insert(teacherProfiles).values({
+      orgId,
+      fullName: t.fullName.trim(),
+      subject:  t.subject || null,
+    }).returning({ id: teacherProfiles.id });
+    results.teachers++;
+
+    // Create assignments for each selected classroom
+    for (const classRoomId of (t.classRoomIds ?? [])) {
+      // Verify classroom belongs to org
+      const [room] = await db.select({ id: classRooms.id })
+        .from(classRooms)
+        .where(and(eq(classRooms.id, classRoomId), eq(classRooms.orgId, orgId)))
+        .limit(1);
+      if (!room) continue;
+
+      try {
+        await db.insert(teacherClassAssignments).values({
+          orgId,
+          teacherId:   teacher.id,
+          classRoomId,
+          subject:     t.subject || "غير محدد",
+        });
+        results.assignments++;
+      } catch {}
+    }
+  }
+
+  return c.json({ data: { ...results, setupStatus: "completed" } });
+});
+
+// GET /setup/grades — الصفوف بحسب المرحلة
+router.get("/setup/grades", async (c) => {
+  const stage = c.req.query("stage") ?? "متوسط";
+  const grades = STAGE_GRADES[stage] ?? STAGE_GRADES["متوسط"];
+  const subjects = DEFAULT_SUBJECTS_BY_STAGE[stage] ?? DEFAULT_SUBJECTS_BY_STAGE["متوسط"];
+  return c.json({ data: { grades, subjects } });
+});
+
+// ============================================================
+// BEHAVIOR SYSTEM — نظام السلوك والمواظبة
+// ============================================================
+
+// Helper: احسب وحدّث نقاط طالب واحد
+async function recalculateStudentScore(orgId: string, studentId: string, academicYear: string) {
+  // مجموع الخصومات السلوكية
+  const [deductRow] = await db
+    .select({ total: sql<number>`COALESCE(SUM(deduction_points), 0)` })
+    .from(behaviorIncidents)
+    .where(and(
+      eq(behaviorIncidents.orgId, orgId),
+      eq(behaviorIncidents.studentId, studentId),
+      sql`to_char(${behaviorIncidents.incidentDate}, 'YYYY') = ${academicYear}`,
+      sql`${behaviorIncidents.status} != 'cancelled'`,
+    ));
+  const totalDeductions = Number(deductRow?.total ?? 0);
+
+  // مجموع نقاط التعويض
+  const [compRow] = await db
+    .select({ total: sql<number>`COALESCE(SUM(points_added), 0)` })
+    .from(behaviorCompensations)
+    .where(and(
+      eq(behaviorCompensations.orgId, orgId),
+      eq(behaviorCompensations.studentId, studentId),
+      sql`to_char(${behaviorCompensations.compensationDate}, 'YYYY') = ${academicYear}`,
+    ));
+  const totalCompensations = Number(compRow?.total ?? 0);
+
+  // نقاط المواظبة: 100 - (غياب غير مبرر)
+  const [absRow] = await db
+    .select({ total: sql<number>`CAST(COUNT(*) AS INTEGER)` })
+    .from(studentAttendance)
+    .where(and(
+      eq(studentAttendance.orgId, orgId),
+      eq(studentAttendance.studentId, studentId),
+      eq(studentAttendance.status, "absent"),
+      sql`to_char(${studentAttendance.attendanceDate}, 'YYYY') = ${academicYear}`,
+    ));
+  const unexcusedAbsences = Number(absRow?.total ?? 0);
+  const attendanceScore = Math.max(0, 100 - (unexcusedAbsences * BEHAVIOR_SCORE_CONFIG.absenceDeduction));
+
+  const behaviorScore = Math.min(100, Math.max(0,
+    BEHAVIOR_SCORE_CONFIG.positiveBase - totalDeductions + totalCompensations
+  ));
+  const totalScore = Math.round((behaviorScore * 0.6) + (attendanceScore * 0.4));
+
+  await db.insert(studentBehaviorScores)
+    .values({
+      orgId, studentId, academicYear,
+      behaviorScore, attendanceScore, totalScore,
+      lastCalculatedAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: [studentBehaviorScores.orgId, studentBehaviorScores.studentId, studentBehaviorScores.academicYear],
+      set: {
+        behaviorScore:     sql`excluded.behavior_score`,
+        attendanceScore:   sql`excluded.attendance_score`,
+        totalScore:        sql`excluded.total_score`,
+        lastCalculatedAt:  sql`excluded.last_calculated_at`,
+        updatedAt:         new Date(),
+      },
+    });
+}
+
+// GET /behavior/overview — ملخص السلوك الكلي للمدرسة
+router.get("/behavior/overview", async (c) => {
+  const orgId = getOrgId(c);
+  const year  = c.req.query("year") ?? new Date().getFullYear().toString();
+
+  const [incidentCount] = await db
+    .select({ cnt: sql<number>`CAST(COUNT(*) AS INTEGER)` })
+    .from(behaviorIncidents)
+    .where(and(
+      eq(behaviorIncidents.orgId, orgId),
+      sql`to_char(${behaviorIncidents.incidentDate}, 'YYYY') = ${year}`,
+      sql`${behaviorIncidents.status} != 'cancelled'`,
+    ));
+
+  const [compensationCount] = await db
+    .select({ cnt: sql<number>`CAST(COUNT(*) AS INTEGER)` })
+    .from(behaviorCompensations)
+    .where(and(
+      eq(behaviorCompensations.orgId, orgId),
+      sql`to_char(${behaviorCompensations.compensationDate}, 'YYYY') = ${year}`,
+    ));
+
+  const [absenceCount] = await db
+    .select({ cnt: sql<number>`CAST(COUNT(*) AS INTEGER)` })
+    .from(studentAttendance)
+    .where(and(
+      eq(studentAttendance.orgId, orgId),
+      eq(studentAttendance.status, "absent"),
+      sql`to_char(${studentAttendance.attendanceDate}, 'YYYY') = ${year}`,
+    ));
+
+  const [notifCount] = await db
+    .select({ cnt: sql<number>`CAST(COUNT(*) AS INTEGER)` })
+    .from(guardianNotifications)
+    .where(and(
+      eq(guardianNotifications.orgId, orgId),
+      sql`to_char(${guardianNotifications.notificationDate}, 'YYYY') = ${year}`,
+    ));
+
+  // توزيع الحوادث بالدرجة
+  const byDegree = await db
+    .select({
+      degree: behaviorIncidents.degree,
+      cnt:    sql<number>`CAST(COUNT(*) AS INTEGER)`,
+    })
+    .from(behaviorIncidents)
+    .where(and(
+      eq(behaviorIncidents.orgId, orgId),
+      sql`to_char(${behaviorIncidents.incidentDate}, 'YYYY') = ${year}`,
+      sql`${behaviorIncidents.status} != 'cancelled'`,
+    ))
+    .groupBy(behaviorIncidents.degree);
+
+  // أعلى 5 مخالفات بالتصنيف
+  const topViolations = await db
+    .select({
+      categoryId:   behaviorIncidents.categoryId,
+      categoryName: schoolViolationCategories.name,
+      cnt:          sql<number>`CAST(COUNT(*) AS INTEGER)`,
+    })
+    .from(behaviorIncidents)
+    .leftJoin(schoolViolationCategories, eq(behaviorIncidents.categoryId, schoolViolationCategories.id))
+    .where(and(
+      eq(behaviorIncidents.orgId, orgId),
+      sql`to_char(${behaviorIncidents.incidentDate}, 'YYYY') = ${year}`,
+      sql`${behaviorIncidents.status} != 'cancelled'`,
+    ))
+    .groupBy(behaviorIncidents.categoryId, schoolViolationCategories.name)
+    .orderBy(sql`COUNT(*) DESC`)
+    .limit(5);
+
+  return c.json({
+    data: {
+      incidents:    incidentCount?.cnt ?? 0,
+      compensations: compensationCount?.cnt ?? 0,
+      absences:     absenceCount?.cnt ?? 0,
+      notifications: notifCount?.cnt ?? 0,
+      byDegree,
+      topViolations,
+    }
+  });
+});
+
+// GET /behavior/incidents — قائمة الحوادث
+router.get("/behavior/incidents", async (c) => {
+  const orgId      = getOrgId(c);
+  const studentId  = c.req.query("studentId");
+  const status     = c.req.query("status");
+  const dateFrom   = c.req.query("dateFrom");
+  const dateTo     = c.req.query("dateTo");
+
+  const conditions = [eq(behaviorIncidents.orgId, orgId)];
+  if (studentId) conditions.push(eq(behaviorIncidents.studentId, studentId));
+  if (status)    conditions.push(sql`${behaviorIncidents.status} = ${status}`);
+  if (dateFrom)  conditions.push(sql`${behaviorIncidents.incidentDate} >= ${dateFrom}`);
+  if (dateTo)    conditions.push(sql`${behaviorIncidents.incidentDate} <= ${dateTo}`);
+
+  const incidents = await db
+    .select({
+      id:               behaviorIncidents.id,
+      studentId:        behaviorIncidents.studentId,
+      studentName:      students.fullName,
+      studentNumber:    students.studentNumber,
+      categoryId:       behaviorIncidents.categoryId,
+      categoryName:     schoolViolationCategories.name,
+      categoryColor:    schoolViolationCategories.color,
+      incidentDate:     behaviorIncidents.incidentDate,
+      degree:           behaviorIncidents.degree,
+      violationCode:    behaviorIncidents.violationCode,
+      description:      behaviorIncidents.description,
+      deductionPoints:  behaviorIncidents.deductionPoints,
+      actionTaken:      behaviorIncidents.actionTaken,
+      guardianNotified: behaviorIncidents.guardianNotified,
+      status:           behaviorIncidents.status,
+      resolutionNotes:  behaviorIncidents.resolutionNotes,
+      createdAt:        behaviorIncidents.createdAt,
+    })
+    .from(behaviorIncidents)
+    .innerJoin(students, eq(behaviorIncidents.studentId, students.id))
+    .leftJoin(schoolViolationCategories, eq(behaviorIncidents.categoryId, schoolViolationCategories.id))
+    .where(and(...conditions))
+    .orderBy(desc(behaviorIncidents.incidentDate), desc(behaviorIncidents.createdAt))
+    .limit(300);
+
+  return c.json({ data: incidents });
+});
+
+// POST /behavior/incidents — تسجيل حادثة جديدة
+router.post("/behavior/incidents", async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const body   = await c.req.json();
+  const schema = z.object({
+    studentId:    z.string().uuid(),
+    categoryId:   z.string().uuid().optional().nullable(),
+    incidentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    degree:       z.enum(["1","2","3","4","5"]).default("1"),
+    violationCode: z.string().max(20).optional().nullable(),
+    description:  z.string().max(1000).optional().nullable(),
+    actionTaken:  z.string().max(500).optional().nullable(),
+  });
+  const data = schema.parse(body);
+
+  // Verify student belongs to org
+  const [student] = await db.select({ id: students.id })
+    .from(students)
+    .where(and(eq(students.id, data.studentId), eq(students.orgId, orgId)))
+    .limit(1);
+  if (!student) return c.json({ error: "الطالب غير موجود" }, 404);
+
+  const deductionPoints = DEDUCTION_BY_DEGREE[data.degree] ?? 0;
+  const incidentDate    = data.incidentDate ?? new Date().toISOString().split("T")[0];
+
+  const [incident] = await db.insert(behaviorIncidents).values({
+    orgId,
+    studentId:     data.studentId,
+    categoryId:    data.categoryId ?? null,
+    incidentDate,
+    degree:        data.degree,
+    violationCode: data.violationCode ?? null,
+    description:   data.description ?? null,
+    deductionPoints,
+    actionTaken:   data.actionTaken ?? null,
+    recordedBy:    userId ?? undefined,
+  } as any).returning();
+
+  // Recalculate score
+  const year = incidentDate.slice(0, 4);
+  await recalculateStudentScore(orgId, data.studentId, year);
+
+  return c.json({ data: incident }, 201);
+});
+
+// PUT /behavior/incidents/:id — تعديل حادثة
+router.put("/behavior/incidents/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+  const body  = await c.req.json();
+  const schema = z.object({
+    degree:           z.enum(["1","2","3","4","5"]).optional(),
+    description:      z.string().max(1000).optional().nullable(),
+    actionTaken:      z.string().max(500).optional().nullable(),
+    guardianNotified: z.boolean().optional(),
+    status:           z.enum(["open","resolved","cancelled"]).optional(),
+    resolutionNotes:  z.string().max(1000).optional().nullable(),
+  });
+  const data = schema.parse(body);
+
+  const updates: any = { ...data, updatedAt: new Date() };
+  if (data.degree) updates.deductionPoints = DEDUCTION_BY_DEGREE[data.degree] ?? 0;
+
+  const [updated] = await db.update(behaviorIncidents)
+    .set(updates)
+    .where(and(eq(behaviorIncidents.id, id), eq(behaviorIncidents.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "الحادثة غير موجودة" }, 404);
+
+  const year = updated.incidentDate.slice(0, 4);
+  await recalculateStudentScore(orgId, updated.studentId, year);
+
+  return c.json({ data: updated });
+});
+
+// DELETE /behavior/incidents/:id
+router.delete("/behavior/incidents/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+  const [deleted] = await db.delete(behaviorIncidents)
+    .where(and(eq(behaviorIncidents.id, id), eq(behaviorIncidents.orgId, orgId)))
+    .returning();
+  if (!deleted) return c.json({ error: "الحادثة غير موجودة" }, 404);
+
+  const year = deleted.incidentDate.slice(0, 4);
+  await recalculateStudentScore(orgId, deleted.studentId, year);
+
+  return c.json({ success: true });
+});
+
+// GET /behavior/compensations — قائمة التعويضات
+router.get("/behavior/compensations", async (c) => {
+  const orgId     = getOrgId(c);
+  const studentId = c.req.query("studentId");
+  const dateFrom  = c.req.query("dateFrom");
+  const dateTo    = c.req.query("dateTo");
+
+  const conditions = [eq(behaviorCompensations.orgId, orgId)];
+  if (studentId) conditions.push(eq(behaviorCompensations.studentId, studentId));
+  if (dateFrom)  conditions.push(sql`${behaviorCompensations.compensationDate} >= ${dateFrom}`);
+  if (dateTo)    conditions.push(sql`${behaviorCompensations.compensationDate} <= ${dateTo}`);
+
+  const comps = await db
+    .select({
+      id:               behaviorCompensations.id,
+      studentId:        behaviorCompensations.studentId,
+      studentName:      students.fullName,
+      studentNumber:    students.studentNumber,
+      compensationDate: behaviorCompensations.compensationDate,
+      compensationType: behaviorCompensations.compensationType,
+      description:      behaviorCompensations.description,
+      pointsAdded:      behaviorCompensations.pointsAdded,
+      createdAt:        behaviorCompensations.createdAt,
+    })
+    .from(behaviorCompensations)
+    .innerJoin(students, eq(behaviorCompensations.studentId, students.id))
+    .where(and(...conditions))
+    .orderBy(desc(behaviorCompensations.compensationDate))
+    .limit(200);
+
+  return c.json({ data: comps });
+});
+
+// POST /behavior/compensations — تسجيل تعويض
+router.post("/behavior/compensations", async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const body   = await c.req.json();
+  const schema = z.object({
+    studentId:        z.string().uuid(),
+    compensationDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    compensationType: z.string().min(1).max(100),
+    description:      z.string().max(500).optional().nullable(),
+    pointsAdded:      z.number().int().min(1).max(20).default(5),
+  });
+  const data = schema.parse(body);
+
+  const [student] = await db.select({ id: students.id })
+    .from(students)
+    .where(and(eq(students.id, data.studentId), eq(students.orgId, orgId)))
+    .limit(1);
+  if (!student) return c.json({ error: "الطالب غير موجود" }, 404);
+
+  const compensationDate = data.compensationDate ?? new Date().toISOString().split("T")[0];
+
+  const [comp] = await db.insert(behaviorCompensations).values({
+    orgId,
+    studentId:        data.studentId,
+    compensationDate,
+    compensationType: data.compensationType,
+    description:      data.description ?? null,
+    pointsAdded:      data.pointsAdded,
+    recordedBy:       userId ?? undefined,
+  } as any).returning();
+
+  const year = compensationDate.slice(0, 4);
+  await recalculateStudentScore(orgId, data.studentId, year);
+
+  return c.json({ data: comp }, 201);
+});
+
+// DELETE /behavior/compensations/:id
+router.delete("/behavior/compensations/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+  const [deleted] = await db.delete(behaviorCompensations)
+    .where(and(eq(behaviorCompensations.id, id), eq(behaviorCompensations.orgId, orgId)))
+    .returning();
+  if (!deleted) return c.json({ error: "التعويض غير موجود" }, 404);
+
+  const year = deleted.compensationDate.slice(0, 4);
+  await recalculateStudentScore(orgId, deleted.studentId, year);
+
+  return c.json({ success: true });
+});
+
+// GET /behavior/scores — نقاط السلوك لجميع الطلاب
+router.get("/behavior/scores", async (c) => {
+  const orgId = getOrgId(c);
+  const year  = c.req.query("year") ?? new Date().getFullYear().toString();
+
+  const scores = await db
+    .select({
+      id:              studentBehaviorScores.id,
+      studentId:       studentBehaviorScores.studentId,
+      studentName:     students.fullName,
+      studentNumber:   students.studentNumber,
+      classRoomId:     students.classRoomId,
+      classGrade:      classRooms.grade,
+      className:       classRooms.name,
+      behaviorScore:   studentBehaviorScores.behaviorScore,
+      attendanceScore: studentBehaviorScores.attendanceScore,
+      totalScore:      studentBehaviorScores.totalScore,
+      lastCalculatedAt: studentBehaviorScores.lastCalculatedAt,
+    })
+    .from(studentBehaviorScores)
+    .innerJoin(students, eq(studentBehaviorScores.studentId, students.id))
+    .leftJoin(classRooms, eq(students.classRoomId, classRooms.id))
+    .where(and(
+      eq(studentBehaviorScores.orgId, orgId),
+      eq(studentBehaviorScores.academicYear, year),
+    ))
+    .orderBy(asc(studentBehaviorScores.totalScore))
+    .limit(500);
+
+  return c.json({ data: scores });
+});
+
+// POST /behavior/scores/recalculate — إعادة حساب نقاط جميع الطلاب
+router.post("/behavior/scores/recalculate", async (c) => {
+  const orgId = getOrgId(c);
+  const year  = (await c.req.json().catch(() => ({}))).year ?? new Date().getFullYear().toString();
+
+  const allStudents = await db
+    .select({ id: students.id })
+    .from(students)
+    .where(and(eq(students.orgId, orgId), eq(students.isActive, true)));
+
+  for (const s of allStudents) {
+    await recalculateStudentScore(orgId, s.id, year);
+  }
+
+  return c.json({ data: { recalculated: allStudents.length } });
+});
+
+// GET /behavior/notifications — إشعارات أولياء الأمور
+router.get("/behavior/notifications", async (c) => {
+  const orgId     = getOrgId(c);
+  const studentId = c.req.query("studentId");
+
+  const conditions = [eq(guardianNotifications.orgId, orgId)];
+  if (studentId) conditions.push(eq(guardianNotifications.studentId, studentId));
+
+  const notifs = await db
+    .select({
+      id:               guardianNotifications.id,
+      studentId:        guardianNotifications.studentId,
+      studentName:      students.fullName,
+      notificationDate: guardianNotifications.notificationDate,
+      notificationType: guardianNotifications.notificationType,
+      message:          guardianNotifications.message,
+      sentTo:           guardianNotifications.sentTo,
+      status:           guardianNotifications.status,
+      createdAt:        guardianNotifications.createdAt,
+    })
+    .from(guardianNotifications)
+    .innerJoin(students, eq(guardianNotifications.studentId, students.id))
+    .where(and(...conditions))
+    .orderBy(desc(guardianNotifications.notificationDate))
+    .limit(200);
+
+  return c.json({ data: notifs });
+});
+
+// POST /behavior/notifications — تسجيل إشعار
+router.post("/behavior/notifications", async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const body   = await c.req.json();
+  const schema = z.object({
+    studentId:        z.string().uuid(),
+    incidentId:       z.string().uuid().optional().nullable(),
+    notificationType: z.enum(["sms","call","meeting","letter"]),
+    message:          z.string().max(1000).optional().nullable(),
+    sentTo:           z.string().max(200).optional().nullable(),
+    status:           z.enum(["sent","delivered","failed"]).default("sent"),
+  });
+  const data = schema.parse(body);
+
+  const [student] = await db.select({ id: students.id })
+    .from(students)
+    .where(and(eq(students.id, data.studentId), eq(students.orgId, orgId)))
+    .limit(1);
+  if (!student) return c.json({ error: "الطالب غير موجود" }, 404);
+
+  const [notif] = await db.insert(guardianNotifications).values({
+    orgId,
+    studentId:        data.studentId,
+    incidentId:       data.incidentId ?? null,
+    notificationType: data.notificationType,
+    message:          data.message ?? null,
+    sentTo:           data.sentTo ?? null,
+    status:           data.status,
+    sentBy:           userId ?? undefined,
+  } as any).returning();
+
+  // Mark incident as guardian notified if linked
+  if (data.incidentId) {
+    await db.update(behaviorIncidents)
+      .set({ guardianNotified: true, updatedAt: new Date() })
+      .where(and(eq(behaviorIncidents.id, data.incidentId), eq(behaviorIncidents.orgId, orgId)));
+  }
+
+  return c.json({ data: notif }, 201);
+});
+
+// GET /behavior/constants — ثوابت النظام للفرونت
+router.get("/behavior/constants", async (c) => {
+  const { ELEMENTARY_VIOLATIONS, SECONDARY_VIOLATIONS, COMPENSATION_TYPES,
+          ABSENCE_ESCALATION, VALID_EXCUSES, BEHAVIOR_RATING_LEVELS,
+          DEDUCTION_BY_DEGREE: DED } = await import("../constants/behaviorSystem");
+  return c.json({
+    data: {
+      elementaryViolations: ELEMENTARY_VIOLATIONS,
+      secondaryViolations:  SECONDARY_VIOLATIONS,
+      compensationTypes:    COMPENSATION_TYPES,
+      absenceEscalation:    ABSENCE_ESCALATION,
+      validExcuses:         VALID_EXCUSES,
+      ratingLevels:         BEHAVIOR_RATING_LEVELS,
+      deductionByDegree:    DED,
+    }
+  });
 });
 
 export const schoolRouter = router;

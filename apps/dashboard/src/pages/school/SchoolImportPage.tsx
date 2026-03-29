@@ -7,6 +7,7 @@ import {
 import { clsx } from "clsx";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
+import { fmtHijri } from "@/lib/utils";
 
 // ── Template definitions (mirrors backend IMPORT_TEMPLATES) ────
 
@@ -52,11 +53,14 @@ type ValidatedRow = {
   data: Record<string, string>;
   valid: boolean;
   error?: string;
+  classroomStatus?: "found" | "will_create" | "unspecified";
+  normalizedGrade?: string;
 };
 
 type ImportResult = {
   imported: number;
   errors: number;
+  classroomsCreated?: number;
 };
 
 // ── File parsing with SheetJS ──────────────────────────────────
@@ -220,8 +224,9 @@ function ImportTab({ type }: { type: ImportType }) {
       setImportProgress(100);
       const data = res?.data ?? res;
       setImportResult({
-        imported: data?.imported ?? validRows.length,
-        errors:   data?.errors   ?? 0,
+        imported:          data?.imported          ?? validRows.length,
+        errors:            data?.errors            ?? 0,
+        classroomsCreated: data?.classroomsCreated ?? 0,
       });
       // Clear file state
       setParsedRows([]);
@@ -325,6 +330,9 @@ function ImportTab({ type }: { type: ImportType }) {
           <span>
             تم الاستيراد —{" "}
             <strong>{importResult.imported}</strong> صف ناجح
+            {(importResult.classroomsCreated ?? 0) > 0 && (
+              <span className="text-emerald-600"> · {importResult.classroomsCreated} فصل أُنشئ تلقائياً</span>
+            )}
             {importResult.errors > 0 && (
               <span className="text-red-600"> · {importResult.errors} صف فشل</span>
             )}
@@ -417,6 +425,9 @@ function ImportTab({ type }: { type: ImportType }) {
                         )}
                       </th>
                     ))}
+                    {type === "students" && serverRows && (
+                      <th className="text-right px-3 py-2.5 font-semibold text-gray-500 whitespace-nowrap">الفصل</th>
+                    )}
                     <th className="text-right px-3 py-2.5 font-semibold text-gray-500">ملاحظة</th>
                   </tr>
                 </thead>
@@ -453,6 +464,19 @@ function ImportTab({ type }: { type: ImportType }) {
                           </td>
                         );
                       })}
+                      {type === "students" && serverRows && (
+                        <td className="px-3 py-2 whitespace-nowrap">
+                          {row.classroomStatus === "found" && (
+                            <span className="text-emerald-600 text-[11px] font-medium">موجود</span>
+                          )}
+                          {row.classroomStatus === "will_create" && (
+                            <span className="text-blue-600 text-[11px] font-medium">سيُنشأ تلقائياً</span>
+                          )}
+                          {row.classroomStatus === "unspecified" && (
+                            <span className="text-gray-400 text-[11px]">غير محدد</span>
+                          )}
+                        </td>
+                      )}
                       <td className="px-3 py-2 text-red-500 text-[11px]">
                         {row.error ?? ""}
                       </td>
@@ -500,7 +524,7 @@ function ImportTab({ type }: { type: ImportType }) {
                 {logs.map((log: any) => (
                   <tr key={log.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3 text-gray-500 tabular-nums text-xs">
-                      {log.createdAt ? new Date(log.createdAt).toLocaleString("ar-SA") : "—"}
+                      {fmtHijri(log.createdAt)}
                     </td>
                     <td className="px-4 py-3 text-gray-700 font-medium">
                       {log.totalRows ?? 0}
