@@ -150,6 +150,12 @@ export const teacherProfiles = pgTable(
 
     isActive:       boolean("is_active").notNull().default(true),
 
+    // Invite / login link
+    userId:           uuid("user_id"),          // FK to users — set after invite accepted
+    inviteToken:      text("invite_token"),      // random UUID — one-time invite link
+    inviteExpiresAt:  timestamp("invite_expires_at", { withTimezone: true }),
+    invitedAt:        timestamp("invited_at",    { withTimezone: true }),
+
     createdAt:      timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
     updatedAt:      timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
   },

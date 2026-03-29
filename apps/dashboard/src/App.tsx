@@ -165,6 +165,7 @@ const SchoolAcademicCalendarPage   = lz(() => import("./pages/school/SchoolAcade
 const SchoolGuidePage              = lz(() => import("./pages/school/SchoolGuidePage"), "SchoolGuidePage");
 const SchoolTimetablePage          = lz(() => import("./pages/school/SchoolTimetablePage"), "SchoolTimetablePage");
 const SchoolTeacherWorkPage        = lz(() => import("./pages/school/SchoolTeacherWorkPage"), "SchoolTeacherWorkPage");
+const SchoolInvitePage             = lz(() => import("./pages/school/SchoolInvitePage"), "SchoolInvitePage");
 
 // ── Loading fallback ───────────────────────────────────────────────
 function PageLoader() {
@@ -209,6 +210,7 @@ export default function App() {
         <Route path="/school" element={<SchoolLandingPage />} />
         <Route path="/school/login" element={<SchoolLoginPage />} />
         <Route path="/school/register" element={<SchoolRegisterPage />} />
+        <Route path="/school/invite/:token" element={<SchoolInvitePage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/features" element={<FeaturesPage />} />
         <Route path="/about" element={<AboutPage />} />

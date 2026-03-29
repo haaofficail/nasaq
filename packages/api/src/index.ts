@@ -75,6 +75,7 @@ import { supportRouter } from "./routes/support";
 import { alertsRouter } from "./routes/alerts";
 import { schoolRouter } from "./routes/school";
 import { schoolImportRouter } from "./routes/school-import";
+import { schoolInviteRouter } from "./routes/school-invite";
 
 // ============================================================
 // APP
@@ -543,6 +544,9 @@ app.route("/support", supportRouter);
 // --- In-App Alerts ---
 app.use("/alerts/*", authMiddleware);
 app.route("/alerts", alertsRouter);
+
+// --- School Invite (public — no auth) ---
+app.route("/school-invite", schoolInviteRouter);
 
 // --- School System ---
 app.use("/school/*", authMiddleware);

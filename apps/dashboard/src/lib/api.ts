@@ -1420,6 +1420,14 @@ export const alertsApi = {
   readAll: ()             => api.post<{ ok: boolean }>("/alerts/read-all"),
 };
 
+// --- Public School Invite ---
+export const schoolInviteApi = {
+  getInfo:  (token: string) =>
+    api.get<{ data: { teacherName: string; orgName: string; expiresAt: string; hasAccount: boolean } }>(`/school-invite/${token}`),
+  accept: (token: string, password: string) =>
+    api.post<{ data: { token: string; user: any } }>(`/school-invite/${token}/accept`, { password }),
+};
+
 // --- Merchant Support Portal ---
 export const supportApi = {
   list:   (params?: { status?: string; category?: string; page?: number }) => {
@@ -1490,6 +1498,11 @@ export const schoolApi = {
   createTeacher:   (data: any) => api.post<{ data: any }>("/school/teachers", data),
   updateTeacher:   (id: string, data: any) => api.put<{ data: any }>(`/school/teachers/${id}`, data),
   deleteTeacher:   (id: string) => api.delete<{ success: boolean }>(`/school/teachers/${id}`),
+  inviteTeacher:   (id: string) => api.post<{ data: {
+    inviteLink: string; tempPassword: string; phone: string | null;
+    whatsappPhone: string | null; email: string | null; sentEmail: boolean;
+    teacherName: string; orgName: string;
+  } }>(`/school/teachers/${id}/invite`),
 
   // Teacher Assignments (ارتباطات المعلمين)
   getTeacherAssignments: (teacherId: string) =>

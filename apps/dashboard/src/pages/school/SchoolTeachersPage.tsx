@@ -1,9 +1,199 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Users, Plus, Search, Pencil, Trash2, X, Loader2, CheckCircle2, UserCheck, Calendar, Link2 } from "lucide-react";
+import { Users, Plus, Search, Pencil, Trash2, X, Loader2, CheckCircle2, UserCheck, Calendar, Link2,
+         Send, Copy, Check, Mail, MessageSquare, KeyRound, ExternalLink } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
 import { PageFAQ } from "@/components/school/PageFAQ";
+
+// ── Invite Modal ──────────────────────────────────────────────
+
+interface InviteResult {
+  inviteLink: string;
+  tempPassword: string;
+  phone: string | null;
+  whatsappPhone: string | null;
+  email: string | null;
+  sentEmail: boolean;
+  teacherName: string;
+  orgName: string;
+}
+
+function InviteModal({ teacher, onClose }: { teacher: any; onClose: () => void }) {
+  const [loading,  setLoading]  = useState(false);
+  const [result,   setResult]   = useState<InviteResult | null>(null);
+  const [error,    setError]    = useState("");
+  const [copied,   setCopied]   = useState<string | null>(null);
+
+  const copyText = async (text: string, key: string) => {
+    try { await navigator.clipboard.writeText(text); } catch { /* fallback */ }
+    setCopied(key);
+    setTimeout(() => setCopied(null), 2000);
+  };
+
+  const handleGenerate = async () => {
+    setLoading(true); setError("");
+    try {
+      const res = await schoolApi.inviteTeacher(teacher.id);
+      setResult(res.data);
+    } catch (e: any) {
+      setError(e.message ?? "حدث خطأ");
+    } finally { setLoading(false); }
+  };
+
+  const whatsappMsg = result
+    ? encodeURIComponent(
+        `مرحباً ${result.teacherName}،\nتمت دعوتك كمعلم في ${result.orgName} على منصة نسق.\n\nرابط تفعيل الحساب:\n${result.inviteLink}\n\nكلمة المرور المؤقتة: ${result.tempPassword}`
+      )
+    : "";
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
+              <KeyRound className="w-4 h-4 text-emerald-600" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-gray-900">إرسال بيانات الدخول</h2>
+              <p className="text-[11px] text-gray-400">{teacher.fullName}</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {!result ? (
+            <>
+              {/* Pre-generate info */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+                {teacher.phone && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <MessageSquare className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span>جوال: <span dir="ltr" className="font-mono">{teacher.phone}</span></span>
+                  </div>
+                )}
+                {teacher.email && (
+                  <div className="flex items-center gap-2 text-gray-600">
+                    <Mail className="w-3.5 h-3.5 text-brand-500 shrink-0" />
+                    <span>بريد: {teacher.email}</span>
+                  </div>
+                )}
+                {!teacher.phone && !teacher.email && (
+                  <p className="text-amber-600 text-xs">يجب إضافة رقم الجوال أو البريد الإلكتروني للمعلم أولاً.</p>
+                )}
+              </div>
+
+              <p className="text-xs text-gray-500">
+                سيتم إنشاء حساب للمعلم وإرسال رابط التفعيل وكلمة مرور مؤقتة.
+                {teacher.email && " سيُرسل بريد إلكتروني تلقائياً."}
+              </p>
+
+              {error && (
+                <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>
+              )}
+
+              <button
+                onClick={handleGenerate}
+                disabled={loading || (!teacher.phone && !teacher.email)}
+                className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm h-10 rounded-xl transition-colors disabled:opacity-50"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                إنشاء وإرسال بيانات الدخول
+              </button>
+            </>
+          ) : (
+            <>
+              {/* Success — show all channels */}
+              <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-700 text-xs font-medium">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                تم إنشاء الحساب بنجاح
+                {result.sentEmail && " • تم إرسال بريد إلكتروني"}
+              </div>
+
+              {/* Invite link */}
+              <div>
+                <p className="text-xs font-semibold text-gray-700 mb-1.5">رابط التفعيل (صالح 7 أيام)</p>
+                <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5">
+                  <ExternalLink className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                  <span className="flex-1 text-xs text-gray-600 font-mono truncate" dir="ltr">{result.inviteLink}</span>
+                  <button
+                    onClick={() => copyText(result.inviteLink, "link")}
+                    className="shrink-0 flex items-center gap-1 text-xs font-medium text-brand-600 hover:text-brand-700"
+                  >
+                    {copied === "link" ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copied === "link" ? "تم" : "نسخ"}
+                  </button>
+                </div>
+              </div>
+
+              {/* Temp credentials */}
+              <div>
+                <p className="text-xs font-semibold text-gray-700 mb-1.5">بيانات الدخول المؤقتة</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {result.phone && (
+                    <div className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5">
+                      <p className="text-[10px] text-gray-400 mb-0.5">رقم الجوال</p>
+                      <p className="text-xs font-mono font-bold text-gray-800" dir="ltr">{result.phone}</p>
+                    </div>
+                  )}
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5">
+                    <p className="text-[10px] text-amber-600 mb-0.5">كلمة المرور المؤقتة</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="text-xs font-mono font-bold text-amber-800 flex-1">{result.tempPassword}</p>
+                      <button onClick={() => copyText(result.tempPassword, "pw")} className="text-amber-600 hover:text-amber-700">
+                        {copied === "pw" ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Send channels */}
+              <div>
+                <p className="text-xs font-semibold text-gray-700 mb-2">إرسال عبر</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {result.whatsappPhone && (
+                    <a
+                      href={`https://wa.me/${result.whatsappPhone}?text=${whatsappMsg}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white text-xs font-bold h-10 rounded-xl transition-colors"
+                    >
+                      <MessageSquare className="w-3.5 h-3.5" />
+                      واتساب
+                    </a>
+                  )}
+                  {result.email && (
+                    <div className={`flex items-center justify-center gap-2 text-xs font-bold h-10 rounded-xl border ${
+                      result.sentEmail
+                        ? "bg-brand-50 border-brand-200 text-brand-700"
+                        : "bg-gray-100 border-gray-200 text-gray-400"
+                    }`}>
+                      <Mail className="w-3.5 h-3.5" />
+                      {result.sentEmail ? "أُرسل بريد" : "لا يوجد SMTP"}
+                    </div>
+                  )}
+                  <button
+                    onClick={() => copyText(`${result.inviteLink}\nكلمة المرور: ${result.tempPassword}`, "all")}
+                    className="flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold h-10 rounded-xl transition-colors col-span-full"
+                  >
+                    {copied === "all" ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                    {copied === "all" ? "تم النسخ" : "نسخ الرابط + كلمة المرور"}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Assignment Modal ──────────────────────────────────────
 
@@ -299,6 +489,7 @@ export function SchoolTeachersPage() {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [formError, setFormError] = useState("");
   const [assigningTeacher, setAssigningTeacher] = useState<Teacher | null>(null);
+  const [invitingTeacher,  setInvitingTeacher]  = useState<Teacher | null>(null);
 
   const { data, loading, error, refetch } = useApi(
     () => schoolApi.listTeachers(),
@@ -560,6 +751,13 @@ export function SchoolTeachersPage() {
 
               <div className="flex gap-2 mt-4 pt-3 border-t border-gray-50 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
+                  onClick={() => setInvitingTeacher(t)}
+                  className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-brand-600 hover:bg-brand-50 py-1.5 rounded-lg transition-colors"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  دعوة
+                </button>
+                <button
                   onClick={() => setAssigningTeacher(t)}
                   className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 py-1.5 rounded-lg transition-colors"
                 >
@@ -595,6 +793,14 @@ export function SchoolTeachersPage() {
       )}
 
       <PageFAQ pageId="teachers" />
+
+      {/* ── Invite Modal ── */}
+      {invitingTeacher && (
+        <InviteModal
+          teacher={invitingTeacher}
+          onClose={() => setInvitingTeacher(null)}
+        />
+      )}
 
       {/* ── Assignment Modal ── */}
       {assigningTeacher && (

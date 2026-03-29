@@ -46,6 +46,20 @@ import { logSchoolAudit, withSchoolScope } from "../middleware/school";
 import { requirePerm } from "../middleware/auth";
 import { DEDUCTION_BY_DEGREE, BEHAVIOR_SCORE_CONFIG } from "../constants/behaviorSystem";
 import { sendWhatsApp, isWhatsAppConfigured, whatsAppProvider } from "../lib/whatsapp";
+import { sendEmail, buildEmailHtml } from "../lib/email";
+import { users, organizations } from "@nasaq/db/schema";
+import { scryptSync, randomBytes } from "crypto";
+
+function _hashPassword(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+function _genPassword(len = 10): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  return Array.from({ length: len }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+}
 import { initBaileys, getBaileysState, logoutBaileys, hasSavedSession } from "../lib/whatsappBaileys";
 
 // ── School WhatsApp helper ────────────────────────────────
@@ -502,6 +516,106 @@ router.put("/teachers/:id", async (c) => {
     .returning();
 
   return c.json({ data: updated });
+});
+
+// ── POST /teachers/:id/invite — إنشاء حساب + إرسال بيانات الدخول ──
+router.post("/teachers/:id/invite", requirePerm("school.students.write"), async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id")!;
+
+  const [teacher] = await db
+    .select({
+      id:       teacherProfiles.id,
+      fullName: teacherProfiles.fullName,
+      phone:    teacherProfiles.phone,
+      email:    teacherProfiles.email,
+      userId:   teacherProfiles.userId,
+    })
+    .from(teacherProfiles)
+    .where(and(eq(teacherProfiles.id, id), eq(teacherProfiles.orgId, orgId)));
+
+  if (!teacher) return c.json({ error: "المعلم غير موجود" }, 404);
+
+  const phone = teacher.phone?.replace(/^0/, "966") ?? null;
+  if (!teacher.phone && !teacher.email) {
+    return c.json({ error: "يجب إضافة رقم الجوال أو البريد الإلكتروني للمعلم أولاً" }, 400);
+  }
+
+  // ── Get org name ──
+  const [org] = await db
+    .select({ name: organizations.name })
+    .from(organizations)
+    .where(eq(organizations.id, orgId));
+  const orgName = org?.name ?? "المدرسة";
+
+  // ── Create or update user account ──
+  const tempPassword = _genPassword(10);
+  const hash         = _hashPassword(tempPassword);
+  const inviteToken  = randomBytes(20).toString("hex");
+  const inviteExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+  let userId = teacher.userId;
+
+  if (!userId) {
+    // Create new user account
+    const userPhone = teacher.phone ?? `T${id.replace(/-/g, "").slice(0, 12)}`;
+    const [newUser] = await db
+      .insert(users)
+      .values({
+        orgId,
+        name:         teacher.fullName,
+        phone:        userPhone,
+        email:        teacher.email ?? undefined,
+        passwordHash: hash,
+        type:         "employee",
+        status:       "invited",
+        jobTitle:     "معلم",
+      })
+      .returning({ id: users.id });
+    userId = newUser.id;
+  } else {
+    // Reset password
+    await db.update(users)
+      .set({ passwordHash: hash, status: "invited", updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  // Store invite token on teacher profile
+  await db.update(teacherProfiles)
+    .set({ userId, inviteToken, inviteExpiresAt: inviteExpiry, invitedAt: new Date(), updatedAt: new Date() })
+    .where(eq(teacherProfiles.id, id));
+
+  const APP_URL   = process.env.APP_URL ?? "https://nasaqpro.tech";
+  const inviteLink = `${APP_URL}/school/invite/${inviteToken}`;
+  const loginPhone = teacher.phone ?? null;
+
+  // ── Send email (if teacher has email) ──
+  let sentEmail = false;
+  if (teacher.email) {
+    sentEmail = await sendEmail({
+      to:      teacher.email,
+      subject: `دعوة الدخول إلى منصة نسق — ${orgName}`,
+      html:    buildEmailHtml({
+        orgName,
+        title: `مرحباً ${teacher.fullName}، تمت دعوتك كمعلم في ${orgName}`,
+        body:  `لتفعيل حسابك وتعيين كلمة مرورك، اضغط على الزر أدناه.\n\nكلمة المرور المؤقتة: ${tempPassword}\n\nيمكنك تغييرها بعد الدخول.`,
+        cta:   { label: "تفعيل الحساب", url: inviteLink },
+      }),
+    });
+  }
+
+  return c.json({
+    data: {
+      inviteLink,
+      tempPassword,
+      phone:      loginPhone,
+      whatsappPhone: phone,
+      email:      teacher.email,
+      sentEmail,
+      teacherName: teacher.fullName,
+      orgName,
+    },
+  });
 });
 
 router.delete("/teachers/:id", async (c) => {
