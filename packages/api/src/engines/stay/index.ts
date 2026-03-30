@@ -11,17 +11,25 @@
  */
 
 import { Hono } from "hono";
-import { db } from "../../db";
-import { stayBookings, rentalUnitDefinitions } from "@nasaq/db/schema/canonical-bookings";
-import { eq, and, gte, lte, desc, or } from "drizzle-orm";
+import { db } from "@nasaq/db/client";
+import { stayBookings } from "@nasaq/db/schema/canonical-bookings";
+import { rentalUnitDefinitions } from "@nasaq/db/schema/canonical-catalog";
+import { eq, and, gte, lte, desc, or, sql } from "drizzle-orm";
 import { calcVat } from "../shared/vat";
 import { generateBookingNumber } from "../shared/booking-number";
+import type { AuthUser } from "../../middleware/auth";
 
-export const stayEngine = new Hono();
+export const stayEngine = new Hono<{
+  Variables: {
+    user: AuthUser | null;
+    orgId: string;
+    requestId: string;
+  }
+}>();
 
 // GET /engines/stay/bookings
 stayEngine.get("/bookings", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const { from, to, status, stayType, page = "1" } = c.req.query();
   const limit = 20;
   const offset = (Number(page) - 1) * limit;
@@ -45,7 +53,7 @@ stayEngine.get("/bookings", async (c) => {
 
 // POST /engines/stay/bookings
 stayEngine.post("/bookings", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const body = await c.req.json();
 
   const checkIn  = new Date(body.checkIn);
@@ -79,11 +87,11 @@ stayEngine.post("/bookings", async (c) => {
 
   const { base, vat, total } = calcVat(Number(body.subtotal ?? 0), body.vatInclusive ?? true);
 
-  const [[{ count }]] = await db.execute<{ count: string }>(
-    `SELECT COUNT(*)::text AS count FROM stay_bookings
-     WHERE org_id = $1 AND EXTRACT(YEAR FROM created_at) = $2`,
-    [orgId, new Date().getFullYear()]
+  const year = new Date().getFullYear();
+  const countResult = await db.execute(
+    sql`SELECT COUNT(*)::text AS count FROM stay_bookings WHERE org_id = ${orgId} AND EXTRACT(YEAR FROM created_at) = ${year}`
   );
+  const count = (countResult.rows[0] as { count: string })?.count ?? "0";
   const bookingNumber = generateBookingNumber("stay", Number(count) + 1);
 
   const [booking] = await db
@@ -119,7 +127,7 @@ stayEngine.post("/bookings", async (c) => {
 
 // PATCH /engines/stay/bookings/:id/checkin
 stayEngine.patch("/bookings/:id/checkin", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const { id } = c.req.param();
 
   const [updated] = await db
@@ -134,7 +142,7 @@ stayEngine.patch("/bookings/:id/checkin", async (c) => {
 
 // PATCH /engines/stay/bookings/:id/checkout
 stayEngine.patch("/bookings/:id/checkout", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const { id } = c.req.param();
 
   const [updated] = await db
@@ -149,7 +157,7 @@ stayEngine.patch("/bookings/:id/checkout", async (c) => {
 
 // GET /engines/stay/units/availability
 stayEngine.get("/units/availability", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const { from, to, unitType } = c.req.query();
 
   if (!from || !to) return c.json({ error: "from and to required" }, 400);

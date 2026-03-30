@@ -167,6 +167,9 @@ const SchoolTeacherAttendancePage  = lz(() => import("./pages/school/SchoolTeach
 const SchoolAcademicCalendarPage   = lz(() => import("./pages/school/SchoolAcademicCalendarPage"), "SchoolAcademicCalendarPage");
 const SchoolGuidePage              = lz(() => import("./pages/school/SchoolGuidePage"), "SchoolGuidePage");
 const SchoolTimetablePage          = lz(() => import("./pages/school/SchoolTimetablePage"), "SchoolTimetablePage");
+const SchoolTimetableTemplatesPage = lz(() => import("./pages/school/SchoolTimetableTemplatesPage"), "SchoolTimetableTemplatesPage");
+const SchoolScheduleWeeksPage      = lz(() => import("./pages/school/SchoolScheduleWeeksPage"), "SchoolScheduleWeeksPage");
+const SchoolPeriodsPage            = lz(() => import("./pages/school/SchoolPeriodsPage"), "SchoolPeriodsPage");
 const SchoolTeacherWorkPage        = lz(() => import("./pages/school/SchoolTeacherWorkPage"), "SchoolTeacherWorkPage");
 const SchoolTeacherProfilePage     = lz(() => import("./pages/school/SchoolTeacherProfilePage"), "SchoolTeacherProfilePage");
 const SchoolInvitePage             = lz(() => import("./pages/school/SchoolInvitePage"), "SchoolInvitePage");
@@ -408,6 +411,9 @@ export default function App() {
           <Route path="schedule"             element={<SchoolAcademicCalendarPage />} />
           <Route path="guide"                element={<SchoolGuidePage />} />
           <Route path="timetable"            element={<SchoolTimetablePage />} />
+          <Route path="timetable-templates" element={<SchoolTimetableTemplatesPage />} />
+          <Route path="schedules/weeks"    element={<SchoolScheduleWeeksPage />} />
+          <Route path="periods"            element={<SchoolPeriodsPage />} />
           <Route path="behavior"           element={<SchoolBehaviorPage />} />
           <Route path="setup"             element={<SchoolSetupPage />} />
           <Route path="subjects"          element={<SchoolSubjectsPage />} />

@@ -11,17 +11,24 @@
  */
 
 import { Hono } from "hono";
-import { db } from "../../db";
+import { db } from "@nasaq/db/client";
 import { eventBookings } from "@nasaq/db/schema/canonical-bookings";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 import { calcVat } from "../shared/vat";
 import { generateBookingNumber } from "../shared/booking-number";
+import type { AuthUser } from "../../middleware/auth";
 
-export const eventEngine = new Hono();
+export const eventEngine = new Hono<{
+  Variables: {
+    user: AuthUser | null;
+    orgId: string;
+    requestId: string;
+  }
+}>();
 
 // GET /engines/event/bookings
 eventEngine.get("/bookings", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const { from, to, status, eventType, page = "1" } = c.req.query();
   const limit = 20;
   const offset = (Number(page) - 1) * limit;
@@ -45,18 +52,19 @@ eventEngine.get("/bookings", async (c) => {
 
 // POST /engines/event/bookings
 eventEngine.post("/bookings", async (c) => {
-  const { orgId, userId } = c.get("session");
+  const orgId = c.get("orgId") as string;
+  const userId = c.get("user")?.id ?? null;
   const body = await c.req.json();
 
   const { base, vat, total } = calcVat(Number(body.subtotal ?? 0), body.vatInclusive ?? true);
   const depositAmount = body.depositAmount ?? total * 0.3; // 30% default deposit
   const balanceDue    = total - Number(body.paidAmount ?? 0);
 
-  const [[{ count }]] = await db.execute<{ count: string }>(
-    `SELECT COUNT(*)::text AS count FROM event_bookings
-     WHERE org_id = $1 AND EXTRACT(YEAR FROM created_at) = $2`,
-    [orgId, new Date().getFullYear()]
+  const year = new Date().getFullYear();
+  const countResult = await db.execute(
+    sql`SELECT COUNT(*)::text AS count FROM event_bookings WHERE org_id = ${orgId} AND EXTRACT(YEAR FROM created_at) = ${year}`
   );
+  const count = (countResult.rows[0] as { count: string })?.count ?? "0";
   const bookingNumber = generateBookingNumber("event", Number(count) + 1);
 
   const [booking] = await db
@@ -99,7 +107,7 @@ eventEngine.post("/bookings", async (c) => {
 
 // PATCH /engines/event/bookings/:id/status
 eventEngine.patch("/bookings/:id/status", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const { id } = c.req.param();
   const { status, reason } = await c.req.json();
 

@@ -11,15 +11,22 @@
  */
 
 import { Hono } from "hono";
-import { db } from "../../db";
+import { db } from "@nasaq/db/client";
 import { catalogItems, productDefinitions } from "@nasaq/db/schema/canonical-catalog";
 import { eq, and, desc } from "drizzle-orm";
+import type { AuthUser } from "../../middleware/auth";
 
-export const commerceEngine = new Hono();
+export const commerceEngine = new Hono<{
+  Variables: {
+    user: AuthUser | null;
+    orgId: string;
+    requestId: string;
+  }
+}>();
 
 // GET /engines/commerce/products
 commerceEngine.get("/products", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const { status, categoryId, page = "1" } = c.req.query();
   const limit = 20;
   const offset = (Number(page) - 1) * limit;
@@ -48,7 +55,7 @@ commerceEngine.get("/products", async (c) => {
 
 // POST /engines/commerce/products
 commerceEngine.post("/products", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const body = await c.req.json();
 
   const [item] = await db

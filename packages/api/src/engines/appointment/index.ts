@@ -12,17 +12,24 @@
  */
 
 import { Hono } from "hono";
-import { db } from "../../db";
+import { db } from "@nasaq/db/client";
 import { appointmentBookings } from "@nasaq/db/schema/canonical-bookings";
-import { eq, and, gte, lte, desc } from "drizzle-orm";
+import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
 import { calcVat } from "../shared/vat";
 import { generateBookingNumber } from "../shared/booking-number";
+import type { AuthUser } from "../../middleware/auth";
 
-export const appointmentEngine = new Hono();
+export const appointmentEngine = new Hono<{
+  Variables: {
+    user: AuthUser | null;
+    orgId: string;
+    requestId: string;
+  }
+}>();
 
 // GET /engines/appointment/bookings
 appointmentEngine.get("/bookings", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const { from, to, status, page = "1" } = c.req.query();
   const limit = 20;
   const offset = (Number(page) - 1) * limit;
@@ -45,7 +52,8 @@ appointmentEngine.get("/bookings", async (c) => {
 
 // POST /engines/appointment/bookings
 appointmentEngine.post("/bookings", async (c) => {
-  const { orgId, userId } = c.get("session");
+  const orgId = c.get("orgId") as string;
+  const userId = c.get("user")?.id ?? null;
   const body = await c.req.json();
 
   const { base, vat, total } = calcVat(
@@ -54,11 +62,11 @@ appointmentEngine.post("/bookings", async (c) => {
   );
 
   // Sequence: count existing bookings this year for this org
-  const [[{ count }]] = await db.execute<{ count: string }>(
-    `SELECT COUNT(*)::text AS count FROM appointment_bookings
-     WHERE org_id = $1 AND EXTRACT(YEAR FROM created_at) = $2`,
-    [orgId, new Date().getFullYear()]
+  const year = new Date().getFullYear();
+  const countResult = await db.execute(
+    sql`SELECT COUNT(*)::text AS count FROM appointment_bookings WHERE org_id = ${orgId} AND EXTRACT(YEAR FROM created_at) = ${year}`
   );
+  const count = (countResult.rows[0] as { count: string })?.count ?? "0";
   const bookingNumber = generateBookingNumber("appointment", Number(count) + 1);
 
   const [booking] = await db
@@ -90,7 +98,7 @@ appointmentEngine.post("/bookings", async (c) => {
 
 // PATCH /engines/appointment/bookings/:id/status
 appointmentEngine.patch("/bookings/:id/status", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const { id } = c.req.param();
   const { status, reason } = await c.req.json();
 
@@ -124,7 +132,7 @@ appointmentEngine.patch("/bookings/:id/status", async (c) => {
 
 // GET /engines/appointment/bookings/:id
 appointmentEngine.get("/bookings/:id", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const { id } = c.req.param();
 
   const [booking] = await db

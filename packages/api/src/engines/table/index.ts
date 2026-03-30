@@ -11,16 +11,23 @@
  */
 
 import { Hono } from "hono";
-import { db } from "../../db";
+import { db } from "@nasaq/db/client";
 import { tableReservations } from "@nasaq/db/schema/canonical-bookings";
-import { eq, and, gte, lte, desc, or } from "drizzle-orm";
+import { eq, and, gte, lte, desc, or, sql } from "drizzle-orm";
 import { generateBookingNumber } from "../shared/booking-number";
+import type { AuthUser } from "../../middleware/auth";
 
-export const tableEngine = new Hono();
+export const tableEngine = new Hono<{
+  Variables: {
+    user: AuthUser | null;
+    orgId: string;
+    requestId: string;
+  }
+}>();
 
 // GET /engines/table/reservations
 tableEngine.get("/reservations", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const { date, status, page = "1" } = c.req.query();
   const limit = 50;
   const offset = (Number(page) - 1) * limit;
@@ -48,7 +55,7 @@ tableEngine.get("/reservations", async (c) => {
 
 // POST /engines/table/reservations
 tableEngine.post("/reservations", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const body = await c.req.json();
 
   const reservedAt    = new Date(body.reservedAt);
@@ -77,11 +84,11 @@ tableEngine.post("/reservations", async (c) => {
     }
   }
 
-  const [[{ count }]] = await db.execute<{ count: string }>(
-    `SELECT COUNT(*)::text AS count FROM table_reservations
-     WHERE org_id = $1 AND EXTRACT(YEAR FROM created_at) = $2`,
-    [orgId, new Date().getFullYear()]
+  const year = new Date().getFullYear();
+  const countResult = await db.execute(
+    sql`SELECT COUNT(*)::text AS count FROM table_reservations WHERE org_id = ${orgId} AND EXTRACT(YEAR FROM created_at) = ${year}`
   );
+  const count = (countResult.rows[0] as { count: string })?.count ?? "0";
   const reservationNumber = generateBookingNumber("table", Number(count) + 1);
 
   const [reservation] = await db
@@ -111,7 +118,7 @@ tableEngine.post("/reservations", async (c) => {
 
 // PATCH /engines/table/reservations/:id/seat
 tableEngine.patch("/reservations/:id/seat", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const { id } = c.req.param();
 
   const [updated] = await db
@@ -126,7 +133,7 @@ tableEngine.patch("/reservations/:id/seat", async (c) => {
 
 // PATCH /engines/table/reservations/:id/complete
 tableEngine.patch("/reservations/:id/complete", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const { id } = c.req.param();
 
   const [updated] = await db
@@ -141,7 +148,7 @@ tableEngine.patch("/reservations/:id/complete", async (c) => {
 
 // PATCH /engines/table/reservations/:id/no-show
 tableEngine.patch("/reservations/:id/no-show", async (c) => {
-  const { orgId } = c.get("session");
+  const orgId = c.get("orgId") as string;
   const { id } = c.req.param();
 
   const [updated] = await db

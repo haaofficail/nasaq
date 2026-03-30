@@ -66,7 +66,7 @@ paymentsRouter.patch("/settings", requirePermission("finance", "manage"), async 
 /** POST /payments/transactions/:id/refund */
 paymentsRouter.post("/transactions/:id/refund", requirePermission("finance", "manage"), async (c) => {
   const orgId = getOrgId(c);
-  const id    = c.req.param("id");
+  const id    = c.req.param("id")!;
   const body  = await c.req.json().catch(() => ({}));
   const refundAmount = body.amount ? Number(body.amount) : undefined;
 
@@ -471,7 +471,7 @@ adminPayments.post("/settlements", async (c) => {
 
 /** PATCH /payments/admin/settlements/:id — تحديث حالة التسوية */
 adminPayments.patch("/settlements/:id", async (c) => {
-  const id = c.req.param("id");
+  const id = c.req.param("id")!;
   const body = await c.req.json();
   const schema = z.object({
     status:          z.enum(["pending", "processing", "completed", "failed"]).optional(),
@@ -496,7 +496,7 @@ adminPayments.patch("/settlements/:id", async (c) => {
 
 /** GET /payments/admin/org-settings — إعدادات الدفع لمنشأة معينة */
 adminPayments.get("/org-settings/:orgId", async (c) => {
-  const orgId = c.req.param("orgId");
+  const orgId = c.req.param("orgId")!;
   const [setting] = await db.select().from(paymentSettings)
     .where(eq(paymentSettings.orgId, orgId)).limit(1);
   return c.json({ data: setting ?? null });
@@ -504,7 +504,7 @@ adminPayments.get("/org-settings/:orgId", async (c) => {
 
 /** PATCH /payments/admin/org-settings/:orgId — تعديل إعدادات + رسوم منشأة */
 adminPayments.patch("/org-settings/:orgId", async (c) => {
-  const orgId = c.req.param("orgId");
+  const orgId = c.req.param("orgId")!;
   const body = await c.req.json();
   const schema = z.object({
     enabled:            z.boolean().optional(),
