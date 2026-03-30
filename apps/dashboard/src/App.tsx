@@ -146,6 +146,17 @@ const SupportPage            = lz(() => import("./pages/SupportPage"), "SupportP
 const GuidePage              = lz(() => import("./pages/GuidePage"), "GuidePage");
 const BarcodeLabelPage       = lz(() => import("./pages/BarcodeLabelPage"));
 
+// Property Management
+const PropertyDashboardPage   = lz(() => import("./pages/property/PropertyDashboardPage"), "PropertyDashboardPage");
+const PropertyListPage        = lz(() => import("./pages/property/PropertyListPage"), "PropertyListPage");
+const PropertyUnitsPage       = lz(() => import("./pages/property/PropertyUnitsPage"), "PropertyUnitsPage");
+const TenantsPage             = lz(() => import("./pages/property/TenantsPage"), "TenantsPage");
+const LeaseContractsPage      = lz(() => import("./pages/property/LeaseContractsPage"), "LeaseContractsPage");
+const LeaseInvoicesPage       = lz(() => import("./pages/property/LeaseInvoicesPage"), "LeaseInvoicesPage");
+const LeasePaymentsPage       = lz(() => import("./pages/property/LeasePaymentsPage"), "LeasePaymentsPage");
+const PropertyMaintenancePage = lz(() => import("./pages/property/PropertyMaintenancePage"), "PropertyMaintenancePage");
+const PropertyExpensesPage    = lz(() => import("./pages/property/PropertyExpensesPage"), "PropertyExpensesPage");
+
 // School System
 const SchoolDashboardPage          = lz(() => import("./pages/school/SchoolDashboardPage"), "SchoolDashboardPage");
 const SchoolDayMonitorPage         = lz(() => import("./pages/school/SchoolDayMonitorPage"), "SchoolDayMonitorPage");
@@ -352,6 +363,16 @@ export default function App() {
           <Route path="events" element={<EventsPage />} />
           <Route path="packages" element={<PackagesPage />} />
           <Route path="event-quotations" element={<EventQuotationsPage />} />
+
+          <Route path="property" element={<PropertyDashboardPage />} />
+          <Route path="property/properties" element={<PropertyListPage />} />
+          <Route path="property/units" element={<PropertyUnitsPage />} />
+          <Route path="property/tenants" element={<TenantsPage />} />
+          <Route path="property/contracts" element={<LeaseContractsPage />} />
+          <Route path="property/invoices" element={<LeaseInvoicesPage />} />
+          <Route path="property/payments" element={<LeasePaymentsPage />} />
+          <Route path="property/maintenance" element={<PropertyMaintenancePage />} />
+          <Route path="property/expenses" element={<PropertyExpensesPage />} />
 
           <Route path="media" element={<MediaLibraryPage />} />
           <Route path="catalog" element={<CatalogPage />} />

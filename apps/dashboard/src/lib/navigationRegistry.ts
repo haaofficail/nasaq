@@ -203,6 +203,27 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     ],
   },
 
+  // ── SPECIALTY: Property Management ───────────────────────
+  {
+    id: "specialty_property",
+    label: "إدارة العقارات",
+    requiredCapabilities: ["property"],
+    anyCapability: [],
+    allowedBusinessTypes: ["real_estate"],
+    allowedOperatingProfiles: ["real_estate_rental"],
+    items: [
+      { name: "لوحة العقارات",  href: "/dashboard/property",             icon: Building,      requiredCapabilities: ["property"] },
+      { name: "العقارات",        href: "/dashboard/property/properties",  icon: Building,      requiredCapabilities: ["property"] },
+      { name: "الوحدات",         href: "/dashboard/property/units",       icon: Key,           requiredCapabilities: ["property"] },
+      { name: "المستأجرون",      href: "/dashboard/property/tenants",     icon: Users,         requiredCapabilities: ["property"] },
+      { name: "العقود",          href: "/dashboard/property/contracts",   icon: ClipboardList, requiredCapabilities: ["property"] },
+      { name: "الفواتير",        href: "/dashboard/property/invoices",    icon: Wallet,        requiredCapabilities: ["property"] },
+      { name: "المدفوعات",       href: "/dashboard/property/payments",    icon: CreditCard,    requiredCapabilities: ["property"] },
+      { name: "الصيانة",         href: "/dashboard/property/maintenance", icon: Wrench,        requiredCapabilities: ["property"] },
+      { name: "المصروفات",       href: "/dashboard/property/expenses",    icon: BarChart3,     requiredCapabilities: ["property"] },
+    ],
+  },
+
   // ── SPECIALTY: Events ─────────────────────────────────────
   {
     id: "specialty_events",

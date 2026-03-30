@@ -40,6 +40,7 @@ export * from "./notifications";
 export * from "./maintenance";
 export * from "./school";
 export * from "./payment-gateway";
+export * from "./property";
 
 // ============================================================
 // CANONICAL ARCHITECTURE — Phase 1 (2026-03)

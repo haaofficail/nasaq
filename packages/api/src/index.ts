@@ -66,6 +66,7 @@ import { remindersRouter } from "./routes/reminders";
 import { billingRouter } from "./routes/billing";
 import { marketplaceRouter } from "./routes/marketplace";
 import { eventsRouter } from "./routes/events";
+import { propertyRouter } from "./routes/property";
 import { procurementRouter } from "./routes/procurement";
 import { fulfillmentsRouter } from "./routes/fulfillments";
 import { kitchenRouter } from "./routes/kitchen";
@@ -570,6 +571,18 @@ app.route("/admin", commercialRouter);
 app.use("/events/*", authMiddleware);
 app.use("/events/*", methodGuard("bookings"));
 app.route("/events", eventsRouter);
+
+// --- Property Management ---
+app.use("/property/*", async (c, next) => {
+  // Portal endpoints are public — no auth required
+  if (c.req.path.includes("/property/portal/")) return next();
+  return authMiddleware(c, next);
+});
+app.use("/property/*", async (c, next) => {
+  if (c.req.path.includes("/property/portal/")) return next();
+  return methodGuard("bookings")(c, next);
+});
+app.route("/property", propertyRouter);
 
 // --- Procurement (Suppliers / PO / GR / Invoices) ---
 app.use("/procurement/*", authMiddleware);
