@@ -40,3 +40,14 @@ export * from "./notifications";
 export * from "./maintenance";
 export * from "./school";
 export * from "./payment-gateway";
+
+// ============================================================
+// CANONICAL ARCHITECTURE — Phase 1 (2026-03)
+// الجداول الكنونية الجديدة — لا تعدّل bookings أو services
+// ============================================================
+// FREEZE:
+//   - bookings      → read-only. New writes → appointment_bookings / stay_bookings / etc.
+//   - services      → frozen. No new offeringType. New items → catalog_items
+//   - payments      → canonical. payment_transactions = gateway events only
+export * from "./canonical-bookings";
+export * from "./canonical-catalog";
