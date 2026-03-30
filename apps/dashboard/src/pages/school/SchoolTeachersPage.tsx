@@ -713,7 +713,10 @@ export function SchoolTeachersPage() {
                     {t.fullName[0]}
                   </div>
                   <div>
-                    <p className="text-sm font-bold text-gray-900 leading-tight">{t.fullName}</p>
+                    <button
+                      onClick={() => navigate(`/school/teachers/${t.id}`)}
+                      className="text-sm font-bold text-gray-900 leading-tight hover:text-emerald-700 transition-colors text-right"
+                    >{t.fullName}</button>
                     {t.subject && (
                       <p className="text-xs text-emerald-600 font-medium mt-0.5">{t.subject}</p>
                     )}

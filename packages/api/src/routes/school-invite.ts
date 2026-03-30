@@ -88,8 +88,8 @@ schoolInviteRouter.post("/:token/accept", async (c) => {
     userId:    teacher.userId!,
     token:     sessionToken,
     expiresAt,
-    ipAddress: c.req.header("X-Forwarded-For") ?? null,
-    userAgent: c.req.header("User-Agent") ?? null,
+    ip:        c.req.header("X-Forwarded-For") ?? null,
+    device:    c.req.header("User-Agent") ?? null,
   });
 
   const [userData] = await db

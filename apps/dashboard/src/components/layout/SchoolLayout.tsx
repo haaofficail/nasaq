@@ -4,7 +4,7 @@ import {
   GraduationCap, ChevronLeft, ChevronRight, Bell, Search, LogOut, Menu, X, User,
   WifiOff, CheckCheck, ExternalLink, Clock, Settings,
   LayoutDashboard, ClipboardCheck, Users, DoorOpen, CalendarDays,
-  AlertCircle, Upload, UserRoundCheck, ShieldAlert, Timer, MessageCircle, CalendarCheck2, CalendarRange, BookOpenCheck, Grid3X3, Tablet, Headphones,
+  AlertCircle, Upload, UserRoundCheck, ShieldAlert, Timer, MessageCircle, CalendarCheck2, CalendarRange, BookOpenCheck, Grid3X3, Tablet, Headphones, Briefcase,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { authApi } from "@/lib/api";
@@ -22,6 +22,7 @@ const SCHOOL_NAV = [
   { name: "صفحة المعلم",        href: "/school/teacher-work",        icon: Tablet,          exact: false },
   { name: "الطلاب",              href: "/school/students",            icon: Users,           exact: false },
   { name: "المعلمون",             href: "/school/teachers",            icon: UserRoundCheck,  exact: false },
+  { name: "الموظفون",             href: "/school/team",                icon: Briefcase,       exact: false },
   { name: "الفصول",              href: "/school/classes",             icon: DoorOpen,        exact: false },
   { name: "الحالات والمتابعة",   href: "/school/cases",               icon: AlertCircle,     exact: false },
   { name: "المخالفات",            href: "/school/violations",          icon: ShieldAlert,     exact: false },

@@ -138,10 +138,14 @@ export function SchoolAccountPage() {
   const { data: settingsRes, refetch: refetchSettings } = useApi(() => schoolApi.getSettings(), []);
   const schoolData = settingsRes?.data ?? {};
   const [schoolForm, setSchoolForm] = useState<any>(null);
+  const [timingForm, setTimingForm] = useState<any>(null);
   const [savingSchool, setSavingSchool] = useState(false);
+  const [savingTiming, setSavingTiming] = useState(false);
 
   const sf = (k: string, v: string) => setSchoolForm((prev: any) => ({ ...(prev ?? schoolData), [k]: v }));
+  const tf = (k: string, v: string) => setTimingForm((prev: any) => ({ ...(prev ?? {}), [k]: v }));
   const currentSchool = schoolForm ?? schoolData;
+  const currentTiming = { ...schoolData, ...timingForm };
 
   // Password
   const [pwd, setPwd] = useState({ current: "", next: "", confirm: "" });
@@ -174,6 +178,25 @@ export function SchoolAccountPage() {
       toast.success("تم حفظ بيانات المدرسة");
     } catch (e: any) { toast.error(e.message || "تعذّر الحفظ"); }
     finally { setSavingSchool(false); }
+  };
+
+  const handleSaveTiming = async () => {
+    setSavingTiming(true);
+    try {
+      const payload = {
+        sessionStartTime:      currentTiming.sessionStartTime ?? null,
+        sessionEndTime:        currentTiming.sessionEndTime ?? null,
+        periodDurationMinutes: currentTiming.periodDurationMinutes ?? null,
+        breakDurationMinutes:  currentTiming.breakDurationMinutes ?? null,
+        numberOfPeriods:       currentTiming.numberOfPeriods ?? null,
+        sessionType:           currentTiming.sessionType ?? null,
+      };
+      await schoolApi.saveTimingSettings(payload);
+      refetchSettings();
+      setTimingForm(null);
+      toast.success("تم حفظ توقيت الدوام");
+    } catch (e: any) { toast.error(e.message || "تعذّر الحفظ"); }
+    finally { setSavingTiming(false); }
   };
 
   const handleChangePwd = async () => {
@@ -340,7 +363,7 @@ export function SchoolAccountPage() {
                     <span className="font-bold">توقيت مقترح ({hint.hint}):</span> من {hint.start} حتى {hint.end}
                     <button
                       type="button"
-                      onClick={() => { sf("sessionStartTime", hint.start); sf("sessionEndTime", hint.end); }}
+                      onClick={() => { tf("sessionStartTime", hint.start); tf("sessionEndTime", hint.end); }}
                       className="mr-3 px-2.5 py-0.5 bg-blue-100 hover:bg-blue-200 rounded-lg font-semibold transition-colors"
                     >
                       تطبيق
@@ -351,8 +374,8 @@ export function SchoolAccountPage() {
                   <Field label="بداية الدوام">
                     <input
                       type="time"
-                      value={currentSchool.sessionStartTime || "07:30"}
-                      onChange={e => sf("sessionStartTime", e.target.value)}
+                      value={currentTiming.sessionStartTime || "07:30"}
+                      onChange={e => tf("sessionStartTime", e.target.value)}
                       className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                       dir="ltr"
                     />
@@ -360,8 +383,8 @@ export function SchoolAccountPage() {
                   <Field label="نهاية الدوام">
                     <input
                       type="time"
-                      value={currentSchool.sessionEndTime || "14:30"}
-                      onChange={e => sf("sessionEndTime", e.target.value)}
+                      value={currentTiming.sessionEndTime || "14:30"}
+                      onChange={e => tf("sessionEndTime", e.target.value)}
                       className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                       dir="ltr"
                     />
@@ -371,8 +394,8 @@ export function SchoolAccountPage() {
                       type="number"
                       min={30}
                       max={90}
-                      value={currentSchool.periodDurationMinutes ?? 45}
-                      onChange={e => sf("periodDurationMinutes", e.target.value)}
+                      value={currentTiming.periodDurationMinutes ?? 45}
+                      onChange={e => tf("periodDurationMinutes", e.target.value)}
                       className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                     />
                   </Field>
@@ -381,8 +404,8 @@ export function SchoolAccountPage() {
                       type="number"
                       min={5}
                       max={45}
-                      value={currentSchool.breakDurationMinutes ?? 30}
-                      onChange={e => sf("breakDurationMinutes", e.target.value)}
+                      value={currentTiming.breakDurationMinutes ?? 30}
+                      onChange={e => tf("breakDurationMinutes", e.target.value)}
                       className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                     />
                   </Field>
@@ -391,19 +414,19 @@ export function SchoolAccountPage() {
                       type="number"
                       min={1}
                       max={12}
-                      value={currentSchool.numberOfPeriods ?? 7}
-                      onChange={e => sf("numberOfPeriods", e.target.value)}
+                      value={currentTiming.numberOfPeriods ?? 7}
+                      onChange={e => tf("numberOfPeriods", e.target.value)}
                       className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                     />
                   </Field>
                   <Field label="نوع الجدول">
                     <select
-                      value={currentSchool.sessionType || "winter"}
+                      value={currentTiming.sessionType || "winter"}
                       onChange={e => {
                         const t = e.target.value;
-                        sf("sessionType", t);
-                        if (t === "ramadan") { sf("sessionStartTime", "10:00"); sf("sessionEndTime", "14:00"); sf("periodDurationMinutes", "30"); sf("numberOfPeriods", "6"); }
-                        else if (t === "summer") { sf("sessionStartTime", "07:00"); sf("sessionEndTime", "13:00"); }
+                        tf("sessionType", t);
+                        if (t === "ramadan") { tf("sessionStartTime", "10:00"); tf("sessionEndTime", "14:00"); tf("periodDurationMinutes", "30"); tf("numberOfPeriods", "6"); }
+                        else if (t === "summer") { tf("sessionStartTime", "07:00"); tf("sessionEndTime", "13:00"); }
                       }}
                       className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                     >
@@ -415,12 +438,12 @@ export function SchoolAccountPage() {
                 </div>
                 <div className="flex justify-end mt-4">
                   <button
-                    onClick={handleSaveSchool}
-                    disabled={savingSchool}
+                    onClick={handleSaveTiming}
+                    disabled={savingTiming}
                     className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-semibold hover:bg-emerald-700 disabled:opacity-40 transition-colors shadow-sm"
                   >
                     <Save className="w-4 h-4" />
-                    {savingSchool ? "جاري الحفظ..." : "حفظ توقيت الدوام"}
+                    {savingTiming ? "جاري الحفظ..." : "حفظ توقيت الدوام"}
                   </button>
                 </div>
               </>

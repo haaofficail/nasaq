@@ -349,6 +349,42 @@ router.post("/settings", requirePerm("school.settings.manage"), async (c) => {
   return c.json({ data: created }, 201);
 });
 
+// PATCH /settings/timing — حفظ توقيت الدوام فقط (بدون حاجة لاسم المدرسة)
+router.patch("/settings/timing", requirePerm("school.settings.manage"), async (c) => {
+  const orgId = getOrgId(c);
+  const timingSchema = z.object({
+    sessionStartTime:      z.string().max(10).optional().nullable(),
+    sessionEndTime:        z.string().max(10).optional().nullable(),
+    periodDurationMinutes: z.coerce.number().int().min(20).max(120).optional().nullable(),
+    breakDurationMinutes:  z.coerce.number().int().min(5).max(60).optional().nullable(),
+    numberOfPeriods:       z.coerce.number().int().min(1).max(15).optional().nullable(),
+    sessionType:           z.enum(["winter", "summer", "ramadan"]).optional().nullable(),
+  });
+  const body = timingSchema.parse(await c.req.json());
+
+  const [existing] = await db
+    .select({ id: schoolSettings.id })
+    .from(schoolSettings)
+    .where(eq(schoolSettings.orgId, orgId))
+    .limit(1);
+
+  if (existing) {
+    const [updated] = await db
+      .update(schoolSettings)
+      .set({ ...body, updatedAt: new Date() })
+      .where(and(eq(schoolSettings.id, existing.id), eq(schoolSettings.orgId, orgId)))
+      .returning();
+    return c.json({ data: updated });
+  }
+
+  // إنشاء السجل إذا لم يوجد مع قيم افتراضية
+  const [created] = await db
+    .insert(schoolSettings)
+    .values({ orgId, schoolName: "", ...body })
+    .returning();
+  return c.json({ data: created }, 201);
+});
+
 router.patch("/settings/active-week", async (c) => {
   const orgId = getOrgId(c);
   const { activeWeekId } = activeWeekSchema.parse(await c.req.json());
