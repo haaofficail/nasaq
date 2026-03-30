@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum, jsonb, uuid, integer, numeric, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, jsonb, uuid, integer, numeric, uniqueIndex, index, date } from "drizzle-orm/pg-core";
 import { organizations, locations } from "./organizations";
 import { users } from "./auth";
 import { bookings } from "./bookings";
@@ -237,4 +237,123 @@ export const ticketIssuances = pgTable("ticket_issuances", {
   index("ticket_issuances_booking_idx").on(table.bookingId),
   index("ticket_issuances_customer_idx").on(table.customerId),
   index("ticket_issuances_status_idx").on(table.eventId, table.status),
+]);
+
+// ============================================================
+// EVENT QUOTATIONS — عروض أسعار الفعاليات
+// سيناريو: حفلات / مؤتمرات / أعراس → يُرسل للعميل للموافقة
+// ============================================================
+
+export const eventQuotationStatusEnum = pgEnum("event_quotation_status", [
+  "draft",     // مسودة
+  "sent",      // أُرسل للعميل
+  "accepted",  // وافق العميل
+  "rejected",  // رفض العميل
+  "expired",   // انتهت مدة الصلاحية
+]);
+
+export const eventQuotations = pgTable("event_quotations", {
+  id:          uuid("id").defaultRandom().primaryKey(),
+  orgId:       uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  eventId:     uuid("event_id").references(() => events.id, { onDelete: "set null" }),
+
+  // رقم العرض التسلسلي
+  quotationNumber: text("quotation_number").notNull(),
+
+  // معلومات العميل
+  clientName:  text("client_name").notNull(),
+  clientPhone: text("client_phone"),
+  clientEmail: text("client_email"),
+
+  // تفاصيل الفعالية
+  title:       text("title").notNull(),
+  eventDate:   date("event_date"),
+  eventVenue:  text("event_venue"),
+  guestCount:  integer("guest_count"),
+  notes:       text("notes"),
+
+  // الأسعار
+  subtotal:        numeric("subtotal", { precision: 12, scale: 2 }).default("0").notNull(),
+  discountAmount:  numeric("discount_amount", { precision: 12, scale: 2 }).default("0").notNull(),
+  vatRate:         numeric("vat_rate", { precision: 5, scale: 2 }).default("15").notNull(),
+  vatAmount:       numeric("vat_amount", { precision: 12, scale: 2 }).default("0").notNull(),
+  total:           numeric("total", { precision: 12, scale: 2 }).default("0").notNull(),
+  depositRequired: numeric("deposit_required", { precision: 12, scale: 2 }).default("0").notNull(),
+
+  // الشروط
+  validUntil:    date("valid_until"),
+  paymentTerms:  text("payment_terms"),
+
+  // الحالة
+  status:      eventQuotationStatusEnum("status").default("draft").notNull(),
+  acceptedAt:  timestamp("accepted_at", { withTimezone: true }),
+  sentAt:      timestamp("sent_at", { withTimezone: true }),
+
+  createdBy:   uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt:   timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:   timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("event_quotations_org_idx").on(table.orgId),
+  index("event_quotations_status_idx").on(table.orgId, table.status),
+]);
+
+// ============================================================
+// EVENT QUOTATION ITEMS — بنود عرض الأسعار
+// ============================================================
+
+export const eventQuotationItems = pgTable("event_quotation_items", {
+  id:           uuid("id").defaultRandom().primaryKey(),
+  orgId:        uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  quotationId:  uuid("quotation_id").notNull().references(() => eventQuotations.id, { onDelete: "cascade" }),
+
+  description:  text("description").notNull(),
+  category:     text("category"),  // venue / catering / entertainment / decoration / crew / other
+  qty:          numeric("qty", { precision: 10, scale: 2 }).default("1").notNull(),
+  unitPrice:    numeric("unit_price", { precision: 12, scale: 2 }).notNull(),
+  totalPrice:   numeric("total_price", { precision: 12, scale: 2 }).notNull(),
+  notes:        text("notes"),
+  sortOrder:    integer("sort_order").default(0).notNull(),
+
+  createdAt:    timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("event_quotation_items_quotation_idx").on(table.quotationId),
+]);
+
+// ============================================================
+// EVENT EXECUTION TASKS — مهام تتبع التنفيذ
+// للمتابعة الداخلية: ماذا تم وماذا تبقى قبل وأثناء وبعد الفعالية
+// ============================================================
+
+export const eventExecutionTaskStatusEnum = pgEnum("event_execution_task_status", [
+  "pending",     // قيد الانتظار
+  "in_progress", // جاري
+  "done",        // مكتمل
+  "blocked",     // معلق / عائق
+]);
+
+export const eventExecutionTasks = pgTable("event_execution_tasks", {
+  id:           uuid("id").defaultRandom().primaryKey(),
+  orgId:        uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  eventId:      uuid("event_id").references(() => events.id, { onDelete: "cascade" }),
+  quotationId:  uuid("quotation_id").references(() => eventQuotations.id, { onDelete: "set null" }),
+
+  title:        text("title").notNull(),
+  description:  text("description"),
+  category:     text("category"),    // setup / catering / av / decor / security / cleanup / admin
+  assignedTo:   text("assigned_to"), // اسم الموظف أو الفريق
+  dueDate:      timestamp("due_date", { withTimezone: true }),
+  eventPhase:   text("event_phase").default("pre_event").notNull(), // pre_event / day_of / post_event
+
+  status:       eventExecutionTaskStatusEnum("status").default("pending").notNull(),
+  completedAt:  timestamp("completed_at", { withTimezone: true }),
+  notes:        text("notes"),
+  sortOrder:    integer("sort_order").default(0).notNull(),
+
+  createdBy:    uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt:    timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:    timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("event_execution_tasks_org_idx").on(table.orgId),
+  index("event_execution_tasks_event_idx").on(table.eventId),
+  index("event_execution_tasks_status_idx").on(table.orgId, table.status),
 ]);

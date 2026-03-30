@@ -1384,6 +1384,24 @@ export const eventsApi = {
   issuances:       (eventId: string, params?: Record<string, string>) => { const q = params ? "?" + new URLSearchParams(Object.entries(params).filter(([,v]) => !!v)) : ""; return api.get<{ tickets: any[]; total: number }>(`/events/${eventId}/issuances${q}`); },
   checkIn:         (eventId: string, ticketId: string) => api.post<{ ticket: any }>(`/events/${eventId}/issuances/${ticketId}/check-in`),
   scanQr:          (eventId: string, qrCode: string) => api.get<{ ticket: any }>(`/events/${eventId}/issuances/scan/${qrCode}`),
+  // Quotations (عروض الأسعار)
+  quotations:      (params?: { status?: string }) => { const q = params?.status ? `?status=${params.status}` : ""; return api.get<{ data: any[] }>(`/events/quotations${q}`); },
+  getQuotation:    (id: string)                   => api.get<{ data: any & { items: any[] } }>(`/events/quotations/${id}`),
+  createQuotation: (data: any)                    => api.post<{ data: any }>("/events/quotations", data),
+  updateQuotation: (id: string, data: any)        => api.put<{ data: any }>(`/events/quotations/${id}`, data),
+  updateQuotationStatus: (id: string, status: string) => api.patch<{ data: any }>(`/events/quotations/${id}/status`, { status }),
+  deleteQuotation: (id: string)                   => api.delete(`/events/quotations/${id}`),
+  // Execution tasks (تتبع التنفيذ)
+  executionTasks:  (params?: { eventId?: string; status?: string; phase?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.eventId) q.set("eventId", params.eventId);
+    if (params?.status)  q.set("status",  params.status);
+    if (params?.phase)   q.set("phase",   params.phase);
+    return api.get<{ data: any[] }>(`/events/execution?${q}`);
+  },
+  createTask:      (data: any)                    => api.post<{ data: any }>("/events/execution", data),
+  updateTask:      (id: string, data: any)        => api.patch<{ data: any }>(`/events/execution/${id}`, data),
+  deleteTask:      (id: string)                   => api.delete(`/events/execution/${id}`),
 };
 
 // --- Procurement (Suppliers / PO / GR / Invoices) ---

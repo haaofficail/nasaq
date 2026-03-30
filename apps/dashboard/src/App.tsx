@@ -135,6 +135,7 @@ const MaintenancePage        = lz(() => import("./pages/MaintenancePage"), "Main
 const WarehousePage          = lz(() => import("./pages/WarehousePage"), "WarehousePage");
 const EventsPage             = lz(() => import("./pages/EventsPage"), "EventsPage");
 const PackagesPage           = lz(() => import("./pages/PackagesPage"), "PackagesPage");
+const EventQuotationsPage    = lz(() => import("./pages/EventQuotationsPage"), "EventQuotationsPage");
 const MediaLibraryPage       = lz(() => import("./pages/MediaLibraryPage"), "MediaLibraryPage");
 const AdminPage              = lz(() => import("./pages/AdminPage"), "AdminPage");
 const AdminPaymentsPage      = lz(() => import("./pages/AdminPaymentsPage"), "AdminPaymentsPage");
@@ -350,6 +351,7 @@ export default function App() {
 
           <Route path="events" element={<EventsPage />} />
           <Route path="packages" element={<PackagesPage />} />
+          <Route path="event-quotations" element={<EventQuotationsPage />} />
 
           <Route path="media" element={<MediaLibraryPage />} />
           <Route path="catalog" element={<CatalogPage />} />

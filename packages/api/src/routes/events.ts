@@ -5,7 +5,9 @@ import { db } from "@nasaq/db/client";
 import {
   events, ticketTypes, seatSections, seats, ticketIssuances,
   customers, bookings, users,
+  eventQuotations, eventQuotationItems, eventExecutionTasks,
 } from "@nasaq/db/schema";
+import { pool } from "@nasaq/db/client";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { apiErr } from "../lib/errors";
@@ -503,4 +505,275 @@ eventsRouter.get("/:id/stats", async (c) => {
       byTicketType:    typeCounts,
     },
   });
+});
+
+// ============================================================
+// EVENT QUOTATIONS — عروض الأسعار
+// ============================================================
+
+const quotationItemSchema = z.object({
+  description: z.string().min(1).max(500),
+  category:    z.string().optional().nullable(),
+  qty:         z.number().positive().default(1),
+  unitPrice:   z.number().min(0),
+  notes:       z.string().optional().nullable(),
+  sortOrder:   z.number().int().optional().default(0),
+});
+
+const createQuotationSchema = z.object({
+  eventId:        z.string().uuid().optional().nullable(),
+  clientName:     z.string().min(1).max(200),
+  clientPhone:    z.string().optional().nullable(),
+  clientEmail:    z.string().email().optional().nullable(),
+  title:          z.string().min(1).max(300),
+  eventDate:      z.string().optional().nullable(),
+  eventVenue:     z.string().optional().nullable(),
+  guestCount:     z.number().int().positive().optional().nullable(),
+  notes:          z.string().optional().nullable(),
+  discountAmount: z.number().min(0).default(0),
+  vatRate:        z.number().min(0).max(100).default(15),
+  depositRequired:z.number().min(0).default(0),
+  validUntil:     z.string().optional().nullable(),
+  paymentTerms:   z.string().optional().nullable(),
+  items:          z.array(quotationItemSchema).optional().default([]),
+});
+
+// GET /events/quotations
+eventsRouter.get("/quotations", async (c) => {
+  const orgId = getOrgId(c);
+  const status = c.req.query("status");
+  const conditions: any[] = [eq(eventQuotations.orgId, orgId)];
+  if (status) conditions.push(eq(eventQuotations.status, status as any));
+  const rows = await db.select().from(eventQuotations)
+    .where(and(...conditions))
+    .orderBy(desc(eventQuotations.createdAt));
+  return c.json({ data: rows });
+});
+
+// POST /events/quotations
+eventsRouter.post("/quotations", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const body = createQuotationSchema.parse(await c.req.json());
+
+  const seqRes = await pool.query("SELECT nextval('event_quotation_seq') AS n");
+  const quotationNumber = `EQ-${String(seqRes.rows[0].n).padStart(4, "0")}`;
+
+  const { items, ...qData } = body;
+
+  // Calc totals from items
+  const subtotal = (items || []).reduce((s, it) => s + it.qty * it.unitPrice, 0) - (body.discountAmount || 0);
+  const vatAmount = subtotal * (body.vatRate / 100);
+  const total = subtotal + vatAmount;
+
+  const [q] = await db.insert(eventQuotations).values({
+    orgId,
+    quotationNumber,
+    clientName:      qData.clientName,
+    clientPhone:     qData.clientPhone ?? null,
+    clientEmail:     qData.clientEmail ?? null,
+    title:           qData.title,
+    eventDate:       qData.eventDate ?? null,
+    eventVenue:      qData.eventVenue ?? null,
+    guestCount:      qData.guestCount ?? null,
+    notes:           qData.notes ?? null,
+    subtotal:        String(subtotal),
+    discountAmount:  String(qData.discountAmount || 0),
+    vatRate:         String(qData.vatRate),
+    vatAmount:       String(vatAmount),
+    total:           String(total),
+    depositRequired: String(qData.depositRequired || 0),
+    validUntil:      qData.validUntil ?? null,
+    paymentTerms:    qData.paymentTerms ?? null,
+    eventId:         qData.eventId ?? null,
+    createdBy:       userId,
+  }).returning();
+
+  if (items && items.length > 0) {
+    await db.insert(eventQuotationItems).values(
+      items.map((it, idx) => ({
+        orgId,
+        quotationId: q.id,
+        description: it.description,
+        category:    it.category ?? null,
+        qty:         String(it.qty),
+        unitPrice:   String(it.unitPrice),
+        totalPrice:  String(it.qty * it.unitPrice),
+        notes:       it.notes ?? null,
+        sortOrder:   it.sortOrder ?? idx,
+      }))
+    );
+  }
+
+  insertAuditLog({ orgId, userId, action: "created", resource: "event_quotation", resourceId: q.id });
+  return c.json({ data: q }, 201);
+});
+
+// GET /events/quotations/:id
+eventsRouter.get("/quotations/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const [q] = await db.select().from(eventQuotations)
+    .where(and(eq(eventQuotations.id, c.req.param("id")), eq(eventQuotations.orgId, orgId)));
+  if (!q) return c.json({ error: "عرض السعر غير موجود" }, 404);
+  const items = await db.select().from(eventQuotationItems)
+    .where(eq(eventQuotationItems.quotationId, q.id))
+    .orderBy(asc(eventQuotationItems.sortOrder));
+  return c.json({ data: { ...q, items } });
+});
+
+// PUT /events/quotations/:id
+eventsRouter.put("/quotations/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const body = createQuotationSchema.parse(await c.req.json());
+  const { items, ...qData } = body;
+
+  const subtotal = (items || []).reduce((s, it) => s + it.qty * it.unitPrice, 0) - (body.discountAmount || 0);
+  const vatAmount = subtotal * (body.vatRate / 100);
+  const total = subtotal + vatAmount;
+
+  const [updated] = await db.update(eventQuotations).set({
+    clientName:      qData.clientName,
+    clientPhone:     qData.clientPhone ?? null,
+    clientEmail:     qData.clientEmail ?? null,
+    title:           qData.title,
+    eventDate:       qData.eventDate ?? null,
+    eventVenue:      qData.eventVenue ?? null,
+    guestCount:      qData.guestCount ?? null,
+    notes:           qData.notes ?? null,
+    subtotal:        String(subtotal),
+    discountAmount:  String(qData.discountAmount || 0),
+    vatRate:         String(qData.vatRate),
+    vatAmount:       String(vatAmount),
+    total:           String(total),
+    depositRequired: String(qData.depositRequired || 0),
+    validUntil:      qData.validUntil ?? null,
+    paymentTerms:    qData.paymentTerms ?? null,
+    eventId:         qData.eventId ?? null,
+    updatedAt:       new Date(),
+  }).where(and(eq(eventQuotations.id, c.req.param("id")), eq(eventQuotations.orgId, orgId))).returning();
+  if (!updated) return c.json({ error: "عرض السعر غير موجود" }, 404);
+
+  // Rebuild items
+  await db.delete(eventQuotationItems).where(eq(eventQuotationItems.quotationId, updated.id));
+  if (items && items.length > 0) {
+    await db.insert(eventQuotationItems).values(
+      items.map((it, idx) => ({
+        orgId,
+        quotationId: updated.id,
+        description: it.description,
+        category:    it.category ?? null,
+        qty:         String(it.qty),
+        unitPrice:   String(it.unitPrice),
+        totalPrice:  String(it.qty * it.unitPrice),
+        notes:       it.notes ?? null,
+        sortOrder:   it.sortOrder ?? idx,
+      }))
+    );
+  }
+  return c.json({ data: updated });
+});
+
+// PATCH /events/quotations/:id/status
+eventsRouter.patch("/quotations/:id/status", async (c) => {
+  const orgId = getOrgId(c);
+  const { status } = z.object({ status: z.enum(["draft","sent","accepted","rejected","expired"]) }).parse(await c.req.json());
+  const extra: any = { updatedAt: new Date() };
+  if (status === "sent")     extra.sentAt = new Date();
+  if (status === "accepted") extra.acceptedAt = new Date();
+  const [updated] = await db.update(eventQuotations)
+    .set({ status, ...extra })
+    .where(and(eq(eventQuotations.id, c.req.param("id")), eq(eventQuotations.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "عرض السعر غير موجود" }, 404);
+  return c.json({ data: updated });
+});
+
+// DELETE /events/quotations/:id
+eventsRouter.delete("/quotations/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const [deleted] = await db.delete(eventQuotations)
+    .where(and(eq(eventQuotations.id, c.req.param("id")), eq(eventQuotations.orgId, orgId)))
+    .returning({ id: eventQuotations.id });
+  if (!deleted) return c.json({ error: "عرض السعر غير موجود" }, 404);
+  return c.json({ success: true });
+});
+
+// ============================================================
+// EVENT EXECUTION TASKS — مهام تتبع التنفيذ
+// ============================================================
+
+const createTaskSchema = z.object({
+  eventId:     z.string().uuid().optional().nullable(),
+  quotationId: z.string().uuid().optional().nullable(),
+  title:       z.string().min(1).max(300),
+  description: z.string().optional().nullable(),
+  category:    z.string().optional().nullable(),
+  assignedTo:  z.string().optional().nullable(),
+  dueDate:     z.string().datetime().optional().nullable(),
+  eventPhase:  z.enum(["pre_event","day_of","post_event"]).default("pre_event"),
+  notes:       z.string().optional().nullable(),
+  sortOrder:   z.number().int().optional().default(0),
+});
+
+// GET /events/execution
+eventsRouter.get("/execution", async (c) => {
+  const orgId = getOrgId(c);
+  const eventId = c.req.query("eventId");
+  const status  = c.req.query("status");
+  const phase   = c.req.query("phase");
+  const conditions: any[] = [eq(eventExecutionTasks.orgId, orgId)];
+  if (eventId) conditions.push(eq(eventExecutionTasks.eventId, eventId));
+  if (status)  conditions.push(eq(eventExecutionTasks.status, status as any));
+  if (phase)   conditions.push(eq(eventExecutionTasks.eventPhase, phase));
+  const rows = await db.select().from(eventExecutionTasks)
+    .where(and(...conditions))
+    .orderBy(asc(eventExecutionTasks.sortOrder), asc(eventExecutionTasks.createdAt));
+  return c.json({ data: rows });
+});
+
+// POST /events/execution
+eventsRouter.post("/execution", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const body = createTaskSchema.parse(await c.req.json());
+  const [task] = await db.insert(eventExecutionTasks).values({
+    orgId,
+    eventId:     body.eventId ?? null,
+    quotationId: body.quotationId ?? null,
+    title:       body.title,
+    description: body.description ?? null,
+    category:    body.category ?? null,
+    assignedTo:  body.assignedTo ?? null,
+    dueDate:     body.dueDate ? new Date(body.dueDate) : null,
+    eventPhase:  body.eventPhase,
+    notes:       body.notes ?? null,
+    sortOrder:   body.sortOrder ?? 0,
+    createdBy:   userId,
+  }).returning();
+  return c.json({ data: task }, 201);
+});
+
+// PATCH /events/execution/:id
+eventsRouter.patch("/execution/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const body = createTaskSchema.partial().parse(await c.req.json());
+  const extra: any = { updatedAt: new Date() };
+  if (body.notes !== undefined) extra.notes = body.notes;
+  if ((body as any).status === "done") extra.completedAt = new Date();
+  const [updated] = await db.update(eventExecutionTasks)
+    .set({ ...body, ...extra })
+    .where(and(eq(eventExecutionTasks.id, c.req.param("id")), eq(eventExecutionTasks.orgId, orgId)))
+    .returning();
+  if (!updated) return c.json({ error: "المهمة غير موجودة" }, 404);
+  return c.json({ data: updated });
+});
+
+// DELETE /events/execution/:id
+eventsRouter.delete("/execution/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const [deleted] = await db.delete(eventExecutionTasks)
+    .where(and(eq(eventExecutionTasks.id, c.req.param("id")), eq(eventExecutionTasks.orgId, orgId)))
+    .returning({ id: eventExecutionTasks.id });
+  if (!deleted) return c.json({ error: "المهمة غير موجودة" }, 404);
+  return c.json({ success: true });
 });
