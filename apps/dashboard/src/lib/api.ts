@@ -1740,6 +1740,30 @@ export const schoolApi = {
     periodNumber: number; label?: string;
     startTime: string; endTime: string; isBreak: boolean;
   }) => api.post<{ data: any }>(`/school/timetable-templates/${templateId}/periods`, data),
+  updateTimetableTemplate: (id: string, data: { name?: string; sessionType?: string; description?: string }) =>
+    api.put<{ data: any }>(`/school/timetable-templates/${id}`, data),
+  deleteTimetableTemplate: (id: string) =>
+    api.delete<{ success: boolean }>(`/school/timetable-templates/${id}`),
+  getTimetableTemplatePeriods: (templateId: string) =>
+    api.get<{ data: any[] }>(`/school/timetable-templates/${templateId}/periods`),
+  updateTimetableTemplatePeriod: (templateId: string, periodId: string, data: any) =>
+    api.put<{ data: any }>(`/school/timetable-templates/${templateId}/periods/${periodId}`, data),
+  deleteTimetableTemplatePeriod: (templateId: string, periodId: string) =>
+    api.delete<{ success: boolean }>(`/school/timetable-templates/${templateId}/periods/${periodId}`),
+  listScheduleWeeks: (params?: { templateId?: string; semesterId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.templateId) q.set("templateId", params.templateId);
+    if (params?.semesterId) q.set("semesterId", params.semesterId);
+    return api.get<{ data: any[] }>(`/school/schedule-weeks?${q}`);
+  },
+  createScheduleWeek: (data: { weekNumber: number; startDate: string; endDate: string; templateId?: string; semesterId?: string; label?: string }) =>
+    api.post<{ data: any }>("/school/schedule-weeks", data),
+  updateScheduleWeek: (id: string, data: any) =>
+    api.put<{ data: any }>(`/school/schedule-weeks/${id}`, data),
+  activateScheduleWeek: (id: string) =>
+    api.patch<{ data: any }>(`/school/schedule-weeks/${id}/activate`, {}),
+  deleteScheduleWeek: (id: string) =>
+    api.delete<{ success: boolean }>(`/school/schedule-weeks/${id}`),
 
   // System A — ترحيل ومزامنة
   migrateToSystemA: () =>

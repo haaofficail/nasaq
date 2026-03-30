@@ -18,6 +18,9 @@ export default defineConfig({
       },
     },
   },
+  optimizeDeps: {
+    include: ["xlsx"],
+  },
   build: {
     chunkSizeWarningLimit: 600,
     rollupOptions: {
