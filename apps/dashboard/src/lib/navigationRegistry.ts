@@ -89,6 +89,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
       { name: "المخزون",          href: "/dashboard/inventory",      icon: Box,           requiredCapabilities: ["inventory"] },
       { name: "الفريق",           href: "/dashboard/team",       icon: UsersRound,  requiredCapabilities: [] },
       { name: "المالية",          href: "/dashboard/finance",    icon: Wallet,      requiredCapabilities: [] },
+      { name: "المدفوعات الإلكترونية", href: "/dashboard/payments", icon: CreditCard, requiredCapabilities: [] },
       { name: "التكاملات",        href: "/dashboard/integrations", icon: Plug,       requiredCapabilities: [] },
     ],
   },

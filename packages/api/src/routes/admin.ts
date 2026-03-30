@@ -777,6 +777,8 @@ const ALL_CAPABILITIES = [
   "inventory", "accounting", "delivery", "marketing", "website",
   "attendance", "hotel", "car_rental", "floral", "pos",
   "online_orders", "contracts", "assets",
+  "payment_gateway_nasaq",  // الدفع عبر بوابة نسق المركزية
+  "payment_gateway_own",    // ربط بوابة دفع خاصة بالمنشأة
 ] as const;
 
 adminRouter.get("/orgs/:id/capabilities", async (c) => {

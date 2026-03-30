@@ -137,6 +137,9 @@ const EventsPage             = lz(() => import("./pages/EventsPage"), "EventsPag
 const PackagesPage           = lz(() => import("./pages/PackagesPage"), "PackagesPage");
 const MediaLibraryPage       = lz(() => import("./pages/MediaLibraryPage"), "MediaLibraryPage");
 const AdminPage              = lz(() => import("./pages/AdminPage"), "AdminPage");
+const AdminPaymentsPage      = lz(() => import("./pages/AdminPaymentsPage"), "AdminPaymentsPage");
+const PaymentsPage           = lz(() => import("./pages/PaymentsPage"), "PaymentsPage");
+const PublicPaymentPage      = lz(() => import("./pages/PublicPaymentPage"), "PublicPaymentPage");
 const RemindersPage          = lz(() => import("./pages/RemindersPage"), "RemindersPage");
 const SupportPage            = lz(() => import("./pages/SupportPage"), "SupportPage");
 const GuidePage              = lz(() => import("./pages/GuidePage"), "GuidePage");
@@ -165,6 +168,7 @@ const SchoolAcademicCalendarPage   = lz(() => import("./pages/school/SchoolAcade
 const SchoolGuidePage              = lz(() => import("./pages/school/SchoolGuidePage"), "SchoolGuidePage");
 const SchoolTimetablePage          = lz(() => import("./pages/school/SchoolTimetablePage"), "SchoolTimetablePage");
 const SchoolTeacherWorkPage        = lz(() => import("./pages/school/SchoolTeacherWorkPage"), "SchoolTeacherWorkPage");
+const SchoolTeacherProfilePage     = lz(() => import("./pages/school/SchoolTeacherProfilePage"), "SchoolTeacherProfilePage");
 const SchoolInvitePage             = lz(() => import("./pages/school/SchoolInvitePage"), "SchoolInvitePage");
 
 // ── Loading fallback ───────────────────────────────────────────────
@@ -222,6 +226,7 @@ export default function App() {
 
         {/* Super Admin Panel */}
         <Route path="/admin" element={<RequireAdminAuth><AdminPage /></RequireAdminAuth>} />
+        <Route path="/admin/payments" element={<RequireAdminAuth><AdminPaymentsPage /></RequireAdminAuth>} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/onboarding" element={<OnboardingPage />} />
 
@@ -232,6 +237,7 @@ export default function App() {
         <Route path="/flowers/:slug" element={<PublicFlowerPage />} />
         <Route path="/s/:orgSlug" element={<PublicStorefrontPage />} />
         <Route path="/s/:orgSlug/p/:pageSlug" element={<PublicPagePage />} />
+        <Route path="/pay/:orgSlug" element={<PublicPaymentPage />} />
 
         {/* ── Dashboard (auth required) ── */}
         <Route path="/dashboard" element={<RequireAuth><Layout /></RequireAuth>}>
@@ -349,6 +355,7 @@ export default function App() {
           <Route path="reminders" element={<RemindersPage />} />
           <Route path="support" element={<SupportPage />} />
           <Route path="guide" element={<GuidePage />} />
+          <Route path="payments" element={<PaymentsPage />} />
 
           {/* ── Old school routes → redirect to /school/* ── */}
           <Route path="school/day-monitor"         element={<Navigate to="/school/day-monitor" replace />} />
@@ -389,6 +396,7 @@ export default function App() {
           <Route path="cases"              element={<SchoolCasesPage />} />
           <Route path="import"             element={<SchoolImportPage />} />
           <Route path="teachers"           element={<SchoolTeachersPage />} />
+          <Route path="teachers/:teacherId" element={<SchoolTeacherProfilePage />} />
           <Route path="teachers/:teacherId/schedule" element={<SchoolTeacherSchedulePage />} />
           <Route path="violations"         element={<SchoolViolationsPage />} />
           <Route path="notifications"      element={<SchoolNotificationsPage />} />
@@ -405,6 +413,7 @@ export default function App() {
           <Route path="subjects"          element={<SchoolSubjectsPage />} />
           <Route path="teacher-work"      element={<SchoolTeacherWorkPage />} />
           <Route path="support"           element={<SupportPage />} />
+          <Route path="team"              element={<TeamPage />} />
         </Route>
       </Routes>
     </Suspense>

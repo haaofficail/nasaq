@@ -76,6 +76,7 @@ import { alertsRouter } from "./routes/alerts";
 import { schoolRouter } from "./routes/school";
 import { schoolImportRouter } from "./routes/school-import";
 import { schoolInviteRouter } from "./routes/school-invite";
+import { paymentsRouter } from "./routes/payments";
 
 // ============================================================
 // APP
@@ -553,6 +554,9 @@ app.use("/school/*", authMiddleware);
 app.use("/school/*", methodGuard("settings"));
 app.route("/school", schoolRouter);
 app.route("/school", schoolImportRouter);
+
+// --- Payment Gateway (Moyasar central facilitator) ---
+app.route("/payments", paymentsRouter);
 
 // --- Super Admin Panel ---
 // Note: admin router has its own super-admin middleware, no outer guards needed

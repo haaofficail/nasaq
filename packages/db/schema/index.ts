@@ -39,3 +39,4 @@ export * from "./subscriptions";
 export * from "./notifications";
 export * from "./maintenance";
 export * from "./school";
+export * from "./payment-gateway";

@@ -1468,6 +1468,11 @@ export const schoolApi = {
   // Settings
   getSettings:    () => api.get<{ data: any }>("/school/settings"),
   saveSettings:   (data: any) => api.post<{ data: any }>("/school/settings", data),
+  saveTimingSettings: (data: {
+    sessionStartTime?: string | null; sessionEndTime?: string | null;
+    periodDurationMinutes?: number | null; breakDurationMinutes?: number | null;
+    numberOfPeriods?: number | null; sessionType?: string | null;
+  }) => api.patch<{ data: any }>("/school/settings/timing", data),
 
   // Setup Wizard
   getSetupStatus:   () => api.get<{ data: any }>("/school/setup-status"),
@@ -1511,6 +1516,10 @@ export const schoolApi = {
     api.post<{ data: any }>(`/school/teachers/${teacherId}/assignments`, data),
   deleteTeacherAssignment: (id: string) =>
     api.delete<{ success: boolean }>(`/school/teacher-assignments/${id}`),
+  getTeacherSchedule: (teacherId: string, weekId?: string) => {
+    const q = weekId ? `?weekId=${weekId}` : "";
+    return api.get<{ data: { teacher: any; entries: any[]; weekId: string | null } }>(`/school/teachers/${teacherId}/schedule${q}`);
+  },
 
   // Students (الطلاب)
   listStudents:    (params?: { classRoomId?: string; search?: string; grade?: string; unassigned?: string; page?: string; limit?: string }) => {
@@ -1829,4 +1838,56 @@ export const schoolApi = {
     sessionNotes?: string | null; actionPlan?: string | null;
     nextSessionDate?: string | null; durationMinutes?: number | null; status?: string;
   }) => api.put<{ data: any }>(`/school/counseling/sessions/${id}`, data),
+};
+
+// --- Payment Gateway (بوابة الدفع المركزية) ---
+export const paymentsApi = {
+  // Merchant
+  getSettings:    () => api.get<{ data: any }>("/payments/settings"),
+  updateSettings: (data: any) => api.patch<{ data: any }>("/payments/settings", data),
+  transactions:   (params?: { status?: string; from?: string; to?: string; page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.from)   q.set("from",   params.from);
+    if (params?.to)     q.set("to",     params.to);
+    if (params?.page)   q.set("page",   String(params.page));
+    if (params?.limit)  q.set("limit",  String(params.limit));
+    return api.get<{ data: any[]; total: number }>(`/payments/transactions?${q}`);
+  },
+  stats: () => api.get<{ data: any }>("/payments/transactions/stats"),
+  refund: (id: string, amount?: number) => api.post<{ data: any }>(`/payments/transactions/${id}/refund`, amount ? { amount } : {}),
+
+  // Public (no auth — for customer payment)
+  initiate: (data: {
+    orgSlug: string; invoiceId?: string; bookingId?: string; customerId?: string;
+    amount: number; description?: string; callbackUrl: string; metadata?: Record<string, string>;
+  }) => fetch("/api/v1/payments/initiate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  }).then(r => r.json()),
+
+  // Admin
+  adminStats:       () => api.get<{ data: any }>("/payments/admin/stats"),
+  adminTransactions: (params?: { status?: string; orgId?: string; from?: string; to?: string; page?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.orgId)  q.set("orgId",  params.orgId);
+    if (params?.from)   q.set("from",   params.from);
+    if (params?.to)     q.set("to",     params.to);
+    if (params?.page)   q.set("page",   String(params.page));
+    return api.get<{ data: any[]; total: number }>(`/payments/admin/transactions?${q}`);
+  },
+  adminSettlements: (params?: { status?: string; orgId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.orgId)  q.set("orgId",  params.orgId);
+    return api.get<{ data: any[]; total: number }>(`/payments/admin/settlements?${q}`);
+  },
+  createSettlement: (data: { orgId: string; periodStart: string; periodEnd: string; adminNote?: string }) =>
+    api.post<{ data: any }>("/payments/admin/settlements", data),
+  updateSettlement: (id: string, data: { status?: string; payoutReference?: string; adminNote?: string }) =>
+    api.patch<{ data: any }>(`/payments/admin/settlements/${id}`, data),
+  adminOrgSettings: (orgId: string) => api.get<{ data: any }>(`/payments/admin/org-settings/${orgId}`),
+  updateOrgSettings: (orgId: string, data: any) => api.patch<{ data: any }>(`/payments/admin/org-settings/${orgId}`, data),
 };
