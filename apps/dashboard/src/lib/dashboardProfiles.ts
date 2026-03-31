@@ -12,7 +12,7 @@ import {
   bookingsApi, customersApi, servicesApi, flowerMasterApi,
   hotelApi, carRentalApi, inventoryApi, financeApi,
   attendanceEngineApi, onlineOrdersApi, flowerBuilderApi,
-  propertyApi,
+  propertyApi, eventsApi,
 } from "./api";
 import { BookingStatusWidget } from "@/components/dashboard/widgets/BookingStatusWidget";
 import { RecentBookingsWidget } from "@/components/dashboard/widgets/RecentBookingsWidget";
@@ -27,6 +27,9 @@ import { InventoryAlertWidget } from "@/components/dashboard/widgets/InventoryAl
 import { OnlineOrdersWidget } from "@/components/dashboard/widgets/OnlineOrdersWidget";
 import { TodayScheduleSummaryWidget } from "@/components/dashboard/widgets/TodayScheduleSummaryWidget";
 import { RecentActivityWidget } from "@/components/dashboard/widgets/RecentActivityWidget";
+import { PropertyMaintenanceWidget } from "@/components/dashboard/widgets/PropertyMaintenanceWidget";
+import { EventQuotationsWidget } from "@/components/dashboard/widgets/EventQuotationsWidget";
+import { SalesChartWidget } from "@/components/dashboard/widgets/SalesChartWidget";
 
 export type Role = "owner" | "admin" | "manager" | "branch_manager" | "staff" | "operator";
 
@@ -247,6 +250,30 @@ const recentActivityWidget = (size: WidgetConfig["size"] = "half"): WidgetConfig
   size,
   allowedRoles: [],
   component: RecentActivityWidget,
+});
+
+const propertyMaintenanceWidget = (size: WidgetConfig["size"] = "half"): WidgetConfig => ({
+  id: "property-maintenance",
+  label: "طلبات الصيانة",
+  size,
+  allowedRoles: [],
+  component: PropertyMaintenanceWidget,
+});
+
+const eventQuotationsWidget = (size: WidgetConfig["size"] = "half"): WidgetConfig => ({
+  id: "event-quotations",
+  label: "عروض الأسعار",
+  size,
+  allowedRoles: [],
+  component: EventQuotationsWidget,
+});
+
+const salesChartWidget = (size: WidgetConfig["size"] = "two-thirds"): WidgetConfig => ({
+  id: "sales-chart",
+  label: "المبيعات",
+  size,
+  allowedRoles: ["owner", "admin", "manager"],
+  component: SalesChartWidget,
 });
 
 // ============================================================
@@ -497,7 +524,7 @@ const profiles: Record<string, DashboardProfile> = {
       { id: "suppliers",    label: "الموردون",   href: "/dashboard/suppliers",   icon: Package,       bg: "bg-amber-50",   text: "text-amber-600",   allowedRoles: ["owner", "admin", "manager"] },
       { id: "reports",      label: "التقارير",   href: "/dashboard/reports",     icon: BarChart2,     bg: "bg-rose-50",    text: "text-rose-600",    allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [todayScheduleWidget(), recentBookingsWidget(), staffWidget(), recentActivityWidget()],
+    widgets: [todayScheduleWidget(), recentBookingsWidget(), staffWidget(), salesChartWidget("full"), recentActivityWidget()],
   },
 
   barber: {
@@ -564,6 +591,7 @@ const profiles: Record<string, DashboardProfile> = {
       { id: "online-orders-widget", label: "الطلبات الإلكترونية", size: "third",      allowedRoles: [], component: OnlineOrdersWidget },
       staffWidget(),
       recentBookingsWidget("full"),
+      salesChartWidget("full"),
       recentActivityWidget(),
     ],
   },
@@ -855,44 +883,66 @@ const profiles: Record<string, DashboardProfile> = {
       revenueKpi(),
       bookingsKpi("event-bookings", "الفعاليات", "فعالية"),
       {
-        id: "available-assets",
-        label: "الأصول المتاحة",
-        unit: "أصل",
-        icon: Package,
-        bg: "bg-teal-50",
-        iconColor: "text-teal-600",
-        fetcher: () => inventoryApi.report(),
-        transform: (d) => String(d?.data?.availableCount ?? d?.data?.available ?? 0),
-        allowedRoles: [],
+        id: "event-quotations",
+        label: "عروض الأسعار المرسلة",
+        unit: "عرض",
+        icon: FileText,
+        bg: "bg-blue-50",
+        iconColor: "text-blue-600",
+        fetcher: () => eventsApi.quotations({ status: "sent" }),
+        transform: (d) => String((d as any)?.data?.length ?? 0),
+        allowedRoles: ["owner", "admin", "manager"],
       },
       customersKpi(),
     ],
     quickActions: [
-      { id: "new-booking", modal: "booking" as const,  label: "حجز جديد",  href: "/dashboard/bookings",  icon: CalendarCheck, bg: "bg-blue-50",   text: "text-blue-600",   allowedRoles: [] },
-      { id: "assets",       label: "الأصول",    href: "/dashboard/assets",    icon: Package,       bg: "bg-teal-50",   text: "text-teal-600",   allowedRoles: [] },
-      { id: "new-customer", modal: "customer" as const, label: "عميل جديد", href: "/dashboard/customers", icon: Users,         bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
-      { id: "reports",      label: "التقارير",  href: "/dashboard/reports",   icon: BarChart2,     bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
+      { id: "new-booking",   modal: "booking" as const,   label: "حجز جديد",      href: "/dashboard/bookings",        icon: CalendarCheck, bg: "bg-blue-50",    text: "text-blue-600",    allowedRoles: [] },
+      { id: "new-quotation", label: "عرض سعر",             href: "/dashboard/event-quotations", icon: FileText,      bg: "bg-indigo-50",  text: "text-indigo-600",  allowedRoles: ["owner", "admin", "manager"] },
+      { id: "assets",        label: "الأصول",              href: "/dashboard/assets",           icon: Package,       bg: "bg-teal-50",    text: "text-teal-600",    allowedRoles: [] },
+      { id: "new-customer",  modal: "customer" as const,   label: "عميل جديد",     href: "/dashboard/customers",       icon: Users,         bg: "bg-violet-50",  text: "text-violet-600",  allowedRoles: [] },
+      { id: "reports",       label: "التقارير",             href: "/dashboard/reports",          icon: BarChart2,     bg: "bg-rose-50",    text: "text-rose-600",    allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [bookingStatusWidget(), recentBookingsWidget(), inventoryAlertWidget(), recentActivityWidget()],
+    widgets: [
+      eventQuotationsWidget("third"),
+      bookingStatusWidget(),
+      recentBookingsWidget("full"),
+      inventoryAlertWidget(),
+      recentActivityWidget(),
+    ],
   },
 
   event_organizer: {
     profileKey: "event_organizer",
     label: "تنظيم الفعاليات",
-    primaryAction: { label: "مشروع جديد", href: "/dashboard/bookings" },
+    primaryAction: { label: "عرض سعر جديد", href: "/dashboard/event-quotations" },
     kpis: [
       revenueKpi(),
       bookingsKpi("projects", "المشاريع", "مشروع"),
+      {
+        id: "active-quotations",
+        label: "عروض نشطة",
+        unit: "عرض",
+        icon: FileText,
+        bg: "bg-blue-50",
+        iconColor: "text-blue-600",
+        fetcher: () => eventsApi.quotations(),
+        transform: (d) => String(((d as any)?.data ?? []).filter((q: any) => ["sent","draft"].includes(q.status)).length),
+        allowedRoles: ["owner", "admin", "manager"],
+      },
       customersKpi("clients", "العملاء", "عميل"),
-      pendingKpi("pending-projects", "مشاريع معلقة", "مشروع"),
     ],
     quickActions: [
-      { id: "new-project",  label: "مشروع جديد", href: "/dashboard/bookings",  icon: Briefcase,     bg: "bg-blue-50",   text: "text-blue-600",   allowedRoles: [] },
-      { id: "contracts",    label: "العقود",      href: "/dashboard/contracts", icon: CalendarCheck, bg: "bg-teal-50",   text: "text-teal-600",   allowedRoles: ["owner", "admin", "manager"] },
-      { id: "new-customer", modal: "customer" as const, label: "عميل جديد",  href: "/dashboard/customers", icon: Users,         bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
-      { id: "reports",      label: "التقارير",   href: "/dashboard/reports",   icon: BarChart2,     bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
+      { id: "new-quotation", label: "عرض سعر جديد", href: "/dashboard/event-quotations", icon: FileText,      bg: "bg-blue-50",   text: "text-blue-600",   allowedRoles: ["owner", "admin", "manager"] },
+      { id: "new-project",   label: "فعالية جديدة",  href: "/dashboard/bookings",          icon: CalendarCheck, bg: "bg-indigo-50", text: "text-indigo-600", allowedRoles: [] },
+      { id: "new-customer",  modal: "customer" as const, label: "عميل جديد", href: "/dashboard/customers", icon: Users, bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
+      { id: "reports",       label: "التقارير",      href: "/dashboard/reports",           icon: BarChart2,     bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
+    widgets: [
+      eventQuotationsWidget("two-thirds"),
+      bookingStatusWidget(),
+      recentBookingsWidget("full"),
+      recentActivityWidget(),
+    ],
   },
 
   // ──────────────────────────────────────────────────────────
@@ -931,12 +981,13 @@ const profiles: Record<string, DashboardProfile> = {
       pendingKpi("pending-sessions", "جلسات معلقة", "جلسة"),
     ],
     quickActions: [
-      { id: "new-booking", modal: "booking" as const,  label: "حجز جلسة",   href: "/dashboard/bookings",  icon: Camera,    bg: "bg-indigo-50", text: "text-indigo-600", allowedRoles: [] },
-      { id: "new-service", modal: "service" as const,  label: "باقة جديدة", href: "/dashboard/services",  icon: Package,   bg: "bg-teal-50",   text: "text-teal-600",   allowedRoles: [] },
-      { id: "new-customer", modal: "customer" as const, label: "عميل جديد",  href: "/dashboard/customers", icon: Users,     bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
-      { id: "reports",      label: "التقارير",   href: "/dashboard/reports",   icon: BarChart2, bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
+      { id: "new-booking",  modal: "booking"  as const, label: "حجز جلسة",    href: "/dashboard/bookings",  icon: Camera,    bg: "bg-indigo-50", text: "text-indigo-600", allowedRoles: [] },
+      { id: "new-service",  modal: "service"  as const, label: "باقة جديدة",  href: "/dashboard/services",  icon: Package,   bg: "bg-teal-50",   text: "text-teal-600",   allowedRoles: [] },
+      { id: "new-customer", modal: "customer" as const, label: "عميل جديد",   href: "/dashboard/customers", icon: Users,     bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
+      { id: "media",         label: "مكتبة الوسائط",    href: "/dashboard/media",     icon: Camera,    bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: [] },
+      { id: "reports",       label: "التقارير",          href: "/dashboard/reports",   icon: BarChart2, bg: "bg-amber-50",  text: "text-amber-600",  allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
+    widgets: [todayScheduleWidget("third"), recentBookingsWidget(), bookingStatusWidget(), topServicesWidget(), recentActivityWidget()],
   },
 
   // ──────────────────────────────────────────────────────────
@@ -993,12 +1044,18 @@ const profiles: Record<string, DashboardProfile> = {
       },
     ],
     quickActions: [
-      { id: "new-contract",   label: "عقد جديد",     href: "/dashboard/property/contracts",   icon: FileText,    bg: "bg-blue-50",    text: "text-blue-600",    allowedRoles: [] },
-      { id: "quick-payment",  label: "دفعة سريعة",   href: "/dashboard/property/quick-payment",icon: Zap,         bg: "bg-emerald-50", text: "text-emerald-600", allowedRoles: [] },
-      { id: "new-maintenance",label: "طلب صيانة",    href: "/dashboard/property/maintenance",  icon: Wrench,      bg: "bg-amber-50",   text: "text-amber-600",   allowedRoles: [] },
-      { id: "compliance",     label: "الامتثال",     href: "/dashboard/property/compliance",   icon: ShieldCheck, bg: "bg-teal-50",    text: "text-teal-600",    allowedRoles: ["owner", "admin", "manager"] },
+      { id: "new-contract",    label: "عقد جديد",        href: "/dashboard/property/contracts",    icon: FileText,    bg: "bg-blue-50",    text: "text-blue-600",    allowedRoles: [] },
+      { id: "quick-payment",   label: "دفعة سريعة",      href: "/dashboard/property/quick-payment", icon: Zap,         bg: "bg-emerald-50", text: "text-emerald-600", allowedRoles: [] },
+      { id: "new-maintenance", label: "طلب صيانة",       href: "/dashboard/property/maintenance",   icon: Wrench,      bg: "bg-amber-50",   text: "text-amber-600",   allowedRoles: [] },
+      { id: "portfolio",       label: "المحفظة",          href: "/dashboard/property/portfolio",     icon: Briefcase,   bg: "bg-violet-50",  text: "text-violet-600",  allowedRoles: ["owner", "admin", "manager"] },
+      { id: "compliance",      label: "الامتثال",         href: "/dashboard/property/compliance",    icon: ShieldCheck, bg: "bg-teal-50",    text: "text-teal-600",    allowedRoles: ["owner", "admin", "manager"] },
+      { id: "investment",      label: "تحليل الاستثمار",  href: "/dashboard/property/investment",    icon: BarChart2,   bg: "bg-rose-50",    text: "text-rose-600",    allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [],
+    widgets: [
+      propertyMaintenanceWidget("two-thirds"),
+      recentActivityWidget("third"),
+      salesChartWidget("full"),
+    ],
   },
 
   // ──────────────────────────────────────────────────────────
