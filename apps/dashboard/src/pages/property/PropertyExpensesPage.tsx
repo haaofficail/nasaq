@@ -58,16 +58,16 @@ export function PropertyExpensesPage() {
     chargeToOwner: false, chargeToTenant: false, notes: "",
   });
 
-  const { data: propsData } = useApi(() => propertyApi.properties({}), []);
+  const { data: propsData } = useApi(() => propertyApi.properties.list(), []);
   const properties: any[] = (propsData as any)?.data ?? [];
 
   const { data: unitsData } = useApi(
-    () => form.propertyId ? propertyApi.units({ propertyId: form.propertyId }) : Promise.resolve({ data: [] }),
+    () => form.propertyId ? propertyApi.units.list({ propertyId: form.propertyId }) : Promise.resolve({ data: [] }),
     [form.propertyId]
   );
   const filteredUnits: any[] = (unitsData as any)?.data ?? [];
 
-  const { data, loading, error, refetch } = useApi(() => propertyApi.expenses({}), []);
+  const { data, loading, error, refetch } = useApi(() => propertyApi.expenses.list(), []);
   const expenses: any[] = (data as any)?.data ?? [];
 
   const { data: summaryData } = useApi(() => propertyApi.expensesSummary(), []);

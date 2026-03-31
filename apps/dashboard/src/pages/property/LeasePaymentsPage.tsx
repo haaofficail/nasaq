@@ -27,6 +27,21 @@ const SOURCE_COLORS: Record<string, string> = {
   online_portal: "bg-emerald-100 text-emerald-700",
 };
 
+const METHOD_ICONS: Record<string, string> = {
+  cash: "＄",
+  bank_transfer: "⇄",
+  cheque: "⬜",
+  mada: "M",
+  visa: "V",
+  stc_pay: "S",
+};
+
+const SOURCE_ICONS: Record<string, string> = {
+  direct: "⊙",
+  via_ejar: "⊛",
+  online_portal: "⊕",
+};
+
 function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
@@ -69,7 +84,7 @@ export function LeasePaymentsPage() {
   if (dateFrom) params.from = dateFrom;
   if (dateTo) params.to = dateTo;
 
-  const { data, loading, error, refetch } = useApi(() => propertyApi.payments(params), [methodFilter, sourceFilter, dateFrom, dateTo]);
+  const { data, loading, error, refetch } = useApi(() => propertyApi.payments.list(params), [methodFilter, sourceFilter, dateFrom, dateTo]);
   const payments: any[] = (data as any)?.data ?? [];
 
   const { mutate: createPayment, loading: creating } = useMutation((d: any) => propertyApi.createPayment(d));
@@ -142,12 +157,14 @@ export function LeasePaymentsPage() {
                   <td className="px-4 py-3 text-gray-500">{p.contractNumber ?? "—"}</td>
                   <td className="px-4 py-3 font-medium text-emerald-700">{Number(p.amount ?? 0).toLocaleString("en-US")} ريال</td>
                   <td className="px-4 py-3">
-                    <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", METHOD_COLORS[p.method] ?? "bg-gray-100 text-gray-600")}>
+                    <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium inline-flex items-center gap-1", METHOD_COLORS[p.method] ?? "bg-gray-100 text-gray-600")}>
+                      <span className="font-mono text-xs">{METHOD_ICONS[p.method] ?? "—"}</span>
                       {METHOD_AR[p.method] ?? p.method}
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", SOURCE_COLORS[p.paymentSource] ?? "bg-gray-100 text-gray-600")}>
+                    <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium inline-flex items-center gap-1", SOURCE_COLORS[p.paymentSource] ?? "bg-gray-100 text-gray-600")}>
+                      <span className="font-mono text-xs">{SOURCE_ICONS[p.paymentSource] ?? "—"}</span>
                       {SOURCE_AR[p.paymentSource] ?? p.paymentSource ?? "—"}
                     </span>
                   </td>

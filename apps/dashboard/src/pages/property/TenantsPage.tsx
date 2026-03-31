@@ -46,7 +46,7 @@ export function TenantsPage() {
   const [tenantTab, setTenantTab] = useState<"contracts" | "payments" | "maintenance">("contracts");
 
   const { data, loading, error, refetch } = useApi(
-    () => propertyApi.tenants({ search }),
+    () => propertyApi.tenants.list({ search }),
     [search]
   );
 

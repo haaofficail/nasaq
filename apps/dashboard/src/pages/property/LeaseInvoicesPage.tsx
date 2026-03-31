@@ -58,20 +58,33 @@ export function LeaseInvoicesPage() {
   if (statusFilter) params.status = statusFilter;
   if (search) params.search = search;
 
-  const { data, loading, error, refetch } = useApi(() => propertyApi.invoices(params), [statusFilter, search]);
+  const { data, loading, error, refetch } = useApi(() => propertyApi.invoices.list(params), [statusFilter, search]);
   const invoices: any[] = (data as any)?.data ?? [];
 
   const { mutate: generateInvoices, loading: generating } = useMutation(() => propertyApi.generateInvoices());
   const { mutate: payInvoice, loading: paying } = useMutation((d: any) => propertyApi.payInvoice(showPay?.id, d));
   const { mutate: sendInvoice } = useMutation((id: string) => propertyApi.sendInvoice(id));
   const { mutate: cancelInvoice } = useMutation((id: string) => propertyApi.cancelInvoice(id));
+  const { mutate: sendReminders, loading: reminding } = useMutation(() =>
+    Promise.all(
+      invoices
+        .filter((inv: any) => ["pending", "overdue", "sent"].includes(inv.status))
+        .map((inv: any) => propertyApi.sendInvoice(inv.id))
+    )
+  );
 
   async function handleGenerate() {
     const res = await generateInvoices(undefined);
     if (res) {
-      toast.success(`تم إنشاء ${(res as any).count ?? 0} فاتورة`);
+      toast.success(`تم إنشاء ${(res as any).count ?? (res as any).data?.count ?? 0} فاتورة`);
       refetch();
     }
+  }
+
+  async function handleSendReminders() {
+    await sendReminders(undefined);
+    toast.success("تم إرسال التذكيرات للفواتير المعلقة");
+    refetch();
   }
 
   async function handlePay() {
@@ -105,13 +118,22 @@ export function LeaseInvoicesPage() {
           <h1 className="text-2xl font-bold text-gray-900">فواتير الإيجار</h1>
           <p className="text-sm text-gray-500 mt-0.5">متابعة الفواتير والمدفوعات</p>
         </div>
-        <button
-          onClick={handleGenerate}
-          disabled={generating}
-          className="bg-emerald-600 text-white hover:bg-emerald-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
-        >
-          {generating ? "جارٍ الإنشاء..." : "إنشاء فواتير الشهر"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={handleSendReminders}
+            disabled={reminding}
+            className="border border-yellow-300 text-yellow-700 hover:bg-yellow-50 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {reminding ? "جارٍ الإرسال..." : "أرسل تذكيرات"}
+          </button>
+          <button
+            onClick={handleGenerate}
+            disabled={generating}
+            className="bg-emerald-600 text-white hover:bg-emerald-700 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+          >
+            {generating ? "جارٍ الإنشاء..." : "أصدر فواتير الشهر"}
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -173,9 +195,16 @@ export function LeaseInvoicesPage() {
                       {balance.toLocaleString("en-US")} ريال
                     </td>
                     <td className="px-4 py-3">
-                      <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", INVOICE_STATUS_COLORS[inv.status] ?? "bg-gray-100 text-gray-600")}>
-                        {INVOICE_STATUS_AR[inv.status] ?? inv.status}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", INVOICE_STATUS_COLORS[inv.status] ?? "bg-gray-100 text-gray-600")}>
+                          {INVOICE_STATUS_AR[inv.status] ?? inv.status}
+                        </span>
+                        {inv.isCommercial && (
+                          <span className="bg-teal-100 text-teal-700 rounded-full px-2 py-0.5 text-xs font-medium">
+                            ZATCA
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">

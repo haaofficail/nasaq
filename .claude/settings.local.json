@@ -219,7 +219,26 @@
       "WebFetch(domain:shbabbek.com)",
       "Bash(xargs -I {} basename {})",
       "Bash(pnpm --filter api exec tsc --noEmit)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(npx drizzle-kit:*)",
+      "Bash(__NEW_LINE_762fcf25d45e73e1__ rsync:*)",
+      "Bash(__NEW_LINE_237a21894bb36202__ rsync:*)",
+      "Bash(__NEW_LINE_0d920c305aa43ac5__ rsync:*)",
+      "Bash(find /Users/thwany/Desktop/nasaq/apps/dashboard/src/pages -type f \\\\\\(-name *Finance* -o -name *Invoice* -o -name *Payment* \\\\\\))",
+      "Bash(dig:*)",
+      "Bash(whois nasaq.sa)",
+      "Bash(/Users/thwany/Desktop/nasaq/apps/dashboard/node_modules/.bin/tsc --noEmit -p /Users/thwany/Desktop/nasaq/apps/dashboard/tsconfig.json)",
+      "Bash(HASH=\"be9dc305f0347368b07174c46bb99928:bc2f91c72813ebd7de1d9a5a866740172bd177ed30f1ad37dacc50a3d66e87f50a293d57ff2768e0fd77a48a655f4d06bfd067e48318c61d1141115c6b6f7a28\")",
+      "Bash(TEMPLATE_ID=\"fdd615ba-6c4c-4688-a79f-9a20ab70f3d3\")",
+      "Bash(SEMESTER_ID=\"41c95ee0-f00c-44d3-a6a5-c41470a38b23\")",
+      "Bash(TOKEN=\"fb2YPc9dh-mfF1B-LETKqG91D2i2k1O3RgPXQgoPrywipozZVTznPqFOMk4BBBvv\")",
+      "Bash(__NEW_LINE_3e29fdb92534f305__ ssh:*)",
+      "Bash(WEEK_ID=\"eec97433-5824-4cba-9efb-bc22b52c4698\")",
+      "Bash(__NEW_LINE_551ce8e0fc945181__ ssh:*)",
+      "Bash(__NEW_LINE_9561f5752de560b2__ ssh:*)",
+      "Bash(head -20 grep -n \"getVehicle\\\\|updateInspection\\\\|pickup\\\\|\\\\.return\\\\b\" /Users/thwany/Desktop/nasaq/apps/dashboard/src/pages/CarRentalPage.tsx)",
+      "Bash(head -30 grep -n \"hotelApi\\\\.\\\\|carRentalApi\\\\.\" /Users/thwany/Desktop/nasaq/apps/dashboard/src/pages/CarRentalPage.tsx)",
+      "Bash(head -10 grep -n \"export const financeApi\\\\|export const paymentsApi\\\\|export const accountingApi\" /Users/thwany/Desktop/nasaq/apps/dashboard/src/lib/api.ts)"
     ]
   }
 }

@@ -13,7 +13,20 @@ import {
   propertyMaintenance,
   propertyInspections,
   leaseReminders,
+  propertyOwners,
+  propertyDocuments,
+  propertyValuations,
+  propertyConstruction,
+  constructionPhases,
+  constructionDailyLogs,
+  constructionCosts,
+  constructionPayments,
+  constructionChangeOrders,
+  propertyListings,
+  propertyInquiries,
+  propertySales,
   customers,
+  organizations,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
@@ -1773,4 +1786,702 @@ propertyRouter.post("/portal/:contractId/maintenance", async (c) => {
     console.error(err);
     return apiErr(c, "SRV_INTERNAL", 500);
   }
+});
+
+// ============================================================
+// PROPERTY OWNERS — ملاك العقارات
+// ============================================================
+
+propertyRouter.get("/owners", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { limit, offset } = getPagination(c);
+    const rows = await db
+      .select()
+      .from(propertyOwners)
+      .where(eq(propertyOwners.orgId, orgId))
+      .orderBy(desc(propertyOwners.createdAt))
+      .limit(limit).offset(offset);
+    const [{ total }] = await db.select({ total: count() }).from(propertyOwners).where(eq(propertyOwners.orgId, orgId));
+    return c.json({ data: rows, pagination: { total: Number(total), limit, offset } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.post("/owners", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const body = await c.req.json();
+    const [row] = await db.insert(propertyOwners).values({ ...body as any, orgId }).returning();
+    return c.json({ data: row }, 201);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/owners/:id", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const [owner] = await db.select().from(propertyOwners).where(and(eq(propertyOwners.id, id), eq(propertyOwners.orgId, orgId)));
+    if (!owner) return c.json({ error: "غير موجود" }, 404);
+    const props = await db.select().from(properties).where(and(eq(properties.orgId, orgId), eq(properties.propertyOwnerId, id)));
+    return c.json({ data: { ...owner, properties: props } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.put("/owners/:id", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const body = await c.req.json();
+    const [row] = await db.update(propertyOwners).set({ ...body as any, updatedAt: new Date() }).where(and(eq(propertyOwners.id, id), eq(propertyOwners.orgId, orgId))).returning();
+    if (!row) return c.json({ error: "غير موجود" }, 404);
+    return c.json({ data: row });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.delete("/owners/:id", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    await db.delete(propertyOwners).where(and(eq(propertyOwners.id, id), eq(propertyOwners.orgId, orgId)));
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/owners/:id/report", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const [owner] = await db.select().from(propertyOwners).where(and(eq(propertyOwners.id, id), eq(propertyOwners.orgId, orgId)));
+    if (!owner) return c.json({ error: "غير موجود" }, 404);
+    const props = await db.select({ id: properties.id }).from(properties).where(and(eq(properties.orgId, orgId), eq(properties.propertyOwnerId, id)));
+    const propIds = props.map(p => p.id);
+    let totalIncome = 0;
+    let totalExpenses = 0;
+    if (propIds.length > 0) {
+      const payments = await db.select({ amount: leasePayments.amount }).from(leasePayments).where(and(eq(leasePayments.orgId, orgId)));
+      totalIncome = payments.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+      const expenses = await db.select({ amount: propertyExpenses.amount }).from(propertyExpenses).where(and(eq(propertyExpenses.orgId, orgId)));
+      totalExpenses = expenses.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    }
+    const managementFee = owner.managementFeeType === "percentage"
+      ? totalIncome * (Number(owner.managementFeePercent || 0) / 100)
+      : Number(owner.managementFeeFixed || 0);
+    const netToOwner = totalIncome - totalExpenses - managementFee;
+    return c.json({ data: { owner, totalIncome, totalExpenses, managementFee, netToOwner, propertiesCount: propIds.length } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ============================================================
+// COMPLIANCE — الامتثال التنظيمي
+// ============================================================
+
+propertyRouter.get("/properties/:id/compliance", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const [prop] = await db.select().from(properties).where(and(eq(properties.id, id), eq(properties.orgId, orgId)));
+    if (!prop) return c.json({ error: "غير موجود" }, 404);
+    const today = new Date();
+    const contracts = await db.select({ ejarStatus: leaseContracts.ejarStatus }).from(leaseContracts).where(and(eq(leaseContracts.orgId, orgId), eq(leaseContracts.propertyId, id), eq(leaseContracts.status, "active")));
+    const undocumentedContracts = contracts.filter(c => c.ejarStatus !== "documented").length;
+    const docs = await db.select({ expiryDate: propertyDocuments.expiryDate, docType: propertyDocuments.docType }).from(propertyDocuments).where(and(eq(propertyDocuments.orgId, orgId), eq(propertyDocuments.propertyId, id)));
+    const insuranceDoc = docs.find(d => d.docType === "insurance");
+    const insuranceValid = insuranceDoc?.expiryDate ? new Date(insuranceDoc.expiryDate) > today : false;
+    const civilDefenseValid = (prop as any).civilDefenseLicenseExpiry ? new Date((prop as any).civilDefenseLicenseExpiry) > today : false;
+    const buildingPermitActive = (prop as any).buildingPermitStatus === "active";
+    const whiteLandOk = !(prop as any).whiteLandApplicable || ((prop as any).whiteLandNextDueDate ? new Date((prop as any).whiteLandNextDueDate) > today : true);
+    const checks = {
+      rerRegistered: { ok: (prop as any).rerRegistered === true, label: "مسجل في السجل العيني", link: "https://rer.sa", action: "سجّل عقارك في منصة السجل العيني" },
+      buildingPermitActive: { ok: buildingPermitActive, label: "رخصة بناء سارية", link: "https://balady.gov.sa", action: "جدّد رخصة البناء عبر منصة بلدي" },
+      occupancyCertificate: { ok: (prop as any).occupancyCertificate === true, label: "شهادة إشغال", link: "https://balady.gov.sa", action: "استخرج شهادة الإشغال من بلدي" },
+      civilDefenseValid: { ok: civilDefenseValid, label: "رخصة دفاع مدني سارية", link: "https://cd.gov.sa", action: "جدّد رخصة الدفاع المدني" },
+      insuranceValid: { ok: insuranceValid, label: "تأمين ساري", link: null, action: "أضف وثيقة تأمين سارية" },
+      allContractsEjar: { ok: undocumentedContracts === 0, label: "كل العقود موثقة في إيجار", link: "https://ejar.sa", action: `وثّق ${undocumentedContracts} عقد في منصة إيجار` },
+      whiteLandFees: { ok: whiteLandOk, label: "رسوم أراضي بيضاء مسددة", link: "https://wlf.mof.gov.sa", action: "سدّد رسوم الأراضي البيضاء" },
+      mullakRegistered: { ok: !(prop as any).hasOwnersAssociation || (prop as any).mullakRegistered, label: "مسجل في ملاك", link: "https://mullak.sa", action: "سجّل في منصة ملاك لجمعيات الملاك" },
+      buildingCodeCompliant: { ok: (prop as any).buildingCodeCompliant === true, label: "مطابق لكود البناء", link: "https://momra.gov.sa", action: "تأكد من مطابقة العقار لكود البناء السعودي" },
+    };
+    const passCount = Object.values(checks).filter(c => c.ok).length;
+    const score = Math.round((passCount / 9) * 100);
+    return c.json({ data: { propertyId: id, propertyName: prop.name, score, checks } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/compliance/alerts", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const today = new Date();
+    const in30 = new Date(); in30.setDate(in30.getDate() + 30);
+    const alerts: any[] = [];
+    const props = await db.select().from(properties).where(and(eq(properties.orgId, orgId), eq(properties.isActive, true)));
+    for (const prop of props) {
+      if (!(prop as any).rerRegistered) alerts.push({ type: "rer", severity: "high", propertyId: prop.id, propertyName: prop.name, message: "غير مسجل في السجل العيني" });
+      if ((prop as any).whiteLandApplicable && (prop as any).whiteLandNextDueDate) {
+        const due = new Date((prop as any).whiteLandNextDueDate);
+        if (due <= in30) alerts.push({ type: "white_land", severity: "high", propertyId: prop.id, propertyName: prop.name, message: `رسوم الأراضي البيضاء مستحقة: ${due.toLocaleDateString("ar-SA")}` });
+      }
+    }
+    const contracts = await db.select().from(leaseContracts).where(and(eq(leaseContracts.orgId, orgId), eq(leaseContracts.status, "active")));
+    for (const contract of contracts) {
+      if (contract.ejarStatus !== "documented") alerts.push({ type: "ejar", severity: "medium", contractId: contract.id, contractNumber: contract.contractNumber, message: "عقد غير موثق في منصة إيجار" });
+    }
+    const docs = await db.select().from(propertyDocuments).where(and(eq(propertyDocuments.orgId, orgId)));
+    for (const doc of docs) {
+      if (doc.expiryDate) {
+        const exp = new Date(doc.expiryDate);
+        if (exp <= today) alerts.push({ type: "document_expired", severity: "high", documentId: doc.id, message: `وثيقة منتهية: ${doc.title}` });
+        else if (exp <= in30) alerts.push({ type: "document_expiring", severity: "medium", documentId: doc.id, message: `وثيقة تنتهي قريباً: ${doc.title}` });
+      }
+    }
+    return c.json({ data: alerts });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ============================================================
+// PROPERTY DOCUMENTS — وثائق العقار
+// ============================================================
+
+propertyRouter.get("/documents", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { limit, offset } = getPagination(c);
+    const propertyId = c.req.query("propertyId");
+    const conditions = [eq(propertyDocuments.orgId, orgId)];
+    if (propertyId) conditions.push(eq(propertyDocuments.propertyId, propertyId));
+    const rows = await db.select().from(propertyDocuments).where(and(...conditions)).orderBy(desc(propertyDocuments.createdAt)).limit(limit).offset(offset);
+    const [{ total }] = await db.select({ total: count() }).from(propertyDocuments).where(and(...conditions));
+    return c.json({ data: rows, pagination: { total: Number(total), limit, offset } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/documents/expiring", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const in30 = new Date(); in30.setDate(in30.getDate() + 30);
+    const rows = await db.select().from(propertyDocuments).where(and(eq(propertyDocuments.orgId, orgId), lte(propertyDocuments.expiryDate, in30.toISOString().split("T")[0]))).orderBy(asc(propertyDocuments.expiryDate));
+    return c.json({ data: rows });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.post("/documents", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const body = await c.req.json();
+    const [row] = await db.insert(propertyDocuments).values({ ...body as any, orgId }).returning();
+    return c.json({ data: row }, 201);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.put("/documents/:id", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const body = await c.req.json();
+    const [row] = await db.update(propertyDocuments).set({ ...body as any, updatedAt: new Date() }).where(and(eq(propertyDocuments.id, id), eq(propertyDocuments.orgId, orgId))).returning();
+    return c.json({ data: row });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.delete("/documents/:id", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    await db.delete(propertyDocuments).where(and(eq(propertyDocuments.id, id), eq(propertyDocuments.orgId, orgId)));
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ============================================================
+// PROPERTY VALUATIONS — تقييمات العقار
+// ============================================================
+
+propertyRouter.get("/valuations", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { limit, offset } = getPagination(c);
+    const propertyId = c.req.query("propertyId");
+    const conditions = [eq(propertyValuations.orgId, orgId)];
+    if (propertyId) conditions.push(eq(propertyValuations.propertyId, propertyId));
+    const rows = await db.select().from(propertyValuations).where(and(...conditions)).orderBy(desc(propertyValuations.valuationDate)).limit(limit).offset(offset);
+    const [{ total }] = await db.select({ total: count() }).from(propertyValuations).where(and(...conditions));
+    return c.json({ data: rows, pagination: { total: Number(total), limit, offset } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.post("/valuations", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const body = await c.req.json();
+    const [row] = await db.insert(propertyValuations).values({ ...body as any, orgId }).returning();
+    return c.json({ data: row }, 201);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.delete("/valuations/:id", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    await db.delete(propertyValuations).where(and(eq(propertyValuations.id, id), eq(propertyValuations.orgId, orgId)));
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ============================================================
+// PROPERTY CONSTRUCTION — إدارة الإنشاء
+// ============================================================
+
+propertyRouter.get("/construction", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const rows = await db.select().from(propertyConstruction).where(eq(propertyConstruction.orgId, orgId)).orderBy(desc(propertyConstruction.createdAt));
+    return c.json({ data: rows });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.post("/construction", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const body = await c.req.json();
+    const [row] = await db.insert(propertyConstruction).values({ ...body as any, orgId }).returning();
+    return c.json({ data: row }, 201);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/construction/:id", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const [project] = await db.select().from(propertyConstruction).where(and(eq(propertyConstruction.id, id), eq(propertyConstruction.orgId, orgId)));
+    if (!project) return c.json({ error: "غير موجود" }, 404);
+    const phases = await db.select().from(constructionPhases).where(eq(constructionPhases.constructionId, id)).orderBy(asc(constructionPhases.orderIndex));
+    const costs = await db.select({ total: sql<number>`SUM(total_amount)` }).from(constructionCosts).where(eq(constructionCosts.constructionId, id));
+    const actualSpent = Number(costs[0]?.total || 0);
+    return c.json({ data: { ...project, phases, actualSpent } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.put("/construction/:id", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const body = await c.req.json();
+    const [row] = await db.update(propertyConstruction).set({ ...body as any, updatedAt: new Date() }).where(and(eq(propertyConstruction.id, id), eq(propertyConstruction.orgId, orgId))).returning();
+    return c.json({ data: row });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.post("/construction/:id/phases/template", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const templates = [
+      { name: "التصميم والترخيص", orderIndex: 0 }, { name: "الأساسات", orderIndex: 1 },
+      { name: "الهيكل الإنشائي", orderIndex: 2 }, { name: "السباكة والكهرباء", orderIndex: 3 },
+      { name: "التشطيبات الداخلية", orderIndex: 4 }, { name: "الواجهات الخارجية", orderIndex: 5 },
+      { name: "المناظر الطبيعية", orderIndex: 6 }, { name: "التسليم والاستلام", orderIndex: 7 },
+    ];
+    const inserted = await Promise.all(templates.map(t => db.insert(constructionPhases).values({ ...t, constructionId: id, orgId }).returning()));
+    return c.json({ data: inserted.map(r => r[0]) }, 201);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/construction/:id/phases", async (c) => {
+  try {
+    const { id } = c.req.param();
+    const rows = await db.select().from(constructionPhases).where(eq(constructionPhases.constructionId, id)).orderBy(asc(constructionPhases.orderIndex));
+    return c.json({ data: rows });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.post("/construction/:id/phases", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const body = await c.req.json();
+    const [row] = await db.insert(constructionPhases).values({ ...body as any, constructionId: id, orgId }).returning();
+    return c.json({ data: row }, 201);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.patch("/construction/:id/phases/:phaseId", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { phaseId } = c.req.param();
+    const body = await c.req.json();
+    const [row] = await db.update(constructionPhases).set({ ...body as any, updatedAt: new Date() }).where(and(eq(constructionPhases.id, phaseId), eq(constructionPhases.orgId, orgId))).returning();
+    return c.json({ data: row });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/construction/:id/daily-logs", async (c) => {
+  try {
+    const { id } = c.req.param();
+    const rows = await db.select().from(constructionDailyLogs).where(eq(constructionDailyLogs.constructionId, id)).orderBy(desc(constructionDailyLogs.logDate));
+    return c.json({ data: rows });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.post("/construction/:id/daily-logs", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const body = await c.req.json();
+    const [row] = await db.insert(constructionDailyLogs).values({ ...body as any, constructionId: id, orgId }).returning();
+    return c.json({ data: row }, 201);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/construction/:id/costs", async (c) => {
+  try {
+    const { id } = c.req.param();
+    const rows = await db.select().from(constructionCosts).where(eq(constructionCosts.constructionId, id)).orderBy(desc(constructionCosts.costDate));
+    return c.json({ data: rows });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.post("/construction/:id/costs", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const body = await c.req.json();
+    const [row] = await db.insert(constructionCosts).values({ ...body as any, constructionId: id, orgId }).returning();
+    return c.json({ data: row }, 201);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/construction/:id/costs/budget-vs-actual", async (c) => {
+  try {
+    const { id } = c.req.param();
+    const phases = await db.select().from(constructionPhases).where(eq(constructionPhases.constructionId, id)).orderBy(asc(constructionPhases.orderIndex));
+    const costs = await db.select({ phaseId: constructionCosts.phaseId, total: sql<number>`SUM(total_amount)` }).from(constructionCosts).where(eq(constructionCosts.constructionId, id)).groupBy(constructionCosts.phaseId);
+    const costsMap: Record<string, number> = {};
+    costs.forEach(c => { if (c.phaseId) costsMap[c.phaseId] = Number(c.total || 0); });
+    const result = phases.map(p => ({ phaseId: p.id, name: p.name, estimatedCost: Number(p.estimatedCost || 0), actualCost: costsMap[p.id] || 0 }));
+    return c.json({ data: result });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/construction/:id/payments", async (c) => {
+  try {
+    const { id } = c.req.param();
+    const rows = await db.select().from(constructionPayments).where(eq(constructionPayments.constructionId, id)).orderBy(desc(constructionPayments.createdAt));
+    return c.json({ data: rows });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.post("/construction/:id/payments", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const body = await c.req.json();
+    const [{ n }] = await pool.query("SELECT nextval('property_construction_seq') AS n") as any;
+    const [row] = await db.insert(constructionPayments).values({ ...body as any, constructionId: id, orgId, paymentNumber: Number(n) }).returning();
+    return c.json({ data: row }, 201);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.patch("/construction/:id/payments/:paymentId/approve", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { paymentId } = c.req.param();
+    const body = await c.req.json();
+    const [row] = await db.update(constructionPayments).set({ status: "approved", approvedAt: new Date(), approvedBy: body.approvedBy }).where(and(eq(constructionPayments.id, paymentId), eq(constructionPayments.orgId, orgId))).returning();
+    return c.json({ data: row });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/construction/:id/change-orders", async (c) => {
+  try {
+    const { id } = c.req.param();
+    const rows = await db.select().from(constructionChangeOrders).where(eq(constructionChangeOrders.constructionId, id)).orderBy(desc(constructionChangeOrders.createdAt));
+    return c.json({ data: rows });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.post("/construction/:id/change-orders", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const body = await c.req.json();
+    const [{ n }] = await pool.query("SELECT nextval('property_change_order_seq') AS n") as any;
+    const changeOrderNumber = `CO-${String(n).padStart(3, "0")}`;
+    const [row] = await db.insert(constructionChangeOrders).values({ ...body as any, constructionId: id, orgId, changeOrderNumber, proposedAt: new Date() }).returning();
+    return c.json({ data: row }, 201);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.patch("/construction/:id/change-orders/:coId/approve", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { coId } = c.req.param();
+    const body = await c.req.json();
+    const [row] = await db.update(constructionChangeOrders).set({ status: "approved", approvedAt: new Date(), approvedBy: body.approvedBy }).where(and(eq(constructionChangeOrders.id, coId), eq(constructionChangeOrders.orgId, orgId))).returning();
+    return c.json({ data: row });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/construction/:id/report", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const [project] = await db.select().from(propertyConstruction).where(and(eq(propertyConstruction.id, id), eq(propertyConstruction.orgId, orgId)));
+    if (!project) return c.json({ error: "غير موجود" }, 404);
+    const phases = await db.select().from(constructionPhases).where(eq(constructionPhases.constructionId, id)).orderBy(asc(constructionPhases.orderIndex));
+    const [costsAgg] = await db.select({ total: sql<number>`SUM(total_amount)` }).from(constructionCosts).where(eq(constructionCosts.constructionId, id));
+    const changeOrders = await db.select({ costImpact: constructionChangeOrders.costImpact }).from(constructionChangeOrders).where(and(eq(constructionChangeOrders.constructionId, id), eq(constructionChangeOrders.status, "approved")));
+    const totalChangeOrderImpact = changeOrders.reduce((sum, co) => sum + Number(co.costImpact || 0), 0);
+    const actualSpent = Number(costsAgg?.total || 0);
+    const totalBudget = Number(project.totalBudget || 0);
+    const budgetVariance = totalBudget - actualSpent - totalChangeOrderImpact;
+    const overallProgress = phases.length > 0 ? Math.round(phases.reduce((sum, p) => sum + (p.progress || 0), 0) / phases.length) : 0;
+    return c.json({ data: { project, phases, actualSpent, totalChangeOrderImpact, budgetVariance, overallProgress, completedPhases: phases.filter(p => p.status === "completed").length, totalPhases: phases.length } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ============================================================
+// PROPERTY LISTINGS — إعلانات الوحدات
+// ============================================================
+
+propertyRouter.get("/listings", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { limit, offset } = getPagination(c);
+    const rows = await db.select().from(propertyListings).where(eq(propertyListings.orgId, orgId)).orderBy(desc(propertyListings.createdAt)).limit(limit).offset(offset);
+    const [{ total }] = await db.select({ total: count() }).from(propertyListings).where(eq(propertyListings.orgId, orgId));
+    return c.json({ data: rows, pagination: { total: Number(total), limit, offset } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.post("/listings", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const body = await c.req.json();
+    const [row] = await db.insert(propertyListings).values({ ...body as any, orgId }).returning();
+    return c.json({ data: row }, 201);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.put("/listings/:id", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const body = await c.req.json();
+    const [row] = await db.update(propertyListings).set({ ...body as any, updatedAt: new Date() }).where(and(eq(propertyListings.id, id), eq(propertyListings.orgId, orgId))).returning();
+    return c.json({ data: row });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.patch("/listings/:id/publish", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const [row] = await db.update(propertyListings).set({ status: "active", publishedAt: new Date(), updatedAt: new Date() }).where(and(eq(propertyListings.id, id), eq(propertyListings.orgId, orgId))).returning();
+    return c.json({ data: row });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/listings/available/:orgSlug", async (c) => {
+  try {
+    const { orgSlug } = c.req.param();
+    const [org] = await db.select({ id: organizations.id }).from(organizations).where(eq((organizations as any).slug, orgSlug));
+    if (!org) return c.json({ data: [] });
+    const rows = await db.select().from(propertyListings).where(and(eq(propertyListings.orgId, org.id), eq(propertyListings.status, "active"))).orderBy(desc(propertyListings.publishedAt));
+    return c.json({ data: rows });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ============================================================
+// PROPERTY INQUIRIES — استفسارات العملاء
+// ============================================================
+
+propertyRouter.get("/inquiries", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { limit, offset } = getPagination(c);
+    const rows = await db.select().from(propertyInquiries).where(eq(propertyInquiries.orgId, orgId)).orderBy(desc(propertyInquiries.createdAt)).limit(limit).offset(offset);
+    const [{ total }] = await db.select({ total: count() }).from(propertyInquiries).where(eq(propertyInquiries.orgId, orgId));
+    return c.json({ data: rows, pagination: { total: Number(total), limit, offset } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.post("/inquiries", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const body = await c.req.json();
+    const [row] = await db.insert(propertyInquiries).values({ ...body as any, orgId }).returning();
+    return c.json({ data: row }, 201);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.patch("/inquiries/:id", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const body = await c.req.json();
+    const [row] = await db.update(propertyInquiries).set({ ...body as any }).where(and(eq(propertyInquiries.id, id), eq(propertyInquiries.orgId, orgId))).returning();
+    return c.json({ data: row });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ============================================================
+// PROPERTY SALES — عمليات البيع
+// ============================================================
+
+propertyRouter.get("/sales", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { limit, offset } = getPagination(c);
+    const rows = await db.select().from(propertySales).where(eq(propertySales.orgId, orgId)).orderBy(desc(propertySales.createdAt)).limit(limit).offset(offset);
+    const [{ total }] = await db.select({ total: count() }).from(propertySales).where(eq(propertySales.orgId, orgId));
+    return c.json({ data: rows, pagination: { total: Number(total), limit, offset } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.post("/sales", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const body = await c.req.json();
+    const commissionAmount = body.salePrice ? Number(body.salePrice) * (Number(body.commissionPercent || 2.5) / 100) : 0;
+    const [row] = await db.insert(propertySales).values({ ...body as any, orgId, commissionAmount: String(commissionAmount) }).returning();
+    return c.json({ data: row }, 201);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.put("/sales/:id", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const body = await c.req.json();
+    const [row] = await db.update(propertySales).set({ ...body as any, updatedAt: new Date() }).where(and(eq(propertySales.id, id), eq(propertySales.orgId, orgId))).returning();
+    return c.json({ data: row });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.patch("/sales/:id/complete", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { id } = c.req.param();
+    const [sale] = await db.select().from(propertySales).where(and(eq(propertySales.id, id), eq(propertySales.orgId, orgId)));
+    if (!sale) return c.json({ error: "غير موجود" }, 404);
+    await db.update(propertySales).set({ status: "completed", updatedAt: new Date() }).where(eq(propertySales.id, id));
+    if (sale.unitId) await db.update(propertyUnits).set({ status: "sold", updatedAt: new Date() }).where(eq(propertyUnits.id, sale.unitId));
+    return c.json({ success: true });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ============================================================
+// SMART ADVISOR — المستشار الذكي
+// ============================================================
+
+propertyRouter.get("/advisor/:propertyId", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { propertyId } = c.req.param();
+    const [prop] = await db.select().from(properties).where(and(eq(properties.id, propertyId), eq(properties.orgId, orgId)));
+    if (!prop) return c.json({ error: "غير موجود" }, 404);
+    const units = await db.select({ status: propertyUnits.status, monthlyRent: propertyUnits.monthlyRent }).from(propertyUnits).where(and(eq(propertyUnits.propertyId, propertyId), eq(propertyUnits.orgId, orgId)));
+    const totalUnits = units.length;
+    const occupiedUnits = units.filter(u => u.status === "occupied").length;
+    const occupancyRate = totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0;
+    const monthlyRentTotal = units.filter(u => u.status === "occupied").reduce((sum, u) => sum + Number(u.monthlyRent || 0), 0);
+    const annualIncome = monthlyRentTotal * 12;
+    const purchasePrice = Number((prop as any).purchasePrice || 0);
+    const roi = purchasePrice > 0 ? ((annualIncome / purchasePrice) * 100).toFixed(2) : null;
+    const recoveryYears = annualIncome > 0 ? (purchasePrice / annualIncome).toFixed(1) : null;
+    const recommendations: string[] = [];
+    if (occupancyRate < 80) recommendations.push(`نسبة الإشغال ${occupancyRate}% — يُنصح بمراجعة أسعار الإيجار أو تفعيل إعلانات للوحدات الشاغرة`);
+    if (occupancyRate === 100) recommendations.push("إشغال كامل — فكّر في مشروع توسعة أو رفع الإيجار عند التجديد");
+    if (roi && Number(roi) < 5) recommendations.push(`العائد ${roi}% — أقل من المتوسط. راجع تكاليف التشغيل أو قيّم إعادة تمويل العقار`);
+    return c.json({ data: { propertyId, propertyName: prop.name, occupancyRate, monthlyRentTotal, annualIncome, roi, recoveryYears, recommendations } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/reports/investment-analysis", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const props = await db.select().from(properties).where(and(eq(properties.orgId, orgId), eq(properties.isActive, true)));
+    const analysis = await Promise.all(props.map(async (prop) => {
+      const units = await db.select({ status: propertyUnits.status, monthlyRent: propertyUnits.monthlyRent }).from(propertyUnits).where(eq(propertyUnits.propertyId, prop.id));
+      const occupied = units.filter(u => u.status === "occupied");
+      const monthlyIncome = occupied.reduce((sum, u) => sum + Number(u.monthlyRent || 0), 0);
+      const annualIncome = monthlyIncome * 12;
+      const purchasePrice = Number((prop as any).purchasePrice || 0);
+      const roi = purchasePrice > 0 ? Number(((annualIncome / purchasePrice) * 100).toFixed(2)) : null;
+      return { propertyId: prop.id, name: prop.name, totalUnits: units.length, occupiedUnits: occupied.length, occupancyRate: units.length > 0 ? Math.round((occupied.length / units.length) * 100) : 0, monthlyIncome, annualIncome, purchasePrice, roi };
+    }));
+    return c.json({ data: analysis });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/portfolio/summary", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const props = await db.select().from(properties).where(and(eq(properties.orgId, orgId), eq(properties.isActive, true)));
+    const totalProperties = props.length;
+    const totalMarketValue = props.reduce((sum, p) => sum + Number((p as any).currentMarketValue || 0), 0);
+    const [paymentsAgg] = await db.select({ total: sql<number>`SUM(amount)` }).from(leasePayments).where(eq(leasePayments.orgId, orgId));
+    const [expensesAgg] = await db.select({ total: sql<number>`SUM(amount)` }).from(propertyExpenses).where(eq(propertyExpenses.orgId, orgId));
+    const units = await db.select({ status: propertyUnits.status }).from(propertyUnits).where(eq(propertyUnits.orgId, orgId));
+    const totalUnits = units.length;
+    const occupiedUnits = units.filter(u => u.status === "occupied").length;
+    const totalIncome = Number(paymentsAgg?.total || 0);
+    const totalExpenses = Number(expensesAgg?.total || 0);
+    const netIncome = totalIncome - totalExpenses;
+    return c.json({ data: { totalProperties, totalUnits, occupiedUnits, vacantUnits: totalUnits - occupiedUnits, occupancyRate: totalUnits > 0 ? Math.round((occupiedUnits / totalUnits) * 100) : 0, totalMarketValue, totalIncome, totalExpenses, netIncome } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/reports/owner-statement/:ownerId", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const { ownerId } = c.req.param();
+    const [owner] = await db.select().from(propertyOwners).where(and(eq(propertyOwners.id, ownerId), eq(propertyOwners.orgId, orgId)));
+    if (!owner) return c.json({ error: "غير موجود" }, 404);
+    const props = await db.select({ id: properties.id, name: properties.name }).from(properties).where(and(eq(properties.orgId, orgId), eq((properties as any).propertyOwnerId, ownerId)));
+    const [paymentsAgg] = await db.select({ total: sql<number>`SUM(amount)` }).from(leasePayments).where(eq(leasePayments.orgId, orgId));
+    const [expensesAgg] = await db.select({ total: sql<number>`SUM(amount)` }).from(propertyExpenses).where(eq(propertyExpenses.orgId, orgId));
+    const totalIncome = Number(paymentsAgg?.total || 0);
+    const totalExpenses = Number(expensesAgg?.total || 0);
+    const managementFee = owner.managementFeeType === "percentage" ? totalIncome * (Number(owner.managementFeePercent || 0) / 100) : Number(owner.managementFeeFixed || 0);
+    const netToOwner = totalIncome - totalExpenses - managementFee;
+    return c.json({ data: { owner, properties: props, totalIncome, totalExpenses, managementFee, netToOwner } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+propertyRouter.get("/reports/office-commissions", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const owners = await db.select().from(propertyOwners).where(and(eq(propertyOwners.orgId, orgId), eq(propertyOwners.isActive, true)));
+    const [paymentsAgg] = await db.select({ total: sql<number>`SUM(amount)` }).from(leasePayments).where(eq(leasePayments.orgId, orgId));
+    const totalCollected = Number(paymentsAgg?.total || 0);
+    const commissions = owners.map(owner => {
+      const fee = owner.managementFeeType === "percentage" ? totalCollected * (Number(owner.managementFeePercent || 0) / 100) : Number(owner.managementFeeFixed || 0);
+      return { ownerId: owner.id, ownerName: owner.ownerName, feeType: owner.managementFeeType, feeRate: owner.managementFeePercent, commission: fee };
+    });
+    const totalCommissions = commissions.reduce((sum, c) => sum + c.commission, 0);
+    return c.json({ data: { commissions, totalCommissions } });
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
+});
+
+// ============================================================
+// QUICK PAYMENT — الدفع السريع
+// ============================================================
+
+propertyRouter.post("/payments/quick", async (c) => {
+  try {
+    const orgId = getOrgId(c);
+    const body = await c.req.json();
+    const { contractId, amount, method, notes } = body;
+    const [{ n }] = await pool.query("SELECT nextval('property_payment_seq') AS n") as any;
+    const receiptNumber = `RCT-${String(n).padStart(4, "0")}`;
+    const [payment] = await db.insert(leasePayments).values({ orgId, contractId, amount: String(amount), method: method || "cash", receiptNumber, paidAt: new Date(), notes: notes || null } as any).returning();
+    const openInvoices = await db.select().from(leaseInvoices).where(and(eq(leaseInvoices.contractId, contractId), eq(leaseInvoices.orgId, orgId), sql`status IN ('pending','overdue','partial')`)).orderBy(asc(leaseInvoices.dueDate)).limit(1);
+    if (openInvoices.length > 0) {
+      const inv = openInvoices[0];
+      const newPaid = Number(inv.paidAmount || 0) + Number(amount);
+      const newStatus = newPaid >= Number(inv.totalAmount) ? "paid" : "partial";
+      await db.update(leaseInvoices).set({ paidAmount: String(newPaid), status: newStatus as any, paidAt: newStatus === "paid" ? new Date() : undefined, updatedAt: new Date() }).where(eq(leaseInvoices.id, inv.id));
+    }
+    return c.json({ data: { payment, receiptNumber } }, 201);
+  } catch (e: any) { return c.json({ error: e.message }, 500); }
 });

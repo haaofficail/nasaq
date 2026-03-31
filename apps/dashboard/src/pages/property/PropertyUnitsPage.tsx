@@ -76,7 +76,7 @@ export function PropertyUnitsPage() {
   const [bulkPropertyId, setBulkPropertyId] = useState("");
   const [bulkCsv, setBulkCsv] = useState("");
 
-  const { data: propsData } = useApi(() => propertyApi.properties({}), []);
+  const { data: propsData } = useApi(() => propertyApi.properties.list(), []);
   const properties: any[] = (propsData as any)?.data ?? [];
 
   const params: Record<string, string> = {};
@@ -87,7 +87,7 @@ export function PropertyUnitsPage() {
   if (maxRent) params.maxRent = maxRent;
 
   const { data, loading, error, refetch } = useApi(
-    () => propertyApi.units(params),
+    () => propertyApi.units.list(params),
     [propFilter, statusFilter, typeFilter, minRent, maxRent]
   );
 
@@ -95,6 +95,9 @@ export function PropertyUnitsPage() {
     editingId ? propertyApi.updateUnit(editingId, d) : propertyApi.createUnit(d)
   );
   const { mutate: bulkCreate, loading: bulking } = useMutation((d: any) => propertyApi.bulkCreateUnits(d));
+  const { mutate: patchStatus } = useMutation(({ id, status }: { id: string; status: string }) =>
+    propertyApi.updateUnitStatus(id, status)
+  );
 
   const units: any[] = (data as any)?.data ?? [];
 
@@ -122,6 +125,14 @@ export function PropertyUnitsPage() {
     if (res) {
       toast.success(editingId ? "تم تحديث الوحدة" : "تم إضافة الوحدة");
       setShowModal(false);
+      refetch();
+    }
+  }
+
+  async function handleStatusChange(id: string, newStatus: string) {
+    const res = await patchStatus({ id, status: newStatus });
+    if (res) {
+      toast.success("تم تحديث الحالة");
       refetch();
     }
   }
@@ -220,7 +231,27 @@ export function PropertyUnitsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3">
-                    <button onClick={() => openEdit(u)} className="text-xs text-emerald-700 hover:underline">تعديل</button>
+                    <div className="flex gap-2 items-center flex-wrap">
+                      <button onClick={() => openEdit(u)} className="text-xs text-emerald-700 hover:underline">تعديل</button>
+                      <div className="relative group">
+                        <button className="text-xs text-brand-600 border border-brand-200 rounded-lg px-2 py-1 hover:bg-brand-50 transition-colors">
+                          تغيير الحالة
+                        </button>
+                        <div className="absolute left-0 mt-1 w-32 bg-white border border-gray-100 rounded-xl shadow-lg z-10 hidden group-hover:block">
+                          {Object.entries(UNIT_STATUS_AR).map(([k, v]) => (
+                            k !== u.status && (
+                              <button
+                                key={k}
+                                onClick={() => handleStatusChange(u.id, k)}
+                                className="block w-full text-right px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                              >
+                                {v}
+                              </button>
+                            )
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ))

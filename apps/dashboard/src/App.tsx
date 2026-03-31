@@ -156,6 +156,23 @@ const LeaseInvoicesPage       = lz(() => import("./pages/property/LeaseInvoicesP
 const LeasePaymentsPage       = lz(() => import("./pages/property/LeasePaymentsPage"), "LeasePaymentsPage");
 const PropertyMaintenancePage = lz(() => import("./pages/property/PropertyMaintenancePage"), "PropertyMaintenancePage");
 const PropertyExpensesPage    = lz(() => import("./pages/property/PropertyExpensesPage"), "PropertyExpensesPage");
+const SmartHomePage           = lz(() => import("./pages/property/SmartHomePage"), "SmartHomePage");
+const PropertyPortfolioPage   = lz(() => import("./pages/property/PropertyPortfolioPage"), "PropertyPortfolioPage");
+const ContractDetailPage      = lz(() => import("./pages/property/ContractDetailPage"), "ContractDetailPage");
+const QuickPaymentPage        = lz(() => import("./pages/property/QuickPaymentPage"), "QuickPaymentPage");
+const PropertyInspectionsPage = lz(() => import("./pages/property/PropertyInspectionsPage"), "PropertyInspectionsPage");
+const PropertyDocumentsPage   = lz(() => import("./pages/property/PropertyDocumentsPage"), "PropertyDocumentsPage");
+const PropertyValuationsPage  = lz(() => import("./pages/property/PropertyValuationsPage"), "PropertyValuationsPage");
+const PropertyInvestmentPage  = lz(() => import("./pages/property/PropertyInvestmentPage"), "PropertyInvestmentPage");
+const ConstructionTrackerPage = lz(() => import("./pages/property/ConstructionTrackerPage"), "ConstructionTrackerPage");
+const PropertyReportsPage     = lz(() => import("./pages/property/PropertyReportsPage"), "PropertyReportsPage");
+const TenantPortalPage        = lz(() => import("./pages/property/TenantPortalPage"), "TenantPortalPage");
+const PropertyListingsPage    = lz(() => import("./pages/property/PropertyListingsPage"), "PropertyListingsPage");
+const PropertyInquiriesPage   = lz(() => import("./pages/property/PropertyInquiriesPage"), "PropertyInquiriesPage");
+const PropertySalesPage       = lz(() => import("./pages/property/PropertySalesPage"), "PropertySalesPage");
+const PropertyOwnersPage      = lz(() => import("./pages/property/PropertyOwnersPage"), "PropertyOwnersPage");
+const ComplianceDashboardPage = lz(() => import("./pages/property/ComplianceDashboardPage"), "ComplianceDashboardPage");
+const PropertyPublicPage      = lz(() => import("./pages/property/PropertyPublicPage"), "PropertyPublicPage");
 
 // School System
 const SchoolDashboardPage          = lz(() => import("./pages/school/SchoolDashboardPage"), "SchoolDashboardPage");
@@ -253,6 +270,7 @@ export default function App() {
         <Route path="/s/:orgSlug" element={<PublicStorefrontPage />} />
         <Route path="/s/:orgSlug/p/:pageSlug" element={<PublicPagePage />} />
         <Route path="/pay/:orgSlug" element={<PublicPaymentPage />} />
+        <Route path="/available/:orgSlug" element={<PropertyPublicPage />} />
 
         {/* ── Dashboard (auth required) ── */}
         <Route path="/dashboard" element={<RequireAuth><Layout /></RequireAuth>}>
@@ -369,10 +387,27 @@ export default function App() {
           <Route path="property/units" element={<PropertyUnitsPage />} />
           <Route path="property/tenants" element={<TenantsPage />} />
           <Route path="property/contracts" element={<LeaseContractsPage />} />
+          <Route path="property/contracts/:id" element={<ContractDetailPage />} />
           <Route path="property/invoices" element={<LeaseInvoicesPage />} />
           <Route path="property/payments" element={<LeasePaymentsPage />} />
           <Route path="property/maintenance" element={<PropertyMaintenancePage />} />
           <Route path="property/expenses" element={<PropertyExpensesPage />} />
+          <Route path="property/smart-home" element={<SmartHomePage />} />
+          <Route path="property/portfolio" element={<PropertyPortfolioPage />} />
+          <Route path="property/quick-payment" element={<QuickPaymentPage />} />
+          <Route path="property/inspections" element={<PropertyInspectionsPage />} />
+          <Route path="property/documents" element={<PropertyDocumentsPage />} />
+          <Route path="property/valuations" element={<PropertyValuationsPage />} />
+          <Route path="property/investment" element={<PropertyInvestmentPage />} />
+          <Route path="property/construction" element={<ConstructionTrackerPage />} />
+          <Route path="property/construction/:id" element={<ConstructionTrackerPage />} />
+          <Route path="property/reports" element={<PropertyReportsPage />} />
+          <Route path="property/portal" element={<TenantPortalPage />} />
+          <Route path="property/listings" element={<PropertyListingsPage />} />
+          <Route path="property/inquiries" element={<PropertyInquiriesPage />} />
+          <Route path="property/sales" element={<PropertySalesPage />} />
+          <Route path="property/owners" element={<PropertyOwnersPage />} />
+          <Route path="property/compliance" element={<ComplianceDashboardPage />} />
 
           <Route path="media" element={<MediaLibraryPage />} />
           <Route path="catalog" element={<CatalogPage />} />

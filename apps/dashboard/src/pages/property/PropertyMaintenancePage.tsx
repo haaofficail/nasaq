@@ -70,28 +70,34 @@ export function PropertyMaintenancePage() {
   const [viewMode, setViewMode] = useState<"kanban" | "table">("kanban");
   const [showCreate, setShowCreate] = useState(false);
   const [showComplete, setShowComplete] = useState<any>(null);
+  const [showAssign, setShowAssign] = useState<any>(null);
+  const [showApprove, setShowApprove] = useState<any>(null);
   const [completeForm, setCompleteForm] = useState({ actualCost: "", notes: "" });
+  const [assignForm, setAssignForm] = useState({ assignedToName: "", assignedToPhone: "", estimatedCost: "" });
+  const [approveForm, setApproveForm] = useState({ approvedBudget: "", notes: "" });
 
   const [form, setForm] = useState({
     propertyId: "", unitId: "", category: "plumbing", title: "", description: "",
     priority: "normal", reporterName: "", reporterPhone: "",
   });
 
-  const { data: propsData } = useApi(() => propertyApi.properties({}), []);
+  const { data: propsData } = useApi(() => propertyApi.properties.list(), []);
   const properties: any[] = (propsData as any)?.data ?? [];
 
   const { data: unitsData } = useApi(
-    () => form.propertyId ? propertyApi.units({ propertyId: form.propertyId }) : Promise.resolve({ data: [] }),
+    () => form.propertyId ? propertyApi.units.list({ propertyId: form.propertyId }) : Promise.resolve({ data: [] }),
     [form.propertyId]
   );
   const filteredUnits: any[] = (unitsData as any)?.data ?? [];
 
-  const { data, loading, error, refetch } = useApi(() => propertyApi.maintenance({}), []);
+  const { data, loading, error, refetch } = useApi(() => propertyApi.maintenance.list(), []);
   const tickets: any[] = (data as any)?.data ?? [];
 
   const { mutate: createTicket, loading: creating } = useMutation((d: any) => propertyApi.createMaintenance(d));
   const { mutate: updateStatus } = useMutation((d: any) => propertyApi.updateMaintenance(d.id, { status: d.status }));
   const { mutate: completeTicket, loading: completing } = useMutation((d: any) => propertyApi.completeMaintenance(showComplete?.id, d));
+  const { mutate: assignTicket, loading: assigning } = useMutation((d: any) => propertyApi.assignMaintenance(showAssign?.id, d));
+  const { mutate: approveTicket, loading: approving } = useMutation((d: any) => propertyApi.approveMaintenance(showApprove?.id, d));
 
   async function handleCreate() {
     const res = await createTicket(form);
@@ -111,6 +117,16 @@ export function PropertyMaintenancePage() {
   async function handleComplete() {
     const res = await completeTicket(completeForm);
     if (res) { toast.success("تم إغلاق طلب الصيانة"); setShowComplete(null); refetch(); }
+  }
+
+  async function handleAssign() {
+    const res = await assignTicket(assignForm);
+    if (res) { toast.success("تم تعيين المسؤول"); setShowAssign(null); refetch(); }
+  }
+
+  async function handleApprove() {
+    const res = await approveTicket(approveForm);
+    if (res) { toast.success("تمت الموافقة على الطلب"); setShowApprove(null); refetch(); }
   }
 
   return (
@@ -174,16 +190,29 @@ export function PropertyMaintenancePage() {
                       {t.assignedToName && <p className="text-xs text-teal-600 mt-1">{t.assignedToName}</p>}
                       <div className="mt-2 flex gap-1 flex-wrap">
                         {t.status === "reported" && (
-                          <button onClick={() => handleStatusChange(t, "reviewing")} className="text-xs text-yellow-700 hover:underline">مراجعة</button>
+                          <button onClick={() => handleStatusChange(t, "reviewing")} className="text-xs text-yellow-700 border border-yellow-200 bg-yellow-50 hover:bg-yellow-100 rounded-lg px-2 py-0.5">مراجعة</button>
                         )}
                         {t.status === "reviewing" && (
-                          <button onClick={() => handleStatusChange(t, "assigned")} className="text-xs text-blue-700 hover:underline">تكليف</button>
+                          <>
+                            <button
+                              onClick={() => { setShowAssign(t); setAssignForm({ assignedToName: t.assignedToName ?? "", assignedToPhone: "", estimatedCost: "" }); }}
+                              className="text-xs text-blue-700 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded-lg px-2 py-0.5"
+                            >
+                              عيّن
+                            </button>
+                            <button
+                              onClick={() => { setShowApprove(t); setApproveForm({ approvedBudget: "", notes: "" }); }}
+                              className="text-xs text-purple-700 border border-purple-200 bg-purple-50 hover:bg-purple-100 rounded-lg px-2 py-0.5"
+                            >
+                              اعتمد
+                            </button>
+                          </>
                         )}
                         {t.status === "assigned" && (
-                          <button onClick={() => handleStatusChange(t, "in_progress")} className="text-xs text-indigo-700 hover:underline">بدء</button>
+                          <button onClick={() => handleStatusChange(t, "in_progress")} className="text-xs text-indigo-700 border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 rounded-lg px-2 py-0.5">بدء</button>
                         )}
                         {t.status === "in_progress" && (
-                          <button onClick={() => { setShowComplete(t); setCompleteForm({ actualCost: "", notes: "" }); }} className="text-xs text-emerald-700 hover:underline">إتمام</button>
+                          <button onClick={() => { setShowComplete(t); setCompleteForm({ actualCost: "", notes: "" }); }} className="text-xs text-emerald-700 border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 rounded-lg px-2 py-0.5">أنجز</button>
                         )}
                       </div>
                     </div>
@@ -308,6 +337,49 @@ export function PropertyMaintenancePage() {
               <button onClick={() => setShowComplete(null)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
               <button onClick={handleComplete} disabled={completing} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50">
                 {completing ? "جارٍ الإغلاق..." : "إغلاق الطلب"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Assign Modal */}
+      {showAssign && (
+        <Modal title="تعيين مسؤول الصيانة" onClose={() => setShowAssign(null)}>
+          <div className="space-y-4">
+            <Field label="اسم المسؤول">
+              <input className={inputCls} value={assignForm.assignedToName} onChange={(e) => setAssignForm({ ...assignForm, assignedToName: e.target.value })} placeholder="اسم الفني أو الشركة..." />
+            </Field>
+            <Field label="جوال المسؤول">
+              <input className={inputCls} value={assignForm.assignedToPhone} onChange={(e) => setAssignForm({ ...assignForm, assignedToPhone: e.target.value })} />
+            </Field>
+            <Field label="التكلفة التقديرية (ريال)">
+              <input type="number" className={inputCls} value={assignForm.estimatedCost} onChange={(e) => setAssignForm({ ...assignForm, estimatedCost: e.target.value })} />
+            </Field>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowAssign(null)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={handleAssign} disabled={assigning} className="px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700 disabled:opacity-50">
+                {assigning ? "جارٍ التعيين..." : "تعيين"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Approve Modal */}
+      {showApprove && (
+        <Modal title="اعتماد طلب الصيانة" onClose={() => setShowApprove(null)}>
+          <div className="space-y-4">
+            <Field label="الميزانية المعتمدة (ريال)">
+              <input type="number" className={inputCls} value={approveForm.approvedBudget} onChange={(e) => setApproveForm({ ...approveForm, approvedBudget: e.target.value })} />
+            </Field>
+            <Field label="ملاحظات">
+              <textarea className={clsx(inputCls, "h-20 resize-none")} value={approveForm.notes} onChange={(e) => setApproveForm({ ...approveForm, notes: e.target.value })} />
+            </Field>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowApprove(null)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={handleApprove} disabled={approving} className="px-4 py-2 text-sm bg-purple-600 text-white rounded-xl hover:bg-purple-700 disabled:opacity-50">
+                {approving ? "جارٍ الاعتماد..." : "اعتماد"}
               </button>
             </div>
           </div>

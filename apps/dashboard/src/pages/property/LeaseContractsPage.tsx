@@ -84,10 +84,10 @@ export function LeaseContractsPage() {
   const [terminateForm, setTerminateForm] = useState({ terminationReason: "", terminationDate: "" });
   const [ejarForm, setEjarForm] = useState({ ejarContractNumber: "", ejarStatus: "not_submitted", ejarNotes: "" });
 
-  const { data: propsData } = useApi(() => propertyApi.properties({}), []);
-  const { data: tenantsData } = useApi(() => propertyApi.tenants({}), []);
+  const { data: propsData } = useApi(() => propertyApi.properties.list(), []);
+  const { data: tenantsData } = useApi(() => propertyApi.tenants.list(), []);
   const { data: unitsData } = useApi(
-    () => createForm.propertyId ? propertyApi.units({ propertyId: createForm.propertyId }) : Promise.resolve({ data: [] }),
+    () => createForm.propertyId ? propertyApi.units.list({ propertyId: createForm.propertyId }) : Promise.resolve({ data: [] }),
     [createForm.propertyId]
   );
 
@@ -100,7 +100,7 @@ export function LeaseContractsPage() {
   if (propFilter) params.propertyId = propFilter;
   if (search) params.search = search;
 
-  const { data, loading, error, refetch } = useApi(() => propertyApi.contracts(params), [statusFilter, propFilter, search]);
+  const { data, loading, error, refetch } = useApi(() => propertyApi.contracts.list(params), [statusFilter, propFilter, search]);
   const contracts: any[] = (data as any)?.data ?? [];
 
   const { mutate: createContract, loading: creating } = useMutation((d: any) => propertyApi.createContract(d));
@@ -198,35 +198,46 @@ export function LeaseContractsPage() {
               <tr><td colSpan={9} className="px-4 py-12 text-center text-gray-400">لا توجد عقود</td></tr>
             ) : (
               contracts.map((c: any) => (
-                <tr key={c.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{c.contractNumber}</td>
-                  <td className="px-4 py-3 text-gray-500">{c.unitName ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500">{c.tenantName ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500">{c.startDate ? new Date(c.startDate).toLocaleDateString("ar-SA") : "—"}</td>
-                  <td className="px-4 py-3 text-gray-500">{c.endDate ? new Date(c.endDate).toLocaleDateString("ar-SA") : "—"}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">{c.rentAmount ? `${Number(c.rentAmount).toLocaleString("en-US")} ريال` : "—"}</td>
-                  <td className="px-4 py-3">
-                    <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", EJAR_STATUS_COLORS[c.ejarStatus ?? "not_submitted"])}>
-                      {EJAR_STATUS_AR[c.ejarStatus ?? "not_submitted"]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", CONTRACT_STATUS_COLORS[c.status] ?? "bg-gray-100 text-gray-600")}>
-                      {CONTRACT_STATUS_AR[c.status] ?? c.status}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      {c.status === "active" && (
-                        <button onClick={() => { setShowRenew(c); setRenewForm({ startDate: "", endDate: "", rentAmount: c.rentAmount ?? "", increasePercentage: "" }); }} className="text-xs text-emerald-700 hover:underline">تجديد</button>
-                      )}
-                      {["active", "draft"].includes(c.status) && (
-                        <button onClick={() => { setShowTerminate(c); setTerminateForm({ terminationReason: "", terminationDate: "" }); }} className="text-xs text-red-500 hover:underline">إنهاء</button>
-                      )}
-                      <button onClick={() => { setShowEjar(c); setEjarForm({ ejarContractNumber: c.ejarContractNumber ?? "", ejarStatus: c.ejarStatus ?? "not_submitted", ejarNotes: c.ejarNotes ?? "" }); }} className="text-xs text-blue-600 hover:underline">إيجار</button>
-                    </div>
-                  </td>
-                </tr>
+                <>
+                  {c.riyadhFreezeApplies && (
+                    <tr key={`freeze-${c.id}`}>
+                      <td colSpan={9} className="px-4 py-2">
+                        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded-xl px-3 py-2 text-xs font-medium">
+                          تثبيت الإيجار مطبق — الزيادة ممنوعة (لائحة الرياض)
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  <tr key={c.id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-900">{c.contractNumber}</td>
+                    <td className="px-4 py-3 text-gray-500">{c.unitName ?? "—"}</td>
+                    <td className="px-4 py-3 text-gray-500">{c.tenantName ?? "—"}</td>
+                    <td className="px-4 py-3 text-gray-500">{c.startDate ? new Date(c.startDate).toLocaleDateString("ar-SA") : "—"}</td>
+                    <td className="px-4 py-3 text-gray-500">{c.endDate ? new Date(c.endDate).toLocaleDateString("ar-SA") : "—"}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{c.rentAmount ? `${Number(c.rentAmount).toLocaleString("en-US")} ريال` : "—"}</td>
+                    <td className="px-4 py-3">
+                      <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", EJAR_STATUS_COLORS[c.ejarStatus ?? "not_submitted"])}>
+                        {EJAR_STATUS_AR[c.ejarStatus ?? "not_submitted"]}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", CONTRACT_STATUS_COLORS[c.status] ?? "bg-gray-100 text-gray-600")}>
+                        {CONTRACT_STATUS_AR[c.status] ?? c.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-2">
+                        {c.status === "active" && (
+                          <button onClick={() => { setShowRenew(c); setRenewForm({ startDate: "", endDate: "", rentAmount: c.rentAmount ?? "", increasePercentage: "" }); }} className="text-xs text-emerald-700 hover:underline">تجديد</button>
+                        )}
+                        {["active", "draft"].includes(c.status) && (
+                          <button onClick={() => { setShowTerminate(c); setTerminateForm({ terminationReason: "", terminationDate: "" }); }} className="text-xs text-red-500 hover:underline">إنهاء</button>
+                        )}
+                        <button onClick={() => { setShowEjar(c); setEjarForm({ ejarContractNumber: c.ejarContractNumber ?? "", ejarStatus: c.ejarStatus ?? "not_submitted", ejarNotes: c.ejarNotes ?? "" }); }} className="text-xs text-blue-600 border border-blue-200 bg-blue-50 hover:bg-blue-100 rounded-lg px-2 py-1 transition-colors">وثّق في إيجار</button>
+                      </div>
+                    </td>
+                  </tr>
+                </>
               ))
             )}
           </tbody>

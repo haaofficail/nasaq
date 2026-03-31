@@ -6,11 +6,13 @@ import {
   Car, ShoppingBag, BarChart2, Camera,
   UserCheck, AlertTriangle, Zap, Home,
   ChefHat, Monitor, Briefcase, Sparkles, Percent,
+  FileText, Wrench, ShieldCheck,
 } from "lucide-react";
 import {
   bookingsApi, customersApi, servicesApi, flowerMasterApi,
   hotelApi, carRentalApi, inventoryApi, financeApi,
   attendanceEngineApi, onlineOrdersApi, flowerBuilderApi,
+  propertyApi,
 } from "./api";
 import { BookingStatusWidget } from "@/components/dashboard/widgets/BookingStatusWidget";
 import { RecentBookingsWidget } from "@/components/dashboard/widgets/RecentBookingsWidget";
@@ -935,6 +937,68 @@ const profiles: Record<string, DashboardProfile> = {
       { id: "reports",      label: "التقارير",   href: "/dashboard/reports",   icon: BarChart2, bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
     ],
     widgets: [bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
+  },
+
+  // ──────────────────────────────────────────────────────────
+  // REAL ESTATE — property management
+  // ──────────────────────────────────────────────────────────
+  real_estate: {
+    profileKey: "real_estate",
+    label: "إدارة العقارات",
+    primaryAction: { label: "عقد جديد", href: "/dashboard/property/contracts" },
+    kpis: [
+      {
+        id: "monthly-income",
+        label: "الإيرادات الشهرية",
+        unit: "ر.س",
+        icon: Banknote,
+        bg: "bg-emerald-50",
+        iconColor: "text-emerald-600",
+        fetcher: () => propertyApi.dashboard(),
+        transform: (d) => Number((d as any)?.data?.monthlyIncome || (d as any)?.monthlyIncome || 0).toLocaleString("en-US"),
+        allowedRoles: ["owner", "admin", "manager"],
+      },
+      {
+        id: "occupancy-rate",
+        label: "نسبة الإشغال",
+        unit: "%",
+        icon: Home,
+        bg: "bg-blue-50",
+        iconColor: "text-blue-600",
+        fetcher: () => propertyApi.dashboard(),
+        transform: (d) => String((d as any)?.data?.occupancyRate || (d as any)?.occupancyRate || 0),
+        allowedRoles: [],
+      },
+      {
+        id: "overdue-invoices",
+        label: "فواتير متأخرة",
+        unit: "فاتورة",
+        icon: AlertTriangle,
+        bg: "bg-red-50",
+        iconColor: "text-red-600",
+        fetcher: () => propertyApi.dashboard(),
+        transform: (d) => String((d as any)?.data?.overdueCount || (d as any)?.overdueCount || 0),
+        allowedRoles: [],
+      },
+      {
+        id: "active-contracts",
+        label: "العقود النشطة",
+        unit: "عقد",
+        icon: FileText,
+        bg: "bg-violet-50",
+        iconColor: "text-violet-600",
+        fetcher: () => propertyApi.dashboard(),
+        transform: (d) => String((d as any)?.data?.activeContracts || (d as any)?.activeContracts || 0),
+        allowedRoles: [],
+      },
+    ],
+    quickActions: [
+      { id: "new-contract",   label: "عقد جديد",     href: "/dashboard/property/contracts",   icon: FileText,    bg: "bg-blue-50",    text: "text-blue-600",    allowedRoles: [] },
+      { id: "quick-payment",  label: "دفعة سريعة",   href: "/dashboard/property/quick-payment",icon: Zap,         bg: "bg-emerald-50", text: "text-emerald-600", allowedRoles: [] },
+      { id: "new-maintenance",label: "طلب صيانة",    href: "/dashboard/property/maintenance",  icon: Wrench,      bg: "bg-amber-50",   text: "text-amber-600",   allowedRoles: [] },
+      { id: "compliance",     label: "الامتثال",     href: "/dashboard/property/compliance",   icon: ShieldCheck, bg: "bg-teal-50",    text: "text-teal-600",    allowedRoles: ["owner", "admin", "manager"] },
+    ],
+    widgets: [],
   },
 
   // ──────────────────────────────────────────────────────────

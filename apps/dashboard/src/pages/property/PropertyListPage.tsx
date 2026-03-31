@@ -6,6 +6,27 @@ import { toast } from "@/hooks/useToast";
 import clsx from "clsx";
 import { Building } from "lucide-react";
 
+function ComplianceBadge({ rate }: { rate: number }) {
+  const color =
+    rate >= 80 ? "bg-emerald-100 text-emerald-700" :
+    rate >= 50 ? "bg-yellow-100 text-yellow-700" :
+    "bg-red-100 text-red-600";
+  const barColor =
+    rate >= 80 ? "bg-emerald-500" :
+    rate >= 50 ? "bg-yellow-400" : "bg-red-500";
+  return (
+    <div className="mt-2">
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-xs text-gray-500">الامتثال التنظيمي</span>
+        <span className={clsx("text-xs font-medium rounded-full px-2 py-0.5", color)}>{rate}%</span>
+      </div>
+      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className={clsx("h-full rounded-full", barColor)} style={{ width: `${rate}%` }} />
+      </div>
+    </div>
+  );
+}
+
 const PROPERTY_TYPE_AR: Record<string, string> = {
   residential: "سكني",
   commercial: "تجاري",
@@ -56,6 +77,9 @@ const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm foc
 export function PropertyListPage() {
   const [typeFilter, setTypeFilter] = useState("");
   const [cityFilter, setCityFilter] = useState("");
+  const [showComplianceId, setShowComplianceId] = useState<string | null>(null);
+  const [complianceData, setComplianceData] = useState<Record<string, any>>({});
+  const { mutate: fetchCompliance } = useMutation((id: string) => propertyApi.getProperty(id));
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -64,7 +88,7 @@ export function PropertyListPage() {
   });
 
   const { data, loading, error, refetch } = useApi(
-    () => propertyApi.properties({ type: typeFilter, city: cityFilter }),
+    () => propertyApi.properties.list({ type: typeFilter, city: cityFilter }),
     [typeFilter, cityFilter]
   );
 
@@ -97,6 +121,20 @@ export function PropertyListPage() {
       toast.success(editingId ? "تم تحديث العقار" : "تم إضافة العقار");
       setShowModal(false);
       refetch();
+    }
+  }
+
+  async function handleShowCompliance(id: string) {
+    if (showComplianceId === id) {
+      setShowComplianceId(null);
+      return;
+    }
+    setShowComplianceId(id);
+    if (!complianceData[id]) {
+      const res = await fetchCompliance(id);
+      if (res) {
+        setComplianceData((prev) => ({ ...prev, [id]: (res as any).data }));
+      }
     }
   }
 
@@ -196,12 +234,46 @@ export function PropertyListPage() {
                       />
                     </div>
                   </div>
-                  <button
-                    onClick={() => openEdit(p)}
-                    className="w-full text-center text-xs text-emerald-700 hover:text-emerald-900 border border-emerald-200 rounded-xl py-1.5 transition-colors"
-                  >
-                    عرض التفاصيل
-                  </button>
+                  {/* Compliance mini panel */}
+                  <ComplianceBadge rate={p.complianceRate ?? 0} />
+
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => openEdit(p)}
+                      className="flex-1 text-center text-xs text-emerald-700 hover:text-emerald-900 border border-emerald-200 rounded-xl py-1.5 transition-colors"
+                    >
+                      تعديل
+                    </button>
+                    <button
+                      onClick={() => handleShowCompliance(p.id)}
+                      className="flex-1 text-center text-xs text-brand-600 hover:text-brand-800 border border-brand-200 rounded-xl py-1.5 transition-colors"
+                    >
+                      تفاصيل الامتثال
+                    </button>
+                  </div>
+
+                  {showComplianceId === p.id && (
+                    <div className="bg-brand-50 border border-brand-100 rounded-xl p-3 text-xs space-y-1">
+                      {complianceData[p.id] ? (
+                        <>
+                          <p className="font-medium text-brand-700 mb-2">تفاصيل الامتثال التنظيمي</p>
+                          {(complianceData[p.id].complianceDetails ?? []).map((item: any) => (
+                            <div key={item.key} className="flex justify-between">
+                              <span className="text-gray-600">{item.label}</span>
+                              <span className={item.ok ? "text-emerald-600" : "text-red-500"}>
+                                {item.ok ? "مكتمل" : "ناقص"}
+                              </span>
+                            </div>
+                          ))}
+                          {!(complianceData[p.id].complianceDetails?.length) && (
+                            <p className="text-gray-400">لا توجد تفاصيل متاحة</p>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-gray-400">جارٍ التحميل...</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             );

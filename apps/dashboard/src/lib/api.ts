@@ -1409,30 +1409,215 @@ export const propertyApi = {
   // Dashboard
   dashboard: () => api.get<{ data: any }>("/property/dashboard"),
 
-  // Properties
-  properties: (params?: Record<string,string>) => api.get<{ data: any[] }>(`/property/properties${params ? "?" + new URLSearchParams(params) : ""}`),
+  // Portfolio
+  portfolio: () => api.get<{ data: any }>("/property/portfolio/summary"),
+
+  // --- Owners ---
+  owners: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/owners${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/owners", body),
+    update: (id: string, body: any) => api.put<{ data: any }>(`/property/owners/${id}`, body),
+    delete: (id: string) => api.delete(`/property/owners/${id}`),
+    report: (id: string) => api.get<{ data: any }>(`/property/owners/${id}/report`),
+  },
+
+  // --- Properties ---
+  properties: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/properties${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/properties", body),
+    get: (id: string) => api.get<{ data: any }>(`/property/properties/${id}`),
+    update: (id: string, body: any) => api.put<{ data: any }>(`/property/properties/${id}`, body),
+    delete: (id: string) => api.delete(`/property/properties/${id}`),
+    compliance: (id: string) => api.get<{ data: any }>(`/property/properties/${id}/compliance`),
+  },
+
+  // --- Units ---
+  units: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/units${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/units", body),
+    get: (id: string) => api.get<{ data: any }>(`/property/units/${id}`),
+    update: (id: string, body: any) => api.put<{ data: any }>(`/property/units/${id}`, body),
+    patch: (id: string, body: any) => api.patch<{ data: any }>(`/property/units/${id}/status`, body),
+    delete: (id: string) => api.delete(`/property/units/${id}`),
+    vacant: () => api.get<{ data: any[] }>("/property/units/vacant"),
+    bulk: (body: any) => api.post<{ data: any }>("/property/units/bulk", body),
+  },
+
+  // --- Tenants ---
+  tenants: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/tenants${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/tenants", body),
+    get: (id: string) => api.get<{ data: any }>(`/property/tenants/${id}`),
+    update: (id: string, body: any) => api.put<{ data: any }>(`/property/tenants/${id}`, body),
+  },
+
+  // --- Contracts ---
+  contracts: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/contracts${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/contracts", body),
+    get: (id: string) => api.get<{ data: any }>(`/property/contracts/${id}`),
+    update: (id: string, body: any) => api.put<{ data: any }>(`/property/contracts/${id}`, body),
+    expiring: (days?: number) => api.get<{ data: any[] }>(`/property/contracts/expiring${days ? "?days=" + days : ""}`),
+    renew: (id: string, body: any) => api.post<{ data: any }>(`/property/contracts/${id}/renew`, body),
+    terminate: (id: string, body: any) => api.post<{ data: any }>(`/property/contracts/${id}/terminate`, body),
+    ejar: (id: string, body: any) => api.patch<{ data: any }>(`/property/contracts/${id}/ejar`, body),
+    statement: (id: string) => api.get<{ data: any }>(`/property/contracts/${id}/statement`),
+  },
+
+  // --- Invoices ---
+  invoices: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/invoices${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/invoices", body),
+    get: (id: string) => api.get<{ data: any }>(`/property/invoices/${id}`),
+    update: (id: string, body: any) => api.put<{ data: any }>(`/property/invoices/${id}`, body),
+    generate: (body?: any) => api.post<{ data: any }>("/property/invoices/generate", body || {}),
+    overdue: () => api.get<{ data: any[] }>("/property/invoices/overdue"),
+    send: (id: string) => api.patch<{ data: any }>(`/property/invoices/${id}/send`, {}),
+    pay: (id: string, body: any) => api.patch<{ data: any }>(`/property/invoices/${id}/pay`, body),
+    cancel: (id: string) => api.patch<{ data: any }>(`/property/invoices/${id}/cancel`, {}),
+  },
+
+  // --- Payments ---
+  payments: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/payments${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/payments", body),
+    quick: (body: any) => api.post<{ data: any }>("/property/payments/quick", body),
+  },
+
+  // --- Maintenance ---
+  maintenance: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/maintenance${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/maintenance", body),
+    get: (id: string) => api.get<{ data: any }>(`/property/maintenance/${id}`),
+    update: (id: string, body: any) => api.put<{ data: any }>(`/property/maintenance/${id}`, body),
+    assign: (id: string, body: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/assign`, body),
+    approve: (id: string, body: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/approve`, body),
+    start: (id: string) => api.patch<{ data: any }>(`/property/maintenance/${id}/start`, {}),
+    complete: (id: string, body: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/complete`, body),
+    rate: (id: string, body: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/rate`, body),
+  },
+
+  // --- Expenses ---
+  expenses: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/expenses${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/expenses", body),
+    update: (id: string, body: any) => api.put<{ data: any }>(`/property/expenses/${id}`, body),
+    delete: (id: string) => api.delete(`/property/expenses/${id}`),
+    summary: () => api.get<{ data: any }>("/property/expenses/summary"),
+  },
+
+  // --- Inspections ---
+  inspections: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/inspections${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/inspections", body),
+    get: (id: string) => api.get<{ data: any }>(`/property/inspections/${id}`),
+    update: (id: string, body: any) => api.put<{ data: any }>(`/property/inspections/${id}`, body),
+    sign: (id: string, body: any) => api.post<{ data: any }>(`/property/inspections/${id}/sign`, body),
+    compare: (id: string) => api.get<{ data: any }>(`/property/inspections/${id}/compare`),
+  },
+
+  // --- Documents ---
+  documents: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/documents${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/documents", body),
+    update: (id: string, body: any) => api.put<{ data: any }>(`/property/documents/${id}`, body),
+    delete: (id: string) => api.delete(`/property/documents/${id}`),
+    expiring: () => api.get<{ data: any[] }>("/property/documents/expiring"),
+  },
+
+  // --- Valuations ---
+  valuations: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/valuations${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/valuations", body),
+    delete: (id: string) => api.delete(`/property/valuations/${id}`),
+  },
+
+  // --- Construction ---
+  construction: {
+    list: () => api.get<{ data: any[] }>("/property/construction"),
+    create: (body: any) => api.post<{ data: any }>("/property/construction", body),
+    get: (id: string) => api.get<{ data: any }>(`/property/construction/${id}`),
+    update: (id: string, body: any) => api.put<{ data: any }>(`/property/construction/${id}`, body),
+    phasesTemplate: (id: string) => api.post<{ data: any }>(`/property/construction/${id}/phases/template`, {}),
+    phases: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/phases`),
+    addPhase: (id: string, body: any) => api.post<{ data: any }>(`/property/construction/${id}/phases`, body),
+    updatePhase: (id: string, phaseId: string, body: any) => api.patch<{ data: any }>(`/property/construction/${id}/phases/${phaseId}`, body),
+    dailyLogs: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/daily-logs`),
+    addDailyLog: (id: string, body: any) => api.post<{ data: any }>(`/property/construction/${id}/daily-logs`, body),
+    costs: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/costs`),
+    addCost: (id: string, body: any) => api.post<{ data: any }>(`/property/construction/${id}/costs`, body),
+    budgetVsActual: (id: string) => api.get<{ data: any }>(`/property/construction/${id}/costs/budget-vs-actual`),
+    payments: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/payments`),
+    addPayment: (id: string, body: any) => api.post<{ data: any }>(`/property/construction/${id}/payments`, body),
+    approvePayment: (id: string, paymentId: string) => api.patch<{ data: any }>(`/property/construction/${id}/payments/${paymentId}/approve`, {}),
+    changeOrders: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/change-orders`),
+    addChangeOrder: (id: string, body: any) => api.post<{ data: any }>(`/property/construction/${id}/change-orders`, body),
+    approveChangeOrder: (id: string, coId: string) => api.patch<{ data: any }>(`/property/construction/${id}/change-orders/${coId}/approve`, {}),
+    report: (id: string) => api.get<{ data: any }>(`/property/construction/${id}/report`),
+  },
+
+  // --- Listings ---
+  listings: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/listings${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/listings", body),
+    update: (id: string, body: any) => api.put<{ data: any }>(`/property/listings/${id}`, body),
+    publish: (id: string) => api.patch<{ data: any }>(`/property/listings/${id}/publish`, {}),
+    public: (orgSlug: string) => fetch(`/api/v1/property/listings/available/${orgSlug}`).then((r) => r.json()),
+  },
+
+  // --- Inquiries ---
+  inquiries: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/inquiries${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/inquiries", body),
+    update: (id: string, body: any) => api.patch<{ data: any }>(`/property/inquiries/${id}`, body),
+  },
+
+  // --- Sales ---
+  sales: {
+    list: (p?: any) => api.get<{ data: any[] }>(`/property/sales${p ? "?" + new URLSearchParams(p) : ""}`),
+    create: (body: any) => api.post<{ data: any }>("/property/sales", body),
+    update: (id: string, body: any) => api.put<{ data: any }>(`/property/sales/${id}`, body),
+    complete: (id: string) => api.patch<{ data: any }>(`/property/sales/${id}/complete`, {}),
+  },
+
+  // --- Compliance ---
+  compliance: {
+    check: (propertyId: string) => api.get<{ data: any }>(`/property/compliance/${propertyId}`),
+    alerts: () => api.get<{ data: any[] }>("/property/compliance/alerts"),
+  },
+
+  // --- Advisor ---
+  advisor: {
+    property: (id: string) => api.get<{ data: any }>(`/property/advisor/${id}`),
+  },
+
+  // --- Reports ---
+  reports: {
+    occupancy: () => api.get<{ data: any }>("/property/reports/occupancy"),
+    collection: () => api.get<{ data: any }>("/property/reports/collection"),
+    profitLoss: () => api.get<{ data: any }>("/property/reports/profit-loss"),
+    roi: () => api.get<{ data: any }>("/property/reports/roi"),
+    overduePayments: () => api.get<{ data: any }>("/property/reports/overdue-payments"),
+    maintenanceSummary: () => api.get<{ data: any }>("/property/reports/maintenance-summary"),
+    investmentAnalysis: () => api.get<{ data: any[] }>("/property/reports/investment-analysis"),
+    ownerStatement: (ownerId: string) => api.get<{ data: any }>(`/property/reports/owner-statement/${ownerId}`),
+    officeCommissions: () => api.get<{ data: any }>("/property/reports/office-commissions"),
+  },
+
+  // ── Legacy flat aliases (backward compatibility with existing pages) ──
   getProperty: (id: string) => api.get<{ data: any }>(`/property/properties/${id}`),
   createProperty: (data: any) => api.post<{ data: any }>("/property/properties", data),
   updateProperty: (id: string, data: any) => api.put<{ data: any }>(`/property/properties/${id}`, data),
   deleteProperty: (id: string) => api.delete(`/property/properties/${id}`),
-
-  // Units
-  units: (params?: Record<string,string>) => api.get<{ data: any[] }>(`/property/units${params ? "?" + new URLSearchParams(params) : ""}`),
   vacantUnits: () => api.get<{ data: any[] }>("/property/units/vacant"),
   getUnit: (id: string) => api.get<{ data: any }>(`/property/units/${id}`),
   createUnit: (data: any) => api.post<{ data: any }>("/property/units", data),
   updateUnit: (id: string, data: any) => api.put<{ data: any }>(`/property/units/${id}`, data),
   updateUnitStatus: (id: string, status: string) => api.patch<{ data: any }>(`/property/units/${id}/status`, { status }),
   bulkCreateUnits: (data: any) => api.post<{ data: any }>("/property/units/bulk", data),
-
-  // Tenants
-  tenants: (params?: Record<string,string>) => api.get<{ data: any[] }>(`/property/tenants${params ? "?" + new URLSearchParams(params) : ""}`),
   getTenant: (id: string) => api.get<{ data: any }>(`/property/tenants/${id}`),
   createTenant: (data: any) => api.post<{ data: any }>("/property/tenants", data),
   updateTenant: (id: string, data: any) => api.put<{ data: any }>(`/property/tenants/${id}`, data),
-
-  // Contracts
-  contracts: (params?: Record<string,string>) => api.get<{ data: any[] }>(`/property/contracts${params ? "?" + new URLSearchParams(params) : ""}`),
   expiringContracts: (days?: number) => api.get<{ data: any[] }>(`/property/contracts/expiring${days ? "?days=" + days : ""}`),
   getContract: (id: string) => api.get<{ data: any }>(`/property/contracts/${id}`),
   getContractStatement: (id: string) => api.get<{ data: any }>(`/property/contracts/${id}/statement`),
@@ -1441,29 +1626,18 @@ export const propertyApi = {
   renewContract: (id: string, data: any) => api.post<{ data: any }>(`/property/contracts/${id}/renew`, data),
   terminateContract: (id: string, data: any) => api.post<{ data: any }>(`/property/contracts/${id}/terminate`, data),
   updateContractEjar: (id: string, data: any) => api.patch<{ data: any }>(`/property/contracts/${id}/ejar`, data),
-
-  // Invoices
-  invoices: (params?: Record<string,string>) => api.get<{ data: any[] }>(`/property/invoices${params ? "?" + new URLSearchParams(params) : ""}`),
   overdueInvoices: () => api.get<{ data: any[] }>("/property/invoices/overdue"),
   generateInvoices: () => api.post<{ data: any }>("/property/invoices/generate", {}),
   generateContractInvoices: (id: string) => api.post<{ data: any }>(`/property/invoices/generate-for-contract/${id}`, {}),
   sendInvoice: (id: string) => api.patch<{ data: any }>(`/property/invoices/${id}/send`, {}),
   payInvoice: (id: string, data: any) => api.patch<{ data: any }>(`/property/invoices/${id}/pay`, data),
   cancelInvoice: (id: string) => api.patch<{ data: any }>(`/property/invoices/${id}/cancel`, {}),
-
-  // Payments
-  payments: (params?: Record<string,string>) => api.get<{ data: any[] }>(`/property/payments${params ? "?" + new URLSearchParams(params) : ""}`),
   createPayment: (data: any) => api.post<{ data: any }>("/property/payments", data),
-
-  // Expenses
-  expenses: (params?: Record<string,string>) => api.get<{ data: any[] }>(`/property/expenses${params ? "?" + new URLSearchParams(params) : ""}`),
+  quickPayment: (data: any) => api.post<{ data: any }>("/property/payments/quick", data),
   expensesSummary: () => api.get<{ data: any }>("/property/expenses/summary"),
   createExpense: (data: any) => api.post<{ data: any }>("/property/expenses", data),
   updateExpense: (id: string, data: any) => api.put<{ data: any }>(`/property/expenses/${id}`, data),
   deleteExpense: (id: string) => api.delete(`/property/expenses/${id}`),
-
-  // Maintenance
-  maintenance: (params?: Record<string,string>) => api.get<{ data: any[] }>(`/property/maintenance${params ? "?" + new URLSearchParams(params) : ""}`),
   getMaintenance: (id: string) => api.get<{ data: any }>(`/property/maintenance/${id}`),
   createMaintenance: (data: any) => api.post<{ data: any }>("/property/maintenance", data),
   updateMaintenance: (id: string, data: any) => api.put<{ data: any }>(`/property/maintenance/${id}`, data),
@@ -1472,15 +1646,11 @@ export const propertyApi = {
   startMaintenance: (id: string) => api.patch<{ data: any }>(`/property/maintenance/${id}/start`, {}),
   completeMaintenance: (id: string, data: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/complete`, data),
   rateMaintenance: (id: string, data: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/rate`, data),
-
-  // Inspections
-  inspections: (params?: Record<string,string>) => api.get<{ data: any[] }>(`/property/inspections${params ? "?" + new URLSearchParams(params) : ""}`),
   getInspection: (id: string) => api.get<{ data: any }>(`/property/inspections/${id}`),
   createInspection: (data: any) => api.post<{ data: any }>("/property/inspections", data),
   updateInspection: (id: string, data: any) => api.put<{ data: any }>(`/property/inspections/${id}`, data),
   signInspection: (id: string, data: any) => api.post<{ data: any }>(`/property/inspections/${id}/sign`, data),
-
-  // Reports
+  compareInspection: (id: string) => api.get<{ data: any }>(`/property/inspections/${id}/compare`),
   occupancyReport: () => api.get<{ data: any }>("/property/reports/occupancy"),
   collectionReport: () => api.get<{ data: any }>("/property/reports/collection"),
   profitLossReport: () => api.get<{ data: any }>("/property/reports/profit-loss"),
