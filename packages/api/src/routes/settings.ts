@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, count } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { db } from "@nasaq/db/client";
-import { organizations, locations, organizationCapabilityOverrides, services, customers } from "@nasaq/db/schema";
+import { db, pool } from "@nasaq/db/client";
+import { organizations, locations, organizationCapabilityOverrides, services, customers, bookings, users } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getBusinessDefaults } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { invalidateOrgContext } from "../lib/org-context";
@@ -41,6 +41,49 @@ settingsRouter.get("/profile", async (c) => {
   const [org] = await db.select().from(organizations).where(eq(organizations.id, orgId));
   if (!org) return c.json({ error: "المنظمة غير موجودة" }, 404);
   return c.json({ data: org });
+});
+
+// GET /settings/setup-status — حالة إعداد المنشأة للـ checklist في الداشبورد
+settingsRouter.get("/setup-status", async (c) => {
+  const orgId = getOrgId(c);
+
+  const [[svcRow], [custRow], [bookRow], [teamRow], [branchRow], menuItemsResult, ordersResult] = await Promise.all([
+    db.select({ n: count() }).from(services).where(and(eq(services.orgId, orgId), eq(services.status, "active"))),
+    db.select({ n: count() }).from(customers).where(eq(customers.orgId, orgId)),
+    db.select({ n: count() }).from(bookings).where(eq(bookings.orgId, orgId)),
+    db.select({ n: count() }).from(users).where(and(eq(users.orgId, orgId), eq(users.status, "active"))),
+    db.select({ n: count() }).from(locations).where(eq(locations.orgId, orgId)),
+    pool.query(`SELECT COUNT(*)::int AS n FROM menu_items WHERE org_id = $1 AND is_active = true`, [orgId]).catch(() => null),
+    pool.query(`SELECT COUNT(*)::int AS n FROM online_orders WHERE org_id = $1`, [orgId]).catch(() => null),
+  ]);
+
+  const [org] = await db.select({ slug: organizations.slug, businessType: organizations.businessType })
+    .from(organizations).where(eq(organizations.id, orgId));
+
+  const menuItemCount = (menuItemsResult?.rows?.[0]?.n as number) ?? 0;
+  const orderCount    = (ordersResult?.rows?.[0]?.n as number) ?? 0;
+
+  return c.json({
+    data: {
+      hasServices:   (svcRow?.n ?? 0) > 0,
+      hasMenuItems:  menuItemCount > 0,
+      hasCustomers:  (custRow?.n ?? 0) > 0,
+      hasBookings:   (bookRow?.n ?? 0) > 0,
+      hasOrders:     orderCount > 0,
+      hasTeam:       (teamRow?.n ?? 0) > 1,
+      hasBranch:     (branchRow?.n ?? 0) > 0,
+      hasSlug:       !!org?.slug,
+      businessType:  org?.businessType ?? "",
+      counts: {
+        services:   svcRow?.n ?? 0,
+        menuItems:  menuItemCount,
+        customers:  custRow?.n ?? 0,
+        bookings:   bookRow?.n ?? 0,
+        orders:     orderCount,
+        team:       teamRow?.n ?? 0,
+      },
+    },
+  });
 });
 
 // GET /settings/context — resolved org context for the dashboard decision layer

@@ -4,6 +4,7 @@ import { db } from "@nasaq/db/client";
 import { organizations, subscriptionAddons, subscriptions, subscriptionOrders, bookings, customers, invoices } from "@nasaq/db/schema";
 import { getOrgId, getUserId } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
+import { buildMoyasarPaymentUrl, sarToHalala } from "../lib/moyasar";
 
 export const subscriptionRouter = new Hono();
 export const orgStatsRouter     = new Hono();
@@ -444,6 +445,79 @@ export async function _activateOrder(order: any, paymentRef: string | null, acto
     },
   });
 }
+
+// ============================================================
+// GET /organization/subscription/payment-url?orderId=X&returnUrl=...
+// يُنشئ رابط صفحة الدفع المستضافة عند موياسار
+// ============================================================
+subscriptionRouter.get("/payment-url", async (c) => {
+  const orgId      = getOrgId(c);
+  const orderId    = c.req.query("orderId");
+  const returnUrl  = c.req.query("returnUrl");
+
+  if (!orderId) return c.json({ error: "orderId مطلوب" }, 400);
+
+  const [order] = await db.select()
+    .from(subscriptionOrders)
+    .where(and(eq(subscriptionOrders.id, orderId), eq(subscriptionOrders.orgId, orgId)));
+
+  if (!order)                              return c.json({ error: "الطلب غير موجود" }, 404);
+  if (order.status === "paid")             return c.json({ error: "الطلب مدفوع بالفعل" }, 409);
+  if (order.status === "expired")          return c.json({ error: "انتهت صلاحية الطلب" }, 409);
+  if (order.status === "cancelled")        return c.json({ error: "الطلب ملغي" }, 409);
+
+  const publishableKey = process.env.MOYASAR_PUBLISHABLE_KEY;
+  if (!publishableKey) return c.json({ error: "بوابة الدفع غير مهيأة" }, 500);
+
+  const base        = returnUrl ?? "https://app.nasaqpro.tech/dashboard/subscription";
+  const callbackUrl = `${base}?orderId=${orderId}`;
+
+  const paymentUrl = buildMoyasarPaymentUrl({
+    publishableKey,
+    amount:      sarToHalala(Number(order.price)),
+    currency:    "SAR",
+    description: order.itemName,
+    callbackUrl,
+    metadata:    { orgId, orderId: order.id },
+  });
+
+  return c.json({ data: { paymentUrl } });
+});
+
+// ============================================================
+// DELETE /organization/subscription/addons/:addonKey
+// إلغاء تفعيل إضافة
+// ============================================================
+subscriptionRouter.delete("/addons/:addonKey", async (c) => {
+  const orgId    = getOrgId(c);
+  const userId   = getUserId(c);
+  const addonKey = c.req.param("addonKey");
+
+  const [addon] = await db.select({ id: subscriptionAddons.id, addonName: subscriptionAddons.addonName })
+    .from(subscriptionAddons)
+    .where(and(
+      eq(subscriptionAddons.orgId, orgId),
+      eq(subscriptionAddons.addonKey, addonKey),
+      eq(subscriptionAddons.isActive, true),
+    ));
+
+  if (!addon) return c.json({ error: "الإضافة غير مفعّلة" }, 404);
+
+  await db.update(subscriptionAddons)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(subscriptionAddons.id, addon.id));
+
+  insertAuditLog({
+    orgId, userId,
+    action:     "deleted",
+    resource:   "subscription_addon",
+    resourceId: addon.id,
+    newValue:   { addonKey, isActive: false },
+    metadata:   { description: `إلغاء إضافة "${addon.addonName}"` },
+  });
+
+  return c.json({ data: { success: true } });
+});
 
 // ============================================================
 // STATS — ملخص الشهر (registered at /organization/stats)

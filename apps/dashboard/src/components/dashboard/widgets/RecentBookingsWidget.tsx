@@ -4,6 +4,7 @@ import { CalendarCheck, Clock, ArrowLeft } from "lucide-react";
 import { bookingsApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { fmtDate } from "@/lib/utils";
+import { useBusiness } from "@/hooks/useBusiness";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   pending:     { label: "بانتظار",     color: "text-amber-600 bg-amber-50" },
@@ -18,13 +19,14 @@ function Skeleton({ className }: { className?: string }) {
 }
 
 export function RecentBookingsWidget() {
+  const biz = useBusiness();
   const { data, loading } = useApi(() => bookingsApi.list({ limit: "5" }), []);
   const bookings: any[] = data?.data || [];
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
-        <h2 className="font-semibold text-gray-900 text-sm">آخر الحجوزات</h2>
+        <h2 className="font-semibold text-gray-900 text-sm">{biz.terminology.recentBookingsTitle}</h2>
         <Link
           to="/dashboard/bookings"
           className="text-xs text-brand-500 hover:text-brand-600 flex items-center gap-1 font-medium"
@@ -50,7 +52,7 @@ export function RecentBookingsWidget() {
         ) : bookings.length === 0 ? (
           <div className="py-6 text-center">
             <CalendarCheck className="w-7 h-7 text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">لا توجد حجوزات بعد</p>
+            <p className="text-sm text-gray-400">{biz.terminology.bookingEmpty}</p>
           </div>
         ) : (
           bookings.slice(0, 5).map((b: any) => {

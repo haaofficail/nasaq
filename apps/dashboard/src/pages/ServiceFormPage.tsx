@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, AlignJustify, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image, Wrench, Home, Package, Truck, Gift, FileText, Star, ShoppingBag, CalendarCheck, CheckSquare, Barcode, RefreshCw } from "lucide-react";
+import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, AlignJustify, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image, Wrench, Home, Package, Truck, Gift, FileText, Star, ShoppingBag, CalendarCheck, CheckSquare, Barcode, RefreshCw, DollarSign, Clock, MessageSquare, Settings } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi, membersApi, inventoryApi, settingsApi } from "@/lib/api";
 import { DurationInput } from "@/components/ui/DurationInput";
@@ -232,6 +232,30 @@ function Err({ msg }: { msg?: string }) {
   );
 }
 
+// ─── FormSection ─────────────────────────────────────────────────────────────
+
+function FormSection({ title, icon: Icon, children, defaultOpen = true }: {
+  title: string; icon: React.ElementType; children: React.ReactNode; defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <Icon className="w-4 h-4 text-brand-500" />
+          <span className="font-semibold text-sm text-gray-800">{title}</span>
+        </div>
+        <ChevronDown className={clsx("w-4 h-4 text-gray-400 transition-transform", open && "rotate-180")} />
+      </button>
+      {open && <div className="px-5 pb-5 space-y-4">{children}</div>}
+    </div>
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function ServiceFormPage() {
@@ -371,7 +395,9 @@ export function ServiceFormPage() {
       const res = await mediaApi.upload(fd, () => {});
       const url = res.data?.fileUrl || res.data?.url || res.data?.publicUrl;
       if (url) setAddonDrafts(d => d.map((x, j) => j === idx ? { ...x, imageUrl: url } : x));
-    } catch {}
+    } catch {
+      toast.error("فشل رفع صورة الإضافة");
+    }
     setAddonUploadIdx(null);
   };
 
@@ -654,8 +680,7 @@ export function ServiceFormPage() {
             )}
 
             {/* Card: Service info */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">معلومات الخدمة</h2>
+            <FormSection title="المعلومات الأساسية" icon={FileText}>
               <div className="space-y-3">
                 {selType && (isEdit || typeAlreadyPicked) && (
                   <div>
@@ -734,11 +759,10 @@ export function ServiceFormPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </FormSection>
 
             {/* Card: Price and time */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">السعر والوقت</h2>
+            <FormSection title="التسعير والمدة" icon={DollarSign}>
               <div className="space-y-3">
                 <div>
                   <label className="text-xs font-medium text-gray-700 block mb-1.5">طريقة التسعير</label>
@@ -814,11 +838,10 @@ export function ServiceFormPage() {
                   السعر شامل ضريبة القيمة المضافة
                 </label>
               </div>
-            </div>
+            </FormSection>
 
             {/* Card: Booking rules */}
-            {typeConfig.showBookingRules && <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">إعدادات الحجز</h2>
+            {typeConfig.showBookingRules && <FormSection title="الإتاحة والحجوزات" icon={Clock}>
               <div className="divide-y divide-gray-50">
                 {/* إلغاء مجاني — ساعة / يوم */}
                 <div className="flex items-center justify-between py-2.5">
@@ -873,7 +896,7 @@ export function ServiceFormPage() {
                   </>
                 )}
               </div>
-            </div>}
+            </FormSection>}
 
             {/* Card: Amenities — only for rental types */}
             {["rental", "event_rental"].includes(form.serviceType) && (
@@ -926,8 +949,7 @@ export function ServiceFormPage() {
             )}
 
             {/* Card: Image and status */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">الصور والحالة</h2>
+            <FormSection title="الصور والوسائط" icon={Image} defaultOpen={false}>
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center justify-between mb-2">
@@ -1000,11 +1022,10 @@ export function ServiceFormPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </FormSection>
 
             {/* Card: Visibility */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">منافذ الظهور</h2>
+            <FormSection title="الإعدادات والظهور" icon={Settings} defaultOpen={false}>
               <div className="space-y-2">
                 {[
                   { key: "isFeatured",      label: "خدمة مميزة",         desc: "تظهر في قسم المميزات أولاً" },
@@ -1033,11 +1054,10 @@ export function ServiceFormPage() {
                   </label>
                 ))}
               </div>
-            </div>
+            </FormSection>
 
             {/* Card: Branches & category */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h2 className="text-sm font-semibold text-gray-900 mb-4 pb-3 border-b border-gray-50">الفروع والقسم</h2>
+            <FormSection title="الفروع والقسم" icon={Settings} defaultOpen={false}>
               <div className="space-y-4">
                 {/* Branches */}
                 <div>
@@ -1082,16 +1102,11 @@ export function ServiceFormPage() {
                   </select>
                 </div>
               </div>
-            </div>
+            </FormSection>
 
             {/* Card: Service provider (staff) */}
-            {typeConfig.showStaff && <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-sm font-semibold text-gray-900">مقدمو الخدمة</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">الموظفون المؤهلون لتقديم هذه الخدمة</p>
-                </div>
-              </div>
+            {typeConfig.showStaff && <FormSection title="مقدمو الخدمة" icon={Package} defaultOpen={false}>
+              <p className="text-xs text-gray-400 -mt-2 mb-1">الموظفون المؤهلون لتقديم هذه الخدمة</p>
               {/* Assigned staff (edit) */}
               {isEdit && loadedStaff.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -1164,15 +1179,12 @@ export function ServiceFormPage() {
               {staffMembers.length === 0 && loadedStaff.length === 0 && pendingStaffIds.length === 0 && (
                 <p className="text-xs text-gray-400 py-1">لا يوجد موظفون — أضفهم أولاً من صفحة الفريق</p>
               )}
-            </div>}
+            </FormSection>}
 
             {/* Card: Inventory components */}
-            {typeConfig.showComponents && <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-sm font-semibold text-gray-900">{typeConfig.componentTitle}</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">{typeConfig.componentDesc}</p>
-                </div>
+            {typeConfig.showComponents && <FormSection title={typeConfig.componentTitle} icon={Package} defaultOpen={false}>
+              <div className="flex items-center justify-between -mt-2 mb-2">
+                <p className="text-xs text-gray-400">{typeConfig.componentDesc}</p>
                 <button onClick={() => setComponentDrafts(d => [...d, { ...INIT_COMP }])}
                   className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors">
                   <Plus className="w-3.5 h-3.5" /> إضافة
@@ -1275,15 +1287,12 @@ export function ServiceFormPage() {
                   ))}
                 </div>
               )}
-            </div>}
+            </FormSection>}
 
             {/* Card: Add-ons */}
-            {typeConfig.showAddons && <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-sm font-semibold text-gray-900">الإضافات المدفوعة</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">خيارات إضافية يختارها العميل عند الحجز</p>
-                </div>
+            {typeConfig.showAddons && <FormSection title="العناصر والإضافات" icon={Package} defaultOpen={false}>
+              <div className="flex items-center justify-between -mt-2 mb-2">
+                <p className="text-xs text-gray-400">خيارات إضافية يختارها العميل عند الحجز</p>
                 <button onClick={() => setAddonDrafts(d => [...d, { ...INIT_ADDON }])}
                   className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors">
                   <Plus className="w-3.5 h-3.5" /> إضافة
@@ -1394,15 +1403,12 @@ export function ServiceFormPage() {
                   if (f && addonUploadIdx !== null) pickAddonImage(f, addonUploadIdx);
                   e.target.value = "";
                 }} />
-            </div>}
+            </FormSection>}
 
             {/* Card: Custom questions */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-sm font-semibold text-gray-900">أسئلة مخصصة</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">أسئلة تُطرح على العميل عند إتمام الحجز</p>
-                </div>
+            <FormSection title="الأسئلة المخصصة" icon={MessageSquare} defaultOpen={false}>
+              <div className="flex items-center justify-between -mt-2 mb-2">
+                <p className="text-xs text-gray-400">أسئلة تُطرح على العميل عند إتمام الحجز</p>
                 <button onClick={() => setQuestionDrafts(d => [...d, { ...INIT_Q }])}
                   className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors">
                   <Plus className="w-3.5 h-3.5" /> سؤال
@@ -1594,7 +1600,7 @@ export function ServiceFormPage() {
                   ))}
                 </div>
               )}
-            </div>
+            </FormSection>
 
             {/* Global error */}
             {errors._submit && (

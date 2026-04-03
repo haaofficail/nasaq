@@ -5,7 +5,7 @@ import { nanoid } from "nanoid";
 import { writeFile, mkdir, unlink } from "node:fs/promises";
 import { join } from "node:path";
 import { db } from "@nasaq/db/client";
-import { mediaAssets } from "@nasaq/db/schema";
+import { mediaAssets, mediaGalleries } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { ASSET_BASE_URL } from "../lib/storage";
@@ -657,4 +657,148 @@ mediaRouter.post("/bulk-delete", async (c) => {
   }
 
   return c.json({ data: { deleted: deleted.length } });
+});
+
+// ============================================================
+// MEDIA GALLERIES — معرض الصور المشترك
+// ============================================================
+
+// ── GET /media/galleries — list org galleries ───────────────
+
+mediaRouter.get("/galleries", async (c) => {
+  const orgId = getOrgId(c);
+  const rows = await db
+    .select()
+    .from(mediaGalleries)
+    .where(and(eq(mediaGalleries.orgId, orgId), eq(mediaGalleries.isActive, true)))
+    .orderBy(desc(mediaGalleries.createdAt));
+  return c.json({ data: rows });
+});
+
+// ── POST /media/galleries — create gallery ──────────────────
+
+mediaRouter.post("/galleries", async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const schema = z.object({
+    name:        z.string().min(1),
+    description: z.string().optional(),
+    clientName:  z.string().optional(),
+    assetIds:    z.array(z.string().uuid()).min(1, "اختر صورة واحدة على الأقل"),
+    expiresAt:   z.string().datetime().optional(),
+  });
+  let body: any;
+  try { body = schema.parse(await c.req.json()); }
+  catch { return c.json({ error: "بيانات غير صحيحة" }, 400); }
+
+  const token = nanoid(16);
+
+  const [gallery] = await db.insert(mediaGalleries).values({
+    orgId,
+    createdById: userId ?? undefined,
+    name:        body.name,
+    description: body.description ?? null,
+    clientName:  body.clientName  ?? null,
+    assetIds:    body.assetIds,
+    token,
+    expiresAt:   body.expiresAt ? new Date(body.expiresAt) : null,
+  }).returning();
+
+  insertAuditLog({ orgId, userId, action: "create", resource: "media_gallery", resourceId: gallery.id });
+  return c.json({ data: gallery }, 201);
+});
+
+// ── PATCH /media/galleries/:id — update gallery ─────────────
+
+mediaRouter.patch("/galleries/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+  const schema = z.object({
+    name:        z.string().min(1).optional(),
+    description: z.string().optional(),
+    clientName:  z.string().optional(),
+    assetIds:    z.array(z.string().uuid()).optional(),
+    expiresAt:   z.string().datetime().nullable().optional(),
+    isActive:    z.boolean().optional(),
+  });
+  let body: any;
+  try { body = schema.parse(await c.req.json()); }
+  catch { return c.json({ error: "بيانات غير صحيحة" }, 400); }
+
+  const updates: Record<string, any> = { updatedAt: new Date() };
+  if (body.name        !== undefined) updates.name        = body.name;
+  if (body.description !== undefined) updates.description = body.description;
+  if (body.clientName  !== undefined) updates.clientName  = body.clientName;
+  if (body.assetIds    !== undefined) updates.assetIds    = body.assetIds;
+  if (body.isActive    !== undefined) updates.isActive    = body.isActive;
+  if (body.expiresAt   !== undefined) updates.expiresAt   = body.expiresAt ? new Date(body.expiresAt) : null;
+
+  const [updated] = await db.update(mediaGalleries)
+    .set(updates)
+    .where(and(eq(mediaGalleries.id, id), eq(mediaGalleries.orgId, orgId)))
+    .returning();
+
+  if (!updated) return c.json({ error: "المعرض غير موجود" }, 404);
+  return c.json({ data: updated });
+});
+
+// ── DELETE /media/galleries/:id — soft delete ───────────────
+
+mediaRouter.delete("/galleries/:id", async (c) => {
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const id     = c.req.param("id");
+
+  const [existing] = await db.select({ id: mediaGalleries.id })
+    .from(mediaGalleries)
+    .where(and(eq(mediaGalleries.id, id), eq(mediaGalleries.orgId, orgId)));
+  if (!existing) return c.json({ error: "المعرض غير موجود" }, 404);
+
+  await db.update(mediaGalleries)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(mediaGalleries.id, id));
+
+  insertAuditLog({ orgId, userId, action: "delete", resource: "media_gallery", resourceId: id });
+  return c.json({ data: { success: true } });
+});
+
+// ── GET /media/galleries/share/:token — PUBLIC view ─────────
+// No auth required — used by clients to view their shared gallery
+
+mediaRouter.get("/galleries/share/:token", async (c) => {
+  const token = c.req.param("token");
+
+  const [gallery] = await db
+    .select()
+    .from(mediaGalleries)
+    .where(and(eq(mediaGalleries.token, token), eq(mediaGalleries.isActive, true)));
+
+  if (!gallery) return c.json({ error: "المعرض غير موجود أو انتهت صلاحيته" }, 404);
+
+  // Check expiry
+  if (gallery.expiresAt && gallery.expiresAt < new Date()) {
+    return c.json({ error: "انتهت صلاحية هذا الرابط" }, 410);
+  }
+
+  // Fetch the actual assets
+  const assets = gallery.assetIds.length > 0
+    ? await db
+        .select({ id: mediaAssets.id, name: mediaAssets.name, fileUrl: mediaAssets.fileUrl, fileType: mediaAssets.fileType, width: mediaAssets.width, height: mediaAssets.height })
+        .from(mediaAssets)
+        .where(inArray(mediaAssets.id, gallery.assetIds))
+    : [];
+
+  return c.json({
+    data: {
+      gallery: {
+        id:          gallery.id,
+        name:        gallery.name,
+        description: gallery.description,
+        clientName:  gallery.clientName,
+        createdAt:   gallery.createdAt,
+        expiresAt:   gallery.expiresAt,
+      },
+      assets,
+    },
+  });
 });

@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowRight, UserRoundCheck, Phone, Mail, IdCard, BookOpen,
   Calendar, CheckCircle2, XCircle, ChevronLeft, Send, KeyRound,
-  X, Copy, Check, MessageSquare, ExternalLink, Loader2,
+  X, Copy, Check, MessageSquare, ExternalLink, Loader2, Save, ClipboardList,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useApi } from "@/hooks/useApi";
@@ -149,8 +149,10 @@ export function SchoolTeacherProfilePage() {
   const { teacherId } = useParams<{ teacherId: string }>();
   const navigate = useNavigate();
   const [showInvite, setShowInvite] = useState(false);
+  const [syncSaving, setSyncSaving] = useState(false);
+  const [syncMsg,    setSyncMsg]    = useState("");
 
-  const { data: assignData, loading: assignLoading, error: assignError } = useApi(
+  const { data: assignData, loading: assignLoading, error: assignError, refetch: refetchAssign } = useApi(
     () => schoolApi.getTeacherAssignments(teacherId!),
     [teacherId]
   );
@@ -158,9 +160,65 @@ export function SchoolTeacherProfilePage() {
     () => schoolApi.getTeacherSchedule(teacherId!),
     [teacherId]
   );
+  const { data: subjectsData } = useApi(() => schoolApi.listSubjects(), []);
+  const { data: classesData  } = useApi(() => schoolApi.listClassRooms(), []);
+  const { data: dailyLogsData, loading: logsLoading } = useApi(
+    () => schoolApi.getTeacherDailyLogs({ teacherId: teacherId! }),
+    [teacherId]
+  );
 
   const teacher    = (assignData as any)?.data?.teacher;
+  const dailyLogs: any[] = (dailyLogsData as any)?.data ?? [];
   const assignments: any[] = (assignData as any)?.data?.assignments ?? [];
+  const allSubjects: any[] = (subjectsData as any)?.data ?? [];
+  const allClasses:  any[] = (classesData as any)?.data  ?? [];
+
+  // Derive checked state from assignments
+  const assignedSubjects  = new Set<string>(assignments.map((a: any) => a.subject).filter(Boolean));
+  const assignedClassIds  = new Set<string>(assignments.map((a: any) => a.classRoomId).filter(Boolean));
+
+  // Also include subjects from teacher profile (teacher.subjects array)
+  const profileSubjects: string[] = teacher?.subjects ?? [];
+  profileSubjects.forEach(s => assignedSubjects.add(s));
+
+  // المصدر الموحد للمواد: subjects table + مواد الارتباطات الموجودة (لضمان عدم فقدان بيانات قديمة)
+  const subjectNamesFromDB = allSubjects.map((s: any) => s.name as string);
+  const mergedSubjectNames = [...new Set([...subjectNamesFromDB, ...Array.from(assignedSubjects)])].sort();
+
+  const [checkedSubjects,  setCheckedSubjects]  = useState<Set<string>>(new Set());
+  const [checkedClassIds,  setCheckedClassIds]   = useState<Set<string>>(new Set());
+  const [syncInit, setSyncInit] = useState(false);
+
+  useEffect(() => {
+    if (!syncInit && teacher) {
+      setCheckedSubjects(new Set(profileSubjects.length > 0 ? profileSubjects : Array.from(assignedSubjects)));
+      setCheckedClassIds(new Set(assignedClassIds));
+      setSyncInit(true);
+    }
+  }, [teacher, assignments]);
+
+  const toggleSubject = (s: string) => setCheckedSubjects(prev => {
+    const n = new Set(prev); n.has(s) ? n.delete(s) : n.add(s); return n;
+  });
+  const toggleClass = (id: string) => setCheckedClassIds(prev => {
+    const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n;
+  });
+
+  const handleSyncAssignments = async () => {
+    setSyncSaving(true); setSyncMsg("");
+    try {
+      await schoolApi.syncTeacherAssignments(teacherId!, {
+        subjects:     Array.from(checkedSubjects),
+        classRoomIds: Array.from(checkedClassIds),
+      });
+      setSyncMsg("تم الحفظ");
+      refetchAssign();
+    } catch (e: any) {
+      setSyncMsg(e?.message ?? "حدث خطأ");
+    } finally {
+      setSyncSaving(false);
+    }
+  };
   const schedEntries: any[] = (schedData as any)?.data?.entries ?? [];
 
   if (assignLoading) {
@@ -227,8 +285,10 @@ export function SchoolTeacherProfilePage() {
                 <span className="px-2 py-0.5 rounded-full text-xs bg-amber-50 text-amber-700 border border-amber-100">دعوة معلقة</span>
               ) : null}
             </div>
-            {teacher.subject && (
-              <p className="text-sm text-gray-500 mt-0.5">{teacher.subject}</p>
+            {(teacher.subjects?.length ? teacher.subjects : teacher.subject ? [teacher.subject] : []).length > 0 && (
+              <p className="text-sm text-gray-500 mt-0.5">
+                {(teacher.subjects?.length ? teacher.subjects : [teacher.subject]).join(" · ")}
+              </p>
             )}
             <div className="flex flex-wrap gap-4 mt-2 text-sm text-gray-500">
               {teacher.phone && (
@@ -291,45 +351,117 @@ export function SchoolTeacherProfilePage() {
         ))}
       </div>
 
-      {/* Assignments */}
+      {/* المواد والفصول — checkboxes */}
       <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-gray-900">الفصول والمواد المرتبطة</h2>
-          <span className="text-xs text-gray-400">{assignments.length} ارتباط</span>
-        </div>
-        {assignments.length === 0 ? (
-          <div className="p-8 text-center">
-            <BookOpen className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-            <p className="text-sm text-gray-400">لا توجد ارتباطات بعد</p>
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h2 className="text-sm font-bold text-gray-900">المواد والفصول</h2>
+          <div className="flex items-center gap-2">
+            {syncMsg && (
+              <span className={clsx(
+                "text-xs font-semibold",
+                syncMsg === "تم الحفظ" ? "text-emerald-600" : "text-red-500"
+              )}>{syncMsg}</span>
+            )}
+            <button
+              onClick={handleSyncAssignments}
+              disabled={syncSaving}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {syncSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+              حفظ
+            </button>
           </div>
-        ) : (
-          <div className="divide-y divide-gray-50">
-            {assignments.map((a: any) => (
-              <div key={a.id} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 transition-colors">
-                <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
-                  <BookOpen className="w-4 h-4 text-brand-500" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900">
-                    {a.subject || "—"}
-                    {(a.classRoomGrade || a.grade) && (
-                      <span className="text-xs text-gray-400 mr-2">{a.classRoomGrade || a.grade}</span>
-                    )}
-                  </p>
-                  {a.classRoomName && (
-                    <p className="text-xs text-gray-400 mt-0.5">{a.classRoomName}</p>
-                  )}
-                </div>
-                {a.classRoomId && (
-                  <button
-                    onClick={() => navigate(`/school/classes/${a.classRoomId}`)}
-                    className="p-1.5 rounded-lg hover:bg-brand-50 text-gray-400 hover:text-brand-600 transition-colors"
-                  >
-                    <ChevronLeft className="w-4 h-4" />
-                  </button>
-                )}
+        </div>
+
+        <div className="p-5 grid grid-cols-1 sm:grid-cols-2 gap-6">
+          {/* المواد */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-bold text-gray-500">المواد التي يدرّسها</p>
+              {mergedSubjectNames.length > 0 && (
+                <button
+                  onClick={() =>
+                    checkedSubjects.size === mergedSubjectNames.length
+                      ? setCheckedSubjects(new Set())
+                      : setCheckedSubjects(new Set(mergedSubjectNames))
+                  }
+                  className="text-[11px] text-brand-500 hover:text-brand-700 font-medium"
+                >
+                  {checkedSubjects.size === mergedSubjectNames.length ? "إلغاء الكل" : "تحديد الكل"}
+                </button>
+              )}
+            </div>
+            {mergedSubjectNames.length === 0 ? (
+              <p className="text-xs text-gray-400">
+                لا توجد مواد —{" "}
+                <button
+                  onClick={() => navigate("/school/subjects")}
+                  className="text-emerald-600 hover:underline"
+                >
+                  أضف من صفحة المواد
+                </button>
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {mergedSubjectNames.map((name) => (
+                  <label key={name} className="flex items-center gap-2.5 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={checkedSubjects.has(name)}
+                      onChange={() => toggleSubject(name)}
+                      className="w-4 h-4 accent-emerald-600 cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-700 group-hover:text-gray-900">{name}</span>
+                  </label>
+                ))}
               </div>
-            ))}
+            )}
+          </div>
+
+          {/* الفصول */}
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-bold text-gray-500">الفصول المخصصة له</p>
+              {allClasses.length > 0 && (
+                <button
+                  onClick={() =>
+                    checkedClassIds.size === allClasses.length
+                      ? setCheckedClassIds(new Set())
+                      : setCheckedClassIds(new Set(allClasses.map((cr: any) => cr.id)))
+                  }
+                  className="text-[11px] text-brand-500 hover:text-brand-700 font-medium"
+                >
+                  {checkedClassIds.size === allClasses.length ? "إلغاء الكل" : "تحديد الكل"}
+                </button>
+              )}
+            </div>
+            {allClasses.length === 0 ? (
+              <p className="text-xs text-gray-400">لا توجد فصول — أضف فصولاً أولاً</p>
+            ) : (
+              <div className="space-y-2">
+                {allClasses.map((cr: any) => (
+                  <label key={cr.id} className="flex items-center gap-2.5 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={checkedClassIds.has(cr.id)}
+                      onChange={() => toggleClass(cr.id)}
+                      className="w-4 h-4 accent-emerald-600 cursor-pointer"
+                    />
+                    <span className="text-sm text-gray-700 group-hover:text-gray-900">
+                      {cr.grade} — فصل {cr.name}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {checkedSubjects.size > 0 && checkedClassIds.size > 0 && (
+          <div className="px-5 pb-4">
+            <p className="text-xs text-gray-400">
+              سيتم إنشاء <strong className="text-gray-700">{checkedSubjects.size * checkedClassIds.size}</strong> ارتباط ({checkedSubjects.size} {checkedSubjects.size === 1 ? "مادة" : "مواد"} × {checkedClassIds.size} {checkedClassIds.size === 1 ? "فصل" : "فصول"})
+            </p>
           </div>
         )}
       </section>
@@ -390,6 +522,71 @@ export function SchoolTeacherProfilePage() {
           <p className="text-sm text-gray-600 leading-relaxed">{teacher.notes}</p>
         </section>
       )}
+
+      {/* السجل اليومي */}
+      <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="w-4 h-4 text-violet-500" />
+            <h2 className="text-sm font-bold text-gray-900">السجل اليومي</h2>
+          </div>
+          {dailyLogs.length > 0 && (
+            <span className="text-xs text-gray-400">{dailyLogs.length} يومية</span>
+          )}
+        </div>
+        {logsLoading ? (
+          <div className="p-5 space-y-2 animate-pulse">
+            {[1, 2, 3].map(i => <div key={i} className="h-14 bg-gray-100 rounded-xl" />)}
+          </div>
+        ) : dailyLogs.length === 0 ? (
+          <div className="p-8 text-center">
+            <ClipboardList className="w-8 h-8 text-gray-200 mx-auto mb-2" />
+            <p className="text-sm text-gray-400">لم يُسجَّل أي يومية بعد</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-50">
+            {dailyLogs.slice(0, 15).map((log: any) => (
+              <div key={log.id} className="px-5 py-3 flex items-start gap-3">
+                <div className="shrink-0 mt-0.5">
+                  <div className="w-8 h-8 rounded-xl bg-violet-50 flex items-center justify-center">
+                    <ClipboardList className="w-3.5 h-3.5 text-violet-500" />
+                  </div>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-semibold text-gray-700">{log.date}</span>
+                    {log.subjectName && (
+                      <span className="px-1.5 py-0.5 rounded-lg text-[10px] bg-brand-50 text-brand-600 border border-brand-100">{log.subjectName}</span>
+                    )}
+                    {log.studentEngagement && (
+                      <span className={`px-1.5 py-0.5 rounded-lg text-[10px] border ${
+                        log.studentEngagement === "high"
+                          ? "bg-emerald-50 text-emerald-600 border-emerald-100"
+                          : log.studentEngagement === "low"
+                          ? "bg-red-50 text-red-600 border-red-100"
+                          : "bg-amber-50 text-amber-600 border-amber-100"
+                      }`}>
+                        {log.studentEngagement === "high" ? "تفاعل عالٍ" : log.studentEngagement === "low" ? "تفاعل منخفض" : "تفاعل متوسط"}
+                      </span>
+                    )}
+                    {log.studentsAbsent?.length > 0 && (
+                      <span className="px-1.5 py-0.5 rounded-lg text-[10px] bg-red-50 text-red-600 border border-red-100">
+                        {log.studentsAbsent.length} غائب
+                      </span>
+                    )}
+                  </div>
+                  {log.topicCovered && (
+                    <p className="text-sm text-gray-800 mt-0.5 font-medium">{log.topicCovered}</p>
+                  )}
+                  {log.notes && (
+                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{log.notes}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {showInvite && <InviteModal teacher={teacher} onClose={() => setShowInvite(false)} />}
     </div>

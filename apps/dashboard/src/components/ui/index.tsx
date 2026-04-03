@@ -1,5 +1,5 @@
-import { ReactNode, useEffect, useRef } from "react";
-import { X, Loader2, AlertCircle, Inbox } from "lucide-react";
+import { ReactNode, useEffect, useRef, useState, useCallback } from "react";
+import { X, Loader2, AlertCircle, Inbox, Trash2, AlertTriangle } from "lucide-react";
 import { clsx } from "clsx";
 
 // ── New design system components ──────────────────────────────
@@ -15,6 +15,7 @@ export { PageSkeleton, SkeletonRows, SkeletonCards } from "./Skeleton";
 export { Pagination }     from "./Pagination";
 export { Toaster }        from "./Toaster";
 export { RichTextEditor } from "./RichTextEditor";
+export { ImageUpload }   from "./ImageUpload";
 
 // ============================================================
 // MODAL
@@ -345,6 +346,98 @@ export function Toast({ message, type = "success", onClose }: {
   return (
     <div className={clsx("fixed bottom-4 left-4 z-50 px-4 py-3 rounded-lg border shadow-lg text-sm font-medium animate-slide-up", colors[type])}>
       {message}
+    </div>
+  );
+}
+
+// ============================================================
+// CONFIRM DIALOG — بديل احترافي عن browser confirm()
+// ============================================================
+
+interface ConfirmOptions {
+  title: string;
+  message?: string;
+  confirmLabel?: string;
+  cancelLabel?: string;
+  danger?: boolean;
+}
+
+type ConfirmResolve = (result: boolean) => void;
+
+// Module-level queue — no React context needed
+let _resolve: ConfirmResolve | null = null;
+let _options: ConfirmOptions | null = null;
+const _listeners: Array<(opts: ConfirmOptions | null) => void> = [];
+
+function emitConfirm(opts: ConfirmOptions | null) {
+  _listeners.forEach(fn => fn(opts));
+}
+
+/** فتح نافذة التأكيد — أرجع Promise<boolean> */
+export function confirmDialog(options: ConfirmOptions): Promise<boolean> {
+  return new Promise<boolean>(resolve => {
+    _resolve = resolve;
+    _options = options;
+    emitConfirm(options);
+  });
+}
+
+/** المكوّن — يُوضع مرة واحدة في Layout */
+export function ConfirmDialogHost() {
+  const [opts, setOpts] = useState<ConfirmOptions | null>(null);
+
+  useEffect(() => {
+    const handler = (o: ConfirmOptions | null) => setOpts(o);
+    _listeners.push(handler);
+    return () => {
+      const idx = _listeners.indexOf(handler);
+      if (idx !== -1) _listeners.splice(idx, 1);
+    };
+  }, []);
+
+  const resolve = useCallback((result: boolean) => {
+    setOpts(null);
+    _options = null;
+    if (_resolve) { _resolve(result); _resolve = null; }
+  }, []);
+
+  if (!opts) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => resolve(false)} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 flex flex-col items-center text-center gap-4">
+        <div className={clsx(
+          "w-14 h-14 rounded-full flex items-center justify-center",
+          opts.danger ? "bg-red-50" : "bg-amber-50"
+        )}>
+          {opts.danger
+            ? <Trash2 className="w-7 h-7 text-red-500" />
+            : <AlertTriangle className="w-7 h-7 text-amber-500" />
+          }
+        </div>
+        <div>
+          <p className="text-base font-bold text-gray-900">{opts.title}</p>
+          {opts.message && <p className="text-sm text-gray-500 mt-1">{opts.message}</p>}
+        </div>
+        <div className="flex gap-3 w-full">
+          <button
+            onClick={() => resolve(false)}
+            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+          >
+            {opts.cancelLabel ?? "إلغاء"}
+          </button>
+          <button
+            onClick={() => resolve(true)}
+            className={clsx(
+              "flex-1 py-2.5 rounded-xl text-sm font-bold text-white transition-colors",
+              opts.danger ? "bg-red-500 hover:bg-red-600" : "bg-brand-500 hover:bg-brand-600"
+            )}
+          >
+            {opts.confirmLabel ?? "تأكيد"}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

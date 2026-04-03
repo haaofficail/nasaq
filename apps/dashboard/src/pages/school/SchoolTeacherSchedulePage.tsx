@@ -158,10 +158,12 @@ export function SchoolTeacherSchedulePage() {
   );
 
   const { data: classRoomsData } = useApi(() => schoolApi.listClassRooms(), []);
+  const { data: subjectsData }   = useApi(() => schoolApi.listSubjects(), []);
 
   const teacher    = assignData?.data?.teacher ?? null;
   const assignments: any[] = assignData?.data?.assignments ?? [];
   const classRooms: any[]  = classRoomsData?.data ?? [];
+  const subjectOptions: string[] = (subjectsData as any)?.data?.map((s: any) => s.name) ?? [];
 
   const handleAdd = async () => {
     setSubmitting(true);
@@ -428,12 +430,25 @@ export function SchoolTeacherSchedulePage() {
           {/* Subject */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">المادة الدراسية</label>
-            <input
-              value={form.subject}
-              onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
-              placeholder="مثال: رياضيات، عربي، علوم"
-            />
+            {subjectOptions.length > 0 ? (
+              <select
+                value={form.subject}
+                onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+              >
+                <option value="">اختر المادة...</option>
+                {subjectOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            ) : (
+              <input
+                value={form.subject}
+                onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
+                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                placeholder="مثال: رياضيات، عربي، علوم"
+              />
+            )}
           </div>
 
           {/* Notes */}

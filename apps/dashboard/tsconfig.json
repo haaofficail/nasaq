@@ -16,7 +16,11 @@
     "noUnusedParameters": false,
     "noFallthroughCasesInSwitch": true,
     "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] }
+    "paths": {
+      "@/*": ["./src/*"],
+      "@nasaq/shared": ["../../packages/shared/src"],
+      "@nasaq/shared/*": ["../../packages/shared/src/*"]
+    }
   },
   "include": ["src"]
 }

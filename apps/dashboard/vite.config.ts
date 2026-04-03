@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@nasaq/shared": path.resolve(__dirname, "../../packages/shared/src"),
     },
   },
   server: {
@@ -26,7 +27,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/")) return "react";
+          if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/") || id.includes("node_modules/scheduler/")) return "react";
           if (id.includes("react-router")) return "router";
           if (id.includes("recharts") || id.includes("d3-")) return "charts";
           if (id.includes("lucide-react")) return "icons";

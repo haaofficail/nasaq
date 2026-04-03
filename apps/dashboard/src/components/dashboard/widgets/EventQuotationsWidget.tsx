@@ -27,10 +27,7 @@ function statusIcon(status: string) {
 }
 
 export function EventQuotationsWidget() {
-  const { data, loading } = useApi(
-    () => eventsApi.quotations(),
-    []
-  );
+  const { data, loading } = useApi(() => eventsApi.quotations(), []);
   const quotations: any[] = data?.data ?? [];
 
   const sentCount     = quotations.filter((q) => q.status === "sent").length;
@@ -38,21 +35,16 @@ export function EventQuotationsWidget() {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full">
-      {/* Header */}
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-50">
         <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
           <FileText className="w-4 h-4 text-blue-500" />
           عروض الأسعار
         </h3>
-        <Link
-          to="/dashboard/event-quotations"
-          className="text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors"
-        >
+        <Link to="/dashboard/event-quotations" className="text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors">
           عرض الكل ←
         </Link>
       </div>
 
-      {/* Summary badges */}
       <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50">
         <span className={clsx("text-xs font-medium px-2.5 py-1 rounded-lg", sentCount > 0 ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-500")}>
           {sentCount} مُرسل
@@ -62,7 +54,6 @@ export function EventQuotationsWidget() {
         </span>
       </div>
 
-      {/* List */}
       {loading ? (
         <div className="divide-y divide-gray-50">
           {[...Array(4)].map((_, i) => (
@@ -79,10 +70,7 @@ export function EventQuotationsWidget() {
         <div className="flex flex-col items-center justify-center py-8 text-center">
           <FileText className="w-8 h-8 text-gray-200 mb-2" />
           <p className="text-sm text-gray-400">لا توجد عروض أسعار بعد</p>
-          <Link
-            to="/dashboard/event-quotations"
-            className="mt-2 text-xs text-brand-500 hover:text-brand-700 font-medium"
-          >
+          <Link to="/dashboard/event-quotations" className="mt-2 text-xs text-brand-500 hover:text-brand-700 font-medium">
             إنشاء أول عرض سعر
           </Link>
         </div>

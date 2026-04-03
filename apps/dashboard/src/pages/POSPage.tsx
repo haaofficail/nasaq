@@ -7,7 +7,8 @@ import {
   RotateCcw, Clock, TrendingUp, Wallet, Printer, Smartphone,
   SplitSquareHorizontal, AlertCircle, ScanBarcode,
 } from "lucide-react";
-import { posApi, servicesApi, categoriesApi, customersApi, settingsApi } from "@/lib/api";
+import { posApi, servicesApi, menuApi, categoriesApi, customersApi, settingsApi } from "@/lib/api";
+import { VAT_RATE as VAT_RATE_DECIMAL } from "@/lib/constants";
 import { useApi } from "@/hooks/useApi";
 import { toast } from "@/hooks/useToast";
 import { success as hapticSuccess } from "@/lib/haptics";
@@ -71,7 +72,7 @@ const SPLIT_PART_COLORS = [
   "bg-teal-100 border-teal-300 text-teal-700",
 ];
 
-const VAT_RATE = 15;
+const VAT_RATE = VAT_RATE_DECIMAL * 100; // e.g. 0.15 → 15
 
 function calcCart(items: CartItem[], discType: "fixed" | "percent", discValue: number) {
   const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
@@ -739,6 +740,7 @@ export function POSPage() {
   const [completing, setCompleting] = useState(false);
   const [saleResult, setSaleResult] = useState<SaleResult | null>(null);
   const [showSplit, setShowSplit] = useState(false);
+  const [editingQty, setEditingQty] = useState<string | null>(null);
 
   // Data
   const { data: categoriesRes } = useApi(() => categoriesApi.list(true), []);
@@ -759,8 +761,28 @@ export function POSPage() {
   const { data: profileRes } = useApi(() => settingsApi.profile(), []);
   const orgProfile = profileRes?.data as any;
 
+  const FOOD_BUSINESS_TYPES = ["restaurant", "cafe", "bakery", "catering"];
+  const isFoodBusiness = FOOD_BUSINESS_TYPES.includes(orgProfile?.businessType ?? "");
+
+  const { data: menuItemsRes, loading: loadingMenuItems } = useApi(
+    () => isFoodBusiness ? menuApi.items() : Promise.resolve(null),
+    [isFoodBusiness]
+  );
+
+  // Normalise menu items to same shape as services for the cart
+  const menuItemsAsServices: any[] = (menuItemsRes?.data ?? []).map((item: any) => ({
+    id: item.id,
+    name: item.name,
+    price: item.price,
+    categoryId: item.categoryId,
+    visibleInPOS: true,
+  }));
+
+  const effectiveServices = isFoodBusiness ? menuItemsAsServices : services;
+  const effectiveLoading  = isFoodBusiness ? loadingMenuItems : loadingServices;
+
   // Filtered services
-  const filteredServices = services.filter(s => {
+  const filteredServices = effectiveServices.filter((s: any) => {
     const matchesCat = activeCat === "all" || s.categoryId === activeCat;
     const matchesSearch = !search || s.name?.toLowerCase().includes(search.toLowerCase());
     return matchesCat && matchesSearch;
@@ -797,12 +819,17 @@ export function POSPage() {
     setCart(prev => {
       const existing = prev.find(c => c.id === svc.id);
       if (existing) return prev.map(c => c.id === svc.id ? { ...c, qty: c.qty + 1 } : c);
-      return [...prev, { id: svc.id, name: svc.name, price: Number(svc.basePrice || 0), qty: 1 }];
+      return [...prev, { id: svc.id, name: svc.name, price: Number(svc.basePrice ?? svc.price ?? 0), qty: 1 }];
     });
   };
 
   const changeQty = (id: string, delta: number) => {
     setCart(prev => prev.map(c => c.id === id ? { ...c, qty: c.qty + delta } : c).filter(c => c.qty > 0));
+  };
+
+  const updateQty = (id: string, qty: number) => {
+    const safe = Math.max(1, qty || 1);
+    setCart(prev => prev.map(c => c.id === id ? { ...c, qty: safe } : c));
   };
 
   const updateItemStaff = (id: string, staffId: string, staffName: string) => {
@@ -893,7 +920,7 @@ export function POSPage() {
     if (!trimmed) { setBarcodeInput(""); return; }
 
     // 1. Fast local lookup first
-    const local = services.find((s: any) => s.sku === trimmed || s.barcode === trimmed);
+    const local = effectiveServices.find((s: any) => s.sku === trimmed || s.barcode === trimmed);
     if (local) {
       addToCart(local);
       toast.success(`أضيف: ${local.name}`);
@@ -1007,7 +1034,7 @@ export function POSPage() {
 
             {/* Services grid */}
             <div className="flex-1 overflow-y-auto p-4">
-              {loadingServices ? (
+              {effectiveLoading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {[...Array(12)].map((_, i) => (
                     <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
@@ -1138,7 +1165,24 @@ export function POSPage() {
                           >
                             <Minus className="w-3 h-3 text-gray-600" />
                           </button>
-                          <span className="w-6 text-center text-sm font-bold tabular-nums text-gray-800">{item.qty}</span>
+                          {editingQty === item.id ? (
+                            <input
+                              type="number"
+                              min="1"
+                              defaultValue={item.qty}
+                              className="w-12 text-center text-sm border border-brand-300 rounded-lg px-1 py-0.5 focus:outline-none"
+                              autoFocus
+                              onBlur={e => { updateQty(item.id, parseInt(e.target.value) || 1); setEditingQty(null); }}
+                              onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditingQty(null); }}
+                            />
+                          ) : (
+                            <button
+                              onClick={() => setEditingQty(item.id)}
+                              className="w-6 text-center text-sm font-bold text-gray-800 hover:text-brand-600 transition-colors"
+                            >
+                              {item.qty}
+                            </button>
+                          )}
                           <button
                             onClick={() => changeQty(item.id, 1)}
                             className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center hover:bg-brand-600 active:scale-95 transition-all"
@@ -1380,24 +1424,6 @@ export function POSPage() {
         />
       )}
 
-      {/* FAQ */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 mt-4">
-        <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة — نقطة البيع</h3>
-        <div className="space-y-3">
-          {[
-            { q: "ما الفرق بين «نقطة البيع» و«الحجوزات»؟", a: "نقطة البيع للبيع الفوري لعميل حاضر مع إنشاء فاتورة مباشرة. الحجوزات لجدولة خدمة مستقبلية مع تحديد موعد." },
-            { q: "كيف أطبع إيصالاً؟", a: "بعد إتمام البيع يظهر الإيصال تلقائياً. اضغط زر «طباعة» لطباعته مباشرة أو «مشاركة» لإرساله واتساب." },
-            { q: "هل أستطيع قبول دفع مقسّم على طريقتين؟", a: "نعم، اختر «دفع مقسّم» عند إتمام البيع لتوزيع المبلغ بين طريقتي دفع مختلفتين (مثل نقد + بطاقة)." },
-            { q: "هل تُنشأ فاتورة تلقائياً عند البيع؟", a: "نعم. كل عملية بيع من نقطة البيع تُنشئ فاتورة مرتبطة في قسم «المالية > الفواتير» تلقائياً." },
-            { q: "كيف أطبق خصماً على البيع؟", a: "أضف المنتجات للسلة ثم اضغط أيقونة الخصم. يمكنك تطبيق خصم نسبي (%) أو مبلغ ثابت على البند أو على الإجمالي." },
-          ].map(faq => (
-            <details key={faq.q} className="border border-gray-100 rounded-xl">
-              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
-              <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
-            </details>
-          ))}
-        </div>
-      </div>
     </div>
   );
 }

@@ -9,7 +9,8 @@ import "dotenv/config";
 import { z } from "zod";
 import { db, pool, directPool } from "@nasaq/db/client";
 import { authRlCache } from "./lib/cache";
-import { platformAuditLog } from "@nasaq/db/schema";
+import { platformAuditLog, platformConfig } from "@nasaq/db/schema";
+import { eq } from "drizzle-orm";
 import { log } from "./lib/logger";
 import { startScheduler } from "./jobs/scheduler";
 
@@ -26,6 +27,7 @@ import { pricingRulesRouter } from "./routes/pricing-rules";
 import { bookingsRouter } from "./routes/bookings";
 import { customersRouter } from "./routes/customers";
 import { uploadsRouter } from "./routes/uploads";
+import { fileUploadRouter } from "./routes/file-upload";
 import { importRouter } from "./routes/import";
 import { approvalsRouter } from "./routes/approvals";
 import { financeRouter } from "./routes/finance";
@@ -78,6 +80,13 @@ import { schoolRouter } from "./routes/school";
 import { schoolImportRouter } from "./routes/school-import";
 import { schoolInviteRouter } from "./routes/school-invite";
 import { paymentsRouter } from "./routes/payments";
+import { workOrdersRouter } from "./routes/work-orders";
+import { accessControlRouter } from "./routes/access-control";
+import { killSwitchesRouter } from "./routes/kill-switches";
+import { guardianRouter } from "./routes/guardian";
+import { contractsRouter } from "./routes/contracts";
+import { hrRouter } from "./routes/hr";
+import { templatesRouter } from "./routes/templates";
 
 // ============================================================
 // APP
@@ -250,7 +259,7 @@ app.use("/pos/*", requireCapability("pos"));
 app.use("/online-orders/*", authMiddleware);
 app.use("/online-orders/*", requireCapability("pos"));
 app.use("/menu/*", authMiddleware);
-app.use("/menu/*", requireCapability("pos"));
+app.use("/menu/*", requireCapability("catalog"));
 app.use("/arrangements/*", authMiddleware);
 app.use("/arrangements/*", requireCapability("floral"));
 app.use("/messaging/*", authMiddleware);
@@ -321,6 +330,7 @@ app.use("/bookings/*", async (c, next) => {
 // --- Service Catalog ---
 app.route("/categories", categoriesRouter);
 app.route("/services", servicesRouter);
+app.route("/templates", templatesRouter);
 app.route("/addons", addonsRouter);
 app.route("/bundles", bundlesRouter);
 app.route("/pricing-rules", pricingRulesRouter);
@@ -333,6 +343,7 @@ app.route("/customers", customersRouter);
 
 // --- Files ---
 app.route("/uploads", uploadsRouter);
+app.route("/file-upload", fileUploadRouter);
 
 // --- Import ---
 app.route("/import", importRouter);
@@ -421,10 +432,15 @@ app.use("/rental/*", authMiddleware);
 app.use("/rental/*", methodGuard("bookings"));
 app.route("/rental", rentalRouter);
 
-// --- Contracts (backward compat alias → rental) ---
+// --- HR System ---
+app.use("/hr/*", authMiddleware);
+app.use("/hr/*", methodGuard("team"));
+app.route("/hr", hrRouter);
+
+// --- General-Purpose Contracts ---
 app.use("/contracts/*", authMiddleware);
 app.use("/contracts/*", methodGuard("bookings"));
-app.route("/contracts", rentalRouter);
+app.route("/contracts", contractsRouter);
 
 // --- Inspections (backward compat alias) ---
 app.use("/inspections/*", authMiddleware);
@@ -493,8 +509,15 @@ app.use("/audit-log/*", methodGuard("finance"));
 app.route("/audit-log", auditLogRouter);
 
 // --- Media Library (DAM) ---
-app.use("/media/*", authMiddleware);
-app.use("/media/*", methodGuard("services"));
+app.use("/media/*", async (c, next) => {
+  // Public: shared gallery view — no auth required
+  if (c.req.path.includes("/media/galleries/share/")) return next();
+  return authMiddleware(c, next);
+});
+app.use("/media/*", async (c, next) => {
+  if (c.req.path.includes("/media/galleries/share/")) return next();
+  return methodGuard("services")(c, next);
+});
 app.route("/media", mediaRouter);
 
 // --- RBAC v2: Job Titles ---
@@ -559,6 +582,34 @@ app.route("/school", schoolImportRouter);
 // --- Payment Gateway (Moyasar central facilitator) ---
 app.route("/payments", paymentsRouter);
 
+// --- Work Orders (workshop, phone repair, tailor, laundry, field service) ---
+app.use("/work-orders/*", authMiddleware);
+app.use("/work-orders/*", methodGuard("bookings"));
+app.route("/work-orders", workOrdersRouter);
+
+// --- Access Control (gym / fitness / membership check-in) ---
+app.use("/access-control/*", async (c, next) => {
+  // QR scan endpoint is public (scanned from kiosk/display)
+  if (c.req.path.includes("/access-control/scan")) return next();
+  return authMiddleware(c, next);
+});
+app.use("/access-control/*", async (c, next) => {
+  if (c.req.path.includes("/access-control/scan")) return next();
+  return methodGuard("bookings")(c, next);
+});
+app.route("/access-control", accessControlRouter);
+
+// --- Platform Config Public Endpoint (no auth — for Layout/branding) ---
+app.get("/platform-config/public", async (c) => {
+  const [row] = await db.select({
+    platformName: platformConfig.platformName,
+    logoUrl: platformConfig.logoUrl,
+    faviconUrl: platformConfig.faviconUrl,
+    primaryColor: platformConfig.primaryColor,
+  }).from(platformConfig).where(eq(platformConfig.id, "default"));
+  return c.json({ data: row ?? { platformName: "نسق", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5" } });
+});
+
 // --- Super Admin Panel ---
 // Note: admin router has its own super-admin middleware, no outer guards needed
 app.route("/admin", adminRouter);
@@ -566,6 +617,12 @@ app.route("/admin", adminRouter);
 // --- Commercial Engine (plan builder, features, quotas, add-ons, entitlements) ---
 // Note: commercial router has its own super-admin middleware for write operations
 app.route("/admin", commercialRouter);
+
+// --- Kill Switches (platform-wide feature disables) ---
+app.route("/admin/kill-switches", killSwitchesRouter);
+
+// --- Smart Guardian (self-healing monitoring) ---
+app.route("/admin/guardian", guardianRouter);
 
 // --- Events & Tickets ---
 app.use("/events/*", authMiddleware);

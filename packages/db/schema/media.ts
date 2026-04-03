@@ -2,6 +2,7 @@ import {
   pgTable, text, timestamp, boolean, pgEnum,
   uuid, integer, index,
 } from "drizzle-orm/pg-core";
+import { users } from "./auth";
 import { organizations } from "./organizations";
 
 // ============================================================
@@ -61,4 +62,37 @@ export const mediaAssets = pgTable("media_assets", {
   index("media_assets_created_idx").on(t.createdAt),
   index("media_assets_service_idx").on(t.relatedServiceId),
   index("media_assets_parent_idx").on(t.parentId),
+]);
+
+// ============================================================
+// MEDIA GALLERIES — معرض صور مشترك للاستوديوهات والتصوير
+// Photography studios share albums with clients via a token link
+// ============================================================
+
+export const mediaGalleries = pgTable("media_galleries", {
+  id:          uuid("id").defaultRandom().primaryKey(),
+  orgId:       uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
+
+  name:        text("name").notNull(),
+  description: text("description"),
+
+  // Shareable public token — URL-safe nanoid
+  token:       text("token").notNull().unique(),
+
+  // Array of media_asset IDs included in this gallery
+  assetIds:    text("asset_ids").array().notNull().default([]),
+
+  // Client name for labeling (optional)
+  clientName:  text("client_name"),
+
+  // Optional expiry — null = never expires
+  expiresAt:   timestamp("expires_at", { withTimezone: true }),
+
+  isActive:    boolean("is_active").notNull().default(true),
+  createdAt:   timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:   timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("media_galleries_org_idx").on(t.orgId),
+  index("media_galleries_token_idx").on(t.token),
 ]);

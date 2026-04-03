@@ -101,7 +101,10 @@ export async function resolveOrgContext(orgId: string): Promise<OrgContext | nul
   }
 
   // 4. Derive dashboardProfile from businessType + operatingProfile + capabilities
-  const dashboardProfile = org.dashboardProfile ?? deriveDashboardProfile(businessType, operatingProfile, capabilities);
+  // Treat "default" stored explicitly the same as NULL — let deriveDashboardProfile run for known business types.
+  // This prevents admin-set "default" from blocking proper profile selection for restaurants, cafés, salons, etc.
+  const storedProfile = (org.dashboardProfile && org.dashboardProfile !== "default") ? org.dashboardProfile : null;
+  const dashboardProfile = storedProfile ?? deriveDashboardProfile(businessType, operatingProfile, capabilities);
 
   const ctx: OrgContext = {
     orgId,
@@ -298,8 +301,11 @@ export function deriveDashboardProfile(businessType: string, operatingProfile: s
     projects:                  "services",
     subscription_service:      "services",
     hybrid:                    "services",
+    // Workshop / repair
+    workshop_repair:           "workshop",
+    workshop_service:          "workshop",
     // Real estate
-    real_estate_rental:        "services",
+    real_estate_rental:        "real_estate",
   };
 
   if (operatingProfile !== "general" && profileMap[operatingProfile]) {
@@ -315,7 +321,7 @@ export function deriveDashboardProfile(businessType: string, operatingProfile: s
     salon:            "salon",
     barber:           "barber",
     spa:              "spa",
-    fitness:          "salon",
+    fitness:          "fitness",
     hotel:            "hotel",
     car_rental:       "car_rental",
     rental:           "rental",
@@ -334,10 +340,11 @@ export function deriveDashboardProfile(businessType: string, operatingProfile: s
     marketing:        "digital_services",
     agency:           "digital_services",
     technology:       "digital_services",
-    maintenance:      "services",
-    workshop:         "services",
-    real_estate:      "services",
-    laundry:          "services",
+    maintenance:      "maintenance",
+    workshop:         "workshop",
+    real_estate:      "real_estate",
+    laundry:          "workshop",
+    tailoring:        "workshop",
     services:         "services",
     medical:          "services",
     education:        "services",

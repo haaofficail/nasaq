@@ -7,6 +7,7 @@ import { nanoid } from "nanoid";
 import { z } from "zod";
 import { DEFAULT_VAT_RATE } from "@nasaq/db/constants";
 import { postCreditSale, postExpense, isAccountingEnabled, getAccountByKey } from "../lib/posting-engine";
+import { autoJournal } from "../lib/autoJournal";
 import { insertAuditLog } from "../lib/audit";
 import { requirePermission } from "../middleware/auth";
 import { fireBookingEvent } from "../lib/messaging-engine";
@@ -244,6 +245,16 @@ financeRouter.post("/invoices", async (c) => {
     } catch { /* فشل الترحيل لا يُوقف العملية */ }
   })();
 
+  // autoJournal — قيد إصدار الفاتورة (fire-and-forget)
+  try {
+    await autoJournal.invoiceIssued({
+      orgId,
+      invoiceId: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      amount: parseFloat(invoice.totalAmount),
+    });
+  } catch {}
+
   insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "invoice", resourceId: invoice.id });
 
   // إرسال SMS/WhatsApp للعميل (fire-and-forget)
@@ -352,6 +363,87 @@ financeRouter.patch("/invoices/:id/status", async (c) => {
   return c.json({ data: inv });
 });
 
+// GET /finance/invoices/:id/zatca-xml — ZATCA XML + QR
+financeRouter.get("/invoices/:id/zatca-xml", async (c) => {
+  const orgId = getOrgId(c);
+  const [invoice] = await db.select().from(invoices)
+    .where(and(eq(invoices.id, c.req.param("id")), eq(invoices.orgId, orgId)));
+  if (!invoice) return c.json({ error: "الفاتورة غير موجودة" }, 404);
+
+  const items = await db.select().from(invoiceItems).where(eq(invoiceItems.invoiceId, invoice.id));
+
+  const vatNumber = invoice.sellerVatNumber ?? "300000000000003";
+  const issueDate = invoice.createdAt.toISOString().slice(0, 10);
+  const issueTime = invoice.createdAt.toISOString().slice(11, 19);
+  const qrBase64 = generateZATCAQR({
+    sellerName: invoice.sellerName,
+    vatNumber,
+    timestamp: `${issueDate}T${issueTime}Z`,
+    totalWithVat: invoice.totalAmount,
+    vatAmount: invoice.vatAmount,
+  });
+
+  const itemsXml = items.map(item => `
+    <cac:InvoiceLine>
+      <cbc:ID>${item.id}</cbc:ID>
+      <cbc:InvoicedQuantity unitCode="PCE">1</cbc:InvoicedQuantity>
+      <cbc:LineExtensionAmount currencyID="SAR">${item.taxableAmount}</cbc:LineExtensionAmount>
+      <cac:Item><cbc:Name>${item.description}</cbc:Name></cac:Item>
+      <cac:Price><cbc:PriceAmount currencyID="SAR">${item.unitPrice}</cbc:PriceAmount></cac:Price>
+    </cac:InvoiceLine>`).join("");
+
+  const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2"
+  xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2"
+  xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+  <cbc:ID>${invoice.invoiceNumber}</cbc:ID>
+  <cbc:IssueDate>${issueDate}</cbc:IssueDate>
+  <cbc:IssueTime>${issueTime}</cbc:IssueTime>
+  <cbc:InvoiceTypeCode name="0200000">${invoice.invoiceType === "simplified" ? "388" : "383"}</cbc:InvoiceTypeCode>
+  <cbc:DocumentCurrencyCode>SAR</cbc:DocumentCurrencyCode>
+  <cac:AdditionalDocumentReference>
+    <cbc:ID>QR</cbc:ID>
+    <cac:Attachment><cbc:EmbeddedDocumentBinaryObject mimeCode="text/plain">${qrBase64}</cbc:EmbeddedDocumentBinaryObject></cac:Attachment>
+  </cac:AdditionalDocumentReference>
+  <cac:AccountingSupplierParty>
+    <cac:Party>
+      <cac:PartyName><cbc:Name>${invoice.sellerName}</cbc:Name></cac:PartyName>
+      <cac:PartyTaxScheme><cbc:CompanyID>${vatNumber}</cbc:CompanyID><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>
+    </cac:Party>
+  </cac:AccountingSupplierParty>
+  <cac:AccountingCustomerParty>
+    <cac:Party>
+      <cac:PartyName><cbc:Name>${invoice.buyerName}</cbc:Name></cac:PartyName>
+      ${invoice.buyerVatNumber ? `<cac:PartyTaxScheme><cbc:CompanyID>${invoice.buyerVatNumber}</cbc:CompanyID><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>` : ""}
+    </cac:Party>
+  </cac:AccountingCustomerParty>
+  <cac:TaxTotal>
+    <cbc:TaxAmount currencyID="SAR">${invoice.vatAmount}</cbc:TaxAmount>
+    <cac:TaxSubtotal>
+      <cbc:TaxableAmount currencyID="SAR">${invoice.taxableAmount}</cbc:TaxableAmount>
+      <cbc:TaxAmount currencyID="SAR">${invoice.vatAmount}</cbc:TaxAmount>
+      <cac:TaxCategory><cbc:ID>S</cbc:ID><cbc:Percent>${parseFloat(invoice.vatRate ?? "15")}</cbc:Percent><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:TaxCategory>
+    </cac:TaxSubtotal>
+  </cac:TaxTotal>
+  <cac:LegalMonetaryTotal>
+    <cbc:LineExtensionAmount currencyID="SAR">${invoice.subtotal}</cbc:LineExtensionAmount>
+    <cbc:TaxExclusiveAmount currencyID="SAR">${invoice.taxableAmount}</cbc:TaxExclusiveAmount>
+    <cbc:TaxInclusiveAmount currencyID="SAR">${invoice.totalAmount}</cbc:TaxInclusiveAmount>
+    <cbc:PayableAmount currencyID="SAR">${invoice.totalAmount}</cbc:PayableAmount>
+  </cac:LegalMonetaryTotal>${itemsXml}
+</Invoice>`;
+
+  // حفظ XML في الفاتورة إن لم يكن محفوظاً
+  if (!invoice.zatcaXml) {
+    await db.update(invoices).set({ zatcaXml: xml, qrCode: qrBase64, zatcaStatus: "pending" }).where(eq(invoices.id, invoice.id));
+  }
+
+  if (c.req.query("format") === "json") {
+    return c.json({ data: { xml, qrBase64, invoiceNumber: invoice.invoiceNumber } });
+  }
+  return new Response(xml, { headers: { "Content-Type": "application/xml", "Content-Disposition": `attachment; filename="invoice-${invoice.invoiceNumber}.xml"` } });
+});
+
 // GET /finance/invoices/:id/payments
 financeRouter.get("/invoices/:id/payments", async (c) => {
   const orgId = getOrgId(c);
@@ -406,6 +498,17 @@ financeRouter.post("/invoices/:id/payments", async (c) => {
     ...(newStatus === "paid" ? { paidAt: new Date() } : {}),
     updatedAt: new Date(),
   }).where(eq(invoices.id, invoiceId));
+
+  // autoJournal — قيد تحصيل الفاتورة (fire-and-forget)
+  try {
+    await autoJournal.invoicePaid({
+      orgId,
+      invoiceId: inv.id,
+      invoiceNumber: inv.invoiceNumber,
+      amount: parseFloat(body.amount),
+      paymentMethod: body.paymentMethod,
+    });
+  } catch {}
 
   insertAuditLog({ orgId, userId, action: "created", resource: "invoice_payment", resourceId: payment.id });
   return c.json({ data: payment }, 201);
@@ -472,6 +575,17 @@ financeRouter.post("/expenses", async (c) => {
       });
     } catch { /* فشل الترحيل لا يُوقف العملية */ }
   })();
+
+  // autoJournal — قيد المصروف (fire-and-forget)
+  try {
+    await autoJournal.expenseRecorded({
+      orgId,
+      expenseId: expense.id,
+      amount: parseFloat(body.amount),
+      category: body.category,
+      description: body.description,
+    });
+  } catch {}
 
   insertAuditLog({ orgId, userId, action: "created", resource: "expense", resourceId: expense.id });
   return c.json({ data: expense }, 201);

@@ -1,6 +1,8 @@
-import { pgTable, text, timestamp, boolean, pgEnum, uuid, numeric, integer, index, uniqueIndex } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, uuid, numeric, integer, index, uniqueIndex, date, jsonb } from "drizzle-orm/pg-core";
 import { organizations, locations } from "./organizations";
 import { users } from "./auth";
+// purchaseOrders is defined in procurement.ts (canonical) — imported here for FK references only
+import { purchaseOrders } from "./procurement";
 
 // ============================================================
 // ENUMS
@@ -44,6 +46,74 @@ export const periodStatusEnum = pgEnum("period_status", [
   "locked", // مقفلة — لا تعديل من أي نوع
 ]);
 
+export const costCenterTypeEnum = pgEnum("cost_center_type", [
+  "branch",
+  "department",
+  "project",
+  "property",
+  "vehicle",
+  "employee",
+]);
+
+export const fixedAssetCategoryEnum = pgEnum("fixed_asset_category", [
+  "land",
+  "building",
+  "vehicle",
+  "furniture",
+  "equipment",
+  "computer",
+  "machinery",
+  "other",
+]);
+
+export const fixedAssetStatusEnum = pgEnum("fixed_asset_status", [
+  "active",
+  "disposed",
+  "sold",
+  "fully_depreciated",
+  "maintenance",
+]);
+
+export const depreciationMethodEnum = pgEnum("depreciation_method", [
+  "straight_line",
+  "declining_balance",
+  "units_of_production",
+]);
+
+export const vendorStatusEnum = pgEnum("vendor_status", [
+  "active",
+  "inactive",
+]);
+
+export const purchaseOrderStatusEnum = pgEnum("purchase_order_status", [
+  "draft",
+  "sent",
+  "confirmed",
+  "partial_received",
+  "received",
+  "cancelled",
+]);
+
+export const purchaseInvoiceStatusEnum = pgEnum("purchase_invoice_status", [
+  "pending",
+  "partial",
+  "paid",
+  "overdue",
+  "cancelled",
+]);
+
+export const purchasePaymentMethodEnum = pgEnum("purchase_payment_method", [
+  "cash",
+  "bank_transfer",
+  "cheque",
+]);
+
+export const budgetStatusEnum = pgEnum("budget_status", [
+  "draft",
+  "active",
+  "closed",
+]);
+
 // ============================================================
 // CHART OF ACCOUNTS — دليل الحسابات
 // ============================================================
@@ -79,6 +149,18 @@ export const chartOfAccounts = pgTable("chart_of_accounts", {
 
   isActive: boolean("is_active").default(true).notNull(),
 
+  // Banking & Cash
+  currency: text("currency").default("SAR").notNull(),
+  isBankAccount: boolean("is_bank_account").default(false).notNull(),
+  bankName: text("bank_name"),
+  bankIban: text("bank_iban"),
+  bankBranch: text("bank_branch"),
+  isCashAccount: boolean("is_cash_account").default(false).notNull(),
+
+  // Budget & Notes
+  budgetAmount: numeric("budget_amount", { precision: 15, scale: 2 }),
+  notes: text("notes"),
+
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
@@ -102,7 +184,7 @@ export const accountingPeriods = pgTable("accounting_periods", {
 
   status: periodStatusEnum("status").default("open").notNull(),
 
-  closedBy: uuid("closed_by").references(() => users.id),
+  closedBy: uuid("closed_by").references(() => users.id, { onDelete: "set null" }),
   closedAt: timestamp("closed_at", { withTimezone: true }),
 
   notes: text("notes"),
@@ -111,6 +193,32 @@ export const accountingPeriods = pgTable("accounting_periods", {
 }, (table) => [
   index("periods_org_id_idx").on(table.orgId),
   index("periods_status_idx").on(table.orgId, table.status),
+]);
+
+// ============================================================
+// COST CENTERS — مراكز التكلفة
+// ============================================================
+
+export const costCenters = pgTable("cost_centers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+
+  code: text("code").notNull(),          // CC-001
+  name: text("name").notNull(),
+  nameEn: text("name_en"),
+
+  parentId: uuid("parent_id").references((): any => costCenters.id, { onDelete: "set null" }),
+
+  type: costCenterTypeEnum("type").notNull(),
+  isActive: boolean("is_active").default(true).notNull(),
+  notes: text("notes"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("cost_centers_org_code_idx").on(table.orgId, table.code),
+  index("cost_centers_org_id_idx").on(table.orgId),
+  index("cost_centers_parent_id_idx").on(table.parentId),
 ]);
 
 // ============================================================
@@ -137,18 +245,18 @@ export const journalEntries = pgTable("journal_entries", {
   status: journalEntryStatusEnum("status").default("draft").notNull(),
 
   // الفترة المالية
-  periodId: uuid("period_id").references(() => accountingPeriods.id),
+  periodId: uuid("period_id").references(() => accountingPeriods.id, { onDelete: "restrict" }),
 
   // الترحيل
-  postedBy: uuid("posted_by").references(() => users.id),
+  postedBy: uuid("posted_by").references(() => users.id, { onDelete: "set null" }),
   postedAt: timestamp("posted_at", { withTimezone: true }),
 
   // العكس
-  reversedBy: uuid("reversed_by").references(() => users.id),
+  reversedBy: uuid("reversed_by").references(() => users.id, { onDelete: "set null" }),
   reversedAt: timestamp("reversed_at", { withTimezone: true }),
   reversalEntryId: uuid("reversal_entry_id"), // id قيد العكس (self-reference)
 
-  createdBy: uuid("created_by").references(() => users.id),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
@@ -167,7 +275,7 @@ export const journalEntries = pgTable("journal_entries", {
 export const journalEntryLines = pgTable("journal_entry_lines", {
   id: uuid("id").defaultRandom().primaryKey(),
   entryId: uuid("entry_id").notNull().references(() => journalEntries.id, { onDelete: "cascade" }),
-  accountId: uuid("account_id").notNull().references(() => chartOfAccounts.id),
+  accountId: uuid("account_id").notNull().references(() => chartOfAccounts.id, { onDelete: "restrict" }),
 
   // المبالغ — واحد منهما فقط له قيمة في كل سطر
   debit: numeric("debit", { precision: 15, scale: 2 }).default("0").notNull(),
@@ -176,11 +284,251 @@ export const journalEntryLines = pgTable("journal_entry_lines", {
   description: text("description"),          // شرح إضافي للسطر
 
   // تفاصيل اختيارية
-  costCenter: text("cost_center"),           // مركز التكلفة (مستقبلاً)
-  branchId: uuid("branch_id").references(() => locations.id),
+  costCenter: text("cost_center"),           // نص قديم — للتوافق العكسي
+  costCenterId: uuid("cost_center_id").references(() => costCenters.id, { onDelete: "set null" }),
+  branchId: uuid("branch_id").references(() => locations.id, { onDelete: "set null" }),
 
   lineOrder: integer("line_order").default(0).notNull(),
 }, (table) => [
   index("jel_entry_id_idx").on(table.entryId),
   index("jel_account_id_idx").on(table.accountId),
+  index("jel_cost_center_idx").on(table.costCenterId),
+]);
+
+// ============================================================
+// FIXED ASSETS — الأصول الثابتة
+// ============================================================
+
+export const fixedAssets = pgTable("fixed_assets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+
+  assetCode: text("asset_code").notNull(),       // FA-001
+  name: text("name").notNull(),
+  nameEn: text("name_en"),
+  description: text("description"),
+
+  category: fixedAssetCategoryEnum("category").notNull(),
+
+  // الحسابات المرتبطة
+  accountId: uuid("account_id").references(() => chartOfAccounts.id, { onDelete: "set null" }),
+  depreciationAccountId: uuid("depreciation_account_id").references(() => chartOfAccounts.id, { onDelete: "set null" }),
+  expenseAccountId: uuid("expense_account_id").references(() => chartOfAccounts.id, { onDelete: "set null" }),
+  costCenterId: uuid("cost_center_id").references(() => costCenters.id, { onDelete: "set null" }),
+
+  // تفاصيل الشراء
+  purchaseDate: date("purchase_date"),
+  purchasePrice: numeric("purchase_price", { precision: 15, scale: 2 }),
+  purchaseInvoice: text("purchase_invoice"),
+  vendorName: text("vendor_name"),
+  warrantyEndDate: date("warranty_end_date"),
+
+  // الاستهلاك
+  usefulLifeMonths: integer("useful_life_months"),
+  salvageValue: numeric("salvage_value", { precision: 15, scale: 2 }).default("0"),
+  depreciationMethod: depreciationMethodEnum("depreciation_method").default("straight_line"),
+  monthlyDepreciation: numeric("monthly_depreciation", { precision: 15, scale: 2 }).default("0"),
+  accumulatedDepreciation: numeric("accumulated_depreciation", { precision: 15, scale: 2 }).default("0"),
+  netBookValue: numeric("net_book_value", { precision: 15, scale: 2 }).default("0"),
+
+  // الحالة
+  status: fixedAssetStatusEnum("status").default("active"),
+  disposalDate: date("disposal_date"),
+  disposalPrice: numeric("disposal_price", { precision: 15, scale: 2 }),
+  disposalReason: text("disposal_reason"),
+
+  // تفاصيل إضافية
+  location: text("location"),
+  assignedTo: text("assigned_to"),
+  serialNumber: text("serial_number"),
+  barcode: text("barcode"),
+  photos: jsonb("photos"),
+  notes: text("notes"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("fa_org_id_idx").on(table.orgId),
+  index("fa_org_status_idx").on(table.orgId, table.status),
+  uniqueIndex("fa_org_code_idx").on(table.orgId, table.assetCode),
+]);
+
+// ============================================================
+// ASSET DEPRECIATION ENTRIES — قيود استهلاك الأصول
+// ============================================================
+
+export const assetDepreciationEntries = pgTable("asset_depreciation_entries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  assetId: uuid("asset_id").notNull().references(() => fixedAssets.id, { onDelete: "cascade" }),
+  journalEntryId: uuid("journal_entry_id").references(() => journalEntries.id, { onDelete: "set null" }),
+
+  depreciationDate: date("depreciation_date").notNull(),
+  amount: numeric("amount", { precision: 15, scale: 2 }).notNull(),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("ade_asset_id_idx").on(table.assetId),
+  index("ade_org_date_idx").on(table.orgId, table.depreciationDate),
+]);
+
+// ============================================================
+// VENDORS — الموردون
+// ============================================================
+
+export const vendors = pgTable("vendors", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+
+  name: text("name").notNull(),
+  contactPerson: text("contact_person"),
+  phone: text("phone"),
+  email: text("email"),
+  vatNumber: text("vat_number"),
+  commercialRegistration: text("commercial_registration"),
+  bankName: text("bank_name"),
+  iban: text("iban"),
+  address: text("address"),
+  city: text("city"),
+  category: text("category"),
+  rating: integer("rating"),            // 1-5
+  notes: text("notes"),
+  isActive: boolean("is_active").default(true).notNull(),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("vendors_org_id_idx").on(table.orgId),
+]);
+
+// ============================================================
+// PURCHASE INVOICES — فواتير الشراء
+// (purchaseOrders defined in procurement.ts — imported above)
+// ============================================================
+
+export const purchaseInvoices = pgTable("purchase_invoices", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+
+  invoiceNumber: text("invoice_number").notNull(),
+  vendorId: uuid("vendor_id").references(() => vendors.id, { onDelete: "set null" }),
+  poId: uuid("po_id").references(() => purchaseOrders.id, { onDelete: "set null" }),
+
+  invoiceDate: date("invoice_date").notNull(),
+  dueDate: date("due_date"),
+
+  subtotal: numeric("subtotal", { precision: 15, scale: 2 }).notNull().default("0"),
+  vatAmount: numeric("vat_amount", { precision: 15, scale: 2 }).notNull().default("0"),
+  totalAmount: numeric("total_amount", { precision: 15, scale: 2 }).notNull().default("0"),
+  paidAmount: numeric("paid_amount", { precision: 15, scale: 2 }).notNull().default("0"),
+
+  status: purchaseInvoiceStatusEnum("status").default("pending"),
+  zatcaQrCode: text("zatca_qr_code"),
+  notes: text("notes"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("pinv_org_id_idx").on(table.orgId),
+  index("pinv_org_status_idx").on(table.orgId, table.status),
+  index("pinv_vendor_id_idx").on(table.vendorId),
+]);
+
+// ============================================================
+// PURCHASE PAYMENTS — مدفوعات الموردين
+// ============================================================
+
+export const purchasePayments = pgTable("purchase_payments", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+
+  invoiceId: uuid("invoice_id").references(() => purchaseInvoices.id, { onDelete: "set null" }),
+  vendorId: uuid("vendor_id").references(() => vendors.id, { onDelete: "set null" }),
+
+  amount: numeric("amount", { precision: 15, scale: 2 }).notNull(),
+  method: purchasePaymentMethodEnum("method").default("bank_transfer"),
+  chequeNumber: text("cheque_number"),
+  bankReference: text("bank_reference"),
+  paidAt: timestamp("paid_at", { withTimezone: true }).defaultNow().notNull(),
+  approvedBy: text("approved_by"),
+  notes: text("notes"),
+  journalEntryId: uuid("journal_entry_id").references(() => journalEntries.id, { onDelete: "set null" }),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("ppay_org_id_idx").on(table.orgId),
+  index("ppay_invoice_id_idx").on(table.invoiceId),
+]);
+
+// ============================================================
+// BANK TRANSACTIONS — حركات البنك للمطابقة
+// ============================================================
+
+export const bankTransactions = pgTable("bank_transactions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+
+  bankAccountId: uuid("bank_account_id").references(() => chartOfAccounts.id, { onDelete: "set null" }),   // isBankAccount=true
+  transactionDate: date("transaction_date").notNull(),
+  valueDate: date("value_date"),
+  description: text("description").notNull(),
+  reference: text("reference"),
+
+  debitAmount: numeric("debit_amount", { precision: 15, scale: 2 }).default("0"),
+  creditAmount: numeric("credit_amount", { precision: 15, scale: 2 }).default("0"),
+  balance: numeric("balance", { precision: 15, scale: 2 }),
+
+  isReconciled: boolean("is_reconciled").default(false).notNull(),
+  reconciledWithId: uuid("reconciled_with_id"),   // FK journal_entry_lines (optional)
+  importBatch: text("import_batch"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("bt_org_id_idx").on(table.orgId),
+  index("bt_org_account_idx").on(table.orgId, table.bankAccountId),
+  index("bt_org_reconciled_idx").on(table.orgId, table.isReconciled),
+]);
+
+// ============================================================
+// BUDGETS — الموازنات
+// ============================================================
+
+export const budgets = pgTable("budgets", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+
+  name: text("name").notNull(),
+  periodStart: date("period_start").notNull(),
+  periodEnd: date("period_end").notNull(),
+  status: budgetStatusEnum("status").default("draft"),
+  notes: text("notes"),
+
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("budgets_org_id_idx").on(table.orgId),
+]);
+
+// ============================================================
+// BUDGET LINES — سطور الموازنة
+// ============================================================
+
+export const budgetLines = pgTable("budget_lines", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  budgetId: uuid("budget_id").notNull().references(() => budgets.id, { onDelete: "cascade" }),
+  accountId: uuid("account_id").references(() => chartOfAccounts.id, { onDelete: "set null" }),
+  costCenterId: uuid("cost_center_id").references(() => costCenters.id, { onDelete: "set null" }),
+
+  month: date("month").notNull(),               // أول الشهر: 2026-01-01
+  budgetAmount: numeric("budget_amount", { precision: 15, scale: 2 }).notNull().default("0"),
+  actualAmount: numeric("actual_amount", { precision: 15, scale: 2 }).notNull().default("0"),
+  variancePercent: numeric("variance_percent", { precision: 8, scale: 2 }).default("0"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("bl_budget_id_idx").on(table.budgetId),
+  index("bl_org_account_idx").on(table.orgId, table.accountId),
 ]);

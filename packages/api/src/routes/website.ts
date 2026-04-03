@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { eq, and, desc, asc, count, sql, ne, inArray, notInArray } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { sitePages, siteConfig, blogPosts, contactSubmissions, services, categories, reviews, organizations, locations, websiteTemplates, bookings, bookingItems, bookingItemAddons, customers, addons, serviceAddons, serviceQuestions } from "@nasaq/db/schema";
+import type { Context } from "hono";
 import { getOrgId, getUserId, getPagination, generateSlug, generateBookingNumber } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { z } from "zod";
@@ -628,4 +629,63 @@ websiteRouter.get("/analytics", async (c) => {
       publishedPosts: Number(blogCount?.count ?? 0),
     },
   });
+});
+
+// ============================================================
+// GET /website/storefront-settings — إعدادات الصفحة العامة للتاجر
+// ============================================================
+
+websiteRouter.get("/storefront-settings", async (c) => {
+  const orgId = getOrgId(c);
+  const [org] = await db.select({
+    slug: organizations.slug,
+    name: organizations.name,
+    logo: organizations.logo,
+    primaryColor: organizations.primaryColor,
+    coverImage: organizations.coverImage,
+    phone: organizations.phone,
+    city: organizations.city,
+    address: organizations.address,
+    storefrontEnabled: organizations.storefrontEnabled,
+  }).from(organizations).where(eq(organizations.id, orgId));
+  if (!org) return c.json({ error: "not found" }, 404);
+  return c.json({
+    data: {
+      slug: org.slug,
+      name: org.name,
+      logo: org.logo,
+      primaryColor: org.primaryColor ?? "#5b9bd5",
+      coverImage: org.coverImage,
+      phone: org.phone,
+      city: org.city,
+      address: org.address,
+      storefrontEnabled: org.storefrontEnabled ?? true,
+      publicUrl: `https://nasaqpro.tech/s/${org.slug}`,
+    },
+  });
+});
+
+// ============================================================
+// PUT /website/storefront-settings — تحديث إعدادات الصفحة العامة
+// ============================================================
+
+websiteRouter.put("/storefront-settings", async (c) => {
+  const orgId = getOrgId(c);
+  const body = await c.req.json();
+  const updates: Record<string, unknown> = {};
+  if (body.storefrontEnabled !== undefined) updates.storefrontEnabled = Boolean(body.storefrontEnabled);
+  if (body.primaryColor && /^#[0-9a-fA-F]{6}$/.test(body.primaryColor)) updates.primaryColor = body.primaryColor;
+  if (body.slug && typeof body.slug === "string") {
+    const newSlug = body.slug.toLowerCase().replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+    if (newSlug.length >= 3) {
+      const [existing] = await db.select({ id: organizations.id })
+        .from(organizations)
+        .where(and(eq(organizations.slug, newSlug), ne(organizations.id, orgId)));
+      if (existing) return c.json({ error: "هذا الرابط مستخدم من منشأة أخرى" }, 409);
+      updates.slug = newSlug;
+    }
+  }
+  if (Object.keys(updates).length === 0) return c.json({ data: { ok: true } });
+  await db.update(organizations).set(updates as any).where(eq(organizations.id, orgId));
+  return c.json({ data: { ok: true } });
 });

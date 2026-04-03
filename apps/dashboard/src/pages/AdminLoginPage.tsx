@@ -17,7 +17,8 @@ export function AdminLoginPage() {
     setError("");
     try {
       const res: any = await authApi.loginWithEmail(email, password);
-      if (!res?.user?.isSuperAdmin) {
+      const ALLOWED = ["account_manager", "support_agent", "content_manager", "viewer"];
+      if (!res?.user?.isSuperAdmin && !ALLOWED.includes(res?.user?.nasaqRole)) {
         setError("هذا الحساب ليس لديه صلاحية الدخول للوحة الإدارة");
         return;
       }

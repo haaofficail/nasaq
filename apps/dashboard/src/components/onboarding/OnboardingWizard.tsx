@@ -6,19 +6,13 @@ import {
 import { clsx } from "clsx";
 import { settingsApi, servicesApi } from "@/lib/api";
 import { type OnboardingStatus, dismissOnboarding } from "@/hooks/useOnboarding";
-import { SAUDI_CITIES } from "@/lib/constants";
+import { SAUDI_CITIES, BUSINESS_TYPE_MAP } from "@/lib/constants";
 
 // ============================================================
 // ONBOARDING WIZARD — مرشد الإعداد الأولي
 // يظهر داخل لوحة التحكم للمنشآت الجديدة التي لم تكمل الإعداد
 // ============================================================
 
-const BIZ_LABELS: Record<string, string> = {
-  flower_shop: "محل ورد", flowers: "محل ورد", salon: "صالون تجميل", barber: "حلاقة",
-  spa: "سبا وعناية", fitness: "لياقة بدنية", restaurant: "مطعم", cafe: "مقهى",
-  bakery: "مخبز", hotel: "فندق", car_rental: "تأجير سيارات", events: "فعاليات",
-  photography: "تصوير", retail: "تجزئة", rental: "تأجير", catering: "ضيافة",
-};
 
 interface Step {
   id: string;
@@ -178,7 +172,7 @@ export function OnboardingWizard({ status, onComplete }: Props) {
               <div>
                 <p className="text-gray-900 font-semibold text-base">{status.orgName}</p>
                 <p className="text-gray-500 text-sm mt-1">
-                  نوع النشاط: <span className="font-medium text-gray-800">{BIZ_LABELS[status.businessType] ?? status.businessType}</span>
+                  نوع النشاط: <span className="font-medium text-gray-800">{BUSINESS_TYPE_MAP[status.businessType] ?? status.businessType}</span>
                 </p>
               </div>
               <p className="text-sm text-gray-500 max-w-xs mx-auto">
@@ -293,9 +287,9 @@ export function OnboardingWizard({ status, onComplete }: Props) {
           {step.id === "team" && (
             <div className="space-y-4">
               <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600">
-                <p className="font-medium text-gray-800 mb-2">يمكنك دعوة الفريق من الإعدادات</p>
+                <p className="font-medium text-gray-800 mb-2">يمكنك دعوة الفريق من إدارة الفريق</p>
                 <ul className="space-y-1.5">
-                  {["اذهب إلى الإعدادات → الفريق", "أضف أعضاء الفريق بأرقام جوالاتهم", "حدد الدور والصلاحيات لكل عضو"].map((s, i) => (
+                  {["اذهب إلى الفريق في القائمة الجانبية", "أضف أعضاء الفريق بأرقام جوالاتهم", "حدد الدور والصلاحيات لكل عضو"].map((s, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <Zap className="w-4 h-4 text-brand-400 mt-0.5 flex-shrink-0" />
                       <span>{s}</span>
@@ -304,7 +298,7 @@ export function OnboardingWizard({ status, onComplete }: Props) {
                 </ul>
               </div>
               <a
-                href="/team"
+                href="/dashboard/team"
                 className="block text-center text-sm text-brand-600 font-medium py-2 rounded-xl border border-brand-200 hover:bg-brand-50 transition-colors"
               >
                 الذهاب إلى إدارة الفريق الآن
@@ -315,28 +309,33 @@ export function OnboardingWizard({ status, onComplete }: Props) {
           {/* Step: done */}
           {step.id === "done" && (
             <div className="text-center space-y-4 py-2">
-              <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mx-auto">
-                <Check className="w-8 h-8 text-green-600" />
+              <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mx-auto">
+                <Check className="w-8 h-8 text-emerald-600" />
               </div>
               <div>
-                <p className="text-gray-900 font-semibold text-base">الإعداد مكتمل</p>
-                <p className="text-sm text-gray-500 mt-1">حسابك جاهز — ابدأ باستقبال حجوزاتك</p>
+                <p className="text-gray-900 font-semibold text-base">حسابك جاهز تماماً!</p>
+                <p className="text-sm text-gray-500 mt-1">الخطوة التالية: أضف خدماتك ثم شارك رابط الحجز مع عملائك</p>
               </div>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                {[
-                  { label: "الكتالوج",  href: "/services" },
-                  { label: "الحجوزات", href: "/bookings" },
-                  { label: "العملاء",  href: "/customers" },
-                  { label: "الإعدادات", href: "/settings" },
-                ].map(link => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    className="py-2 px-3 rounded-xl bg-gray-50 text-gray-700 hover:bg-brand-50 hover:text-brand-700 transition-colors font-medium"
-                  >
-                    {link.label}
-                  </a>
-                ))}
+              <div className="bg-brand-50 rounded-xl p-3 text-right">
+                <p className="text-xs font-semibold text-brand-700 mb-2">ابدأ من هنا</p>
+                <div className="space-y-1.5">
+                  {[
+                    { label: "أضف خدماتك ومنتجاتك",   href: "/dashboard/catalog",   num: "1" },
+                    { label: "أضف موظفي الفريق",       href: "/dashboard/team",      num: "2" },
+                    { label: "شارك رابط الحجز",         href: "/dashboard/website",   num: "3" },
+                  ].map(link => (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      className="flex items-center gap-2.5 py-2 px-3 rounded-lg bg-white text-gray-700 hover:bg-brand-100 hover:text-brand-800 transition-colors text-sm font-medium"
+                    >
+                      <span className="w-5 h-5 rounded-full bg-brand-500 text-white text-[10px] font-bold flex items-center justify-center shrink-0">
+                        {link.num}
+                      </span>
+                      {link.label}
+                    </a>
+                  ))}
+                </div>
               </div>
             </div>
           )}

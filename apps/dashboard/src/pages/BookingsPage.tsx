@@ -4,9 +4,11 @@ import { clsx } from "clsx";
 import { Plus, CalendarCheck, Clock, CheckCircle, XCircle, Banknote, Phone, MapPin, Search } from "lucide-react";
 import { bookingsApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
+import { toast } from "@/hooks/useToast";
 import { CreateBookingForm } from "@/components/bookings/CreateBookingForm";
 import { StatusBadge, ModernInput, PageHeader, Button } from "@/components/ui";
 import { fmtDate } from "@/lib/utils";
+import { useBusiness } from "@/hooks/useBusiness";
 
 const PIPELINE_TABS = [
   { key: "all",         label: "الكل" },
@@ -38,36 +40,71 @@ function Skeleton({ className }: { className?: string }) {
 
 export function BookingsPage() {
   const navigate    = useNavigate();
+  const biz = useBusiness();
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch]       = useState("");
   const [showCreate, setShowCreate] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const params: Record<string, string> = {};
   if (activeTab !== "all") params.status = activeTab;
   if (search) params.search = search;
 
   const { data: bookingsRes, loading, error, refetch } = useApi(() => bookingsApi.list(params), [activeTab, search]);
-  const { data: statsRes } = useApi(() => bookingsApi.stats(), []);
+
+  const quickConfirm = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    if (!confirm("تأكيد هذا الحجز؟")) return;
+    setActionLoading(id + "_confirm");
+    try {
+      await bookingsApi.updateStatus(id, "confirmed");
+      toast.success("تم تأكيد الحجز");
+      refetch();
+    } catch { toast.error("فشل التأكيد"); }
+    finally { setActionLoading(null); }
+  };
+
+  const quickCancel = async (e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    const reason = prompt("سبب الإلغاء (اختياري):");
+    if (reason === null) return;
+    setActionLoading(id + "_cancel");
+    try {
+      await bookingsApi.updateStatus(id, "cancelled", reason || undefined);
+      toast.success("تم إلغاء الحجز");
+      refetch();
+    } catch { toast.error("فشل الإلغاء"); }
+    finally { setActionLoading(null); }
+  };
 
   const bookings: any[] = bookingsRes?.data || [];
-  const stats            = statsRes?.data || {};
+
+  // Compute stats from the already-filtered bookings array so they update when tab changes
+  const computedTotal    = bookings.length;
+  const computedRevenue  = bookings.reduce((sum: number, b: any) => sum + Number(b.totalAmount || 0), 0);
+  const computedPending  = activeTab === "all" ? bookings.filter((b: any) => b.status === "pending").length : bookings.length;
+  const computedCancelled = bookings.filter((b: any) => b.status === "cancelled").length;
+  const computedCancellationRate = computedTotal > 0 ? Math.round((computedCancelled / computedTotal) * 100) : 0;
+
+  const activeTabLabel = PIPELINE_TABS.find(t => t.key === activeTab)?.label ?? "";
+  const firstCardLabel = activeTab === "all" ? ("إجمالي " + biz.terminology.bookings) : ("حجوزات " + activeTabLabel);
 
   return (
     <div dir="rtl" className="space-y-5">
 
       <PageHeader
-        title="الحجوزات"
-        description="إدارة الحجوزات ومتابعتها"
-        actions={<Button icon={Plus} onClick={() => setShowCreate(true)}>حجز جديد</Button>}
+        title={biz.terminology.bookings}
+        description={"إدارة " + biz.terminology.bookings + " ومتابعتها"}
+        actions={<Button icon={Plus} onClick={() => setShowCreate(true)}>{biz.terminology.newBooking}</Button>}
       />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { icon: CalendarCheck, label: "إجمالي الحجوزات", value: stats.total ?? bookings.length,                    color: "text-brand-600",   bg: "bg-brand-50" },
-          { icon: Banknote,      label: "الإيرادات",        value: `${Number(stats.revenue || 0).toLocaleString()} ر.س`, color: "text-emerald-600", bg: "bg-emerald-50" },
-          { icon: Clock,         label: "بانتظار التأكيد",  value: stats.pending ?? 0,                               color: "text-amber-600",   bg: "bg-amber-50" },
-          { icon: XCircle,       label: "معدل الإلغاء",     value: `${stats.cancellationRate || 0}%`,                color: "text-red-500",     bg: "bg-red-50" },
+          { icon: CalendarCheck, label: firstCardLabel,       value: computedTotal,                                          color: "text-brand-600",   bg: "bg-brand-50" },
+          { icon: Banknote,      label: "الإيرادات",          value: `${computedRevenue.toLocaleString()} ر.س`,              color: "text-emerald-600", bg: "bg-emerald-50" },
+          { icon: Clock,         label: "بانتظار التأكيد",    value: computedPending,                                        color: "text-amber-600",   bg: "bg-amber-50" },
+          { icon: XCircle,       label: "معدل الإلغاء",       value: `${computedCancellationRate}%`,                         color: "text-red-500",     bg: "bg-red-50" },
         ].map((s, i) => (
           <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
             <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-2", s.bg)}>
@@ -99,7 +136,7 @@ export function BookingsPage() {
 
       {/* Search */}
       <ModernInput
-        placeholder="بحث برقم الحجز أو اسم العميل..."
+        placeholder={biz.terminology.searchBookingPlaceholder}
         value={search}
         onChange={setSearch}
         icon={<Search size={15} />}
@@ -121,9 +158,9 @@ export function BookingsPage() {
       ) : bookings.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <CalendarCheck className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-gray-900 mb-1">لا توجد حجوزات</h3>
-          <p className="text-sm text-gray-400 mb-4">أنشئ أول حجز لك</p>
-          <Button icon={Plus} onClick={() => setShowCreate(true)}>حجز جديد</Button>
+          <h3 className="text-base font-semibold text-gray-900 mb-1">{biz.terminology.bookingEmpty}</h3>
+          <p className="text-sm text-gray-400 mb-4">{"أنشئ " + biz.terminology.booking + " لك"}</p>
+          <Button icon={Plus} onClick={() => setShowCreate(true)}>{biz.terminology.newBooking}</Button>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
@@ -165,7 +202,8 @@ export function BookingsPage() {
                     )}
                     {booking.customerPhone && (
                       <span className="text-xs text-gray-400 flex items-center gap-1">
-                        <Phone className="w-2.5 h-2.5" />{booking.customerPhone}
+                        <Phone className="w-2.5 h-2.5" />
+                        <a href={`tel:${booking.customerPhone}`} className="hover:text-brand-600 transition-colors" onClick={e => e.stopPropagation()}>{booking.customerPhone}</a>
                       </span>
                     )}
                   </div>
@@ -176,8 +214,28 @@ export function BookingsPage() {
                   <span className="text-sm font-bold text-gray-900 tabular-nums">
                     {Number(booking.totalAmount || 0).toLocaleString()} ر.س
                   </span>
-                  <div className="flex gap-1.5 flex-wrap justify-end">
+                  <div className="flex gap-1.5 flex-wrap justify-end items-center">
                     <StatusBadge status={booking.status} size="sm" />
+                    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                      {booking.status === "pending" && (
+                        <button
+                          onClick={(e) => quickConfirm(e, booking.id)}
+                          disabled={actionLoading === booking.id + "_confirm"}
+                          className="text-xs px-2 py-1 rounded-lg bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors"
+                        >
+                          {actionLoading === booking.id + "_confirm" ? "..." : "تأكيد"}
+                        </button>
+                      )}
+                      {["pending", "confirmed"].includes(booking.status) && (
+                        <button
+                          onClick={(e) => quickCancel(e, booking.id)}
+                          disabled={actionLoading === booking.id + "_cancel"}
+                          className="text-xs px-2 py-1 rounded-lg text-red-500 hover:bg-red-50 disabled:opacity-50 transition-colors"
+                        >
+                          إلغاء
+                        </button>
+                      )}
+                    </div>
                     <span className={clsx("px-2 py-0.5 rounded-full text-[11px] font-medium", payment.className)}>
                       {payment.label}
                     </span>
@@ -189,7 +247,7 @@ export function BookingsPage() {
         </div>
       )}
 
-      {showCreate && <CreateBookingForm open={true} onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); refetch(); }} />}
+      {showCreate && <CreateBookingForm open={true} onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); refetch(); toast.success("تم إنشاء الحجز"); }} />}
 
       {/* FAQ */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5">

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Building2, Users2, Briefcase, CreditCard, Package,
   Bell, Headphones, FileText, Megaphone, ClipboardList, Server, ShieldAlert, ShieldCheck, LogOut,
+  Wrench, Images, ToggleLeft, BarChart3, Bot, Settings2,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -23,6 +24,13 @@ const DocumentsTab         = lazy(() => import("./admin/DocumentsTab"));
 const AnnouncementsTab     = lazy(() => import("./admin/AnnouncementsTab"));
 const AuditTab             = lazy(() => import("./admin/AuditTab"));
 const SystemTab            = lazy(() => import("./admin/SystemTab"));
+const WorkOrdersAdminTab   = lazy(() => import("./admin/WorkOrdersAdminTab"));
+const AccessLogsAdminTab   = lazy(() => import("./admin/AccessLogsAdminTab"));
+const GalleriesAdminTab    = lazy(() => import("./admin/GalleriesAdminTab"));
+const KillSwitchesTab        = lazy(() => import("./admin/KillSwitchesTab"));
+const QuotaUsageTab          = lazy(() => import("./admin/QuotaUsageTab"));
+const GuardianTab            = lazy(() => import("./admin/GuardianTab"));
+const PlatformSettingsTab    = lazy(() => import("./admin/PlatformSettingsTab"));
 
 // ════════════════════════════════════════════════════════════
 // Constants
@@ -40,8 +48,15 @@ const SECTIONS = [
   { id: "support",    icon: Headphones,      label: "الدعم الفني",      roles: ["super_admin", "account_manager", "support_agent"] },
   { id: "docs",       icon: FileText,        label: "الوثائق",          roles: ["super_admin", "account_manager", "support_agent"] },
   { id: "announce",   icon: Megaphone,       label: "الإعلانات",        roles: ["super_admin", "content_manager"] },
-  { id: "audit",      icon: ClipboardList,   label: "سجل المراجعة",     roles: ["super_admin"] },
-  { id: "system",     icon: Server,          label: "النظام",           roles: ["super_admin"] },
+  { id: "audit",        icon: ClipboardList, label: "سجل المراجعة",        roles: ["super_admin"] },
+  { id: "work-orders",  icon: Wrench,        label: "أوامر العمل",          roles: ["super_admin"] },
+  { id: "access-logs",  icon: ShieldCheck,   label: "التحكم في الدخول",    roles: ["super_admin"] },
+  { id: "galleries",      icon: Images,       label: "معارض الصور",        roles: ["super_admin"] },
+  { id: "kill-switches",  icon: ToggleLeft,  label: "مفاتيح الإيقاف",     roles: ["super_admin"] },
+  { id: "quota-usage",    icon: BarChart3,   label: "استخدام الحصص",      roles: ["super_admin"] },
+  { id: "guardian",          icon: Bot,        label: "الحارس الذكي",       roles: ["super_admin"] },
+  { id: "platform-settings", icon: Settings2, label: "إعدادات المنصة",     roles: ["super_admin"] },
+  { id: "system",            icon: Server,    label: "النظام",              roles: ["super_admin"] },
 ];
 
 const ALLOWED_NASAQ_ROLES = ["account_manager", "support_agent", "content_manager", "viewer"];
@@ -114,8 +129,15 @@ export function AdminPage() {
     support:    <SupportTab />,
     docs:       <DocumentsTab />,
     announce:   <AnnouncementsTab />,
-    audit:      <AuditTab />,
-    system:     <SystemTab />,
+    audit:        <AuditTab />,
+    "work-orders": <WorkOrdersAdminTab />,
+    "access-logs":   <AccessLogsAdminTab />,
+    galleries:       <GalleriesAdminTab />,
+    "kill-switches": <KillSwitchesTab />,
+    "quota-usage":   <QuotaUsageTab />,
+    guardian:            <GuardianTab />,
+    "platform-settings": <PlatformSettingsTab />,
+    system:              <SystemTab />,
   };
 
   return (

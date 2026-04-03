@@ -3,6 +3,7 @@ import { toast } from "@/hooks/useToast";
 import { useSearchParams } from "react-router-dom";
 import { Boxes, Plus, Wrench, CheckCircle2, Package, AlertTriangle, Pencil, Trash2, RefreshCw, ChevronDown, ArrowDown, ArrowUp, BarChart3, TrendingDown } from "lucide-react";
 import { clsx } from "clsx";
+import { confirmDialog } from "@/components/ui";
 import { inventoryApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Modal, Input, Select, PageHeader } from "@/components/ui";
@@ -21,7 +22,7 @@ function Skeleton({ className }: { className?: string }) {
   return <div className={clsx("animate-pulse bg-gray-100 rounded-lg", className)} />;
 }
 
-const EMPTY_TYPE_FORM = { name: "", category: "" };
+const EMPTY_TYPE_FORM = { name: "", category: "", alertThreshold: "2" };
 
 function AssetsTab() {
   const [showModal, setShowModal]         = useState(false);
@@ -50,6 +51,11 @@ function AssetsTab() {
   const report        = reportRes?.data  || {};
   const loading       = tLoading || aLoading;
 
+  const lowStockTypes = types.filter((t: any) => {
+    const threshold = Number(t.alertThreshold ?? 2);
+    return Number(t.availableAssets ?? 0) <= threshold;
+  });
+
   const refresh = () => { refetch(); refetchReport(); refetchTypes(); };
 
   const openCreate = () => { setEditing(null); setForm({ ...EMPTY_FORM }); setShowModal(true); };
@@ -67,7 +73,7 @@ function AssetsTab() {
   };
 
   const openCreateType = () => { setEditingType(null); setTypeForm({ ...EMPTY_TYPE_FORM }); setShowTypeModal(true); };
-  const openEditType   = (t: any) => { setEditingType(t); setTypeForm({ name: t.name || "", category: t.category || "" }); setShowTypeModal(true); };
+  const openEditType   = (t: any) => { setEditingType(t); setTypeForm({ name: t.name || "", category: t.category || "", alertThreshold: String(t.alertThreshold ?? 2) }); setShowTypeModal(true); };
 
   const handleSave = async () => {
     setSaving(true);
@@ -109,7 +115,7 @@ function AssetsTab() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("حذف هذا الأصل؟")) return;
+    if (!(await confirmDialog({ title: "حذف الأصل؟", danger: true, confirmLabel: "حذف" }))) return;
     try {
       await deleteAsset(id);
       toast.success("تم الحذف");
@@ -120,7 +126,7 @@ function AssetsTab() {
   };
 
   const handleDeleteType = async (id: string) => {
-    if (!confirm("حذف هذا النوع؟")) return;
+    if (!(await confirmDialog({ title: "حذف النوع؟", danger: true, confirmLabel: "حذف" }))) return;
     try {
       await deleteAssetType(id);
       toast.success("تم حذف النوع");
@@ -158,6 +164,19 @@ function AssetsTab() {
         </div>
       </div>
 
+      {/* Low-stock alert banner */}
+      {lowStockTypes.length > 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-start gap-3">
+          <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800">تنبيه: مخزون منخفض</p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              {lowStockTypes.map((t: any) => t.name).join("، ")} — وحدات متاحة أقل من الحد المطلوب
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
@@ -188,14 +207,25 @@ function AssetsTab() {
           {/* Asset type cards */}
           {types.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {types.map((type: any) => (
+              {types.map((type: any) => {
+                const available  = Number(type.availableAssets ?? 0);
+                const threshold  = Number(type.alertThreshold ?? 2);
+                const isOut      = available === 0;
+                const isLowStock = !isOut && available <= threshold;
+                return (
                 <div key={type.id} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-sm transition-shadow">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
                       <Boxes className="w-4 h-4 text-brand-500" />
                     </div>
                     <h3 className="font-semibold text-gray-900 flex-1">{type.name}</h3>
-                    <div className="flex gap-1">
+                    <div className="flex items-center gap-1">
+                      {isOut && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-600 border border-red-100">نفد المخزون</span>
+                      )}
+                      {isLowStock && (
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">مخزون منخفض</span>
+                      )}
                       <button onClick={() => openEditType(type)} className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors">
                         <Pencil className="w-3.5 h-3.5 text-brand-400" />
                       </button>
@@ -206,20 +236,21 @@ function AssetsTab() {
                   </div>
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-gray-500">{type.totalAssets || 0} وحدة</span>
-                    <span className="text-emerald-600 font-medium">{type.availableAssets || 0} متاح</span>
+                    <span className="text-emerald-600 font-medium">{available} متاح</span>
                   </div>
                   <div className="mt-3 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-emerald-400 rounded-full transition-all"
                       style={{
                         width: type.totalAssets > 0
-                          ? `${Math.round((type.availableAssets / type.totalAssets) * 100)}%`
+                          ? `${Math.round((available / type.totalAssets) * 100)}%`
                           : "0%",
                       }}
                     />
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -367,6 +398,16 @@ function AssetsTab() {
             onChange={e => ft("name", e.target.value)} placeholder="مثال: طاولة، كرسي، خيمة" required />
           <Input label="التصنيف" name="typeCategory" value={typeForm.category}
             onChange={e => ft("category", e.target.value)} placeholder="مثال: أثاث، معدات، إضاءة" />
+          <Input
+            label="حد التنبيه (وحدات متاحة)"
+            name="alertThreshold"
+            type="number"
+            value={typeForm.alertThreshold}
+            onChange={e => ft("alertThreshold", e.target.value)}
+            dir="ltr"
+            placeholder="2"
+          />
+          <p className="text-xs text-gray-400 -mt-2">نبّهني عند وصول عدد الوحدات المتاحة إلى أقل من هذا الرقم</p>
         </div>
       </Modal>    </div>
   );
@@ -431,7 +472,7 @@ function ConsumablesTab() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("حذف هذا المنتج؟")) return;
+    if (!(await confirmDialog({ title: "حذف المنتج؟", danger: true, confirmLabel: "حذف" }))) return;
     await inventoryApi.deleteProduct(id);
     toast.success("تم الحذف");
     refetch();

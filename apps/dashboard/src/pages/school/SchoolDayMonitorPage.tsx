@@ -1,8 +1,9 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import {
   Users, DoorOpen, GraduationCap, AlarmClock, CheckCircle2, XCircle,
   AlertCircle, UserCheck, Upload,
-  CalendarRange, UsersRound, ChevronRight,
+  CalendarRange, UsersRound, ChevronRight, Timer, BookOpen,
 } from "lucide-react";
 import { PageFAQ } from "@/components/school/PageFAQ";
 import { clsx } from "clsx";
@@ -34,19 +35,47 @@ function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label:
 }
 
 
+const PERIOD_LABEL_AR = ["","الأولى","الثانية","الثالثة","الرابعة","الخامسة","السادسة","السابعة","الثامنة"];
+
+function nowToMinutes(): number { const d = new Date(); return d.getHours() * 60 + d.getMinutes(); }
+function isNowInRange(s: string, e: string, now: number): boolean {
+  const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+  return now >= toMin(s) && now <= toMin(e);
+}
+
 export function SchoolDayMonitorPage() {
   const navigate = useNavigate();
   const { data, loading, error } = useApi(() => schoolApi.dayMonitor(), []);
   const { data: semesterData }   = useApi(() => schoolApi.getSemesters(), []);
 
+  const [nowMin, setNowMin] = useState(nowToMinutes());
+  useEffect(() => {
+    const id = setInterval(() => setNowMin(nowToMinutes()), 60000);
+    return () => clearInterval(id);
+  }, []);
+
   const today     = new Date();
   const todayName = DAY_MAP[today.getDay()] ?? "";
   const todayDate = today.toLocaleDateString("ar-SA", { year: "numeric", month: "long", day: "numeric" });
+  const nowClock  = `${String(today.getHours()).padStart(2,"0")}:${String(today.getMinutes()).padStart(2,"0")}`;
 
   const stats     = data?.data?.stats;
   const openCases = (data?.data as any)?.openCasesCount ?? 0;
   const semesters: any[] = semesterData?.data ?? [];
   const activeSemester   = semesters.find((s: any) => s.isActive);
+  const todayEntries: any[] = (data?.data as any)?.todayEntries ?? [];
+
+  // الحصة الجارية
+  const currentEntry = todayEntries.find((e: any) =>
+    e.startTime && e.endTime && isNowInRange(e.startTime, e.endTime, nowMin)
+  );
+  const currentPeriodNum: number | null = currentEntry?.periodNumber ?? null;
+  const minutesLeft: number | null = currentEntry?.endTime
+    ? (() => {
+        const [h, m] = currentEntry.endTime.split(":").map(Number);
+        return Math.max(0, (h * 60 + m) - nowMin);
+      })()
+    : null;
 
   // Setup checklist
   const setupSteps = [
@@ -118,6 +147,56 @@ export function SchoolDayMonitorPage() {
           <StatCard icon={<AlertCircle className="w-6 h-6 text-white" />} label="حالات مفتوحة" value={openCases} color={openCases > 0 ? "bg-amber-500" : "bg-gray-400"} />
         </button>
         <StatCard icon={<AlarmClock className="w-6 h-6 text-white" />} label="تأخرات اليوم" value={stats?.lateToday ?? 0} color={stats?.lateToday ? "bg-red-500" : "bg-gray-400"} />
+      </div>
+
+      {/* الحصة الجارية */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <Timer className="w-4 h-4 text-emerald-600" />
+            <span className="text-sm font-bold text-gray-900">الحصة الجارية الآن</span>
+          </div>
+          <span className="text-xs font-mono text-gray-400">{nowClock}</span>
+        </div>
+        {currentEntry ? (
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+                <BookOpen className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900">
+                  الحصة {PERIOD_LABEL_AR[currentPeriodNum ?? 0] ?? currentPeriodNum}
+                </p>
+                <p className="text-xs text-gray-500">
+                  {currentEntry.startTime} — {currentEntry.endTime}
+                  {currentEntry.subject ? ` | ${currentEntry.subject}` : ""}
+                </p>
+              </div>
+            </div>
+            {minutesLeft !== null && (
+              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full">
+                {minutesLeft} دقيقة متبقية
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
+              <Timer className="w-5 h-5 text-gray-300" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-500">
+                {todayEntries.length === 0 ? "لم يُفعَّل جدول لهذا اليوم" : nowMin < 420 ? "قبل بداية الدوام" : "انتهى الدوام لليوم"}
+              </p>
+              <p className="text-xs text-gray-400">
+                {todayEntries.length === 0
+                  ? <button onClick={() => navigate("/school/timetable")} className="text-emerald-600 hover:underline">افتح صفحة الجدول لتفعيله</button>
+                  : `${todayEntries.length} حصة مجدولة اليوم`}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Setup guide — only when incomplete */}

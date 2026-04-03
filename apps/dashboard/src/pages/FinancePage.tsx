@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { toast } from "@/hooks/useToast";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Banknote, FileText, TrendingUp, TrendingDown, Plus, Download, Loader2, Landmark, BookOpen, BookOpenCheck, BarChart2, GitMerge, ArrowLeft } from "lucide-react";
+import { Banknote, FileText, TrendingUp, TrendingDown, Plus, Download, Loader2, Landmark, BookOpen, BookOpenCheck, BarChart2, GitMerge, ArrowLeft, Building2, Users, CalendarCheck, Layers } from "lucide-react";
 import { clsx } from "clsx";
 import { financeApi, settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
@@ -65,19 +66,24 @@ export function FinancePage() {
           <div className="flex gap-2">
             <Button icon={Plus} onClick={() => setShowInvoice(true)}>فاتورة جديدة</Button>
             <Button variant="secondary" icon={Plus} onClick={() => setShowExpense(true)}>مصروف جديد</Button>
-            <Button variant="secondary" icon={Download}>تصدير</Button>
+            <Button variant="secondary" icon={Download} onClick={() => toast.info?.("التصدير قيد التطوير")}>تصدير</Button>
           </div>
         }
       />
 
       {/* Finance module quick-links */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { label: "الخزينة",        desc: "إيصالات، سندات صرف، ورديات الكاشير",  icon: Landmark,      href: "/dashboard/treasury",              bg: "bg-blue-50",    iconColor: "text-blue-500" },
           { label: "المحاسبة",       desc: "دليل الحسابات وقيود اليومية",          icon: BookOpen,      href: "/dashboard/accounting",            bg: "bg-violet-50",  iconColor: "text-violet-500" },
           { label: "قيود اليومية",   desc: "عرض وترحيل القيود المحاسبية",          icon: BookOpenCheck, href: "/dashboard/accounting/journal-entries", bg: "bg-emerald-50", iconColor: "text-emerald-600" },
           { label: "القوائم المالية", desc: "قائمة الدخل، الميزانية، ميزان المراجعة", icon: BarChart2,   href: "/dashboard/financial-statements",  bg: "bg-amber-50",   iconColor: "text-amber-600" },
           { label: "التسويات",       desc: "تسوية بنكية، نقدية، ذمم عملاء وموردين", icon: GitMerge,    href: "/dashboard/reconciliation",        bg: "bg-rose-50",    iconColor: "text-rose-500" },
+          { label: "الأصول الثابتة", desc: "سجل الأصول والاستهلاك الشهري",          icon: Building2,    href: "/dashboard/accounting/fixed-assets",  bg: "bg-orange-50",  iconColor: "text-orange-500" },
+          { label: "الموردون",        desc: "سجل الموردين وكشف الحسابات",           icon: Users,        href: "/dashboard/accounting/vendors",      bg: "bg-teal-50",    iconColor: "text-teal-600" },
+          { label: "الفترات المحاسبية", desc: "إدارة الفترات وإقفال الحسابات",     icon: CalendarCheck, href: "/dashboard/accounting/periods",     bg: "bg-indigo-50",  iconColor: "text-indigo-500" },
+          { label: "مراكز التكلفة",  desc: "توزيع التكاليف على الأقسام والمشاريع", icon: Layers,        href: "/dashboard/accounting/cost-centers", bg: "bg-rose-50",    iconColor: "text-rose-500" },
+          { label: "الموازنات",       desc: "الموازنة التقديرية ومقارنتها بالفعلي", icon: BarChart2,     href: "/dashboard/accounting/budgets",      bg: "bg-cyan-50",    iconColor: "text-cyan-600" },
         ].map((m) => (
           <button
             key={m.href}
@@ -187,27 +193,51 @@ export function FinancePage() {
         </div>
       )}
 
-      {activeTab === 2 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
-          <h2 className="font-semibold text-gray-900 mb-5">تقرير الأرباح والخسائر</h2>
-          <div className="space-y-2">
-            <div className="flex justify-between items-center py-3 border-b border-gray-50">
-              <span className="text-sm text-gray-600 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-emerald-500" />إجمالي الإيرادات</span>
-              <span className="font-bold text-emerald-600 tabular-nums">{totalRevenue.toLocaleString()} ر.س</span>
+      {activeTab === 2 && (() => {
+        const revenue   = totalRevenue;
+        const expenses  = totalExpenses;
+        const netProfit = revenue - expenses;
+        const SAR = (v: number) => `${v.toLocaleString()} ر.س`;
+        return (
+          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+            <h2 className="font-semibold text-gray-900 mb-5">تقرير الأرباح والخسائر</h2>
+            <div className="space-y-2 mb-6">
+              <div className="flex justify-between items-center py-3 border-b border-gray-50">
+                <span className="text-sm text-gray-600 flex items-center gap-2"><TrendingUp className="w-4 h-4 text-emerald-500" />إجمالي الإيرادات</span>
+                <span className="font-bold text-emerald-600 tabular-nums">{SAR(revenue)}</span>
+              </div>
+              <div className="flex justify-between items-center py-3 border-b border-gray-50">
+                <span className="text-sm text-gray-600 flex items-center gap-2"><TrendingDown className="w-4 h-4 text-red-500" />إجمالي المصروفات</span>
+                <span className="font-bold text-red-500 tabular-nums">({SAR(expenses)})</span>
+              </div>
             </div>
-            <div className="flex justify-between items-center py-3 border-b border-gray-50">
-              <span className="text-sm text-gray-600 flex items-center gap-2"><TrendingDown className="w-4 h-4 text-red-500" />إجمالي المصروفات</span>
-              <span className="font-bold text-red-500 tabular-nums">({totalExpenses.toLocaleString()}) ر.س</span>
-            </div>
-            <div className="flex justify-between items-center py-4">
-              <span className="font-bold text-gray-900">صافي الربح</span>
-              <span className={clsx("font-bold text-xl tabular-nums", totalRevenue - totalExpenses >= 0 ? "text-emerald-600" : "text-red-500")}>
-                {(totalRevenue - totalExpenses).toLocaleString()} ر.س
-              </span>
+            <div className="space-y-3 mt-4">
+              <div>
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>الإيرادات</span>
+                  <span>{SAR(revenue)}</span>
+                </div>
+                <div className="h-3 bg-emerald-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500 rounded-full" style={{ width: revenue > 0 ? "100%" : "0%" }} />
+                </div>
+              </div>
+              <div>
+                <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <span>المصروفات</span>
+                  <span>{SAR(expenses)}</span>
+                </div>
+                <div className="h-3 bg-red-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-red-400 rounded-full" style={{ width: revenue > 0 ? `${Math.min(100, (expenses / revenue) * 100)}%` : "0%" }} />
+                </div>
+              </div>
+              <div className={clsx("text-center p-3 rounded-xl", netProfit >= 0 ? "bg-emerald-50" : "bg-red-50")}>
+                <div className="text-xs text-gray-500">صافي الربح</div>
+                <div className={clsx("text-xl font-bold tabular-nums", netProfit >= 0 ? "text-emerald-700" : "text-red-600")}>{SAR(netProfit)}</div>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* FAQ */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5">

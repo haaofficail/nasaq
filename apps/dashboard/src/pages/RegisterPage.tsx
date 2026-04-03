@@ -67,7 +67,7 @@ export function RegisterPage() {
         localStorage.setItem("nasaq_user_id", data.user.id || "");
       }
       setStep(4);
-      setTimeout(() => navigate("/onboarding"), 1500);
+      setTimeout(() => navigate("/dashboard"), 1500);
     } catch (err: any) {
       setError(err.message);
     } finally {

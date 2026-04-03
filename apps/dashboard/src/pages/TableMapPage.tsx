@@ -3,6 +3,8 @@ import { useApi, useMutation } from "@/hooks/useApi";
 import { restaurantApi, customersApi } from "@/lib/api";
 import { Armchair, Users, Plus, X, Check, Clock, Trash2 } from "lucide-react";
 import { clsx } from "clsx";
+import { confirmDialog } from "@/components/ui";
+import { toast } from "@/hooks/useToast";
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
   available: { label: "متاحة",    color: "text-emerald-600", bg: "bg-emerald-50",  border: "border-emerald-200" },
@@ -89,6 +91,7 @@ export function TableMapPage() {
   const handleSeat = async () => {
     if (!activeTable) return;
     await seatMut.mutate({ tableId: activeTable.id, guests: seatGuests });
+    toast.success(`تم تسكين ${seatGuests} ضيف على طاولة ${activeTable.number}`);
     setActiveTable(null);
     refetch();
   };
@@ -96,6 +99,7 @@ export function TableMapPage() {
   const handleClose = async () => {
     if (!activeTable?.session_id) return;
     await closeMut.mutate(activeTable.session_id);
+    toast.info(`تم تفريغ طاولة ${activeTable.number}`);
     setActiveTable(null);
     refetch();
   };
@@ -103,6 +107,7 @@ export function TableMapPage() {
   const handleStatusChange = async (status: string) => {
     if (!activeTable) return;
     await statusMut.mutate({ id: activeTable.id, status });
+    toast.success(`تم تغيير حالة الطاولة`);
     setActiveTable(null);
     refetch();
   };
@@ -110,6 +115,7 @@ export function TableMapPage() {
   const handleCreate = async () => {
     if (!newTable.number.trim()) return;
     await createMut.mutate({ number: newTable.number.trim(), section: newTable.section || null, capacity: newTable.capacity });
+    toast.success(`تمت إضافة طاولة ${newTable.number}`);
     setNewTable({ number: "", section: "", capacity: 4 });
     setShowAddModal(false);
     refetch();
@@ -117,7 +123,10 @@ export function TableMapPage() {
 
   const handleDelete = async () => {
     if (!activeTable) return;
+    const ok = await confirmDialog({ title: `حذف طاولة ${activeTable.number}؟`, message: "سيتم حذف الطاولة نهائياً", danger: true, confirmLabel: "حذف" });
+    if (!ok) return;
     await deleteMut.mutate(activeTable.id);
+    toast.success("تم حذف الطاولة");
     setActiveTable(null);
     refetch();
   };
@@ -258,9 +267,21 @@ export function TableMapPage() {
                   type="text"
                   value={newTable.section}
                   onChange={e => setNewTable(t => ({ ...t, section: e.target.value }))}
-                  placeholder="مثال: الطابق الأرضي، التراس"
+                  placeholder="اختر أو اكتب اسم القسم"
+                  list="section-presets"
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
                 />
+                <datalist id="section-presets">
+                  <option value="داخلي" />
+                  <option value="خارجي" />
+                  <option value="تراس" />
+                  <option value="قسم العائلات" />
+                  <option value="قسم الرجال" />
+                  <option value="VIP" />
+                  <option value="الطابق الأول" />
+                  <option value="الطابق الثاني" />
+                  <option value="خاص" />
+                </datalist>
               </div>
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">السعة (عدد الأشخاص)</label>

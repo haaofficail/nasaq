@@ -8,6 +8,7 @@ import {
   Receipt, AlertCircle, Clock,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { confirmDialog } from "@/components/ui";
 import { SkeletonRows } from "@/components/ui/Skeleton";
 import { fmtDate } from "@/lib/utils";
 
@@ -108,7 +109,7 @@ export function SuppliersPage() {
     else toast.error("حدث خطأ أثناء الحفظ");
   };
   const handleDeleteSup = async (id: string) => {
-    if (!confirm("هل تريد حذف هذا المورد؟")) return;
+    if (!(await confirmDialog({ title: "حذف المورد؟", danger: true, confirmLabel: "حذف" }))) return;
     const res = await deleteSup.mutate(id);
     if (res !== null) { toast.success("تم حذف المورد"); refetch(); }
     else toast.error("تعذّر حذف المورد");

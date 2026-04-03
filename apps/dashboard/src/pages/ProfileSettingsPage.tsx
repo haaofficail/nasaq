@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/useToast";
 import { Building2, Save, RefreshCw, Phone, Globe, Hash, Palette, Crown, AlertCircle, Briefcase, ImageIcon, Upload, X } from "lucide-react";
 import { clsx } from "clsx";
@@ -44,6 +45,7 @@ function Section({ title, subtitle, icon: Icon, children }: { title: string; sub
 }
 
 export function ProfileSettingsPage() {
+  const navigate = useNavigate();
   const { data: profileRes, loading, refetch } = useApi(() => settingsApi.profile(), []);
   const { data: subRes }                       = useApi(() => settingsApi.subscription(), []);
   const { mutate: updateProfile }              = useMutation((d: any) => settingsApi.updateProfile(d));
@@ -61,6 +63,15 @@ export function ProfileSettingsPage() {
   const org  = profileRes?.data;
   const sub  = subRes?.data;
   const plan = PLAN_LABELS[sub?.plan || "basic"] || PLAN_LABELS.basic;
+
+  const handleBeforeUnload = useCallback((e: BeforeUnloadEvent) => {
+    if (dirty) { e.preventDefault(); e.returnValue = ""; }
+  }, [dirty]);
+
+  useEffect(() => {
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [handleBeforeUnload]);
 
   useEffect(() => {
     if (org) {
@@ -300,7 +311,7 @@ export function ProfileSettingsPage() {
               )}
             </div>
           </div>
-          <button className="px-4 py-2 rounded-xl border border-brand-300 text-brand-600 text-sm font-medium hover:bg-brand-50 transition-colors">
+          <button onClick={() => navigate("/dashboard/subscription")} className="px-4 py-2 rounded-xl border border-brand-300 text-brand-600 text-sm font-medium hover:bg-brand-50 transition-colors">
             ترقية الخطة
           </button>
         </div>

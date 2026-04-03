@@ -7,9 +7,11 @@ import { useApi, useMutation } from "@/hooks/useApi";
 import { CreateCustomerForm } from "@/components/customers/CreateCustomerForm";
 import { PageHeader, Button } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
+import { useBusiness } from "@/hooks/useBusiness";
 
 export function CustomersPage() {
   const navigate = useNavigate();
+  const biz = useBusiness();
   const [search, setSearch] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
@@ -20,7 +22,10 @@ export function CustomersPage() {
   const stats = statsRes?.data || {};
 
   const filtered = customers.filter((c: any) => {
-    if (search && !c.name?.includes(search) && !c.phone?.includes(search) && !c.companyName?.includes(search)) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!c.name?.toLowerCase().includes(q) && !c.phone?.includes(search) && !c.companyName?.toLowerCase().includes(q)) return false;
+    }
     return true;
   });
 
@@ -39,15 +44,15 @@ export function CustomersPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="العملاء"
-        description={`${customers.length} عميل`}
-        actions={<Button icon={Plus} onClick={() => setShowCreate(true)}>عميل جديد</Button>}
+        title={biz.terminology.clients}
+        description={`${customers.length} ${biz.terminology.client}`}
+        actions={<Button icon={Plus} onClick={() => setShowCreate(true)}>{biz.terminology.newClient}</Button>}
       />
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "إجمالي العملاء", value: stats.total || customers.length, color: "text-brand-600" },
+          { label: "إجمالي " + biz.terminology.clients, value: stats.total || customers.length, color: "text-brand-600" },
           { label: "عملاء VIP", value: stats.vip || customers.filter((c: any) => c.isVip).length, color: "text-amber-600" },
           { label: "مؤسسات", value: stats.corporate || customers.filter((c: any) => c.type === "corporate").length, color: "text-violet-600" },
           { label: "جديد هذا الشهر", value: stats.newThisMonth || 0, color: "text-emerald-600" },
@@ -69,12 +74,12 @@ export function CustomersPage() {
       {filtered.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <Users className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-gray-900 mb-1">{search ? "لا توجد نتائج" : "لا يوجد عملاء بعد"}</h3>
-          <p className="text-sm text-gray-400 mb-4">{search ? "جرب كلمات بحث مختلفة" : "أضف أول عميل"}</p>
+          <h3 className="text-base font-semibold text-gray-900 mb-1">{search ? "لا توجد نتائج" : biz.terminology.clientEmpty}</h3>
+          <p className="text-sm text-gray-400 mb-4">{search ? "جرب كلمات بحث مختلفة" : "أضف " + biz.terminology.client + " جديد"}</p>
           {!search && (
             <button onClick={() => setShowCreate(true)}
               className="bg-brand-500 text-white rounded-xl px-4 py-2 text-sm font-medium hover:bg-brand-600 transition-colors">
-              <Plus className="w-4 h-4 inline ml-1" /> إضافة عميل
+              <Plus className="w-4 h-4 inline ml-1" /> {biz.terminology.newClient}
             </button>
           )}
         </div>
@@ -114,7 +119,11 @@ export function CustomersPage() {
                       {customer.isVip && <Star className="w-3.5 h-3.5 text-amber-400" fill="currentColor" />}
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 text-gray-500 font-mono text-xs" dir="ltr">{customer.phone}</td>
+                  <td className="py-3.5 px-4 text-gray-500 font-mono text-xs" dir="ltr">
+                    {customer.phone ? (
+                      <a href={`tel:${customer.phone}`} className="hover:text-brand-600 transition-colors" onClick={e => e.stopPropagation()}>{customer.phone}</a>
+                    ) : "—"}
+                  </td>
                   <td className="py-3.5 px-4">
                     <span className={clsx(
                       "px-2 py-0.5 rounded-full text-[10px] font-medium",

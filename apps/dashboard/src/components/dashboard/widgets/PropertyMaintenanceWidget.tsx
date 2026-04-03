@@ -30,26 +30,21 @@ export function PropertyMaintenanceWidget() {
     []
   );
   const requests: any[] = data?.data ?? [];
-  const pendingCount = requests.filter((r) => r.status === "pending").length;
-  const inProgressCount = requests.filter((r) => r.status === "in_progress").length;
+  const pendingCount     = requests.filter((r) => r.status === "pending").length;
+  const inProgressCount  = requests.filter((r) => r.status === "in_progress").length;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full">
-      {/* Header */}
       <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-50">
         <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
           <Wrench className="w-4 h-4 text-amber-500" />
           طلبات الصيانة
         </h3>
-        <Link
-          to="/dashboard/property/maintenance"
-          className="text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors"
-        >
+        <Link to="/dashboard/property/maintenance" className="text-xs text-brand-500 hover:text-brand-700 font-medium transition-colors">
           عرض الكل ←
         </Link>
       </div>
 
-      {/* Summary badges */}
       <div className="flex items-center gap-3 px-5 py-3 border-b border-gray-50">
         <span className={clsx("text-xs font-medium px-2.5 py-1 rounded-lg", pendingCount > 0 ? "bg-amber-50 text-amber-700" : "bg-gray-100 text-gray-500")}>
           {pendingCount} معلق
@@ -59,7 +54,6 @@ export function PropertyMaintenanceWidget() {
         </span>
       </div>
 
-      {/* List */}
       {loading ? (
         <div className="divide-y divide-gray-50">
           {[...Array(4)].map((_, i) => (
@@ -86,9 +80,7 @@ export function PropertyMaintenanceWidget() {
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-gray-800 truncate">{req.title || "طلب صيانة"}</p>
-                <p className="text-[11px] text-gray-400 truncate mt-0.5">
-                  {req.propertyName || req.unitName || "—"}
-                </p>
+                <p className="text-[11px] text-gray-400 truncate mt-0.5">{req.propertyName || req.unitName || "—"}</p>
               </div>
               <span className={clsx("text-[10px] font-medium px-2 py-0.5 rounded-lg shrink-0", STATUS_STYLE[req.status] || "bg-gray-100 text-gray-500")}>
                 {STATUS_LABEL[req.status] || req.status}

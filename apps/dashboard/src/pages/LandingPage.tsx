@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { Link } from "react-router-dom";
 import {
   Calendar, Monitor, Package, Globe, BarChart3, Truck,
@@ -259,6 +260,7 @@ function StatItem({ target, suffix, label, start }: { target: number; suffix: st
 function PublicHeader() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const platform = usePlatformConfig();
   useEffect(() => {
     const h = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", h);
@@ -269,10 +271,14 @@ function PublicHeader() {
     <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${scrolled ? "bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-100" : "bg-transparent"}`}>
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-[#5b9bd5] flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
-            <span className="text-white font-black text-sm">ن</span>
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow overflow-hidden shrink-0"
+            style={{ backgroundColor: platform.primaryColor }}>
+            {platform.logoUrl
+              ? <img src={platform.logoUrl} alt={platform.platformName} className="w-full h-full object-contain" />
+              : <span className="text-white font-black text-sm">{platform.platformName[0]}</span>
+            }
           </div>
-          <span className={`text-lg font-bold transition-colors ${scrolled ? "text-gray-900" : "text-white"}`}>نسق</span>
+          <span className={`text-lg font-bold transition-colors ${scrolled ? "text-gray-900" : "text-white"}`}>{platform.platformName}</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-7">
@@ -344,6 +350,22 @@ function PublicHeader() {
         </div>
       )}
     </header>
+  );
+}
+
+function FooterLogo() {
+  const platform = usePlatformConfig();
+  return (
+    <div className="flex items-center gap-2.5 mb-4">
+      <div className="w-8 h-8 rounded-xl flex items-center justify-center overflow-hidden shrink-0"
+        style={{ backgroundColor: platform.primaryColor }}>
+        {platform.logoUrl
+          ? <img src={platform.logoUrl} alt={platform.platformName} className="w-full h-full object-contain" />
+          : <span className="text-white font-black text-sm">{platform.platformName[0]}</span>
+        }
+      </div>
+      <span className="text-lg font-bold text-white">{platform.platformName}</span>
+    </div>
   );
 }
 
@@ -1044,12 +1066,7 @@ export function LandingPage() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
             <div className="col-span-2 md:col-span-1">
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 rounded-xl bg-[#5b9bd5] flex items-center justify-center">
-                  <span className="text-white font-black text-sm">ن</span>
-                </div>
-                <span className="text-lg font-bold text-white">نسق</span>
-              </div>
+              <FooterLogo />
               <p className="text-sm leading-relaxed mb-5 max-w-[200px]">
                 نظام تشغيل متكامل لكل أنواع الأنشطة التجارية
               </p>
@@ -1092,8 +1109,8 @@ export function LandingPage() {
             <div>
               <h4 className="text-white font-semibold mb-5 text-sm">تواصل</h4>
               <div className="space-y-3 text-sm">
-                <p>support@nasaqpro.tech</p>
-                <p>+966 5X XXX XXXX</p>
+                <p><a href="mailto:info@nasaqpro.tech" className="hover:text-white transition-colors">info@nasaqpro.tech</a></p>
+                <p><a href="tel:+966522064321" className="hover:text-white transition-colors" dir="ltr">0522064321</a></p>
                 <div className="mt-4">
                   <p className="text-xs text-gray-600 mb-2">نشرة بريدية</p>
                   <div className="flex gap-2">

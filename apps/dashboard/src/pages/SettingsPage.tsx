@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { Building2, GitBranch, CreditCard, Plus, Trash2, Loader2, CheckCircle2, Zap, Shield, Pencil, User, MapPin, Clock, Star, Warehouse, Briefcase, Palette, Upload, ImageIcon, Wallet, Eye, EyeOff } from "lucide-react";
 import { clsx } from "clsx";
+import { confirmDialog } from "@/components/ui";
 import { settingsApi, financeApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Input, Select, Modal } from "@/components/ui";
@@ -118,10 +119,10 @@ export function SettingsPage() {
       const formData = new FormData();
       formData.append("file", file);
       const token = localStorage.getItem("nasaq_token") || "";
-      const res = await fetch("/api/uploads", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData });
+      const res = await fetch("/api/v1/file-upload", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData });
       const json = await res.json();
-      if (json?.url) {
-        setForm((prev: any) => ({ ...(prev || org), [field]: json.url }));
+      if (json?.data?.url) {
+        setForm((prev: any) => ({ ...(prev || org), [field]: json.data.url }));
       }
     } finally {
       setLoading(false);
@@ -166,7 +167,7 @@ export function SettingsPage() {
   };
 
   const handleDeleteBranch = async (id: string, name: string) => {
-    if (!confirm(`حذف الفرع "${name}"؟`)) return;
+    if (!(await confirmDialog({ title: `حذف الفرع "${name}"؟`, danger: true, confirmLabel: "حذف" }))) return;
     await deleteBranch(id);
     refetchBranches();
   };

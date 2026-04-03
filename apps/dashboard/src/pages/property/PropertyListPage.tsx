@@ -5,6 +5,7 @@ import { SkeletonRows } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import clsx from "clsx";
 import { Building } from "lucide-react";
+import { SAUDI_CITIES } from "@/lib/constants";
 
 function ComplianceBadge({ rate }: { rate: number }) {
   const color =
@@ -297,7 +298,12 @@ export function PropertyListPage() {
                 </select>
               </Field>
               <Field label="المدينة">
-                <input className={inputCls} value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} placeholder="الرياض..." />
+                <select className={inputCls} value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })}>
+                  <option value="">اختر المدينة</option>
+                  {SAUDI_CITIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </Field>
               <Field label="الحي">
                 <input className={inputCls} value={form.district} onChange={(e) => setForm({ ...form, district: e.target.value })} placeholder="العليا..." />

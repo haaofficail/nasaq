@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   CheckCheck, AlertTriangle, ChevronRight, RefreshCw, Plus, Search,
   Loader2, Save, LogIn, ToggleLeft, ToggleRight, Users, MapPin,
-  Phone, Mail, UserCheck, Package, CreditCard, KeyRound, Trash2, Building2,
+  Phone, Mail, UserCheck, Package, CreditCard, KeyRound, Trash2, Building2, ImagePlus,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { adminApi } from "@/lib/api";
@@ -36,6 +36,12 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
   const [suspendReason, setSuspendReason] = useState("");
   const [notesVal, setNotesVal] = useState("");
   const [notesEditing, setNotesEditing] = useState(false);
+  const [logoEditing, setLogoEditing] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoDragging, setLogoDragging] = useState(false);
+  const logoFileRef = useRef<HTMLInputElement>(null);
 
   const { mutate: changePlan, loading: changingPlan } = useMutation((d: any) => adminApi.changePlan(org.id, d));
   const { mutate: setCaps, loading: settingCaps } = useMutation((cs: string[]) => adminApi.setOrgCapabilities(org.id, cs));
@@ -45,6 +51,36 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
   const { mutate: impersonate } = useMutation(() => adminApi.impersonate(org.id));
   const { mutate: saveNotes } = useMutation((n: string) => adminApi.updateOrg(org.id, { adminNotes: n }));
   const { mutate: setManager } = useMutation((mid: string | null) => adminApi.setOrgManager(org.id, mid));
+
+  const handleLogoSelect = (file: File) => {
+    setLogoFile(file);
+    const reader = new FileReader();
+    reader.onload = (e) => setLogoPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+  };
+
+  const handleLogoDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setLogoDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith("image/")) handleLogoSelect(file);
+  };
+
+  const handleLogoSave = async () => {
+    if (!logoFile) return;
+    setLogoUploading(true);
+    try {
+      const res = await adminApi.uploadOrgLogo(org.id, logoFile);
+      if (res?.data?.url) {
+        setLogoEditing(false);
+        setLogoFile(null);
+        setLogoPreview("");
+        refetchDetail();
+      }
+    } finally {
+      setLogoUploading(false);
+    }
+  };
 
   const currentCaps: string[] = activeCaps ?? (cap?.enabledCapabilities ?? []);
 
@@ -78,8 +114,20 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 font-bold text-xl shrink-0">
-                  {detail.name?.[0] || "م"}
+                <div className="relative group">
+                  <div className="w-14 h-14 rounded-2xl bg-brand-50 flex items-center justify-center text-brand-600 font-bold text-xl shrink-0 overflow-hidden">
+                    {detail.logo
+                      ? <img src={detail.logo} alt="شعار" className="w-full h-full object-contain" />
+                      : (detail.name?.[0] || "م")
+                    }
+                  </div>
+                  <button
+                    onClick={() => setLogoEditing(true)}
+                    className="absolute -bottom-1 -left-1 w-5 h-5 bg-brand-500 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    title="تغيير الشعار"
+                  >
+                    <ImagePlus className="w-3 h-3 text-white" />
+                  </button>
                 </div>
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
@@ -167,6 +215,23 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                   ) : (
                     <p className="text-sm text-gray-600 bg-gray-50 rounded-xl p-3">{detail.adminNotes || "لا توجد ملاحظات"}</p>
                   )}
+                </div>
+
+                {/* Logo shortcut */}
+                <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center">
+                      {detail.logo
+                        ? <img src={detail.logo} alt="شعار" className="w-full h-full object-contain" />
+                        : <span className="text-brand-600 font-bold">{detail.name?.[0] || "م"}</span>
+                      }
+                    </div>
+                    <p className="text-xs text-gray-500">{detail.logo ? "يوجد شعار" : "لا يوجد شعار"}</p>
+                  </div>
+                  <button onClick={() => setLogoEditing(true)}
+                    className="flex items-center gap-1.5 text-xs text-brand-500 hover:text-brand-600 border border-brand-200 rounded-lg px-3 py-1.5 hover:bg-brand-50 transition-colors">
+                    <ImagePlus className="w-3.5 h-3.5" /> تغيير الشعار
+                  </button>
                 </div>
               </div>
             )}
@@ -349,6 +414,53 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
           </div>
         </>
       )}
+
+      <Modal open={logoEditing} onClose={() => { setLogoEditing(false); setLogoFile(null); setLogoPreview(""); }} title={`شعار: ${org.name}`}>
+        <div className="space-y-4">
+          {/* Preview */}
+          <div className="flex justify-center">
+            <div className="w-28 h-28 rounded-2xl bg-gray-50 border-2 border-gray-100 flex items-center justify-center overflow-hidden">
+              {logoPreview
+                ? <img src={logoPreview} alt="معاينة" className="w-full h-full object-contain" />
+                : detail?.logo
+                  ? <img src={detail.logo} alt="الشعار الحالي" className="w-full h-full object-contain" />
+                  : <span className="text-brand-600 font-bold text-3xl">{org.name?.[0] || "م"}</span>
+              }
+            </div>
+          </div>
+          {logoPreview && (
+            <p className="text-center text-xs text-emerald-600 font-medium">تم اختيار الصورة — اضغط «حفظ» لرفعها</p>
+          )}
+
+          {/* Drag & Drop zone */}
+          <div
+            onDragOver={(e) => { e.preventDefault(); setLogoDragging(true); }}
+            onDragLeave={() => setLogoDragging(false)}
+            onDrop={handleLogoDrop}
+            onClick={() => logoFileRef.current?.click()}
+            className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors ${
+              logoDragging ? "border-brand-400 bg-brand-50" : "border-gray-200 hover:border-brand-300 hover:bg-gray-50"
+            }`}
+          >
+            <ImagePlus className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+            <p className="text-sm font-medium text-gray-600">اسحب الشعار هنا أو اضغط للاختيار</p>
+            <p className="text-xs text-gray-400 mt-1">PNG, JPG, WebP, SVG — حتى 5MB</p>
+          </div>
+          <input ref={logoFileRef} type="file" accept="image/*" className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleLogoSelect(f); }} />
+
+          <div className="flex gap-3">
+            <button onClick={() => { setLogoEditing(false); setLogoFile(null); setLogoPreview(""); }}
+              className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600">
+              إلغاء
+            </button>
+            <button onClick={handleLogoSave} disabled={!logoFile || logoUploading}
+              className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm hover:bg-brand-600 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+              {logoUploading ? <><Loader2 className="w-4 h-4 animate-spin" /> جاري الرفع...</> : "حفظ الشعار"}
+            </button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal open={suspendModal} onClose={() => setSuspendModal(false)} title={`إيقاف: ${org.name}`}>
         <div className="space-y-4">

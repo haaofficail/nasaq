@@ -76,7 +76,17 @@ type SystemKey =
   | "INCOME_SUMMARY"
   | "ACCRUED_EXPENSES"
   | "ACCUMULATED_DEPRECIATION"
-  | "DEPRECIATION_EXPENSE";
+  | "DEPRECIATION_EXPENSE"
+  | "COGS"
+  | "INVENTORY_ADJUSTMENT"
+  | "SALARY_EXPENSE"
+  | "CASH"
+  | "GOSI_EXPENSE"
+  | "GOSI_PAYABLE"
+  | "EMPLOYEE_LOANS"
+  | "GRATUITY_PROVISION"
+  | "GOV_FEES_EXPENSE";
+
 
 export async function getAccountByKey(orgId: string, key: SystemKey): Promise<string | null> {
   const [account] = await db
@@ -965,4 +975,77 @@ export async function postPeriodClosingEntries(
 
 export function isAccountingEnabled(orgSettings: Record<string, any>): boolean {
   return orgSettings?.financial?.enable_full_accounting === true;
+}
+
+// ============================================================
+// INVENTORY MOVEMENT — حركة المخزون
+// ============================================================
+
+export async function postInventoryMovement(params: {
+  orgId: string;
+  productId: string;
+  productName: string;
+  movementType: "in" | "out" | "adjustment" | "waste" | "return";
+  quantity: number;
+  unitCost: number;
+  date?: Date;
+  description?: string;
+}): Promise<PostingResult | null> {
+  const { orgId, productName, movementType, quantity, unitCost, date, description } = params;
+  const amount = Math.abs(quantity * unitCost);
+  if (amount <= 0) return null;
+
+  const [inventoryAcc, cogsAcc, adjustAcc] = await Promise.all([
+    getAccountByKey(orgId, "INVENTORY"),
+    getAccountByKey(orgId, "COGS"),
+    getAccountByKey(orgId, "INVENTORY_ADJUSTMENT"),
+  ]);
+
+  const refDate = date ?? new Date();
+  const desc = description ?? `حركة مخزون — ${productName} — ${quantity} وحدة`;
+
+  // out / waste: DR COGS (or adjustment) CR Inventory
+  if (movementType === "out" || movementType === "waste") {
+    const drAccount = movementType === "waste" ? (adjustAcc ?? cogsAcc) : cogsAcc;
+    if (!drAccount || !inventoryAcc) return null;
+    return createJournalEntry({
+      orgId, description: desc, date: refDate,
+      sourceType: "manual",
+      lines: [
+        { accountId: drAccount,    debit: amount, credit: 0,      description: desc },
+        { accountId: inventoryAcc, debit: 0,      credit: amount, description: desc },
+      ],
+    });
+  }
+
+  // in / return: DR Inventory CR Adjustment
+  if (movementType === "in" || movementType === "return") {
+    const crAccount = adjustAcc;
+    if (!inventoryAcc || !crAccount) return null;
+    return createJournalEntry({
+      orgId, description: desc, date: refDate,
+      sourceType: "manual",
+      lines: [
+        { accountId: inventoryAcc, debit: amount, credit: 0,      description: desc },
+        { accountId: crAccount,    debit: 0,      credit: amount, description: desc },
+      ],
+    });
+  }
+
+  // adjustment: DR/CR based on sign
+  if (!inventoryAcc || !adjustAcc) return null;
+  const isPositive = quantity >= 0;
+  return createJournalEntry({
+    orgId, description: desc, date: refDate,
+    sourceType: "manual",
+    lines: isPositive
+      ? [
+          { accountId: inventoryAcc, debit: amount, credit: 0,      description: desc },
+          { accountId: adjustAcc,    debit: 0,      credit: amount, description: desc },
+        ]
+      : [
+          { accountId: adjustAcc,    debit: amount, credit: 0,      description: desc },
+          { accountId: inventoryAcc, debit: 0,      credit: amount, description: desc },
+        ],
+  });
 }

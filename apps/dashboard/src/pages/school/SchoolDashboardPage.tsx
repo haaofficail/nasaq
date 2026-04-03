@@ -7,6 +7,7 @@ import {
   UserCheck, UserX, Clock, CheckCircle2, CalendarCheck2,
   BookOpen, Grid3X3, BookOpenCheck, Flag, Star, PartyPopper,
   TrendingUp, Layers, ClipboardList, Timer, UserRoundCheck,
+  Bell, ChevronRight,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useApi } from "@/hooks/useApi";
@@ -171,6 +172,10 @@ export function SchoolDashboardPage() {
     () => schoolApi.getStandbyActivations(today),
     [today]
   );
+  const { data: classroomSummaryData } = useApi(
+    () => schoolApi.getClassroomAttendanceSummary(today),
+    [today]
+  );
 
   const user = (() => {
     try { return JSON.parse(localStorage.getItem("nasaq_user") || sessionStorage.getItem("nasaq_user") || "{}"); }
@@ -218,6 +223,21 @@ export function SchoolDashboardPage() {
         return Math.max(0, (h * 60 + m) - nowMin);
       })()
     : null;
+
+  // Smart alerts derived data
+  const classroomSummary: any[] = (classroomSummaryData as any)?.data ?? [];
+  const classroomsNotRecorded = classroomSummary.filter((cr: any) => !cr.hasAttendance);
+  const classroomsRecorded    = classroomSummary.filter((cr: any) => cr.hasAttendance);
+  const totalClassrooms       = classroomSummary.length;
+  const attendancePct         = totalClassrooms > 0
+    ? Math.round((classroomsRecorded.length / totalClassrooms) * 100) : 0;
+
+  // Teachers absent but not covered by standby
+  const absentTeachers: any[] = (attData as any)?.data
+    ? (attData as any).data.filter((a: any) => a.status === "absent")
+    : [];
+  const coveredCount   = standbys.length;
+  const uncoveredCount = Math.max(0, attAbsent - coveredCount);
 
   // Semester calculations
   const remDays = activeSem?.endDate   ? daysUntil(activeSem.endDate)           : null;
@@ -325,6 +345,168 @@ export function SchoolDashboardPage() {
             loading={monitorLoading} onClick={() => navigate("/school/cases")}
           />
         </div>
+
+        {/* ══════════════════════════════════════════
+            متابعة إنجاز اليوم — Smart Daily Tracker
+            ════════════════════════════════════════ */}
+        {(totalClassrooms > 0 || stats.teachers > 0) && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-violet-600" />
+                </div>
+                <span className="text-sm font-black text-gray-900">متابعة إنجاز اليوم</span>
+              </div>
+              {totalClassrooms > 0 && (
+                <span className={clsx(
+                  "text-xs font-bold rounded-full px-2.5 py-0.5 border",
+                  attendancePct === 100
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                    : attendancePct > 0
+                    ? "bg-amber-50 text-amber-700 border-amber-100"
+                    : "bg-red-50 text-red-600 border-red-100"
+                )}>
+                  {classroomsRecorded.length}/{totalClassrooms} فصل
+                </span>
+              )}
+            </div>
+
+            <div className="divide-y divide-gray-50">
+
+              {/* ── حضور الطلاب بالفصول ── */}
+              {totalClassrooms > 0 && (() => {
+                // Group by grade
+                const grouped: Record<string, any[]> = {};
+                classroomSummary.forEach((cr: any) => {
+                  const g = cr.grade ?? "أخرى";
+                  if (!grouped[g]) grouped[g] = [];
+                  grouped[g].push(cr);
+                });
+                return (
+                  <div className="px-5 py-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <GraduationCap className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="text-xs font-bold text-gray-700">حضور الطلاب</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className={clsx(
+                              "h-full rounded-full transition-all",
+                              attendancePct === 100 ? "bg-emerald-500" : attendancePct > 50 ? "bg-amber-400" : "bg-red-400"
+                            )}
+                            style={{ width: `${attendancePct}%` }}
+                          />
+                        </div>
+                        <span className="text-[11px] text-gray-400 tabular-nums">{attendancePct}%</span>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      {Object.entries(grouped).map(([grade, rooms]) => (
+                        <div key={grade}>
+                          <p className="text-[10px] font-bold text-gray-400 mb-1.5">{grade}</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {rooms.map((cr: any) => (
+                              <button
+                                key={cr.id}
+                                onClick={() => navigate(`/school/attendance?classRoomId=${cr.id}`)}
+                                title={cr.hasAttendance ? "سُجِّل الحضور" : "لم يُسجَّل — اضغط للتسجيل"}
+                                className={clsx(
+                                  "flex items-center gap-1 px-2.5 py-1 rounded-lg border text-xs font-bold transition-all",
+                                  cr.hasAttendance
+                                    ? "bg-emerald-50 border-emerald-200 text-emerald-700 hover:bg-emerald-100"
+                                    : "bg-red-50 border-red-200 text-red-600 hover:bg-red-100"
+                                )}
+                              >
+                                {cr.hasAttendance
+                                  ? <CheckCircle2 className="w-3 h-3" />
+                                  : <UserX className="w-3 h-3" />
+                                }
+                                فصل {cr.name}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    {classroomsNotRecorded.length === 0 && totalClassrooms > 0 && (
+                      <p className="text-xs text-emerald-600 font-bold mt-2">كل الفصول سجّلت الحضور اليوم</p>
+                    )}
+                  </div>
+                );
+              })()}
+
+              {/* ── حضور المعلمين ── */}
+              {stats.teachers > 0 && (
+                <div className="px-5 py-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Users className="w-3.5 h-3.5 text-gray-400" />
+                      <span className="text-xs font-bold text-gray-700">حضور المعلمين</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-24 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={clsx(
+                            "h-full rounded-full transition-all",
+                            attPct === 100 ? "bg-emerald-500" : attPct > 0 ? "bg-amber-400" : "bg-gray-200"
+                          )}
+                          style={{ width: `${attPct}%` }}
+                        />
+                      </div>
+                      <span className="text-[11px] text-gray-400 tabular-nums">{attTotal}/{stats.teachers}</span>
+                    </div>
+                  </div>
+
+                  {attTotal === 0 ? (
+                    <button
+                      onClick={() => navigate("/school/teacher-attendance")}
+                      className="w-full flex items-center justify-between bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 hover:bg-amber-100 transition-colors"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Bell className="w-3.5 h-3.5 text-amber-600" />
+                        <span className="text-xs font-bold text-amber-800">لم يُسجَّل بعد — {stats.teachers} معلم</span>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-amber-500" />
+                    </button>
+                  ) : (
+                    <div className="space-y-1.5">
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { label: "حاضر",   value: attPresent, cls: "bg-emerald-50 border-emerald-200 text-emerald-700" },
+                          { label: "غائب",   value: attAbsent,  cls: "bg-red-50 border-red-200 text-red-600" },
+                          { label: "متأخر",  value: attLate,    cls: "bg-amber-50 border-amber-200 text-amber-700" },
+                          { label: "مستأذن", value: attExcused, cls: "bg-blue-50 border-blue-200 text-blue-600" },
+                        ].filter(s => s.value > 0).map(s => (
+                          <span key={s.label} className={`text-xs font-bold px-2 py-0.5 rounded-lg border ${s.cls}`}>
+                            {s.value} {s.label}
+                          </span>
+                        ))}
+                      </div>
+                      {uncoveredCount > 0 && (
+                        <button
+                          onClick={() => navigate("/school/teacher-attendance")}
+                          className="w-full flex items-center justify-between bg-red-50 border border-red-200 rounded-xl px-3 py-2 hover:bg-red-100 transition-colors mt-1"
+                        >
+                          <div className="flex items-center gap-2">
+                            <UserX className="w-3.5 h-3.5 text-red-600" />
+                            <span className="text-xs font-bold text-red-700">
+                              {uncoveredCount} غائب بدون حصة انتظار
+                            </span>
+                          </div>
+                          <ChevronRight className="w-3.5 h-3.5 text-red-400" />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+          </div>
+        )}
 
         {/* ══════════════════════════════════════════
             Widget 1: الحصة الجارية الآن

@@ -5,7 +5,7 @@ import {
   Globe, Palette, FileText, Rss, Settings2, ExternalLink, Copy, Check,
   Plus, Pencil, Trash2, Eye, EyeOff, ChevronUp, ChevronDown, Save,
   Loader2, AlertCircle, Link2, Search, Code, BarChart3, Image,
-  Star, Phone, Layout, Type, X,
+  Star, Phone, Layout, Type, X, QrCode, Printer, Download,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { websiteApi, settingsApi } from "@/lib/api";
@@ -105,7 +105,7 @@ const TEMPLATES = [
 
 const FONTS = ["IBM Plex Sans Arabic", "Tajawal", "Cairo", "Almarai", "Noto Sans Arabic"];
 
-type Tab = "overview" | "pages" | "design" | "blog" | "settings";
+type Tab = "overview" | "pages" | "design" | "blog" | "settings" | "qr";
 
 export function StorefrontPage() {
   const navigate = useNavigate();
@@ -120,13 +120,35 @@ export function StorefrontPage() {
   const { data: configRes, refetch: refetchConfig } = useApi(() => websiteApi.config(), []);
   const { data: blogRes, refetch: refetchBlog } = useApi(() => websiteApi.blog(), []);
   const { data: profileRes } = useApi(() => settingsApi.profile(), []);
+  const { data: storefrontRes, refetch: refetchStorefront } = useApi(() => websiteApi.storefrontSettings(), []);
 
   const pages: any[] = pagesRes?.data ?? [];
   const config: any = configRes?.data ?? {};
   const posts: any[] = blogRes?.data ?? [];
   const profile: any = profileRes?.data ?? {};
+  const storefrontData: any = storefrontRes?.data ?? null;
 
   const siteUrl = profile?.slug ? `${window.location.origin}/s/${profile.slug}` : null;
+  const printUrl = profile?.slug ? `/s/${profile.slug}/print` : null;
+
+  // QR state
+  const [qrDataUrl, setQrDataUrl] = useState<string>("");
+  const [qrCopied, setQrCopied] = useState(false);
+  const [sfSlugEdit, setSfSlugEdit] = useState("");
+  const [sfSlugEditing, setSfSlugEditing] = useState(false);
+  const [sfSaving, setSfSaving] = useState(false);
+
+  useEffect(() => {
+    const slug = storefrontData?.slug || profile?.slug;
+    if (!slug) return;
+    import("qrcode").then(QRCode => {
+      QRCode.default.toDataURL(`https://nasaqpro.tech/s/${slug}`, {
+        width: 400, margin: 1,
+        color: { dark: storefrontData?.primaryColor || "#5b9bd5", light: "#ffffff" },
+        errorCorrectionLevel: "H",
+      }).then(setQrDataUrl);
+    });
+  }, [storefrontData?.slug, profile?.slug, storefrontData?.primaryColor]);
 
   // ── Design state ────────────────────────────────────────────
   const [designForm, setDesignForm] = useState<any>(null);
@@ -303,6 +325,7 @@ export function StorefrontPage() {
 
   const tabs: { key: Tab; label: string; icon: any }[] = [
     { key: "overview", label: "نظرة عامة", icon: Globe },
+    { key: "qr",       label: "صفحتي العامة", icon: QrCode },
     { key: "pages",    label: "الصفحات",   icon: FileText },
     { key: "design",   label: "التصميم",   icon: Palette },
     { key: "blog",     label: "المدونة",   icon: Rss },
@@ -477,6 +500,120 @@ export function StorefrontPage() {
                 </button>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tab: QR / صفحتي العامة ─────────────────────────────── */}
+      {activeTab === "qr" && (
+        <div className="space-y-5 max-w-2xl">
+          {/* Link card */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+            <h3 className="text-sm font-bold text-gray-900 mb-4">رابط صفحتك العامة</h3>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-200 font-mono text-sm text-gray-600 truncate">
+                {siteUrl || "—"}
+              </div>
+              {siteUrl && (
+                <>
+                  <button onClick={() => { navigator.clipboard.writeText(siteUrl); setQrCopied(true); setTimeout(() => setQrCopied(false), 2000); }}
+                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-sm text-gray-600 transition-colors">
+                    {qrCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                    {qrCopied ? "تم" : "نسخ"}
+                  </button>
+                  <a href={siteUrl} target="_blank" rel="noreferrer"
+                    className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors">
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </>
+              )}
+            </div>
+            {/* Slug edit */}
+            <div className="mt-4">
+              {sfSlugEditing ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 flex-1 border border-brand-300 rounded-xl px-3 py-2 bg-brand-50/30 text-sm">
+                    <span className="text-gray-400 text-xs">nasaqpro.tech/s/</span>
+                    <input value={sfSlugEdit} onChange={e => setSfSlugEdit(e.target.value)}
+                      className="flex-1 bg-transparent outline-none text-gray-800 font-mono" dir="ltr" />
+                  </div>
+                  <button onClick={async () => {
+                    setSfSaving(true);
+                    try {
+                      await websiteApi.updateStorefrontSettings({ slug: sfSlugEdit });
+                      await refetchStorefront();
+                      setSfSlugEditing(false);
+                      toast.success("تم تحديث الرابط");
+                    } catch (e: any) {
+                      toast.error(e?.message || "فشل التحديث");
+                    } finally { setSfSaving(false); }
+                  }} disabled={sfSaving}
+                    className="px-4 py-2 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors">
+                    {sfSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
+                  </button>
+                  <button onClick={() => setSfSlugEditing(false)} className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">
+                    إلغاء
+                  </button>
+                </div>
+              ) : (
+                <button onClick={() => { setSfSlugEdit(storefrontData?.slug || profile?.slug || ""); setSfSlugEditing(true); }}
+                  className="text-xs text-brand-500 hover:text-brand-700 flex items-center gap-1">
+                  <Pencil className="w-3 h-3" /> تعديل الـ Slug
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* QR Code */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+            <h3 className="text-sm font-bold text-gray-900 mb-4">QR Code</h3>
+            {qrDataUrl ? (
+              <div className="flex flex-col items-center gap-4">
+                <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                  <img src={qrDataUrl} alt="QR Code" className="w-40 h-40" />
+                </div>
+                <div className="flex gap-2">
+                  <a href={qrDataUrl} download={`nasaq-qr-${storefrontData?.slug || profile?.slug}.png`}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors">
+                    <Download className="w-4 h-4" /> تحميل PNG
+                  </a>
+                  {printUrl && (
+                    <a href={printUrl} target="_blank" rel="noreferrer"
+                      className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                      <Printer className="w-4 h-4" /> المطبوعات
+                    </a>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
+              </div>
+            )}
+          </div>
+
+          {/* Print exports */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+            <h3 className="text-sm font-bold text-gray-900 mb-1">تصدير المطبوعات</h3>
+            <p className="text-xs text-gray-400 mb-4">3 عناصر طباعة جاهزة للطباعة أو التحميل</p>
+            {printUrl ? (
+              <div className="grid grid-cols-3 gap-3">
+                {[
+                  { label: "A4 Card", desc: "210×297mm — للواجهة والإعلانات", id: "a4" },
+                  { label: "بطاقة عمل", desc: "85×54mm — لتوزيعها للعملاء", id: "card" },
+                  { label: "ملصق الرف", desc: "80×50mm — يُثبَّت على المنتجات", id: "label" },
+                ].map(item => (
+                  <a key={item.id} href={printUrl} target="_blank" rel="noreferrer"
+                    className="flex flex-col items-center gap-2 p-4 border border-gray-200 rounded-2xl hover:border-brand-300 hover:bg-brand-50/30 transition-colors text-center group">
+                    <QrCode className="w-8 h-8 text-gray-300 group-hover:text-brand-400 transition-colors" />
+                    <p className="text-sm font-semibold text-gray-800">{item.label}</p>
+                    <p className="text-[11px] text-gray-400">{item.desc}</p>
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-gray-400">أكمل إعداد حسابك أولاً</p>
+            )}
           </div>
         </div>
       )}

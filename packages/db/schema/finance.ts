@@ -53,8 +53,8 @@ export const vendorCommissionTypeEnum = pgEnum("commission_type", [
 export const invoices = pgTable("invoices", {
   id: uuid("id").defaultRandom().primaryKey(),
   orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
-  bookingId: uuid("booking_id").references(() => bookings.id),
-  customerId: uuid("customer_id").references(() => customers.id),
+  bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
+  customerId: uuid("customer_id").references(() => customers.id, { onDelete: "set null" }),
 
   // ZATCA compliance
   invoiceNumber: text("invoice_number").notNull().unique(), // INV-2026-0001
@@ -159,7 +159,7 @@ export const invoicePayments = pgTable("invoice_payments", {
   transferName: text("transfer_name"),
   notes: text("notes"),
 
-  createdBy: uuid("created_by").references(() => users.id),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index("invoice_payments_invoice_idx").on(table.invoiceId),
@@ -187,8 +187,8 @@ export const expenses = pgTable("expenses", {
   expenseDate: timestamp("expense_date", { withTimezone: true }).notNull(),
   
   // Links (optional)
-  bookingId: uuid("booking_id").references(() => bookings.id), // ربط بحجز لحساب الربحية
-  vendorId: uuid("vendor_id").references(() => users.id),      // ربط بمقدم خدمة
+  bookingId: uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }), // ربط بحجز لحساب الربحية
+  vendorId: uuid("vendor_id").references(() => users.id, { onDelete: "set null" }),      // ربط بمقدم خدمة
   
   // Receipt
   receiptUrl: text("receipt_url"),                           // صورة الإيصال
@@ -199,15 +199,15 @@ export const expenses = pgTable("expenses", {
   recurringFrequency: text("recurring_frequency"),           // monthly, quarterly, yearly
   
   // Approval
-  approvedBy: uuid("approved_by").references(() => users.id),
+  approvedBy: uuid("approved_by").references(() => users.id, { onDelete: "set null" }),
   approvedAt: timestamp("approved_at", { withTimezone: true }),
-  
+
   // ربط بدليل الحسابات (للترحيل المحاسبي)
-  chartOfAccountId: uuid("chart_of_account_id").references(() => chartOfAccounts.id),
+  chartOfAccountId: uuid("chart_of_account_id").references(() => chartOfAccounts.id, { onDelete: "restrict" }),
   journalEntryId: uuid("journal_entry_id"),
 
   notes: text("notes"),
-  createdBy: uuid("created_by").references(() => users.id),
+  createdBy: uuid("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
@@ -219,7 +219,7 @@ export const expenses = pgTable("expenses", {
 export const vendorCommissions = pgTable("vendor_commissions", {
   id: uuid("id").defaultRandom().primaryKey(),
   orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
-  vendorId: uuid("vendor_id").notNull().references(() => users.id),
+  vendorId: uuid("vendor_id").notNull().references(() => users.id, { onDelete: "cascade" }),
 
   // Commission structure
   commissionType: vendorCommissionTypeEnum("commission_type").default("percentage").notNull(),
@@ -239,7 +239,7 @@ export const vendorCommissions = pgTable("vendor_commissions", {
 export const vendorPayouts = pgTable("vendor_payouts", {
   id: uuid("id").defaultRandom().primaryKey(),
   orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
-  vendorId: uuid("vendor_id").notNull().references(() => users.id),
+  vendorId: uuid("vendor_id").notNull().references(() => users.id, { onDelete: "cascade" }),
 
   // Period
   periodStart: timestamp("period_start", { withTimezone: true }).notNull(),

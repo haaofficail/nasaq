@@ -2,18 +2,19 @@ const API_BASE = "/api/v1";
 
 // In dev: these come from localStorage after login
 // In production: from auth context
+function getStore(key: string): string | null {
+  return localStorage.getItem(key) ?? sessionStorage.getItem(key);
+}
+
 function getHeaders(): Record<string, string> {
   const headers: Record<string, string> = { "Content-Type": "application/json" };
-  
-  const token = localStorage.getItem("nasaq_token");
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
-  }
 
-  // Dev mode fallback
-  const orgId = localStorage.getItem("nasaq_org_id");
-  const userId = localStorage.getItem("nasaq_user_id");
-  if (orgId) headers["X-Org-Id"] = orgId;
+  const token = getStore("nasaq_token");
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const orgId  = getStore("nasaq_org_id");
+  const userId = getStore("nasaq_user_id");
+  if (orgId)  headers["X-Org-Id"]  = orgId;
   if (userId) headers["X-User-Id"] = userId;
 
   return headers;
@@ -119,6 +120,14 @@ export const servicesApi = {
   generateBarcode: (id: string) => api.post<{ data: { id: string; barcode: string } }>(`/services/${id}/generate-barcode`),
 };
 
+// --- Templates ---
+export const templatesApi = {
+  list: () => api.get<{ data: Array<{ businessType: string; label: string; count: number }> }>("/templates"),
+  getByType: (businessType: string) => api.get<{ data: any }>(`/templates/${businessType}`),
+  import: (businessType: string, data: { categories?: string[]; overwrite?: boolean; status?: "draft" | "active" }) =>
+    api.post<{ data: { created: number; skipped: number; total: number; message: string } }>(`/templates/${businessType}/import`, data),
+};
+
 // --- Addons ---
 export const addonsApi = {
   list: () => api.get<{ data: any[] }>("/addons"),
@@ -173,6 +182,7 @@ export const financeApi = {
   invoicePayments: (id: string) => api.get<{ data: any[] }>(`/finance/invoices/${id}/payments`),
   addInvoicePayment: (id: string, data: any) => api.post<{ data: any }>(`/finance/invoices/${id}/payments`, data),
   sendInvoice: (id: string) => api.post<{ data: { email: boolean; whatsapp: boolean } }>(`/finance/invoices/${id}/send`, {}),
+  zatcaXml: (id: string) => api.get<{ data: { xml: string; qrBase64: string; invoiceNumber: string } }>(`/finance/invoices/${id}/zatca-xml?format=json`),
   expenses: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any[] }>(`/finance/expenses${qs}`); },
   createExpense: (data: any) => api.post<{ data: any }>("/finance/expenses", data),
   updateExpense: (id: string, data: any) => api.put<{ data: any }>(`/finance/expenses/${id}`, data),
@@ -245,6 +255,64 @@ export const accountingApi = {
   cashFlow: (params?: Record<string, string>) => { const qs = params ? "?" + new URLSearchParams(params).toString() : ""; return api.get<{ data: any }>(`/accounting/reports/cash-flow${qs}`); },
   generateClosingEntries: (periodId: string) => api.post<{ data: any }>(`/accounting/periods/${periodId}/closing-entries`, {}),
   initChartOfAccounts: () => api.post<{ success: boolean; message: string }>("/accounting/init-chart-of-accounts", {}),
+
+  costCenters: {
+    list: (params?: { search?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.search) q.set("search", params.search);
+      return api.get<{ data: any[] }>(`/accounting/cost-centers?${q}`);
+    },
+    create: (data: any) => api.post<{ data: any }>("/accounting/cost-centers", data),
+    update: (id: string, data: any) => api.put<{ data: any }>(`/accounting/cost-centers/${id}`, data),
+    delete: (id: string) => api.delete(`/accounting/cost-centers/${id}`),
+  },
+
+  assets: {
+    list: (params?: { search?: string; category?: string; status?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.search) q.set("search", params.search);
+      if (params?.category) q.set("category", params.category);
+      if (params?.status) q.set("status", params.status);
+      return api.get<{ data: any[] }>(`/accounting/assets?${q}`);
+    },
+    summary: () => api.get<{ data: any }>("/accounting/assets/summary"),
+    get: (id: string) => api.get<{ data: any }>(`/accounting/assets/${id}`),
+    create: (data: any) => api.post<{ data: any }>("/accounting/assets", data),
+    update: (id: string, data: any) => api.put<{ data: any }>(`/accounting/assets/${id}`, data),
+    delete: (id: string) => api.delete(`/accounting/assets/${id}`),
+    schedule: (id: string) => api.get<{ data: any[] }>(`/accounting/assets/${id}/depreciation-schedule`),
+    depreciateMonthly: () => api.post<{ data: any }>("/accounting/assets/depreciate-monthly", {}),
+  },
+
+  budgets: {
+    list: () => api.get<{ data: any[] }>("/accounting/budgets"),
+    get: (id: string) => api.get<{ data: any }>(`/accounting/budgets/${id}`),
+    create: (data: any) => api.post<{ data: any }>("/accounting/budgets", data),
+    update: (id: string, data: any) => api.patch<{ data: any }>(`/accounting/budgets/${id}`, data),
+    activate: (id: string) => api.post<{ data: any }>(`/accounting/budgets/${id}/activate`, {}),
+    addLine: (id: string, data: any) => api.post<{ data: any }>(`/accounting/budgets/${id}/lines`, data),
+    updateLine: (budgetId: string, lineId: string, data: any) => api.put<{ data: any }>(`/accounting/budgets/${budgetId}/lines/${lineId}`, data),
+  },
+
+  vendors: {
+    list: (params?: { search?: string; category?: string; isActive?: boolean }) => {
+      const q = new URLSearchParams();
+      if (params?.search) q.set("search", params.search);
+      if (params?.category) q.set("category", params.category);
+      if (params?.isActive !== undefined) q.set("isActive", String(params.isActive));
+      return api.get<{ data: any[] }>(`/accounting/vendors?${q}`);
+    },
+    get: (id: string) => api.get<{ data: any }>(`/accounting/vendors/${id}`),
+    create: (data: any) => api.post<{ data: any }>("/accounting/vendors", data),
+    update: (id: string, data: any) => api.put<{ data: any }>(`/accounting/vendors/${id}`, data),
+    delete: (id: string) => api.delete(`/accounting/vendors/${id}`),
+    statement: (id: string, from?: string, to?: string) => {
+      const q = new URLSearchParams();
+      if (from) q.set("from", from);
+      if (to) q.set("to", to);
+      return api.get<{ data: any }>(`/accounting/vendors/${id}/statement?${q}`);
+    },
+  },
 };
 
 // --- Reconciliation ---
@@ -314,9 +382,9 @@ export const mediaApi = {
     new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
       xhr.open("POST", `/api/v1/media/upload`);
-      const token  = localStorage.getItem("nasaq_token");
-      const orgId  = localStorage.getItem("nasaq_org_id");
-      const userId = localStorage.getItem("nasaq_user_id");
+      const token  = getStore("nasaq_token");
+      const orgId  = getStore("nasaq_org_id");
+      const userId = getStore("nasaq_user_id");
       if (token)  xhr.setRequestHeader("Authorization", `Bearer ${token}`);
       if (orgId)  xhr.setRequestHeader("X-Org-Id", orgId);
       if (userId) xhr.setRequestHeader("X-User-Id", userId);
@@ -331,6 +399,13 @@ export const mediaApi = {
       xhr.onerror = () => reject(new Error("Upload failed"));
       xhr.send(formData);
     }),
+  // Galleries
+  galleries:      () => api.get<{ data: any[] }>("/media/galleries"),
+  createGallery:  (data: { name: string; description?: string; clientName?: string; assetIds: string[]; expiresAt?: string }) =>
+    api.post<{ data: any }>("/media/galleries", data),
+  updateGallery:  (id: string, data: any) => api.patch<{ data: any }>(`/media/galleries/${id}`, data),
+  deleteGallery:  (id: string) => api.delete<{ data: any }>(`/media/galleries/${id}`),
+  shareGallery:   (token: string) => fetch(`/api/v1/media/galleries/share/${token}`).then(r => r.json()),
 };
 
 // --- Inventory ---
@@ -657,6 +732,14 @@ export const menuApi = {
   createItem: (data: any) => api.post<{ data: any }>("/menu/items", data),
   updateItem: (id: string, data: any) => api.put<{ data: any }>(`/menu/items/${id}`, data),
   deleteItem: (id: string) => api.delete(`/menu/items/${id}`),
+  // Modifier groups
+  modifierGroups: (itemId: string) => api.get<{ data: any[] }>(`/menu/items/${itemId}/modifier-groups`),
+  createModifierGroup: (itemId: string, data: any) => api.post<{ data: any }>(`/menu/items/${itemId}/modifier-groups`, data),
+  updateModifierGroup: (groupId: string, data: any) => api.put<{ data: any }>(`/menu/modifier-groups/${groupId}`, data),
+  deleteModifierGroup: (groupId: string) => api.delete(`/menu/modifier-groups/${groupId}`),
+  createModifier: (groupId: string, data: any) => api.post<{ data: any }>(`/menu/modifier-groups/${groupId}/modifiers`, data),
+  updateModifier: (modId: string, data: any) => api.put<{ data: any }>(`/menu/modifiers/${modId}`, data),
+  deleteModifier: (modId: string) => api.delete(`/menu/modifiers/${modId}`),
 };
 
 // --- Arrangements (Flower Packages) ---
@@ -692,6 +775,7 @@ export const settingsApi = {
   updateOnboardingStep: (step: string) => api.patch<{ data: any }>("/settings/onboarding-step", { step }),
   seedDemo: () => api.post<{ data: any }>("/settings/seed-demo"),
   clearDemo: () => api.delete("/settings/demo-data"),
+  setupStatus: () => api.get<{ data: { hasServices: boolean; hasMenuItems: boolean; hasCustomers: boolean; hasBookings: boolean; hasOrders: boolean; hasTeam: boolean; hasBranch: boolean; hasSlug: boolean; businessType: string; counts: Record<string, number> } }>("/settings/setup-status"),
 };
 
 // --- Organization Subscription & Stats ---
@@ -705,6 +789,8 @@ export const orgSubscriptionApi = {
   renew:          ()                              => api.post<{ data: any }>("/organization/subscription/renew", {}),
   purchaseAddon:  (addonKey: string)              => api.post<{ data: any }>("/organization/subscription/addons/purchase", { addonKey }),
   confirmPayment: (orderId: string, paymentRef?: string) => api.post<{ data: any }>("/organization/subscription/confirm-payment", { orderId, paymentRef }),
+  paymentUrl:     (orderId: string, returnUrl: string)   => api.get<{ data: { paymentUrl: string } }>(`/organization/subscription/payment-url?orderId=${encodeURIComponent(orderId)}&returnUrl=${encodeURIComponent(returnUrl)}`),
+  deactivateAddon:(addonKey: string)                     => api.delete<{ data: any }>(`/organization/subscription/addons/${addonKey}`),
 };
 
 export const orgStatsApi = {
@@ -735,6 +821,9 @@ export const websiteApi = {
   publicSite: (orgSlug: string) => fetch(`/api/v1/website/public/${orgSlug}`).then(r => r.json()),
   publicPage: (orgSlug: string, pageSlug: string) => fetch(`/api/v1/website/public/${orgSlug}/page/${pageSlug}`).then(r => r.json()),
   publicBook: (orgSlug: string, data: any) => fetch(`/api/v1/website/public/${orgSlug}/book`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
+  // Storefront settings
+  storefrontSettings: () => api.get<{ data: any }>("/website/storefront-settings"),
+  updateStorefrontSettings: (data: any) => api.put<{ data: any }>("/website/storefront-settings", data),
 };
 
 // --- Public tracking (no auth) ---
@@ -783,7 +872,7 @@ export const messagingApi = {
   status: () => api.get<{ data: any }>("/messaging/status"),
   connect: () => fetch(`${(api as any).baseUrl || "/api/v1"}/messaging/connect`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${localStorage.getItem("nasaq_token")}` },
+    headers: { Authorization: `Bearer ${getStore("nasaq_token")}` },
   }),
   disconnect: () => api.post("/messaging/disconnect"),
   test: (phone: string, message: string) => api.post<{ success: boolean }>("/messaging/test", { phone, message }),
@@ -1025,6 +1114,266 @@ export const rentalApi = {
   analytics: () => api.get<{ data: any }>("/rental/analytics"),
 };
 
+// --- General-Purpose Contracts ---
+export const contractsApi = {
+  list: (params?: { status?: string; type?: string; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status && params.status !== "all") q.set("status", params.status);
+    if (params?.type)   q.set("type", params.type);
+    if (params?.search) q.set("search", params.search);
+    return api.get<{ data: any[] }>(`/contracts?${q}`);
+  },
+  get:       (id: string) => api.get<{ data: any }>(`/contracts/${id}`),
+  stats:     () => api.get<{ data: any }>("/contracts/stats"),
+  expiring:  (days = 30) => api.get<{ data: any[] }>(`/contracts/expiring?days=${days}`),
+  create:    (data: any) => api.post<{ data: any }>("/contracts", data),
+  update:    (id: string, data: any) => api.put<{ data: any }>(`/contracts/${id}`, data),
+  delete:    (id: string) => api.delete(`/contracts/${id}`),
+  activate:  (id: string) => api.post<{ data: any }>(`/contracts/${id}/activate`, {}),
+  terminate: (id: string, data: any) => api.post<{ data: any }>(`/contracts/${id}/terminate`, data),
+  renew:     (id: string, data: any) => api.post<{ data: any }>(`/contracts/${id}/renew`, data),
+  payments: {
+    list:     (contractId: string) => api.get<{ data: any[] }>(`/contracts/${contractId}/payments`),
+    add:      (contractId: string, data: any) => api.post<{ data: any }>(`/contracts/${contractId}/payments`, data),
+    update:   (contractId: string, payId: string, data: any) => api.put<{ data: any }>(`/contracts/${contractId}/payments/${payId}`, data),
+    markPaid: (contractId: string, payId: string, data: any) => api.post<{ data: any }>(`/contracts/${contractId}/payments/${payId}/mark-paid`, data),
+  },
+  documents: {
+    add:    (contractId: string, data: any) => api.post<{ data: any }>(`/contracts/${contractId}/documents`, data),
+    delete: (contractId: string, docId: string) => api.delete(`/contracts/${contractId}/documents/${docId}`),
+  },
+};
+
+// --- Property Management ---
+export const propertyApi = {
+  dashboard: () => api.get<{ data: any }>("/property/dashboard"),
+
+  properties: {
+    list: (params?: { type?: string; city?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.type) q.set("type", params.type);
+      if (params?.city) q.set("city", params.city);
+      return api.get<{ data: any[] }>(`/property/properties?${q}`);
+    },
+    compliance: (id: string) => api.get<{ data: any }>(`/property/properties/${id}/compliance`),
+    create: (data: any) => api.post<{ data: any }>("/property/properties", data),
+  },
+
+  getProperty: (id: string) => api.get<{ data: any }>(`/property/properties/${id}`),
+  createProperty: (data: any) => api.post<{ data: any }>("/property/properties", data),
+  updateProperty: (id: string, data: any) => api.put<{ data: any }>(`/property/properties/${id}`, data),
+
+  units: {
+    list: (params?: { propertyId?: string; status?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.propertyId) q.set("propertyId", params.propertyId);
+      if (params?.status) q.set("status", params.status);
+      return api.get<{ data: any[] }>(`/property/units?${q}`);
+    },
+    vacant: () => api.get<{ data: any[] }>("/property/units/vacant"),
+    patch: (id: string, data: any) => api.patch<{ data: any }>(`/property/units/${id}/status`, data),
+    bulk: (data: any) => api.post<{ data: any }>("/property/units/bulk", data),
+  },
+
+  createUnit: (data: any) => api.post<{ data: any }>("/property/units", data),
+  updateUnit: (id: string, data: any) => api.put<{ data: any }>(`/property/units/${id}`, data),
+  updateUnitStatus: (id: string, status: string) => api.patch<{ data: any }>(`/property/units/${id}/status`, { status }),
+  bulkCreateUnits: (data: any) => api.post<{ data: any }>("/property/units/bulk", data),
+
+  tenants: {
+    list: (params?: { search?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.search) q.set("search", params.search);
+      return api.get<{ data: any[] }>(`/property/tenants?${q}`);
+    },
+    create: (data: any) => api.post<{ data: any }>("/property/tenants", data),
+  },
+
+  getTenant: (id: string) => api.get<{ data: any }>(`/property/tenants/${id}`),
+  createTenant: (data: any) => api.post<{ data: any }>("/property/tenants", data),
+  updateTenant: (id: string, data: any) => api.put<{ data: any }>(`/property/tenants/${id}`, data),
+
+  contracts: {
+    list: (params?: { status?: string; search?: string; propertyId?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.status) q.set("status", params.status);
+      if (params?.search) q.set("search", params.search);
+      if (params?.propertyId) q.set("propertyId", params.propertyId);
+      return api.get<{ data: any[] }>(`/property/contracts?${q}`);
+    },
+    create: (data: any) => api.post<{ data: any }>("/property/contracts", data),
+  },
+
+  getContract: (id: string) => api.get<{ data: any }>(`/property/contracts/${id}`),
+  getContractStatement: (id: string) => api.get<{ data: any }>(`/property/contracts/${id}/statement`),
+  createContract: (data: any) => api.post<{ data: any }>("/property/contracts", data),
+  renewContract: (id: string | undefined, data: any) => api.post<{ data: any }>(`/property/contracts/${id}/renew`, data),
+  terminateContract: (id: string | undefined, data: any) => api.post<{ data: any }>(`/property/contracts/${id}/terminate`, data),
+  updateContractEjar: (id: string | undefined, data: any) => api.patch<{ data: any }>(`/property/contracts/${id}/ejar`, data),
+  contractPdfData: (id: string) => api.get<{ data: any }>(`/property/contracts/${id}/pdf-data`),
+  contractNotice: (id: string, type: string) => api.get<{ data: any }>(`/property/contracts/${id}/notice?type=${type}`),
+
+  amendments: {
+    list: (contractId: string) => api.get<{ data: any[] }>(`/property/contracts/${contractId}/amendments`),
+    create: (contractId: string, data: any) => api.post<{ data: any }>(`/property/contracts/${contractId}/amendments`, data),
+    update: (contractId: string, id: string, data: any) => api.put<{ data: any }>(`/property/contracts/${contractId}/amendments/${id}`, data),
+    delete: (contractId: string, id: string) => api.delete(`/property/contracts/${contractId}/amendments/${id}`),
+  },
+
+  invoices: {
+    list: (params?: { status?: string; search?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.status) q.set("status", params.status);
+      if (params?.search) q.set("search", params.search);
+      return api.get<{ data: any[] }>(`/property/invoices?${q}`);
+    },
+    create: (data: any) => api.post<{ data: any }>("/property/invoices", data),
+  },
+
+  generateInvoices: () => api.post<{ data: any }>("/property/invoices/generate", {}),
+  payInvoice: (id: string | undefined, data: any) => api.patch<{ data: any }>(`/property/invoices/${id}/pay`, data),
+  sendInvoice: (id: string) => api.patch<{ data: any }>(`/property/invoices/${id}/send`, {}),
+  cancelInvoice: (id: string) => api.patch<{ data: any }>(`/property/invoices/${id}/cancel`, {}),
+
+  payments: {
+    list: (params?: { method?: string; source?: string; dateFrom?: string; dateTo?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.method) q.set("method", params.method);
+      if (params?.source) q.set("source", params.source);
+      if (params?.dateFrom) q.set("dateFrom", params.dateFrom);
+      if (params?.dateTo) q.set("dateTo", params.dateTo);
+      return api.get<{ data: any[] }>(`/property/payments?${q}`);
+    },
+  },
+
+  createPayment: (data: any) => api.post<{ data: any }>("/property/payments", data),
+  quickPayment: (data: any) => api.post<{ data: any }>("/property/payments/quick", data),
+
+  expenses: {
+    list: (params?: { propertyId?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.propertyId) q.set("propertyId", params.propertyId);
+      return api.get<{ data: any[] }>(`/property/expenses?${q}`);
+    },
+  },
+
+  expensesSummary: () => api.get<{ data: any }>("/property/expenses/summary"),
+  createExpense: (data: any) => api.post<{ data: any }>("/property/expenses", data),
+
+  maintenance: {
+    list: (params?: { propertyId?: string; status?: string; limit?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.propertyId) q.set("propertyId", params.propertyId);
+      if (params?.status) q.set("status", params.status);
+      if (params?.limit) q.set("limit", params.limit);
+      return api.get<{ data: any[] }>(`/property/maintenance?${q}`);
+    },
+    create: (data: any) => api.post<{ data: any }>("/property/maintenance", data),
+  },
+
+  createMaintenance: (data: any) => api.post<{ data: any }>("/property/maintenance", data),
+  updateMaintenance: (id: string, data: any) => api.put<{ data: any }>(`/property/maintenance/${id}`, data),
+  completeMaintenance: (id: string | undefined, data: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/complete`, data),
+  assignMaintenance: (id: string | undefined, data: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/assign`, data),
+  approveMaintenance: (id: string | undefined, data: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/approve`, data),
+
+  inspections: {
+    list: (params?: { propertyId?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.propertyId) q.set("propertyId", params.propertyId);
+      return api.get<{ data: any[] }>(`/property/inspections?${q}`);
+    },
+  },
+
+  createInspection: (data: any) => api.post<{ data: any }>("/property/inspections", data),
+  compareInspection: (id: string) => api.get<{ data: any }>(`/property/inspections/${id}`),
+
+  reports: {
+    occupancy: () => api.get<{ data: any }>("/property/reports/occupancy"),
+    collection: () => api.get<{ data: any }>("/property/reports/collection"),
+    profitLoss: () => api.get<{ data: any }>("/property/reports/profit-loss"),
+    roi: () => api.get<{ data: any }>("/property/reports/roi"),
+    overduePayments: () => api.get<{ data: any[] }>("/property/reports/overdue-payments"),
+    maintenanceSummary: () => api.get<{ data: any }>("/property/reports/maintenance-summary"),
+    investmentAnalysis: () => api.get<{ data: any }>("/property/reports/investment-analysis"),
+  },
+
+  owners: {
+    list: () => api.get<{ data: any[] }>("/property/owners"),
+    report: (id: string) => api.get<{ data: any }>(`/property/owners/${id}/report`),
+  },
+
+  compliance: {
+    alerts: () => api.get<{ data: any[] }>("/property/compliance/alerts"),
+  },
+
+  documents: {
+    list: (params?: { propertyId?: string; type?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.propertyId) q.set("propertyId", params.propertyId);
+      if (params?.type) q.set("type", params.type);
+      return api.get<{ data: any[] }>(`/property/documents?${q}`);
+    },
+    create: (data: any) => api.post<{ data: any }>("/property/documents", data),
+  },
+
+  valuations: {
+    list: () => api.get<{ data: any[] }>("/property/valuations"),
+    create: (data: any) => api.post<{ data: any }>("/property/valuations", data),
+  },
+
+  construction: {
+    list: () => api.get<{ data: any[] }>("/property/construction"),
+    get: (id: string) => api.get<{ data: any }>(`/property/construction/${id}`),
+    create: (data: any) => api.post<{ data: any }>("/property/construction", data),
+    phasesTemplate: (id: string) => api.post<{ data: any }>(`/property/construction/${id}/phases/template`, {}),
+    phases: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/phases`),
+    addPhase: (id: string, data: any) => api.post<{ data: any }>(`/property/construction/${id}/phases`, data),
+    updatePhase: (id: string, phaseId: string, data: any) => api.patch<{ data: any }>(`/property/construction/${id}/phases/${phaseId}`, data),
+    dailyLogs: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/daily-logs`),
+    addDailyLog: (id: string, data: any) => api.post<{ data: any }>(`/property/construction/${id}/daily-logs`, data),
+    costs: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/costs`),
+    addCost: (id: string, data: any) => api.post<{ data: any }>(`/property/construction/${id}/costs`, data),
+    payments: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/payments`),
+    addPayment: (id: string, data: any) => api.post<{ data: any }>(`/property/construction/${id}/payments`, data),
+    approvePayment: (id: string, paymentId: string) => api.patch<{ data: any }>(`/property/construction/${id}/payments/${paymentId}/approve`, {}),
+    changeOrders: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/change-orders`),
+    addChangeOrder: (id: string, data: any) => api.post<{ data: any }>(`/property/construction/${id}/change-orders`, data),
+  },
+
+  listings: {
+    list: () => api.get<{ data: any[] }>("/property/listings"),
+    create: (data: any) => api.post<{ data: any }>("/property/listings", data),
+    publish: (id: string) => api.patch<{ data: any }>(`/property/listings/${id}/publish`, {}),
+  },
+
+  inquiries: {
+    list: () => api.get<{ data: any[] }>("/property/inquiries"),
+    update: (id: string, data: any) => api.patch<{ data: any }>(`/property/inquiries/${id}`, data),
+  },
+
+  sales: {
+    list: () => api.get<{ data: any[] }>("/property/sales"),
+    create: (data: any) => api.post<{ data: any }>("/property/sales", data),
+    complete: (id: string) => api.patch<{ data: any }>(`/property/sales/${id}/complete`, {}),
+  },
+
+  brokerage: {
+    list: (params?: { status?: string }) => {
+      const q = new URLSearchParams();
+      if (params?.status) q.set("status", params.status);
+      return api.get<{ data: any[] }>(`/property/brokerage-contracts?${q}`);
+    },
+    stats: () => api.get<{ data: any }>("/property/brokerage-contracts/stats"),
+    create: (data: any) => api.post<{ data: any }>("/property/brokerage-contracts", data),
+    update: (id: string, data: any) => api.put<{ data: any }>(`/property/brokerage-contracts/${id}`, data),
+    delete: (id: string) => api.delete(`/property/brokerage-contracts/${id}`),
+    commissions: () => api.get<{ data: any[] }>("/property/brokerage/commissions"),
+    addCommission: (id: string, data: any) => api.post<{ data: any }>(`/property/brokerage-contracts/${id}/commissions`, data),
+    payCommission: (id: string) => api.patch<{ data: any }>(`/property/brokerage/commissions/${id}/pay`, {}),
+  },
+};
+
 // --- Integrations ---
 export const integrationsApi = {
   // Provider registry (static)
@@ -1179,6 +1528,16 @@ export const adminApi = {
   },
   getOrg: (id: string) => api.get<{ data: any }>(`/admin/orgs/${id}`),
   updateOrg: (id: string, data: any) => api.patch<{ data: any }>(`/admin/orgs/${id}`, data),
+  uploadOrgLogo: (orgId: string, file: File): Promise<{ data: { url: string } }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const token = localStorage.getItem("nasaq_token") || "";
+    return fetch(`/api/v1/admin/orgs/${orgId}/logo`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    }).then(r => r.json());
+  },
   verifyOrg: (id: string) => api.post<{ data: any }>(`/admin/orgs/${id}/verify`),
   suspendOrg: (id: string, reason?: string) => api.post<{ data: any }>(`/admin/orgs/${id}/suspend`, { reason }),
   unsuspendOrg: (id: string) => api.post<{ data: any }>(`/admin/orgs/${id}/unsuspend`),
@@ -1294,6 +1653,72 @@ export const adminApi = {
   createReminderTpl:     (d: any)              => api.post<{ data: any }>("/admin/reminder-templates", d),
   updateReminderTpl:     (id: string, d: any)  => api.patch<{ data: any }>(`/admin/reminder-templates/${id}`, d),
   deleteReminderTpl:     (id: string)          => api.delete(`/admin/reminder-templates/${id}`),
+
+  // Cross-org operational data
+  workOrders: (params?: { orgId?: string; status?: string; q?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)  qs.set("orgId",  params.orgId);
+    if (params?.status) qs.set("status", params.status);
+    if (params?.q)      qs.set("q",      params.q);
+    if (params?.page)   qs.set("page",   String(params.page));
+    if (params?.limit)  qs.set("limit",  String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/work-orders?${qs}`);
+  },
+  accessLogs: (params?: { orgId?: string; granted?: boolean; date?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)              qs.set("orgId",   params.orgId);
+    if (params?.granted !== undefined) qs.set("granted", String(params.granted));
+    if (params?.date)               qs.set("date",    params.date);
+    if (params?.page)               qs.set("page",    String(params.page));
+    if (params?.limit)              qs.set("limit",   String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/access-logs?${qs}`);
+  },
+  adminGalleries: (params?: { orgId?: string; q?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)  qs.set("orgId",  params.orgId);
+    if (params?.q)      qs.set("q",      params.q);
+    if (params?.page)   qs.set("page",   String(params.page));
+    if (params?.limit)  qs.set("limit",  String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/galleries?${qs}`);
+  },
+
+  // Kill switches
+  killSwitches: () =>
+    api.get<{ data: any[] }>("/admin/kill-switches"),
+  upsertKillSwitch: (body: { id: string; isDisabled: boolean; reason?: string }) =>
+    api.post<{ success: boolean }>("/admin/kill-switches", body),
+  deleteKillSwitch: (id: string) =>
+    api.delete<{ success: boolean }>(`/admin/kill-switches/${id}`),
+
+  // Quota usage
+  quotaUsage: (params?: { orgId?: string; metric?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)   qs.set("orgId",   params.orgId);
+    if (params?.metric)  qs.set("metric",  params.metric);
+    if (params?.page)    qs.set("page",    String(params.page));
+    if (params?.limit)   qs.set("limit",   String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/quota-usage?${qs}`);
+  },
+
+  // Platform config (branding)
+  getPlatformConfig: () => api.get<{ data: any }>("/admin/platform-config"),
+  updatePlatformConfig: (data: any) => api.put<{ data: any }>("/admin/platform-config", data),
+  uploadPlatformLogo: (file: File): Promise<{ data: { url: string } }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const token = localStorage.getItem("nasaq_token") || "";
+    return fetch("/api/v1/admin/platform-config/logo", {
+      method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData,
+    }).then(r => r.json());
+  },
+  uploadPlatformFavicon: (file: File): Promise<{ data: { url: string } }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const token = localStorage.getItem("nasaq_token") || "";
+    return fetch("/api/v1/admin/platform-config/favicon", {
+      method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData,
+    }).then(r => r.json());
+  },
 };
 
 // --- Commercial Engine (admin only) ---
@@ -1384,280 +1809,18 @@ export const eventsApi = {
   issuances:       (eventId: string, params?: Record<string, string>) => { const q = params ? "?" + new URLSearchParams(Object.entries(params).filter(([,v]) => !!v)) : ""; return api.get<{ tickets: any[]; total: number }>(`/events/${eventId}/issuances${q}`); },
   checkIn:         (eventId: string, ticketId: string) => api.post<{ ticket: any }>(`/events/${eventId}/issuances/${ticketId}/check-in`),
   scanQr:          (eventId: string, qrCode: string) => api.get<{ ticket: any }>(`/events/${eventId}/issuances/scan/${qrCode}`),
-  // Quotations (عروض الأسعار)
-  quotations:      (params?: { status?: string }) => { const q = params?.status ? `?status=${params.status}` : ""; return api.get<{ data: any[] }>(`/events/quotations${q}`); },
-  getQuotation:    (id: string)                   => api.get<{ data: any & { items: any[] } }>(`/events/quotations/${id}`),
-  createQuotation: (data: any)                    => api.post<{ data: any }>("/events/quotations", data),
-  updateQuotation: (id: string, data: any)        => api.put<{ data: any }>(`/events/quotations/${id}`, data),
-  updateQuotationStatus: (id: string, status: string) => api.patch<{ data: any }>(`/events/quotations/${id}/status`, { status }),
-  deleteQuotation: (id: string)                   => api.delete(`/events/quotations/${id}`),
-  // Execution tasks (تتبع التنفيذ)
-  executionTasks:  (params?: { eventId?: string; status?: string; phase?: string }) => {
-    const q = new URLSearchParams();
-    if (params?.eventId) q.set("eventId", params.eventId);
-    if (params?.status)  q.set("status",  params.status);
-    if (params?.phase)   q.set("phase",   params.phase);
-    return api.get<{ data: any[] }>(`/events/execution?${q}`);
-  },
-  createTask:      (data: any)                    => api.post<{ data: any }>("/events/execution", data),
-  updateTask:      (id: string, data: any)        => api.patch<{ data: any }>(`/events/execution/${id}`, data),
-  deleteTask:      (id: string)                   => api.delete(`/events/execution/${id}`),
-};
-
-// --- Property Management ---
-export const propertyApi = {
-  // Dashboard
-  dashboard: () => api.get<{ data: any }>("/property/dashboard"),
-
-  // Portfolio
-  portfolio: () => api.get<{ data: any }>("/property/portfolio/summary"),
-
-  // --- Owners ---
-  owners: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/owners${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/owners", body),
-    update: (id: string, body: any) => api.put<{ data: any }>(`/property/owners/${id}`, body),
-    delete: (id: string) => api.delete(`/property/owners/${id}`),
-    report: (id: string) => api.get<{ data: any }>(`/property/owners/${id}/report`),
-  },
-
-  // --- Properties ---
-  properties: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/properties${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/properties", body),
-    get: (id: string) => api.get<{ data: any }>(`/property/properties/${id}`),
-    update: (id: string, body: any) => api.put<{ data: any }>(`/property/properties/${id}`, body),
-    delete: (id: string) => api.delete(`/property/properties/${id}`),
-    compliance: (id: string) => api.get<{ data: any }>(`/property/properties/${id}/compliance`),
-  },
-
-  // --- Units ---
-  units: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/units${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/units", body),
-    get: (id: string) => api.get<{ data: any }>(`/property/units/${id}`),
-    update: (id: string, body: any) => api.put<{ data: any }>(`/property/units/${id}`, body),
-    patch: (id: string, body: any) => api.patch<{ data: any }>(`/property/units/${id}/status`, body),
-    delete: (id: string) => api.delete(`/property/units/${id}`),
-    vacant: () => api.get<{ data: any[] }>("/property/units/vacant"),
-    bulk: (body: any) => api.post<{ data: any }>("/property/units/bulk", body),
-  },
-
-  // --- Tenants ---
-  tenants: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/tenants${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/tenants", body),
-    get: (id: string) => api.get<{ data: any }>(`/property/tenants/${id}`),
-    update: (id: string, body: any) => api.put<{ data: any }>(`/property/tenants/${id}`, body),
-  },
-
-  // --- Contracts ---
-  contracts: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/contracts${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/contracts", body),
-    get: (id: string) => api.get<{ data: any }>(`/property/contracts/${id}`),
-    update: (id: string, body: any) => api.put<{ data: any }>(`/property/contracts/${id}`, body),
-    expiring: (days?: number) => api.get<{ data: any[] }>(`/property/contracts/expiring${days ? "?days=" + days : ""}`),
-    renew: (id: string, body: any) => api.post<{ data: any }>(`/property/contracts/${id}/renew`, body),
-    terminate: (id: string, body: any) => api.post<{ data: any }>(`/property/contracts/${id}/terminate`, body),
-    ejar: (id: string, body: any) => api.patch<{ data: any }>(`/property/contracts/${id}/ejar`, body),
-    statement: (id: string) => api.get<{ data: any }>(`/property/contracts/${id}/statement`),
-  },
-
-  // --- Invoices ---
-  invoices: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/invoices${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/invoices", body),
-    get: (id: string) => api.get<{ data: any }>(`/property/invoices/${id}`),
-    update: (id: string, body: any) => api.put<{ data: any }>(`/property/invoices/${id}`, body),
-    generate: (body?: any) => api.post<{ data: any }>("/property/invoices/generate", body || {}),
-    overdue: () => api.get<{ data: any[] }>("/property/invoices/overdue"),
-    send: (id: string) => api.patch<{ data: any }>(`/property/invoices/${id}/send`, {}),
-    pay: (id: string, body: any) => api.patch<{ data: any }>(`/property/invoices/${id}/pay`, body),
-    cancel: (id: string) => api.patch<{ data: any }>(`/property/invoices/${id}/cancel`, {}),
-  },
-
-  // --- Payments ---
-  payments: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/payments${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/payments", body),
-    quick: (body: any) => api.post<{ data: any }>("/property/payments/quick", body),
-  },
-
-  // --- Maintenance ---
-  maintenance: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/maintenance${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/maintenance", body),
-    get: (id: string) => api.get<{ data: any }>(`/property/maintenance/${id}`),
-    update: (id: string, body: any) => api.put<{ data: any }>(`/property/maintenance/${id}`, body),
-    assign: (id: string, body: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/assign`, body),
-    approve: (id: string, body: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/approve`, body),
-    start: (id: string) => api.patch<{ data: any }>(`/property/maintenance/${id}/start`, {}),
-    complete: (id: string, body: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/complete`, body),
-    rate: (id: string, body: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/rate`, body),
-  },
-
-  // --- Expenses ---
-  expenses: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/expenses${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/expenses", body),
-    update: (id: string, body: any) => api.put<{ data: any }>(`/property/expenses/${id}`, body),
-    delete: (id: string) => api.delete(`/property/expenses/${id}`),
-    summary: () => api.get<{ data: any }>("/property/expenses/summary"),
-  },
-
-  // --- Inspections ---
-  inspections: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/inspections${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/inspections", body),
-    get: (id: string) => api.get<{ data: any }>(`/property/inspections/${id}`),
-    update: (id: string, body: any) => api.put<{ data: any }>(`/property/inspections/${id}`, body),
-    sign: (id: string, body: any) => api.post<{ data: any }>(`/property/inspections/${id}/sign`, body),
-    compare: (id: string) => api.get<{ data: any }>(`/property/inspections/${id}/compare`),
-  },
-
-  // --- Documents ---
-  documents: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/documents${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/documents", body),
-    update: (id: string, body: any) => api.put<{ data: any }>(`/property/documents/${id}`, body),
-    delete: (id: string) => api.delete(`/property/documents/${id}`),
-    expiring: () => api.get<{ data: any[] }>("/property/documents/expiring"),
-  },
-
-  // --- Valuations ---
-  valuations: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/valuations${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/valuations", body),
-    delete: (id: string) => api.delete(`/property/valuations/${id}`),
-  },
-
-  // --- Construction ---
-  construction: {
-    list: () => api.get<{ data: any[] }>("/property/construction"),
-    create: (body: any) => api.post<{ data: any }>("/property/construction", body),
-    get: (id: string) => api.get<{ data: any }>(`/property/construction/${id}`),
-    update: (id: string, body: any) => api.put<{ data: any }>(`/property/construction/${id}`, body),
-    phasesTemplate: (id: string) => api.post<{ data: any }>(`/property/construction/${id}/phases/template`, {}),
-    phases: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/phases`),
-    addPhase: (id: string, body: any) => api.post<{ data: any }>(`/property/construction/${id}/phases`, body),
-    updatePhase: (id: string, phaseId: string, body: any) => api.patch<{ data: any }>(`/property/construction/${id}/phases/${phaseId}`, body),
-    dailyLogs: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/daily-logs`),
-    addDailyLog: (id: string, body: any) => api.post<{ data: any }>(`/property/construction/${id}/daily-logs`, body),
-    costs: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/costs`),
-    addCost: (id: string, body: any) => api.post<{ data: any }>(`/property/construction/${id}/costs`, body),
-    budgetVsActual: (id: string) => api.get<{ data: any }>(`/property/construction/${id}/costs/budget-vs-actual`),
-    payments: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/payments`),
-    addPayment: (id: string, body: any) => api.post<{ data: any }>(`/property/construction/${id}/payments`, body),
-    approvePayment: (id: string, paymentId: string) => api.patch<{ data: any }>(`/property/construction/${id}/payments/${paymentId}/approve`, {}),
-    changeOrders: (id: string) => api.get<{ data: any[] }>(`/property/construction/${id}/change-orders`),
-    addChangeOrder: (id: string, body: any) => api.post<{ data: any }>(`/property/construction/${id}/change-orders`, body),
-    approveChangeOrder: (id: string, coId: string) => api.patch<{ data: any }>(`/property/construction/${id}/change-orders/${coId}/approve`, {}),
-    report: (id: string) => api.get<{ data: any }>(`/property/construction/${id}/report`),
-  },
-
-  // --- Listings ---
-  listings: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/listings${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/listings", body),
-    update: (id: string, body: any) => api.put<{ data: any }>(`/property/listings/${id}`, body),
-    publish: (id: string) => api.patch<{ data: any }>(`/property/listings/${id}/publish`, {}),
-    public: (orgSlug: string) => fetch(`/api/v1/property/listings/available/${orgSlug}`).then((r) => r.json()),
-  },
-
-  // --- Inquiries ---
-  inquiries: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/inquiries${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/inquiries", body),
-    update: (id: string, body: any) => api.patch<{ data: any }>(`/property/inquiries/${id}`, body),
-  },
-
-  // --- Sales ---
-  sales: {
-    list: (p?: any) => api.get<{ data: any[] }>(`/property/sales${p ? "?" + new URLSearchParams(p) : ""}`),
-    create: (body: any) => api.post<{ data: any }>("/property/sales", body),
-    update: (id: string, body: any) => api.put<{ data: any }>(`/property/sales/${id}`, body),
-    complete: (id: string) => api.patch<{ data: any }>(`/property/sales/${id}/complete`, {}),
-  },
-
-  // --- Compliance ---
-  compliance: {
-    check: (propertyId: string) => api.get<{ data: any }>(`/property/compliance/${propertyId}`),
-    alerts: () => api.get<{ data: any[] }>("/property/compliance/alerts"),
-  },
-
-  // --- Advisor ---
-  advisor: {
-    property: (id: string) => api.get<{ data: any }>(`/property/advisor/${id}`),
-  },
-
-  // --- Reports ---
-  reports: {
-    occupancy: () => api.get<{ data: any }>("/property/reports/occupancy"),
-    collection: () => api.get<{ data: any }>("/property/reports/collection"),
-    profitLoss: () => api.get<{ data: any }>("/property/reports/profit-loss"),
-    roi: () => api.get<{ data: any }>("/property/reports/roi"),
-    overduePayments: () => api.get<{ data: any }>("/property/reports/overdue-payments"),
-    maintenanceSummary: () => api.get<{ data: any }>("/property/reports/maintenance-summary"),
-    investmentAnalysis: () => api.get<{ data: any[] }>("/property/reports/investment-analysis"),
-    ownerStatement: (ownerId: string) => api.get<{ data: any }>(`/property/reports/owner-statement/${ownerId}`),
-    officeCommissions: () => api.get<{ data: any }>("/property/reports/office-commissions"),
-  },
-
-  // ── Legacy flat aliases (backward compatibility with existing pages) ──
-  getProperty: (id: string) => api.get<{ data: any }>(`/property/properties/${id}`),
-  createProperty: (data: any) => api.post<{ data: any }>("/property/properties", data),
-  updateProperty: (id: string, data: any) => api.put<{ data: any }>(`/property/properties/${id}`, data),
-  deleteProperty: (id: string) => api.delete(`/property/properties/${id}`),
-  vacantUnits: () => api.get<{ data: any[] }>("/property/units/vacant"),
-  getUnit: (id: string) => api.get<{ data: any }>(`/property/units/${id}`),
-  createUnit: (data: any) => api.post<{ data: any }>("/property/units", data),
-  updateUnit: (id: string, data: any) => api.put<{ data: any }>(`/property/units/${id}`, data),
-  updateUnitStatus: (id: string, status: string) => api.patch<{ data: any }>(`/property/units/${id}/status`, { status }),
-  bulkCreateUnits: (data: any) => api.post<{ data: any }>("/property/units/bulk", data),
-  getTenant: (id: string) => api.get<{ data: any }>(`/property/tenants/${id}`),
-  createTenant: (data: any) => api.post<{ data: any }>("/property/tenants", data),
-  updateTenant: (id: string, data: any) => api.put<{ data: any }>(`/property/tenants/${id}`, data),
-  expiringContracts: (days?: number) => api.get<{ data: any[] }>(`/property/contracts/expiring${days ? "?days=" + days : ""}`),
-  getContract: (id: string) => api.get<{ data: any }>(`/property/contracts/${id}`),
-  getContractStatement: (id: string) => api.get<{ data: any }>(`/property/contracts/${id}/statement`),
-  createContract: (data: any) => api.post<{ data: any }>("/property/contracts", data),
-  updateContract: (id: string, data: any) => api.put<{ data: any }>(`/property/contracts/${id}`, data),
-  renewContract: (id: string, data: any) => api.post<{ data: any }>(`/property/contracts/${id}/renew`, data),
-  terminateContract: (id: string, data: any) => api.post<{ data: any }>(`/property/contracts/${id}/terminate`, data),
-  updateContractEjar: (id: string, data: any) => api.patch<{ data: any }>(`/property/contracts/${id}/ejar`, data),
-  overdueInvoices: () => api.get<{ data: any[] }>("/property/invoices/overdue"),
-  generateInvoices: () => api.post<{ data: any }>("/property/invoices/generate", {}),
-  generateContractInvoices: (id: string) => api.post<{ data: any }>(`/property/invoices/generate-for-contract/${id}`, {}),
-  sendInvoice: (id: string) => api.patch<{ data: any }>(`/property/invoices/${id}/send`, {}),
-  payInvoice: (id: string, data: any) => api.patch<{ data: any }>(`/property/invoices/${id}/pay`, data),
-  cancelInvoice: (id: string) => api.patch<{ data: any }>(`/property/invoices/${id}/cancel`, {}),
-  createPayment: (data: any) => api.post<{ data: any }>("/property/payments", data),
-  quickPayment: (data: any) => api.post<{ data: any }>("/property/payments/quick", data),
-  expensesSummary: () => api.get<{ data: any }>("/property/expenses/summary"),
-  createExpense: (data: any) => api.post<{ data: any }>("/property/expenses", data),
-  updateExpense: (id: string, data: any) => api.put<{ data: any }>(`/property/expenses/${id}`, data),
-  deleteExpense: (id: string) => api.delete(`/property/expenses/${id}`),
-  getMaintenance: (id: string) => api.get<{ data: any }>(`/property/maintenance/${id}`),
-  createMaintenance: (data: any) => api.post<{ data: any }>("/property/maintenance", data),
-  updateMaintenance: (id: string, data: any) => api.put<{ data: any }>(`/property/maintenance/${id}`, data),
-  assignMaintenance: (id: string, data: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/assign`, data),
-  approveMaintenance: (id: string, data: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/approve`, data),
-  startMaintenance: (id: string) => api.patch<{ data: any }>(`/property/maintenance/${id}/start`, {}),
-  completeMaintenance: (id: string, data: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/complete`, data),
-  rateMaintenance: (id: string, data: any) => api.patch<{ data: any }>(`/property/maintenance/${id}/rate`, data),
-  getInspection: (id: string) => api.get<{ data: any }>(`/property/inspections/${id}`),
-  createInspection: (data: any) => api.post<{ data: any }>("/property/inspections", data),
-  updateInspection: (id: string, data: any) => api.put<{ data: any }>(`/property/inspections/${id}`, data),
-  signInspection: (id: string, data: any) => api.post<{ data: any }>(`/property/inspections/${id}/sign`, data),
-  compareInspection: (id: string) => api.get<{ data: any }>(`/property/inspections/${id}/compare`),
-  occupancyReport: () => api.get<{ data: any }>("/property/reports/occupancy"),
-  collectionReport: () => api.get<{ data: any }>("/property/reports/collection"),
-  profitLossReport: () => api.get<{ data: any }>("/property/reports/profit-loss"),
-  roiReport: () => api.get<{ data: any }>("/property/reports/roi"),
-  expiringContractsReport: (days?: number) => api.get<{ data: any }>(`/property/reports/expiring-contracts${days ? "?days="+days : ""}`),
-  overduePaymentsReport: () => api.get<{ data: any }>("/property/reports/overdue-payments"),
-  maintenanceSummaryReport: () => api.get<{ data: any }>("/property/reports/maintenance-summary"),
+  // Quotations
+  quotations:           (params?: Record<string, string>) => { const q = params ? "?" + new URLSearchParams(Object.entries(params).filter(([,v]) => !!v)) : ""; return api.get<{ data: any[] }>(`/events/quotations${q}`); },
+  getQuotation:         (id: string)                      => api.get<{ data: any }>(`/events/quotations/${id}`),
+  createQuotation:      (data: any)                       => api.post<{ data: any }>("/events/quotations", data),
+  updateQuotation:      (id: string, data: any)           => api.put<{ data: any }>(`/events/quotations/${id}`, data),
+  deleteQuotation:      (id: string)                      => api.delete(`/events/quotations/${id}`),
+  updateQuotationStatus:(id: string, status: string)      => api.patch<{ data: any }>(`/events/quotations/${id}/status`, { status }),
+  // Execution tasks
+  executionTasks:  (params?: Record<string, string>) => { const q = params ? "?" + new URLSearchParams(Object.entries(params).filter(([,v]) => !!v)) : ""; return api.get<{ data: any[] }>(`/events/tasks${q}`); },
+  createTask:      (data: any)                       => api.post<{ data: any }>("/events/tasks", data),
+  updateTask:      (id: string, data: any)           => api.put<{ data: any }>(`/events/tasks/${id}`, data),
+  deleteTask:      (id: string)                      => api.delete(`/events/tasks/${id}`),
 };
 
 // --- Procurement (Suppliers / PO / GR / Invoices) ---
@@ -1769,6 +1932,10 @@ export const schoolApi = {
   deleteClassRoom: (id: string) => api.delete<{ success: boolean }>(`/school/class-rooms/${id}`),
 
   // Teachers (المعلمون)
+  listTeachersByClassroomSubject: (classRoomId: string, _subject: string) =>
+    api.get<{ data: any[] }>(`/school/teachers?classRoomId=${classRoomId}`),
+  getTeachersByPeriod: (date: string, periodNumber: number) =>
+    api.get<{ data: Array<{ teacherId: string }> }>(`/school/teacher-attendance/by-period?date=${date}&periodNumber=${periodNumber}`),
   listTeachers:    (params?: { active?: boolean }) => {
     const q = new URLSearchParams();
     if (params?.active !== undefined) q.set("active", String(params.active));
@@ -1790,6 +1957,8 @@ export const schoolApi = {
     api.post<{ data: any }>(`/school/teachers/${teacherId}/assignments`, data),
   deleteTeacherAssignment: (id: string) =>
     api.delete<{ success: boolean }>(`/school/teacher-assignments/${id}`),
+  syncTeacherAssignments: (teacherId: string, data: { subjects: string[]; classRoomIds: string[] }) =>
+    api.put<{ success: boolean }>(`/school/teachers/${teacherId}/assignments/sync`, data),
   getTeacherSchedule: (teacherId: string, weekId?: string) => {
     const q = weekId ? `?weekId=${weekId}` : "";
     return api.get<{ data: { teacher: any; entries: any[]; weekId: string | null } }>(`/school/teachers/${teacherId}/schedule${q}`);
@@ -1828,6 +1997,8 @@ export const schoolApi = {
     const qs = new URLSearchParams(params as any).toString();
     return api.get<{ data: any[] }>(`/school/attendance/stats?${qs}`);
   },
+  getClassroomAttendanceSummary: (date?: string) =>
+    api.get<{ data: any[] }>(`/school/attendance/stats${date ? `?date=${date}` : ""}`),
 
   // Behavior System (السلوك والمواظبة)
   getBehaviorOverview:       (year?: string) =>
@@ -1982,7 +2153,7 @@ export const schoolApi = {
     absentTeacherId?: string | null;
     standbyTeacherId: string;
     classRoomId?: string | null;
-    subject: string;
+    subject?: string | null;
     periodLabel?: string | null;
     startTime?: string | null;
     endTime?: string | null;
@@ -2069,10 +2240,11 @@ export const schoolApi = {
   }) => api.put<{ data: any }>(`/school/teacher/preparations/${id}`, data),
 
   // Teacher Daily Logs
-  getTeacherDailyLogs: (params?: { date?: string; weekId?: string }) => {
+  getTeacherDailyLogs: (params?: { date?: string; weekId?: string; teacherId?: string }) => {
     const q = new URLSearchParams();
-    if (params?.date)   q.set("date",   params.date);
-    if (params?.weekId) q.set("weekId", params.weekId);
+    if (params?.date)       q.set("date",       params.date);
+    if (params?.weekId)     q.set("weekId",     params.weekId);
+    if (params?.teacherId)  q.set("teacherId",  params.teacherId);
     const qs = q.toString();
     return api.get<{ data: any[] }>(`/school/teacher/daily-logs${qs ? "?" + qs : ""}`);
   },
@@ -2136,6 +2308,60 @@ export const schoolApi = {
     sessionNotes?: string | null; actionPlan?: string | null;
     nextSessionDate?: string | null; durationMinutes?: number | null; status?: string;
   }) => api.put<{ data: any }>(`/school/counseling/sessions/${id}`, data),
+  // ─────────────────────────────────────────────────────────────
+  // Assessment System — نظام التقييمات
+  // ─────────────────────────────────────────────────────────────
+  listAssessmentTypes: (params?: { semesterId?: string; subjectId?: string; classRoomId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.semesterId)  q.set("semesterId",  params.semesterId);
+    if (params?.subjectId)   q.set("subjectId",   params.subjectId);
+    if (params?.classRoomId) q.set("classRoomId", params.classRoomId);
+    const qs = q.toString();
+    return api.get<{ data: any[] }>(`/school/assessments/types${qs ? "?" + qs : ""}`);
+  },
+  getStandardAssessmentTemplates: () =>
+    api.get<{ data: any[] }>("/school/assessments/standard-templates"),
+  createAssessmentType: (data: {
+    name: string; code?: string | null; category: string;
+    semesterId?: string | null; subjectId?: string | null;
+    classRoomId?: string | null; gradeLevel?: string | null;
+    maxScore?: number; weightPct?: number | null;
+    gradeScale?: string; dueDate?: string | null;
+    isActive?: boolean; notes?: string | null; sortOrder?: number;
+  }) => api.post<{ data: any }>("/school/assessments/types", data),
+  seedStandardAssessments: (data: {
+    semesterId?: string | null; subjectId?: string | null;
+    classRoomId?: string | null; gradeLevel?: string | null;
+  }) => api.post<{ data: any[]; count: number }>("/school/assessments/types/seed-standard", data),
+  updateAssessmentType: (id: string, data: any) =>
+    api.put<{ data: any }>(`/school/assessments/types/${id}`, data),
+  deleteAssessmentType: (id: string) =>
+    api.delete<{ success: boolean }>(`/school/assessments/types/${id}`),
+  getAssessmentGrades: (params: { assessmentTypeId?: string; studentId?: string; classRoomId?: string }) => {
+    const q = new URLSearchParams();
+    if (params.assessmentTypeId) q.set("assessmentTypeId", params.assessmentTypeId);
+    if (params.studentId)        q.set("studentId",        params.studentId);
+    if (params.classRoomId)      q.set("classRoomId",      params.classRoomId);
+    return api.get<{ data: any[] }>(`/school/assessments/grades?${q}`);
+  },
+  bulkSaveGrades: (data: {
+    assessmentTypeId: string;
+    grades: Array<{
+      studentId: string;
+      score?: number | null;
+      letterGrade?: string | null;
+      qualitativeGrade?: string | null;
+      isAbsent?: boolean;
+      isExempt?: boolean;
+      notes?: string | null;
+    }>;
+  }) => api.post<{ success: boolean; count: number }>("/school/assessments/grades/bulk", data),
+  getStudentAssessmentReport: (studentId: string, semesterId?: string) => {
+    const q = semesterId ? `?semesterId=${semesterId}` : "";
+    return api.get<{ data: any[]; summary: any }>(`/school/assessments/student-report/${studentId}${q}`);
+  },
+  getClassAssessmentReport: (classRoomId: string, assessmentTypeId: string) =>
+    api.get<{ data: any[]; stats: any }>(`/school/assessments/class-report?classRoomId=${classRoomId}&assessmentTypeId=${assessmentTypeId}`),
 };
 
 // --- Payment Gateway (بوابة الدفع المركزية) ---
@@ -2188,4 +2414,199 @@ export const paymentsApi = {
     api.patch<{ data: any }>(`/payments/admin/settlements/${id}`, data),
   adminOrgSettings: (orgId: string) => api.get<{ data: any }>(`/payments/admin/org-settings/${orgId}`),
   updateOrgSettings: (orgId: string, data: any) => api.patch<{ data: any }>(`/payments/admin/org-settings/${orgId}`, data),
+
+  // ─────────────────────────────────────────────────────────────
+  // Assessment System — نظام التقييمات
+  // ─────────────────────────────────────────────────────────────
+  listAssessmentTypes: (params?: { semesterId?: string; subjectId?: string; classRoomId?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.semesterId)  q.set("semesterId",  params.semesterId);
+    if (params?.subjectId)   q.set("subjectId",   params.subjectId);
+    if (params?.classRoomId) q.set("classRoomId", params.classRoomId);
+    const qs = q.toString();
+    return api.get<{ data: any[] }>(`/school/assessments/types${qs ? "?" + qs : ""}`);
+  },
+  getStandardAssessmentTemplates: () =>
+    api.get<{ data: any[] }>("/school/assessments/standard-templates"),
+  createAssessmentType: (data: {
+    name: string; code?: string | null; category: string;
+    semesterId?: string | null; subjectId?: string | null;
+    classRoomId?: string | null; gradeLevel?: string | null;
+    maxScore?: number; weightPct?: number | null;
+    gradeScale?: string; dueDate?: string | null;
+    isActive?: boolean; notes?: string | null; sortOrder?: number;
+  }) => api.post<{ data: any }>("/school/assessments/types", data),
+  seedStandardAssessments: (data: {
+    semesterId?: string | null; subjectId?: string | null;
+    classRoomId?: string | null; gradeLevel?: string | null;
+  }) => api.post<{ data: any[]; count: number }>("/school/assessments/types/seed-standard", data),
+  updateAssessmentType: (id: string, data: any) =>
+    api.put<{ data: any }>(`/school/assessments/types/${id}`, data),
+  deleteAssessmentType: (id: string) =>
+    api.delete<{ success: boolean }>(`/school/assessments/types/${id}`),
+  getAssessmentGrades: (params: { assessmentTypeId?: string; studentId?: string; classRoomId?: string }) => {
+    const q = new URLSearchParams();
+    if (params.assessmentTypeId) q.set("assessmentTypeId", params.assessmentTypeId);
+    if (params.studentId)        q.set("studentId",        params.studentId);
+    if (params.classRoomId)      q.set("classRoomId",      params.classRoomId);
+    return api.get<{ data: any[] }>(`/school/assessments/grades?${q}`);
+  },
+  bulkSaveGrades: (data: {
+    assessmentTypeId: string;
+    grades: Array<{
+      studentId: string;
+      score?: number | null;
+      letterGrade?: string | null;
+      qualitativeGrade?: string | null;
+      isAbsent?: boolean;
+      isExempt?: boolean;
+      notes?: string | null;
+    }>;
+  }) => api.post<{ success: boolean; count: number }>("/school/assessments/grades/bulk", data),
+  getStudentAssessmentReport: (studentId: string, semesterId?: string) => {
+    const q = semesterId ? `?semesterId=${semesterId}` : "";
+    return api.get<{ data: any[]; summary: any }>(`/school/assessments/student-report/${studentId}${q}`);
+  },
+  getClassAssessmentReport: (classRoomId: string, assessmentTypeId: string) =>
+    api.get<{ data: any[]; stats: any }>(`/school/assessments/class-report?classRoomId=${classRoomId}&assessmentTypeId=${assessmentTypeId}`),
+};
+
+
+// --- Work Orders ---
+export const workOrdersApi = {
+  list: (params?: { status?: string; search?: string; assignedTo?: string; category?: string; page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.status)     q.set("status",     params.status);
+    if (params?.search)     q.set("search",     params.search);
+    if (params?.assignedTo) q.set("assignedTo", params.assignedTo);
+    if (params?.category)   q.set("category",   params.category);
+    if (params?.page)       q.set("page",       String(params.page));
+    if (params?.limit)      q.set("limit",      String(params.limit));
+    const qs = q.toString();
+    return api.get<{ data: any[]; pagination: any }>(`/work-orders${qs ? "?" + qs : ""}`);
+  },
+  stats: () => api.get<{ data: any }>("/work-orders/stats"),
+  get:    (id: string) => api.get<{ data: any }>(`/work-orders/${id}`),
+  create: (data: any)  => api.post<{ data: any }>("/work-orders", data),
+  update: (id: string, data: any) => api.patch<{ data: any }>(`/work-orders/${id}`, data),
+  updateStatus: (id: string, status: string) => api.patch<{ data: any }>(`/work-orders/${id}/status`, { status }),
+  delete: (id: string) => api.delete<{ data: any }>(`/work-orders/${id}`),
+};
+
+// --- Access Control ---
+export const accessControlApi = {
+  list: (params?: { locationId?: string; customerId?: string; granted?: boolean; date?: string; page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.locationId !== undefined) q.set("locationId", params.locationId);
+    if (params?.customerId !== undefined) q.set("customerId", params.customerId);
+    if (params?.granted    !== undefined) q.set("granted",    String(params.granted));
+    if (params?.date)                     q.set("date",       params.date);
+    if (params?.page)                     q.set("page",       String(params.page));
+    if (params?.limit)                    q.set("limit",      String(params.limit));
+    const qs = q.toString();
+    return api.get<{ data: any[]; pagination: any }>(`/access-control${qs ? "?" + qs : ""}`);
+  },
+  stats:  () => api.get<{ data: any }>("/access-control/stats"),
+  manual: (data: { customerId?: string; customerName?: string; locationId?: string; granted?: boolean; denyReason?: string }) =>
+    api.post<{ data: any }>("/access-control/manual", data),
+};
+
+// --- Smart Guardian ---
+export const guardianApi = {
+  stats: () => api.get<{ data: any }>("/admin/guardian/issues/stats"),
+  issues: (params?: { status?: string; severity?: string; module?: string; tenantId?: string; page?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.status)   q.set("status",   params.status);
+    if (params?.severity) q.set("severity", params.severity);
+    if (params?.module)   q.set("module",   params.module);
+    if (params?.tenantId) q.set("tenantId", params.tenantId);
+    if (params?.page)     q.set("page",     String(params.page));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/guardian/issues?${q}`);
+  },
+  getIssue:    (id: string) => api.get<{ data: any }>(`/admin/guardian/issues/${id}`),
+  updateIssue: (id: string, data: { status?: string; resolution_note?: string }) =>
+    api.patch<{ data: any }>(`/admin/guardian/issues/${id}`, data),
+  scans: () => api.get<{ data: any[] }>("/admin/guardian/scans"),
+  runScan: () => api.post<{ data: any }>("/admin/guardian/scans/run"),
+};
+
+// --- HR ---
+export const hrApi = {
+  // Employees
+  employees:          (p?: any)    => api.get<any>(`/hr/employees${p ? "?" + new URLSearchParams(p).toString() : ""}`),
+  employeeStats:      ()           => api.get<any>("/hr/employees/stats"),
+  employee:           (id: string) => api.get<any>(`/hr/employees/${id}`),
+  createEmployee:     (d: any)     => api.post<any>("/hr/employees", d),
+  updateEmployee:     (id: string, d: any) => api.put<any>(`/hr/employees/${id}`, d),
+  deleteEmployee:     (id: string, d?: any) => api.delete<any>(`/hr/employees/${id}`),
+  employeePayslips:   (id: string) => api.get<any>(`/hr/employees/${id}/payslips`),
+  gratuityCalc:       (id: string, reason?: string) => api.get<any>(`/hr/employees/${id}/gratuity-calc${reason ? "?reason=" + reason : ""}`),
+  settleGratuity:     (id: string, d: any) => api.post<any>(`/hr/employees/${id}/settle-gratuity`, d),
+  leaveBalance:       (empId: string, year?: number) => api.get<any>(`/hr/employees/${empId}/leave-balance${year ? "?year=" + year : ""}`),
+  employeeLoans:      (empId: string) => api.get<any>(`/hr/employees/${empId}/loans`),
+  employeePerformance:(empId: string) => api.get<any>(`/hr/employees/${empId}/performance`),
+
+  // Documents
+  documents:          (empId: string) => api.get<any>(`/hr/employees/${empId}/documents`),
+  createDocument:     (empId: string, d: any) => api.post<any>(`/hr/employees/${empId}/documents`, d),
+  updateDocument:     (id: string, d: any) => api.put<any>(`/hr/documents/${id}`, d),
+  deleteDocument:     (id: string) => api.delete<any>(`/hr/documents/${id}`),
+  expiringDocs:       (days?: number) => api.get<any>(`/hr/documents/expiring${days ? "?days=" + days : ""}`),
+
+  // Attendance
+  attendance:         (p?: any) => api.get<any>(`/hr/attendance${p ? "?" + new URLSearchParams(p).toString() : ""}`),
+  attendanceToday:    () => api.get<any>("/hr/attendance/today"),
+  attendanceSummary:  (month: string) => api.get<any>(`/hr/attendance/summary/${month}`),
+  createAttendance:   (d: any) => api.post<any>("/hr/attendance", d),
+  updateAttendance:   (id: string, d: any) => api.put<any>(`/hr/attendance/${id}`, d),
+  bulkAttendance:     (d: any) => api.post<any>("/hr/attendance/bulk", d),
+
+  // Leaves
+  leaves:             (p?: any) => api.get<any>(`/hr/leaves${p ? "?" + new URLSearchParams(p).toString() : ""}`),
+  createLeave:        (d: any) => api.post<any>("/hr/leaves", d),
+  approveLeave:       (id: string) => api.post<any>(`/hr/leaves/${id}/approve`),
+  rejectLeave:        (id: string, d: any) => api.post<any>(`/hr/leaves/${id}/reject`, d),
+
+  // Loans
+  loans:              (p?: any) => api.get<any>(`/hr/loans${p ? "?" + new URLSearchParams(p).toString() : ""}`),
+  createLoan:         (d: any) => api.post<any>("/hr/loans", d),
+  approveLoan:        (id: string) => api.post<any>(`/hr/loans/${id}/approve`),
+  rejectLoan:         (id: string, d: any) => api.post<any>(`/hr/loans/${id}/reject`, d),
+  loanInstallments:   (id: string) => api.get<any>(`/hr/loans/${id}/installments`),
+
+  // Deductions
+  deductions:         (p?: any) => api.get<any>(`/hr/deductions${p ? "?" + new URLSearchParams(p).toString() : ""}`),
+  createDeduction:    (d: any) => api.post<any>("/hr/deductions", d),
+  updateDeduction:    (id: string, d: any) => api.put<any>(`/hr/deductions/${id}`, d),
+  deleteDeduction:    (id: string) => api.delete<any>(`/hr/deductions/${id}`),
+
+  // Payroll
+  payrolls:           () => api.get<any>("/hr/payroll"),
+  payroll:            (id: string) => api.get<any>(`/hr/payroll/${id}`),
+  generatePayroll:    (d: any) => api.post<any>("/hr/payroll/generate", d),
+  approvePayroll:     (id: string) => api.post<any>(`/hr/payroll/${id}/approve`),
+  markPayrollPaid:    (id: string, d?: any) => api.post<any>(`/hr/payroll/${id}/mark-paid`, d),
+  payslip:            (id: string, empId: string) => api.get<any>(`/hr/payroll/${id}/slip/${empId}`),
+
+  // Government Fees
+  govFees:            (p?: any) => api.get<any>(`/hr/government-fees${p ? "?" + new URLSearchParams(p).toString() : ""}`),
+  createGovFee:       (d: any) => api.post<any>("/hr/government-fees", d),
+  updateGovFee:       (id: string, d: any) => api.put<any>(`/hr/government-fees/${id}`, d),
+  markGovFeePaid:     (id: string) => api.post<any>(`/hr/government-fees/${id}/mark-paid`),
+  upcomingFees:       (days?: number) => api.get<any>(`/hr/government-fees/upcoming${days ? "?days=" + days : ""}`),
+  govFeesSummary:     () => api.get<any>("/hr/government-fees/summary"),
+
+  // Compliance
+  nitaqat:            () => api.get<any>("/hr/nitaqat"),
+  wpsReport:          (month: string) => api.get<any>(`/hr/wps/report/${month}`),
+  gosiReport:         (month: string) => api.get<any>(`/hr/gosi/report/${month}`),
+
+  // Performance
+  performance:        (p?: any) => api.get<any>(`/hr/performance${p ? "?" + new URLSearchParams(p).toString() : ""}`),
+  createPerformance:  (d: any) => api.post<any>("/hr/performance", d),
+  updatePerformance:  (id: string, d: any) => api.put<any>(`/hr/performance/${id}`, d),
+
+  // ZKTeco
+  zkDevices:          () => api.get<any>("/hr/zkteco/devices"),
+  createZkDevice:     (d: any) => api.post<any>("/hr/zkteco/devices", d),
 };

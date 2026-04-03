@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
+import { useBusiness } from "@/hooks/useBusiness";
 import { bookingsApi, staffApi } from "@/lib/api";
 import { Clock, CalendarDays, CheckCircle2, XCircle, ChevronLeft, ChevronRight, LayoutGrid, List } from "lucide-react";
 import { clsx } from "clsx";
@@ -147,6 +148,7 @@ function StaffColumnView({
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function SchedulePage() {
+  const biz = useBusiness();
   const today = new Date().toISOString().split("T")[0];
   const [currentDate, setCurrentDate] = useState(today);
   const [selectedStaff, setSelectedStaff] = useState("all");
@@ -194,7 +196,7 @@ export function SchedulePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-brand-500" /> جدول المواعيد
+            <Clock className="w-5 h-5 text-brand-500" /> {biz.terminology.schedule}
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">{formatDate(currentDate)}</p>
         </div>
@@ -232,7 +234,7 @@ export function SchedulePage() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "إجمالي المواعيد", value: stats.total, color: "text-brand-500 bg-brand-50" },
+          { label: `إجمالي ${biz.terminology.bookings}`, value: stats.total, color: "text-brand-500 bg-brand-50" },
           { label: "مؤكدة / جارية", value: stats.confirmed, color: "text-blue-600 bg-blue-50" },
           { label: "مكتملة", value: stats.completed, color: "text-green-600 bg-green-50" },
           { label: "ملغاة", value: stats.cancelled, color: "text-red-500 bg-red-50" },
@@ -273,7 +275,7 @@ export function SchedulePage() {
           {bookings.length === 0 ? (
             <div className="text-center py-16">
               <CalendarDays className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-              <p className="text-gray-400 font-medium">لا توجد مواعيد في هذا اليوم</p>
+              <p className="text-gray-400 font-medium">{biz.terminology.bookingEmpty} في هذا اليوم</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-50">

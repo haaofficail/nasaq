@@ -216,3 +216,22 @@ export const STORAGE_KEYS = {
   USER_ID: "nasaq_user_id",
   DASHBOARD_PREFS_KEY: "nasaq_dashboard_prefs",
 } as const;
+
+// ── Work Order Statuses ───────────────────────────────────────
+export const WORK_ORDER_STATUSES = [
+  { key: "received",       label: "مستلم",           color: "bg-gray-100 text-gray-600" },
+  { key: "diagnosing",     label: "قيد الفحص",       color: "bg-blue-50 text-blue-600" },
+  { key: "waiting_parts",  label: "انتظار قطع",      color: "bg-amber-50 text-amber-600" },
+  { key: "in_progress",    label: "قيد الإصلاح",     color: "bg-purple-50 text-purple-600" },
+  { key: "ready",          label: "جاهز للاستلام",   color: "bg-emerald-50 text-emerald-600" },
+  { key: "delivered",      label: "تم التسليم",      color: "bg-teal-50 text-teal-600" },
+  { key: "cancelled",      label: "ملغي",            color: "bg-red-50 text-red-600" },
+] as const;
+
+export const WORK_ORDER_CATEGORIES = [
+  { key: "repair",         label: "إصلاح" },
+  { key: "service",        label: "خدمة" },
+  { key: "maintenance",    label: "صيانة دورية" },
+  { key: "installation",   label: "تركيب" },
+  { key: "other",          label: "أخرى" },
+] as const;

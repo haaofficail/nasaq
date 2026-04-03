@@ -6,6 +6,7 @@ import { getOrgId, getPagination, getUserId } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { apiErr } from "../lib/errors";
 import { z } from "zod";
+import { postInventoryMovement, isAccountingEnabled } from "../lib/posting-engine";
 import { ONE_DAY_MS } from "../lib/constants";
 
 const createAssetTypeSchema = z.object({
@@ -758,6 +759,28 @@ inventoryRouter.post("/products/:id/adjust", async (c) => {
       [orgId, id, type, Math.abs(qty), referenceId||null, referenceType||null, notes||null, userId||null],
     );
     await client.query("COMMIT");
+
+    // ── Auto-posting إن كانت المحاسبة مفعّلة ──
+    try {
+      const { rows: [settings] } = await pool.query(
+        "SELECT settings FROM organizations WHERE id=$1", [orgId]
+      );
+      if (isAccountingEnabled(settings?.settings ?? {})) {
+        const { rows: [prod] } = await pool.query(
+          "SELECT name, cost_price FROM inventory_products WHERE id=$1", [id]
+        );
+        if (prod && prod.cost_price) {
+          await postInventoryMovement({
+            orgId, productId: id,
+            productName: prod.name,
+            movementType: type as any,
+            quantity: Math.abs(qty),
+            unitCost: parseFloat(prod.cost_price),
+          });
+        }
+      }
+    } catch { /* لا نفشل الحركة إذا فشل الترحيل */ }
+
     return c.json({ data: { movement, newStock } }, 201);
   } catch (err) {
     await client.query("ROLLBACK");

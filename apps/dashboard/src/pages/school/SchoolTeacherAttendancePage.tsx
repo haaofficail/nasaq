@@ -2,7 +2,7 @@ import { useState } from "react";
 import {
   UserCheck, UserX, Clock, CheckCircle2, XCircle, Loader2,
   RefreshCw, Save, ChevronRight, ChevronLeft, MessageCircle,
-  ClipboardList, Plus, Trash2, X,
+  ClipboardList, Plus, Trash2, X, Search,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { useApi } from "@/hooks/useApi";
@@ -84,7 +84,6 @@ function StandbyModal({
   // تكليف جماعي سريع
   const [bulkTeacher, setBulkTeacher]  = useState("");
   // وضع يدوي (إذا لا يوجد جدول)
-  const [manualSubject,    setManualSubject]    = useState("");
   const [manualClassId,    setManualClassId]    = useState("");
   const [manualPeriod,     setManualPeriod]     = useState("");
   const [manualTeacherId,  setManualTeacherId]  = useState("");
@@ -131,7 +130,7 @@ function StandbyModal({
 
   // حفظ يدوي
   const handleSaveManual = async () => {
-    if (!manualTeacherId || !manualSubject) { setError("المعلم البديل والمادة مطلوبان"); return; }
+    if (!manualTeacherId) { setError("المعلم البديل مطلوب"); return; }
     setSaving(true); setError("");
     try {
       await schoolApi.createStandbyActivation({
@@ -139,7 +138,7 @@ function StandbyModal({
         absentTeacherId:  absentTeacher?.id ?? null,
         standbyTeacherId: manualTeacherId,
         classRoomId:      manualClassId || null,
-        subject:          manualSubject,
+        subject:          null,
         periodLabel:      manualPeriod || null,
         startTime:        null, endTime: null, notes: null,
       });
@@ -150,8 +149,6 @@ function StandbyModal({
     finally  { setSaving(false); }
   };
 
-  const { data: subjectsData } = useApi(() => schoolApi.listSubjects(), []);
-  const subjects: any[] = subjectsData?.data ?? [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
@@ -271,16 +268,8 @@ function StandbyModal({
                   ))}
                 </select>
               </div>
-              {/* المادة + الفصل + الحصة في صف واحد */}
-              <div className="grid grid-cols-3 gap-2">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 mb-1.5">المادة <span className="text-red-500">*</span></label>
-                  <select value={manualSubject} onChange={e => setManualSubject(e.target.value)}
-                    className="w-full px-2.5 py-2 text-xs border border-gray-200 rounded-xl outline-none focus:border-emerald-400">
-                    <option value="">اختر...</option>
-                    {subjects.map((s: any) => <option key={s.id} value={s.name}>{s.name}</option>)}
-                  </select>
-                </div>
+              {/* الفصل + الحصة */}
+              <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1.5">الفصل</label>
                   <select value={manualClassId} onChange={e => setManualClassId(e.target.value)}
@@ -336,15 +325,20 @@ function StandbyModal({
 export function SchoolTeacherAttendancePage() {
   const [date, setDate]             = useState(todayDate());
   const [selectedClass, setClass]   = useState("");
+  const [selectedPeriod, setPeriod] = useState("");  // فلتر الحصة
+  const [search, setSearch]         = useState("");  // بحث بالاسم
   const [saving, setSaving]         = useState(false);
   const [saveMsg, setSaveMsg]       = useState("");
   // local overrides: teacherId → status
   const [overrides, setOverrides]   = useState<Record<string, string>>({});
   const [standbyModal, setStandbyModal] = useState<{ open: boolean; teacher: TeacherRow | null }>({ open: false, teacher: null });
 
-  // Teachers list
+  // Teachers list — مفلترة حسب الفصل إذا اختير
   const { data: teachersData, loading: teachersLoading } = useApi(
-    () => schoolApi.listTeachers(), []
+    () => selectedClass
+      ? schoolApi.listTeachersByClassroomSubject(selectedClass, "")
+      : schoolApi.listTeachers(),
+    [selectedClass]
   );
   const teachers: TeacherRow[] = (teachersData?.data ?? []).filter((t: any) => t.isActive !== false);
 
@@ -352,10 +346,10 @@ export function SchoolTeacherAttendancePage() {
   const { data: classesData } = useApi(() => schoolApi.listClassRooms(), []);
   const classes: any[] = classesData?.data ?? [];
 
-  // Existing attendance for date
+  // Existing attendance for date — بدون classRoomId (الحضور مدرسي لا فصلي)
   const { data: attendanceData, loading: attLoading, refetch: refetchAtt } = useApi(
-    () => schoolApi.getTeacherAttendance({ date, classRoomId: selectedClass || undefined }),
-    [date, selectedClass]
+    () => schoolApi.getTeacherAttendance({ date }),
+    [date]
   );
   const existing: AttendanceRecord[] = attendanceData?.data ?? [];
 
@@ -381,9 +375,9 @@ export function SchoolTeacherAttendancePage() {
     const entries = teachers
       .filter(t => overrides[t.id])
       .map(t => ({
-        teacherId:   t.id,
-        classRoomId: selectedClass || undefined,
-        status:      overrides[t.id],
+        teacherId: t.id,
+        status:    overrides[t.id],
+        // لا classRoomId — الحضور مدرسي لا فصلي
       }));
 
     if (!entries.length) {
@@ -405,8 +399,26 @@ export function SchoolTeacherAttendancePage() {
     }
   };
 
-  const absentCount  = teachers.filter(t => getStatus(t.id) === "absent").length;
-  const presentCount = teachers.filter(t => getStatus(t.id) === "present").length;
+  // جلب المعلمين المجدولين لحصة معينة
+  const { data: periodData } = useApi(
+    () => selectedPeriod
+      ? schoolApi.getTeachersByPeriod(date, parseInt(selectedPeriod))
+      : Promise.resolve({ data: [] }),
+    [date, selectedPeriod]
+  );
+  const periodTeacherIds = new Set<string>(
+    selectedPeriod ? (periodData?.data ?? []).map((r: any) => r.teacherId) : []
+  );
+
+  // تطبيق الفلاتر: فصل + حصة + بحث
+  const displayedTeachers = teachers.filter(t => {
+    if (search && !t.fullName.includes(search)) return false;
+    if (selectedPeriod && !periodTeacherIds.has(t.id)) return false;
+    return true;
+  });
+
+  const absentCount  = displayedTeachers.filter(t => getStatus(t.id) === "absent").length;
+  const presentCount = displayedTeachers.filter(t => getStatus(t.id) === "present").length;
   const loading      = teachersLoading || attLoading;
 
   return (
@@ -453,14 +465,42 @@ export function SchoolTeacherAttendancePage() {
           </button>
         </div>
 
+        {/* بحث بالاسم */}
+        <div className="relative">
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="بحث باسم المعلم..."
+            className="pl-3 pr-8 py-2 border border-gray-200 rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-400/30 w-44"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+              <XCircle className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* فلتر الفصل */}
         <select
           value={selectedClass}
-          onChange={e => setClass(e.target.value)}
+          onChange={e => { setClass(e.target.value); setOverrides({}); }}
           className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-400/30"
         >
-          <option value="">كل الفصول</option>
+          <option value="">كل المعلمين</option>
           {classes.map((c: any) => (
-            <option key={c.id} value={c.id}>{c.grade} / {c.name}</option>
+            <option key={c.id} value={c.id}>معلمو: {c.grade} / {c.name}</option>
+          ))}
+        </select>
+
+        {/* فلتر الحصة */}
+        <select
+          value={selectedPeriod}
+          onChange={e => setPeriod(e.target.value)}
+          className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-400/30"
+        >
+          <option value="">كل الحصص</option>
+          {PERIOD_LABELS.slice(1).map((label, i) => (
+            <option key={i + 1} value={String(i + 1)}>الحصة {label}</option>
           ))}
         </select>
 
@@ -496,20 +536,42 @@ export function SchoolTeacherAttendancePage() {
           <div className="flex items-center justify-center py-16">
             <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
           </div>
-        ) : teachers.length === 0 ? (
-          <div className="py-16 text-center">
+        ) : displayedTeachers.length === 0 ? (
+          <div className="py-14 text-center px-6">
             <UserCheck className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-            <p className="text-sm text-gray-400 font-medium">لا يوجد معلمون مسجّلون</p>
+            {selectedPeriod && teachers.length > 0 ? (
+              <>
+                <p className="text-sm font-bold text-gray-600">لا يوجد معلمون مجدولون لهذه الحصة</p>
+                <p className="text-xs text-gray-400 mt-1.5 max-w-xs mx-auto">
+                  فلتر الحصة يعمل فقط مع الجدول النشط. إذا لم يُفعَّل جدول هذا الأسبوع لن تظهر أي نتائج.
+                </p>
+                <button
+                  onClick={() => setPeriod("")}
+                  className="mt-3 text-xs text-emerald-600 hover:text-emerald-700 font-bold"
+                >
+                  إلغاء فلتر الحصة
+                </button>
+              </>
+            ) : (
+              <p className="text-sm text-gray-400 font-medium">
+                {search || selectedClass ? "لا يوجد معلمون مطابقون للفلتر" : "لا يوجد معلمون مسجّلون"}
+              </p>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-gray-50">
             {/* Header row */}
             <div className="px-5 py-2.5 bg-gray-50 grid grid-cols-[1fr_auto] gap-4">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">المعلم</span>
+              <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
+                المعلم
+                {displayedTeachers.length !== teachers.length && (
+                  <span className="mr-2 font-normal text-brand-500">({displayedTeachers.length} من {teachers.length})</span>
+                )}
+              </span>
               <span className="text-xs font-bold text-gray-500 text-center w-64">الحالة</span>
             </div>
 
-            {teachers.map(teacher => {
+            {displayedTeachers.map(teacher => {
               const status    = getStatus(teacher.id);
               const isNew     = !!overrides[teacher.id];
               const notified  = existingMap[teacher.id]?.notified;

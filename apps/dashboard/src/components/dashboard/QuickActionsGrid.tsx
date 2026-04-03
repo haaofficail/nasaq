@@ -16,18 +16,28 @@ export function QuickActionsGrid({ actions, currentRole, onModalOpen }: QuickAct
   if (visible.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-3">
       {visible.map((action) => {
         const inner = (
           <>
-            <div className={clsx("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", action.bg)}>
-              <action.icon className={clsx("w-3.5 h-3.5", action.text)} />
+            <div className={clsx(
+              "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0",
+              "group-hover:scale-110 transition-transform duration-200",
+              action.bg
+            )}>
+              <action.icon className={clsx("w-5 h-5", action.text)} />
             </div>
-            <span className="text-xs font-medium text-gray-700">{action.label}</span>
+            <span className="text-[11px] font-medium text-gray-600 text-center leading-tight">
+              {action.label}
+            </span>
           </>
         );
 
-        const cls = "flex items-center gap-2 px-3 py-2 bg-white rounded-xl border border-gray-100 hover:bg-gray-50 hover:border-gray-200 transition-all cursor-pointer shadow-sm";
+        const cls = clsx(
+          "group flex flex-col items-center gap-2.5 py-4 px-3 bg-white rounded-2xl",
+          "border border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-md",
+          "hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+        );
 
         if (action.modal && onModalOpen) {
           return (

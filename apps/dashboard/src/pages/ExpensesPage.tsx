@@ -2,6 +2,7 @@ import { useState } from "react";
 import { toast } from "@/hooks/useToast";
 import { TrendingDown, Plus, Pencil, Trash2, RefreshCw, Receipt } from "lucide-react";
 import { clsx } from "clsx";
+import { confirmDialog } from "@/components/ui";
 import { financeApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Modal, Input, Select } from "@/components/ui";
@@ -32,6 +33,7 @@ function fmtDate(d: string) {
 
 export function ExpensesPage() {
   const [catFilter, setCatFilter] = useState("all");
+  const [search, setSearch]       = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing]     = useState<any>(null);
   const [form, setForm]           = useState({ ...EMPTY });
@@ -49,7 +51,14 @@ export function ExpensesPage() {
 
   const expenses: any[] = res?.data || [];
   const pnl = pnlRes?.data || {};
-  const totalMonth = expenses.reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
+
+  const filtered = expenses.filter((e: any) => {
+    if (search && !e.description?.toLowerCase().includes(search.toLowerCase()) &&
+        !e.receiptNumber?.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const totalMonth = filtered.reduce((s: number, e: any) => s + Number(e.amount || 0), 0);
 
   const byCategory = Object.entries(CATEGORIES)
     .map(([key, cfg]) => ({
@@ -96,7 +105,7 @@ export function ExpensesPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("حذف هذا المصروف نهائياً؟")) return;
+    if (!(await confirmDialog({ title: "حذف المصروف؟", message: "لا يمكن التراجع عن هذا الإجراء", danger: true, confirmLabel: "حذف" }))) return;
     try {
       await deleteExp(id);
       toast.success("تم الحذف");
@@ -140,10 +149,19 @@ export function ExpensesPage() {
         ))}
       </div>
 
-      {/* Category chips */}
+      {/* Search + Category chips */}
       {byCategory.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">التوزيع حسب الفئة</h2>
+          <div className="mb-3">
+            <input
+              type="text"
+              placeholder="ابحث في المصروفات..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full sm:w-64 px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-brand-200"
+            />
+          </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => setCatFilter("all")}
               className={clsx("px-3 py-1.5 rounded-xl border text-xs font-medium transition-all",
@@ -167,7 +185,7 @@ export function ExpensesPage() {
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <div className="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900 text-sm">سجل المصروفات</h2>
-          <span className="text-xs text-gray-400">{expenses.length} سجل</span>
+          <span className="text-xs text-gray-400">{filtered.length} سجل</span>
         </div>
 
         {loading ? (
@@ -183,12 +201,12 @@ export function ExpensesPage() {
               </div>
             ))}
           </div>
-        ) : expenses.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <div className="p-12 text-center">
             <Receipt className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-gray-700 mb-1">لا توجد مصروفات</p>
-            <p className="text-xs text-gray-400 mb-4">ابدأ بتسجيل مصاريف منشأتك لمتابعة تدفق الأموال</p>
-            <Button icon={Plus} onClick={openCreate} size="sm">مصروف جديد</Button>
+            <p className="text-sm font-semibold text-gray-700 mb-1">{search ? "لا توجد نتائج" : "لا توجد مصروفات"}</p>
+            <p className="text-xs text-gray-400 mb-4">{search ? "جرب كلمات بحث مختلفة" : "ابدأ بتسجيل مصاريف منشأتك لمتابعة تدفق الأموال"}</p>
+            {!search && <Button icon={Plus} onClick={openCreate} size="sm">مصروف جديد</Button>}
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -204,7 +222,7 @@ export function ExpensesPage() {
                 </tr>
               </thead>
               <tbody>
-                {expenses.map((e: any) => {
+                {filtered.map((e: any) => {
                   const cat = CATEGORIES[e.category] || CATEGORIES.other;
                   return (
                     <tr key={e.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">

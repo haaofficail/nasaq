@@ -3,6 +3,7 @@ import { CalendarCheck, Clock, ArrowLeft, CheckCircle2, Loader2 } from "lucide-r
 import { bookingsApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { clsx } from "clsx";
+import { useBusiness } from "@/hooks/useBusiness";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   pending:     { label: "معلق",  color: "text-amber-600",   bg: "bg-amber-50" },
@@ -13,6 +14,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
 };
 
 export function TodayScheduleSummaryWidget() {
+  const biz = useBusiness();
   const today = new Date().toISOString().split("T")[0];
   const { data, loading } = useApi(() => bookingsApi.list({ date: today, limit: "50" }), []);
 
@@ -42,7 +44,7 @@ export function TodayScheduleSummaryWidget() {
             <CalendarCheck className="w-4 h-4 text-blue-500" />
           </div>
           <div>
-            <h2 className="font-semibold text-gray-900 text-sm">مواعيد اليوم</h2>
+            <h2 className="font-semibold text-gray-900 text-sm">{biz.terminology.kpiTodayBookings}</h2>
             <p className="text-xs text-gray-400 mt-0.5">{todayLabel}</p>
           </div>
         </div>
@@ -82,7 +84,7 @@ export function TodayScheduleSummaryWidget() {
         ) : bookings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-5 text-center">
             <CheckCircle2 className="w-7 h-7 text-gray-200 mb-1.5" />
-            <p className="text-xs text-gray-400">لا توجد مواعيد اليوم</p>
+            <p className="text-xs text-gray-400">لا توجد {biz.terminology.kpiTodayBookings}</p>
           </div>
         ) : (
           <div className="space-y-1.5">

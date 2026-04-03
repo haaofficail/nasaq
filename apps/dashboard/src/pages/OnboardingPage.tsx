@@ -1,18 +1,174 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Layers, Building2, User, Settings, ArrowLeft, Check, Loader2, Zap } from "lucide-react";
+import { Layers, Building2, User, Settings, ArrowLeft, Check, Loader2, Zap, Package, ChevronDown, ChevronUp } from "lucide-react";
 import { clsx } from "clsx";
-import { api } from "@/lib/api";
+import { api, templatesApi } from "@/lib/api";
 import { SAUDI_CITIES } from "@/lib/constants";
 
 const steps = ["معلومات الشركة", "بيانات المالك", "الإعداد"];
+
+// ─── Template Selection Screen ────────────────────────────────────────────────
+function TemplateScreen({ industry, onDone }: { industry: string; onDone: () => void }) {
+  const [template, setTemplate] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [importing, setImporting] = useState(false);
+  const [done, setDone] = useState(false);
+  const [result, setResult] = useState<{ created: number; message: string } | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [expanded, setExpanded] = useState<string[]>([]);
+
+  useEffect(() => {
+    templatesApi.getByType(industry)
+      .then(r => {
+        setTemplate(r.data);
+        const cats = r.data.categories.map((c: any) => c.categoryName);
+        setSelectedCategories(cats);
+        setExpanded([cats[0]]);
+      })
+      .catch(() => setTemplate(null))
+      .finally(() => setLoading(false));
+  }, [industry]);
+
+  const toggleCat = (cat: string) => setSelectedCategories(prev =>
+    prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+  );
+  const toggleExpand = (cat: string) => setExpanded(prev =>
+    prev.includes(cat) ? prev.filter(c => c !== cat) : [...prev, cat]
+  );
+
+  const doImport = async () => {
+    setImporting(true);
+    try {
+      const r = await templatesApi.import(industry, { categories: selectedCategories, status: "active" });
+      setResult(r.data);
+      setDone(true);
+    } catch {
+      setDone(true);
+      setResult({ created: 0, message: "حدث خطأ أثناء الاستيراد" });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  if (done) return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md text-center">
+        <div className="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center mx-auto mb-6">
+          <Check className="w-8 h-8 text-green-600" />
+        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">مبروك! حسابك جاهز</h1>
+        {result && result.created > 0 && (
+          <p className="text-sm text-green-600 font-medium mb-2">{result.message}</p>
+        )}
+        <p className="text-sm text-gray-500 mb-6">لديك 14 يوم تجربة مجانية — يمكنك الآن تعديل الخدمات وضبط الأسعار</p>
+        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 text-right space-y-2">
+          {["تحقق من خدماتك وعدّل الأسعار", "أضف مواقعك المعتمدة", "ابدأ باستقبال الحجوزات"].map((s, i) => (
+            <div key={i} className="flex items-center gap-2 text-sm"><Zap className="w-4 h-4 text-brand-500" /><span>{s}</span></div>
+          ))}
+        </div>
+        <button onClick={onDone} className="w-full bg-brand-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-600">
+          دخول لوحة التحكم
+        </button>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-lg">
+        <div className="text-center mb-6">
+          <div className="w-12 h-12 rounded-2xl bg-brand-500 flex items-center justify-center mx-auto mb-3">
+            <Package className="w-6 h-6 text-white" />
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">استيراد خدمات جاهزة</h1>
+          <p className="text-sm text-gray-500 mt-1">وفّر وقتك — اختر التصنيفات التي تناسب نشاطك</p>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
+            </div>
+          ) : !template ? (
+            <div className="text-center py-8">
+              <p className="text-sm text-gray-500 mb-4">لا توجد قوالب جاهزة لهذا النشاط</p>
+              <button onClick={onDone} className="bg-brand-500 text-white rounded-xl px-6 py-2.5 text-sm font-semibold hover:bg-brand-600">
+                تخطي
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-sm text-gray-500">{template.totalItems} خدمة في {template.categories.length} تصنيف</span>
+                <div className="flex gap-2">
+                  <button onClick={() => setSelectedCategories(template.categories.map((c: any) => c.categoryName))}
+                    className="text-xs text-brand-500 hover:underline">تحديد الكل</button>
+                  <span className="text-gray-300">|</span>
+                  <button onClick={() => setSelectedCategories([])}
+                    className="text-xs text-gray-400 hover:underline">إلغاء الكل</button>
+                </div>
+              </div>
+
+              <div className="space-y-2 max-h-80 overflow-y-auto">
+                {template.categories.map((cat: any) => {
+                  const isSelected = selectedCategories.includes(cat.categoryName);
+                  const isExpanded = expanded.includes(cat.categoryName);
+                  return (
+                    <div key={cat.categoryName} className={clsx(
+                      "rounded-xl border transition-all",
+                      isSelected ? "border-brand-300 bg-brand-50" : "border-gray-100 bg-gray-50"
+                    )}>
+                      <div className="flex items-center gap-3 p-3">
+                        <input type="checkbox" checked={isSelected} onChange={() => toggleCat(cat.categoryName)}
+                          className="w-4 h-4 accent-brand-500 cursor-pointer" />
+                        <span className="flex-1 text-sm font-medium text-gray-900">{cat.categoryName}</span>
+                        <span className="text-xs text-gray-400">{cat.items.length} خدمات</span>
+                        <button onClick={() => toggleExpand(cat.categoryName)} className="text-gray-400 hover:text-gray-600">
+                          {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                        </button>
+                      </div>
+                      {isExpanded && (
+                        <div className="border-t border-gray-100 px-3 pb-3 pt-2 space-y-1.5">
+                          {cat.items.map((item: any) => (
+                            <div key={item.name} className="flex items-center justify-between text-xs text-gray-600 bg-white rounded-lg px-3 py-2 border border-gray-100">
+                              <span>{item.name}</span>
+                              <span className="text-gray-400 font-medium">{item.basePrice > 0 ? `${item.basePrice} ر.س` : "مجاناً"}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <button onClick={onDone} className="flex-1 py-3 rounded-xl border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50">
+                  تخطي
+                </button>
+                <button
+                  onClick={doImport}
+                  disabled={importing || selectedCategories.length === 0}
+                  className="flex-1 bg-brand-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+                  استيراد {selectedCategories.length > 0 ? `(${selectedCategories.length} تصنيف)` : ""}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function OnboardingPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [done, setDone] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
   const INDUSTRY_LABELS: Record<string, string> = {
     events: "تجهيزات فعاليات", catering: "ضيافة", photography: "تصوير",
     decoration: "ديكور", entertainment: "ترفيه", hotel: "فندق وإقامة",
@@ -44,28 +200,16 @@ export function OnboardingPage() {
       const res = await api.post<any>("/settings/onboard", form);
       localStorage.setItem("nasaq_org_id", res.data.org.id);
       localStorage.setItem("nasaq_user_id", res.data.owner.id);
-      setDone(true);
+      setShowTemplates(true);
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
   };
 
-  if (done) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-md text-center">
-        <div className="w-16 h-16 rounded-2xl bg-green-100 flex items-center justify-center mx-auto mb-6"><Check className="w-8 h-8 text-green-600" /></div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">مبروك! حسابك جاهز</h1>
-        <p className="text-sm text-gray-500 mb-6">لديك 14 يوم تجربة مجانية — ابدأ بإضافة خدماتك</p>
-        <div className="bg-white rounded-xl border border-gray-200 p-4 mb-6 text-right space-y-2">
-          <p className="text-sm text-gray-500">الخطوات القادمة:</p>
-          {["أضف خدماتك الأولى", "أضف مواقعك المعتمدة", "ابدأ باستقبال الحجوزات"].map((s, i) => (
-            <div key={i} className="flex items-center gap-2 text-sm"><Zap className="w-4 h-4 text-brand-500" /><span>{s}</span></div>
-          ))}
-        </div>
-        <button onClick={() => navigate("/login")} className="w-full bg-brand-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-600">
-          دخول لوحة التحكم
-        </button>
-      </div>
-    </div>
+  if (showTemplates) return (
+    <TemplateScreen
+      industry={form.industry}
+      onDone={() => navigate("/login")}
+    />
   );
 
   return (

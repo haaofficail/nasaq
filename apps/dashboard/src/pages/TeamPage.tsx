@@ -2,12 +2,13 @@ import { useState } from "react";
 import { clsx } from "clsx";
 import { toast } from "@/hooks/useToast";
 import { useSearchParams } from "react-router-dom";
-import { Users, AlertCircle, UserCheck, UserX, Trash2, Save, Phone, Briefcase, Plus, UserPlus } from "lucide-react";
+import { Users, AlertCircle, UserCheck, UserX, Trash2, Save, Phone, Briefcase, Plus, UserPlus, ShieldCheck } from "lucide-react";
 import { membersApi, jobTitlesApi, staffApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { Modal, Input, ModernInput, ModernSelect, PageHeader, Button } from "@/components/ui";
 import { RolesPage } from "./RolesPage";
 import { AttendancePage } from "./AttendancePage";
+import { SchoolRolesPage } from "./school/SchoolRolesPage";
 import { CommissionsPage } from "./CommissionsPage";
 
 const MEMBER_STATUS_BADGE: Record<string, { badge: string; dot: string; label: string }> = {
@@ -37,6 +38,26 @@ const SYSTEM_ROLE_LABELS: Record<string, string> = {
   provider:  "مقدم الخدمة",
   employee:  "الموظف",
   reception: "الاستقبال",
+};
+
+const ROLE_SUMMARY: Record<string, { label: string; color: string }> = {
+  super_admin:    { label: "مدير عام",    color: "bg-red-50 text-red-700" },
+  owner:          { label: "المالك",       color: "bg-violet-50 text-violet-700" },
+  admin:          { label: "مشرف",         color: "bg-blue-50 text-blue-600" },
+  manager:        { label: "مدير",         color: "bg-brand-50 text-brand-600" },
+  branch_manager: { label: "مدير فرع",     color: "bg-teal-50 text-teal-600" },
+  staff:          { label: "موظف",         color: "bg-gray-100 text-gray-600" },
+  operator:       { label: "مشغّل",        color: "bg-amber-50 text-amber-600" },
+};
+
+const ROLE_PERMISSIONS: Record<string, string> = {
+  super_admin:    "وصول كامل لكل الصلاحيات",
+  owner:          "كل صلاحيات المنشأة + الإعدادات المالية",
+  admin:          "إدارة كاملة بدون حذف البيانات الرئيسية",
+  manager:        "إدارة الحجوزات والخدمات والتقارير",
+  branch_manager: "إدارة فرع واحد فقط",
+  staff:          "تسجيل حضور + رؤية الحجوزات المخصصة له",
+  operator:       "الكاشير والمبيعات فقط",
 };
 
 // ============================================================
@@ -374,12 +395,25 @@ function MembersTab() {
                     {/* Job title */}
                     <td className="py-3.5 px-5">
                       {row.jobTitle ? (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <Briefcase className="w-3.5 h-3.5 text-gray-400" />
                           <span className="text-sm text-gray-700">{row.jobTitle.name}</span>
                           {roleBadge && (
                             <span className={clsx("px-2 py-0.5 rounded-full text-[11px] font-medium", roleBadge)}>
                               {SYSTEM_ROLE_LABELS[row.jobTitle.systemRole]}
+                            </span>
+                          )}
+                          {row.member.systemRole && ROLE_SUMMARY[row.member.systemRole] && (
+                            <span className="inline-flex items-center gap-1">
+                              <span className={clsx("px-2 py-0.5 rounded-full text-[10px] font-medium", ROLE_SUMMARY[row.member.systemRole].color)}>
+                                {ROLE_SUMMARY[row.member.systemRole].label}
+                              </span>
+                              <span
+                                className="cursor-default"
+                                title={ROLE_PERMISSIONS[row.member.systemRole]}
+                              >
+                                <ShieldCheck className={clsx("w-3.5 h-3.5", ROLE_SUMMARY[row.member.systemRole].color.split(" ")[1])} />
+                              </span>
                             </span>
                           )}
                         </div>
@@ -511,6 +545,57 @@ export function TeamPage() {
               </details>
             ))}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================
+// SCHOOL STAFF PAGE — طاقم المدرسة (بدون عمولات)
+// ============================================================
+
+const SCHOOL_STAFF_TABS = [
+  { id: "members",  label: "الكادر الإداري والتقني" },
+  { id: "roles",    label: "المسميات والصلاحيات" },
+  { id: "schedule", label: "الجداول والحضور" },
+];
+
+export function SchoolStaffPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tab = searchParams.get("tab") || "members";
+
+  return (
+    <div dir="rtl">
+      <PageHeader
+        title="طاقم المدرسة"
+        description="الإداريون، الموظفون، والكادر التقني — الأدوار والجداول في مكان واحد"
+        tabs={SCHOOL_STAFF_TABS}
+        activeTab={tab}
+        onTabChange={(id) => setSearchParams({ tab: id })}
+      />
+      {tab === "members"  && <MembersTab />}
+      {tab === "roles"    && <SchoolRolesPage />}
+      {tab === "schedule" && <AttendancePage />}
+
+      <div className="mt-5">
+        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <h3 className="font-semibold text-gray-900 mb-4 text-sm">دليل إعداد طاقم المدرسة</h3>
+          <ol className="space-y-3">
+            {[
+              { step: "1", title: "أنشئ الأدوار والمسميات أولاً", desc: "اذهب إلى «الأدوار والمسميات» وأضف مسمى لكل وظيفة (مثال: سكرتير، مرشد طلابي، فني). كل مسمى يرتبط بصلاحية محددة." },
+              { step: "2", title: "أضف أعضاء الكادر", desc: "اضغط «إضافة عضو» وادخل الاسم والجوال وحدد المسمى الوظيفي. سيصل العضو رسالة لتأكيد حسابه." },
+              { step: "3", title: "سجّل الحضور والانصراف", desc: "من تبويب «الجداول والحضور» تستطيع إدارة جداول العمل وتسجيل حضور الكادر يومياً." },
+            ].map(s => (
+              <li key={s.step} className="flex gap-3">
+                <div className="w-6 h-6 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">{s.step}</div>
+                <div>
+                  <p className="text-sm font-semibold text-gray-800">{s.title}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{s.desc}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
         </div>
       </div>
     </div>

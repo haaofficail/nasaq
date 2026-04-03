@@ -9,6 +9,7 @@ import {
 import { clsx } from "clsx";
 import { bookingsApi, customersApi, servicesApi, websiteApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
+import { useBusiness } from "@/hooks/useBusiness";
 import { PageHeader } from "@/components/ui";
 
 const TABS = [
@@ -84,14 +85,19 @@ function MiniBar({ value, max, color = "bg-brand-400" }: { value: number; max: n
 }
 
 export function ReportsPage() {
-  const [tab, setTab]     = useState("overview");
-  const [period, setPeriod] = useState("month");
+  const biz = useBusiness();
+  const [tab, setTab]         = useState("overview");
+  const [period, setPeriod]   = useState("month");
+  const [customRange, setCustomRange] = useState(false);
+  const [dateFrom, setDateFrom]       = useState("");
+  const [dateTo, setDateTo]           = useState("");
+  const [activePeriod, setActivePeriod] = useState("month");
 
-  const { data: statsRes, loading } = useApi(() => bookingsApi.stats(period), [period]);
+  const { data: statsRes, loading } = useApi(() => bookingsApi.stats(activePeriod), [activePeriod]);
   const { data: custRes }           = useApi(() => customersApi.stats(), []);
   const { data: svcRes }            = useApi(() => servicesApi.list({ limit: "100" }), []);
   const { data: trendRes }          = useApi(() => bookingsApi.trend(6), []);
-  const { data: growthRes }         = useApi(() => bookingsApi.growth(period), [period]);
+  const { data: growthRes }         = useApi(() => bookingsApi.growth(activePeriod), [activePeriod]);
   const { data: siteRes }           = useApi(() => websiteApi.analytics(), []);
 
   const stats     = statsRes?.data   || {};
@@ -113,6 +119,28 @@ export function ReportsPage() {
   const completed    = byStatus["completed"]   || 0;
   const confirmed    = byStatus["confirmed"]   || 0;
   const cancellationRate = totalBookings > 0 ? Math.round((cancelled / totalBookings) * 100) : 0;
+
+  const applyCustomRange = () => {
+    if (dateFrom && dateTo) {
+      setActivePeriod(`custom:${dateFrom}:${dateTo}`);
+      setCustomRange(false);
+    }
+  };
+
+  const exportCSV = () => {
+    const rows = [
+      ["الخدمة", "الفئة", "عدد الحجوزات", "السعر"],
+      ...topServices.map((s: any) => [s.name, s.categoryName || "", s.totalBookings || 0, s.basePrice || 0]),
+    ];
+    const csv = rows.map(r => r.join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `تقرير-نسق-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const topServices = [...services]
     .sort((a, b) => (b.totalBookings || 0) - (a.totalBookings || 0))
@@ -162,17 +190,58 @@ export function ReportsPage() {
         title="التقارير والتحليلات"
         description="نظرة شاملة على الأداء"
         actions={
-          <div className="flex gap-1 bg-white border border-gray-100 rounded-xl p-1">
-            {PERIODS.map((p) => (
-              <button key={p.value} onClick={() => setPeriod(p.value)}
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={exportCSV}
+              className="px-3 py-1.5 rounded-xl text-sm font-medium border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-all"
+            >
+              تصدير CSV
+            </button>
+            <div className="flex gap-1 bg-white border border-gray-100 rounded-xl p-1">
+              {PERIODS.map((p) => (
+                <button key={p.value} onClick={() => { setPeriod(p.value); setActivePeriod(p.value); setCustomRange(false); }}
+                  className={clsx("px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
+                    activePeriod === p.value ? "bg-brand-500 text-white shadow-sm" : "text-gray-500 hover:bg-gray-50")}>
+                  {p.label}
+                </button>
+              ))}
+              <button
+                onClick={() => setCustomRange(v => !v)}
                 className={clsx("px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
-                  period === p.value ? "bg-brand-500 text-white shadow-sm" : "text-gray-500 hover:bg-gray-50")}>
-                {p.label}
+                  customRange ? "bg-brand-500 text-white shadow-sm" : "text-gray-500 hover:bg-gray-50")}
+              >
+                مخصص
               </button>
-            ))}
+            </div>
           </div>
         }
       />
+
+      {customRange && (
+        <div className="flex gap-2 items-center flex-wrap bg-white border border-gray-100 rounded-2xl p-3">
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={e => setDateFrom(e.target.value)}
+            className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none focus:border-brand-300"
+            dir="ltr"
+          />
+          <span className="text-gray-400">—</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={e => setDateTo(e.target.value)}
+            className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none focus:border-brand-300"
+            dir="ltr"
+          />
+          <button
+            onClick={applyCustomRange}
+            className="px-4 py-1.5 rounded-xl bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors"
+          >
+            تطبيق
+          </button>
+        </div>
+      )}
 
       {/* ── Report Categories Hub ─────────────────────────── */}
       {REPORT_CATEGORIES.map(cat => (
@@ -226,9 +295,9 @@ export function ReportsPage() {
           ) : (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { label: "الإيرادات",   value: `${revenue.toLocaleString("en-US")} ر.س`, icon: Banknote,      bg: "bg-emerald-50", ic: "text-emerald-600", g: growth.revenue?.growth },
-                { label: "الحجوزات",    value: totalBookings.toLocaleString("en-US"),      icon: CalendarCheck, bg: "bg-blue-50",    ic: "text-blue-600",   g: growth.bookings?.growth },
-                { label: "العملاء",     value: totalCustomers.toLocaleString("en-US"),     icon: Users,         bg: "bg-violet-50",  ic: "text-violet-600", g: null },
+                { label: biz.terminology.revenue,   value: `${revenue.toLocaleString("en-US")} ر.س`, icon: Banknote,      bg: "bg-emerald-50", ic: "text-emerald-600", g: growth.revenue?.growth },
+                { label: biz.terminology.bookings,  value: totalBookings.toLocaleString("en-US"),      icon: CalendarCheck, bg: "bg-blue-50",    ic: "text-blue-600",   g: growth.bookings?.growth },
+                { label: biz.terminology.clients,   value: totalCustomers.toLocaleString("en-US"),     icon: Users,         bg: "bg-violet-50",  ic: "text-violet-600", g: null },
                 { label: "متوسط الحجز", value: `${Math.round(avgValue).toLocaleString("en-US")} ر.س`, icon: TrendingUp, bg: "bg-amber-50", ic: "text-amber-600", g: null },
               ].map((kpi, i) => (
                 <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
@@ -283,7 +352,7 @@ export function ReportsPage() {
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
                 <h2 className="font-semibold text-gray-900 text-sm">أداء الخدمات</h2>
-                <span className="text-xs text-gray-400">{services.length} خدمة</span>
+                <span className="text-xs text-gray-400">{services.length} {biz.terminology.item}</span>
               </div>
               <table className="w-full text-sm">
                 <thead>
@@ -334,8 +403,8 @@ export function ReportsPage() {
             {growth.revenue ? (
               <div className="space-y-4">
                 {[
-                  { label: "الإيرادات",  cur: growth.revenue?.current,  prev: growth.revenue?.previous,  g: growth.revenue?.growth,  suffix: " ر.س" },
-                  { label: "الحجوزات",   cur: growth.bookings?.current, prev: growth.bookings?.previous, g: growth.bookings?.growth, suffix: "" },
+                  { label: biz.terminology.revenue,  cur: growth.revenue?.current,  prev: growth.revenue?.previous,  g: growth.revenue?.growth,  suffix: " ر.س" },
+                  { label: biz.terminology.bookings, cur: growth.bookings?.current, prev: growth.bookings?.previous, g: growth.bookings?.growth, suffix: "" },
                 ].map((row, i) => (
                   <div key={i} className="p-4 rounded-xl bg-gray-50">
                     <div className="flex items-center justify-between mb-2">

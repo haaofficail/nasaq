@@ -7,11 +7,14 @@ import { clsx } from "clsx";
 type Method = "phone" | "email";
 type Step   = "input" | "otp";
 
-function saveSession(res: { token: string; user: any }) {
-  localStorage.setItem("nasaq_token",   res.token);
-  localStorage.setItem("nasaq_org_id",  res.user.orgId);
-  localStorage.setItem("nasaq_user_id", res.user.id);
-  localStorage.setItem("nasaq_user",    JSON.stringify(res.user));
+function saveSession(res: { token: string; user: any }, remember: boolean) {
+  const store = remember ? localStorage : sessionStorage;
+  if (remember) sessionStorage.clear();
+  else          localStorage.removeItem("nasaq_token");
+  store.setItem("nasaq_token",   res.token);
+  store.setItem("nasaq_org_id",  res.user.orgId ?? "");
+  store.setItem("nasaq_user_id", res.user.id ?? "");
+  store.setItem("nasaq_user",    JSON.stringify(res.user));
 }
 
 function getRedirectAfterLogin(user: any): string {
@@ -35,8 +38,9 @@ export function LoginPage() {
   const [password, setPassword]   = useState("");
   const [showPass, setShowPass]   = useState(false);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
+  const [remember, setRemember] = useState(true);
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
 
   // ─── Phone: request OTP ───────────────────────────────────
   const requestOtp = async () => {
@@ -57,7 +61,7 @@ export function LoginPage() {
     setLoading(true); setError("");
     try {
       const res = await authApi.verifyOtp(phone, code);
-      saveSession(res);
+      saveSession(res, remember);
       navigate(getRedirectAfterLogin(res.user));
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
@@ -69,7 +73,7 @@ export function LoginPage() {
     setLoading(true); setError("");
     try {
       const res = await authApi.loginWithEmail(email, password);
-      saveSession(res);
+      saveSession(res, remember);
       navigate(getRedirectAfterLogin(res.user));
     } catch (err: any) { setError(err.message); }
     finally { setLoading(false); }
@@ -160,6 +164,11 @@ export function LoginPage() {
                       autoFocus
                     />
                   </div>
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)}
+                      className="w-4 h-4 rounded accent-brand-500 cursor-pointer" />
+                    <span className="text-sm text-gray-500">البقاء متصلاً</span>
+                  </label>
                   {error && <p className="text-sm text-red-500 text-center">{error}</p>}
                   <button onClick={requestOtp} disabled={loading || !phone} className="w-full bg-brand-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
                     {loading && <Loader2 className="w-4 h-4 animate-spin" />}
@@ -256,6 +265,11 @@ export function LoginPage() {
                       </button>
                     </div>
                   </div>
+                  <label className="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)}
+                      className="w-4 h-4 rounded accent-brand-500 cursor-pointer" />
+                    <span className="text-sm text-gray-500">البقاء متصلاً</span>
+                  </label>
                   {error && <p className="text-sm text-red-500 text-center">{error}</p>}
                   <button onClick={loginWithEmail} disabled={loading || !email || !password} className="w-full bg-brand-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
                     {loading && <Loader2 className="w-4 h-4 animate-spin" />}

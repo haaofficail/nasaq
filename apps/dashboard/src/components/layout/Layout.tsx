@@ -6,9 +6,11 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { authApi, orgSubscriptionApi } from "@/lib/api";
+import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { useOrgContext, invalidateOrgContextCache } from "@/hooks/useOrgContext";
-import { buildVisibleNav, BOTTOM_NAV, SUPER_ADMIN_NAV } from "@/lib/navigationRegistry";
+import { buildVisibleNav, BOTTOM_NAV, SUPER_ADMIN_NAV, type SubscriptionPlan } from "@/lib/navigationRegistry";
 import { Toaster } from "@/components/ui/Toaster";
+import { ConfirmDialogHost } from "@/components/ui";
 import { useApi } from "@/hooks/useApi";
 import { useNetwork } from "@/hooks/useNetwork";
 import { isNative } from "@/hooks/usePlatform";
@@ -23,6 +25,7 @@ export function Layout() {
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_KEY) === "true");
   const [mobileOpen, setMobileOpen] = useState(false);
   const { context } = useOrgContext();
+  const platformConfig = usePlatformConfig();
   const location = useLocation();
   const navigate = useNavigate();
   const { isOnline } = useNetwork();
@@ -43,7 +46,7 @@ export function Layout() {
 
   const handleLogout = async () => {
     try { await authApi.logout(); } catch {}
-    ["nasaq_token", "nasaq_org_id", "nasaq_user_id", "nasaq_user"].forEach((k) => localStorage.removeItem(k));
+    ["nasaq_token", "nasaq_org_id", "nasaq_user_id", "nasaq_user"].forEach((k) => { localStorage.removeItem(k); sessionStorage.removeItem(k); });
     invalidateOrgContextCache();
     navigate("/login", { replace: true });
   };
@@ -89,8 +92,13 @@ export function Layout() {
     ? []
     : buildVisibleNav(
         context
-          ? { businessType: context.businessType, operatingProfile: context.operatingProfile, capabilities: context.capabilities }
-          : { businessType: "", operatingProfile: "general", capabilities: ["bookings", "customers", "catalog", "media"] }
+          ? {
+              businessType: context.businessType,
+              operatingProfile: context.operatingProfile,
+              capabilities: context.capabilities,
+              plan: (sub?.plan ?? "free") as SubscriptionPlan,
+            }
+          : { businessType: "", operatingProfile: "general", capabilities: ["bookings", "customers", "catalog", "media"], plan: "free" }
       );
 
   const allItems = allGroups.flatMap((g) => g.items);
@@ -129,15 +137,21 @@ export function Layout() {
         )}>
           {!collapsed && (
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center shadow-sm shadow-brand-500/30">
-                <Layers className="w-4 h-4 text-white" />
+              <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center shadow-sm shadow-brand-500/30 overflow-hidden shrink-0">
+                {platformConfig.logoUrl
+                  ? <img src={platformConfig.logoUrl} alt={platformConfig.platformName} className="w-full h-full object-contain" />
+                  : <Layers className="w-4 h-4 text-white" />
+                }
               </div>
-              <span className="text-lg font-bold text-brand-500 tracking-tight">نسق</span>
+              <span className="text-lg font-bold text-brand-500 tracking-tight">{platformConfig.platformName}</span>
             </div>
           )}
           {collapsed && (
-            <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center shadow-sm shadow-brand-500/30">
-              <Layers className="w-4 h-4 text-white" />
+            <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center shadow-sm shadow-brand-500/30 overflow-hidden">
+              {platformConfig.logoUrl
+                ? <img src={platformConfig.logoUrl} alt={platformConfig.platformName} className="w-full h-full object-contain" />
+                : <Layers className="w-4 h-4 text-white" />
+              }
             </div>
           )}
           <button
@@ -195,7 +209,7 @@ export function Layout() {
                           key={item.href}
                           to={item.href}
                           onClick={() => setMobileOpen(false)}
-                          title={collapsed ? item.name : undefined}
+                          title={item.name}
                           className={clsx(
                             "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                             collapsed && "justify-center px-2",
@@ -250,7 +264,7 @@ export function Layout() {
                         key={item.href}
                         to={item.href}
                         onClick={() => setMobileOpen(false)}
-                        title={collapsed ? item.name : undefined}
+                        title={item.name}
                         className={clsx(
                           "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                           collapsed && "justify-center px-2",
@@ -498,6 +512,7 @@ export function Layout() {
         </main>
       </div>
       <Toaster />
+      <ConfirmDialogHost />
     </div>
   );
 }

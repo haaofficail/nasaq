@@ -130,6 +130,9 @@ export const organizations = pgTable("organizations", {
   tagline: text("tagline"),
   description: text("description"),
 
+  // Storefront (صفحة العرض العامة)
+  storefrontEnabled: boolean("storefront_enabled").default(true),
+
   // Onboarding state
   onboardingCompleted: boolean("onboarding_completed").default(false),
   onboardingStep: text("onboarding_step").default("0"),

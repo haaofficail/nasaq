@@ -314,6 +314,14 @@ router.patch("/schedule-weeks/:id/activate", async (c) => {
     .where(and(eq(scheduleWeeks.id, id), eq(scheduleWeeks.orgId, orgId)))
     .returning();
 
+  // تحديث activeWeekId في إعدادات المدرسة
+  const [existing] = await db.select({ id: schoolSettings.id }).from(schoolSettings).where(eq(schoolSettings.orgId, orgId)).limit(1);
+  if (existing) {
+    await db.update(schoolSettings).set({ activeWeekId: id, updatedAt: new Date() }).where(eq(schoolSettings.orgId, orgId));
+  } else {
+    await db.insert(schoolSettings).values({ orgId, schoolName: "", activeWeekId: id });
+  }
+
   return c.json({ data: activated });
 });
 
@@ -576,7 +584,7 @@ const standbyActivationSchema = z.object({
   absentTeacherId:  z.string().uuid().optional().nullable(),
   standbyTeacherId: z.string().uuid(),
   classRoomId:      z.string().uuid().optional().nullable(),
-  subject:          z.string().min(1).max(200),
+  subject:          z.string().min(1).max(200).optional().nullable(),
   periodLabel:      z.string().max(100).optional().nullable(),
   startTime:        z.string().max(10).optional().nullable(),
   endTime:          z.string().max(10).optional().nullable(),
@@ -644,7 +652,7 @@ router.post("/standby-activations", async (c) => {
       absentTeacherId:  body.absentTeacherId ?? null,
       standbyTeacherId: body.standbyTeacherId,
       classRoomId:      body.classRoomId ?? null,
-      subject:          body.subject,
+      subject:          body.subject ?? "",
       periodLabel:      body.periodLabel ?? null,
       startTime:        body.startTime ?? null,
       endTime:          body.endTime ?? null,
@@ -978,19 +986,72 @@ router.post("/timetable/bulk", requirePerm("school.timetable.edit"), async (c) =
     .from(classRooms).where(and(eq(classRooms.id, body.classRoomId), eq(classRooms.orgId, orgId))).limit(1);
   if (!cr) return c.json({ error: "الفصل غير موجود" }, 404);
 
-  // الأسبوع النشط
-  const [settings] = await db
-    .select({ activeWeekId: schoolSettings.activeWeekId })
+  // الأسبوع النشط — مع إعداد تلقائي إن لم يكن موجوداً
+  let [settings] = await db
+    .select({ activeWeekId: schoolSettings.activeWeekId, sessionStartTime: schoolSettings.sessionStartTime, periodDurationMinutes: schoolSettings.periodDurationMinutes, breakDurationMinutes: schoolSettings.breakDurationMinutes, numberOfPeriods: schoolSettings.numberOfPeriods, sessionType: schoolSettings.sessionType })
     .from(schoolSettings).where(eq(schoolSettings.orgId, orgId)).limit(1);
+
   if (!settings?.activeWeekId) {
-    return c.json({ error: "لا يوجد أسبوع نشط — قم بإعداد العام الدراسي أولاً" }, 400);
+    // إعداد تلقائي: أنشئ قالباً وأسبوعاً عند أول حفظ للجدول
+    const startTime = settings?.sessionStartTime ?? "07:30";
+    const periodDur = settings?.periodDurationMinutes ?? 45;
+    const breakDur  = settings?.breakDurationMinutes  ?? 30;
+    const numPeriods = settings?.numberOfPeriods ?? 7;
+    const breakAfterPeriod = 3;
+    const toMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+    const fromMin = (m: number) => { const h = Math.floor(m / 60), min = m % 60; return `${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}`; };
+    const ARABIC_LABELS = ["الأولى","الثانية","الثالثة","الرابعة","الخامسة","السادسة","السابعة","الثامنة","التاسعة","العاشرة"];
+
+    const [tmpl] = await db.insert(timetableTemplates).values({
+      orgId,
+      name: "الجدول الأساسي",
+      sessionType: (settings?.sessionType ?? "winter") as "winter" | "summer" | "ramadan",
+    }).returning({ id: timetableTemplates.id });
+
+    let currentMin = toMin(startTime);
+    for (let i = 1; i <= numPeriods; i++) {
+      const endMin = currentMin + periodDur;
+      await db.insert(timetableTemplatePeriods).values({
+        orgId, templateId: tmpl.id,
+        periodNumber: i,
+        label: `الحصة ${ARABIC_LABELS[i - 1] ?? i}`,
+        startTime: fromMin(currentMin),
+        endTime: fromMin(endMin),
+        isBreak: false,
+      });
+      currentMin = endMin;
+      if (i === breakAfterPeriod && i < numPeriods) {
+        const breakEnd = currentMin + breakDur;
+        await db.insert(timetableTemplatePeriods).values({
+          orgId, templateId: tmpl.id,
+          periodNumber: i + 0.5,
+          label: "الفسحة",
+          startTime: fromMin(currentMin),
+          endTime: fromMin(breakEnd),
+          isBreak: true,
+        });
+        currentMin = breakEnd;
+      }
+    }
+
+    const [newWeek] = await db.insert(scheduleWeeks).values({
+      orgId, templateId: tmpl.id,
+      weekNumber: 1, label: "الأسبوع الأول", isActive: true,
+    }).returning({ id: scheduleWeeks.id });
+
+    if (settings) {
+      await db.update(schoolSettings).set({ activeWeekId: newWeek.id, updatedAt: new Date() }).where(eq(schoolSettings.orgId, orgId));
+    } else {
+      await db.insert(schoolSettings).values({ orgId, schoolName: "", activeWeekId: newWeek.id });
+    }
+    settings = { ...settings, activeWeekId: newWeek.id } as typeof settings;
   }
 
   // قالب الأسبوع النشط
   const [week] = await db
     .select({ templateId: scheduleWeeks.templateId })
     .from(scheduleWeeks)
-    .where(and(eq(scheduleWeeks.id, settings.activeWeekId), eq(scheduleWeeks.orgId, orgId))).limit(1);
+    .where(and(eq(scheduleWeeks.id, settings.activeWeekId!), eq(scheduleWeeks.orgId, orgId))).limit(1);
   if (!week?.templateId) return c.json({ error: "قالب الجدول غير موجود في الأسبوع النشط" }, 400);
 
   // جلب periods لتحويل periodNumber → periodId

@@ -31,17 +31,23 @@ export function SmartHomePage() {
     propertyApi.sendInvoice(id)
   );
 
+  const overdueCount = dash.overdueInvoices?.count ?? dash.overdueInvoicesCount ?? 0;
+  const expiringCount = dash.expiringContracts?.count ?? dash.expiringContractsCount ?? 0;
+  const vacantCount = dash.vacantUnits ?? dash.vacantUnitsCount ?? 0;
+  const netIncome = dash.netIncome ?? 0;
+
   const kpis = [
     { label: "الإيرادات الشهرية", value: `${Number(dash.monthlyRevenue ?? 0).toLocaleString("en-US")} ريال`, color: "bg-brand-50" },
-    { label: "المبالغ المعلقة", value: `${Number(dash.pendingAmount ?? 0).toLocaleString("en-US")} ريال`, color: "bg-yellow-50" },
-    { label: "فواتير متأخرة", value: dash.overdueInvoicesCount ?? 0, color: "bg-red-50" },
-    { label: "نسبة الإشغال", value: `${dash.occupancyRate ?? 0}%`, color: "bg-emerald-50" },
-    { label: "وحدات شاغرة", value: dash.vacantUnitsCount ?? 0, color: "bg-gray-50" },
-    { label: "عقود تنتهي قريباً", value: dash.expiringContractsCount ?? 0, color: "bg-orange-50" },
+    { label: "صافي الدخل", value: `${Number(netIncome).toLocaleString("en-US")} ريال`, color: "bg-emerald-50" },
+    { label: "فواتير متأخرة", value: overdueCount, color: "bg-red-50" },
+    { label: "نسبة الإشغال", value: `${dash.occupancyRate ?? 0}%`, color: "bg-teal-50" },
+    { label: "وحدات شاغرة", value: vacantCount, color: "bg-gray-50" },
+    { label: "عقود تنتهي قريباً", value: expiringCount, color: "bg-orange-50" },
   ];
 
   const tasks: any[] = dash.tasks ?? [];
-  const complianceRate: number = dash.complianceRate ?? 0;
+  const undocumentedEjar: number = dash.undocumentedEjarContracts?.count ?? 0;
+  const complianceRate: number = dash.complianceRate ?? (undocumentedEjar === 0 && (dash.totalProperties ?? 0) > 0 ? 85 : 0);
 
   const complianceColor =
     complianceRate >= 80 ? "bg-emerald-500" :
@@ -183,19 +189,26 @@ export function SmartHomePage() {
                    "منخفض — يجب توثيق العقود في إيجار"}
                 </p>
               </div>
-              {(dash.complianceBreakdown ?? []).length > 0 && (
-                <div className="space-y-2 mt-2">
-                  {(dash.complianceBreakdown as any[]).map((item: any) => (
-                    <div key={item.label} className="flex justify-between text-xs">
-                      <span className="text-gray-500">{item.label}</span>
-                      <span className={clsx(
-                        "font-medium",
-                        item.ok ? "text-emerald-600" : "text-red-500"
-                      )}>{item.ok ? "مكتمل" : "ناقص"}</span>
-                    </div>
-                  ))}
+              <div className="space-y-2 mt-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">عقود موثقة في إيجار</span>
+                  <span className={clsx("font-medium", undocumentedEjar === 0 ? "text-emerald-600" : "text-red-500")}>
+                    {undocumentedEjar === 0 ? "مكتمل" : `${undocumentedEjar} عقد غير موثق`}
+                  </span>
                 </div>
-              )}
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">فواتير متأخرة</span>
+                  <span className={clsx("font-medium", overdueCount === 0 ? "text-emerald-600" : "text-red-500")}>
+                    {overdueCount === 0 ? "لا يوجد" : `${overdueCount} فاتورة`}
+                  </span>
+                </div>
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-500">عقود تنتهي خلال 60 يوم</span>
+                  <span className={clsx("font-medium", expiringCount === 0 ? "text-emerald-600" : "text-yellow-600")}>
+                    {expiringCount === 0 ? "لا يوجد" : `${expiringCount} عقد`}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </div>

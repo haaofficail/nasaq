@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   CreditCard, CheckCircle2, Clock, Package, History,
-  ArrowUp, ArrowDown, Minus, RefreshCw, AlertCircle, X,
+  ArrowUp, ArrowDown, Minus, RefreshCw, AlertCircle, X, ExternalLink,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { orgSubscriptionApi } from "@/lib/api";
@@ -62,14 +63,38 @@ interface PendingOrder {
 // ── main page ──────────────────────────────────────────────
 
 export function SubscriptionPage() {
+  const [searchParams, setSearchParams]   = useSearchParams();
   const [modalType, setModalType]         = useState<ModalType>(null);
   const [selectedPlan, setSelectedPlan]   = useState<string | null>(null);
   const [selectedAddon, setSelectedAddon] = useState<string | null>(null);
   const [confirming, setConfirming]       = useState(false);
   const [pendingOrder, setPendingOrder]   = useState<PendingOrder | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<"confirming" | "success" | "failed" | null>(null);
 
   const { data: subRes, loading, refetch: refetchSub } = useApi(() => orgSubscriptionApi.get(), []);
   const { data: ordersRes, refetch: refetchOrders }     = useApi(() => orgSubscriptionApi.orders(), []);
+
+  // ── معالجة callback من موياسار بعد إتمام الدفع ──────────
+  useEffect(() => {
+    const moyasarId = searchParams.get("id");
+    const orderId   = searchParams.get("orderId");
+    if (!moyasarId || !orderId) return;
+
+    // حذف المعاملات من URL فور الكشف عنها
+    setSearchParams({}, { replace: true });
+    setPaymentStatus("confirming");
+
+    orgSubscriptionApi.confirmPayment(orderId, moyasarId)
+      .then(() => {
+        setPaymentStatus("success");
+        refetchSub();
+        refetchOrders();
+      })
+      .catch((err: any) => {
+        setPaymentStatus("failed");
+        toast.error(err?.message ?? "تعذر تأكيد الدفع");
+      });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sub     = subRes?.data;
   const orders: any[] = ordersRes?.data ?? [];
@@ -101,26 +126,34 @@ export function SubscriptionPage() {
       const order = res?.data;
       if (!order) throw new Error("استجابة غير متوقعة");
 
-      // Build pending order display
-      let title = "";
-      let price = 0;
-      if (modalType === "renew") {
-        title = `تجديد باقة ${currentPlan?.name ?? ""}`;
-        price = annualPrice(currentPlan?.price ?? 0);
-      } else if (modalType === "upgrade" && selectedPlan) {
-        const plan = PLAN_MAP[selectedPlan];
-        title = `الانتقال إلى باقة ${plan?.name ?? ""}`;
-        price = annualPrice(plan?.price ?? 0);
-      } else if (modalType === "addon" && selectedAddon) {
-        const addon = ADDONS.find(a => a.key === selectedAddon);
-        title = `تفعيل إضافة: ${addon?.name ?? ""}`;
-        price = addon?.price ?? 0;
-      }
-
-      setPendingOrder({ orderId: order.orderId, title, price, type: modalType });
       closeModal();
-      refetchSub();
-      refetchOrders();
+
+      // ── توجيه المستخدم لصفحة الدفع المستضافة عند موياسار ──
+      const returnUrl = `${window.location.origin}/dashboard/subscription`;
+      const urlRes = await orgSubscriptionApi.paymentUrl(order.orderId, returnUrl);
+      const paymentUrl = urlRes?.data?.paymentUrl;
+      if (paymentUrl) {
+        window.location.href = paymentUrl;
+      } else {
+        // fallback: عرض رقم الطلب فقط
+        let title = "";
+        let price = 0;
+        if (modalType === "renew") {
+          title = `تجديد باقة ${currentPlan?.name ?? ""}`;
+          price = annualPrice(currentPlan?.price ?? 0);
+        } else if (modalType === "upgrade" && selectedPlan) {
+          const plan = PLAN_MAP[selectedPlan];
+          title = `الانتقال إلى باقة ${plan?.name ?? ""}`;
+          price = annualPrice(plan?.price ?? 0);
+        } else if (modalType === "addon" && selectedAddon) {
+          const addon = ADDONS.find(a => a.key === selectedAddon);
+          title = `تفعيل إضافة: ${addon?.name ?? ""}`;
+          price = addon?.price ?? 0;
+        }
+        setPendingOrder({ orderId: order.orderId, title, price, type: modalType });
+        refetchSub();
+        refetchOrders();
+      }
     } catch (err: any) {
       toast.error(err?.message ?? "حدث خطأ، حاول مجدداً");
     } finally {
@@ -129,8 +162,15 @@ export function SubscriptionPage() {
   };
 
   const handleDeactivateAddon = async (addonKey: string) => {
-    // TODO: add deactivate-addon endpoint when needed
-    toast.info("للإلغاء تواصل مع الدعم");
+    if (!confirm("هل أنت متأكد من إلغاء هذه الإضافة؟")) return;
+    try {
+      await orgSubscriptionApi.deactivateAddon(addonKey);
+      toast.success("تم إلغاء الإضافة");
+      refetchSub();
+      refetchOrders();
+    } catch (err: any) {
+      toast.error(err?.message ?? "حدث خطأ أثناء الإلغاء");
+    }
   };
 
   if (loading) {
@@ -157,17 +197,48 @@ export function SubscriptionPage() {
         <p className="text-sm text-gray-400 mt-0.5">تفاصيل اشتراكك، الإضافات، وطلبات الشراء</p>
       </div>
 
-      {/* ── Pending order notice ── */}
+      {/* ── Payment callback status ── */}
+      {paymentStatus === "confirming" && (
+        <div className="bg-brand-50 border border-brand-200 rounded-2xl px-5 py-4 flex items-center gap-3">
+          <RefreshCw className="w-5 h-5 text-brand-500 animate-spin shrink-0" />
+          <p className="text-sm font-semibold text-brand-800">جارٍ التحقق من الدفع…</p>
+        </div>
+      )}
+      {paymentStatus === "success" && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-5 py-4 flex items-center gap-3">
+          <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-emerald-800">تم الدفع بنجاح</p>
+            <p className="text-xs text-emerald-700 mt-0.5">اشتراكك مفعّل الآن</p>
+          </div>
+          <button onClick={() => setPaymentStatus(null)} className="text-emerald-400 hover:text-emerald-600 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+      {paymentStatus === "failed" && (
+        <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-red-800">تعذر تأكيد الدفع</p>
+            <p className="text-xs text-red-700 mt-0.5">تواصل مع الدعم إذا تم خصم المبلغ</p>
+          </div>
+          <button onClick={() => setPaymentStatus(null)} className="text-red-400 hover:text-red-600 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
+      {/* ── Pending order notice (fallback when paymentUrl unavailable) ── */}
       {pendingOrder && (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 flex items-start gap-3">
           <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-sm font-semibold text-amber-800">{pendingOrder.title}</p>
             <p className="text-xs text-amber-700 mt-0.5">
-              تم إنشاء طلب التجديد بنجاح — في انتظار الدفع
+              تم إنشاء طلب الدفع بنجاح — في انتظار التسوية
             </p>
             <p className="text-xs font-mono text-amber-600 mt-1">رقم الطلب: {pendingOrder.orderId}</p>
-            {/* TODO: Moyasar payment gateway — وجّه المستخدم هنا لإتمام الدفع مع orderId */}
           </div>
           <button onClick={() => setPendingOrder(null)} className="text-amber-400 hover:text-amber-600 transition-colors">
             <X className="w-4 h-4" />
@@ -416,10 +487,10 @@ export function SubscriptionPage() {
               </span>
             </div>
           </div>
-          <p className="text-xs text-gray-400">
-            بعد التأكيد سيتم إنشاء طلب الدفع — يمكنك إتمام الدفع عبر بوابة الدفع المتاحة.
+          <p className="text-xs text-gray-400 flex items-center gap-1">
+            <ExternalLink className="w-3 h-3" />
+            بعد التأكيد ستنتقل إلى صفحة الدفع الآمنة عبر موياسار
           </p>
-          {/* TODO: Moyasar payment gateway — وجّه المستخدم هنا لإتمام الدفع مع orderId */}
         </div>
       </Modal>
 
@@ -474,10 +545,10 @@ export function SubscriptionPage() {
                 </span>
               </div>
             </div>
-            <p className="text-xs text-gray-400">
-              بعد التأكيد سيتم إنشاء طلب الدفع — يمكنك إتمام الدفع عبر بوابة الدفع المتاحة.
+            <p className="text-xs text-gray-400 flex items-center gap-1">
+              <ExternalLink className="w-3 h-3" />
+              بعد التأكيد ستنتقل إلى صفحة الدفع الآمنة عبر موياسار
             </p>
-            {/* TODO: Moyasar payment gateway — وجّه المستخدم هنا لإتمام الدفع مع orderId */}
           </div>
         )}
       </Modal>
@@ -515,10 +586,10 @@ export function SubscriptionPage() {
                 </span>
               </div>
             </div>
-            <p className="text-xs text-gray-400">
-              بعد التأكيد سيتم إنشاء طلب الدفع — يمكنك إتمام الدفع عبر بوابة الدفع المتاحة.
+            <p className="text-xs text-gray-400 flex items-center gap-1">
+              <ExternalLink className="w-3 h-3" />
+              بعد التأكيد ستنتقل إلى صفحة الدفع الآمنة عبر موياسار
             </p>
-            {/* TODO: Moyasar payment gateway — وجّه المستخدم هنا لإتمام الدفع مع orderId */}
           </div>
         )}
       </Modal>

@@ -10,7 +10,6 @@ import { LandingPage } from "./pages/LandingPage";
 import { SchoolLandingPage } from "./pages/SchoolLandingPage";
 import { SchoolLoginPage } from "./pages/SchoolLoginPage";
 import { SchoolRegisterPage } from "./pages/SchoolRegisterPage";
-import { OnboardingPage } from "./pages/OnboardingPage";
 import { AdminLoginPage } from "./pages/AdminLoginPage";
 
 // ── Lazy page loader ───────────────────────────────────────────────
@@ -32,6 +31,7 @@ const PublicFlowerPage       = lz(() => import("./pages/PublicFlowerPage"), "Pub
 const MarketplaceBrowsePage  = lz(() => import("./pages/MarketplaceBrowsePage"), "MarketplaceBrowsePage");
 const PublicStorefrontPage   = lz(() => import("./pages/PublicStorefrontPage"), "PublicStorefrontPage");
 const PublicPagePage         = lz(() => import("./pages/PublicPagePage"), "PublicPagePage");
+const PublicPrintPage        = lz(() => import("./pages/PublicPrintPage"), "PublicPrintPage");
 
 // Core dashboard
 const DashboardPage          = lz(() => import("./pages/DashboardPage"), "DashboardPage");
@@ -71,15 +71,21 @@ const AccountingPage         = lz(() => import("./pages/AccountingPage"), "Accou
 const JournalEntriesPage     = lz(() => import("./pages/JournalEntriesPage"), "JournalEntriesPage");
 const FinancialStatementsPage= lz(() => import("./pages/FinancialStatementsPage"), "FinancialStatementsPage");
 const ReconciliationPage     = lz(() => import("./pages/ReconciliationPage"), "ReconciliationPage");
+const FixedAssetsPage        = lz(() => import("./pages/FixedAssetsPage"), "FixedAssetsPage");
+const VendorsPage            = lz(() => import("./pages/VendorsPage"), "VendorsPage");
+const AccountingPeriodsPage  = lz(() => import("./pages/AccountingPeriodsPage"), "AccountingPeriodsPage");
+const CostCentersPage        = lz(() => import("./pages/CostCentersPage"), "CostCentersPage");
+const BudgetsPage            = lz(() => import("./pages/BudgetsPage"), "BudgetsPage");
 
 // Operations
 const InventoryPage          = lz(() => import("./pages/InventoryPage"), "InventoryPage");
-const SuppliersPage          = lz(() => import("./pages/SuppliersPage"), "SuppliersPage");
 const ProvidersPage          = lz(() => import("./pages/ProvidersPage"), "ProvidersPage");
 const StaffPage              = lz(() => import("./pages/StaffPage"), "StaffPage");
 const RolesPage              = lz(() => import("./pages/RolesPage"), "RolesPage");
 const AttendancePage         = lz(() => import("./pages/AttendancePage"), "AttendancePage");
 const TeamPage               = lz(() => import("./pages/TeamPage"), "TeamPage");
+const HRPage                 = lz(() => import("./pages/HRPage"), "HRPage");
+const HREmployeePage         = lz(() => import("./pages/HREmployeePage"), "HREmployeePage");
 const DeliveryPage           = lz(() => import("./pages/DeliveryPage"), "DeliveryPage");
 
 // Channels / Marketing
@@ -130,49 +136,41 @@ const FlowerMasterPage       = lz(() => import("./pages/FlowerMasterPage"), "Flo
 const ArrangementsPage       = lz(() => import("./pages/ArrangementsPage"), "ArrangementsPage");
 const AssetsPage             = lz(() => import("./pages/AssetsPage"), "AssetsPage");
 const ContractsPage          = lz(() => import("./pages/ContractsPage"), "ContractsPage");
+const ContractDetailPage     = lz(() => import("./pages/ContractDetailPage"), "ContractDetailPage");
 const InspectionsPage        = lz(() => import("./pages/InspectionsPage"), "InspectionsPage");
 const MaintenancePage        = lz(() => import("./pages/MaintenancePage"), "MaintenancePage");
+const WorkOrdersPage         = lz(() => import("./pages/WorkOrdersPage"), "WorkOrdersPage");
+const AccessControlPage      = lz(() => import("./pages/AccessControlPage"), "AccessControlPage");
 const WarehousePage          = lz(() => import("./pages/WarehousePage"), "WarehousePage");
 const EventsPage             = lz(() => import("./pages/EventsPage"), "EventsPage");
-const PackagesPage           = lz(() => import("./pages/PackagesPage"), "PackagesPage");
 const EventQuotationsPage    = lz(() => import("./pages/EventQuotationsPage"), "EventQuotationsPage");
+const PackagesPage           = lz(() => import("./pages/PackagesPage"), "PackagesPage");
 const MediaLibraryPage       = lz(() => import("./pages/MediaLibraryPage"), "MediaLibraryPage");
 const AdminPage              = lz(() => import("./pages/AdminPage"), "AdminPage");
 const AdminPaymentsPage      = lz(() => import("./pages/AdminPaymentsPage"), "AdminPaymentsPage");
 const PaymentsPage           = lz(() => import("./pages/PaymentsPage"), "PaymentsPage");
 const PublicPaymentPage      = lz(() => import("./pages/PublicPaymentPage"), "PublicPaymentPage");
+const PublicGalleryPage      = lz(() => import("./pages/PublicGalleryPage"), "PublicGalleryPage");
+const GalleriesPage          = lz(() => import("./pages/GalleriesPage"), "GalleriesPage");
 const RemindersPage          = lz(() => import("./pages/RemindersPage"), "RemindersPage");
 const SupportPage            = lz(() => import("./pages/SupportPage"), "SupportPage");
 const GuidePage              = lz(() => import("./pages/GuidePage"), "GuidePage");
 const BarcodeLabelPage       = lz(() => import("./pages/BarcodeLabelPage"));
 
 // Property Management
-const PropertyDashboardPage   = lz(() => import("./pages/property/PropertyDashboardPage"), "PropertyDashboardPage");
-const PropertyListPage        = lz(() => import("./pages/property/PropertyListPage"), "PropertyListPage");
-const PropertyUnitsPage       = lz(() => import("./pages/property/PropertyUnitsPage"), "PropertyUnitsPage");
-const TenantsPage             = lz(() => import("./pages/property/TenantsPage"), "TenantsPage");
-const LeaseContractsPage      = lz(() => import("./pages/property/LeaseContractsPage"), "LeaseContractsPage");
-const LeaseInvoicesPage       = lz(() => import("./pages/property/LeaseInvoicesPage"), "LeaseInvoicesPage");
-const LeasePaymentsPage       = lz(() => import("./pages/property/LeasePaymentsPage"), "LeasePaymentsPage");
-const PropertyMaintenancePage = lz(() => import("./pages/property/PropertyMaintenancePage"), "PropertyMaintenancePage");
-const PropertyExpensesPage    = lz(() => import("./pages/property/PropertyExpensesPage"), "PropertyExpensesPage");
-const SmartHomePage           = lz(() => import("./pages/property/SmartHomePage"), "SmartHomePage");
-const PropertyPortfolioPage   = lz(() => import("./pages/property/PropertyPortfolioPage"), "PropertyPortfolioPage");
-const ContractDetailPage      = lz(() => import("./pages/property/ContractDetailPage"), "ContractDetailPage");
-const QuickPaymentPage        = lz(() => import("./pages/property/QuickPaymentPage"), "QuickPaymentPage");
-const PropertyInspectionsPage = lz(() => import("./pages/property/PropertyInspectionsPage"), "PropertyInspectionsPage");
-const PropertyDocumentsPage   = lz(() => import("./pages/property/PropertyDocumentsPage"), "PropertyDocumentsPage");
-const PropertyValuationsPage  = lz(() => import("./pages/property/PropertyValuationsPage"), "PropertyValuationsPage");
-const PropertyInvestmentPage  = lz(() => import("./pages/property/PropertyInvestmentPage"), "PropertyInvestmentPage");
-const ConstructionTrackerPage = lz(() => import("./pages/property/ConstructionTrackerPage"), "ConstructionTrackerPage");
-const PropertyReportsPage     = lz(() => import("./pages/property/PropertyReportsPage"), "PropertyReportsPage");
-const TenantPortalPage        = lz(() => import("./pages/property/TenantPortalPage"), "TenantPortalPage");
-const PropertyListingsPage    = lz(() => import("./pages/property/PropertyListingsPage"), "PropertyListingsPage");
-const PropertyInquiriesPage   = lz(() => import("./pages/property/PropertyInquiriesPage"), "PropertyInquiriesPage");
-const PropertySalesPage       = lz(() => import("./pages/property/PropertySalesPage"), "PropertySalesPage");
-const PropertyOwnersPage      = lz(() => import("./pages/property/PropertyOwnersPage"), "PropertyOwnersPage");
-const ComplianceDashboardPage = lz(() => import("./pages/property/ComplianceDashboardPage"), "ComplianceDashboardPage");
-const PropertyPublicPage      = lz(() => import("./pages/property/PropertyPublicPage"), "PropertyPublicPage");
+const PropertyDashboardPage        = lz(() => import("./pages/property/PropertyDashboardPage"), "PropertyDashboardPage");
+const PropertyListPage             = lz(() => import("./pages/property/PropertyListPage"), "PropertyListPage");
+const PropertyUnitsPage            = lz(() => import("./pages/property/PropertyUnitsPage"), "PropertyUnitsPage");
+const TenantsPage                  = lz(() => import("./pages/property/TenantsPage"), "TenantsPage");
+const LeaseContractsPage           = lz(() => import("./pages/property/LeaseContractsPage"), "LeaseContractsPage");
+const LeaseInvoicesPage            = lz(() => import("./pages/property/LeaseInvoicesPage"), "LeaseInvoicesPage");
+const LeasePaymentsPage            = lz(() => import("./pages/property/LeasePaymentsPage"), "LeasePaymentsPage");
+const PropertyMaintenancePage      = lz(() => import("./pages/property/PropertyMaintenancePage"), "PropertyMaintenancePage");
+const PropertyExpensesPage         = lz(() => import("./pages/property/PropertyExpensesPage"), "PropertyExpensesPage");
+const PropertyListingsPage         = lz(() => import("./pages/property/PropertyListingsPage"), "PropertyListingsPage");
+const PropertyInquiriesPage        = lz(() => import("./pages/property/PropertyInquiriesPage"), "PropertyInquiriesPage");
+const PropertySalesPage            = lz(() => import("./pages/property/PropertySalesPage"), "PropertySalesPage");
+const PropertyReportsPage          = lz(() => import("./pages/property/PropertyReportsPage"), "PropertyReportsPage");
 
 // School System
 const SchoolDashboardPage          = lz(() => import("./pages/school/SchoolDashboardPage"), "SchoolDashboardPage");
@@ -195,6 +193,8 @@ const SchoolSubjectsPage           = lz(() => import("./pages/school/SchoolSubje
 const SchoolTeacherAttendancePage  = lz(() => import("./pages/school/SchoolTeacherAttendancePage"), "SchoolTeacherAttendancePage");
 const SchoolAcademicCalendarPage   = lz(() => import("./pages/school/SchoolAcademicCalendarPage"), "SchoolAcademicCalendarPage");
 const SchoolGuidePage              = lz(() => import("./pages/school/SchoolGuidePage"), "SchoolGuidePage");
+const SchoolAssessmentsPage        = lz(() => import("./pages/school/SchoolAssessmentsPage"), "SchoolAssessmentsPage");
+const SchoolGradesEntryPage        = lz(() => import("./pages/school/SchoolGradesEntryPage"), "SchoolGradesEntryPage");
 const SchoolTimetablePage          = lz(() => import("./pages/school/SchoolTimetablePage"), "SchoolTimetablePage");
 const SchoolTimetableTemplatesPage = lz(() => import("./pages/school/SchoolTimetableTemplatesPage"), "SchoolTimetableTemplatesPage");
 const SchoolScheduleWeeksPage      = lz(() => import("./pages/school/SchoolScheduleWeeksPage"), "SchoolScheduleWeeksPage");
@@ -202,6 +202,7 @@ const SchoolPeriodsPage            = lz(() => import("./pages/school/SchoolPerio
 const SchoolTeacherWorkPage        = lz(() => import("./pages/school/SchoolTeacherWorkPage"), "SchoolTeacherWorkPage");
 const SchoolTeacherProfilePage     = lz(() => import("./pages/school/SchoolTeacherProfilePage"), "SchoolTeacherProfilePage");
 const SchoolInvitePage             = lz(() => import("./pages/school/SchoolInvitePage"), "SchoolInvitePage");
+const SchoolRolesPage              = lz(() => import("./pages/school/SchoolRolesPage"), "SchoolRolesPage");
 
 // ── Loading fallback ───────────────────────────────────────────────
 function PageLoader() {
@@ -222,13 +223,17 @@ function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+const ALLOWED_NASAQ_ROLES_AUTH = ["account_manager", "support_agent", "content_manager", "viewer"];
+
 function RequireAdminAuth({ children }: { children: ReactNode }) {
   const token = localStorage.getItem("nasaq_token");
   const location = useLocation();
   if (!token) return <Navigate to="/admin-login" state={{ from: location }} replace />;
   try {
     const user = JSON.parse(localStorage.getItem("nasaq_user") || "{}");
-    if (!user?.isSuperAdmin) return <Navigate to="/admin-login" replace />;
+    if (!user?.isSuperAdmin && !ALLOWED_NASAQ_ROLES_AUTH.includes(user?.nasaqRole)) {
+      return <Navigate to="/admin-login" replace />;
+    }
   } catch {
     return <Navigate to="/admin-login" replace />;
   }
@@ -260,17 +265,18 @@ export default function App() {
         <Route path="/admin" element={<RequireAdminAuth><AdminPage /></RequireAdminAuth>} />
         <Route path="/admin/payments" element={<RequireAdminAuth><AdminPaymentsPage /></RequireAdminAuth>} />
         <Route path="/register" element={<RegisterPage />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />
 
         {/* Public booking / tracking / storefront */}
         <Route path="/book/:slug" element={<PublicBookingPage />} />
         <Route path="/track/:token" element={<PublicTrackingPage />} />
         <Route path="/marketplace" element={<MarketplaceBrowsePage />} />
         <Route path="/flowers/:slug" element={<PublicFlowerPage />} />
+        <Route path="/s/:orgSlug/print" element={<PublicPrintPage />} />
         <Route path="/s/:orgSlug" element={<PublicStorefrontPage />} />
         <Route path="/s/:orgSlug/p/:pageSlug" element={<PublicPagePage />} />
         <Route path="/pay/:orgSlug" element={<PublicPaymentPage />} />
-        <Route path="/available/:orgSlug" element={<PropertyPublicPage />} />
+        <Route path="/gallery/:token" element={<PublicGalleryPage />} />
 
         {/* ── Dashboard (auth required) ── */}
         <Route path="/dashboard" element={<RequireAuth><Layout /></RequireAuth>}>
@@ -312,6 +318,11 @@ export default function App() {
           <Route path="treasury" element={<TreasuryPage />} />
           <Route path="accounting" element={<AccountingPage />} />
           <Route path="accounting/journal-entries" element={<JournalEntriesPage />} />
+          <Route path="accounting/periods" element={<AccountingPeriodsPage />} />
+          <Route path="accounting/fixed-assets" element={<FixedAssetsPage />} />
+          <Route path="accounting/vendors" element={<VendorsPage />} />
+          <Route path="accounting/cost-centers" element={<CostCentersPage />} />
+          <Route path="accounting/budgets" element={<BudgetsPage />} />
           <Route path="financial-statements" element={<FinancialStatementsPage />} />
           <Route path="reconciliation" element={<ReconciliationPage />} />
 
@@ -322,6 +333,8 @@ export default function App() {
           <Route path="permissions" element={<RolesPage />} />
           <Route path="attendance" element={<AttendancePage />} />
           <Route path="team" element={<TeamPage />} />
+          <Route path="hr" element={<HRPage />} />
+          <Route path="hr/employees/:id" element={<HREmployeePage />} />
           <Route path="delivery" element={<DeliveryPage />} />
 
           <Route path="website" element={<WebsitePage />} />
@@ -373,43 +386,35 @@ export default function App() {
 
           <Route path="assets" element={<AssetsPage />} />
           <Route path="contracts" element={<ContractsPage />} />
+          <Route path="contracts/:id" element={<ContractDetailPage />} />
           <Route path="inspections" element={<InspectionsPage />} />
           <Route path="maintenance" element={<MaintenancePage />} />
+          <Route path="work-orders" element={<WorkOrdersPage />} />
+          <Route path="access-control" element={<AccessControlPage />} />
           <Route path="warehouse" element={<WarehousePage />} />
           <Route path="rental-analytics" element={<RentalAnalyticsPage />} />
 
-          <Route path="events" element={<EventsPage />} />
-          <Route path="packages" element={<PackagesPage />} />
-          <Route path="event-quotations" element={<EventQuotationsPage />} />
-
+          {/* ── Property Management ── */}
           <Route path="property" element={<PropertyDashboardPage />} />
           <Route path="property/properties" element={<PropertyListPage />} />
           <Route path="property/units" element={<PropertyUnitsPage />} />
           <Route path="property/tenants" element={<TenantsPage />} />
           <Route path="property/contracts" element={<LeaseContractsPage />} />
-          <Route path="property/contracts/:id" element={<ContractDetailPage />} />
           <Route path="property/invoices" element={<LeaseInvoicesPage />} />
           <Route path="property/payments" element={<LeasePaymentsPage />} />
           <Route path="property/maintenance" element={<PropertyMaintenancePage />} />
           <Route path="property/expenses" element={<PropertyExpensesPage />} />
-          <Route path="property/smart-home" element={<SmartHomePage />} />
-          <Route path="property/portfolio" element={<PropertyPortfolioPage />} />
-          <Route path="property/quick-payment" element={<QuickPaymentPage />} />
-          <Route path="property/inspections" element={<PropertyInspectionsPage />} />
-          <Route path="property/documents" element={<PropertyDocumentsPage />} />
-          <Route path="property/valuations" element={<PropertyValuationsPage />} />
-          <Route path="property/investment" element={<PropertyInvestmentPage />} />
-          <Route path="property/construction" element={<ConstructionTrackerPage />} />
-          <Route path="property/construction/:id" element={<ConstructionTrackerPage />} />
-          <Route path="property/reports" element={<PropertyReportsPage />} />
-          <Route path="property/portal" element={<TenantPortalPage />} />
           <Route path="property/listings" element={<PropertyListingsPage />} />
           <Route path="property/inquiries" element={<PropertyInquiriesPage />} />
           <Route path="property/sales" element={<PropertySalesPage />} />
-          <Route path="property/owners" element={<PropertyOwnersPage />} />
-          <Route path="property/compliance" element={<ComplianceDashboardPage />} />
+          <Route path="property/reports" element={<PropertyReportsPage />} />
+
+          <Route path="events" element={<EventsPage />} />
+          <Route path="events/quotations" element={<EventQuotationsPage />} />
+          <Route path="packages" element={<PackagesPage />} />
 
           <Route path="media" element={<MediaLibraryPage />} />
+          <Route path="galleries" element={<GalleriesPage />} />
           <Route path="catalog" element={<CatalogPage />} />
           <Route path="barcode-labels" element={<BarcodeLabelPage />} />
           <Route path="orders" element={<OnlineOrdersPage />} />
@@ -431,6 +436,9 @@ export default function App() {
           <Route path="school/teachers"            element={<Navigate to="/school/teachers" replace />} />
           <Route path="school/violations"          element={<Navigate to="/school/violations" replace />} />
           <Route path="school/account"             element={<Navigate to="/school/account" replace />} />
+          <Route path="school/behavior"            element={<Navigate to="/school/behavior" replace />} />
+          <Route path="school/subjects"            element={<Navigate to="/school/subjects" replace />} />
+          <Route path="school/setup"               element={<Navigate to="/school/setup" replace />} />
 
           {/* ── Redirects from old routes ── */}
           <Route path="employees"          element={<Navigate to="/dashboard/team" replace />} />
@@ -475,7 +483,10 @@ export default function App() {
           <Route path="behavior"           element={<SchoolBehaviorPage />} />
           <Route path="setup"             element={<SchoolSetupPage />} />
           <Route path="subjects"          element={<SchoolSubjectsPage />} />
+          <Route path="assessments"       element={<SchoolAssessmentsPage />} />
+          <Route path="assessments/:assessmentId/grades" element={<SchoolGradesEntryPage />} />
           <Route path="teacher-work"      element={<SchoolTeacherWorkPage />} />
+          <Route path="roles"             element={<SchoolRolesPage />} />
           <Route path="support"           element={<SupportPage />} />
           <Route path="team"              element={<TeamPage />} />
         </Route>

@@ -7,22 +7,24 @@ import { PageHeader } from "@/components/ui";
 import { ServicesPage } from "./ServicesPage";
 import { CategoriesPage } from "./CategoriesPage";
 import { AddonsPage } from "./AddonsPage";
-
-const TABS = [
-  { id: "services",   label: "الخدمات" },
-  { id: "categories", label: "التصنيفات" },
-  { id: "addons",     label: "الاضافات" },
-];
+import { useBusiness } from "@/hooks/useBusiness";
 
 export function CatalogPage() {
+  const biz = useBusiness();
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get("tab") || "services";
+
+  const TABS = [
+    { id: "services",   label: biz.terminology.items },
+    { id: "categories", label: biz.terminology.categories },
+    { id: "addons",     label: "الاضافات" },
+  ];
 
   return (
     <div dir="rtl">
       <PageHeader
-        title="الخدمات والمنتجات"
-        description="أدر خدماتك وتصنيفاتك والاضافات من مكان واحد"
+        title={biz.terminology.catalog}
+        description={`أدر ${biz.terminology.items} وتصنيفاتك والاضافات من مكان واحد`}
         tabs={TABS}
         activeTab={tab}
         onTabChange={(id) => setSearchParams({ tab: id })}

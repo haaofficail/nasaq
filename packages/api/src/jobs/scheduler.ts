@@ -9,6 +9,7 @@ import { dispatchReminders } from "./reminder-dispatcher";
 import { checkSubscriptions } from "./subscription-checker";
 import { runAutoBook } from "./auto-book";
 import { processMessageQueue } from "./message-queue-processor";
+import { runGuardianScan } from "../lib/guardian/scanner";
 
 // ============================================================
 // SCHEDULER — نظام الجدولة المستمر
@@ -35,6 +36,7 @@ const JOBS = {
   SESSION_CLEANUP:      "session-cleanup",
   HEALTH_SNAPSHOT:      "health-snapshot",
   MSG_QUEUE:            "message-queue-processor",
+  GUARDIAN_SCAN:        "guardian-scan",
 } as const;
 
 async function runForAllOrgs(fn: (orgId: string) => Promise<unknown>, label: string) {
@@ -123,6 +125,7 @@ export async function startScheduler(): Promise<PgBoss> {
     boss.schedule(JOBS.SESSION_CLEANUP,    "0 3 * * *",    null, { tz: TZ }),
     boss.schedule(JOBS.HEALTH_SNAPSHOT,    "*/5 * * * *",  null, { tz: TZ }),
     boss.schedule(JOBS.MSG_QUEUE,          "* * * * *",    null, { tz: TZ }),
+    boss.schedule(JOBS.GUARDIAN_SCAN,      "0 */6 * * *",  null, { tz: TZ }),
   ]);
 
   // ── تسجيل المعالجات ────────────────────────────────────────
@@ -135,8 +138,9 @@ export async function startScheduler(): Promise<PgBoss> {
     boss.work(JOBS.SESSION_CLEANUP,    wrap("session-cleanup",        cleanupSessions)),
     boss.work(JOBS.HEALTH_SNAPSHOT,    wrap("health-snapshot",        snapshotHealth)),
     boss.work(JOBS.MSG_QUEUE,          wrap("message-queue-processor", processMessageQueue)),
+    boss.work(JOBS.GUARDIAN_SCAN,      wrap("guardian-scan",           () => runGuardianScan("scheduled"))),
   ]);
 
-  log.info("[scheduler] all 8 jobs registered");
+  log.info("[scheduler] all 9 jobs registered");
   return boss;
 }

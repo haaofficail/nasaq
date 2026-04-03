@@ -152,6 +152,8 @@ export function getBusinessDefaults(businessType: string) {
     construction:     { operatingProfile: "projects",              serviceDeliveryModes: ["at_customer_location","on_site"],                  enabledCapabilities: ["bookings","customers","catalog","media","contracts","attendance","inventory"] },
     logistics:        { operatingProfile: "field_service",         serviceDeliveryModes: ["delivery","at_customer_location"],                 enabledCapabilities: ["bookings","customers","catalog","media","attendance","inventory","website"] },
     other:            { operatingProfile: "general",               serviceDeliveryModes: ["on_site"],                                        enabledCapabilities: ["bookings","customers","catalog","media"] },
+    general:          { operatingProfile: "general",               serviceDeliveryModes: ["on_site"],                                        enabledCapabilities: ["bookings","customers","catalog","media"] },
+    school:           { operatingProfile: "appointments",          serviceDeliveryModes: ["on_site","remote"],                               enabledCapabilities: ["bookings","customers","catalog","media","schedules","attendance"] },
   };
   return defaults[businessType] ?? {
     operatingProfile: "general",

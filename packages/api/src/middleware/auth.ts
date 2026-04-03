@@ -1,7 +1,7 @@
 import { Context, Next } from "hono";
 import { eq, and, gt, sql } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { sessions, users, roles, rolePermissions, permissions, orgMembers, jobTitlePermissions, jobTitles, organizations } from "@nasaq/db/schema";
+import { sessions, users, roles, rolePermissions, permissions, orgMembers, jobTitlePermissions, jobTitles, organizations, userConstraints } from "@nasaq/db/schema";
 import { resolvePermissions } from "../lib/default-permissions";
 import type { SystemRole } from "../lib/default-permissions";
 import { orgHasCapability } from "../lib/org-context";
@@ -11,6 +11,18 @@ import { permCache, orgStatusCache } from "../lib/cache";
 // AUTH MIDDLEWARE
 // يتحقق من التوكن في كل طلب ويحمّل بيانات المستخدم والصلاحيات
 // ============================================================
+
+export type UserConstraints = {
+  maxDiscountPct:          number | null;
+  maxVoidCount:            number | null;
+  requireApprovalAbove:    number | null;
+  canCreateInvoice:        boolean | null;
+  canVoidInvoice:          boolean | null;
+  canGiveDiscount:         boolean | null;
+  canAccessReports:        boolean | null;
+  canExportData:           boolean | null;
+  canManageTeam:           boolean | null;
+};
 
 export type AuthUser = {
   id: string;
@@ -26,6 +38,7 @@ export type AuthUser = {
   dotPermissions: string[]; // new-style dot-notation ["bookings.view", "team.add", ...]
   systemRole: SystemRole | null;
   allowedLocationIds: string[];
+  constraints: UserConstraints | null; // Layer 6: per-user overrides
 };
 
 /**
@@ -139,7 +152,40 @@ export function requirePermission(resource: string, action: string) {
     }
 
     const required = `${resource}:${action}`;
-    if (!user.permissions.includes(required)) {
+
+    // ── RBAC v2 compatibility ──────────────────────────────────────────────
+    // v1 route resource names don't always match v2 dotPermissions resource names.
+    // Map: methodGuard resource → dotPermissions resource(s) + action aliases.
+    //
+    // Rule: actions map (edit→update), plus per-resource overrides for DELETE.
+    // Resource aliases: services/categories/addons → products, inventory → products.
+    const DOT_RESOURCE_ALIASES: Record<string, string[]> = {
+      services:   ["products"],
+      categories: ["products"],
+      addons:     ["products"],
+      bundles:    ["products"],
+      inventory:  ["products"],
+    };
+    const DOT_ACTION_ALIASES: Record<string, Record<string, string>> = {
+      bookings: { delete: "cancel" },
+      orders:   { delete: "cancel" },
+    };
+    const dotAction = DOT_ACTION_ALIASES[resource]?.[action] ?? (action === "edit" ? "update" : action);
+    const dotResources = [resource, ...(DOT_RESOURCE_ALIASES[resource] ?? [])];
+
+    // Special case: inventory.view → products.inventory (not products.view)
+    const dotCandidates: string[] = dotResources.flatMap((r) => {
+      if (r === "products" && resource === "inventory" && dotAction === "view") {
+        return [`${r}.inventory`, `${r}.view`];
+      }
+      return [`${r}.${dotAction}`];
+    });
+
+    const hasPermission =
+      user.permissions.includes(required) ||
+      dotCandidates.some((perm) => user.dotPermissions.includes(perm));
+
+    if (!hasPermission) {
       return c.json({
         error: `ليس لديك صلاحية: ${required}`,
         code: "FORBIDDEN",
@@ -403,6 +449,29 @@ async function loadUser(userId: string): Promise<AuthUser | null> {
     systemRole = "owner";
   }
 
+  // ── Load user constraints (Layer 6) ────────────────────────
+  let constraints: UserConstraints | null = null;
+  if (user.type !== "owner") {
+    const [cr] = await db
+      .select()
+      .from(userConstraints)
+      .where(and(eq(userConstraints.userId, userId), eq(userConstraints.orgId, user.orgId)));
+
+    if (cr) {
+      constraints = {
+        maxDiscountPct:       cr.maxDiscountPct       !== null ? Number(cr.maxDiscountPct)       : null,
+        maxVoidCount:         cr.maxVoidCount          ?? null,
+        requireApprovalAbove: cr.requireApprovalAbove !== null ? Number(cr.requireApprovalAbove) : null,
+        canCreateInvoice:     cr.canCreateInvoice      ?? null,
+        canVoidInvoice:       cr.canVoidInvoice        ?? null,
+        canGiveDiscount:      cr.canGiveDiscount       ?? null,
+        canAccessReports:     cr.canAccessReports      ?? null,
+        canExportData:        cr.canExportData         ?? null,
+        canManageTeam:        cr.canManageTeam         ?? null,
+      };
+    }
+  }
+
   return {
     id: user.id,
     orgId: user.orgId,
@@ -417,5 +486,6 @@ async function loadUser(userId: string): Promise<AuthUser | null> {
     dotPermissions,
     systemRole,
     allowedLocationIds: (user.allowedLocationIds as string[]) || [],
+    constraints,
   };
 }

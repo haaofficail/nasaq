@@ -5,6 +5,7 @@ import { pgTable, text, boolean, timestamp, uuid, uniqueIndex } from "drizzle-or
 // Master list of all possible capabilities with metadata
 // ============================================================
 
+// Global reference data — not tenant-scoped by design
 export const capabilityRegistry = pgTable("capability_registry", {
   id: uuid("id").defaultRandom().primaryKey(),
   key: text("key").notNull(),                        // "inventory" | "pos" | "hotel"

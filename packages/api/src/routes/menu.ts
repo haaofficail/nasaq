@@ -166,3 +166,158 @@ menuRouter.delete("/items/:id", async (c) => {
   insertAuditLog({ orgId, userId: getUserId(c), action: "deleted", resource: "menu_item", resourceId: id });
   return c.json({ success: true });
 });
+
+// ────────────────────────────────────────────────────────────
+// MODIFIER GROUPS — تخصيص الأصناف (الحجم، الإضافات...)
+// ────────────────────────────────────────────────────────────
+
+const createGroupSchema = z.object({
+  name:          z.string().min(1).max(100),
+  selectionType: z.enum(["single", "multiple"]).default("single"),
+  isRequired:    z.boolean().default(false),
+  minSelect:     z.number().int().min(0).default(0),
+  maxSelect:     z.number().int().min(1).default(1),
+  sortOrder:     z.number().int().min(0).default(0),
+});
+
+const createModifierSchema = z.object({
+  name:        z.string().min(1).max(100),
+  priceDelta:  z.number().min(0).default(0),
+  isDefault:   z.boolean().default(false),
+  isAvailable: z.boolean().default(true),
+  sortOrder:   z.number().int().min(0).default(0),
+});
+
+// GET /menu/items/:itemId/modifier-groups  — جلب مجموعات + خياراتها
+menuRouter.get("/items/:itemId/modifier-groups", async (c) => {
+  const orgId   = getOrgId(c);
+  const itemId  = c.req.param("itemId");
+
+  // تحقق أن الصنف ينتمي للمنشأة
+  const item = await pool.query(
+    `SELECT id FROM menu_items WHERE id = $1 AND org_id = $2 AND is_active = true`,
+    [itemId, orgId]
+  );
+  if (!item.rows[0]) return c.json({ error: "Not found" }, 404);
+
+  const groups = await pool.query(
+    `SELECT g.*, json_agg(
+       json_build_object(
+         'id', m.id, 'name', m.name, 'price_delta', m.price_delta,
+         'is_default', m.is_default, 'is_available', m.is_available, 'sort_order', m.sort_order
+       ) ORDER BY m.sort_order, m.name
+     ) FILTER (WHERE m.id IS NOT NULL) AS modifiers
+     FROM menu_modifier_groups g
+     LEFT JOIN menu_modifiers m ON m.group_id = g.id
+     WHERE g.menu_item_id = $1 AND g.org_id = $2
+     GROUP BY g.id
+     ORDER BY g.sort_order, g.name`,
+    [itemId, orgId]
+  );
+  return c.json({ data: groups.rows });
+});
+
+// POST /menu/items/:itemId/modifier-groups
+menuRouter.post("/items/:itemId/modifier-groups", async (c) => {
+  const orgId  = getOrgId(c);
+  const itemId = c.req.param("itemId");
+  const item   = await pool.query(
+    `SELECT id FROM menu_items WHERE id = $1 AND org_id = $2 AND is_active = true`,
+    [itemId, orgId]
+  );
+  if (!item.rows[0]) return c.json({ error: "Not found" }, 404);
+
+  const body   = createGroupSchema.parse(await c.req.json());
+  const result = await pool.query(
+    `INSERT INTO menu_modifier_groups
+       (org_id, menu_item_id, name, selection_type, is_required, min_select, max_select, sort_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+    [orgId, itemId, body.name, body.selectionType, body.isRequired,
+     body.minSelect, body.maxSelect, body.sortOrder]
+  );
+  return c.json({ data: result.rows[0] }, 201);
+});
+
+// PUT /menu/modifier-groups/:groupId
+menuRouter.put("/modifier-groups/:groupId", async (c) => {
+  const orgId   = getOrgId(c);
+  const groupId = c.req.param("groupId");
+  const body    = await c.req.json();
+  const result  = await pool.query(
+    `UPDATE menu_modifier_groups SET
+       name           = COALESCE($1, name),
+       selection_type = COALESCE($2, selection_type),
+       is_required    = COALESCE($3, is_required),
+       min_select     = COALESCE($4, min_select),
+       max_select     = COALESCE($5, max_select),
+       sort_order     = COALESCE($6, sort_order)
+     WHERE id = $7 AND org_id = $8 RETURNING *`,
+    [body.name ?? null, body.selectionType ?? null, body.isRequired ?? null,
+     body.minSelect ?? null, body.maxSelect ?? null, body.sortOrder ?? null,
+     groupId, orgId]
+  );
+  if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  return c.json({ data: result.rows[0] });
+});
+
+// DELETE /menu/modifier-groups/:groupId
+menuRouter.delete("/modifier-groups/:groupId", async (c) => {
+  const orgId  = getOrgId(c);
+  const result = await pool.query(
+    `DELETE FROM menu_modifier_groups WHERE id = $1 AND org_id = $2 RETURNING id`,
+    [c.req.param("groupId"), orgId]
+  );
+  if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  return c.json({ success: true });
+});
+
+// POST /menu/modifier-groups/:groupId/modifiers
+menuRouter.post("/modifier-groups/:groupId/modifiers", async (c) => {
+  const orgId   = getOrgId(c);
+  const groupId = c.req.param("groupId");
+  const grp     = await pool.query(
+    `SELECT id FROM menu_modifier_groups WHERE id = $1 AND org_id = $2`,
+    [groupId, orgId]
+  );
+  if (!grp.rows[0]) return c.json({ error: "Not found" }, 404);
+
+  const body   = createModifierSchema.parse(await c.req.json());
+  const result = await pool.query(
+    `INSERT INTO menu_modifiers
+       (org_id, group_id, name, price_delta, is_default, is_available, sort_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+    [orgId, groupId, body.name, body.priceDelta, body.isDefault, body.isAvailable, body.sortOrder]
+  );
+  return c.json({ data: result.rows[0] }, 201);
+});
+
+// PUT /menu/modifiers/:modId
+menuRouter.put("/modifiers/:modId", async (c) => {
+  const orgId  = getOrgId(c);
+  const body   = await c.req.json();
+  const result = await pool.query(
+    `UPDATE menu_modifiers SET
+       name         = COALESCE($1, name),
+       price_delta  = COALESCE($2, price_delta),
+       is_default   = COALESCE($3, is_default),
+       is_available = COALESCE($4, is_available),
+       sort_order   = COALESCE($5, sort_order)
+     WHERE id = $6 AND org_id = $7 RETURNING *`,
+    [body.name ?? null, body.priceDelta ?? null, body.isDefault ?? null,
+     body.isAvailable ?? null, body.sortOrder ?? null,
+     c.req.param("modId"), orgId]
+  );
+  if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  return c.json({ data: result.rows[0] });
+});
+
+// DELETE /menu/modifiers/:modId
+menuRouter.delete("/modifiers/:modId", async (c) => {
+  const orgId  = getOrgId(c);
+  const result = await pool.query(
+    `DELETE FROM menu_modifiers WHERE id = $1 AND org_id = $2 RETURNING id`,
+    [c.req.param("modId"), orgId]
+  );
+  if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  return c.json({ success: true });
+});

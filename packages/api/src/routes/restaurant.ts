@@ -1,6 +1,9 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { pool } from "@nasaq/db/client";
+import { pool, db } from "@nasaq/db/client";
+import { eq, and, ilike, or, sql } from "drizzle-orm";
+import { loyaltyStamps } from "@nasaq/db/schema";
+import { customers } from "@nasaq/db/schema";
 import { getOrgId, getUserId } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 
@@ -42,13 +45,20 @@ restaurantRouter.get("/tables", async (c) => {
 restaurantRouter.post("/tables", async (c) => {
   const orgId = getOrgId(c);
   const body = tableSchema.parse(await c.req.json());
-  const result = await pool.query(
-    `INSERT INTO restaurant_tables (org_id, number, section, capacity, status, notes, sort_order)
-     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-    [orgId, body.number, body.section || null, body.capacity, body.status, body.notes || null, body.sortOrder]
-  );
-  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "restaurant_table", resourceId: result.rows[0]?.id });
-  return c.json({ data: result.rows[0] }, 201);
+  try {
+    const result = await pool.query(
+      `INSERT INTO restaurant_tables (org_id, number, section, capacity, status, notes, sort_order)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
+      [orgId, body.number, body.section || null, body.capacity, body.status, body.notes || null, body.sortOrder]
+    );
+    insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "restaurant_table", resourceId: result.rows[0]?.id });
+    return c.json({ data: result.rows[0] }, 201);
+  } catch (err: any) {
+    if (err?.code === "23505") {
+      return c.json({ error: `رقم الطاولة "${body.number}" موجود بالفعل — اختر رقماً مختلفاً` }, 409);
+    }
+    throw err;
+  }
 });
 
 // PUT /restaurant/tables/:id
@@ -187,41 +197,65 @@ restaurantRouter.patch("/menu-items/:id/toggle-availability", async (c) => {
 restaurantRouter.get("/loyalty", async (c) => {
   const orgId = getOrgId(c);
   const search = c.req.query("search") || "";
-  const params: any[] = [orgId];
-  let where = "ls.org_id = $1";
-  if (search) {
-    params.push(`%${search}%`);
-    where += ` AND (cu.name ILIKE $${params.length} OR cu.phone ILIKE $${params.length})`;
-  }
-  const result = await pool.query(
-    `SELECT ls.*, cu.name AS customer_name, cu.phone AS customer_phone
-     FROM loyalty_stamps ls
-     JOIN customers cu ON cu.id = ls.customer_id
-     WHERE ${where}
-     ORDER BY ls.updated_at DESC
-     LIMIT 100`,
-    params
-  );
-  return c.json({ data: result.rows });
+
+  const rows = await db
+    .select({
+      id: loyaltyStamps.id,
+      orgId: loyaltyStamps.orgId,
+      customerId: loyaltyStamps.customerId,
+      stampsCount: loyaltyStamps.stampsCount,
+      stampsGoal: loyaltyStamps.stampsGoal,
+      freeItemsRedeemed: loyaltyStamps.freeItemsRedeemed,
+      lastStampAt: loyaltyStamps.lastStampAt,
+      updatedAt: loyaltyStamps.updatedAt,
+      customerName: customers.name,
+      customerPhone: customers.phone,
+    })
+    .from(loyaltyStamps)
+    .innerJoin(customers, eq(loyaltyStamps.customerId, customers.id))
+    .where(
+      search
+        ? and(
+            eq(loyaltyStamps.orgId, orgId),
+            or(ilike(customers.name, `%${search}%`), ilike(customers.phone, `%${search}%`))
+          )
+        : eq(loyaltyStamps.orgId, orgId)
+    )
+    .orderBy(loyaltyStamps.updatedAt)
+    .limit(100);
+
+  return c.json({ data: rows });
 });
 
 // GET /restaurant/loyalty/:customerId
 restaurantRouter.get("/loyalty/:customerId", async (c) => {
   const orgId = getOrgId(c);
-  const result = await pool.query(
-    `SELECT ls.*, cu.name AS customer_name, cu.phone AS customer_phone
-     FROM loyalty_stamps ls
-     JOIN customers cu ON cu.id = ls.customer_id
-     WHERE ls.org_id = $1 AND ls.customer_id = $2`,
-    [orgId, c.req.param("customerId")]
-  );
-  // If not found return empty card
-  if (!result.rows[0]) {
-    const cu = await pool.query(`SELECT id, name, phone FROM customers WHERE id = $1 AND org_id = $2`, [c.req.param("customerId"), orgId]);
-    if (!cu.rows[0]) return c.json({ error: "Customer not found" }, 404);
-    return c.json({ data: { customer_id: c.req.param("customerId"), customer_name: cu.rows[0].name, customer_phone: cu.rows[0].phone, stamps_count: 0, stamps_goal: 10, free_items_redeemed: 0 } });
+  const customerId = c.req.param("customerId");
+
+  const [row] = await db
+    .select({
+      id: loyaltyStamps.id,
+      customerId: loyaltyStamps.customerId,
+      stampsCount: loyaltyStamps.stampsCount,
+      stampsGoal: loyaltyStamps.stampsGoal,
+      freeItemsRedeemed: loyaltyStamps.freeItemsRedeemed,
+      lastStampAt: loyaltyStamps.lastStampAt,
+      customerName: customers.name,
+      customerPhone: customers.phone,
+    })
+    .from(loyaltyStamps)
+    .innerJoin(customers, eq(loyaltyStamps.customerId, customers.id))
+    .where(and(eq(loyaltyStamps.orgId, orgId), eq(loyaltyStamps.customerId, customerId)));
+
+  if (!row) {
+    const [cu] = await db
+      .select({ id: customers.id, name: customers.name, phone: customers.phone })
+      .from(customers)
+      .where(and(eq(customers.id, customerId), eq(customers.orgId, orgId)));
+    if (!cu) return c.json({ error: "Customer not found" }, 404);
+    return c.json({ data: { customerId, customerName: cu.name, customerPhone: cu.phone, stampsCount: 0, stampsGoal: 10, freeItemsRedeemed: 0 } });
   }
-  return c.json({ data: result.rows[0] });
+  return c.json({ data: row });
 });
 
 // POST /restaurant/loyalty/:customerId/stamp
@@ -230,17 +264,19 @@ restaurantRouter.post("/loyalty/:customerId/stamp", async (c) => {
   const customerId = c.req.param("customerId");
   const body = await c.req.json();
   const count = Math.max(1, parseInt(body.count) || 1);
+  const goal = body.stampsGoal ? parseInt(body.stampsGoal) : 10;
 
+  // Upsert using raw SQL for ON CONFLICT — Drizzle doesn't support on-conflict-do-update portably
   const result = await pool.query(
-    `INSERT INTO loyalty_stamps (org_id, customer_id, stamps_count, stamps_goal, last_stamp_at)
-     VALUES ($1, $2, $3, COALESCE($4, 10), NOW())
+    `INSERT INTO loyalty_stamps (org_id, customer_id, stamps_count, stamps_goal, last_stamp_at, created_at, updated_at)
+     VALUES ($1, $2, $3, $4, NOW(), NOW(), NOW())
      ON CONFLICT (org_id, customer_id)
      DO UPDATE SET
        stamps_count  = loyalty_stamps.stamps_count + $3,
        last_stamp_at = NOW(),
        updated_at    = NOW()
      RETURNING *`,
-    [orgId, customerId, count, body.stampsGoal || null]
+    [orgId, customerId, count, goal]
   );
   return c.json({ data: result.rows[0] }, 201);
 });
@@ -250,27 +286,28 @@ restaurantRouter.post("/loyalty/:customerId/redeem", async (c) => {
   const orgId = getOrgId(c);
   const customerId = c.req.param("customerId");
 
-  const current = await pool.query(
-    `SELECT * FROM loyalty_stamps WHERE org_id = $1 AND customer_id = $2`,
-    [orgId, customerId]
-  );
-  if (!current.rows[0]) return c.json({ error: "No loyalty card found" }, 404);
+  const [card] = await db
+    .select()
+    .from(loyaltyStamps)
+    .where(and(eq(loyaltyStamps.orgId, orgId), eq(loyaltyStamps.customerId, customerId)));
 
-  const card = current.rows[0];
-  if (card.stamps_count < card.stamps_goal) {
-    return c.json({ error: `يحتاج ${card.stamps_goal - card.stamps_count} طابع إضافي للاستبدال` }, 400);
+  if (!card) return c.json({ error: "No loyalty card found" }, 404);
+  if (card.stampsCount < card.stampsGoal) {
+    return c.json({ error: `يحتاج ${card.stampsGoal - card.stampsCount} طابع إضافي للاستبدال` }, 400);
   }
 
-  const result = await pool.query(
-    `UPDATE loyalty_stamps
-     SET stamps_count = stamps_count - stamps_goal,
-         free_items_redeemed = free_items_redeemed + 1,
-         updated_at = NOW()
-     WHERE org_id = $1 AND customer_id = $2 RETURNING *`,
-    [orgId, customerId]
-  );
+  const [updated] = await db
+    .update(loyaltyStamps)
+    .set({
+      stampsCount: sql`${loyaltyStamps.stampsCount} - ${loyaltyStamps.stampsGoal}`,
+      freeItemsRedeemed: sql`${loyaltyStamps.freeItemsRedeemed} + 1`,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(loyaltyStamps.orgId, orgId), eq(loyaltyStamps.customerId, customerId)))
+    .returning();
+
   insertAuditLog({ orgId, userId: getUserId(c), action: "edit", resource: "loyalty_redeem", resourceId: customerId });
-  return c.json({ data: result.rows[0] });
+  return c.json({ data: updated });
 });
 
 // ─────────────────────────────────────────────────

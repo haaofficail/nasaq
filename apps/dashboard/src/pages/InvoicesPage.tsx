@@ -91,6 +91,7 @@ export function InvoicesPage() {
 
   const [sendingId, setSendingId] = useState<string | null>(null);
   const sendInvoice = async (id: string) => {
+    if (!confirm("هل تريد إرسال هذه الفاتورة للعميل؟")) return;
     setSendingId(id);
     try {
       await financeApi.sendInvoice(id);
@@ -260,10 +261,17 @@ export function InvoicesPage() {
                             <Eye className="w-3.5 h-3.5 text-brand-500" />
                           </Link>
                           {canMarkPaid && (
-                            <button onClick={() => { setViewInvoice(inv); setShowPayment(true); }}
-                              className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-medium hover:bg-emerald-100 transition-colors">
-                              دفعة
-                            </button>
+                            <div className="flex flex-col items-end gap-0.5">
+                              <button onClick={() => { setViewInvoice(inv); setShowPayment(true); }}
+                                className="px-2 py-1 rounded-lg bg-emerald-50 text-emerald-700 text-[11px] font-medium hover:bg-emerald-100 transition-colors">
+                                تسجيل دفعة
+                              </button>
+                              <button onClick={() => markPaid(inv.id)}
+                                className="px-2 py-1 rounded-lg bg-gray-50 text-gray-500 text-[10px] font-medium hover:bg-gray-100 transition-colors border border-gray-100">
+                                تأشير كمدفوع
+                              </button>
+                              <span className="text-[9px] text-gray-400 leading-tight text-right">بدون تسجيل طريقة الدفع</span>
+                            </div>
                           )}
                           {canSend && (
                             <button onClick={() => sendInvoice(inv.id)} disabled={sendingId === inv.id}

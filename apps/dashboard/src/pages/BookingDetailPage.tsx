@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowRight, CalendarCheck, MapPin, Phone, User, Banknote, Clock, CheckCircle, XCircle, Plus, Loader2, AlertCircle, CalendarClock, FileText, Sparkles, History, Link2 } from "lucide-react";
+import { ArrowRight, CalendarCheck, MapPin, Phone, User, Banknote, Clock, CheckCircle, XCircle, Plus, Loader2, AlertCircle, CalendarClock, FileText, Sparkles, History, Link2, PlusCircle, RefreshCw, RotateCcw, UserCheck, UserCircle } from "lucide-react";
 import { clsx } from "clsx";
 import { bookingsApi, salonApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
+import { useBusiness } from "@/hooks/useBusiness";
 import { success as hapticSuccess } from "@/lib/haptics";
 import { Button, Modal, Input, Select } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
@@ -27,6 +28,7 @@ const RESCHEDULE_REASONS = [
 
 export function BookingDetailPage() {
   const { id } = useParams();
+  const biz = useBusiness();
   const [showPayment, setShowPayment] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -106,7 +108,7 @@ export function BookingDetailPage() {
 
   if (loading) return <PageSkeleton />;
   if (error) return <div className="flex flex-col items-center justify-center h-64 gap-3"><AlertCircle className="w-10 h-10 text-red-400" /><p className="text-red-500">{error}</p><button onClick={refetch} className="text-sm text-brand-500 hover:underline">إعادة المحاولة</button></div>;
-  if (!booking) return <div className="text-center py-12 text-gray-500">الحجز غير موجود</div>;
+  if (!booking) return <div className="text-center py-12 text-gray-500">{biz.terminology.booking} غير موجود</div>;
 
   const sc = statusConfig[booking.status] || statusConfig.pending;
   const paid = Number(booking.paidAmount || 0);
@@ -117,7 +119,7 @@ export function BookingDetailPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Link to="/bookings" className="p-2 rounded-lg hover:bg-gray-100"><ArrowRight className="w-5 h-5 text-gray-400" /></Link>
-        <div className="flex-1"><h1 className="text-2xl font-bold text-gray-900">حجز #{booking.bookingNumber || id?.substring(0, 8)}</h1><p className="text-sm text-gray-500">{booking.customerName || booking.customer?.name}</p></div>
+        <div className="flex-1"><h1 className="text-2xl font-bold text-gray-900">{biz.terminology.booking} #{booking.bookingNumber || id?.substring(0, 8)}</h1><p className="text-sm text-gray-500">{booking.customerName || booking.customer?.name}</p></div>
         <span className={clsx("px-3 py-1 rounded-full text-xs font-medium", sc.cls)}>{sc.label}</span>
       </div>
 
@@ -231,11 +233,21 @@ export function BookingDetailPage() {
                     cancelled: "ملغي", deposit_paid: "عربون مدفوع",
                     fully_confirmed: "مؤكد نهائياً",
                   };
+                  const EVENT_ICON: Record<string, { Icon: React.ElementType; cls: string }> = {
+                    created:         { Icon: PlusCircle,  cls: "text-emerald-500" },
+                    status_changed:  { Icon: RefreshCw,   cls: "text-blue-500" },
+                    payment_received:{ Icon: Banknote,    cls: "text-green-600" },
+                    rescheduled:     { Icon: Clock,       cls: "text-amber-500" },
+                    cancelled:       { Icon: XCircle,     cls: "text-red-500" },
+                    assigned:        { Icon: UserCheck,   cls: "text-violet-500" },
+                    refunded:        { Icon: RotateCcw,   cls: "text-gray-500" },
+                  };
+                  const eventIcon = EVENT_ICON[ev.eventType] ?? { Icon: RefreshCw, cls: "text-gray-400" };
                   const isLast = i === eventsRes.data!.length - 1;
                   return (
                     <div key={ev.id} className="flex gap-3">
                       <div className="flex flex-col items-center">
-                        <div className="w-2 h-2 rounded-full bg-brand-400 mt-1.5 shrink-0" />
+                        <eventIcon.Icon className={clsx("w-4 h-4 mt-0.5 shrink-0", eventIcon.cls)} />
                         {!isLast && <div className="w-px flex-1 bg-gray-100 my-1" />}
                       </div>
                       <div className="pb-4 min-w-0">
@@ -251,6 +263,12 @@ export function BookingDetailPage() {
                         <p className="text-xs text-gray-400 mt-0.5">
                           {new Date(ev.createdAt).toLocaleString("en-US", { dateStyle: "short", timeStyle: "short" })}
                         </p>
+                        {ev.performedByName && (
+                          <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1">
+                            <UserCircle className="w-3 h-3" />
+                            بواسطة: {ev.performedByName}
+                          </p>
+                        )}
                         {ev.metadata?.reason && (
                           <p className="text-xs text-gray-500 mt-0.5">السبب: {ev.metadata.reason}</p>
                         )}

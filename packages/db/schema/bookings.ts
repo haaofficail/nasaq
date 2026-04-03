@@ -49,7 +49,7 @@ export const paymentMethodEnum = pgEnum("payment_method", [
 export const bookings = pgTable("bookings", {
   id: uuid("id").defaultRandom().primaryKey(),
   orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
-  customerId: uuid("customer_id").notNull().references(() => customers.id),
+  customerId: uuid("customer_id").notNull().references(() => customers.id, { onDelete: "restrict" }),
   
   // Booking number (human-readable)
   bookingNumber: text("booking_number").notNull().unique(), // MHF-2026-0001
@@ -65,7 +65,7 @@ export const bookings = pgTable("bookings", {
   teardownDate: timestamp("teardown_date", { withTimezone: true }),
   
   // Location
-  locationId: uuid("location_id").references(() => locations.id),
+  locationId: uuid("location_id").references(() => locations.id, { onDelete: "set null" }),
   customLocation: text("custom_location"),         // إذا الموقع غير مسجل
   locationNotes: text("location_notes"),
   
@@ -83,8 +83,8 @@ export const bookings = pgTable("bookings", {
   couponDiscount: numeric("coupon_discount", { precision: 10, scale: 2 }),
   
   // Assignment
-  assignedUserId: uuid("assigned_user_id").references(() => users.id),       // الموظف المسؤول
-  vendorId: uuid("vendor_id").references(() => users.id),                    // مقدم الخدمة الخارجي
+  assignedUserId: uuid("assigned_user_id").references(() => users.id, { onDelete: "set null" }),       // الموظف المسؤول
+  vendorId: uuid("vendor_id").references(() => users.id, { onDelete: "set null" }),                    // مقدم الخدمة الخارجي
   
   // Client tracking
   trackingToken: text("tracking_token").unique(),   // رمز تتبع فريد للعميل
@@ -131,7 +131,7 @@ export const bookings = pgTable("bookings", {
 export const bookingItems = pgTable("booking_items", {
   id: uuid("id").defaultRandom().primaryKey(),
   bookingId: uuid("booking_id").notNull().references(() => bookings.id, { onDelete: "cascade" }),
-  serviceId: uuid("service_id").notNull().references(() => services.id),
+  serviceId: uuid("service_id").notNull().references(() => services.id, { onDelete: "restrict" }),
 
   serviceName: text("service_name").notNull(),     // Snapshot — لا يتغير إذا تغيرت الخدمة
   serviceType: text("service_type"),               // Snapshot of service_type at booking time

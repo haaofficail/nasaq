@@ -3,7 +3,8 @@ import { toast } from "@/hooks/useToast";
 import { clsx } from "clsx";
 import {
   BookOpen, ChevronRight, ChevronDown, Plus, Pencil,
-  Trash2, AlertCircle, Loader2, CheckCircle2, Search,
+  Trash2, AlertCircle, Loader2, Search,
+  TrendingUp, TrendingDown, DollarSign, BarChart2,
 } from "lucide-react";
 import { accountingApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
@@ -279,6 +280,48 @@ function AccountRow({
 }
 
 // ============================================================
+// KPI CARD
+// ============================================================
+
+function KpiCard({
+  label,
+  value,
+  loading,
+  color,
+  bg,
+  icon: Icon,
+}: {
+  label: string;
+  value: string | null;
+  loading: boolean;
+  color: string;
+  bg: string;
+  icon: React.ElementType;
+}) {
+  return (
+    <div className={clsx("rounded-2xl p-5 flex items-start gap-4", bg)}>
+      <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", color.replace("text-", "bg-").replace("700", "100").replace("600", "50"))}>
+        <Icon className={clsx("w-5 h-5", color)} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs font-medium text-gray-500 mb-1">{label}</p>
+        {loading ? (
+          <div className="h-6 w-24 bg-white/60 rounded animate-pulse" />
+        ) : (
+          <p className={clsx("text-xl font-bold", color)}>{value ?? "—"}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function fmtAmount(n: any): string {
+  const num = parseFloat(n);
+  if (isNaN(num)) return "—";
+  return num.toLocaleString("ar-SA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// ============================================================
 // MAIN PAGE
 // ============================================================
 
@@ -291,6 +334,26 @@ export function AccountingPage() {
   const { data: treeRes, loading, refetch } = useApi(() => accountingApi.coa(), []);
   const { data: flatRes } = useApi(() => accountingApi.coa({ flat: "true" }), []);
   const { mutate: deleteAccount } = useMutation((id: string) => accountingApi.deleteAccount(id));
+
+  // KPI data
+  const now = new Date();
+  const firstDay = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const { data: incomeRes, loading: incomeLoading } = useApi(
+    () => accountingApi.incomeStatement({ from: firstDay }),
+    []
+  );
+  const { data: balanceRes, loading: balanceLoading } = useApi(
+    () => accountingApi.balanceSheet(),
+    []
+  );
+
+  const income = (incomeRes as any)?.data;
+  const balance = (balanceRes as any)?.data;
+
+  const monthRevenue = income?.totalRevenue ?? null;
+  const monthExpenses = income?.totalExpense ?? null;
+  const netProfit = income?.netIncome ?? null;
+  const totalAssets = balance?.totalAssets ?? null;
 
   const tree: any[] = treeRes?.data ?? [];
   const flat: any[] = flatRes?.data ?? [];
@@ -329,6 +392,42 @@ export function AccountingPage() {
           <Plus className="w-4 h-4" />
           حساب جديد
         </button>
+      </div>
+
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <KpiCard
+          label="إيراد الشهر"
+          value={monthRevenue !== null ? fmtAmount(monthRevenue) : null}
+          loading={incomeLoading}
+          color="text-emerald-700"
+          bg="bg-emerald-50"
+          icon={TrendingUp}
+        />
+        <KpiCard
+          label="المصروفات"
+          value={monthExpenses !== null ? fmtAmount(monthExpenses) : null}
+          loading={incomeLoading}
+          color="text-orange-700"
+          bg="bg-orange-50"
+          icon={TrendingDown}
+        />
+        <KpiCard
+          label="صافي الربح"
+          value={netProfit !== null ? fmtAmount(netProfit) : null}
+          loading={incomeLoading}
+          color={netProfit !== null && parseFloat(netProfit) < 0 ? "text-red-700" : "text-blue-700"}
+          bg={netProfit !== null && parseFloat(netProfit) < 0 ? "bg-red-50" : "bg-blue-50"}
+          icon={DollarSign}
+        />
+        <KpiCard
+          label="إجمالي الأصول"
+          value={totalAssets !== null ? fmtAmount(totalAssets) : null}
+          loading={balanceLoading}
+          color="text-violet-700"
+          bg="bg-violet-50"
+          icon={BarChart2}
+        />
       </div>
 
       {/* Filters */}

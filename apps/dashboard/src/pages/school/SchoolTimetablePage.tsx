@@ -61,22 +61,50 @@ function cellKey(day: number, period: number): string { return `${day}-${period}
 
 function CellModal({
   day, period, periodLabel, startTime, endTime,
-  value, teachers, subjects,
+  classRoomId,
+  value, subjects,
   onSave, onClear, onClose,
 }: {
   day: number; period: number; periodLabel: string; startTime: string; endTime: string;
+  classRoomId: string;
   value: { subject?: string | null; teacherId?: string | null; teacherName?: string | null } | null;
-  teachers: any[]; subjects: any[];
-  onSave: (subject: string | null, teacherId: string | null, st: string, et: string) => void;
+  subjects: any[];
+  onSave: (subject: string | null, teacherId: string | null, teacherName: string | null) => void;
   onClear: () => void;
   onClose: () => void;
 }) {
   const [subject,   setSubject]   = useState(value?.subject   ?? "");
   const [teacherId, setTeacherId] = useState(value?.teacherId ?? "");
-  const [st,        setSt]        = useState(startTime);
-  const [et,        setEt]        = useState(endTime);
+  const [filteredTeachers, setFilteredTeachers] = useState<any[]>([]);
+  const [loadingTeachers,  setLoadingTeachers]  = useState(false);
 
   const dayLabel = DAYS.find(d => d.value === day)?.label ?? "";
+
+  // عند تغيير المادة — جلب المعلمين المخصصين لهذا الفصل + المادة
+  useEffect(() => {
+    if (!subject || !classRoomId) { setFilteredTeachers([]); return; }
+    setLoadingTeachers(true);
+    schoolApi.listTeachersByClassroomSubject(classRoomId, subject)
+      .then((res: any) => {
+        const teachers = res?.data ?? [];
+        setFilteredTeachers(teachers);
+        // اختيار تلقائي إذا كان هناك معلم واحد مخصص لهذه المادة في هذا الفصل
+        if (teachers.length === 1 && !teacherId) {
+          setTeacherId(teachers[0].id);
+        }
+      })
+      .catch(() => setFilteredTeachers([]))
+      .finally(() => setLoadingTeachers(false));
+  }, [subject, classRoomId]);
+
+  // إذا تغيرت المادة وكان المعلم المختار لا يُدرّسها — أعد تعيينه
+  useEffect(() => {
+    if (teacherId && filteredTeachers.length > 0) {
+      if (!filteredTeachers.find((t: any) => t.id === teacherId)) {
+        setTeacherId("");
+      }
+    }
+  }, [filteredTeachers]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
@@ -84,7 +112,11 @@ function CellModal({
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <div>
             <h3 className="text-sm font-black text-gray-900">{periodLabel}</h3>
-            <p className="text-xs text-gray-400 mt-0.5">{dayLabel}</p>
+            <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+              <span>{dayLabel}</span>
+              <span className="text-gray-300">·</span>
+              <span dir="ltr" className="font-mono">{startTime ?? "—"} – {endTime ?? "—"}</span>
+            </p>
           </div>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
             <X className="w-4 h-4" />
@@ -96,10 +128,10 @@ function CellModal({
             <label className="block text-xs font-bold text-gray-700 mb-1.5">المادة</label>
             <select
               value={subject}
-              onChange={e => setSubject(e.target.value)}
+              onChange={e => { setSubject(e.target.value); setTeacherId(""); }}
               className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
             >
-              <option value="">— لا يوجد —</option>
+              <option value="">— اختر المادة —</option>
               {subjects.map((s: any) => (
                 <option key={s.id} value={s.name}>{s.name}</option>
               ))}
@@ -107,37 +139,38 @@ function CellModal({
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-gray-700 mb-1.5">المعلم</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-xs font-bold text-gray-700">المعلم</label>
+              {subject && !loadingTeachers && filteredTeachers.length === 0 && (
+                <span className="text-[10px] text-amber-600 bg-amber-50 px-2 py-0.5 rounded-lg">
+                  لا يوجد معلمون مخصصون لهذه المادة في هذا الفصل
+                </span>
+              )}
+            </div>
             <select
               value={teacherId}
               onChange={e => setTeacherId(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              disabled={!subject || loadingTeachers}
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:opacity-50 disabled:bg-gray-50"
             >
-              <option value="">— لا يوجد —</option>
-              {teachers.map((t: any) => (
-                <option key={t.id} value={t.id}>{t.fullName}{t.subject ? ` — ${t.subject}` : ""}</option>
+              <option value="">
+                {loadingTeachers ? "جاري التحميل..." : "— اختر المعلم —"}
+              </option>
+              {filteredTeachers.map((t: any) => (
+                <option key={t.id} value={t.id}>{t.fullName}</option>
               ))}
             </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">من</label>
-              <input type="time" value={st} onChange={e => setSt(e.target.value)} dir="ltr"
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400" />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-700 mb-1.5">إلى</label>
-              <input type="time" value={et} onChange={e => setEt(e.target.value)} dir="ltr"
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400" />
-            </div>
           </div>
         </div>
 
         <div className="px-5 py-3.5 border-t border-gray-100 flex gap-2">
           <button
-            onClick={() => onSave(subject || null, teacherId || null, st, et)}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700"
+            onClick={() => {
+              const tName = filteredTeachers.find((t: any) => t.id === teacherId)?.fullName ?? null;
+              onSave(subject || null, teacherId || null, tName);
+            }}
+            disabled={!subject}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-50"
           >
             <Check className="w-4 h-4" />
             حفظ
@@ -248,10 +281,11 @@ export function SchoolTimetablePage() {
   const [dirty,        setDirty]        = useState(false);
   const [migrating,    setMigrating]    = useState(false);
   const [migrateMsg,   setMigrateMsg]   = useState("");
-  const [lastFetchedAt, setLastFetchedAt] = useState<string | null>(null);
 
   // in-memory overrides
   const [cellMap, setCellMap] = useState<TimetableMap>({});
+  // Local periods override — set when user applies schedule settings
+  const [localPeriods, setLocalPeriods] = useState<ReturnType<typeof buildDefaultPeriods> | null>(null);
 
   // Schedule params (pulled from school settings, then editable locally)
   const [schedParams, setSchedParams] = useState({
@@ -264,12 +298,10 @@ export function SchoolTimetablePage() {
 
   // Data fetches
   const { data: classesData }   = useApi(() => schoolApi.listClassRooms(), []);
-  const { data: teachersData }  = useApi(() => schoolApi.listTeachers(), []);
   const { data: subjectsData }  = useApi(() => schoolApi.listSubjects(), []);
   const { data: settingsData }  = useApi(() => schoolApi.getSettings(), []);
 
   const classRooms: any[] = classesData?.data ?? [];
-  const teachers: any[]   = (teachersData?.data ?? []).filter((t: any) => t.isActive !== false);
   const subjects: any[]   = subjectsData?.data ?? [];
 
   // Apply school settings to schedule params
@@ -304,13 +336,16 @@ export function SchoolTimetablePage() {
     }
     setCellMap(map);
     setDirty(false);
+    setLocalPeriods(null); // clear local override after fresh fetch
     // تسجيل وقت جلب البيانات لفحص التعديل المتزامن
-    setLastFetchedAt(new Date().toISOString());
   }, [timetableData]);
 
-  // Build period rows: من قالب System A إن وجد، وإلا من إعدادات الجدول المحلية
+  // Build period rows: localPeriods (من إعدادات المستخدم) تأخذ الأولوية،
+  // ثم قالب Server A، ثم الإعدادات الافتراضية
   const templatePeriods: any[] = timetableData?.periods ?? [];
-  const periods = templatePeriods.length > 0
+  const periods = localPeriods
+    ? localPeriods
+    : templatePeriods.length > 0
     ? templatePeriods.map((p: any) => ({
         periodNumber: p.periodNumber,
         startTime:    p.startTime,
@@ -329,14 +364,15 @@ export function SchoolTimetablePage() {
     return cellMap[cellKey(day, period)] ?? null;
   }, [cellMap]);
 
-  const updateCell = (day: number, period: number, subject: string | null, teacherId: string | null, st: string, et: string) => {
-    const teacher = teachers.find(t => t.id === teacherId) ?? null;
+  const updateCell = (day: number, period: number, subject: string | null, teacherId: string | null, teacherName: string | null) => {
+    const pd = periods.find(p => p.periodNumber === period);
     setCellMap(prev => ({
       ...prev,
       [cellKey(day, period)]: {
         ...prev[cellKey(day, period)],
-        subject, teacherId, teacherName: teacher?.fullName ?? null,
-        startTime: st, endTime: et,
+        subject, teacherId, teacherName,
+        startTime: pd?.startTime ?? null,
+        endTime:   pd?.endTime   ?? null,
       },
     }));
     setDirty(true);
@@ -377,7 +413,7 @@ export function SchoolTimetablePage() {
         }
       }
 
-      await schoolApi.bulkUpsertTimetable(classRoomId, allCells, lastFetchedAt ?? undefined);
+      await schoolApi.bulkUpsertTimetable(classRoomId, allCells);
       setDirty(false);
       setSaveMsg("تم الحفظ");
       refetchTt();
@@ -404,21 +440,13 @@ export function SchoolTimetablePage() {
 
   const handleApplySettings = async (newSettings: typeof schedParams) => {
     setSchedParams(newSettings);
-    // Reset cell times to new defaults
-    setCellMap(prev => {
-      const newMap: TimetableMap = {};
-      const newPeriods = buildDefaultPeriods(
-        newSettings.startTime, newSettings.periodDuration,
-        newSettings.breakDuration, newSettings.numberOfPeriods, newSettings.breakAfter,
-      );
-      for (const [k, v] of Object.entries(prev)) {
-        const [, pStr] = k.split("-");
-        const pNum = Number(pStr);
-        const pd = newPeriods.find(p => p.periodNumber === pNum);
-        newMap[k] = { ...v, startTime: pd?.startTime ?? v.startTime, endTime: pd?.endTime ?? v.endTime };
-      }
-      return newMap;
-    });
+    // Build new periods and store as local override — takes priority over server template
+    const newPeriods = buildDefaultPeriods(
+      newSettings.startTime, newSettings.periodDuration,
+      newSettings.breakDuration, newSettings.numberOfPeriods, newSettings.breakAfter,
+    );
+    setLocalPeriods(newPeriods);
+    // Times are derived from period definition, no need to update cellMap times
     setShowSettings(false);
     setDirty(true);
     // Persist to school settings so changes survive page reload
@@ -486,31 +514,38 @@ export function SchoolTimetablePage() {
           </button>
         )}
         {saveMsg && (
-          <span className={clsx("text-xs font-semibold", saveMsg.startsWith("خطأ") ? "text-red-500" : "text-emerald-600")}>
+          <span className={clsx(
+            "text-xs font-semibold px-3 py-1.5 rounded-xl",
+            saveMsg === "تم الحفظ"
+              ? "text-emerald-700 bg-emerald-50 border border-emerald-200"
+              : "text-red-600 bg-red-50 border border-red-200"
+          )}>
             {saveMsg}
           </span>
         )}
       </div>
 
-      {/* No active week warning */}
+      {/* First-use guide — shown when no active week yet */}
       {classRoomId && !ttLoading && activeWeekId === null && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-500 mt-0.5 shrink-0" />
+        <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-start gap-3">
+          <Check className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
           <div className="flex-1">
-            <p className="text-sm font-bold text-amber-800">لا يوجد أسبوع دراسي نشط</p>
-            <p className="text-xs text-amber-700 mt-0.5">
-              قم بإعداد العام الدراسي أولاً، أو رحّل بيانات الجدول القديمة إلى النظام الجديد.
+            <p className="text-sm font-bold text-emerald-800">الجدول جاهز للاستخدام</p>
+            <p className="text-xs text-emerald-700 mt-0.5">
+              اضغط على أي خلية، أدخل المادة والمعلم، ثم احفظ — سيُنشئ النظام الإعداد تلقائياً.
             </p>
           </div>
+          {/* Migration link — for schools with old data */}
           <div className="flex items-center gap-2 shrink-0">
-            {migrateMsg && <span className="text-xs text-emerald-700 font-semibold">{migrateMsg}</span>}
+            {migrateMsg && <span className="text-xs font-semibold text-emerald-700">{migrateMsg}</span>}
             <button
               onClick={handleMigrate}
               disabled={migrating}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white rounded-xl text-xs font-bold hover:bg-amber-700 disabled:opacity-50"
+              title="ترحيل بيانات الجدول القديم إلى النظام الجديد"
+              className="flex items-center gap-1.5 px-3 py-1.5 border border-emerald-300 text-emerald-700 rounded-xl text-xs font-semibold hover:bg-emerald-100 disabled:opacity-50"
             >
               {migrating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <ArrowUpDown className="w-3.5 h-3.5" />}
-              ترحيل البيانات
+              استيراد الجدول القديم
             </button>
           </div>
         </div>
@@ -518,14 +553,22 @@ export function SchoolTimetablePage() {
 
       {/* Empty state */}
       {!classRoomId && (
-        <div className="py-20 flex flex-col items-center gap-3 text-center">
+        <div className="py-16 flex flex-col items-center gap-4 text-center">
           <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center">
             <Grid3x3 className="w-8 h-8 text-gray-300" />
           </div>
-          <p className="text-sm font-semibold text-gray-500">اختر فصلاً لعرض جدوله الدراسي</p>
-          <p className="text-xs text-gray-400 max-w-xs">
-            الجدول يُبنى تلقائياً من إعدادات الدوام — يمكن تعديل كل خلية بالضغط عليها
-          </p>
+          <div>
+            <p className="text-sm font-semibold text-gray-600">اختر الفصل من القائمة أعلاه</p>
+            <p className="text-xs text-gray-400 mt-1 max-w-xs">
+              سيظهر الجدول فوراً — اضغط على أي خلية لإدخال المادة والمعلم
+            </p>
+          </div>
+          {classRooms.length === 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3 text-xs text-amber-700 max-w-xs">
+              لا توجد فصول دراسية بعد —{" "}
+              <a href="/school/classes" className="font-bold underline hover:no-underline">أضف الفصول أولاً</a>
+            </div>
+          )}
         </div>
       )}
 
@@ -636,12 +679,12 @@ export function SchoolTimetablePage() {
           day={editModal.day}
           period={editModal.period}
           periodLabel={editPeriod.label}
-          startTime={cellMap[cellKey(editModal.day, editModal.period)]?.startTime ?? editPeriod.startTime}
-          endTime={cellMap[cellKey(editModal.day, editModal.period)]?.endTime ?? editPeriod.endTime}
+          startTime={editPeriod.startTime}
+          endTime={editPeriod.endTime}
+          classRoomId={classRoomId}
           value={cellMap[cellKey(editModal.day, editModal.period)] ?? null}
-          teachers={teachers}
           subjects={subjects}
-          onSave={(subject, teacherId, st, et) => updateCell(editModal.day, editModal.period, subject, teacherId, st, et)}
+          onSave={(subject, teacherId, teacherName) => updateCell(editModal.day, editModal.period, subject, teacherId, teacherName)}
           onClear={() => clearCell(editModal.day, editModal.period)}
           onClose={() => setEditModal(null)}
         />

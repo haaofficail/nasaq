@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { Plus, Pencil, Trash2, ChevronLeft, Tag, Loader2, AlertCircle } from "lucide-react";
 import { clsx } from "clsx";
+import { toast } from "@/hooks/useToast";
+import { confirmDialog } from "@/components/ui";
 import { categoriesApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Modal, Input, Select, Button } from "@/components/ui";
@@ -58,8 +60,10 @@ export function CategoriesPage() {
   };
 
   const handleDelete = async (cat: any) => {
-    if (!confirm(`حذف تصنيف "${cat.name}"؟`)) return;
+    const ok = await confirmDialog({ title: `حذف تصنيف "${cat.name}"؟`, danger: true, confirmLabel: "حذف" });
+    if (!ok) return;
     await deleteCat(cat.id);
+    toast.success("تم حذف التصنيف");
     refetch();
   };
 

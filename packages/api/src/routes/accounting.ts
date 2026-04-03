@@ -7,6 +7,12 @@ import {
   journalEntries,
   journalEntryLines,
   accountingPeriods,
+  costCenters,
+  fixedAssets,
+  assetDepreciationEntries,
+  vendors,
+  budgets,
+  budgetLines,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
@@ -1076,4 +1082,423 @@ accountingRouter.get("/reports/cash-flow", async (c) => {
       note: "قائمة التدفقات مبسّطة — أنشطة التشغيل فقط في هذا الإصدار",
     },
   });
+});
+
+// ============================================================
+// COST CENTERS — مراكز التكلفة
+// ============================================================
+
+accountingRouter.get("/cost-centers", async (c) => {
+  const orgId = getOrgId(c);
+  const search = c.req.query("search");
+  const conditions = [eq(costCenters.orgId, orgId), eq(costCenters.isActive, true)];
+  const rows = await db.select().from(costCenters).where(and(...conditions)).orderBy(asc(costCenters.code));
+  const data = search
+    ? rows.filter(r => r.name.includes(search) || r.code.includes(search))
+    : rows;
+  return c.json({ data });
+});
+
+accountingRouter.post("/cost-centers", async (c) => {
+  const orgId = getOrgId(c);
+  const body = z.object({
+    code: z.string().min(1).max(20),
+    name: z.string().min(1).max(200),
+    type: z.enum(["branch", "department", "project", "property", "vehicle", "employee"]).default("department"),
+    notes: z.string().optional().nullable(),
+    parentId: z.string().uuid().optional().nullable(),
+  }).parse(await c.req.json());
+  const [row] = await db.insert(costCenters).values({ orgId, code: body.code, name: body.name, type: body.type, notes: body.notes ?? null, parentId: body.parentId ?? null, isActive: true }).returning();
+  return c.json({ data: row }, 201);
+});
+
+accountingRouter.put("/cost-centers/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const body = await c.req.json();
+  const [row] = await db.update(costCenters).set({ name: body.name, notes: body.notes ?? null, isActive: body.isActive ?? true, updatedAt: new Date() })
+    .where(and(eq(costCenters.id, c.req.param("id")), eq(costCenters.orgId, orgId))).returning();
+  if (!row) return c.json({ error: "مركز التكلفة غير موجود" }, 404);
+  return c.json({ data: row });
+});
+
+accountingRouter.delete("/cost-centers/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const [row] = await db.update(costCenters).set({ isActive: false, updatedAt: new Date() })
+    .where(and(eq(costCenters.id, c.req.param("id")), eq(costCenters.orgId, orgId))).returning({ id: costCenters.id });
+  if (!row) return c.json({ error: "مركز التكلفة غير موجود" }, 404);
+  return c.json({ success: true });
+});
+
+// ============================================================
+// VENDORS — الموردون
+// ============================================================
+
+accountingRouter.get("/vendors", async (c) => {
+  const orgId = getOrgId(c);
+  const search = c.req.query("search");
+  const isActive = c.req.query("isActive");
+  const conditions = [eq(vendors.orgId, orgId)];
+  if (isActive !== undefined) conditions.push(eq(vendors.isActive, isActive !== "false"));
+  const rows = await db.select().from(vendors).where(and(...conditions)).orderBy(asc(vendors.name));
+  const data = search ? rows.filter(r => r.name.includes(search) || (r.phone ?? "").includes(search)) : rows;
+  return c.json({ data });
+});
+
+accountingRouter.get("/vendors/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const [row] = await db.select().from(vendors).where(and(eq(vendors.id, c.req.param("id")), eq(vendors.orgId, orgId)));
+  if (!row) return c.json({ error: "المورد غير موجود" }, 404);
+  return c.json({ data: row });
+});
+
+accountingRouter.get("/vendors/:id/statement", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+  const from = c.req.query("from");
+  const to = c.req.query("to");
+
+  const [vendor] = await db.select().from(vendors).where(and(eq(vendors.id, id), eq(vendors.orgId, orgId)));
+  if (!vendor) return c.json({ error: "المورد غير موجود" }, 404);
+
+  // AP journal lines for this vendor (entries referencing vendor_id via metadata)
+  // Simplified: query AP account lines
+  const params: any[] = [orgId, id];
+  let dateFilter = "";
+  if (from) { params.push(from); dateFilter += ` AND je.entry_date >= $${params.length}`; }
+  if (to) { params.push(to); dateFilter += ` AND je.entry_date <= $${params.length}`; }
+
+  const { pool } = await import("@nasaq/db/client");
+  const lines = await pool.query(
+    `SELECT je.entry_date, je.description, jel.debit, jel.credit, ca.name as account_name
+     FROM journal_entry_lines jel
+     JOIN journal_entries je ON je.id = jel.journal_entry_id
+     JOIN chart_of_accounts ca ON ca.id = jel.account_id
+     WHERE je.org_id = $1 AND je.status = 'posted'
+       AND jel.vendor_id = $2 ${dateFilter}
+     ORDER BY je.entry_date ASC`,
+    params
+  );
+  const totalDebit = lines.rows.reduce((s: number, r: any) => s + parseFloat(r.debit || 0), 0);
+  const totalCredit = lines.rows.reduce((s: number, r: any) => s + parseFloat(r.credit || 0), 0);
+  return c.json({ data: { vendor, lines: lines.rows, totalDebit, totalCredit, balance: totalDebit - totalCredit } });
+});
+
+accountingRouter.post("/vendors", async (c) => {
+  const orgId = getOrgId(c);
+  const body = z.object({
+    name: z.string().min(1),
+    contactPerson: z.string().optional().nullable(),
+    phone: z.string().optional().nullable(),
+    email: z.string().email().optional().nullable(),
+    vatNumber: z.string().optional().nullable(),
+    commercialRegistration: z.string().optional().nullable(),
+    bankName: z.string().optional().nullable(),
+    iban: z.string().optional().nullable(),
+    address: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+  }).parse(await c.req.json());
+  const [row] = await db.insert(vendors).values({ orgId, ...body, isActive: true }).returning();
+  return c.json({ data: row }, 201);
+});
+
+accountingRouter.put("/vendors/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const body = await c.req.json();
+  const [row] = await db.update(vendors).set({ ...body, updatedAt: new Date() })
+    .where(and(eq(vendors.id, c.req.param("id")), eq(vendors.orgId, orgId))).returning();
+  if (!row) return c.json({ error: "المورد غير موجود" }, 404);
+  return c.json({ data: row });
+});
+
+accountingRouter.delete("/vendors/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const [row] = await db.update(vendors).set({ isActive: false, updatedAt: new Date() })
+    .where(and(eq(vendors.id, c.req.param("id")), eq(vendors.orgId, orgId))).returning({ id: vendors.id });
+  if (!row) return c.json({ error: "المورد غير موجود" }, 404);
+  return c.json({ success: true });
+});
+
+// ============================================================
+// FIXED ASSETS — الأصول الثابتة
+// ============================================================
+
+const createAssetSchema = z.object({
+  name: z.string().min(1).max(200),
+  nameEn: z.string().optional().nullable(),
+  category: z.enum(["land", "building", "vehicle", "furniture", "equipment", "computer", "machinery", "other"]),
+  purchaseDate: z.string().optional().nullable(),
+  purchasePrice: z.string().optional().nullable(),
+  purchaseInvoice: z.string().optional().nullable(),
+  vendorName: z.string().optional().nullable(),
+  warrantyEndDate: z.string().optional().nullable(),
+  usefulLifeMonths: z.number().int().min(1).optional().nullable(),
+  salvageValue: z.string().optional().nullable(),
+  depreciationMethod: z.enum(["straight_line", "declining_balance", "units_of_production"]).optional().default("straight_line"),
+  location: z.string().optional().nullable(),
+  assignedTo: z.string().optional().nullable(),
+  serialNumber: z.string().optional().nullable(),
+  costCenterId: z.string().uuid().optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+// GET /accounting/assets/summary
+accountingRouter.get("/assets/summary", async (c) => {
+  const orgId = getOrgId(c);
+  const rows = await db.select().from(fixedAssets).where(eq(fixedAssets.orgId, orgId));
+  const active = rows.filter(r => r.status === "active");
+  const totalCost = rows.reduce((s, r) => s + parseFloat(r.purchasePrice ?? "0"), 0);
+  const totalAccDep = rows.reduce((s, r) => s + parseFloat(r.accumulatedDepreciation ?? "0"), 0);
+  const totalNBV = rows.reduce((s, r) => s + parseFloat(r.netBookValue ?? "0"), 0);
+  const byCategory: Record<string, number> = {};
+  for (const r of rows) byCategory[r.category] = (byCategory[r.category] ?? 0) + 1;
+  return c.json({ data: { total: rows.length, active: active.length, totalCost, totalAccDep, totalNBV, byCategory } });
+});
+
+// GET /accounting/assets
+accountingRouter.get("/assets", async (c) => {
+  const orgId = getOrgId(c);
+  const category = c.req.query("category");
+  const status = c.req.query("status");
+  const search = c.req.query("search");
+  const conditions = [eq(fixedAssets.orgId, orgId)];
+  if (category) conditions.push(eq(fixedAssets.category, category as any));
+  if (status) conditions.push(eq(fixedAssets.status, status as any));
+  let rows = await db.select().from(fixedAssets).where(and(...conditions)).orderBy(asc(fixedAssets.assetCode));
+  if (search) rows = rows.filter(r => r.name.includes(search) || r.assetCode.includes(search));
+  return c.json({ data: rows });
+});
+
+// GET /accounting/assets/:id
+accountingRouter.get("/assets/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const [row] = await db.select().from(fixedAssets).where(and(eq(fixedAssets.id, c.req.param("id")), eq(fixedAssets.orgId, orgId)));
+  if (!row) return c.json({ error: "الأصل غير موجود" }, 404);
+  const depEntries = await db.select().from(assetDepreciationEntries).where(eq(assetDepreciationEntries.assetId, row.id)).orderBy(desc(assetDepreciationEntries.depreciationDate));
+  return c.json({ data: { ...row, depreciationEntries: depEntries } });
+});
+
+// GET /accounting/assets/:id/depreciation-schedule
+accountingRouter.get("/assets/:id/depreciation-schedule", async (c) => {
+  const orgId = getOrgId(c);
+  const [asset] = await db.select().from(fixedAssets).where(and(eq(fixedAssets.id, c.req.param("id")), eq(fixedAssets.orgId, orgId)));
+  if (!asset) return c.json({ error: "الأصل غير موجود" }, 404);
+  if (!asset.purchasePrice || !asset.usefulLifeMonths) return c.json({ data: [] });
+
+  const cost = parseFloat(asset.purchasePrice);
+  const salvage = parseFloat(asset.salvageValue ?? "0");
+  const months = asset.usefulLifeMonths;
+  const monthly = (cost - salvage) / months;
+  const startDate = asset.purchaseDate ? new Date(asset.purchaseDate) : new Date();
+
+  const schedule = Array.from({ length: months }, (_, i) => {
+    const d = new Date(startDate);
+    d.setMonth(d.getMonth() + i + 1);
+    const accDep = Math.min(monthly * (i + 1), cost - salvage);
+    return {
+      month: i + 1,
+      date: d.toISOString().slice(0, 7),
+      depreciation: monthly.toFixed(2),
+      accumulatedDepreciation: accDep.toFixed(2),
+      netBookValue: (cost - accDep).toFixed(2),
+    };
+  });
+  return c.json({ data: schedule });
+});
+
+// POST /accounting/assets
+accountingRouter.post("/assets", async (c) => {
+  const orgId = getOrgId(c);
+  const body = createAssetSchema.parse(await c.req.json());
+
+  // توليد رمز الأصل
+  const existing = await db.select({ code: fixedAssets.assetCode }).from(fixedAssets).where(eq(fixedAssets.orgId, orgId)).orderBy(desc(fixedAssets.createdAt));
+  const lastNum = existing.length > 0
+    ? Math.max(...existing.map(r => parseInt(r.code.replace(/\D/g, "") || "0")))
+    : 0;
+  const assetCode = `FA-${String(lastNum + 1).padStart(3, "0")}`;
+
+  const price = body.purchasePrice ? parseFloat(body.purchasePrice) : 0;
+  const salvage = body.salvageValue ? parseFloat(body.salvageValue) : 0;
+  const lifeMonths = body.usefulLifeMonths ?? 60;
+  const monthlyDep = lifeMonths > 0 ? ((price - salvage) / lifeMonths) : 0;
+
+  const [row] = await db.insert(fixedAssets).values({
+    orgId,
+    assetCode,
+    name: body.name,
+    nameEn: body.nameEn ?? null,
+    category: body.category,
+    purchaseDate: body.purchaseDate ?? null,
+    purchasePrice: body.purchasePrice ?? null,
+    purchaseInvoice: body.purchaseInvoice ?? null,
+    vendorName: body.vendorName ?? null,
+    warrantyEndDate: body.warrantyEndDate ?? null,
+    usefulLifeMonths: body.usefulLifeMonths ?? null,
+    salvageValue: body.salvageValue ?? "0",
+    depreciationMethod: (body.depreciationMethod ?? "straight_line") as any,
+    monthlyDepreciation: monthlyDep.toFixed(2),
+    accumulatedDepreciation: "0",
+    netBookValue: body.purchasePrice ?? "0",
+    location: body.location ?? null,
+    assignedTo: body.assignedTo ?? null,
+    serialNumber: body.serialNumber ?? null,
+    costCenterId: body.costCenterId ?? null,
+    notes: body.notes ?? null,
+    status: "active",
+  }).returning();
+
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "fixed_asset", resourceId: row.id });
+  return c.json({ data: row }, 201);
+});
+
+// PUT /accounting/assets/:id
+accountingRouter.put("/assets/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const body = createAssetSchema.partial().parse(await c.req.json());
+  const [current] = await db.select().from(fixedAssets).where(and(eq(fixedAssets.id, c.req.param("id")), eq(fixedAssets.orgId, orgId)));
+  if (!current) return c.json({ error: "الأصل غير موجود" }, 404);
+
+  const price = body.purchasePrice ? parseFloat(body.purchasePrice) : parseFloat(current.purchasePrice ?? "0");
+  const salvage = body.salvageValue ? parseFloat(body.salvageValue) : parseFloat(current.salvageValue ?? "0");
+  const lifeMonths = body.usefulLifeMonths ?? current.usefulLifeMonths ?? 60;
+  const monthlyDep = lifeMonths > 0 ? ((price - salvage) / lifeMonths) : 0;
+
+  const [row] = await db.update(fixedAssets).set({
+    ...body,
+    monthlyDepreciation: monthlyDep.toFixed(2),
+    netBookValue: (price - parseFloat(current.accumulatedDepreciation ?? "0")).toFixed(2),
+    updatedAt: new Date(),
+  }).where(and(eq(fixedAssets.id, c.req.param("id")), eq(fixedAssets.orgId, orgId))).returning();
+
+  return c.json({ data: row });
+});
+
+// DELETE /accounting/assets/:id (soft — set status to disposed)
+accountingRouter.delete("/assets/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const [row] = await db.update(fixedAssets).set({ status: "disposed", disposalDate: new Date().toISOString().slice(0, 10), updatedAt: new Date() })
+    .where(and(eq(fixedAssets.id, c.req.param("id")), eq(fixedAssets.orgId, orgId))).returning({ id: fixedAssets.id });
+  if (!row) return c.json({ error: "الأصل غير موجود" }, 404);
+  return c.json({ success: true });
+});
+
+// POST /accounting/assets/depreciate-monthly — تشغيل الاستهلاك الشهري
+accountingRouter.post("/assets/depreciate-monthly", async (c) => {
+  const orgId = getOrgId(c);
+  const today = new Date();
+  const monthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+
+  const activeAssets = await db.select().from(fixedAssets)
+    .where(and(eq(fixedAssets.orgId, orgId), eq(fixedAssets.status, "active")));
+
+  let processed = 0;
+  let skipped = 0;
+  for (const asset of activeAssets) {
+    if (!asset.monthlyDepreciation || parseFloat(asset.monthlyDepreciation) <= 0) { skipped++; continue; }
+    const price = parseFloat(asset.purchasePrice ?? "0");
+    const salvage = parseFloat(asset.salvageValue ?? "0");
+    const accDep = parseFloat(asset.accumulatedDepreciation ?? "0");
+    const maxDep = price - salvage;
+    if (accDep >= maxDep) {
+      await db.update(fixedAssets).set({ status: "fully_depreciated", updatedAt: new Date() }).where(eq(fixedAssets.id, asset.id));
+      skipped++;
+      continue;
+    }
+    const monthDep = Math.min(parseFloat(asset.monthlyDepreciation), maxDep - accDep);
+    const newAccDep = accDep + monthDep;
+    const newNBV = price - newAccDep;
+
+    await db.insert(assetDepreciationEntries).values({
+      orgId,
+      assetId: asset.id,
+      depreciationDate: `${monthStr}-01`,
+      amount: monthDep.toFixed(2),
+    });
+    await db.update(fixedAssets).set({
+      accumulatedDepreciation: newAccDep.toFixed(2),
+      netBookValue: newNBV.toFixed(2),
+      status: newNBV <= 0 ? "fully_depreciated" : "active",
+      updatedAt: new Date(),
+    }).where(eq(fixedAssets.id, asset.id));
+    processed++;
+  }
+  return c.json({ data: { month: monthStr, processed, skipped } });
+});
+
+// ============================================================
+// BUDGETS — الموازنات التقديرية
+// ============================================================
+
+accountingRouter.get("/budgets", async (c) => {
+  const orgId = getOrgId(c);
+  const rows = await db.select().from(budgets).where(eq(budgets.orgId, orgId)).orderBy(desc(budgets.periodEnd));
+  return c.json({ data: rows });
+});
+
+accountingRouter.get("/budgets/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const [budget] = await db.select().from(budgets).where(and(eq(budgets.id, c.req.param("id")), eq(budgets.orgId, orgId)));
+  if (!budget) return c.json({ error: "الموازنة غير موجودة" }, 404);
+  const lines = await db.select().from(budgetLines).where(eq(budgetLines.budgetId, budget.id)).orderBy(asc(budgetLines.month));
+  return c.json({ data: { ...budget, lines } });
+});
+
+accountingRouter.post("/budgets", async (c) => {
+  const orgId = getOrgId(c);
+  const body = z.object({
+    name: z.string().min(1),
+    periodStart: z.string(),
+    periodEnd: z.string(),
+    notes: z.string().optional().nullable(),
+  }).parse(await c.req.json());
+  const [row] = await db.insert(budgets).values({ orgId, ...body, notes: body.notes ?? null, status: "draft", createdBy: getUserId(c) ?? null }).returning();
+  return c.json({ data: row }, 201);
+});
+
+accountingRouter.patch("/budgets/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const body = await c.req.json();
+  const [row] = await db.update(budgets).set({ ...body, updatedAt: new Date() })
+    .where(and(eq(budgets.id, c.req.param("id")), eq(budgets.orgId, orgId))).returning();
+  if (!row) return c.json({ error: "الموازنة غير موجودة" }, 404);
+  return c.json({ data: row });
+});
+
+accountingRouter.post("/budgets/:id/activate", async (c) => {
+  const orgId = getOrgId(c);
+  const [row] = await db.update(budgets).set({ status: "active", updatedAt: new Date() })
+    .where(and(eq(budgets.id, c.req.param("id")), eq(budgets.orgId, orgId))).returning();
+  if (!row) return c.json({ error: "الموازنة غير موجودة" }, 404);
+  return c.json({ data: row });
+});
+
+accountingRouter.post("/budgets/:id/lines", async (c) => {
+  const orgId = getOrgId(c);
+  const body = z.object({
+    accountId: z.string().uuid().optional().nullable(),
+    costCenterId: z.string().uuid().optional().nullable(),
+    month: z.string(),                  // YYYY-MM-01
+    budgetAmount: z.string().or(z.number()).transform(v => String(v)),
+  }).parse(await c.req.json());
+  const [line] = await db.insert(budgetLines).values({
+    orgId,
+    budgetId: c.req.param("id"),
+    accountId: body.accountId ?? null,
+    costCenterId: body.costCenterId ?? null,
+    month: body.month,
+    budgetAmount: body.budgetAmount,
+    actualAmount: "0",
+  }).returning();
+  return c.json({ data: line }, 201);
+});
+
+accountingRouter.put("/budgets/:id/lines/:lineId", async (c) => {
+  const body = await c.req.json();
+  const [line] = await db.update(budgetLines).set({
+    budgetAmount: body.budgetAmount !== undefined ? String(body.budgetAmount) : undefined,
+    actualAmount: body.actualAmount !== undefined ? String(body.actualAmount) : undefined,
+    updatedAt: new Date(),
+  }).where(and(eq(budgetLines.id, c.req.param("lineId")), eq(budgetLines.budgetId, c.req.param("id")))).returning();
+  if (!line) return c.json({ error: "السطر غير موجود" }, 404);
+  return c.json({ data: line });
 });

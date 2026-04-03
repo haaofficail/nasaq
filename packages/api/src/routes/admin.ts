@@ -17,16 +17,21 @@ type AdminVariables = {
 import {
   organizations, users, sessions, locations,
   platformAuditLog, orgDocuments, supportTickets,
-  platformAnnouncements, systemHealthLog, platformPlans,
+  platformAnnouncements, systemHealthLog, platformPlans, platformConfig,
   organizationCapabilityOverrides,
   reminderCategories, reminderTemplates, orgReminders,
   otpCodes, roles, bookingPipelineStages,
   subscriptionAddons, subscriptionOrders, subscriptions,
+  workOrders, accessLogs, mediaGalleries,
+  quotaUsage,
 } from "@nasaq/db/schema";
 import { _activateOrder } from "./subscription";
 import { getPagination, generateSlug } from "../lib/helpers";
 import { superAdminMiddleware } from "../middleware/auth";
 import { z } from "zod";
+import { writeFile, mkdir } from "fs/promises";
+import { join } from "path";
+import { nanoid } from "nanoid";
 import { scryptSync, randomBytes } from "crypto";
 
 function normalizePhoneAdmin(phone: string): string | null {
@@ -223,11 +228,45 @@ adminRouter.get("/orgs/:id", async (c) => {
   return c.json({ data: { ...org, userCount: Number(userCount) } });
 });
 
+// POST /admin/orgs/:id/logo — رفع شعار منشأة مباشرة من الأدمن
+adminRouter.post("/orgs/:id/logo", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  const orgId = c.req.param("id");
+
+  const [org] = await db.select({ id: organizations.id, name: organizations.name })
+    .from(organizations).where(eq(organizations.id, orgId));
+  if (!org) return apiErr(c, "ORG_NOT_FOUND", 404);
+
+  const body = await c.req.parseBody();
+  const file = body["file"] as File | undefined;
+  if (!file || !(file instanceof File)) return c.json({ error: "لم يتم إرسال ملف" }, 400);
+
+  const allowed = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml"];
+  if (!allowed.includes(file.type)) return c.json({ error: "يُسمح بـ JPG, PNG, WebP, SVG فقط" }, 400);
+  if (file.size > 5 * 1024 * 1024) return c.json({ error: "الحجم يجب ألا يتجاوز 5MB" }, 400);
+
+  const UPLOAD_DIR = process.env.UPLOAD_DIR || "/var/www/nasaq/uploads";
+  const PUBLIC_BASE = process.env.PUBLIC_BASE_URL || "https://nasaqpro.tech";
+  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  const filename = `logo-${nanoid(10)}.${ext}`;
+  const orgDir = join(UPLOAD_DIR, orgId);
+  await mkdir(orgDir, { recursive: true });
+  await writeFile(join(orgDir, filename), Buffer.from(await file.arrayBuffer()));
+
+  const logoUrl = `${PUBLIC_BASE}/uploads/${orgId}/${filename}`;
+  await db.update(organizations).set({ logo: logoUrl, updatedAt: new Date() })
+    .where(eq(organizations.id, orgId));
+
+  logAdminAction(adminId, "update_org_logo", "org", orgId, { filename }, c.req.header("X-Forwarded-For"));
+  return c.json({ data: { url: logoUrl } }, 201);
+});
+
 adminRouter.patch("/orgs/:id", async (c) => {
   if (!isSuperAdmin(c)) return superAdminOnly(c);
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
-  const allowed = ["plan", "subscriptionStatus", "adminNotes", "isActive", "enabledCapabilities", "dashboardProfile"];
+  const allowed = ["plan", "subscriptionStatus", "adminNotes", "isActive", "enabledCapabilities", "dashboardProfile", "logo", "name", "phone", "email", "city"];
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   for (const key of allowed) {
     if (body[key] !== undefined) updates[key] = body[key];
@@ -564,6 +603,94 @@ adminRouter.patch("/tickets/:id", async (c) => {
 // ──────────────────────────────────────────────────────────
 // ANNOUNCEMENTS
 // ──────────────────────────────────────────────────────────
+
+// ============================================================
+// PLATFORM CONFIG — إعدادات المنصة (شعار، اسم، لون)
+// ============================================================
+
+adminRouter.get("/platform-config", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const [row] = await db.select().from(platformConfig).where(eq(platformConfig.id, "default"));
+  return c.json({ data: row ?? { id: "default", platformName: "نسق", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5" } });
+});
+
+adminRouter.put("/platform-config", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  const body = await c.req.json();
+  const allowed = ["platformName", "logoUrl", "faviconUrl", "primaryColor", "supportEmail", "supportPhone"];
+  const updates: Record<string, unknown> = { updatedAt: new Date(), updatedBy: adminId };
+  for (const key of allowed) { if (body[key] !== undefined) updates[key] = body[key]; }
+
+  await db.insert(platformConfig).values({ id: "default", ...updates })
+    .onConflictDoUpdate({ target: platformConfig.id, set: updates });
+
+  logAdminAction(adminId, "update_platform_config", "platform", "default", { fields: Object.keys(updates) }, c.req.header("X-Forwarded-For"));
+  return c.json({ data: { ok: true } });
+});
+
+adminRouter.post("/platform-config/logo", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  const body = await c.req.parseBody();
+  const file = body["file"] as File | undefined;
+  if (!file || !(file instanceof File)) return c.json({ error: "لم يتم إرسال ملف" }, 400);
+  const allowed = ["image/jpeg", "image/png", "image/webp", "image/svg+xml", "image/gif"];
+  if (!allowed.includes(file.type)) return c.json({ error: "يُسمح بـ PNG, JPG, WebP, SVG فقط" }, 400);
+  if (file.size > 5 * 1024 * 1024) return c.json({ error: "الحجم يجب ألا يتجاوز 5MB" }, 400);
+
+  const UPLOAD_DIR = process.env.UPLOAD_DIR || "/var/www/nasaq/uploads";
+  const PUBLIC_BASE = process.env.PUBLIC_BASE_URL || "https://nasaqpro.tech";
+  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  const filename = `platform-logo-${nanoid(8)}.${ext}`;
+  const platformDir = join(UPLOAD_DIR, "platform");
+  await mkdir(platformDir, { recursive: true });
+  await writeFile(join(platformDir, filename), Buffer.from(await file.arrayBuffer()));
+  const logoUrl = `${PUBLIC_BASE}/uploads/platform/${filename}`;
+
+  await db.insert(platformConfig).values({ id: "default", logoUrl, updatedAt: new Date(), updatedBy: adminId })
+    .onConflictDoUpdate({ target: platformConfig.id, set: { logoUrl, updatedAt: new Date(), updatedBy: adminId } });
+
+  logAdminAction(adminId, "update_platform_logo", "platform", "default", { filename }, c.req.header("X-Forwarded-For"));
+  return c.json({ data: { url: logoUrl } }, 201);
+});
+
+adminRouter.post("/platform-config/favicon", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  const body = await c.req.parseBody();
+  const file = body["file"] as File | undefined;
+  if (!file || !(file instanceof File)) return c.json({ error: "لم يتم إرسال ملف" }, 400);
+  const allowed = ["image/x-icon", "image/png", "image/svg+xml", "image/webp"];
+  if (!allowed.includes(file.type)) return c.json({ error: "يُسمح بـ ICO, PNG, SVG فقط" }, 400);
+  if (file.size > 1 * 1024 * 1024) return c.json({ error: "الحجم يجب ألا يتجاوز 1MB" }, 400);
+
+  const UPLOAD_DIR = process.env.UPLOAD_DIR || "/var/www/nasaq/uploads";
+  const PUBLIC_BASE = process.env.PUBLIC_BASE_URL || "https://nasaqpro.tech";
+  const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+  const filename = `platform-favicon-${nanoid(8)}.${ext}`;
+  const platformDir = join(UPLOAD_DIR, "platform");
+  await mkdir(platformDir, { recursive: true });
+  await writeFile(join(platformDir, filename), Buffer.from(await file.arrayBuffer()));
+  const faviconUrl = `${PUBLIC_BASE}/uploads/platform/${filename}`;
+
+  await db.insert(platformConfig).values({ id: "default", faviconUrl, updatedAt: new Date(), updatedBy: adminId })
+    .onConflictDoUpdate({ target: platformConfig.id, set: { faviconUrl, updatedAt: new Date(), updatedBy: adminId } });
+
+  logAdminAction(adminId, "update_platform_favicon", "platform", "default", { filename }, c.req.header("X-Forwarded-For"));
+  return c.json({ data: { url: faviconUrl } }, 201);
+});
+
+// Also expose platform config publicly (no auth) for Layout to consume
+adminRouter.get("/platform-config/public", async (c) => {
+  const [row] = await db.select({
+    platformName: platformConfig.platformName,
+    logoUrl: platformConfig.logoUrl,
+    faviconUrl: platformConfig.faviconUrl,
+    primaryColor: platformConfig.primaryColor,
+  }).from(platformConfig).where(eq(platformConfig.id, "default"));
+  return c.json({ data: row ?? { platformName: "نسق", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5" } });
+});
 
 adminRouter.get("/announcements", async (c) => {
   const rows = await db.select().from(platformAnnouncements).orderBy(desc(platformAnnouncements.createdAt));
@@ -1314,4 +1441,131 @@ adminRouter.post("/subscription-orders/:id/cancel", async (c) => {
     .where(eq(subscriptionOrders.id, orderId));
 
   return c.json({ data: { success: true } });
+});
+
+// ──────────────────────────────────────────────────────────
+// WORK ORDERS — cross-org view for super_admin
+// ──────────────────────────────────────────────────────────
+
+adminRouter.get("/work-orders", async (c) => {
+  const { page, limit, offset } = getPagination(c);
+  const orgId   = c.req.query("orgId");
+  const status  = c.req.query("status");
+  const q       = c.req.query("q");
+
+  const conds: any[] = [];
+  if (orgId)  conds.push(eq(workOrders.orgId, orgId));
+  if (status) conds.push(eq(workOrders.status, status as any));
+  if (q)      conds.push(or(ilike(workOrders.customerName, `%${q}%`), ilike(workOrders.itemName, `%${q}%`)));
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select({
+      id: workOrders.id, orgId: workOrders.orgId, orgName: organizations.name,
+      status: workOrders.status, category: workOrders.category,
+      customerName: workOrders.customerName, itemName: workOrders.itemName,
+      finalCost: workOrders.finalCost, createdAt: workOrders.createdAt,
+    })
+    .from(workOrders)
+    .leftJoin(organizations, eq(organizations.id, workOrders.orgId))
+    .where(conds.length ? and(...conds) : undefined)
+    .orderBy(desc(workOrders.createdAt))
+    .limit(limit).offset(offset),
+    db.select({ total: count() }).from(workOrders).where(conds.length ? and(...conds) : undefined),
+  ]);
+
+  return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+});
+
+// ──────────────────────────────────────────────────────────
+// ACCESS LOGS — cross-org view for super_admin
+// ──────────────────────────────────────────────────────────
+
+adminRouter.get("/access-logs", async (c) => {
+  const { page, limit, offset } = getPagination(c);
+  const orgId   = c.req.query("orgId");
+  const granted = c.req.query("granted");
+  const date    = c.req.query("date");
+
+  const conds: any[] = [];
+  if (orgId)             conds.push(eq(accessLogs.orgId, orgId));
+  if (granted !== undefined) conds.push(eq(accessLogs.granted, granted === "true"));
+  if (date)              conds.push(sql`DATE(${accessLogs.accessedAt}) = ${date}`);
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select({
+      id: accessLogs.id, orgId: accessLogs.orgId, orgName: organizations.name,
+      customerName: accessLogs.customerName, method: accessLogs.method,
+      granted: accessLogs.granted, denyReason: accessLogs.denyReason,
+      accessedAt: accessLogs.accessedAt,
+    })
+    .from(accessLogs)
+    .leftJoin(organizations, eq(organizations.id, accessLogs.orgId))
+    .where(conds.length ? and(...conds) : undefined)
+    .orderBy(desc(accessLogs.accessedAt))
+    .limit(limit).offset(offset),
+    db.select({ total: count() }).from(accessLogs).where(conds.length ? and(...conds) : undefined),
+  ]);
+
+  return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+});
+
+// ──────────────────────────────────────────────────────────
+// GALLERIES — cross-org view for super_admin
+// ──────────────────────────────────────────────────────────
+
+adminRouter.get("/galleries", async (c) => {
+  const { page, limit, offset } = getPagination(c);
+  const orgId = c.req.query("orgId");
+  const q     = c.req.query("q");
+
+  const conds: any[] = [eq(mediaGalleries.isActive, true)];
+  if (orgId) conds.push(eq(mediaGalleries.orgId, orgId));
+  if (q)     conds.push(ilike(mediaGalleries.name, `%${q}%`));
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select({
+      id: mediaGalleries.id, orgId: mediaGalleries.orgId, orgName: organizations.name,
+      name: mediaGalleries.name, clientName: mediaGalleries.clientName,
+      token: mediaGalleries.token, assetIds: mediaGalleries.assetIds,
+      expiresAt: mediaGalleries.expiresAt, createdAt: mediaGalleries.createdAt,
+    })
+    .from(mediaGalleries)
+    .leftJoin(organizations, eq(organizations.id, mediaGalleries.orgId))
+    .where(and(...conds))
+    .orderBy(desc(mediaGalleries.createdAt))
+    .limit(limit).offset(offset),
+    db.select({ total: count() }).from(mediaGalleries).where(and(...conds)),
+  ]);
+
+  return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+});
+
+// ──────────────────────────────────────────────────────────
+// QUOTA USAGE — cross-org usage metrics for super_admin
+// ──────────────────────────────────────────────────────────
+
+adminRouter.get("/quota-usage", async (c) => {
+  const { page, limit, offset } = getPagination(c);
+  const orgId  = c.req.query("orgId");
+  const metric = c.req.query("metric");
+
+  const conds: any[] = [];
+  if (orgId)  conds.push(eq(quotaUsage.orgId, orgId));
+  if (metric) conds.push(eq(quotaUsage.metricKey, metric));
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select({
+      id: quotaUsage.id, orgId: quotaUsage.orgId, orgName: organizations.name,
+      metricKey: quotaUsage.metricKey, period: quotaUsage.period,
+      usedCount: quotaUsage.usedCount, updatedAt: quotaUsage.updatedAt,
+    })
+    .from(quotaUsage)
+    .leftJoin(organizations, eq(organizations.id, quotaUsage.orgId))
+    .where(conds.length ? and(...conds) : undefined)
+    .orderBy(desc(quotaUsage.updatedAt))
+    .limit(limit).offset(offset),
+    db.select({ total: count() }).from(quotaUsage).where(conds.length ? and(...conds) : undefined),
+  ]);
+
+  return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
 });

@@ -4,12 +4,13 @@ import {
   ArrowRight, User, Phone, Mail, Building2, Star, CalendarCheck,
   Banknote, MessageSquare, Plus, AlertCircle, Clock, FileText,
   CheckCircle2, XCircle, AlertTriangle, Send, ChevronLeft,
-  CalendarDays, Hash, MapPin, Receipt, History, StickyNote,
+  CalendarDays, Hash, MapPin, Receipt, History, StickyNote, Pencil, Save,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { customersApi, bookingsApi, auditLogApi, financeApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Button, Modal, TextArea, Select } from "@/components/ui";
+import { useBusiness } from "@/hooks/useBusiness";
+import { Button, Modal, TextArea, Select, Input } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { fmtDate } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
@@ -58,23 +59,30 @@ function fmt(n: any) {
   return Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-const TABS = [
-  { key: "profile",      label: "الملف الشخصي",  icon: User },
-  { key: "bookings",     label: "الحجوزات",       icon: CalendarDays },
-  { key: "invoices",     label: "الفواتير",        icon: Receipt },
-  { key: "messages",     label: "الرسائل",         icon: MessageSquare },
-  { key: "interactions", label: "التفاعلات",       icon: StickyNote },
-  { key: "timeline",     label: "السجل",           icon: History },
-];
-
 // ── component ────────────────────────────────────────────────────
 export function CustomerDetailPage() {
   const { id } = useParams();
+  const biz = useBusiness();
+
+  const TABS = [
+    { key: "profile",      label: "الملف الشخصي",       icon: User },
+    { key: "bookings",     label: biz.terminology.bookings, icon: CalendarDays },
+    { key: "invoices",     label: "الفواتير",              icon: Receipt },
+    { key: "messages",     label: "الرسائل",               icon: MessageSquare },
+    { key: "interactions", label: "التفاعلات",             icon: StickyNote },
+    { key: "timeline",     label: "السجل",                 icon: History },
+  ];
   const [tab, setTab]                   = useState("profile");
   const [showInteraction, setShowInteraction] = useState(false);
   const [interactionType, setInteractionType] = useState("note");
   const [interactionContent, setInteractionContent] = useState("");
   const [sendingInv, setSendingInv]     = useState<string | null>(null);
+  const [editOpen, setEditOpen]         = useState(false);
+  const [editSaving, setEditSaving]     = useState(false);
+  const [editForm, setEditForm]         = useState({
+    name: "", phone: "", email: "", city: "",
+    type: "individual", companyName: "", notes: "",
+  });
 
   const { data: res, loading, error, refetch } = useApi(() => customersApi.get(id!), [id]);
   const { data: bookingsRes }  = useApi(() => bookingsApi.list({ customerId: id!, limit: "50" }), [id]);
@@ -106,7 +114,45 @@ export function CustomerDetailPage() {
     refetch();
   };
 
+  const openEdit = () => {
+    if (!customer) return;
+    setEditForm({
+      name:        customer.name        || "",
+      phone:       customer.phone       || "",
+      email:       customer.email       || "",
+      city:        customer.city        || "",
+      type:        customer.type        || "individual",
+      companyName: customer.companyName || "",
+      notes:       customer.notes       || "",
+    });
+    setEditOpen(true);
+  };
+
+  const handleEditSave = async () => {
+    if (!editForm.name.trim()) return;
+    setEditSaving(true);
+    try {
+      await customersApi.update(id!, {
+        name:        editForm.name.trim(),
+        phone:       editForm.phone.trim()       || null,
+        email:       editForm.email.trim()       || null,
+        city:        editForm.city.trim()        || null,
+        type:        editForm.type,
+        companyName: editForm.companyName.trim() || null,
+        notes:       editForm.notes.trim()       || null,
+      });
+      toast.success("تم حفظ بيانات العميل");
+      setEditOpen(false);
+      refetch();
+    } catch {
+      toast.error("فشل الحفظ");
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const sendInvoice = async (invId: string) => {
+    if (!confirm("هل تريد إرسال هذه الفاتورة للعميل؟")) return;
     setSendingInv(invId);
     try {
       await financeApi.sendInvoice(invId);
@@ -123,7 +169,7 @@ export function CustomerDetailPage() {
       <button onClick={refetch} className="text-sm text-brand-500 hover:underline">إعادة المحاولة</button>
     </div>
   );
-  if (!customer) return <div className="text-center py-12 text-gray-500">العميل غير موجود</div>;
+  if (!customer) return <div className="text-center py-12 text-gray-500">{biz.terminology.client} غير موجود</div>;
 
   const initials = customer.name?.charAt(0) || "؟";
 
@@ -133,7 +179,7 @@ export function CustomerDetailPage() {
       {/* ── breadcrumb ─────────────────────────────────────── */}
       <div className="flex items-center gap-2 text-sm text-gray-400">
         <Link to="/customers" className="hover:text-brand-500 transition-colors flex items-center gap-1">
-          <ArrowRight className="w-4 h-4" /> العملاء
+          <ArrowRight className="w-4 h-4" /> {biz.terminology.clients}
         </Link>
         <ChevronLeft className="w-3 h-3" />
         <span className="text-gray-700 font-medium">{customer.name}</span>
@@ -191,9 +237,15 @@ export function CustomerDetailPage() {
           <div className="flex gap-2 flex-shrink-0">
             <Link to={`/bookings/new?customerId=${id}`}>
               <Button size="sm" variant="primary">
-                <Plus className="w-4 h-4 ml-1" /> حجز جديد
+                <Plus className="w-4 h-4 ml-1" /> {biz.terminology.newBooking}
               </Button>
             </Link>
+            <button
+              onClick={openEdit}
+              className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1.5"
+            >
+              <Pencil className="w-4 h-4" /> تعديل
+            </button>
             <button
               onClick={() => { setShowInteraction(true); setInteractionType("note"); }}
               className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1.5"
@@ -207,7 +259,7 @@ export function CustomerDetailPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-5 border-t border-gray-50">
           <div className="text-center">
             <p className="text-2xl font-bold text-brand-600">{customer.totalBookings || bookingList.length || 0}</p>
-            <p className="text-xs text-gray-400 mt-0.5">إجمالي الحجوزات</p>
+            <p className="text-xs text-gray-400 mt-0.5">إجمالي {biz.terminology.bookings}</p>
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-emerald-600">{fmt(customer.totalSpent || 0)}</p>
@@ -219,7 +271,7 @@ export function CustomerDetailPage() {
           </div>
           <div className="text-center">
             <p className="text-sm font-bold text-gray-700 mt-1">{customer.lastBookingDate ? fmtDate(customer.lastBookingDate) : "—"}</p>
-            <p className="text-xs text-gray-400 mt-0.5">آخر حجز</p>
+            <p className="text-xs text-gray-400 mt-0.5">آخر {biz.terminology.booking}</p>
           </div>
         </div>
       </div>
@@ -306,7 +358,7 @@ export function CustomerDetailPage() {
               {bookingList.length === 0 ? (
                 <div className="text-center py-12">
                   <CalendarDays className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-                  <p className="text-gray-400 text-sm">لا توجد حجوزات لهذا العميل</p>
+                  <p className="text-gray-400 text-sm">{biz.terminology.bookingEmpty} لهذا {biz.terminology.client}</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
@@ -536,6 +588,80 @@ export function CustomerDetailPage() {
 
         </div>
       </div>
+
+      {/* ── edit customer modal ─────────────────────────────── */}
+      <Modal
+        open={editOpen}
+        onClose={() => setEditOpen(false)}
+        title="تعديل بيانات العميل"
+        size="md"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setEditOpen(false)}>إلغاء</Button>
+            <Button onClick={handleEditSave} loading={editSaving} icon={Save}>حفظ</Button>
+          </>
+        }
+      >
+        <div className="space-y-4" dir="rtl">
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="الاسم *"
+              name="name"
+              value={editForm.name}
+              onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+            />
+            <Input
+              label="الجوال"
+              name="phone"
+              value={editForm.phone}
+              onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+              dir="ltr"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <Input
+              label="البريد الإلكتروني"
+              name="email"
+              type="email"
+              value={editForm.email}
+              onChange={e => setEditForm(f => ({ ...f, email: e.target.value }))}
+              dir="ltr"
+            />
+            <Input
+              label="المدينة"
+              name="city"
+              value={editForm.city}
+              onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))}
+            />
+          </div>
+          <Select
+            label="نوع العميل"
+            name="type"
+            value={editForm.type}
+            onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}
+            options={[
+              { value: "individual", label: "فرد" },
+              { value: "corporate",  label: "مؤسسة" },
+            ]}
+          />
+          {editForm.type === "corporate" && (
+            <Input
+              label="اسم المؤسسة"
+              name="companyName"
+              value={editForm.companyName}
+              onChange={e => setEditForm(f => ({ ...f, companyName: e.target.value }))}
+            />
+          )}
+          <TextArea
+            label="ملاحظات"
+            name="notes"
+            value={editForm.notes}
+            onChange={e => setEditForm(f => ({ ...f, notes: e.target.value }))}
+            rows={3}
+            placeholder="ملاحظات عن العميل..."
+          />
+        </div>
+      </Modal>
 
       {/* ── add interaction modal ────────────────────────────── */}
       <Modal

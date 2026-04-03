@@ -9,14 +9,32 @@ import {
   LayoutDashboard, CalendarCheck, ShoppingBag, Package, Users,
   Layers, Box, UsersRound, Wallet, BarChart3, Globe, Send, Star, ShoppingCart, Tag,
   Settings, Shield, Bell, MessageCircle, ClipboardList, CreditCard, BookOpen,
-  Plug, ScanBarcode,
+  Plug, ScanBarcode, FileSignature,
   // specialty icons
   Flower2, UtensilsCrossed, Building, Truck, Key, PartyPopper, Camera, Wrench, Warehouse, ClipboardCheck,
   GraduationCap, BookOpenCheck, ClipboardPen, Calendar, AlertCircle, Upload, UserCheck, ShieldAlert, ShieldCheck,
   // property icons
   Building2, DoorOpen, FileText, Receipt, Banknote, TrendingDown, Archive, BarChart2,
   TrendingUp, HardHat, FileBarChart, Megaphone, MessageSquare, DollarSign, Monitor, Briefcase, Zap,
+  UserCog,
 } from "lucide-react";
+
+// Plan hierarchy — each plan includes all plans below it
+export type SubscriptionPlan = "free" | "basic" | "advanced" | "pro" | "enterprise";
+
+const PLAN_RANK: Record<SubscriptionPlan, number> = {
+  free:       0,
+  basic:      1,
+  advanced:   2,
+  pro:        3,
+  enterprise: 4,
+};
+
+/** Returns true if currentPlan meets or exceeds requiredPlan */
+export function planAllows(currentPlan: SubscriptionPlan | undefined, requiredPlan: SubscriptionPlan): boolean {
+  if (!currentPlan) return false;
+  return (PLAN_RANK[currentPlan] ?? 0) >= PLAN_RANK[requiredPlan];
+}
 
 export interface NavItemEntry {
   name: string;
@@ -25,6 +43,12 @@ export interface NavItemEntry {
   exact?: boolean;
   badge?: string;
   requiredCapabilities: string[];
+  /** Minimum plan required to see this item. Omit = visible on all plans */
+  requiredPlan?: SubscriptionPlan;
+  /** If set, item only shows for these business types */
+  allowedBusinessTypes?: string[];
+  /** If set, item is hidden for these business types */
+  excludedBusinessTypes?: string[];
 }
 
 export interface NavGroupEntry {
@@ -41,6 +65,8 @@ export interface OrgNavContext {
   businessType: string;
   operatingProfile: string;
   capabilities: string[];
+  /** Current subscription plan — used to gate premium nav items */
+  plan?: SubscriptionPlan;
 }
 
 // ============================================================
@@ -71,10 +97,12 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "الحجوزات",        href: "/dashboard/bookings",  icon: CalendarCheck, requiredCapabilities: ["bookings"] },
-      { name: "نقطة البيع",      href: "/dashboard/pos",       icon: ShoppingBag,   requiredCapabilities: ["pos"] },
-      { name: "الطلبات",         href: "/dashboard/orders",    icon: Package,       requiredCapabilities: ["online_orders"] },
-      { name: "العملاء",         href: "/dashboard/customers", icon: Users,         requiredCapabilities: [] },
+      { name: "الحجوزات",        href: "/dashboard/bookings",     icon: CalendarCheck, requiredCapabilities: ["bookings"] },
+      { name: "نقطة البيع",      href: "/dashboard/pos",          icon: ShoppingBag,   requiredCapabilities: ["pos"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental", "restaurant", "bakery", "catering"] },
+      { name: "الطلبات",         href: "/dashboard/orders",       icon: Package,       requiredCapabilities: ["online_orders"] },
+      { name: "أوامر العمل",     href: "/dashboard/work-orders",  icon: ClipboardCheck, requiredCapabilities: [], allowedBusinessTypes: ["workshop", "maintenance", "logistics", "construction", "laundry", "photography"] },
+      { name: "العملاء",         href: "/dashboard/customers",    icon: Users,         requiredCapabilities: [] },
+      { name: "العقود",          href: "/dashboard/contracts",    icon: FileSignature, requiredCapabilities: [], requiredPlan: "basic" },
     ],
   },
 
@@ -87,13 +115,14 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "الخدمات والمنتجات", href: "/dashboard/catalog",        icon: Layers,        requiredCapabilities: ["catalog"] },
-      { name: "بطاقات الباركود",  href: "/dashboard/barcode-labels", icon: ScanBarcode,   requiredCapabilities: ["catalog"] },
+      { name: "الخدمات والمنتجات", href: "/dashboard/catalog",        icon: Layers,        requiredCapabilities: ["catalog"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental"] },
+      { name: "بطاقات الباركود",  href: "/dashboard/barcode-labels", icon: ScanBarcode,   requiredCapabilities: ["catalog"], allowedBusinessTypes: ["retail", "flower_shop"], requiredPlan: "pro" },
       { name: "المخزون",          href: "/dashboard/inventory",      icon: Box,           requiredCapabilities: ["inventory"] },
       { name: "الفريق",           href: "/dashboard/team",       icon: UsersRound,  requiredCapabilities: [] },
-      { name: "المالية",          href: "/dashboard/finance",    icon: Wallet,      requiredCapabilities: [] },
-      { name: "المدفوعات الإلكترونية", href: "/dashboard/payments", icon: CreditCard, requiredCapabilities: [] },
-      { name: "التكاملات",        href: "/dashboard/integrations", icon: Plug,       requiredCapabilities: [] },
+      { name: "الموارد البشرية",  href: "/dashboard/hr",         icon: UserCog,     requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "المالية",          href: "/dashboard/finance",    icon: Wallet,      requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "المدفوعات الإلكترونية", href: "/dashboard/payments", icon: CreditCard, requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "التكاملات",        href: "/dashboard/integrations", icon: Plug,       requiredCapabilities: [], requiredPlan: "pro" },
     ],
   },
 
@@ -106,14 +135,14 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "التقارير",          href: "/dashboard/reports",   icon: BarChart3,      requiredCapabilities: [] },
-      { name: "الموقع والمتجر",    href: "/dashboard/website",   icon: Globe,          requiredCapabilities: [] },
-      { name: "التسويق",           href: "/dashboard/marketing", icon: Send,           requiredCapabilities: [] },
-      { name: "التقييمات",         href: "/dashboard/reviews",              icon: Star,          requiredCapabilities: [] },
-      { name: "الشرائح المستهدفة",  href: "/dashboard/segments",             icon: Tag,           requiredCapabilities: [] },
-      { name: "السلات المتروكة",    href: "/dashboard/abandoned-carts",      icon: ShoppingCart,  requiredCapabilities: [] },
-      { name: "اشتراكات العملاء",   href: "/dashboard/customer-subscriptions", icon: CreditCard,   requiredCapabilities: [] },
-      { name: "واتساب",            href: "/dashboard/messaging",            icon: MessageCircle, requiredCapabilities: [] },
+      { name: "التقارير",          href: "/dashboard/reports",   icon: BarChart3,      requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "الموقع والمتجر",    href: "/dashboard/website",   icon: Globe,          requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "التسويق",           href: "/dashboard/marketing", icon: Send,           requiredCapabilities: [], requiredPlan: "advanced" },
+      { name: "التقييمات",         href: "/dashboard/reviews",              icon: Star,          requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "الشرائح المستهدفة",  href: "/dashboard/segments",             icon: Tag,           requiredCapabilities: [], requiredPlan: "advanced" },
+      { name: "السلات المتروكة",    href: "/dashboard/abandoned-carts",      icon: ShoppingCart,  requiredCapabilities: [], allowedBusinessTypes: ["flower_shop", "retail", "restaurant", "cafe", "bakery", "catering"], requiredPlan: "advanced" },
+      { name: "اشتراكات العملاء",   href: "/dashboard/customer-subscriptions", icon: CreditCard,   requiredCapabilities: [], allowedBusinessTypes: ["salon", "barber", "spa", "fitness"], requiredPlan: "pro" },
+      { name: "واتساب",            href: "/dashboard/messaging",            icon: MessageCircle, requiredCapabilities: [], requiredPlan: "advanced" },
     ],
   },
 
@@ -127,9 +156,10 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedOperatingProfiles: [],
     items: [
       { name: "الجدول الزمني",     href: "/dashboard/schedule",          icon: CalendarCheck, requiredCapabilities: ["schedules"] },
-      { name: "العمولات",           href: "/dashboard/commissions",       icon: BarChart3,     requiredCapabilities: [] },
-      { name: "الاستدعاء",          href: "/dashboard/recall",            icon: Users,         requiredCapabilities: [] },
+      { name: "العمولات",           href: "/dashboard/commissions",       icon: BarChart3,     requiredCapabilities: [], requiredPlan: "advanced" },
+      { name: "الاستدعاء",          href: "/dashboard/recall",            icon: Users,         requiredCapabilities: [], requiredPlan: "advanced" },
       { name: "مستلزمات الصالون",   href: "/dashboard/salon-supplies",    icon: Box,           requiredCapabilities: ["inventory"] },
+      { name: "التحكم في الدخول",   href: "/dashboard/access-control",   icon: ShieldCheck,   requiredCapabilities: [], allowedBusinessTypes: ["fitness"], requiredPlan: "pro" },
     ],
   },
 
@@ -160,6 +190,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
       { name: "قائمة الطعام",  href: "/dashboard/menu",        icon: UtensilsCrossed, requiredCapabilities: [] },
       { name: "المطبخ",         href: "/dashboard/kitchen",     icon: Package,         requiredCapabilities: [] },
       { name: "الطاولات",       href: "/dashboard/table-map",   icon: Layers,          requiredCapabilities: [] },
+      { name: "برنامج الولاء",  href: "/dashboard/loyalty",     icon: Star,            requiredCapabilities: ["customers"], allowedBusinessTypes: ["restaurant", "cafe", "bakery", "catering"] },
     ],
   },
 
@@ -195,7 +226,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     label: "التأجير والعقود",
     requiredCapabilities: [],
     anyCapability: ["assets", "contracts"],
-    allowedBusinessTypes: ["rental", "real_estate"],
+    allowedBusinessTypes: ["rental"],
     allowedOperatingProfiles: [],
     items: [
       { name: "الأصول",         href: "/dashboard/assets",       icon: Key,             requiredCapabilities: ["assets"] },
@@ -210,35 +241,24 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
   {
     id: "specialty_property",
     label: "إدارة العقارات",
-    requiredCapabilities: ["property"],
+    requiredCapabilities: [],
     anyCapability: [],
     allowedBusinessTypes: ["real_estate"],
-    allowedOperatingProfiles: ["real_estate_rental"],
+    allowedOperatingProfiles: [],
     items: [
-      { name: "الشاشة الذكية",       href: "/dashboard/property/smart-home",   icon: Monitor,       requiredCapabilities: ["property"] },
-      { name: "المحفظة العقارية",     href: "/dashboard/property/portfolio",    icon: Briefcase,     requiredCapabilities: ["property"] },
-      { name: "لوحة العقارات",        href: "/dashboard/property",              icon: Building,      requiredCapabilities: ["property"] },
-      { name: "العقارات",             href: "/dashboard/property/properties",   icon: Building2,     requiredCapabilities: ["property"] },
-      { name: "الوحدات",              href: "/dashboard/property/units",        icon: DoorOpen,      requiredCapabilities: ["property"] },
-      { name: "المستأجرون",           href: "/dashboard/property/tenants",      icon: Users,         requiredCapabilities: ["property"] },
-      { name: "العقود",               href: "/dashboard/property/contracts",    icon: FileText,      requiredCapabilities: ["property"] },
-      { name: "دفعة سريعة",           href: "/dashboard/property/quick-payment",icon: Zap,           requiredCapabilities: ["property"] },
-      { name: "الفواتير",             href: "/dashboard/property/invoices",     icon: Receipt,       requiredCapabilities: ["property"] },
-      { name: "المدفوعات",            href: "/dashboard/property/payments",     icon: Banknote,      requiredCapabilities: ["property"] },
-      { name: "الصيانة",              href: "/dashboard/property/maintenance",  icon: Wrench,        requiredCapabilities: ["property"] },
-      { name: "المصروفات",            href: "/dashboard/property/expenses",     icon: TrendingDown,  requiredCapabilities: ["property"] },
-      { name: "الفحوصات",             href: "/dashboard/property/inspections",  icon: ClipboardCheck,requiredCapabilities: ["property"] },
-      { name: "الوثائق",              href: "/dashboard/property/documents",    icon: Archive,       requiredCapabilities: ["property"] },
-      { name: "التقييمات",            href: "/dashboard/property/valuations",   icon: BarChart2,     requiredCapabilities: ["property"] },
-      { name: "تحليل الاستثمار",      href: "/dashboard/property/investment",   icon: TrendingUp,    requiredCapabilities: ["property"] },
-      { name: "إدارة البناء",         href: "/dashboard/property/construction", icon: HardHat,       requiredCapabilities: ["property"] },
-      { name: "التقارير",             href: "/dashboard/property/reports",      icon: FileBarChart,  requiredCapabilities: ["property"] },
-      { name: "الإعلانات",            href: "/dashboard/property/listings",     icon: Megaphone,     requiredCapabilities: ["property"] },
-      { name: "الاستفسارات",          href: "/dashboard/property/inquiries",    icon: MessageSquare, requiredCapabilities: ["property"] },
-      { name: "عمليات البيع",         href: "/dashboard/property/sales",        icon: DollarSign,    requiredCapabilities: ["property"] },
-      { name: "الملاك",               href: "/dashboard/property/owners",       icon: UserCheck,     requiredCapabilities: ["property"] },
-      { name: "الامتثال التنظيمي",    href: "/dashboard/property/compliance",   icon: ShieldCheck,   requiredCapabilities: ["property"] },
-      { name: "بوابة المستأجر",       href: "/dashboard/property/portal",       icon: Monitor,       requiredCapabilities: ["property"] },
+      { name: "لوحة العقارات",   href: "/dashboard/property",              icon: Building,      requiredCapabilities: [], exact: true },
+      { name: "العقارات",        href: "/dashboard/property/properties",   icon: Building2,     requiredCapabilities: [] },
+      { name: "الوحدات",         href: "/dashboard/property/units",        icon: DoorOpen,      requiredCapabilities: [] },
+      { name: "المستأجرون",      href: "/dashboard/property/tenants",      icon: Users,         requiredCapabilities: [] },
+      { name: "العقود",          href: "/dashboard/property/contracts",    icon: FileText,      requiredCapabilities: [] },
+      { name: "الفواتير",        href: "/dashboard/property/invoices",     icon: Receipt,       requiredCapabilities: [] },
+      { name: "المدفوعات",       href: "/dashboard/property/payments",     icon: Banknote,      requiredCapabilities: [] },
+      { name: "الصيانة",         href: "/dashboard/property/maintenance",  icon: Wrench,        requiredCapabilities: [] },
+      { name: "المصروفات",       href: "/dashboard/property/expenses",     icon: TrendingDown,  requiredCapabilities: [] },
+      { name: "الإعلانات",       href: "/dashboard/property/listings",     icon: Megaphone,     requiredCapabilities: [] },
+      { name: "الاستفسارات",     href: "/dashboard/property/inquiries",    icon: MessageSquare, requiredCapabilities: [] },
+      { name: "عمليات البيع",    href: "/dashboard/property/sales",        icon: DollarSign,    requiredCapabilities: [] },
+      { name: "التقارير",        href: "/dashboard/property/reports",      icon: FileBarChart,  requiredCapabilities: [] },
     ],
   },
 
@@ -265,7 +285,8 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: ["photography"],
     allowedOperatingProfiles: [],
     items: [
-      { name: "مكتبة الوسائط", href: "/dashboard/media", icon: Camera, requiredCapabilities: [] },
+      { name: "مكتبة الوسائط",  href: "/dashboard/media",      icon: Camera,        requiredCapabilities: [] },
+      { name: "معارض العملاء",  href: "/dashboard/galleries",  icon: ShieldCheck,   requiredCapabilities: [] },
     ],
   },
 
@@ -306,6 +327,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedOperatingProfiles: [],
     items: [
       { name: "طلبات الخدمة", href: "/dashboard/bookings", icon: Wrench, requiredCapabilities: [] },
+      { name: "أوامر العمل",  href: "/dashboard/work-orders", icon: ClipboardCheck, requiredCapabilities: [] },
     ],
   },
 ];
@@ -342,9 +364,14 @@ export function buildVisibleNav(ctx: OrgNavContext): NavGroupEntry[] {
     })
     .map((group) => ({
       ...group,
-      items: group.items.filter((item) =>
-        item.requiredCapabilities.every((cap) => ctx.capabilities.includes(cap))
-      ),
+      items: group.items.filter((item) => {
+        if (!item.requiredCapabilities.every((cap) => ctx.capabilities.includes(cap))) return false;
+        if (item.allowedBusinessTypes?.length && !item.allowedBusinessTypes.includes(ctx.businessType)) return false;
+        if (item.excludedBusinessTypes?.length && item.excludedBusinessTypes.includes(ctx.businessType)) return false;
+        // Plan gate: hide items that require a higher plan
+        if (item.requiredPlan && !planAllows(ctx.plan, item.requiredPlan)) return false;
+        return true;
+      }),
     }))
     .filter((group) => group.items.length > 0);
 
@@ -352,12 +379,40 @@ export function buildVisibleNav(ctx: OrgNavContext): NavGroupEntry[] {
   const universal   = visible.filter((g) => !isSpecialty(g));
   const specialty   = visible.filter((g) => isSpecialty(g));
 
-  // School accounts: show only school-specific modules + home (no commercial nav)
-  if (ctx.businessType === "school") {
+  // Isolated verticals: show only home + their specialty modules (no commercial nav)
+  if (ctx.businessType === "school" || ctx.businessType === "real_estate") {
     const homeGroup = universal.find((g) => g.id === "home");
     return [
       ...(homeGroup ? [homeGroup] : []),
       ...specialty,
+    ];
+  }
+
+  // Food & Beverage: focused sidebar with only café-relevant items
+  if (ctx.businessType === "restaurant" || ctx.businessType === "cafe" || ctx.businessType === "bakery" || ctx.businessType === "catering") {
+    const homeGroup = universal.find((g) => g.id === "home");
+    const opsGroup  = universal.find((g) => g.id === "operations");
+    const growGroup = universal.find((g) => g.id === "growth");
+    const foodGroup = specialty.find((g) => g.id === "specialty_food");
+
+    const cafeAllowedOps = ctx.businessType === "cafe"
+      ? ["/dashboard/pos", "/dashboard/orders", "/dashboard/customers"]
+      : ["/dashboard/orders", "/dashboard/customers"];
+    const cafeOps = opsGroup ? {
+      ...opsGroup,
+      items: opsGroup.items.filter((i) => cafeAllowedOps.includes(i.href)),
+    } : null;
+
+    const cafeGrowth = growGroup ? {
+      ...growGroup,
+      items: growGroup.items.filter((i) => i.href === "/dashboard/reports"),
+    } : null;
+
+    return [
+      ...(homeGroup ? [homeGroup] : []),
+      ...(foodGroup ? [foodGroup] : []),
+      ...(cafeOps && cafeOps.items.length > 0 ? [cafeOps] : []),
+      ...(cafeGrowth && cafeGrowth.items.length > 0 ? [cafeGrowth] : []),
     ];
   }
 

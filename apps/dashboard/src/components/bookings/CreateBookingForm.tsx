@@ -60,12 +60,12 @@ function fmtDuration(days: number, label: string) {
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
-export function CreateBookingForm({ open, onClose, onSuccess }: {
-  open: boolean; onClose: () => void; onSuccess?: () => void;
+export function CreateBookingForm({ open, onClose, onSuccess, initialDate }: {
+  open: boolean; onClose: () => void; onSuccess?: () => void; initialDate?: string;
 }) {
   // Core booking state
   const [customerId,    setCustomerId]    = useState("");
-  const [eventDate,     setEventDate]     = useState("");
+  const [eventDate,     setEventDate]     = useState(initialDate ?? "");
   const [eventTime,     setEventTime]     = useState("15:00");
   const [eventEndDate,  setEventEndDate]  = useState("");
   const [eventEndTime,  setEventEndTime]  = useState("12:00");
@@ -183,13 +183,18 @@ export function CreateBookingForm({ open, onClose, onSuccess }: {
 
   // ── Reset ────────────────────────────────────────────────────────────────
   const reset = () => {
-    setCustomerId(""); setEventDate(""); setEventTime("15:00");
+    setCustomerId(""); setEventDate(initialDate ?? ""); setEventTime("15:00");
     setEventEndDate(""); setEventEndTime("12:00");
     setLocationId(""); setFulfillmentMode("in_venue"); setDeliveryAddress("");
     setItems([{ serviceId: "", quantity: 1, addons: [] }]);
     setCustomerNotes(""); setInternalNotes(""); setError("");
     setAdultsCount(1); setChildrenCount(0);
   };
+
+  // Sync eventDate when initialDate changes (e.g. clicking a different calendar day)
+  useEffect(() => {
+    if (open && initialDate) setEventDate(initialDate);
+  }, [open, initialDate]);
 
   // ── Build questionAnswers (rental metadata) ───────────────────────────────
   function buildQuestionAnswers() {

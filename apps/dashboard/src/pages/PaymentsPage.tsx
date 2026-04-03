@@ -425,7 +425,23 @@ function LockedSection({ title, description }: { title: string; description: str
         <Lock className="w-7 h-7 text-gray-400" />
       </div>
       <h3 className="font-semibold text-gray-700 mb-2">{title} — غير مفعّل</h3>
-      <p className="text-sm text-gray-400 max-w-xs">{description}</p>
+      <p className="text-sm text-gray-400 max-w-xs mb-6">{description}</p>
+      <div className="flex flex-col items-center gap-2">
+        <a
+          href="https://wa.me/966522064321"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 bg-green-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-green-600 transition-colors"
+        >
+          تواصل معنا لتفعيل الخدمة
+        </a>
+        <a
+          href="mailto:info@nasaqpro.tech"
+          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          info@nasaqpro.tech
+        </a>
+      </div>
     </div>
   );
 }

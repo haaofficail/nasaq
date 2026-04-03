@@ -2,6 +2,7 @@ import { pgTable, text, timestamp, boolean, pgEnum, uuid, integer, numeric, uniq
 import { organizations } from "./organizations";
 import { users } from "./auth";
 
+
 // ============================================================
 // SYSTEM ROLES ENUM — ثابتة في الكود، لا تتغير
 // ============================================================
@@ -134,6 +135,37 @@ export const orgMembers = pgTable("org_members", {
   uniqueIndex("org_members_unique_idx").on(table.orgId, table.userId),
   index("org_members_org_idx").on(table.orgId),
   index("org_members_jt_idx").on(table.jobTitleId),
+]);
+
+// ============================================================
+// USER CONSTRAINTS — قيود محددة لكل مستخدم (تجاوز الصلاحية العامة)
+// ============================================================
+
+export const userConstraints = pgTable("user_constraints", {
+  id:                   uuid("id").defaultRandom().primaryKey(),
+  orgId:                uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  userId:               uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+
+  // حدود مالية
+  maxDiscountPct:           numeric("max_discount_pct", { precision: 5, scale: 2 }),        // null = لا حد
+  maxVoidCount:             integer("max_void_count"),                                        // per day; null = لا حد
+  requireApprovalAbove:     numeric("require_approval_above", { precision: 10, scale: 2 }), // null = لا يوجد
+
+  // بوابات منطقية (null = يرث من الدور)
+  canCreateInvoice:   boolean("can_create_invoice"),
+  canVoidInvoice:     boolean("can_void_invoice"),
+  canGiveDiscount:    boolean("can_give_discount"),
+  canAccessReports:   boolean("can_access_reports"),
+  canExportData:      boolean("can_export_data"),
+  canManageTeam:      boolean("can_manage_team"),
+
+  notes:              text("notes"),
+  createdBy:          uuid("created_by"),
+  createdAt:          timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:          timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  uniqueIndex("user_constraints_unique_idx").on(table.orgId, table.userId),
+  index("user_constraints_org_idx").on(table.orgId),
 ]);
 
 // ============================================================

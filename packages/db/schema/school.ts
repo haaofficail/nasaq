@@ -22,6 +22,7 @@ import { users } from "./auth";
 export const schoolSessionTypeEnum = pgEnum("school_session_type", [
   "summer",
   "winter",
+  "ramadan",
 ]);
 
 export const schoolDayOfWeekEnum = pgEnum("school_day_of_week", [

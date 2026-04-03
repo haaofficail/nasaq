@@ -7,10 +7,11 @@ import {
   services, addons, customers, locations, pricingRules, organizations,
   serviceSupplyRecipes, salonSupplies, salonSupplyAdjustments,
   bookingAssignments, bookingCommissions, serviceCosts, serviceStaff,
-  bookingEvents, bookingConsumptions, paymentGatewayConfigs,
+  bookingEvents, bookingConsumptions, paymentGatewayConfigs, users,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, generateBookingNumber } from "../lib/helpers";
 import { postCashSale, postDepositReceived, postRefund, isAccountingEnabled } from "../lib/posting-engine";
+import { autoJournal } from "../lib/autoJournal";
 import { DEFAULT_VAT_RATE, DEFAULT_DEPOSIT_PERCENT, BOOKING_TRACKING_TOKEN_LENGTH, FREE_BOOKING_LIMIT } from "../lib/constants";
 import { insertAuditLog } from "../lib/audit";
 import { awardLoyaltyPoints } from "../lib/segments-engine";
@@ -631,6 +632,27 @@ bookingsRouter.patch("/:id/status", async (c) => {
 
   insertAuditLog({ orgId, userId: actingUserId, action: "updated", resource: "booking", resourceId: id, metadata: { status: newStatus } });
 
+  // قيد محاسبي تلقائي (fire-and-forget)
+  if (newStatus === "confirmed") {
+    try {
+      await autoJournal.bookingConfirmed({
+        orgId,
+        bookingId: id,
+        bookingNumber: updated.bookingNumber,
+        amount: parseFloat(updated.totalAmount),
+      });
+    } catch {}
+  } else if (newStatus === "cancelled") {
+    try {
+      await autoJournal.bookingCancelled({
+        orgId,
+        bookingId: id,
+        bookingNumber: updated.bookingNumber,
+        amount: parseFloat(updated.totalAmount),
+      });
+    } catch {}
+  }
+
   // إرسال إشعار للعميل بحسب الحالة الجديدة (fire-and-forget)
   if (newStatus === "cancelled") {
     fireBookingEvent("booking_cancelled",  { orgId, bookingId: id });
@@ -785,7 +807,18 @@ bookingsRouter.get("/:id/events", async (c) => {
   const orgId = getOrgId(c);
   const id = c.req.param("id");
 
-  const events = await db.select().from(bookingEvents)
+  const events = await db
+    .select({
+      id: bookingEvents.id,
+      eventType: bookingEvents.eventType,
+      fromStatus: bookingEvents.fromStatus,
+      toStatus: bookingEvents.toStatus,
+      metadata: bookingEvents.metadata,
+      createdAt: bookingEvents.createdAt,
+      performedByName: users.name,
+    })
+    .from(bookingEvents)
+    .leftJoin(users, eq(bookingEvents.userId, users.id))
     .where(and(eq(bookingEvents.bookingId, id), eq(bookingEvents.orgId, orgId)))
     .orderBy(asc(bookingEvents.createdAt));
 

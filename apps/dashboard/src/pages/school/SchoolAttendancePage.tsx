@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   UserCheck, CheckCircle2, XCircle, Clock, BookOpen,
-  Save, Loader2, ChevronRight, ChevronLeft, RefreshCw,
+  Save, Loader2, ChevronRight, ChevronLeft, Search, X,
 } from "lucide-react";
 import { useApi } from "@/hooks/useApi";
 import { schoolApi } from "@/lib/api";
@@ -30,11 +31,14 @@ function nextDay(d: string) {
 }
 
 export function SchoolAttendancePage() {
+  const [searchParams] = useSearchParams();
   const [date,        setDate]        = useState(formatDate(new Date()));
-  const [classRoomId, setClassRoomId] = useState("");
+  const [classRoomId, setClassRoomId] = useState(searchParams.get("classRoomId") ?? "");
   const [records,     setRecords]     = useState<Record<string, string>>({});
   const [saving,      setSaving]      = useState(false);
   const [saved,       setSaved]       = useState(false);
+  const [search,      setSearch]      = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   const { data: classRoomsData }  = useApi(() => schoolApi.listClassRooms(), []);
   const classRooms: any[] = classRoomsData?.data ?? [];
@@ -45,6 +49,12 @@ export function SchoolAttendancePage() {
   );
 
   const studentRows: any[] = (attendanceData as any)?.data ?? [];
+
+  // Reset filters when classroom/date changes
+  useEffect(() => {
+    setSearch("");
+    setFilterStatus("all");
+  }, [classRoomId, date]);
 
   // When data loads, initialize records from existing attendance
   useEffect(() => {
@@ -89,6 +99,18 @@ export function SchoolAttendancePage() {
     late:    studentRows.filter(s => records[s.id] === "late").length,
     excused: studentRows.filter(s => records[s.id] === "excused").length,
   };
+
+  const displayedStudents = useMemo(() => {
+    let list = studentRows;
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter((s: any) => s.fullName?.toLowerCase().includes(q));
+    }
+    if (filterStatus !== "all") {
+      list = list.filter((s: any) => (records[s.id] ?? "present") === filterStatus);
+    }
+    return list;
+  }, [studentRows, search, filterStatus, records]);
 
   const today = formatDate(new Date());
 
@@ -176,20 +198,46 @@ export function SchoolAttendancePage() {
         )}
       </div>
 
-      {/* Stats bar */}
+      {/* Stats bar — clickable to filter */}
       {classRoomId && studentRows.length > 0 && (
         <div className="grid grid-cols-4 gap-3">
           {[
-            { key: "present", label: "حاضر",   cls: "bg-emerald-50 border-emerald-100 text-emerald-700" },
-            { key: "absent",  label: "غائب",   cls: "bg-red-50 border-red-100 text-red-700" },
-            { key: "late",    label: "متأخر",  cls: "bg-amber-50 border-amber-100 text-amber-700" },
-            { key: "excused", label: "مستأذن", cls: "bg-blue-50 border-blue-100 text-blue-700" },
-          ].map(({ key, label, cls }) => (
-            <div key={key} className={`${cls} border rounded-2xl p-3 text-center`}>
+            { key: "present", label: "حاضر",   cls: "bg-emerald-50 border-emerald-100 text-emerald-700", active: "ring-2 ring-emerald-400" },
+            { key: "absent",  label: "غائب",   cls: "bg-red-50 border-red-100 text-red-700",             active: "ring-2 ring-red-400" },
+            { key: "late",    label: "متأخر",  cls: "bg-amber-50 border-amber-100 text-amber-700",       active: "ring-2 ring-amber-400" },
+            { key: "excused", label: "مستأذن", cls: "bg-blue-50 border-blue-100 text-blue-700",          active: "ring-2 ring-blue-400" },
+          ].map(({ key, label, cls, active }) => (
+            <button
+              key={key}
+              onClick={() => setFilterStatus(prev => prev === key ? "all" : key)}
+              className={`${cls} border rounded-2xl p-3 text-center transition-all hover:opacity-80 ${filterStatus === key ? active : ""}`}
+            >
               <p className="text-xl font-bold">{stats[key as keyof typeof stats]}</p>
               <p className="text-xs font-medium mt-0.5">{label}</p>
-            </div>
+            </button>
           ))}
+        </div>
+      )}
+
+      {/* Search by name */}
+      {classRoomId && studentRows.length > 0 && (
+        <div className="relative">
+          <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="بحث بالاسم..."
+            className="w-full pr-9 pl-9 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch("")}
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          )}
         </div>
       )}
 
@@ -213,7 +261,26 @@ export function SchoolAttendancePage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {studentRows.map((s: any, idx: number) => {
+          {(filterStatus !== "all" || search) && (
+            <div className="flex items-center justify-between px-1">
+              <p className="text-xs text-gray-400">
+                {displayedStudents.length} من {studentRows.length} طالب
+                {filterStatus !== "all" && ` · فلتر: ${STATUS_OPTIONS.find(o => o.value === filterStatus)?.label}`}
+              </p>
+              <button
+                onClick={() => { setFilterStatus("all"); setSearch(""); }}
+                className="text-xs text-emerald-600 hover:text-emerald-700 font-medium"
+              >
+                مسح الفلاتر
+              </button>
+            </div>
+          )}
+          {displayedStudents.length === 0 ? (
+            <div className="bg-white rounded-2xl border border-gray-100 py-10 text-center">
+              <p className="text-sm text-gray-400">لا توجد نتائج</p>
+            </div>
+          ) : null}
+          {displayedStudents.map((s: any, idx: number) => {
             const currentStatus = records[s.id] ?? "present";
             const activeOption  = STATUS_OPTIONS.find(o => o.value === currentStatus);
             return (
