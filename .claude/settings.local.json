@@ -274,7 +274,12 @@
       "Bash(head -5 grep -n \"^route\\\\|app\\\\.get\\\\|app\\\\.post\" /Users/thwany/Desktop/nasaq/packages/api/src/routes/website.ts)",
       "Bash(head -30 grep -n \"storefront_color\\\\|storefront_cover\\\\|storefront_enabled\\\\|public_slug\" /Users/thwany/Desktop/nasaq/packages/db/schema/organizations.ts grep -n \"storefront\\\\|qr\\\\|print\" /Users/thwany/Desktop/nasaq/apps/dashboard/src/lib/api.ts)",
       "Bash(head -100 /Users/thwany/Desktop/nasaq/apps/dashboard/src/pages/StorefrontPage.tsx grep -n \"export.*function\\\\|صفحتي\\\\|QR\\\\|قسم\\\\|section\" /Users/thwany/Desktop/nasaq/apps/dashboard/src/pages/StorefrontPage.tsx)",
-      "Bash(bash deploy.sh \"feat: service templates system — import ready-made services by business type\" 2>&1)"
+      "Bash(bash deploy.sh \"feat: service templates system — import ready-made services by business type\" 2>&1)",
+      "Bash(sed -i '' '680s/widgets: \\\\[bookingStatusWidget\\(\\), recentBookingsWidget\\(\\), topServicesWidget\\(\\), recentActivityWidget\\(\\)\\\\]/widgets: [salesChartWidget\\(\"\"two-thirds\"\"\\), weeklyBookingsWidget\\(\"\"third\"\"\\), bookingStatusWidget\\(\\), recentBookingsWidget\\(\\), topServicesWidget\\(\\), recentActivityWidget\\(\\)]/' /Users/thwany/Desktop/nasaq/apps/dashboard/src/lib/dashboardProfiles.ts)",
+      "Bash(sed -i '' '983s/widgets: \\\\[bookingStatusWidget\\(\\), recentBookingsWidget\\(\\), topServicesWidget\\(\\), recentActivityWidget\\(\\)\\\\]/widgets: [salesChartWidget\\(\"\"two-thirds\"\"\\), weeklyBookingsWidget\\(\"\"third\"\"\\), bookingStatusWidget\\(\\), recentBookingsWidget\\(\\), topServicesWidget\\(\\), recentActivityWidget\\(\\)]/' /Users/thwany/Desktop/nasaq/apps/dashboard/src/lib/dashboardProfiles.ts)",
+      "Bash(sed -i '' '1006s/widgets: \\\\[bookingStatusWidget\\(\\), recentBookingsWidget\\(\\), topServicesWidget\\(\\), recentActivityWidget\\(\\)\\\\]/widgets: [salesChartWidget\\(\"\"two-thirds\"\"\\), weeklyBookingsWidget\\(\"\"third\"\"\\), bookingStatusWidget\\(\\), recentBookingsWidget\\(\\), topServicesWidget\\(\\), recentActivityWidget\\(\\)]/' /Users/thwany/Desktop/nasaq/apps/dashboard/src/lib/dashboardProfiles.ts)",
+      "Bash(sed -i '' '1142s/widgets: \\\\[bookingStatusWidget\\(\\), recentBookingsWidget\\(\\), topServicesWidget\\(\\), recentActivityWidget\\(\\)\\\\]/widgets: [salesChartWidget\\(\"\"two-thirds\"\"\\), weeklyBookingsWidget\\(\"\"third\"\"\\), bookingStatusWidget\\(\\), recentBookingsWidget\\(\\), topServicesWidget\\(\\), recentActivityWidget\\(\\)]/' /Users/thwany/Desktop/nasaq/apps/dashboard/src/lib/dashboardProfiles.ts)",
+      "Bash(bash deploy.sh \"feat: wire SalesChartWidget & WeeklyBookingsChartWidget into all dashboard profiles\" 2>&1)"
     ]
   }
 }

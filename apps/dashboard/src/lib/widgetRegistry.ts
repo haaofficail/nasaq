@@ -126,6 +126,26 @@ export const WIDGET_REGISTRY: Record<string, WidgetContextGate> = {
   },
 
   // ──────────────────────────────────────────────────────────
+  // SALES CHART — owners/admins/managers only (revenue data)
+  // ──────────────────────────────────────────────────────────
+  "sales-chart": {
+    id: "sales-chart",
+    requiredCapabilities: [],
+    allowedBusinessTypes: [],
+    allowedOperatingProfiles: [],
+  },
+
+  // ──────────────────────────────────────────────────────────
+  // WEEKLY BOOKINGS — universal
+  // ──────────────────────────────────────────────────────────
+  "weekly-bookings": {
+    id: "weekly-bookings",
+    requiredCapabilities: ["bookings"],
+    allowedBusinessTypes: [],
+    allowedOperatingProfiles: [],
+  },
+
+  // ──────────────────────────────────────────────────────────
   // ONLINE ORDERS widget — restaurant/food/delivery only
   // ──────────────────────────────────────────────────────────
   "online-orders-widget": {

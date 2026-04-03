@@ -31,6 +31,8 @@ import { TodayScheduleSummaryWidget } from "@/components/dashboard/widgets/Today
 import { RecentActivityWidget } from "@/components/dashboard/widgets/RecentActivityWidget";
 import { PropertyMaintenanceWidget } from "@/components/dashboard/widgets/PropertyMaintenanceWidget";
 import { EventQuotationsWidget } from "@/components/dashboard/widgets/EventQuotationsWidget";
+import { SalesChartWidget } from "@/components/dashboard/widgets/SalesChartWidget";
+import { WeeklyBookingsChartWidget } from "@/components/dashboard/widgets/WeeklyBookingsChartWidget";
 
 export type Role = "owner" | "admin" | "manager" | "branch_manager" | "staff" | "operator";
 
@@ -269,6 +271,22 @@ const eventQuotationsWidget = (size: WidgetConfig["size"] = "half"): WidgetConfi
   component: EventQuotationsWidget,
 });
 
+const salesChartWidget = (size: WidgetConfig["size"] = "two-thirds"): WidgetConfig => ({
+  id: "sales-chart",
+  label: "مخطط المبيعات",
+  size,
+  allowedRoles: ["owner", "admin", "manager"],
+  component: SalesChartWidget,
+});
+
+const weeklyBookingsWidget = (size: WidgetConfig["size"] = "third"): WidgetConfig => ({
+  id: "weekly-bookings",
+  label: "الحجوزات الأسبوعية",
+  size,
+  allowedRoles: [],
+  component: WeeklyBookingsChartWidget,
+});
+
 // ============================================================
 // Profile definitions — keyed by dashboardProfile string
 // returned by the backend's deriveDashboardProfile()
@@ -289,7 +307,7 @@ const profiles: Record<string, DashboardProfile> = {
       { id: "new-service",  modal: "service"  as const, label: "خدمة جديدة", href: "/dashboard/services",  icon: Package,       bg: "bg-teal-50",   text: "text-teal-600",   allowedRoles: [] },
       { id: "reports",      label: "التقارير",   href: "/dashboard/reports",   icon: BarChart2,     bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [todayScheduleWidget("two-thirds"), bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
+    widgets: [salesChartWidget("two-thirds"), weeklyBookingsWidget("third"), bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
   },
 
   // ──────────────────────────────────────────────────────────
@@ -517,7 +535,7 @@ const profiles: Record<string, DashboardProfile> = {
       { id: "suppliers",    label: "الموردون",   href: "/dashboard/suppliers",   icon: Package,       bg: "bg-amber-50",   text: "text-amber-600",   allowedRoles: ["owner", "admin", "manager"] },
       { id: "reports",      label: "التقارير",   href: "/dashboard/reports",     icon: BarChart2,     bg: "bg-rose-50",    text: "text-rose-600",    allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [todayScheduleWidget(), recentBookingsWidget(), staffWidget(), recentActivityWidget()],
+    widgets: [salesChartWidget("two-thirds"), weeklyBookingsWidget("third"), todayScheduleWidget(), recentBookingsWidget(), staffWidget(), recentActivityWidget()],
   },
 
   barber: {
@@ -532,7 +550,7 @@ const profiles: Record<string, DashboardProfile> = {
       { id: "commissions",  label: "عمولات الحلاقين", href: "/dashboard/commissions", icon: Percent, bg: "bg-teal-50",    text: "text-teal-600",    allowedRoles: ["owner", "admin", "manager"] },
       { id: "reports",      label: "التقارير",   href: "/dashboard/reports",     icon: BarChart2,     bg: "bg-rose-50",    text: "text-rose-600",    allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [todayScheduleWidget(), recentBookingsWidget(), staffWidget(), recentActivityWidget()],
+    widgets: [salesChartWidget("two-thirds"), weeklyBookingsWidget("third"), todayScheduleWidget(), recentBookingsWidget(), staffWidget(), recentActivityWidget()],
   },
 
   spa: {
@@ -547,7 +565,7 @@ const profiles: Record<string, DashboardProfile> = {
       { id: "commissions",  label: "العمولات",    href: "/dashboard/commissions", icon: Percent,       bg: "bg-teal-50",    text: "text-teal-600",    allowedRoles: ["owner", "admin", "manager"] },
       { id: "reports",      label: "التقارير",    href: "/dashboard/reports",     icon: BarChart2,     bg: "bg-rose-50",    text: "text-rose-600",    allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [todayScheduleWidget(), recentBookingsWidget(), staffWidget(), recentActivityWidget()],
+    widgets: [salesChartWidget("two-thirds"), weeklyBookingsWidget("third"), todayScheduleWidget(), recentBookingsWidget(), staffWidget(), recentActivityWidget()],
   },
 
   // salon_home profile (for home-service operating profile)
@@ -581,6 +599,8 @@ const profiles: Record<string, DashboardProfile> = {
       { id: "reports",   label: "التقارير", href: "/dashboard/reports",       icon: BarChart2,     bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
     ],
     widgets: [
+      salesChartWidget("two-thirds"),
+      weeklyBookingsWidget("third"),
       { id: "online-orders-widget", label: "الطلبات الإلكترونية", size: "third",      allowedRoles: [], component: OnlineOrdersWidget },
       staffWidget(),
       recentBookingsWidget("full"),
@@ -657,7 +677,7 @@ const profiles: Record<string, DashboardProfile> = {
       { id: "customers", label: "العملاء",    href: "/dashboard/customers", icon: Users,     bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
       { id: "reports",   label: "التقارير",   href: "/dashboard/reports",   icon: BarChart2, bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
+    widgets: [salesChartWidget("two-thirds"), weeklyBookingsWidget("third"), bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
   },
 
   catering: {
@@ -671,7 +691,7 @@ const profiles: Record<string, DashboardProfile> = {
       { id: "new-customer", modal: "customer" as const, label: "عميل جديد",  href: "/dashboard/customers", icon: Users,         bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
       { id: "reports",      label: "التقارير",   href: "/dashboard/reports",   icon: BarChart2,     bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [bookingStatusWidget(), recentBookingsWidget(), staffWidget(), recentActivityWidget()],
+    widgets: [salesChartWidget("two-thirds"), weeklyBookingsWidget("third"), bookingStatusWidget(), recentBookingsWidget(), staffWidget(), recentActivityWidget()],
   },
 
   // ──────────────────────────────────────────────────────────
@@ -735,6 +755,8 @@ const profiles: Record<string, DashboardProfile> = {
     ],
     widgets: [
       { id: "room-status", label: "حالة الغرف", size: "full", allowedRoles: [], component: RoomStatusWidget },
+      salesChartWidget("two-thirds"),
+      weeklyBookingsWidget("third"),
       recentBookingsWidget(),
       bookingStatusWidget(),
       recentActivityWidget(),
@@ -799,6 +821,8 @@ const profiles: Record<string, DashboardProfile> = {
     ],
     widgets: [
       { id: "fleet-status", label: "حالة الأسطول", size: "full", allowedRoles: [], component: FleetStatusWidget },
+      salesChartWidget("two-thirds"),
+      weeklyBookingsWidget("third"),
       recentBookingsWidget(),
       bookingStatusWidget(),
       recentActivityWidget(),
@@ -841,7 +865,7 @@ const profiles: Record<string, DashboardProfile> = {
       { id: "customers",    label: "العملاء",   href: "/dashboard/customers", icon: Users,         bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
       { id: "reports",      label: "التقارير",  href: "/dashboard/reports",   icon: BarChart2,     bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [bookingStatusWidget(), recentBookingsWidget(), inventoryAlertWidget(), recentActivityWidget()],
+    widgets: [salesChartWidget("two-thirds"), weeklyBookingsWidget("third"), bookingStatusWidget(), recentBookingsWidget(), inventoryAlertWidget(), recentActivityWidget()],
   },
 
   // ──────────────────────────────────────────────────────────
@@ -956,7 +980,7 @@ const profiles: Record<string, DashboardProfile> = {
       { id: "new-customer", modal: "customer" as const, label: "عميل جديد",   href: "/dashboard/customers", icon: Users,     bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
       { id: "reports",      label: "التقارير",    href: "/dashboard/reports",   icon: BarChart2, bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
+    widgets: [salesChartWidget("two-thirds"), weeklyBookingsWidget("third"), bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
   },
 
   // ──────────────────────────────────────────────────────────
@@ -979,7 +1003,7 @@ const profiles: Record<string, DashboardProfile> = {
       { id: "media-library",                             label: "مكتبة الوسائط", href: "/dashboard/media",        icon: Camera,    bg: "bg-teal-50",   text: "text-teal-600",   allowedRoles: [] },
       { id: "reports",                                   label: "التقارير",     href: "/dashboard/reports",        icon: BarChart2, bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
+    widgets: [salesChartWidget("two-thirds"), weeklyBookingsWidget("third"), bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
   },
 
   // ──────────────────────────────────────────────────────────
@@ -1115,7 +1139,7 @@ const profiles: Record<string, DashboardProfile> = {
       { id: "new-customer", modal: "customer" as const, label: "عميل جديد",  href: "/dashboard/customers", icon: Users,         bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
       { id: "reports",      label: "التقارير",   href: "/dashboard/reports",   icon: BarChart2,     bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
     ],
-    widgets: [bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
+    widgets: [salesChartWidget("two-thirds"), weeklyBookingsWidget("third"), bookingStatusWidget(), recentBookingsWidget(), topServicesWidget(), recentActivityWidget()],
   },
 
   // ──────────────────────────────────────────────────────────
