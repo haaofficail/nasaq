@@ -25,7 +25,7 @@ function getRedirectAfterLogin(user: any): string {
 export function LoginPage() {
   const navigate = useNavigate();
 
-  const [method, setMethod]   = useState<Method>("phone");
+  const [method, setMethod]   = useState<Method>("email");
   const [step, setStep]       = useState<Step>("input");
 
   // phone flow
@@ -120,29 +120,7 @@ export function LoginPage() {
         {/* Card */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
 
-          {/* Method tabs — only show on input step */}
-          {step === "input" && (
-            <div className="flex border-b border-gray-100">
-              {([
-                { id: "phone", label: "الجوال",   icon: Phone },
-                { id: "email", label: "الإيميل",  icon: Mail  },
-              ] as const).map(({ id, label, icon: Icon }) => (
-                <button
-                  key={id}
-                  onClick={() => switchMethod(id)}
-                  className={clsx(
-                    "flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-medium transition-colors border-b-2 -mb-px",
-                    method === id
-                      ? "border-brand-500 text-brand-600"
-                      : "border-transparent text-gray-400 hover:text-gray-600"
-                  )}
-                >
-                  <Icon className="w-4 h-4" />
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
+          {/* Method tabs — hidden temporarily (email only) */}
 
           <div className="p-6">
 

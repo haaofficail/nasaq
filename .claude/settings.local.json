@@ -279,7 +279,24 @@
       "Bash(sed -i '' '983s/widgets: \\\\[bookingStatusWidget\\(\\), recentBookingsWidget\\(\\), topServicesWidget\\(\\), recentActivityWidget\\(\\)\\\\]/widgets: [salesChartWidget\\(\"\"two-thirds\"\"\\), weeklyBookingsWidget\\(\"\"third\"\"\\), bookingStatusWidget\\(\\), recentBookingsWidget\\(\\), topServicesWidget\\(\\), recentActivityWidget\\(\\)]/' /Users/thwany/Desktop/nasaq/apps/dashboard/src/lib/dashboardProfiles.ts)",
       "Bash(sed -i '' '1006s/widgets: \\\\[bookingStatusWidget\\(\\), recentBookingsWidget\\(\\), topServicesWidget\\(\\), recentActivityWidget\\(\\)\\\\]/widgets: [salesChartWidget\\(\"\"two-thirds\"\"\\), weeklyBookingsWidget\\(\"\"third\"\"\\), bookingStatusWidget\\(\\), recentBookingsWidget\\(\\), topServicesWidget\\(\\), recentActivityWidget\\(\\)]/' /Users/thwany/Desktop/nasaq/apps/dashboard/src/lib/dashboardProfiles.ts)",
       "Bash(sed -i '' '1142s/widgets: \\\\[bookingStatusWidget\\(\\), recentBookingsWidget\\(\\), topServicesWidget\\(\\), recentActivityWidget\\(\\)\\\\]/widgets: [salesChartWidget\\(\"\"two-thirds\"\"\\), weeklyBookingsWidget\\(\"\"third\"\"\\), bookingStatusWidget\\(\\), recentBookingsWidget\\(\\), topServicesWidget\\(\\), recentActivityWidget\\(\\)]/' /Users/thwany/Desktop/nasaq/apps/dashboard/src/lib/dashboardProfiles.ts)",
-      "Bash(bash deploy.sh \"feat: wire SalesChartWidget & WeeklyBookingsChartWidget into all dashboard profiles\" 2>&1)"
+      "Bash(bash deploy.sh \"feat: wire SalesChartWidget & WeeklyBookingsChartWidget into all dashboard profiles\" 2>&1)",
+      "Bash(pnpm -F dashboard exec tsc --noEmit)",
+      "Bash(pnpm -F dashboard build)",
+      "Bash(pnpm --filter @nasaq/db exec tsc --noEmit)",
+      "Bash(npx skills:*)",
+      "Skill(ln-620-codebase-auditor)",
+      "Bash(source $NVM_DIR/nvm.sh)",
+      "Bash(/tmp/seed_jawri.sql:*)",
+      "Bash(/tmp/seed_jawri2.sql:*)",
+      "Bash(/tmp/seed_jawri_final.sql:*)",
+      "Bash(/tmp/p2.sql:*)",
+      "Bash(ssh -i ~/.ssh/nasaq_deploy root@187.124.41.239 \"grep -i ''''sultan\\\\|password'''' /tmp/seed_jawri.ts 2>/dev/null | head -20\")",
+      "Bash(/tmp/migrate_flower_staff_assignment.sql:*)",
+      "Bash(__NEW_LINE_46bd1e5537817e1d__ scp:*)",
+      "Bash(chmod +x /Users/thwany/Desktop/nasaq/scripts/deploy.sh)",
+      "Bash(bash scripts/deploy.sh)",
+      "Bash(/Users/thwany/Desktop/nasaq/node_modules/.pnpm/typescript@5.9.3/node_modules/typescript/bin/tsc --noEmit)",
+      "Bash(bash deploy.sh)"
     ]
   }
 }

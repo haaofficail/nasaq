@@ -3,6 +3,7 @@ import { z } from "zod";
 import { pool } from "@nasaq/db/client";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
+import { postCashSale } from "../lib/posting-engine";
 
 const createCatalogItemSchema = z.object({
   type: z.enum(["packaging", "gift", "card", "delivery"]),
@@ -124,7 +125,9 @@ flowerBuilderRouter.get("/orders/stats", async (c) => {
        COUNT(*) FILTER (WHERE status = 'pending') as pending,
        COUNT(*) FILTER (WHERE status = 'confirmed') as confirmed,
        COUNT(*) FILTER (WHERE status = 'delivered') as delivered,
-       COALESCE(SUM(total) FILTER (WHERE status NOT IN ('cancelled')), 0) as total_revenue
+       COUNT(*) FILTER (WHERE created_at::date = CURRENT_DATE) as today,
+       COALESCE(SUM(total) FILTER (WHERE status NOT IN ('cancelled')), 0) as total_revenue,
+       COALESCE(SUM(total) FILTER (WHERE created_at::date = CURRENT_DATE AND status NOT IN ('cancelled')), 0) as today_revenue
      FROM flower_orders WHERE org_id = $1`,
     [orgId]
   );
@@ -134,19 +137,26 @@ flowerBuilderRouter.get("/orders/stats", async (c) => {
 // POST /flower-builder/orders
 flowerBuilderRouter.post("/orders", async (c) => {
   const orgId = getOrgId(c);
-  const body = createFlowerOrderSchema.parse(await c.req.json());
+  const rawBody = await c.req.json();
+  const body = createFlowerOrderSchema.parse(rawBody);
   const orderNum = `FLW-${Date.now().toString(36).toUpperCase()}`;
 
   const result = await pool.query(
     `INSERT INTO flower_orders
        (org_id, order_number, customer_name, customer_phone, items, subtotal, total,
-        delivery_address, delivery_date, gift_message, packaging)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING *`,
+        delivery_address, delivery_date, gift_message, packaging,
+        recipient_name, recipient_phone, is_surprise, delivery_fee,
+        delivery_time, order_type, payment_method)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18) RETURNING *`,
     [orgId, orderNum, body.customerName, body.customerPhone,
-     JSON.stringify(body.items || []), body.subtotal || body.totalPrice || 0,
-     body.total || body.totalPrice || 0,
-     body.deliveryAddress ? JSON.stringify(body.deliveryAddress) : null,
-     body.deliveryDate || null, body.giftMessage || null, body.packaging || "bouquet"]
+     JSON.stringify(body.items || []), body.subtotal || (rawBody.totalPrice ?? 0),
+     body.total || (rawBody.totalPrice ?? 0),
+     rawBody.deliveryAddress ? JSON.stringify(rawBody.deliveryAddress) : null,
+     body.deliveryDate || null, body.giftMessage || null, body.packaging || "bouquet",
+     rawBody.recipientName || null, rawBody.recipientPhone || null,
+     rawBody.isSurprise || false, rawBody.deliveryFee || 0,
+     rawBody.deliveryTime || null,
+     rawBody.orderType || "regular", rawBody.paymentMethod || "cash"]
   );
   insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "flower_order", resourceId: result.rows[0]?.id });
   return c.json({ data: result.rows[0] }, 201);
@@ -163,7 +173,91 @@ flowerBuilderRouter.patch("/orders/:id/status", async (c) => {
   );
   if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
   insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "flower_order", resourceId: id, metadata: { status } });
+
+  // ── قيد محاسبي عند التسليم ────────────────────────────────
+  if (status === "delivered") {
+    const order = result.rows[0];
+    const amount = Number(order.total ?? order.subtotal ?? 0);
+    if (amount > 0) {
+      try {
+        await postCashSale({
+          orgId,
+          date: new Date(),
+          amount,
+          vatAmount: 0,
+          description: `طلب ورود #${order.order_number}`,
+          sourceType: "pos",
+          sourceId: order.id,
+          createdBy: getUserId(c) ?? undefined,
+        });
+      } catch {
+        // القيد المحاسبي اختياري — لا يوقف التحديث إن لم تكن الحسابات مهيأة
+      }
+    }
+  }
+
   return c.json({ data: result.rows[0] });
+});
+
+// PATCH /flower-builder/orders/:id/driver
+flowerBuilderRouter.patch("/orders/:id/driver", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+  const { driverName, driverPhone, notes } = await c.req.json();
+  const result = await pool.query(
+    `UPDATE flower_orders
+     SET driver_name=$3, driver_phone=$4, status='out_for_delivery',
+         dispatched_at=COALESCE(dispatched_at, NOW()), updated_at=NOW()
+     WHERE id=$1 AND org_id=$2 RETURNING *`,
+    [id, orgId, driverName || null, driverPhone || null]
+  );
+  if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  return c.json({ data: result.rows[0] });
+});
+
+// PATCH /flower-builder/orders/:id/assign-staff — assign a florist to an order
+flowerBuilderRouter.patch("/orders/:id/assign-staff", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+  const { staffId, staffName } = await c.req.json();
+  const result = await pool.query(
+    `UPDATE flower_orders
+     SET assigned_staff_id=$3, assigned_staff_name=$4,
+         status='preparing', preparing_at=COALESCE(preparing_at, NOW()), updated_at=NOW()
+     WHERE id=$1 AND org_id=$2 RETURNING *`,
+    [id, orgId, staffId || null, staffName || null]
+  );
+  if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "flower_order", resourceId: id, metadata: { assigned_staff_id: staffId } });
+  return c.json({ data: result.rows[0] });
+});
+
+// GET /flower-builder/delivery — today's delivery queue
+flowerBuilderRouter.get("/delivery", async (c) => {
+  const orgId = getOrgId(c);
+  const dateStr = c.req.query("date") || new Date().toISOString().split("T")[0];
+  const { rows } = await pool.query(
+    `SELECT * FROM flower_orders
+     WHERE org_id=$1
+       AND (
+         (delivery_time::DATE = $2::DATE)
+         OR (created_at::DATE = $2::DATE AND order_type IN ('delivery','gift'))
+         OR (status NOT IN ('delivered','cancelled') AND order_type IN ('delivery','gift'))
+       )
+     ORDER BY COALESCE(delivery_time, created_at) ASC`,
+    [orgId, dateStr]
+  );
+  const stats = {
+    total: rows.length,
+    pending: rows.filter((r: any) => r.status === "pending").length,
+    preparing: rows.filter((r: any) => r.status === "preparing").length,
+    ready: rows.filter((r: any) => r.status === "ready").length,
+    out: rows.filter((r: any) => r.status === "out_for_delivery").length,
+    delivered: rows.filter((r: any) => r.status === "delivered").length,
+    revenue: rows.filter((r: any) => r.status === "delivered")
+      .reduce((s: number, r: any) => s + Number(r.total || 0), 0),
+  };
+  return c.json({ data: rows, stats });
 });
 
 // GET /flower-builder/page-config

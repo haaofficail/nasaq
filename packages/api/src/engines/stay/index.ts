@@ -63,65 +63,65 @@ stayEngine.post("/bookings", async (c) => {
     return c.json({ error: "check_out must be after check_in" }, 400);
   }
 
-  // Availability check — prevent double booking same unit
-  if (body.unitId) {
-    const conflict = await db
-      .select({ id: stayBookings.id })
-      .from(stayBookings)
-      .where(and(
-        eq(stayBookings.orgId, orgId),
-        eq(stayBookings.unitId, body.unitId),
-        or(
-          and(
-            lte(stayBookings.checkIn,  checkOut),
-            gte(stayBookings.checkOut, checkIn)
-          )
-        )
-      ))
-      .limit(1);
-
-    if (conflict.length > 0) {
-      return c.json({ error: "Unit is not available for selected dates" }, 409);
-    }
-  }
-
   const { base, vat, total } = calcVat(Number(body.subtotal ?? 0), body.vatInclusive ?? true);
 
-  const year = new Date().getFullYear();
-  const countResult = await db.execute(
-    sql`SELECT COUNT(*)::text AS count FROM stay_bookings WHERE org_id = ${orgId} AND EXTRACT(YEAR FROM created_at) = ${year}`
-  );
-  const count = (countResult.rows[0] as { count: string })?.count ?? "0";
-  const bookingNumber = generateBookingNumber("stay", Number(count) + 1);
+  const bookingNumber = generateBookingNumber("stay");
 
-  const [booking] = await db
-    .insert(stayBookings)
-    .values({
-      orgId,
-      customerId:     body.customerId,
-      bookingNumber,
-      stayType:       body.stayType ?? "hotel",
-      unitId:         body.unitId,
-      unitType:       body.unitType,
-      unitSnapshot:   body.unitSnapshot,
-      checkIn,
-      checkOut,
-      guestCount:     body.guestCount ?? 1,
-      driverName:     body.driverName,
-      driverLicense:  body.driverLicense,
-      pickupLocation: body.pickupLocation,
-      dropoffLocation: body.dropoffLocation,
-      subtotal:       String(base),
-      vatAmount:      String(vat),
-      totalAmount:    String(total),
-      depositAmount:  String(body.depositAmount ?? 0),
-      paidAmount:     "0",
-      source:         body.source ?? "dashboard",
-      customerNotes:  body.customerNotes,
-      internalNotes:  body.internalNotes,
-    })
-    .returning();
+  let doubleBooked = false;
 
+  const [booking] = await db.transaction(async (tx) => {
+    // قفل advisory على الوحدة يمنع الحجز المزدوج المتزامن
+    if (body.unitId) {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${body.unitId}))`);
+
+      const conflict = await tx
+        .select({ id: stayBookings.id })
+        .from(stayBookings)
+        .where(and(
+          eq(stayBookings.orgId, orgId),
+          eq(stayBookings.unitId, body.unitId),
+          or(
+            and(
+              lte(stayBookings.checkIn,  checkOut),
+              gte(stayBookings.checkOut, checkIn)
+            )
+          )
+        ))
+        .limit(1);
+
+      if (conflict.length > 0) { doubleBooked = true; return []; }
+    }
+
+    return tx
+      .insert(stayBookings)
+      .values({
+        orgId,
+        customerId:     body.customerId,
+        bookingNumber,
+        stayType:       body.stayType ?? "hotel",
+        unitId:         body.unitId,
+        unitType:       body.unitType,
+        unitSnapshot:   body.unitSnapshot,
+        checkIn,
+        checkOut,
+        guestCount:     body.guestCount ?? 1,
+        driverName:     body.driverName,
+        driverLicense:  body.driverLicense,
+        pickupLocation: body.pickupLocation,
+        dropoffLocation: body.dropoffLocation,
+        subtotal:       String(base),
+        vatAmount:      String(vat),
+        totalAmount:    String(total),
+        depositAmount:  String(body.depositAmount ?? 0),
+        paidAmount:     "0",
+        source:         body.source ?? "dashboard",
+        customerNotes:  body.customerNotes,
+        internalNotes:  body.internalNotes,
+      })
+      .returning();
+  });
+
+  if (doubleBooked) return c.json({ error: "Unit is not available for selected dates" }, 409);
   return c.json({ data: booking }, 201);
 });
 

@@ -40,6 +40,16 @@
 - الفلسفة: "ذكي مرن متطور"
 - الاسم دائماً "نسق" — أبداً "ناسق"
 
+## Guardrails — قواعد الحماية المعمارية
+
+- **لا كتابة مباشرة لـ DB** للبيانات التشغيلية — كل شيء عبر: API → Service → DB
+- **الكابيليتيز**: استخدم `capability-service.ts` فقط — لا تكتب مباشرة في `organization_capability_overrides`
+- **الصلاحيات**: استخدم `PUT /team/roles/:id/permissions` أو `permission-service.ts` — لا تكتب مباشرة في `role_permissions`
+- **Seeding**: استخدم API simulation layer — لا تكتب مباشرة في جداول الأعمال
+- **الاستثناءات المسموحة فقط**: migrations + `packages/db/seeds/reference/` + `scripts/repairs/`
+- **Scanner**: `npx tsx scripts/architecture/scan-violations.ts` للكشف عن انتهاكات
+- **Reference**: `docs/architecture/guardrails.md`
+
 ## قبل ما تقول خلصت
 
 - npx tsc --noEmit = صفر أخطاء

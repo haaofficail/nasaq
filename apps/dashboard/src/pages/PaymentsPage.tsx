@@ -8,6 +8,7 @@ import {
 import { useApi } from "@/hooks/useApi";
 import { useOrgContext } from "@/hooks/useOrgContext";
 import { paymentsApi } from "@/lib/api";
+import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 
 const STATUS_LABELS: Record<string, string> = {
   pending:   "معلقة",
@@ -419,6 +420,9 @@ function OwnGatewaySection({ navigate }: { navigate: (path: string) => void }) {
 // ── Locked Section ────────────────────────────────────────────
 
 function LockedSection({ title, description }: { title: string; description: string }) {
+  const platform = usePlatformConfig();
+  const phone = platform.supportPhone?.replace(/^0/, "") ?? "532064321";
+  const email = platform.supportEmail ?? "info@nasaqpro.tech";
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
@@ -428,7 +432,7 @@ function LockedSection({ title, description }: { title: string; description: str
       <p className="text-sm text-gray-400 max-w-xs mb-6">{description}</p>
       <div className="flex flex-col items-center gap-2">
         <a
-          href="https://wa.me/966522064321"
+          href={`https://wa.me/966${phone}`}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 bg-green-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-green-600 transition-colors"
@@ -436,10 +440,10 @@ function LockedSection({ title, description }: { title: string; description: str
           تواصل معنا لتفعيل الخدمة
         </a>
         <a
-          href="mailto:info@nasaqpro.tech"
+          href={`mailto:${email}`}
           className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
         >
-          info@nasaqpro.tech
+          {email}
         </a>
       </div>
     </div>

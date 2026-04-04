@@ -13,6 +13,8 @@ export interface PlatformConfig {
   logoUrl: string | null;
   faviconUrl: string | null;
   primaryColor: string;
+  supportEmail: string | null;
+  supportPhone: string | null;
 }
 
 const STORAGE_KEY = "nasaq_platform_config";
@@ -22,6 +24,8 @@ const DEFAULT_CONFIG: PlatformConfig = {
   logoUrl: null,
   faviconUrl: null,
   primaryColor: "#5b9bd5",
+  supportEmail: "info@nasaqpro.tech",
+  supportPhone: "0532064321",
 };
 
 // قراءة الكاش من localStorage عند أول تحميل
@@ -66,7 +70,11 @@ async function fetchConfig() {
     const res = await fetch("/api/v1/platform-config/public");
     if (res.ok) {
       const json = await res.json();
-      const fresh = { ...DEFAULT_CONFIG, ...json.data } as PlatformConfig;
+      // Only override defaults with non-null values from the API
+      const overrides = Object.fromEntries(
+        Object.entries(json.data as Partial<PlatformConfig>).filter(([, v]) => v !== null && v !== undefined)
+      );
+      const fresh: PlatformConfig = { ...DEFAULT_CONFIG, ...overrides };
       _cached = fresh;
       writeStoredConfig(fresh);
       applyFavicon(fresh.faviconUrl);

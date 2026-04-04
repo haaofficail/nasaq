@@ -76,7 +76,7 @@ const PRIMARY_ACTIONS: Record<string, PrimaryAction> = {
   // Specialty
   flower_shop: {
     label: "طلب ورود",
-    href: "/dashboard/bookings/new",
+    href: "/dashboard/flower-orders",
     icon: Flower2,
     description: "سجّل أول طلب تنسيق زهور",
   },

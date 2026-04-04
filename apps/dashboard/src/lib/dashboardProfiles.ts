@@ -13,6 +13,7 @@ import {
   hotelApi, carRentalApi, inventoryApi, financeApi,
   attendanceEngineApi, onlineOrdersApi, flowerBuilderApi,
   propertyApi, eventsApi, workOrdersApi, accessControlApi,
+  flowerIntelligenceApi,
 } from "./api";
 import { BookingStatusWidget } from "@/components/dashboard/widgets/BookingStatusWidget";
 import { RecentBookingsWidget } from "@/components/dashboard/widgets/RecentBookingsWidget";
@@ -22,6 +23,7 @@ import { AccessControlWidget } from "@/components/dashboard/widgets/AccessContro
 import { FlowerStockWidget } from "@/components/dashboard/widgets/FlowerStockWidget";
 import { ExpiringBatchesWidget } from "@/components/dashboard/widgets/ExpiringBatchesWidget";
 import { FlowerOrdersWidget } from "@/components/dashboard/widgets/FlowerOrdersWidget";
+import { FlowerMorningBriefWidget } from "@/components/dashboard/widgets/FlowerMorningBriefWidget";
 import { RoomStatusWidget } from "@/components/dashboard/widgets/RoomStatusWidget";
 import { FleetStatusWidget } from "@/components/dashboard/widgets/FleetStatusWidget";
 import { StaffAvailabilityWidget } from "@/components/dashboard/widgets/StaffAvailabilityWidget";
@@ -316,7 +318,7 @@ const profiles: Record<string, DashboardProfile> = {
   flower_shop: {
     profileKey: "flower_shop",
     label: "محل الورود",
-    primaryAction: { label: "طلب جديد", href: "/dashboard/bookings" },
+    primaryAction: { label: "طلب جديد", href: "/dashboard/flower-pos" },
     kpis: [
       {
         id: "total-stems",
@@ -330,43 +332,40 @@ const profiles: Record<string, DashboardProfile> = {
         allowedRoles: [],
       },
       {
-        id: "expiring-batches",
-        label: "قاربت الانتهاء",
-        unit: "دفعة",
-        icon: Clock,
-        bg: "bg-amber-50",
-        iconColor: "text-amber-600",
-        fetcher: () => flowerMasterApi.batchesExpiring(3),
-        transform: (d) => String(d?.data?.length || 0),
-        allowedRoles: [],
+        id: "loss-at-risk",
+        label: "خسارة محتملة",
+        unit: "ر.س",
+        icon: AlertTriangle,
+        bg: "bg-red-50",
+        iconColor: "text-red-500",
+        fetcher: () => flowerIntelligenceApi.lossAlerts(),
+        transform: (d) => d?.summary?.totalCostAtRisk > 0 ? String(d.summary.totalCostAtRisk) : "0",
+        allowedRoles: ["owner", "admin", "manager"],
       },
       {
         id: "builder-orders",
-        label: "طلبات الباقات",
+        label: "طلبات اليوم",
         unit: "طلب",
         icon: ShoppingBag,
         bg: "bg-rose-50",
         iconColor: "text-rose-600",
         fetcher: () => flowerBuilderApi.orderStats(),
-        transform: (d) => String(d?.data?.pending ?? d?.data?.total ?? 0),
+        transform: (d) => String(d?.data?.today ?? d?.data?.todayTotal ?? d?.data?.total ?? 0),
         allowedRoles: [],
       },
       revenueKpi("flower-revenue"),
     ],
     quickActions: [
-      { id: "new-booking", modal: "booking" as const,    label: "حجز جديد",      href: "/dashboard/bookings",              icon: CalendarCheck, bg: "bg-blue-50",    text: "text-blue-600",    allowedRoles: [] },
-      { id: "receive-batch",  label: "إضافة دفعة",    href: "/dashboard/flower-master",         icon: Package,       bg: "bg-pink-50",    text: "text-pink-600",    allowedRoles: ["owner", "admin", "manager"] },
-      { id: "builder-orders", label: "طلبات الباقات", href: "/dashboard/arrangements", icon: ShoppingBag,   bg: "bg-rose-50",    text: "text-rose-600",    allowedRoles: [] },
-      { id: "flower-master",  label: "بيانات الورد",  href: "/dashboard/flower-master",         icon: Flower2,       bg: "bg-emerald-50", text: "text-emerald-600", allowedRoles: [] },
-      { id: "reports",        label: "التقارير",      href: "/dashboard/reports",               icon: BarChart2,     bg: "bg-amber-50",   text: "text-amber-600",   allowedRoles: ["owner", "admin", "manager"] },
+      { id: "flower-pos",      label: "الكاشير",        href: "/dashboard/flower-pos",       icon: ShoppingBag,   bg: "bg-pink-50",    text: "text-pink-600",    allowedRoles: [] },
+      { id: "receive-batch",   label: "استلام ورد",     href: "/dashboard/flower-master",    icon: Package,       bg: "bg-emerald-50", text: "text-emerald-600", allowedRoles: ["owner", "admin", "manager"] },
+      { id: "flower-delivery", label: "قائمة التوصيل", href: "/dashboard/flower-delivery",  icon: Zap,           bg: "bg-blue-50",    text: "text-blue-600",    allowedRoles: [] },
+      { id: "flower-margins",  label: "هوامش الربح",   href: "/dashboard/flower-margins",   icon: BarChart2,     bg: "bg-rose-50",    text: "text-rose-600",    allowedRoles: ["owner", "admin", "manager"] },
     ],
     widgets: [
+      { id: "flower-morning-brief",    label: "ورقة الصباح",          size: "full",       allowedRoles: [], component: FlowerMorningBriefWidget },
       { id: "expiring-batches-widget", label: "دفعات قاربت الانتهاء", size: "two-thirds", allowedRoles: [], component: ExpiringBatchesWidget },
       { id: "flower-orders-widget",    label: "طلبات الباقات",        size: "third",      allowedRoles: [], component: FlowerOrdersWidget },
       { id: "flower-stock",            label: "مخزون الورد",          size: "full",       allowedRoles: [], component: FlowerStockWidget },
-      recentBookingsWidget(),
-      topServicesWidget(),
-      recentActivityWidget(),
     ],
   },
 

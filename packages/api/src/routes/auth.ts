@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, gt, desc, sql, or } from "drizzle-orm";
-import { db } from "@nasaq/db/client";
+import { db, pool } from "@nasaq/db/client";
 import { users, otpCodes, sessions, auditLogs, organizations, roles, bookingPipelineStages } from "@nasaq/db/schema";
 import { nanoid } from "nanoid";
 import { SESSION_DURATION_MS, DEFAULT_TRIAL_DAYS, MAX_FAILED_LOGIN_ATTEMPTS } from "../lib/constants";
@@ -173,6 +173,19 @@ authRouter.post("/register", async (c) => {
 
   // Seed chart of accounts for new org (fire and forget — never throws)
   seedChartOfAccounts(result.org.id).catch(console.error);
+
+  // Auto-create free trial subscription + update org plan fields (fire and forget)
+  const trialEnd = new Date(Date.now() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000);
+  pool.query(
+    `INSERT INTO subscriptions (org_id, plan_key, plan_name, plan_price, start_date, end_date, status, subscription_number)
+     VALUES ($1, 'free', 'مجاني', 0, NOW(), $2::timestamptz, 'active', 'SUB-' || substring(gen_random_uuid()::text, 1, 8))
+     ON CONFLICT DO NOTHING`,
+    [result.org.id, trialEnd.toISOString()]
+  ).catch(console.error);
+  pool.query(
+    `UPDATE organizations SET current_plan_code='free', is_trial=true, trial_started_at=NOW() WHERE id=$1`,
+    [result.org.id]
+  ).catch(console.error);
 
   // Email-only registration → create session immediately (password already verified)
   if (!normalizedPhone && email && password) {

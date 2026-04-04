@@ -602,7 +602,7 @@ export function PublicFlowerPage() {
                     style={packaging === pkg.id ? { borderColor: accent, background: accent } : { borderColor: "#d1d5db" }}>
                     {packaging === pkg.id && <Check className="w-3 h-3 text-white" />}
                   </div>
-                  <span className="text-2xl shrink-0">{pkg.icon || "🎁"}</span>
+                  <span className="text-2xl shrink-0">{pkg.icon ? pkg.icon : <Gift className="w-5 h-5 text-gray-400" />}</span>
                   <div className="flex-1 text-right">
                     <p className="font-bold text-gray-800 text-sm">{pkg.name}</p>
                     {pkg.description && <p className="text-xs text-gray-400 mt-0.5">{pkg.description}</p>}
@@ -638,7 +638,7 @@ export function PublicFlowerPage() {
                       className={clsx("flex items-center gap-3 p-4 rounded-2xl border bg-white transition-all",
                         qty > 0 ? "shadow-md" : "border-gray-100")}
                       style={qty > 0 ? { borderColor: accent } : {}}>
-                      <span className="text-2xl shrink-0">{g.icon || "🎁"}</span>
+                      <span className="text-2xl shrink-0">{g.icon ? g.icon : <Gift className="w-5 h-5 text-gray-400" />}</span>
                       <div className="flex-1 min-w-0">
                         <p className="font-bold text-gray-800 text-sm">{g.name}</p>
                         {g.description && <p className="text-xs text-gray-400 mt-0.5 truncate">{g.description}</p>}
@@ -902,7 +902,7 @@ export function PublicFlowerPage() {
                     const p = data.catalog.packaging.find(x => x.id === packaging);
                     return p ? (
                       <div className="flex items-center gap-2 px-4 py-2.5">
-                        <span className="text-lg">{p.icon || "🎁"}</span>
+                        <span className="text-lg">{p.icon ? p.icon : <Gift className="w-4 h-4 text-gray-400" />}</span>
                         <span className="flex-1 text-sm text-gray-600">{p.name}</span>
                         <span className="text-sm font-bold text-gray-800">+{p.price.toLocaleString("en-US")} ر.س</span>
                       </div>
@@ -912,7 +912,7 @@ export function PublicFlowerPage() {
                     const g = data.catalog.gift.find(x => x.id === id);
                     return g ? (
                       <div key={id} className="flex items-center gap-2 px-4 py-2.5">
-                        <span className="text-lg">{g.icon || "🎁"}</span>
+                        <span className="text-lg">{g.icon ? g.icon : <Gift className="w-4 h-4 text-gray-400" />}</span>
                         <span className="flex-1 text-sm text-gray-600">{g.name} × {qty}</span>
                         <span className="text-sm font-bold text-gray-800">+{(g.price * qty).toLocaleString("en-US")} ر.س</span>
                       </div>

@@ -13,7 +13,7 @@
 import { Hono } from "hono";
 import { db } from "@nasaq/db/client";
 import { tableReservations } from "@nasaq/db/schema/canonical-bookings";
-import { eq, and, gte, lte, desc, or, sql } from "drizzle-orm";
+import { eq, and, gte, lte, desc, or } from "drizzle-orm";
 import { generateBookingNumber } from "../shared/booking-number";
 import type { AuthUser } from "../../middleware/auth";
 
@@ -84,12 +84,7 @@ tableEngine.post("/reservations", async (c) => {
     }
   }
 
-  const year = new Date().getFullYear();
-  const countResult = await db.execute(
-    sql`SELECT COUNT(*)::text AS count FROM table_reservations WHERE org_id = ${orgId} AND EXTRACT(YEAR FROM created_at) = ${year}`
-  );
-  const count = (countResult.rows[0] as { count: string })?.count ?? "0";
-  const reservationNumber = generateBookingNumber("table", Number(count) + 1);
+  const reservationNumber = generateBookingNumber("table");
 
   const [reservation] = await db
     .insert(tableReservations)

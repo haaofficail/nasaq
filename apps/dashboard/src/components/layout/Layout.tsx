@@ -407,15 +407,6 @@ export function Layout() {
               <Search className="w-4 h-4 text-gray-400 shrink-0" />
               <input type="text" placeholder="بحث..." className="bg-transparent border-none outline-none text-sm text-gray-600 placeholder-gray-400 w-full" />
             </div>
-            {!isSchool && (
-              <button
-                onClick={() => navigate(sub?.freeState === "reached" ? "/dashboard/subscription" : "/dashboard/bookings")}
-                className="flex items-center gap-1.5 bg-brand-500 text-white rounded-xl px-3.5 py-2 text-sm font-medium hover:bg-brand-600 transition-colors shadow-sm shadow-brand-500/20"
-              >
-                <Plus className="w-4 h-4" />
-                <span className="hidden sm:inline">{sub?.freeState === "reached" ? "ترقية الباقة" : "حجز جديد"}</span>
-              </button>
-            )}
             {/* Bell — real-time alerts */}
             <div ref={bellRef} className="relative">
               <button

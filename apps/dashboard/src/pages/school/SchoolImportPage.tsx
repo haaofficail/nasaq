@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import * as XLSX from "xlsx";
+import ExcelJS from "exceljs";
 import {
   Upload, Download, CheckCircle2, XCircle, FileSpreadsheet,
   Clock, AlertTriangle, Loader2,
@@ -64,23 +64,30 @@ type ImportResult = {
   classroomsCreated?: number;
 };
 
-// ── File parsing with SheetJS ──────────────────────────────────
+// ── File parsing with ExcelJS ──────────────────────────────────
 
-function parseFile(buffer: ArrayBuffer, fileName: string): ParsedRow[] {
-  const wb = XLSX.read(buffer, { type: "array", cellDates: true });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(ws, {
-    defval: "",
-    raw: false,
+async function parseFile(buffer: ArrayBuffer): Promise<ParsedRow[]> {
+  const workbook = new ExcelJS.Workbook();
+  await workbook.xlsx.load(buffer);
+  const worksheet = workbook.worksheets[0];
+  if (!worksheet) return [];
+
+  const headers: string[] = [];
+  worksheet.getRow(1).eachCell({ includeEmpty: false }, (cell) => {
+    headers.push(String(cell.value ?? "").trim());
   });
-  // Normalise every cell value to string
-  return rows.map((row) => {
+
+  const rows: ParsedRow[] = [];
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return;
     const obj: ParsedRow = {};
-    for (const key of Object.keys(row)) {
-      obj[String(key).trim()] = String(row[key] ?? "").trim();
-    }
-    return obj;
+    headers.forEach((header, idx) => {
+      const cell = row.getCell(idx + 1);
+      obj[header] = String(cell.value ?? "").trim();
+    });
+    rows.push(obj);
   });
+  return rows;
 }
 
 // ── Client-side row validation ────────────────────────────────
@@ -97,19 +104,22 @@ function clientValidate(rows: ParsedRow[], required: string[]): ValidatedRow[] {
 
 // ── Template download as .xlsx ─────────────────────────────────
 
-function downloadTemplate(type: ImportType) {
+async function downloadTemplate(type: ImportType) {
   const tpl = TEMPLATES[type];
-  const ws = XLSX.utils.aoa_to_sheet([
-    tpl.headers,
-    tpl.headers.map((h) => tpl.sample[h] ?? ""),
-  ]);
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("البيانات");
 
-  // Column widths
-  ws["!cols"] = tpl.headers.map(() => ({ wch: 22 }));
+  worksheet.columns = tpl.headers.map((header) => ({ header, width: 22 }));
+  worksheet.addRow(tpl.headers.map((h) => tpl.sample[h] ?? ""));
 
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "البيانات");
-  XLSX.writeFile(wb, `قالب_${type}.xlsx`);
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `قالب_${type}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 // ── Import Tab ────────────────────────────────────────────────
@@ -160,10 +170,10 @@ function ImportTab({ type }: { type: ImportType }) {
     setParsing(true);
 
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = async (ev) => {
       try {
         const buffer = ev.target?.result as ArrayBuffer;
-        const rows = parseFile(buffer, file.name);
+        const rows = await parseFile(buffer);
 
         if (rows.length === 0) {
           setParseError("الملف فارغ أو لا يحتوي على بيانات.");

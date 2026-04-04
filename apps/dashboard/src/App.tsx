@@ -109,6 +109,7 @@ const CustomizationPage      = lz(() => import("./pages/CustomizationPage"), "Cu
 const PlatformPage           = lz(() => import("./pages/PlatformPage"), "PlatformPage");
 const AuditLogPage           = lz(() => import("./pages/AuditLogPage"), "AuditLogPage");
 const SubscriptionPage       = lz(() => import("./pages/SubscriptionPage"), "SubscriptionPage");
+const BillingPage            = lz(() => import("./pages/BillingPage"), "BillingPage");
 
 // Verticals
 const HotelPage              = lz(() => import("./pages/HotelPage"));
@@ -134,6 +135,15 @@ const RecallPage             = lz(() => import("./pages/RecallPage"), "RecallPag
 const FlowerInventoryPage    = lz(() => import("./pages/FlowerInventoryPage"), "FlowerInventoryPage");
 const FlowerMasterPage       = lz(() => import("./pages/FlowerMasterPage"), "FlowerMasterPage");
 const ArrangementsPage       = lz(() => import("./pages/ArrangementsPage"), "ArrangementsPage");
+const FlowerOrdersPage       = lz(() => import("./pages/FlowerOrdersPage"), "FlowerOrdersPage");
+const FlowerPOSPage          = lz(() => import("./pages/FlowerPOSPage"), "FlowerPOSPage");
+const FlowerDisposalPage     = lz(() => import("./pages/FlowerDisposalPage"), "FlowerDisposalPage");
+const FlowerDeliveryPage     = lz(() => import("./pages/FlowerDeliveryPage"), "FlowerDeliveryPage");
+const FlowerSuppliersPage    = lz(() => import("./pages/FlowerSuppliersPage"), "FlowerSuppliersPage");
+const FlowerReportsPage      = lz(() => import("./pages/FlowerReportsPage"), "FlowerReportsPage");
+const FlowerOccasionsPage    = lz(() => import("./pages/FlowerOccasionsPage"), "FlowerOccasionsPage");
+const FlowerCustomersPage    = lz(() => import("./pages/FlowerCustomersPage"), "FlowerCustomersPage");
+const FlowerMarginsPage      = lz(() => import("./pages/FlowerMarginsPage"), "FlowerMarginsPage");
 const AssetsPage             = lz(() => import("./pages/AssetsPage"), "AssetsPage");
 const ContractsPage          = lz(() => import("./pages/ContractsPage"), "ContractsPage");
 const ContractDetailPage     = lz(() => import("./pages/ContractDetailPage"), "ContractDetailPage");
@@ -289,6 +299,7 @@ export default function App() {
           <Route path="addons" element={<AddonsPage />} />
 
           <Route path="bookings" element={<BookingsPage />} />
+          <Route path="bookings/new" element={<BookingsPage />} />
           <Route path="bookings/:id" element={<BookingDetailPage />} />
           <Route path="calendar" element={<CalendarPage />} />
 
@@ -360,6 +371,7 @@ export default function App() {
           <Route path="settings/website" element={<WebsiteSettingsPage />} />
           <Route path="settings/audit-log" element={<AuditLogPage />} />
           <Route path="subscription" element={<SubscriptionPage />} />
+          <Route path="billing" element={<BillingPage />} />
           <Route path="customization" element={<CustomizationPage />} />
           <Route path="platform" element={<PlatformPage />} />
 
@@ -382,7 +394,16 @@ export default function App() {
           <Route path="flower-inventory" element={<FlowerInventoryPage />} />
           <Route path="flower-master" element={<FlowerMasterPage />} />
           <Route path="arrangements" element={<ArrangementsPage />} />
+          <Route path="flower-orders" element={<FlowerOrdersPage />} />
           <Route path="flower-analytics" element={<FlowerAnalyticsPage />} />
+          <Route path="flower-pos" element={<FlowerPOSPage />} />
+          <Route path="flower-disposal" element={<FlowerDisposalPage />} />
+          <Route path="flower-delivery" element={<FlowerDeliveryPage />} />
+          <Route path="flower-suppliers" element={<FlowerSuppliersPage />} />
+          <Route path="flower-reports" element={<FlowerReportsPage />} />
+          <Route path="flower-occasions" element={<FlowerOccasionsPage />} />
+          <Route path="flower-customers" element={<FlowerCustomersPage />} />
+          <Route path="flower-margins" element={<FlowerMarginsPage />} />
 
           <Route path="assets" element={<AssetsPage />} />
           <Route path="contracts" element={<ContractsPage />} />

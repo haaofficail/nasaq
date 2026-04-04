@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { clsx } from "clsx";
 import { Plus, CalendarCheck, Clock, CheckCircle, XCircle, Banknote, Phone, MapPin, Search } from "lucide-react";
 import { bookingsApi } from "@/lib/api";
@@ -40,10 +40,11 @@ function Skeleton({ className }: { className?: string }) {
 
 export function BookingsPage() {
   const navigate    = useNavigate();
+  const location    = useLocation();
   const biz = useBusiness();
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch]       = useState("");
-  const [showCreate, setShowCreate] = useState(false);
+  const [showCreate, setShowCreate] = useState(() => location.pathname.endsWith("/new"));
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   const params: Record<string, string> = {};

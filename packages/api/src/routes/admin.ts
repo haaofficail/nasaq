@@ -688,8 +688,10 @@ adminRouter.get("/platform-config/public", async (c) => {
     logoUrl: platformConfig.logoUrl,
     faviconUrl: platformConfig.faviconUrl,
     primaryColor: platformConfig.primaryColor,
+    supportEmail: platformConfig.supportEmail,
+    supportPhone: platformConfig.supportPhone,
   }).from(platformConfig).where(eq(platformConfig.id, "default"));
-  return c.json({ data: row ?? { platformName: "نسق", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5" } });
+  return c.json({ data: row ?? { platformName: "نسق", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5", supportEmail: null, supportPhone: null } });
 });
 
 adminRouter.get("/announcements", async (c) => {

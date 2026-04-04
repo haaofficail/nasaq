@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
+import type { LucideIcon } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Search, Grid3X3, List, Eye, EyeOff, Copy, Trash2, Pencil, Star, Package, Globe, Loader2, AlertCircle, X, Download, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Search, Grid3X3, List, Eye, EyeOff, Copy, Trash2, Pencil, Star, Package, Globe, Loader2, AlertCircle, X, Download, ChevronDown, ChevronUp, Calendar, Wrench, MapPin, Home, Truck, UtensilsCrossed, Gift, ClipboardList } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi, templatesApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
@@ -10,18 +11,18 @@ import { useBusiness } from "@/hooks/useBusiness";
 import { useOrgContext } from "@/hooks/useOrgContext";
 import { toast } from "@/hooks/useToast";
 
-const SERVICE_TYPES = [
-  { value: "appointment",      label: "بموعد",         icon: "🗓" },
-  { value: "execution",        label: "تنفيذ",          icon: "🔧" },
-  { value: "field_service",    label: "ميداني",         icon: "📍" },
-  { value: "rental",           label: "تأجير",          icon: "🏠" },
-  { value: "event_rental",     label: "تأجير فعالية",   icon: "⛺" },
-  { value: "product",          label: "منتج",           icon: "📦" },
-  { value: "product_shipping", label: "شحن",            icon: "🚚" },
-  { value: "food_order",       label: "طعام",           icon: "🍽" },
-  { value: "package",          label: "باقة",           icon: "🎁" },
-  { value: "add_on",           label: "إضافة",          icon: "➕" },
-  { value: "project",          label: "مشروع",          icon: "📋" },
+const SERVICE_TYPES: Array<{ value: string; label: string; icon: LucideIcon }> = [
+  { value: "appointment",      label: "بموعد",         icon: Calendar },
+  { value: "execution",        label: "تنفيذ",          icon: Wrench },
+  { value: "field_service",    label: "ميداني",         icon: MapPin },
+  { value: "rental",           label: "تأجير",          icon: Home },
+  { value: "event_rental",     label: "تأجير فعالية",   icon: Star },
+  { value: "product",          label: "منتج",           icon: Package },
+  { value: "product_shipping", label: "شحن",            icon: Truck },
+  { value: "food_order",       label: "طعام",           icon: UtensilsCrossed },
+  { value: "package",          label: "باقة",           icon: Gift },
+  { value: "add_on",           label: "إضافة",          icon: Plus },
+  { value: "project",          label: "مشروع",          icon: ClipboardList },
 ];
 
 function TypePickerOverlay({ onSelect, onClose }: { onSelect: (type: string) => void; onClose: () => void }) {
@@ -42,17 +43,20 @@ function TypePickerOverlay({ onSelect, onClose }: { onSelect: (type: string) => 
           </button>
         </div>
         <div className="grid grid-cols-4 gap-2">
-          {SERVICE_TYPES.map(t => (
-            <button
-              key={t.value}
-              type="button"
-              onClick={() => onSelect(t.value)}
-              className="flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl border border-gray-100 bg-white text-center hover:border-brand-400 hover:bg-brand-50 transition-all"
-            >
-              <span className="text-2xl leading-none">{t.icon}</span>
-              <span className="text-[11px] font-medium text-gray-600 leading-tight">{t.label}</span>
-            </button>
-          ))}
+          {SERVICE_TYPES.map(t => {
+            const TIcon = t.icon;
+            return (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => onSelect(t.value)}
+                className="flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl border border-gray-100 bg-white text-center hover:border-brand-400 hover:bg-brand-50 transition-all"
+              >
+                <TIcon className="w-5 h-5 text-gray-500" />
+                <span className="text-[11px] font-medium text-gray-600 leading-tight">{t.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>

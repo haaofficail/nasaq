@@ -3,7 +3,7 @@ import { createHmac } from "crypto";
 import { eq, and } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db, pool } from "@nasaq/db/client";
-import { organizations, invoices, paymentGatewayConfigs, bookings, payments } from "@nasaq/db/schema";
+import { organizations, invoices, paymentGatewayConfigs, bookings, payments, plans, pricingPlanFeatures, planAddons, resourceAddons, orgAddons, orgResourceAddons } from "@nasaq/db/schema";
 import { getOrgId, getUserId } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { invalidateOrgStatusCache } from "../middleware/auth";
@@ -359,6 +359,85 @@ billingRouter.post("/webhook/booking-payment", async (c) => {
 
   log.info({ orgId, bookingId, amount }, "[billing/webhook/booking] payment recorded");
   return c.json({ received: true });
+});
+
+// ── GET /billing/plans — public ────────────────────────────
+billingRouter.get("/plans", async (c) => {
+  const rows = await db.select().from(plans).where(eq(plans.isActive, true)).orderBy(plans.sortOrder);
+  return c.json({ data: rows });
+});
+
+// ── GET /billing/plan-addons — public ──────────────────────
+billingRouter.get("/plan-addons", async (c) => {
+  const rows = await db.select().from(planAddons).where(eq(planAddons.isActive, true)).orderBy(planAddons.sortOrder);
+  return c.json({ data: rows });
+});
+
+// ── GET /billing/resource-addons — public ──────────────────
+billingRouter.get("/resource-addons", async (c) => {
+  const rows = await db.select().from(resourceAddons);
+  return c.json({ data: rows });
+});
+
+// ── GET /billing/my-plan — authenticated ───────────────────
+billingRouter.get("/my-plan", async (c) => {
+  const orgId = getOrgId(c);
+
+  // Get org's current plan code
+  const [org] = await db.select({
+    currentPlanCode: organizations.currentPlanCode,
+    isTrial: organizations.isTrial,
+    trialEndsAt: organizations.trialEndsAt,
+    planExpiresAt: organizations.planExpiresAt,
+  }).from(organizations).where(eq(organizations.id, orgId));
+
+  const planCode = org?.currentPlanCode ?? "free";
+
+  const [plan] = await db.select().from(plans).where(eq(plans.code, planCode));
+
+  const activeAddons = await db.select().from(orgAddons)
+    .where(and(eq(orgAddons.orgId, orgId), eq(orgAddons.status, "active")));
+
+  const activeResourceAddons = await db.select().from(orgResourceAddons)
+    .where(and(eq(orgResourceAddons.orgId, orgId), eq(orgResourceAddons.status, "active")));
+
+  const features = await db.select().from(pricingPlanFeatures)
+    .where(and(eq(pricingPlanFeatures.planCode, planCode), eq(pricingPlanFeatures.isIncluded, true)));
+
+  return c.json({
+    data: {
+      plan: plan ?? null,
+      isTrial: org?.isTrial ?? false,
+      trialEndsAt: org?.trialEndsAt ?? null,
+      planExpiresAt: org?.planExpiresAt ?? null,
+      addons: activeAddons,
+      resourceAddons: activeResourceAddons,
+      features: features.map(f => f.featureKey),
+    }
+  });
+});
+
+// ── GET /billing/usage ─────────────────────────────────────
+billingRouter.get("/usage", async (c) => {
+  const orgId = getOrgId(c);
+
+  const branchResult = await pool.query<{ count: string }>(
+    `SELECT COUNT(*)::text as count FROM locations WHERE org_id = $1 AND is_active = true`,
+    [orgId]
+  );
+  const employeeResult = await pool.query<{ count: string }>(
+    `SELECT COUNT(*)::text as count FROM users u
+     INNER JOIN org_members om ON om.user_id = u.id
+     WHERE om.org_id = $1 AND u.status = 'active'`,
+    [orgId]
+  );
+
+  return c.json({
+    data: {
+      branches: parseInt(branchResult.rows[0]?.count ?? "0"),
+      employees: parseInt(employeeResult.rows[0]?.count ?? "0"),
+    }
+  });
 });
 
 // ── مساعد: إنشاء فاتورة الاشتراك ─────────────────────────

@@ -1,7 +1,9 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 
 export function PublicLayout({ children }: { children: ReactNode }) {
+  const platform = usePlatformConfig();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -109,8 +111,12 @@ export function PublicLayout({ children }: { children: ReactNode }) {
             <div>
               <h4 className="text-white font-semibold mb-4 text-sm">تواصل</h4>
               <div className="space-y-2">
-                <p className="text-sm">support@nasaq.sa</p>
-                <p className="text-sm">+966 5X XXX XXXX</p>
+                {platform.supportEmail && (
+                  <a href={`mailto:${platform.supportEmail}`} className="block text-sm hover:text-white transition-colors">{platform.supportEmail}</a>
+                )}
+                {platform.supportPhone && (
+                  <a href={`tel:+966${platform.supportPhone.replace(/^0/, "")}`} className="block text-sm hover:text-white transition-colors" dir="ltr">{platform.supportPhone}</a>
+                )}
               </div>
             </div>
           </div>

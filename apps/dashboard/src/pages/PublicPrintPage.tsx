@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { websiteApi } from "@/lib/api";
 import QRCode from "qrcode";
 
-// ══ Types ═════════════════════════════════════════════════════
+// ══ Types ══════════════════════════════════════════════════════
 interface OrgData {
   id: string; name: string; slug: string;
   phone?: string; email?: string; logo?: string;
@@ -12,117 +12,197 @@ interface OrgData {
 }
 interface ServiceItem {
   id: string; name: string; price?: number; pricingType?: string;
+  description?: string; duration?: number;
 }
 interface SiteData {
   org: OrgData;
   services: ServiceItem[];
 }
 
-// ══ QR Hook ═══════════════════════════════════════════════════
-function useQR(slug: string, size: number, color: string) {
-  const [qrUrl, setQrUrl] = useState<string>("");
+// ══ QR Hook ════════════════════════════════════════════════════
+function useQR(url: string, size: number) {
+  const [qrUrl, setQrUrl] = useState("");
   useEffect(() => {
-    QRCode.toDataURL(`https://nasaqpro.tech/s/${slug}`, {
-      width: size,
-      margin: 1,
-      color: { dark: color, light: "#FFFFFF" },
+    if (!url) return;
+    QRCode.toDataURL(url, {
+      width: size, margin: 1,
+      color: { dark: "#1a1a2e", light: "#ffffff" },
       errorCorrectionLevel: "H",
     }).then(setQrUrl).catch(() => {});
-  }, [slug, size, color]);
+  }, [url, size]);
   return qrUrl;
 }
 
-// ══ PDF / PNG Export ══════════════════════════════════════════
-async function exportToPDF(slug: string) {
-  const [{ jsPDF }, html2canvas] = await Promise.all([
-    import("jspdf"),
-    import("html2canvas").then(m => m.default),
+// ══ Export helpers ═════════════════════════════════════════════
+async function exportToPNG(elementId: string, filename: string) {
+  const h2c = (await import("html2canvas")).default;
+  const el = document.getElementById(elementId)!;
+  const canvas = await h2c(el, { scale: 3, useCORS: true, backgroundColor: "#ffffff" });
+  const a = document.createElement("a");
+  a.download = filename; a.href = canvas.toDataURL("image/png"); a.click();
+}
+async function exportAllPDF(slug: string) {
+  const [{ jsPDF }, h2c] = await Promise.all([
+    import("jspdf"), import("html2canvas").then(m => m.default),
   ]);
   const pdf = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
-
-  const a4El = document.getElementById("print-a4")!;
-  const a4Canvas = await html2canvas(a4El, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
-  pdf.addImage(a4Canvas.toDataURL("image/png"), "PNG", 0, 0, 210, 297);
-
+  const a4 = await h2c(document.getElementById("print-a4")!, { scale: 2, useCORS: true, backgroundColor: "#ffffff" });
+  pdf.addImage(a4.toDataURL("image/png"), "PNG", 0, 0, 210, 297);
   pdf.addPage([85, 54], "landscape");
-  const cardEl = document.getElementById("print-card")!;
-  const cardCanvas = await html2canvas(cardEl, { scale: 4, useCORS: true, backgroundColor: "#ffffff" });
-  pdf.addImage(cardCanvas.toDataURL("image/png"), "PNG", 0, 0, 85, 54);
-
-  pdf.addPage([80, 50], "landscape");
-  const labelEl = document.getElementById("print-label")!;
-  const labelCanvas = await html2canvas(labelEl, { scale: 4, useCORS: true, backgroundColor: "#ffffff" });
-  pdf.addImage(labelCanvas.toDataURL("image/png"), "PNG", 0, 0, 80, 50);
-
-  pdf.save(`nasaq-${slug}.pdf`);
+  const card = await h2c(document.getElementById("print-card")!, { scale: 4, useCORS: true, backgroundColor: "#ffffff" });
+  pdf.addImage(card.toDataURL("image/png"), "PNG", 0, 0, 85, 54);
+  pdf.save(`${slug}-print.pdf`);
 }
 
-async function exportToPNG(elementId: string, filename: string) {
-  const html2canvas = (await import("html2canvas")).default;
-  const el = document.getElementById(elementId)!;
-  const canvas = await html2canvas(el, { scale: 3, useCORS: true, backgroundColor: "#ffffff" });
-  const link = document.createElement("a");
-  link.download = filename;
-  link.href = canvas.toDataURL("image/png");
-  link.click();
-}
-
-// ══ A4 Card ═══════════════════════════════════════════════════
-function A4Card({ org, services, qrUrl }: { org: OrgData; services: ServiceItem[]; qrUrl: string }) {
+// ══ A4 Catalog Page ════════════════════════════════════════════
+function A4Page({ org, services, qrUrl }: { org: OrgData; services: ServiceItem[]; qrUrl: string }) {
   const primary = org.primaryColor || "#5b9bd5";
-  const top6 = services.slice(0, 6);
+  const dark = "#0f172a";
+  const muted = "#64748b";
+  const light = "#f8fafc";
+  const border = "#e2e8f0";
+
+  // hex to rgba helper
+  const hex2rgba = (hex: string, a: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r},${g},${b},${a})`;
+  };
+
+  const top = services.slice(0, 12);
+  const cols = top.length > 6 ? 3 : 2;
+
+  const F: React.CSSProperties = { fontFamily: "'IBM Plex Sans Arabic', sans-serif" };
+
   return (
-    <div id="print-a4" style={{ width: "210mm", minHeight: "297mm", background: "#ffffff", fontFamily: "'IBM Plex Sans Arabic', sans-serif", direction: "rtl", display: "flex", flexDirection: "column", padding: "20mm", boxSizing: "border-box", position: "relative" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "24px", paddingBottom: "16px", borderBottom: `3px solid ${primary}` }}>
-        {org.logo
-          ? <img src={org.logo} alt={org.name} style={{ width: 64, height: 64, borderRadius: 12, objectFit: "contain" }} />
-          : <div style={{ width: 64, height: 64, borderRadius: 12, background: primary, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <span style={{ color: "#fff", fontWeight: 900, fontSize: 28 }}>{org.name[0]}</span>
-            </div>
-        }
-        <div>
-          <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: "#1a1a1a" }}>{org.name}</h1>
-          {org.city && <p style={{ margin: "4px 0 0", fontSize: 14, color: "#666" }}>{org.city} {org.address ? `— ${org.address}` : ""}</p>}
+    <div id="print-a4" style={{
+      ...F, width: "210mm", minHeight: "297mm", background: "#fff",
+      direction: "rtl", display: "flex", flexDirection: "column",
+      boxSizing: "border-box", overflow: "hidden", position: "relative",
+    }}>
+
+      {/* ── Header band ── */}
+      <div style={{
+        background: `linear-gradient(135deg, ${primary} 0%, ${hex2rgba(primary, 0.8)} 100%)`,
+        padding: "20mm 14mm 14mm",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        gap: "10mm",
+      }}>
+        {/* Logo + name */}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          {org.logo
+            ? <img src={org.logo} alt="" style={{ width: 56, height: 56, borderRadius: 12, objectFit: "contain", background: "#fff", padding: 4 }} />
+            : <div style={{ width: 56, height: 56, borderRadius: 12, background: "rgba(255,255,255,0.25)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <span style={{ color: "#fff", fontWeight: 900, fontSize: 26 }}>{org.name[0]}</span>
+              </div>
+          }
+          <div>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: "#fff", lineHeight: 1.2 }}>{org.name}</h1>
+            {(org.city || org.address) && (
+              <p style={{ margin: "4px 0 0", fontSize: 11, color: "rgba(255,255,255,0.8)" }}>
+                {[org.city, org.address].filter(Boolean).join(" — ")}
+              </p>
+            )}
+            {org.phone && (
+              <p style={{ margin: "3px 0 0", fontSize: 11, color: "rgba(255,255,255,0.9)", fontWeight: 600, direction: "ltr" }}>
+                {org.phone}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* QR */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, flexShrink: 0 }}>
+          <div style={{ background: "#fff", borderRadius: 10, padding: 6, boxShadow: "0 2px 12px rgba(0,0,0,0.15)" }}>
+            {qrUrl
+              ? <img src={qrUrl} alt="QR" style={{ width: 80, height: 80, display: "block" }} />
+              : <div style={{ width: 80, height: 80, background: "#f0f0f0" }} />
+            }
+          </div>
+          <span style={{ color: "rgba(255,255,255,0.9)", fontSize: 9, fontWeight: 700 }}>امسح للحجز</span>
         </div>
       </div>
 
-      {/* QR + tagline */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", margin: "24px 0", padding: "28px", background: `${primary}10`, borderRadius: 16 }}>
-        {qrUrl && <img src={qrUrl} alt="QR" style={{ width: 160, height: 160, borderRadius: 8, marginBottom: 16 }} />}
-        <p style={{ margin: 0, fontSize: 18, fontWeight: 700, color: primary, textAlign: "center" }}>امسح للحجز والدفع الفوري</p>
-        <p style={{ margin: "6px 0 0", fontSize: 12, color: "#888", direction: "ltr", textAlign: "center" }}>nasaqpro.tech/s/{org.slug}</p>
+      {/* ── Section title ── */}
+      <div style={{ padding: "10mm 14mm 6mm", display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ width: 3, height: 20, background: primary, borderRadius: 2 }} />
+        <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: dark }}>
+          {services.length > 0 ? "قائمة الخدمات والأسعار" : "خدماتنا"}
+        </h2>
+        {services.length > 0 && (
+          <span style={{ marginRight: "auto", fontSize: 10, color: muted, background: light, border: `1px solid ${border}`, padding: "2px 8px", borderRadius: 20 }}>
+            {services.length} خدمة
+          </span>
+        )}
       </div>
 
-      {/* Top services */}
-      {top6.length > 0 && (
-        <div style={{ marginBottom: 24 }}>
-          <h3 style={{ fontSize: 16, fontWeight: 700, color: "#333", marginBottom: 12, borderRight: `3px solid ${primary}`, paddingRight: 8 }}>أبرز الخدمات</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-            {top6.map(s => (
-              <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", background: "#f9f9f9", borderRadius: 8 }}>
-                <span style={{ fontSize: 13, color: "#333", fontWeight: 600 }}>{s.name}</span>
+      {/* ── Services grid ── */}
+      <div style={{ flex: 1, padding: "0 14mm 8mm" }}>
+        {top.length > 0 ? (
+          <div style={{
+            display: "grid",
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            gap: "6px",
+          }}>
+            {top.map((s, i) => (
+              <div key={s.id} style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "9px 12px",
+                background: i % 2 === 0 ? light : "#fff",
+                border: `1px solid ${border}`,
+                borderRadius: 8,
+                gap: 8,
+              }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: dark, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {s.name}
+                  </p>
+                  {s.duration && s.duration > 0 && (
+                    <p style={{ margin: "2px 0 0", fontSize: 9, color: muted }}>{s.duration} دقيقة</p>
+                  )}
+                </div>
                 {s.price != null && s.pricingType !== "free" && (
-                  <span style={{ fontSize: 13, color: primary, fontWeight: 700 }}>{Number(s.price).toLocaleString("ar-SA")} ر.س</span>
+                  <span style={{
+                    fontSize: 12, fontWeight: 800, color: "#fff",
+                    background: primary, padding: "2px 8px", borderRadius: 6,
+                    whiteSpace: "nowrap", flexShrink: 0,
+                  }}>
+                    {Number(s.price).toLocaleString("ar-SA")} ر.س
+                  </span>
+                )}
+                {s.pricingType === "free" && (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "#16a34a", background: "#dcfce7", padding: "2px 8px", borderRadius: 6, flexShrink: 0 }}>
+                    مجاني
+                  </span>
                 )}
               </div>
             ))}
           </div>
-        </div>
-      )}
+        ) : (
+          <div style={{ padding: "24px 0", textAlign: "center" }}>
+            <p style={{ margin: 0, fontSize: 13, color: muted }}>تواصل معنا للاستفسار عن خدماتنا</p>
+          </div>
+        )}
+      </div>
 
-      {/* Contact */}
-      {org.phone && (
-        <div style={{ display: "flex", gap: 16, alignItems: "center", padding: "12px 16px", background: "#f5f5f5", borderRadius: 8, marginBottom: 16 }}>
-          <span style={{ fontSize: 13, color: "#555" }}>للتواصل: <strong style={{ color: "#1a1a1a", direction: "ltr" }}>{org.phone}</strong></span>
+      {/* ── Footer ── */}
+      <div style={{
+        borderTop: `1px solid ${border}`,
+        padding: "6mm 14mm",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        background: light,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <span style={{ fontSize: 10, color: muted }}>الحجز عبر:</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: primary, direction: "ltr" }}>
+            nasaqpro.tech/s/{org.slug}
+          </span>
         </div>
-      )}
-
-      {/* Footer */}
-      <div style={{ marginTop: "auto", paddingTop: 16, borderTop: "1px solid #eee", display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
-        <span style={{ fontSize: 11, color: "#aaa" }}>مدعوم بنظام</span>
-        <span style={{ fontSize: 11, fontWeight: 800, color: primary }}>نسق</span>
-        <span style={{ fontSize: 11, color: "#aaa" }}>— نظام إدارة الأعمال</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <span style={{ fontSize: 9, color: "#cbd5e1" }}>مدعوم بـ</span>
+          <span style={{ fontSize: 10, fontWeight: 900, color: primary }}>نسق</span>
+        </div>
       </div>
     </div>
   );
@@ -131,44 +211,40 @@ function A4Card({ org, services, qrUrl }: { org: OrgData; services: ServiceItem[
 // ══ Business Card ══════════════════════════════════════════════
 function BusinessCard({ org, qrUrl }: { org: OrgData; qrUrl: string }) {
   const primary = org.primaryColor || "#5b9bd5";
+  const F: React.CSSProperties = { fontFamily: "'IBM Plex Sans Arabic', sans-serif" };
   return (
-    <div id="print-card" style={{ width: "85mm", height: "54mm", background: "#ffffff", fontFamily: "'IBM Plex Sans Arabic', sans-serif", direction: "rtl", display: "flex", alignItems: "center", gap: "10mm", padding: "6mm", boxSizing: "border-box", border: "1px solid #f0f0f0", borderRadius: 4, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "3mm", background: primary }} />
-      {/* QR */}
-      {qrUrl && <img src={qrUrl} alt="QR" style={{ width: "35mm", height: "35mm", borderRadius: 4, flexShrink: 0 }} />}
-      {/* Info */}
-      <div style={{ flex: 1 }}>
-        <h2 style={{ margin: 0, fontSize: 14, fontWeight: 900, color: "#1a1a1a", lineHeight: 1.3 }}>{org.name}</h2>
-        {org.city && <p style={{ margin: "3px 0", fontSize: 10, color: "#777" }}>{org.city}</p>}
-        {org.phone && <p style={{ margin: "4px 0", fontSize: 11, fontWeight: 700, color: primary, direction: "ltr" }}>{org.phone}</p>}
-        <div style={{ marginTop: 6, padding: "3px 8px", background: primary, borderRadius: 20, display: "inline-block" }}>
-          <span style={{ color: "#fff", fontSize: 10, fontWeight: 700 }}>احجز الآن</span>
+    <div id="print-card" style={{
+      ...F, width: "85mm", height: "54mm", direction: "rtl",
+      background: "#fff", boxSizing: "border-box",
+      display: "flex", overflow: "hidden", position: "relative",
+      border: "1px solid #e2e8f0",
+    }}>
+      {/* Left accent */}
+      <div style={{ width: "14mm", background: `linear-gradient(180deg, ${primary} 0%, ${primary}cc 100%)`, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        <span style={{ color: "#fff", fontWeight: 900, fontSize: 16, writingMode: "vertical-rl" }}>{org.name[0]}</span>
+      </div>
+      {/* Content */}
+      <div style={{ flex: 1, padding: "5mm 4mm", display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 13, fontWeight: 900, color: "#0f172a", lineHeight: 1.3 }}>{org.name}</h2>
+          {org.city && <p style={{ margin: "2px 0 0", fontSize: 9, color: "#64748b" }}>{org.city}</p>}
+          {org.phone && <p style={{ margin: "4px 0 0", fontSize: 10, fontWeight: 700, color: primary, direction: "ltr" }}>{org.phone}</p>}
         </div>
-        <p style={{ margin: "4px 0 0", fontSize: 8, color: "#aaa" }}>مدعوم بنسق</p>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <div style={{ background: primary, color: "#fff", fontSize: 9, fontWeight: 700, padding: "3px 8px", borderRadius: 4 }}>احجز الآن</div>
+          <span style={{ fontSize: 8, color: "#94a3b8" }}>نسق</span>
+        </div>
       </div>
-    </div>
-  );
-}
-
-// ══ Shelf Label ════════════════════════════════════════════════
-function ShelfLabel({ org, qrUrl }: { org: OrgData; qrUrl: string }) {
-  const primary = org.primaryColor || "#5b9bd5";
-  return (
-    <div id="print-label" style={{ width: "80mm", height: "50mm", background: "#ffffff", fontFamily: "'IBM Plex Sans Arabic', sans-serif", direction: "rtl", display: "flex", alignItems: "center", gap: "8mm", padding: "5mm", boxSizing: "border-box", border: "1px solid #eee", borderRadius: 4, position: "relative", overflow: "hidden" }}>
-      <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "2.5mm", background: primary }} />
       {/* QR */}
-      {qrUrl && <img src={qrUrl} alt="QR" style={{ width: "28mm", height: "28mm", borderRadius: 4, flexShrink: 0 }} />}
-      {/* Text */}
-      <div style={{ flex: 1 }}>
-        <p style={{ margin: 0, fontSize: 13, fontWeight: 900, color: "#1a1a1a", lineHeight: 1.4 }}>{org.name}</p>
-        <p style={{ margin: "4px 0 0", fontSize: 10, color: primary, fontWeight: 700 }}>امسح للحجز</p>
-        <p style={{ margin: "8px 0 0", fontSize: 8, color: "#aaa" }}>مدعوم بنسق</p>
+      <div style={{ width: "20mm", padding: "3mm", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 2, borderRight: "1px solid #f1f5f9" }}>
+        {qrUrl && <img src={qrUrl} alt="QR" style={{ width: "15mm", height: "15mm" }} />}
+        <span style={{ fontSize: 7, color: "#94a3b8", textAlign: "center" }}>امسح</span>
       </div>
     </div>
   );
 }
 
-// ══ Main Page ═════════════════════════════════════════════════
+// ══ Main Page ══════════════════════════════════════════════════
 export function PublicPrintPage() {
   const { orgSlug } = useParams<{ orgSlug: string }>();
   const [data, setData] = useState<SiteData | null>(null);
@@ -176,10 +252,9 @@ export function PublicPrintPage() {
   const [exporting, setExporting] = useState(false);
   const slug = orgSlug || "";
 
-  const primary = data?.org.primaryColor || "#5b9bd5";
-  const qrLarge  = useQR(slug, 480, primary);
-  const qrMedium = useQR(slug, 280, primary);
-  const qrSmall  = useQR(slug, 224, primary);
+  const publicUrl = `https://nasaqpro.tech/s/${slug}`;
+  const qrA4   = useQR(publicUrl, 400);
+  const qrCard = useQR(publicUrl, 200);
 
   useEffect(() => {
     if (!slug) { setLoading(false); return; }
@@ -189,98 +264,102 @@ export function PublicPrintPage() {
       .finally(() => setLoading(false));
   }, [slug]);
 
-  const handlePrint = () => window.print();
-
-  const handleExportPDF = async () => {
-    setExporting(true);
-    try { await exportToPDF(slug); } finally { setExporting(false); }
-  };
-
-  const handleExportPNG = async (elementId: string, name: string) => {
-    setExporting(true);
-    try { await exportToPNG(elementId, `nasaq-${slug}-${name}.png`); } finally { setExporting(false); }
-  };
-
   if (loading) return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
-      <div style={{ width: 32, height: 32, border: "3px solid #5b9bd5", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
+      <div style={{ width: 28, height: 28, border: "3px solid #5b9bd5", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.7s linear infinite" }} />
+      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 
   if (!data) return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", gap: 12, fontFamily: "'IBM Plex Sans Arabic', sans-serif", direction: "rtl" }}>
-      <p style={{ fontSize: 16, color: "#666" }}>المنشأة غير موجودة</p>
-      <Link to="/" style={{ color: "#5b9bd5", fontSize: 14 }}>العودة للرئيسية</Link>
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: "100vh", gap: 10, fontFamily: "'IBM Plex Sans Arabic', sans-serif", direction: "rtl" }}>
+      <p style={{ color: "#64748b" }}>المنشأة غير موجودة</p>
+      <Link to="/" style={{ color: "#5b9bd5", fontSize: 13 }}>العودة</Link>
     </div>
   );
+
+  const primary = data.org.primaryColor || "#5b9bd5";
 
   return (
     <>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;900&display=swap');
         @keyframes spin { to { transform: rotate(360deg); } }
-        body { margin: 0; background: #f5f5f5; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: #f1f5f9; font-family: 'IBM Plex Sans Arabic', sans-serif; }
         @media print {
           .no-print { display: none !important; }
           body { background: #fff !important; }
-          .print-page { page-break-after: always; break-after: page; }
+          #print-a4 { box-shadow: none !important; }
         }
       `}</style>
 
-      {/* Action bar — hidden on print */}
-      <div className="no-print" style={{ position: "sticky", top: 0, zIndex: 100, background: "#1a1a2e", padding: "12px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, fontFamily: "'IBM Plex Sans Arabic', sans-serif", direction: "rtl" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <span style={{ color: "#fff", fontWeight: 700, fontSize: 15 }}>{data.org.name}</span>
-          <span style={{ color: "#aaa", fontSize: 13 }}>— المطبوعات</span>
+      {/* ── Action bar ── */}
+      <div className="no-print" style={{
+        position: "sticky", top: 0, zIndex: 100,
+        background: "#0f172a", padding: "10px 20px",
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        fontFamily: "'IBM Plex Sans Arabic', sans-serif", direction: "rtl",
+        borderBottom: `3px solid ${primary}`,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: primary }} />
+          <span style={{ color: "#fff", fontWeight: 700, fontSize: 14 }}>{data.org.name}</span>
+          <span style={{ color: "#475569", fontSize: 12 }}>— صفحة المطبوعات</span>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => handleExportPNG("print-a4", "a4")} disabled={exporting} style={{ padding: "8px 14px", background: "#374151", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>
-            A4 PNG
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button
+            onClick={async () => { setExporting(true); try { await exportToPNG("print-a4", `${slug}-a4.png`); } finally { setExporting(false); } }}
+            disabled={exporting}
+            style={{ padding: "7px 14px", background: "#1e293b", color: "#94a3b8", border: "1px solid #334155", borderRadius: 8, cursor: "pointer", fontSize: 12, fontFamily: "inherit" }}
+          >
+            PNG
           </button>
-          <button onClick={() => handleExportPNG("print-card", "card")} disabled={exporting} style={{ padding: "8px 14px", background: "#374151", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>
-            بطاقة PNG
+          <button
+            onClick={async () => { setExporting(true); try { await exportAllPDF(slug); } finally { setExporting(false); } }}
+            disabled={exporting}
+            style={{ padding: "7px 16px", background: primary, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+          >
+            {exporting ? "جاري..." : "تحميل PDF"}
           </button>
-          <button onClick={() => handleExportPNG("print-label", "label")} disabled={exporting} style={{ padding: "8px 14px", background: "#374151", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13, fontFamily: "inherit" }}>
-            ملصق PNG
-          </button>
-          <button onClick={handleExportPDF} disabled={exporting} style={{ padding: "8px 16px", background: primary, color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
-            {exporting ? "جاري التصدير..." : "تحميل PDF"}
-          </button>
-          <button onClick={handlePrint} style={{ padding: "8px 16px", background: "#059669", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 700, fontFamily: "inherit" }}>
+          <button
+            onClick={() => window.print()}
+            style={{ padding: "7px 16px", background: "#059669", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontSize: 12, fontWeight: 700, fontFamily: "inherit" }}
+          >
             طباعة
           </button>
         </div>
       </div>
 
-      {/* Print Preview Container */}
-      <div style={{ padding: "32px 24px", display: "flex", flexDirection: "column", alignItems: "center", gap: 48, fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+      {/* ── Preview area ── */}
+      <div style={{ padding: "32px 20px", display: "flex", flexDirection: "column", alignItems: "center", gap: 40 }}>
 
-        {/* A4 Card */}
-        <div className="print-page no-print-border" style={{ textAlign: "center" }}>
-          <p className="no-print" style={{ fontSize: 13, color: "#888", marginBottom: 12, fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>A4 Card — 210×297mm</p>
-          <div style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.12)", display: "inline-block" }}>
-            <A4Card org={data.org} services={data.services} qrUrl={qrLarge} />
-          </div>
+        {/* Label */}
+        <p className="no-print" style={{ fontSize: 11, color: "#94a3b8", margin: 0, letterSpacing: "0.05em", textTransform: "uppercase", fontFamily: "inherit" }}>
+          A4 — 210 × 297 mm
+        </p>
+
+        {/* A4 */}
+        <div style={{ boxShadow: "0 8px 40px rgba(0,0,0,0.15)", borderRadius: 4 }}>
+          <A4Page org={data.org} services={data.services} qrUrl={qrA4} />
         </div>
 
-        {/* Business Card */}
-        <div className="print-page" style={{ textAlign: "center" }}>
-          <p className="no-print" style={{ fontSize: 13, color: "#888", marginBottom: 12, fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>بطاقة العمل — 85×54mm</p>
-          <div style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.12)", display: "inline-block" }}>
-            <BusinessCard org={data.org} qrUrl={qrMedium} />
+        {/* Business card */}
+        <div className="no-print" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
+          <p style={{ fontSize: 11, color: "#94a3b8", margin: 0, letterSpacing: "0.05em" }}>بطاقة عمل — 85 × 54 mm</p>
+          <div style={{ boxShadow: "0 4px 20px rgba(0,0,0,0.12)", borderRadius: 4 }}>
+            <BusinessCard org={data.org} qrUrl={qrCard} />
           </div>
+          <button
+            onClick={async () => { setExporting(true); try { await exportToPNG("print-card", `${slug}-card.png`); } finally { setExporting(false); } }}
+            disabled={exporting}
+            style={{ padding: "6px 14px", background: "#1e293b", color: "#94a3b8", border: "1px solid #334155", borderRadius: 8, cursor: "pointer", fontSize: 11, fontFamily: "inherit" }}
+          >
+            تحميل البطاقة PNG
+          </button>
         </div>
 
-        {/* Shelf Label */}
-        <div className="print-page" style={{ textAlign: "center" }}>
-          <p className="no-print" style={{ fontSize: 13, color: "#888", marginBottom: 12, fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>ملصق الرف — 80×50mm</p>
-          <div style={{ boxShadow: "0 4px 24px rgba(0,0,0,0.12)", display: "inline-block" }}>
-            <ShelfLabel org={data.org} qrUrl={qrSmall} />
-          </div>
-        </div>
-
-        {/* Back link */}
-        <Link className="no-print" to={`/s/${slug}`} style={{ color: "#5b9bd5", fontSize: 14, fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
+        <Link className="no-print" to={`/s/${slug}`} style={{ color: "#475569", fontSize: 12, fontFamily: "inherit", textDecoration: "none", borderBottom: "1px solid #334155", paddingBottom: 2 }}>
           العودة لصفحة المنشأة
         </Link>
       </div>

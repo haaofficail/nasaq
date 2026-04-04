@@ -14,7 +14,7 @@
 import { Hono } from "hono";
 import { db } from "@nasaq/db/client";
 import { appointmentBookings } from "@nasaq/db/schema/canonical-bookings";
-import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { calcVat } from "../shared/vat";
 import { generateBookingNumber } from "../shared/booking-number";
 import type { AuthUser } from "../../middleware/auth";
@@ -61,13 +61,7 @@ appointmentEngine.post("/bookings", async (c) => {
     body.vatInclusive ?? true
   );
 
-  // Sequence: count existing bookings this year for this org
-  const year = new Date().getFullYear();
-  const countResult = await db.execute(
-    sql`SELECT COUNT(*)::text AS count FROM appointment_bookings WHERE org_id = ${orgId} AND EXTRACT(YEAR FROM created_at) = ${year}`
-  );
-  const count = (countResult.rows[0] as { count: string })?.count ?? "0";
-  const bookingNumber = generateBookingNumber("appointment", Number(count) + 1);
+  const bookingNumber = generateBookingNumber("appointment");
 
   const [booking] = await db
     .insert(appointmentBookings)

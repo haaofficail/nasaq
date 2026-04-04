@@ -55,3 +55,4 @@ export * from "./canonical-catalog";
 export * from "./work-orders";
 export * from "./loyalty";
 export * from "./hr";
+export * from "./billing";

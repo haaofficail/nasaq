@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, pgEnum, jsonb, uuid, index, uniqueIndex, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, boolean, pgEnum, jsonb, uuid, index, uniqueIndex, integer } from "drizzle-orm/pg-core";
 import { DEFAULT_VAT_RATE } from "../constants";
 
 // ============================================================
@@ -148,6 +148,12 @@ export const organizations = pgTable("organizations", {
   accountManagerId: uuid("account_manager_id"),  // FK to users.id (nasaq staff)
   favicon:       text("favicon"),               // Favicon URL (main)
   faviconFiles:  jsonb("favicon_files"),         // { ico, 16, 32, 180, 192, 512 }
+
+  // Billing & Plan
+  currentPlanCode: varchar("current_plan_code", { length: 20 }).default("free"),
+  planExpiresAt: timestamp("plan_expires_at", { withTimezone: true }),
+  isTrial: boolean("is_trial").default(true),
+  trialStartedAt: timestamp("trial_started_at", { withTimezone: true }).defaultNow(),
 
   // Metadata
   isActive: boolean("is_active").default(true).notNull(),

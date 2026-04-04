@@ -97,29 +97,29 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
+      { name: "الخدمات والمنتجات", href: "/dashboard/catalog",        icon: Layers,        requiredCapabilities: ["catalog"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental"] },
       { name: "الحجوزات",        href: "/dashboard/bookings",     icon: CalendarCheck, requiredCapabilities: ["bookings"] },
-      { name: "نقطة البيع",      href: "/dashboard/pos",          icon: ShoppingBag,   requiredCapabilities: ["pos"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental", "restaurant", "bakery", "catering"] },
+      { name: "الكاشير",          href: "/dashboard/pos",          icon: ShoppingBag,   requiredCapabilities: ["pos"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental", "restaurant", "bakery", "catering", "flower_shop"] },
       { name: "الطلبات",         href: "/dashboard/orders",       icon: Package,       requiredCapabilities: ["online_orders"] },
       { name: "أوامر العمل",     href: "/dashboard/work-orders",  icon: ClipboardCheck, requiredCapabilities: [], allowedBusinessTypes: ["workshop", "maintenance", "logistics", "construction", "laundry", "photography"] },
-      { name: "العملاء",         href: "/dashboard/customers",    icon: Users,         requiredCapabilities: [] },
+      { name: "العملاء",         href: "/dashboard/customers",    icon: Users,         requiredCapabilities: [], excludedBusinessTypes: ["flower_shop"] },
       { name: "العقود",          href: "/dashboard/contracts",    icon: FileSignature, requiredCapabilities: [], requiredPlan: "basic" },
     ],
   },
 
-  // ── الادارة ────────────────────────────────────────────────
+  // ── الإدارة ────────────────────────────────────────────────
   {
     id: "management",
-    label: "الادارة",
+    label: "الإدارة",
     requiredCapabilities: [],
     anyCapability: [],
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "الخدمات والمنتجات", href: "/dashboard/catalog",        icon: Layers,        requiredCapabilities: ["catalog"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental"] },
-      { name: "بطاقات الباركود",  href: "/dashboard/barcode-labels", icon: ScanBarcode,   requiredCapabilities: ["catalog"], allowedBusinessTypes: ["retail", "flower_shop"], requiredPlan: "pro" },
-      { name: "المخزون",          href: "/dashboard/inventory",      icon: Box,           requiredCapabilities: ["inventory"] },
+      { name: "بطاقات الباركود",  href: "/dashboard/barcode-labels", icon: ScanBarcode,   requiredCapabilities: [] },
+      { name: "المخزون",          href: "/dashboard/inventory",      icon: Box,           requiredCapabilities: ["inventory"], excludedBusinessTypes: ["flower_shop"] },
       { name: "الفريق",           href: "/dashboard/team",       icon: UsersRound,  requiredCapabilities: [] },
-      { name: "الموارد البشرية",  href: "/dashboard/hr",         icon: UserCog,     requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "الموظفين",         href: "/dashboard/hr",         icon: UserCog,     requiredCapabilities: [], requiredPlan: "basic" },
       { name: "المالية",          href: "/dashboard/finance",    icon: Wallet,      requiredCapabilities: [], requiredPlan: "basic" },
       { name: "المدفوعات الإلكترونية", href: "/dashboard/payments", icon: CreditCard, requiredCapabilities: [], requiredPlan: "basic" },
       { name: "التكاملات",        href: "/dashboard/integrations", icon: Plug,       requiredCapabilities: [], requiredPlan: "pro" },
@@ -135,8 +135,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "التقارير",          href: "/dashboard/reports",   icon: BarChart3,      requiredCapabilities: [], requiredPlan: "basic" },
-      { name: "الموقع والمتجر",    href: "/dashboard/website",   icon: Globe,          requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "التقارير",          href: "/dashboard/reports",   icon: BarChart3,      requiredCapabilities: [], requiredPlan: "basic", excludedBusinessTypes: ["flower_shop"] },
       { name: "التسويق",           href: "/dashboard/marketing", icon: Send,           requiredCapabilities: [], requiredPlan: "advanced" },
       { name: "التقييمات",         href: "/dashboard/reviews",              icon: Star,          requiredCapabilities: [], requiredPlan: "basic" },
       { name: "الشرائح المستهدفة",  href: "/dashboard/segments",             icon: Tag,           requiredCapabilities: [], requiredPlan: "advanced" },
@@ -172,9 +171,20 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: ["flower_shop"],
     allowedOperatingProfiles: [],
     items: [
-      { name: "مخزون الورد",   href: "/dashboard/flower-inventory",  icon: Flower2,       requiredCapabilities: ["floral"] },
-      { name: "بيانات الورد",  href: "/dashboard/flower-master",     icon: Layers,        requiredCapabilities: ["floral"] },
-      { name: "التنسيقات",     href: "/dashboard/arrangements",      icon: Package,       requiredCapabilities: ["floral"] },
+      { name: "الطلبات",            href: "/dashboard/flower-orders",    icon: Package,        requiredCapabilities: ["floral"] },
+      { name: "الكاشير",            href: "/dashboard/flower-pos",       icon: ScanBarcode,    requiredCapabilities: ["floral"] },
+      { name: "مخزون الورد",        href: "/dashboard/flower-inventory", icon: Box,            requiredCapabilities: ["floral"] },
+      { name: "التنسيقات والباقات", href: "/dashboard/arrangements",     icon: Flower2,        requiredCapabilities: ["floral"] },
+      { name: "العروض والتصريف",    href: "/dashboard/flower-disposal",  icon: TrendingDown,   requiredCapabilities: ["floral"] },
+      { name: "التوصيل",            href: "/dashboard/flower-delivery",  icon: Truck,          requiredCapabilities: ["floral"] },
+      { name: "الموردون",           href: "/dashboard/flower-suppliers", icon: Briefcase,      requiredCapabilities: ["floral"] },
+      { name: "بيانات الورد",       href: "/dashboard/flower-master",    icon: Layers,         requiredCapabilities: ["floral"] },
+      { name: "التقارير",           href: "/dashboard/flower-reports",   icon: BarChart3,      requiredCapabilities: ["floral"] },
+      { name: "التحليلات",          href: "/dashboard/flower-analytics", icon: TrendingUp,     requiredCapabilities: ["floral"] },
+      // ── الذكاء
+      { name: "المناسبات",          href: "/dashboard/flower-occasions", icon: Calendar,       requiredCapabilities: ["floral"] },
+      { name: "العملاء",            href: "/dashboard/flower-customers", icon: Users,          requiredCapabilities: ["floral"] },
+      { name: "هوامش الربح",        href: "/dashboard/flower-margins",   icon: DollarSign,     requiredCapabilities: ["floral"] },
     ],
   },
 
@@ -203,7 +213,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: ["hotel"],
     allowedOperatingProfiles: [],
     items: [
-      { name: "إدارة الفندق", href: "/dashboard/hotel", icon: Building, requiredCapabilities: ["hotel"] },
+      { name: "الفندق", href: "/dashboard/hotel", icon: Building, requiredCapabilities: ["hotel"] },
     ],
   },
 
@@ -240,7 +250,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
   // ── SPECIALTY: Property Management ───────────────────────
   {
     id: "specialty_property",
-    label: "إدارة العقارات",
+    label: "العقارات",
     requiredCapabilities: [],
     anyCapability: [],
     allowedBusinessTypes: ["real_estate"],
@@ -293,7 +303,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
   // ── SPECIALTY: School ─────────────────────────────────────
   {
     id: "specialty_school",
-    label: "إدارة المدرسة",
+    label: "المدرسة",
     requiredCapabilities: [],
     anyCapability: [],
     allowedBusinessTypes: ["school"],
@@ -337,7 +347,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
 // ============================================================
 
 export const BOTTOM_NAV: NavItemEntry[] = [
-  { name: "إدارة الباقة",  href: "/dashboard/subscription",       icon: CreditCard,    exact: true,  requiredCapabilities: [] },
+  { name: "الفوترة والخطة", href: "/dashboard/billing",            icon: CreditCard,    exact: true,  requiredCapabilities: [] },
   { name: "سجل الأحداث",  href: "/dashboard/settings/audit-log", icon: ClipboardList, exact: false, requiredCapabilities: [] },
   { name: "التذكيرات",    href: "/dashboard/reminders",          icon: Bell,          exact: false, requiredCapabilities: [] },
   { name: "الدليل الشامل", href: "/dashboard/guide",             icon: BookOpen,      exact: false, requiredCapabilities: [] },

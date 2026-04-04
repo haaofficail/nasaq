@@ -248,26 +248,24 @@ treasuryRouter.post("/receipt", async (c) => {
   const body = receiptSchema.parse(await c.req.json());
 
   const amount = parseFloat(body.amount);
-
-  // تحقق من وجود الصندوق
-  const [account] = await db
-    .select({ id: treasuryAccounts.id, currentBalance: treasuryAccounts.currentBalance })
-    .from(treasuryAccounts)
-    .where(and(eq(treasuryAccounts.id, body.treasuryAccountId), eq(treasuryAccounts.orgId, orgId)));
-
-  if (!account) return c.json({ error: "الصندوق غير موجود" }, 404);
-
-  const newBalance = parseFloat(account.currentBalance ?? "0") + amount;
   const voucherNumber = await generateVoucherNumber(orgId, "RV");
 
+  let notFound = false;
   const [transaction] = await db.transaction(async (tx) => {
-    // تحديث الرصيد
+    // قراءة الرصيد مع قفل FOR UPDATE داخل المعاملة — يمنع TOCTOU
+    const result = await tx.execute(
+      sql`SELECT id, current_balance FROM treasury_accounts WHERE id = ${body.treasuryAccountId} AND org_id = ${orgId} FOR UPDATE`
+    );
+    const account = result.rows[0] as { id: string; current_balance: string } | undefined;
+    if (!account) { notFound = true; return []; }
+
+    const newBalance = parseFloat(account.current_balance ?? "0") + amount;
+
     await tx
       .update(treasuryAccounts)
       .set({ currentBalance: String(newBalance), updatedAt: new Date() })
       .where(eq(treasuryAccounts.id, body.treasuryAccountId));
 
-    // إنشاء الحركة
     return tx
       .insert(treasuryTransactions)
       .values({
@@ -291,6 +289,7 @@ treasuryRouter.post("/receipt", async (c) => {
       .returning();
   });
 
+  if (notFound) return c.json({ error: "الصندوق غير موجود" }, 404);
   return c.json({ data: transaction, voucherNumber }, 201);
 });
 
@@ -309,27 +308,25 @@ treasuryRouter.post("/payment", async (c) => {
   const body = paymentSchema.parse(await c.req.json());
 
   const amount = parseFloat(body.amount);
-
-  const [account] = await db
-    .select({ id: treasuryAccounts.id, currentBalance: treasuryAccounts.currentBalance })
-    .from(treasuryAccounts)
-    .where(and(eq(treasuryAccounts.id, body.treasuryAccountId), eq(treasuryAccounts.orgId, orgId)));
-
-  if (!account) return c.json({ error: "الصندوق غير موجود" }, 404);
-
-  const currentBalance = parseFloat(account.currentBalance ?? "0");
-  if (currentBalance < amount) {
-    return c.json({
-      error: "رصيد الصندوق غير كافٍ",
-      currentBalance,
-      requested: amount,
-    }, 422);
-  }
-
-  const newBalance = currentBalance - amount;
   const voucherNumber = await generateVoucherNumber(orgId, "PV");
 
+  let notFound = false;
+  let insufficientBalance = false;
+  let currentBalance = 0;
+
   const [transaction] = await db.transaction(async (tx) => {
+    // قراءة الرصيد مع قفل FOR UPDATE داخل المعاملة — يمنع TOCTOU والسلبي
+    const result = await tx.execute(
+      sql`SELECT id, current_balance FROM treasury_accounts WHERE id = ${body.treasuryAccountId} AND org_id = ${orgId} FOR UPDATE`
+    );
+    const account = result.rows[0] as { id: string; current_balance: string } | undefined;
+    if (!account) { notFound = true; return []; }
+
+    currentBalance = parseFloat(account.current_balance ?? "0");
+    if (currentBalance < amount) { insufficientBalance = true; return []; }
+
+    const newBalance = currentBalance - amount;
+
     await tx
       .update(treasuryAccounts)
       .set({ currentBalance: String(newBalance), updatedAt: new Date() })
@@ -358,6 +355,8 @@ treasuryRouter.post("/payment", async (c) => {
       .returning();
   });
 
+  if (notFound) return c.json({ error: "الصندوق غير موجود" }, 404);
+  if (insufficientBalance) return c.json({ error: "رصيد الصندوق غير كافٍ", currentBalance, requested: amount }, 422);
   return c.json({ data: transaction, voucherNumber }, 201);
 });
 

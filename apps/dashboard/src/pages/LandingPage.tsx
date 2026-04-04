@@ -10,6 +10,7 @@ import {
   Wrench, FileText, Warehouse, Receipt, Briefcase, GraduationCap,
   ChevronDown, Key, PartyPopper, Wallet, BarChart2, Plug,
   ScanBarcode, Box, UsersRound, Send, MessageCircle,
+  Dumbbell, Sparkles, Activity, Download,
 } from "lucide-react";
 
 // ─── Products Mega Menu Data ───────────────────────────────────────────────────
@@ -63,6 +64,22 @@ const SPECIALIZATIONS = [
     modules: ["الأصول", "العقود", "المستودع", "الصيانة", "التفتيش"],
   },
   {
+    key: "fitness",
+    label: "لياقة بدنية",
+    icon: Dumbbell,
+    color: "text-red-600",
+    bg: "bg-red-50",
+    modules: ["اشتراكات الأعضاء", "الحصص والجداول", "المدربون", "قياسات الجسم"],
+  },
+  {
+    key: "catering",
+    label: "ضيافة وتموين",
+    icon: ChefHat,
+    color: "text-amber-600",
+    bg: "bg-amber-50",
+    modules: ["باقات الطعام", "طلبات المناسبات", "جداول التسليم", "فواتير التموين"],
+  },
+  {
     key: "events",
     label: "فعاليات",
     icon: PartyPopper,
@@ -77,6 +94,14 @@ const SPECIALIZATIONS = [
     color: "text-indigo-600",
     bg: "bg-indigo-50",
     modules: ["الحجوزات", "مكتبة الوسائط", "العملاء", "العقود"],
+  },
+  {
+    key: "decoration",
+    label: "ديكور وزخرفة",
+    icon: Sparkles,
+    color: "text-fuchsia-600",
+    bg: "bg-fuchsia-50",
+    modules: ["مشاريع التصميم", "عروض الأسعار", "جدولة التركيب", "متابعة العميل"],
   },
   {
     key: "school",
@@ -190,7 +215,7 @@ function ProductsDropdown({ scrolled }: { scrolled: boolean }) {
           </div>
 
           <div className="border-t border-gray-100 mt-4 pt-3 flex items-center justify-between">
-            <p className="text-xs text-gray-400">9 تخصصات — 40+ وحدة تشغيلية</p>
+            <p className="text-xs text-gray-400">15+ قطاع — 80+ قالب جاهز — 40+ وحدة</p>
             <Link
               to="/register"
               onClick={() => setOpen(false)}
@@ -372,6 +397,7 @@ function FooterLogo() {
 // ─── Main Component ───────────────────────────────────────────────────────────
 export function LandingPage() {
   const { ref: statsRef, inView: statsInView } = useInView(0.3);
+  const platform = usePlatformConfig();
 
   return (
     <div dir="rtl" className="min-h-screen bg-white font-sans overflow-x-hidden">
@@ -408,7 +434,7 @@ export function LandingPage() {
 
           <div className="animate-fade-in-up-delay-1 inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white/90 px-4 py-1.5 rounded-full text-sm font-medium mb-6 backdrop-blur-sm">
             <span className="w-2 h-2 rounded-full bg-[#10b981] pulse-dot" />
-            9 تخصصات — 40+ وحدة تشغيلية — نظام واحد متكامل
+            15+ قطاع — 80+ قالب جاهز — نظام واحد متكامل
           </div>
 
           <h1 className="animate-fade-in-up-delay-2 text-4xl md:text-6xl lg:text-7xl font-black text-white leading-tight mb-6 tracking-tight">
@@ -418,7 +444,7 @@ export function LandingPage() {
           </h1>
 
           <p className="animate-fade-in-up-delay-3 text-lg md:text-xl text-white/70 max-w-2xl mx-auto mb-10 leading-relaxed font-light">
-            صالون، ورد، فندق، مطعم، تأجير سيارات، تجزئة، تصوير — كل نشاط له نظامه المتخصص، ويعمل كلهم من منصة واحدة
+            صالون، ورد، فندق، مطعم، لياقة، ضيافة، تأجير سيارات، تجزئة، تصوير وأكثر — كل نشاط له نظامه المتخصص وداشبورده الخاص
           </p>
 
           <div className="animate-fade-in-delay-4 flex items-center justify-center gap-4 flex-wrap">
@@ -447,8 +473,8 @@ export function LandingPage() {
       <section className="py-20 bg-white border-b border-gray-100" ref={statsRef}>
         <div className="max-w-5xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-12">
-            <StatItem target={8}   suffix="+" label="تخصصات نشاط" start={statsInView} />
-            <StatItem target={40}  suffix="+" label="وحدة تشغيلية" start={statsInView} />
+            <StatItem target={15}  suffix="+" label="قطاع تشغيلي" start={statsInView} />
+            <StatItem target={80}  suffix="+" label="قالب خدمة جاهز" start={statsInView} />
             <StatItem target={50000} suffix="+" label="حجز مكتمل" start={statsInView} />
             <StatItem target={99}  suffix="%" label="استمرارية الخدمة" start={statsInView} />
           </div>
@@ -460,9 +486,9 @@ export function LandingPage() {
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-14">
             <p className="text-xs font-semibold text-[#5b9bd5] uppercase tracking-widest mb-3">التخصصات</p>
-            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">كل نشاط له نظامه</h2>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">كل نشاط له نظامه وداشبورده</h2>
             <p className="text-gray-500 max-w-xl mx-auto leading-relaxed">
-              نسق لا يقدم نظاماً عاماً — كل تخصص يحمل وحدات حصرية مصممة لطبيعة ذلك النشاط تحديداً
+              نسق لا يقدم نظاماً عاماً — كل تخصص يحمل وحدات حصرية وداشبورد مخصص مصمم لطبيعة ذلك النشاط تحديداً
             </p>
           </div>
 
@@ -531,6 +557,30 @@ export function LandingPage() {
                 name: "التصوير",
                 tagline: "استوديوهات ومصورون",
                 modules: ["جلسات تصوير مجدولة", "مشاريع ومراحل التسليم", "عقود وعروض أسعار", "معرض أعمال للعميل"],
+              },
+              {
+                icon: <Dumbbell size={20} />,
+                color: "bg-red-50 text-red-600 border-red-100",
+                badge: "bg-red-100 text-red-700",
+                name: "اللياقة البدنية",
+                tagline: "جيم، استوديو يوغا، ولياقة",
+                modules: ["اشتراكات الأعضاء", "الحصص والجداول", "المدربون الشخصيون", "قياسات جسم وتتبع"],
+              },
+              {
+                icon: <ChefHat size={20} />,
+                color: "bg-amber-50 text-amber-600 border-amber-100",
+                badge: "bg-amber-100 text-amber-700",
+                name: "الضيافة والتموين",
+                tagline: "مطابخ، تموين مناسبات",
+                modules: ["باقات الطعام الجاهزة", "طلبات المناسبات", "جداول التسليم", "فواتير التموين التلقائية"],
+              },
+              {
+                icon: <Sparkles size={20} />,
+                color: "bg-fuchsia-50 text-fuchsia-600 border-fuchsia-100",
+                badge: "bg-fuchsia-100 text-fuchsia-700",
+                name: "الديكور والزخرفة",
+                tagline: "شركات ديكور وتصميم داخلي",
+                modules: ["مشاريع التصميم", "عروض الأسعار التفصيلية", "جدولة التركيب", "متابعة مراحل التسليم"],
               },
               {
                 icon: <GraduationCap size={20} />,
@@ -627,12 +677,67 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* ── Section: Service Templates ───────────────────────────────────── */}
+      <section className="py-24 md:py-32 bg-white">
+        <div className="max-w-6xl mx-auto px-6">
+          <div className="text-center mb-14">
+            <p className="text-xs font-semibold text-[#5b9bd5] uppercase tracking-widest mb-3">القوالب الجاهزة</p>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">ابدأ بـ 80+ خدمة جاهزة من أول يوم</h2>
+            <p className="text-gray-500 max-w-xl mx-auto leading-relaxed">
+              عند إنشاء نشاطك، يعرض النظام خدمات مصممة مسبقاً لقطاعك — استوردها بنقرة واحدة وخصّصها كيف تشاء
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-10">
+            {[
+              { icon: Scissors,    name: "صالون وسبا",        count: 20, color: "bg-pink-50 text-pink-600" },
+              { icon: Dumbbell,    name: "لياقة بدنية",       count: 14, color: "bg-red-50 text-red-600" },
+              { icon: Utensils,    name: "مطعم وكافيه",       count: 16, color: "bg-orange-50 text-orange-600" },
+              { icon: ChefHat,     name: "ضيافة وتموين",      count: 12, color: "bg-amber-50 text-amber-600" },
+              { icon: Flower2,     name: "محل ورد",           count: 10, color: "bg-rose-50 text-rose-600" },
+              { icon: Building2,   name: "فندق وشقق",         count: 8,  color: "bg-blue-50 text-blue-600" },
+              { icon: Car,         name: "تأجير سيارات",      count: 7,  color: "bg-indigo-50 text-indigo-600" },
+              { icon: Camera,      name: "استوديو تصوير",     count: 10, color: "bg-purple-50 text-purple-600" },
+              { icon: ShoppingBag, name: "تجزئة ومحلات",      count: 8,  color: "bg-violet-50 text-violet-600" },
+              { icon: Sparkles,    name: "ديكور وزخرفة",      count: 9,  color: "bg-fuchsia-50 text-fuchsia-600" },
+              { icon: PartyPopper, name: "فعاليات ومناسبات",  count: 11, color: "bg-purple-50 text-purple-600" },
+              { icon: Layers,      name: "تأجير وعقود",       count: 7,  color: "bg-teal-50 text-teal-600" },
+            ].map((t) => (
+              <div key={t.name} className="bg-gray-50 rounded-2xl border border-gray-100 p-5 hover:shadow-md hover:-translate-y-0.5 transition-all text-center">
+                <div className={`w-10 h-10 rounded-xl ${t.color} flex items-center justify-center mx-auto mb-3`}>
+                  <t.icon size={20} />
+                </div>
+                <p className="text-sm font-bold text-gray-900 mb-1">{t.name}</p>
+                <p className="text-xs text-[#5b9bd5] font-semibold">{t.count}+ خدمة جاهزة</p>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-[#5b9bd5]/5 border border-[#5b9bd5]/20 rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-5">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-xl bg-[#5b9bd5] flex items-center justify-center shrink-0">
+                <Download size={20} className="text-white" />
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-gray-900 mb-1">استيراد ذكي بنقرة واحدة</h3>
+                <p className="text-sm text-gray-500 max-w-lg">
+                  عند تسجيل نشاطك يعرض النظام قوالب قطاعك — اختر التصنيفات التي تريدها وأضفها لقائمة خدماتك فوراً. يمكنك الاستيراد في أي وقت من قسم الخدمات أيضاً.
+                </p>
+              </div>
+            </div>
+            <Link to="/register" className="shrink-0 bg-[#5b9bd5] text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-[#4a8ac4] transition-colors whitespace-nowrap shadow-sm">
+              ابدأ مجاناً وجرّب القوالب
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── Section 4: Core Platform ──────────────────────────────────────── */}
       <section id="features" className="py-24 md:py-32 bg-white">
         <div className="max-w-6xl mx-auto px-6">
           <div className="text-center mb-14">
             <p className="text-xs font-semibold text-[#5b9bd5] uppercase tracking-widest mb-3">النواة المشتركة</p>
-            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">40+ وحدة تشغيلية شاملة</h2>
+            <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">40+ وحدة تشغيلية — مدمجة لكل المنشآت</h2>
             <p className="text-gray-500 max-w-xl mx-auto leading-relaxed">
               كل منشأة تحصل على هذه الوحدات مدمجة — لا إضافات مدفوعة، لا تكاملات معقدة
             </p>
@@ -656,6 +761,8 @@ export function LandingPage() {
               { icon: <CreditCard size={20} />,      title: "الفواتير والتحصيل",      desc: "إصدار فواتير احترافية، متابعة المديونيات، ورسائل تحصيل تلقائية",           color: "bg-green-50 text-green-600" },
               { icon: <Wrench size={20} />,          title: "الصيانة الدورية",        desc: "جدولة صيانة الأصول والمعدات، تنبيهات استحقاق، وسجل أعمال",                color: "bg-stone-50 text-stone-600" },
               { icon: <FileText size={20} />,        title: "سجل التدقيق",            desc: "تتبع كامل لكل عملية داخل النظام — من فعلها، متى، وماذا غيّر",               color: "bg-gray-50 text-gray-600" },
+              { icon: <Activity size={20} />,        title: "داشبورد مخصص لكل قطاع",  desc: "كل نشاط يحصل على داشبورد تنفيذي مخصص — KPIs وإجراءات وودجت مناسبة لقطاعه",  color: "bg-[#5b9bd5]/10 text-[#5b9bd5]" },
+              { icon: <Download size={20} />,        title: "قوالب الخدمات الجاهزة",  desc: "80+ خدمة جاهزة لكل قطاع — استوردها بنقرة عند الإعداد أو في أي وقت",          color: "bg-teal-50 text-teal-600" },
             ].map((feature) => (
               <div
                 key={feature.title}
@@ -678,141 +785,119 @@ export function LandingPage() {
           <div className="text-center mb-14">
             <p className="text-xs font-semibold text-[#5b9bd5] uppercase tracking-widest mb-3">التخصص العميق</p>
             <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">وحدات حصرية لكل قطاع</h2>
-            <p className="text-gray-500 max-w-xl mx-auto">لا قوالب عامة — كل قطاع له منطقه التشغيلي الخاص</p>
+            <p className="text-gray-500 max-w-xl mx-auto">كل قطاع له منطقه التشغيلي الخاص — وحدات لا تجدها في أي نظام عام</p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Restaurant */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg transition-all">
-              <div className="px-6 pt-6 pb-4 border-b border-gray-50">
-                <div className="flex items-center gap-3 mb-1">
-                  <div className="w-9 h-9 rounded-xl bg-orange-50 flex items-center justify-center">
-                    <Utensils size={18} className="text-orange-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">نظام المطعم والكافيه</p>
-                    <p className="text-xs text-gray-400">من المطبخ إلى الطاولة إلى التوصيل</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6 grid grid-cols-2 gap-3">
-                {[
+            {[
+              {
+                title: "نظام المطعم والكافيه", sub: "من المطبخ إلى الطاولة إلى التوصيل",
+                iconEl: <Utensils size={18} className="text-orange-600" />, bg: "bg-orange-50", textColor: "text-orange-600",
+                items: [
                   { icon: <ChefHat size={15} />, label: "نظام المطبخ KDS", sub: "طباعة أوامر وأولويات فورية" },
                   { icon: <Smartphone size={15} />, label: "الطلبات الإلكترونية", sub: "QR menu وأوردر إلكتروني" },
                   { icon: <Truck size={15} />, label: "إدارة التوصيل", sub: "سائقون، مسارات، وتتبع" },
                   { icon: <Globe size={15} />, label: "منيو رقمي", sub: "تحديث فوري لصفحة النشاط" },
-                ].map((item) => (
-                  <div key={item.label} className="flex gap-3 items-start">
-                    <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center shrink-0 mt-0.5 text-orange-600">
-                      {item.icon}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-800">{item.label}</p>
-                      <p className="text-[11px] text-gray-400">{item.sub}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Flower */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg transition-all">
-              <div className="px-6 pt-6 pb-4 border-b border-gray-50">
-                <div className="flex items-center gap-3 mb-1">
-                  <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
-                    <Flower2 size={18} className="text-emerald-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">نظام الورد والتنسيقات</p>
-                    <p className="text-xs text-gray-400">من الزهرة إلى الكوشة إلى التوصيل</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6 grid grid-cols-2 gap-3">
-                {[
+                ],
+              },
+              {
+                title: "نظام الورد والتنسيقات", sub: "من الزهرة إلى الكوشة إلى التوصيل",
+                iconEl: <Flower2 size={18} className="text-rose-600" />, bg: "bg-rose-50", textColor: "text-rose-600",
+                items: [
                   { icon: <Flower2 size={15} />, label: "محرر التنسيقات", sub: "بناء باقات بصرية وتسعير" },
                   { icon: <Calendar size={15} />, label: "حجوزات الكوشة", sub: "مناسبات وأعراس" },
                   { icon: <Bell size={15} />, label: "انتهاء الصلاحية", sub: "تنبيهات قبل 3 أيام" },
                   { icon: <Package size={15} />, label: "إدارة الأسهم", sub: "تتبع السيقان والأصناف" },
-                ].map((item) => (
-                  <div key={item.label} className="flex gap-3 items-start">
-                    <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center shrink-0 mt-0.5 text-emerald-600">
-                      {item.icon}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-800">{item.label}</p>
-                      <p className="text-[11px] text-gray-400">{item.sub}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Hotel */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg transition-all">
-              <div className="px-6 pt-6 pb-4 border-b border-gray-50">
-                <div className="flex items-center gap-3 mb-1">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
-                    <Building2 size={18} className="text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">نظام الفندق والشقق</p>
-                    <p className="text-xs text-gray-400">إدارة الإشغال والخدمات بدقة</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6 grid grid-cols-2 gap-3">
-                {[
+                ],
+              },
+              {
+                title: "نظام الصالون والسبا", sub: "حجوزات، طاقم، وعناية بالعميل",
+                iconEl: <Scissors size={18} className="text-pink-600" />, bg: "bg-pink-50", textColor: "text-pink-600",
+                items: [
+                  { icon: <Calendar size={15} />, label: "تقويم الموظفين الذكي", sub: "تعيين تلقائي بحسب الخبرة" },
+                  { icon: <Users size={15} />, label: "سجل عناية العميل", sub: "تاريخ الخدمات والتفضيلات" },
+                  { icon: <Home size={15} />, label: "خدمات منزلية", sub: "جدولة التنقل والعناوين" },
+                  { icon: <ClipboardList size={15} />, label: "الحضور والعمولات", sub: "دوام يومي وتوزيع العمولة" },
+                ],
+              },
+              {
+                title: "نظام الفندق والشقق", sub: "إدارة الإشغال والخدمات بدقة",
+                iconEl: <Building2 size={18} className="text-blue-600" />, bg: "bg-blue-50", textColor: "text-blue-600",
+                items: [
                   { icon: <Building2 size={15} />, label: "خريطة الغرف", sub: "إتاحة فورية وتصنيف" },
                   { icon: <ClipboardList size={15} />, label: "Check-in/out", sub: "استقبال رقمي سريع" },
                   { icon: <Bell size={15} />, label: "خدمات الغرف", sub: "طلبات وتتبع التسليم" },
                   { icon: <BarChart3 size={15} />, label: "تقارير الإشغال", sub: "RevPAR وإيرادات الغرفة" },
-                ].map((item) => (
-                  <div key={item.label} className="flex gap-3 items-start">
-                    <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center shrink-0 mt-0.5 text-blue-600">
-                      {item.icon}
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold text-gray-800">{item.label}</p>
-                      <p className="text-[11px] text-gray-400">{item.sub}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Car Rental */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg transition-all">
-              <div className="px-6 pt-6 pb-4 border-b border-gray-50">
-                <div className="flex items-center gap-3 mb-1">
-                  <div className="w-9 h-9 rounded-xl bg-indigo-50 flex items-center justify-center">
-                    <Car size={18} className="text-indigo-600" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-bold text-gray-900">نظام تأجير السيارات</p>
-                    <p className="text-xs text-gray-400">من العقد إلى التسليم إلى الصيانة</p>
-                  </div>
-                </div>
-              </div>
-              <div className="p-6 grid grid-cols-2 gap-3">
-                {[
+                ],
+              },
+              {
+                title: "نظام تأجير السيارات", sub: "من العقد إلى التسليم إلى الصيانة",
+                iconEl: <Car size={18} className="text-indigo-600" />, bg: "bg-indigo-50", textColor: "text-indigo-600",
+                items: [
                   { icon: <Car size={15} />, label: "إدارة الأسطول", sub: "سيارات، جاهزية، وحالة" },
                   { icon: <FileText size={15} />, label: "عقود التأجير", sub: "إنشاء ورقمنة العقود" },
                   { icon: <Wrench size={15} />, label: "جدولة الصيانة", sub: "تنبيه قبل الاستحقاق" },
                   { icon: <ClipboardList size={15} />, label: "التسليم والاستلام", sub: "تقارير حالة موثقة" },
-                ].map((item) => (
-                  <div key={item.label} className="flex gap-3 items-start">
-                    <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center shrink-0 mt-0.5 text-indigo-600">
-                      {item.icon}
+                ],
+              },
+              {
+                title: "نظام اللياقة البدنية", sub: "اشتراكات، حصص، ومدربون",
+                iconEl: <Dumbbell size={18} className="text-red-600" />, bg: "bg-red-50", textColor: "text-red-600",
+                items: [
+                  { icon: <Users size={15} />, label: "اشتراكات الأعضاء", sub: "باقات، تجديد، وتذكير" },
+                  { icon: <Calendar size={15} />, label: "الحصص والجداول", sub: "حصص جماعية ومتاحة" },
+                  { icon: <ClipboardList size={15} />, label: "المدربون الشخصيون", sub: "تعيين وتتبع الجلسات" },
+                  { icon: <BarChart3 size={15} />, label: "قياسات وتتبع", sub: "تقدم العضو مع الوقت" },
+                ],
+              },
+              {
+                title: "نظام الفعاليات والمناسبات", sub: "تخطيط، تنفيذ، وعقود",
+                iconEl: <PartyPopper size={18} className="text-purple-600" />, bg: "bg-purple-50", textColor: "text-purple-600",
+                items: [
+                  { icon: <ClipboardList size={15} />, label: "ملف الفعالية", sub: "التفاصيل، الموقع، والعقد" },
+                  { icon: <Package size={15} />, label: "باقات الفعالية", sub: "تسعير متعدد المستويات" },
+                  { icon: <Users size={15} />, label: "إدارة الضيوف", sub: "قوائم، تأكيدات، وDietry" },
+                  { icon: <Receipt size={15} />, label: "عروض الأسعار", sub: "PDF احترافي وتتبع الموافقات" },
+                ],
+              },
+              {
+                title: "نظام التجزئة ونقاط البيع", sub: "كاشير، مخزون، وتقارير مبيعات",
+                iconEl: <ShoppingBag size={18} className="text-violet-600" />, bg: "bg-violet-50", textColor: "text-violet-600",
+                items: [
+                  { icon: <Monitor size={15} />, label: "نقطة البيع POS", sub: "كاشير + باركود + طباعة فاتورة" },
+                  { icon: <Warehouse size={15} />, label: "المخزون المتعدد", sub: "مستودعات، حركة، وتنبيهات" },
+                  { icon: <Zap size={15} />, label: "عروض وخصومات", sub: "حملات موسمية وكوبونات" },
+                  { icon: <BarChart3 size={15} />, label: "تقارير المبيعات", sub: "تفصيلية بالمنتج والموظف" },
+                ],
+              },
+            ].map((sector) => (
+              <div key={sector.title} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-lg transition-all">
+                <div className="px-6 pt-6 pb-4 border-b border-gray-50">
+                  <div className="flex items-center gap-3 mb-1">
+                    <div className={`w-9 h-9 rounded-xl ${sector.bg} flex items-center justify-center`}>
+                      {sector.iconEl}
                     </div>
                     <div>
-                      <p className="text-xs font-semibold text-gray-800">{item.label}</p>
-                      <p className="text-[11px] text-gray-400">{item.sub}</p>
+                      <p className="text-sm font-bold text-gray-900">{sector.title}</p>
+                      <p className="text-xs text-gray-400">{sector.sub}</p>
                     </div>
                   </div>
-                ))}
+                </div>
+                <div className="p-6 grid grid-cols-2 gap-3">
+                  {sector.items.map((item) => (
+                    <div key={item.label} className="flex gap-3 items-start">
+                      <div className={`w-7 h-7 rounded-lg ${sector.bg} flex items-center justify-center shrink-0 mt-0.5 ${sector.textColor}`}>
+                        {item.icon}
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-gray-800">{item.label}</p>
+                        <p className="text-[11px] text-gray-400">{item.sub}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
@@ -831,7 +916,7 @@ export function LandingPage() {
 
             {[
               { step: "01", title: "سجّل حسابك", desc: "أنشئ حسابك في دقيقتين واختر نوع نشاطك. النظام يُهيئ الوحدات المناسبة تلقائياً." },
-              { step: "02", title: "خصّص نشاطك", desc: "أدخل خدماتك، أسعارك، وأوقات العمل. كل إعداد يتكيف مع نموذج تشغيلك." },
+              { step: "02", title: "استورد خدماتك", desc: "اختر من 80+ خدمة جاهزة لقطاعك، أضفها بنقرة، ثم عدّل الأسعار وأوقات العمل حسب نشاطك." },
               { step: "03", title: "استقبل الحجوزات", desc: "شارك رابط الحجز وابدأ استقبال العملاء فوراً مع إشعارات وتأكيدات تلقائية." },
             ].map((item, i) => (
               <div key={item.step} className="relative bg-white rounded-2xl border border-gray-100 shadow-sm p-7 text-center hover:shadow-md transition-all">
@@ -1046,7 +1131,7 @@ export function LandingPage() {
             سجّل الآن واختر تخصص نشاطك — النظام يُهيئ نفسه تلقائياً
           </p>
           <div className="flex flex-wrap justify-center gap-3 mb-10 text-white/40 text-sm">
-            {["صالون", "ورد", "مطعم", "فندق", "تأجير سيارات", "تجزئة", "تأجير", "تصوير", "مدرسة"].map((t) => (
+            {["صالون", "حلاقة", "سبا", "ورد", "مطعم", "كافيه", "فندق", "تأجير سيارات", "تجزئة", "تأجير", "لياقة", "تصوير", "ضيافة", "ديكور", "فعاليات", "مدرسة"].map((t) => (
               <span key={t} className="bg-white/5 border border-white/10 px-3 py-1 rounded-full">{t}</span>
             ))}
           </div>
@@ -1109,8 +1194,12 @@ export function LandingPage() {
             <div>
               <h4 className="text-white font-semibold mb-5 text-sm">تواصل</h4>
               <div className="space-y-3 text-sm">
-                <p><a href="mailto:info@nasaqpro.tech" className="hover:text-white transition-colors">info@nasaqpro.tech</a></p>
-                <p><a href="tel:+966522064321" className="hover:text-white transition-colors" dir="ltr">0522064321</a></p>
+                {platform.supportEmail && (
+                  <p><a href={`mailto:${platform.supportEmail}`} className="hover:text-white transition-colors">{platform.supportEmail}</a></p>
+                )}
+                {platform.supportPhone && (
+                  <p><a href={`tel:+966${platform.supportPhone.replace(/^0/, "")}`} className="hover:text-white transition-colors" dir="ltr">{platform.supportPhone}</a></p>
+                )}
                 <div className="mt-4">
                   <p className="text-xs text-gray-600 mb-2">نشرة بريدية</p>
                   <div className="flex gap-2">

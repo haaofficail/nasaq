@@ -542,9 +542,9 @@ function EmployeesTab() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: "موظف نشط",            value: stats.active ?? 0,          icon: UserCheck,  color: "bg-emerald-50 text-emerald-700" },
-          { label: "في إجازة",             value: stats.on_leave ?? 0,        icon: Clock,      color: "bg-amber-50 text-amber-700" },
-          { label: "سعوديون",              value: stats.saudi ?? 0,           icon: BadgeCheck, color: "bg-blue-50 text-blue-700" },
-          { label: "إجمالي كتلة الرواتب", value: SAR(stats.totalSalaries ?? 0), icon: DollarSign, color: "bg-purple-50 text-purple-700" },
+          { label: "في إجازة",             value: stats.onLeave ?? 0,         icon: Clock,      color: "bg-amber-50 text-amber-700" },
+          { label: "سعوديون",              value: stats.saudis ?? 0,          icon: BadgeCheck, color: "bg-blue-50 text-blue-700" },
+          { label: "إجمالي كتلة الرواتب", value: SAR(stats.totalBasicSalary ?? 0), icon: DollarSign, color: "bg-purple-50 text-purple-700" },
         ].map((k) => (
           <div key={k.label} className={clsx("rounded-2xl p-4 flex items-center gap-3", k.color.split(" ")[0])}>
             <k.icon className={clsx("w-5 h-5 shrink-0", k.color.split(" ")[1])} />

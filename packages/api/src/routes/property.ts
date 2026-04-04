@@ -31,6 +31,7 @@ import {
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { apiErr } from "../lib/errors";
+import { autoJournal } from "../lib/autoJournal";
 
 export const propertyRouter = new Hono();
 
@@ -226,11 +227,11 @@ propertyRouter.get("/dashboard", async (c) => {
         ), 0)::text AS revenue,
         COALESCE((
           SELECT SUM(amount) FROM property_expenses
-          WHERE org_id = $1 AND TO_CHAR(date, 'YYYY-MM') = TO_CHAR(gs, 'YYYY-MM')
+          WHERE org_id = $1 AND TO_CHAR(paid_at, 'YYYY-MM') = TO_CHAR(gs, 'YYYY-MM')
         ), 0)::text AS expenses,
         (
           COALESCE((SELECT SUM(paid_amount) FROM lease_invoices WHERE org_id = $1 AND TO_CHAR(period_start, 'YYYY-MM') = TO_CHAR(gs, 'YYYY-MM')), 0) -
-          COALESCE((SELECT SUM(amount) FROM property_expenses WHERE org_id = $1 AND TO_CHAR(date, 'YYYY-MM') = TO_CHAR(gs, 'YYYY-MM')), 0)
+          COALESCE((SELECT SUM(amount) FROM property_expenses WHERE org_id = $1 AND TO_CHAR(paid_at, 'YYYY-MM') = TO_CHAR(gs, 'YYYY-MM')), 0)
         )::text AS net
       FROM generate_series(
         date_trunc('month', NOW() - INTERVAL '5 months'),
@@ -245,7 +246,7 @@ propertyRouter.get("/dashboard", async (c) => {
       SELECT category, SUM(amount)::text AS total
       FROM property_expenses
       WHERE org_id = $1
-        AND date >= date_trunc('month', NOW() - INTERVAL '2 months')
+        AND paid_at >= date_trunc('month', NOW() - INTERVAL '2 months')
       GROUP BY category
       ORDER BY total DESC
       LIMIT 5
@@ -994,6 +995,13 @@ propertyRouter.post("/invoices/generate-for-contract/:id", async (c) => {
           status: "draft",
         } as any).returning();
         generated.push(inv);
+        // قيد محاسبي تلقائي — إصدار فاتورة إيجار
+        await autoJournal.invoiceIssued({
+          orgId,
+          invoiceId: inv.id,
+          invoiceNumber,
+          amount: Number(contract.rentAmount),
+        });
         seqNum++;
       }
       current.setMonth(current.getMonth() + 1);
@@ -1032,7 +1040,7 @@ propertyRouter.post("/invoices/generate", async (c) => {
       const invoiceNumber = `INV-${String(seqResult.rows[0].n).padStart(4, "0")}`;
       const dueDate = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      await db.insert(leaseInvoices).values({
+      const [newInv] = await db.insert(leaseInvoices).values({
         orgId,
         contractId: contract.id,
         invoiceNumber,
@@ -1044,7 +1052,14 @@ propertyRouter.post("/invoices/generate", async (c) => {
         totalAmount: contract.rentAmount,
         paidAmount: "0",
         status: "draft",
-      } as any);
+      } as any).returning();
+      // قيد محاسبي تلقائي — إصدار فاتورة إيجار
+      await autoJournal.invoiceIssued({
+        orgId,
+        invoiceId: newInv.id,
+        invoiceNumber,
+        amount: Number(contract.rentAmount),
+      });
       generatedCount++;
     }
     return c.json({ data: { generated: generatedCount, skipped: skippedCount } });
@@ -1108,6 +1123,15 @@ propertyRouter.patch("/invoices/:id/pay", async (c) => {
       updatedAt: new Date(),
     }).where(eq(leaseInvoices.id, id)).returning();
 
+    // قيد محاسبي تلقائي — تحصيل فاتورة إيجار
+    await autoJournal.invoicePaid({
+      orgId,
+      invoiceId: id,
+      invoiceNumber: invoice.invoiceNumber,
+      amount: parseFloat(body.amount),
+      paymentMethod: body.method || "cash",
+    });
+
     return c.json({ data: { invoice: updatedInvoice, payment } });
   } catch (err) {
     if (err instanceof z.ZodError) return c.json({ error: "بيانات غير صحيحة", details: err.flatten() }, 400);
@@ -1165,6 +1189,17 @@ propertyRouter.post("/payments", async (c) => {
     const seqResult = await pool.query<{ n: string }>("SELECT nextval('property_payment_seq') AS n");
     const receiptNumber = `RCT-${String(seqResult.rows[0].n).padStart(4, "0")}`;
     const [payment] = await db.insert(leasePayments).values({ orgId, receiptNumber, ...body }).returning();
+
+    // قيد محاسبي تلقائي — استلام دفعة إيجار
+    await autoJournal.contractPaymentReceived({
+      orgId,
+      contractId: body.contractId || payment.contractId || "",
+      contractNumber: receiptNumber,
+      amount: Number(body.amount),
+      paymentMethod: body.method || "cash",
+      description: `دفعة إيجار - ${receiptNumber}`,
+    });
+
     return c.json({ data: payment }, 201);
   } catch (err) {
     console.error(err);
@@ -2176,6 +2211,17 @@ propertyRouter.post("/construction/:id/payments", async (c) => {
     const body = await c.req.json();
     const [{ n }] = await pool.query("SELECT nextval('property_construction_seq') AS n") as any;
     const [row] = await db.insert(constructionPayments).values({ ...body as any, constructionId: id, orgId, paymentNumber: Number(n) }).returning();
+
+    // قيد محاسبي تلقائي — دفعة إنشاء
+    await autoJournal.contractPaymentReceived({
+      orgId,
+      contractId: id,
+      contractNumber: `CON-${String(n).padStart(4, "0")}`,
+      amount: Number(body.amount),
+      paymentMethod: body.method || "cash",
+      description: `دفعة إنشاء #${n}`,
+    });
+
     return c.json({ data: row }, 201);
   } catch (e: any) { return c.json({ error: e.message }, 500); }
 });
@@ -2482,6 +2528,17 @@ propertyRouter.post("/payments/quick", async (c) => {
       const newStatus = newPaid >= Number(inv.totalAmount) ? "paid" : "partial";
       await db.update(leaseInvoices).set({ paidAmount: String(newPaid), status: newStatus as any, paidAt: newStatus === "paid" ? new Date() : undefined, updatedAt: new Date() }).where(eq(leaseInvoices.id, inv.id));
     }
+
+    // قيد محاسبي تلقائي — دفع سريع
+    await autoJournal.contractPaymentReceived({
+      orgId,
+      contractId,
+      contractNumber: receiptNumber,
+      amount: Number(amount),
+      paymentMethod: method || "cash",
+      description: `دفع سريع - ${receiptNumber}`,
+    });
+
     return c.json({ data: { payment, receiptNumber } }, 201);
   } catch (e: any) { return c.json({ error: e.message }, 500); }
 });

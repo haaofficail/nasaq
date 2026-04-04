@@ -13,7 +13,7 @@
 import { Hono } from "hono";
 import { db } from "@nasaq/db/client";
 import { eventBookings } from "@nasaq/db/schema/canonical-bookings";
-import { eq, and, gte, lte, desc, sql } from "drizzle-orm";
+import { eq, and, gte, lte, desc } from "drizzle-orm";
 import { calcVat } from "../shared/vat";
 import { generateBookingNumber } from "../shared/booking-number";
 import type { AuthUser } from "../../middleware/auth";
@@ -60,12 +60,7 @@ eventEngine.post("/bookings", async (c) => {
   const depositAmount = body.depositAmount ?? total * 0.3; // 30% default deposit
   const balanceDue    = total - Number(body.paidAmount ?? 0);
 
-  const year = new Date().getFullYear();
-  const countResult = await db.execute(
-    sql`SELECT COUNT(*)::text AS count FROM event_bookings WHERE org_id = ${orgId} AND EXTRACT(YEAR FROM created_at) = ${year}`
-  );
-  const count = (countResult.rows[0] as { count: string })?.count ?? "0";
-  const bookingNumber = generateBookingNumber("event", Number(count) + 1);
+  const bookingNumber = generateBookingNumber("event");
 
   const [booking] = await db
     .insert(eventBookings)

@@ -194,8 +194,8 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
           </div>
         </div>
 
-        {/* Booking link strip */}
-        {bookingLink && (
+        {/* Booking link strip — مخصص للمنشآت التي تعمل بالحجوزات */}
+        {bookingLink && context?.businessType !== "flower_shop" && (
           <div className="flex items-center gap-2 px-6 py-2.5 border-t border-gray-50 bg-gray-50/60">
             <a href={bookingLink} target="_blank" rel="noopener noreferrer">
               <ExternalLink className="w-3.5 h-3.5 text-brand-400 hover:text-brand-600 transition-colors shrink-0" />

@@ -315,15 +315,15 @@ paymentsRouter.post("/webhook", async (c) => {
   const body = await c.req.json().catch(() => null);
   if (!body?.id) return c.json({ error: "payload غير صالح" }, 400);
 
-  // التحقق من signature إذا كان webhook_secret مضبوطاً
+  // التحقق من signature — MOYASAR_WEBHOOK_SECRET إلزامي
   const secret = process.env.MOYASAR_WEBHOOK_SECRET;
-  if (secret) {
-    const rawBody   = JSON.stringify(body);
-    const signature = c.req.header("x-moyasar-signature") ?? "";
-    const { createHmac } = await import("crypto");
-    const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
-    if (signature !== expected) return c.json({ error: "توقيع غير صالح" }, 401);
-  }
+  if (!secret) return c.json({ error: "webhook غير مفعّل — MOYASAR_WEBHOOK_SECRET غير مضبوط" }, 503);
+
+  const rawBody   = JSON.stringify(body);
+  const signature = c.req.header("x-moyasar-signature") ?? "";
+  const { createHmac } = await import("crypto");
+  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
+  if (signature !== expected) return c.json({ error: "توقيع غير صالح" }, 401);
 
   try {
     const txId = body.metadata?.nasaq_tx_id ?? null;

@@ -40,7 +40,7 @@ export function FlowerOrdersWidget() {
           </div>
         </div>
         <Link
-          to="/dashboard/arrangements"
+          to="/dashboard/flower-orders"
           className="text-xs text-brand-500 hover:text-brand-600 flex items-center gap-1 font-medium"
         >
           عرض الكل
@@ -87,7 +87,7 @@ export function FlowerOrdersWidget() {
               return (
                 <Link
                   key={order.id ?? i}
-                  to="/dashboard/arrangements"
+                  to="/dashboard/flower-orders"
                   className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-gray-50 transition-colors"
                 >
                   <div className={clsx("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", sc.bg)}>

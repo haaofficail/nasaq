@@ -715,11 +715,59 @@ export const flowerBuilderApi = {
   // Page config (authenticated dashboard)
   pageConfig: () => api.get<{ data: any }>("/flower-builder/page-config"),
   updatePageConfig: (config: any) => api.put<{ data: any }>("/flower-builder/page-config", config),
+  // Delivery queue
+  delivery: (date?: string) => api.get<{ data: any[]; stats: any }>(`/flower-builder/delivery${date ? `?date=${date}` : ""}`),
+  assignDriver: (id: string, data: { driverName: string; driverPhone?: string }) => api.patch<{ data: any }>(`/flower-builder/orders/${id}/driver`, data),
+  assignStaff: (id: string, data: { staffId: string; staffName: string }) => api.patch<{ data: any }>(`/flower-builder/orders/${id}/assign-staff`, data),
   // Public (no auth — for customers)
   publicCatalog: (slug: string) => fetch(`/api/v1/flower-builder/public/${slug}`).then(r => r.json()),
   publicOrder: (slug: string, data: any) => fetch(`/api/v1/flower-builder/public/${slug}/order`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data),
   }).then(r => r.json()),
+};
+
+// --- Flower Disposal & Smart Engine ---
+export const flowerDisposalApi = {
+  rules: () => api.get<{ data: any[] }>("/flower-master/disposal/rules"),
+  createRule: (data: any) => api.post<{ data: any }>("/flower-master/disposal/rules", data),
+  updateRule: (id: string, data: any) => api.put<{ data: any }>(`/flower-master/disposal/rules/${id}`, data),
+  deleteRule: (id: string) => api.delete(`/flower-master/disposal/rules/${id}`),
+  apply: () => api.post<{ data: any }>("/flower-master/disposal/apply", {}),
+  todayBundle: () => api.get<{ data: any }>("/flower-master/today-bundle"),
+  publishBundle: (data: any) => api.post<{ data: any }>("/flower-master/today-bundle/publish", data),
+  freshnessBoard: () => api.get<{ data: any[] }>("/flower-master/freshness-board"),
+};
+
+// --- Flower Suppliers ---
+export const flowerSuppliersApi = {
+  list: () => api.get<{ data: any[] }>("/flower-suppliers"),
+  get: (id: string) => api.get<{ data: any }>(`/flower-suppliers/${id}`),
+  create: (data: any) => api.post<{ data: any }>("/flower-suppliers", data),
+  update: (id: string, data: any) => api.put<{ data: any }>(`/flower-suppliers/${id}`, data),
+  delete: (id: string) => api.delete(`/flower-suppliers/${id}`),
+  qualityRanking: () => api.get<{ data: any[] }>("/flower-suppliers/quality/ranking"),
+};
+
+// --- Flower Intelligence ---
+export const flowerIntelligenceApi = {
+  // تنبيهات الخسارة الاستباقية
+  lossAlerts: () => api.get<{ data: any[]; summary: any }>("/flower-master/loss-alerts"),
+  // مناسبات الورد
+  occasionsUpcoming: (days?: number) =>
+    api.get<{ data: any[] }>(`/flower-master/occasions/upcoming${days ? `?days=${days}` : ""}`),
+  occasions: () => api.get<{ data: any[]; systemOccasions: any[] }>("/flower-master/occasions"),
+  createOccasion: (data: any) => api.post<{ data: any }>("/flower-master/occasions", data),
+  updateOccasion: (id: string, data: any) => api.put<{ data: any }>(`/flower-master/occasions/${id}`, data),
+  deleteOccasion: (id: string) => api.delete(`/flower-master/occasions/${id}`),
+  // ذكاء العملاء
+  customersIntelligence: (limit?: number) =>
+    api.get<{ data: any[]; summary: any }>(`/flower-master/customers/intelligence${limit ? `?limit=${limit}` : ""}`),
+  customerOrders: (phone: string) =>
+    api.get<{ data: any[] }>(`/flower-master/customers/${encodeURIComponent(phone)}/orders`),
+  // هوامش الربح
+  margins: () => api.get<{ data: any[]; summary: any }>("/flower-master/margins"),
+  updatePackageBreakdown: (id: string, breakdown: any[]) =>
+    api.patch<{ success: boolean }>(`/flower-master/packages/${id}/breakdown`, { breakdown }),
 };
 
 // --- Menu (Restaurant) ---
@@ -879,6 +927,7 @@ export const messagingApi = {
   templates: () => api.get<{ data: Record<string, any[]>; total: number }>("/messaging/templates"),
   updateTemplate: (id: string, data: any) => api.put(`/messaging/templates/${id}`, data),
   resetTemplate: (eventType: string) => api.post(`/messaging/templates/reset/${eventType}`),
+  reseedTemplates: () => api.post<{ success: boolean; businessType: string; count: number }>("/messaging/templates/reseed"),
   settings: () => api.get<{ data: any }>("/messaging/settings"),
   updateSettings: (data: any) => api.put("/messaging/settings", data),
   logs: (params?: { status?: string; category?: string; date?: string; limit?: number; offset?: number }) => {
@@ -2609,4 +2658,13 @@ export const hrApi = {
   // ZKTeco
   zkDevices:          () => api.get<any>("/hr/zkteco/devices"),
   createZkDevice:     (d: any) => api.post<any>("/hr/zkteco/devices", d),
+};
+
+// ── Billing Pricing API (الباقات الجديدة) ─────────────────
+export const billingPricingApi = {
+  plans:          () => api.get<{ data: any[] }>("/billing/plans"),
+  planAddons:     () => api.get<{ data: any[] }>("/billing/plan-addons"),
+  resourceAddons: () => api.get<{ data: any[] }>("/billing/resource-addons"),
+  myPlan:         () => api.get<{ data: any }>("/billing/my-plan"),
+  usage:          () => api.get<{ data: { branches: number; employees: number } }>("/billing/usage"),
 };

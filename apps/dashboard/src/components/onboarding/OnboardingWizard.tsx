@@ -8,6 +8,29 @@ import { settingsApi, servicesApi } from "@/lib/api";
 import { type OnboardingStatus, dismissOnboarding } from "@/hooks/useOnboarding";
 import { SAUDI_CITIES, BUSINESS_TYPE_MAP } from "@/lib/constants";
 
+// ── قوالب الخدمات لكل نوع بيزنس ─────────────────────────────
+interface ServiceTemplate { name: string; price: number; }
+
+const SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
+  salon:        [{ name: "قص شعر", price: 60 }, { name: "صبغة شعر", price: 180 }, { name: "استشوار", price: 80 }, { name: "بروتين", price: 350 }, { name: "مكياج", price: 200 }],
+  barber:       [{ name: "قصة شعر", price: 40 }, { name: "حلاقة ذقن", price: 30 }, { name: "قصة شعر + ذقن", price: 60 }, { name: "تلوين", price: 120 }],
+  spa:          [{ name: "مساج كامل", price: 250 }, { name: "مساج ظهر", price: 150 }, { name: "جلسة سبا", price: 350 }, { name: "تقشير", price: 200 }],
+  fitness:      [{ name: "اشتراك شهري", price: 200 }, { name: "اشتراك ربع سنوي", price: 500 }, { name: "جلسة تدريب شخصي", price: 150 }],
+  cafe:         [{ name: "إسبريسو", price: 12 }, { name: "لاتيه", price: 18 }, { name: "كابتشينو", price: 18 }, { name: "V60", price: 22 }, { name: "موكا", price: 20 }],
+  restaurant:   [{ name: "برقر", price: 35 }, { name: "بيتزا", price: 45 }, { name: "سلطة", price: 20 }, { name: "وجبة دجاج", price: 40 }, { name: "عصير طازج", price: 15 }],
+  bakery:       [{ name: "خبز عيش", price: 5 }, { name: "كيكة تورتة", price: 120 }, { name: "كرواسون", price: 10 }, { name: "مافن", price: 8 }],
+  catering:     [{ name: "بوفيه إفطار (للشخص)", price: 45 }, { name: "بوفيه غداء (للشخص)", price: 65 }, { name: "طقم مشاوي", price: 250 }],
+  flower_shop:  [{ name: "باقة ورد أحمر", price: 80 }, { name: "باقة مختلطة", price: 100 }, { name: "تنسيق طاولة", price: 200 }, { name: "باقة هدية", price: 150 }],
+  rental:       [{ name: "خيمة صغيرة (يوم)", price: 300 }, { name: "خيمة كبيرة (يوم)", price: 600 }, { name: "كوشة ثابتة", price: 800 }, { name: "طاولة + 4 كراسي", price: 80 }],
+  photography:  [{ name: "جلسة تصوير ساعة", price: 300 }, { name: "جلسة منزلية", price: 500 }, { name: "تصوير مناسبة", price: 1200 }, { name: "تصوير منتجات", price: 400 }],
+  hotel:        [{ name: "غرفة مفردة (ليلة)", price: 250 }, { name: "غرفة مزدوجة (ليلة)", price: 350 }, { name: "جناح (ليلة)", price: 600 }],
+  car_rental:   [{ name: "سيارة صغيرة (يوم)", price: 150 }, { name: "سيارة متوسطة (يوم)", price: 200 }, { name: "SUV (يوم)", price: 300 }],
+  maintenance:  [{ name: "صيانة منزلية", price: 150 }, { name: "تركيب مكيف", price: 350 }, { name: "إصلاح سباكة", price: 200 }, { name: "كهرباء", price: 180 }],
+  workshop:     [{ name: "تغيير زيت", price: 80 }, { name: "فحص شامل", price: 150 }, { name: "تغيير إطارات", price: 200 }, { name: "غسيل سيارة", price: 40 }],
+  retail:       [{ name: "منتج رئيسي", price: 50 }, { name: "باقة", price: 120 }, { name: "بطاقة هدية", price: 100 }],
+  real_estate:  [{ name: "شقة مكتبية", price: 5000 }, { name: "محل تجاري", price: 8000 }, { name: "شقة سكنية", price: 3500 }],
+};
+
 // ============================================================
 // ONBOARDING WIZARD — مرشد الإعداد الأولي
 // يظهر داخل لوحة التحكم للمنشآت الجديدة التي لم تكمل الإعداد
@@ -42,8 +65,9 @@ export function OnboardingWizard({ status, onComplete }: Props) {
   const [branchName, setBranchName] = useState("");
   const [branchCity, setBranchCity] = useState("الرياض");
   const [existingMainBranchId, setExistingMainBranchId] = useState<string | null>(null);
-  const [svcName, setSvcName]       = useState("");
-  const [svcPrice, setSvcPrice]     = useState("");
+  const [svcName, setSvcName]             = useState("");
+  const [svcPrice, setSvcPrice]           = useState("");
+  const [selectedTemplates, setSelectedTemplates] = useState<Set<number>>(new Set());
   const [demoChoice, setDemoChoice] = useState<"yes" | "no" | null>(null);
   const [completedSteps, setCompletedSteps] = useState<Set<string>>(new Set());
 
@@ -78,9 +102,20 @@ export function OnboardingWizard({ status, onComplete }: Props) {
         markDone("branch");
       }
 
-      if (step.id === "service" && svcName.trim() && svcPrice) {
-        await servicesApi.create({ name: svcName.trim(), basePrice: parseFloat(svcPrice), status: "active" });
-        markDone("service");
+      if (step.id === "service") {
+        const templates = SERVICE_TEMPLATES[status.businessType] ?? [];
+        const creates: Promise<any>[] = [];
+        selectedTemplates.forEach(idx => {
+          const t = templates[idx];
+          if (t) creates.push(servicesApi.create({ name: t.name, basePrice: t.price, status: "active" }));
+        });
+        if (svcName.trim() && parseFloat(svcPrice) > 0) {
+          creates.push(servicesApi.create({ name: svcName.trim(), basePrice: parseFloat(svcPrice), status: "active" }));
+        }
+        if (creates.length > 0) {
+          await Promise.all(creates);
+          markDone("service");
+        }
       }
 
       if (step.id === "demo") {
@@ -122,7 +157,7 @@ export function OnboardingWizard({ status, onComplete }: Props) {
 
   const canAdvance = (() => {
     if (step.id === "branch")  return branchName.trim().length > 0;
-    if (step.id === "service") return svcName.trim().length > 0 && parseFloat(svcPrice) > 0;
+    if (step.id === "service") return true; // templates + manual both optional
     if (step.id === "demo")    return demoChoice !== null;
     return true;
   })();
@@ -210,35 +245,73 @@ export function OnboardingWizard({ status, onComplete }: Props) {
             </div>
           )}
 
-          {/* Step: service */}
-          {step.id === "service" && (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  اسم الخدمة <span className="text-red-400">*</span>
-                </label>
-                <input
-                  value={svcName}
-                  onChange={e => setSvcName(e.target.value)}
-                  placeholder="مثال: قصة شعر مع تفيف"
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500"
-                />
+          {/* Step: service — template picker */}
+          {step.id === "service" && (() => {
+            const templates = SERVICE_TEMPLATES[status.businessType] ?? [];
+            const toggleTemplate = (idx: number) => {
+              setSelectedTemplates(prev => {
+                const next = new Set(prev);
+                next.has(idx) ? next.delete(idx) : next.add(idx);
+                return next;
+              });
+            };
+            return (
+              <div className="space-y-4">
+                {templates.length > 0 && (
+                  <div>
+                    <p className="text-sm font-medium text-gray-700 mb-2">
+                      اختر من القوالب الجاهزة لـ {BUSINESS_TYPE_MAP[status.businessType] ?? status.businessType}:
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {templates.map((t, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => toggleTemplate(idx)}
+                          className={clsx(
+                            "flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm text-right transition-all",
+                            selectedTemplates.has(idx)
+                              ? "border-brand-500 bg-brand-50 text-brand-800"
+                              : "border-gray-200 hover:border-gray-300 text-gray-700"
+                          )}
+                        >
+                          <div className={clsx(
+                            "w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center",
+                            selectedTemplates.has(idx) ? "border-brand-500 bg-brand-500" : "border-gray-300"
+                          )}>
+                            {selectedTemplates.has(idx) && <Check className="w-2.5 h-2.5 text-white" />}
+                          </div>
+                          <div className="min-w-0 text-right">
+                            <p className="font-medium truncate">{t.name}</p>
+                            <p className="text-xs text-gray-400">{t.price} ر.س</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="border-t border-gray-100 pt-3">
+                  <p className="text-xs text-gray-400 mb-2">أو أضف خدمة يدوياً:</p>
+                  <div className="flex gap-2">
+                    <input
+                      value={svcName}
+                      onChange={e => setSvcName(e.target.value)}
+                      placeholder="اسم الخدمة"
+                      className="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      value={svcPrice}
+                      onChange={e => setSvcPrice(e.target.value)}
+                      placeholder="السعر"
+                      className="w-24 rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  السعر (ر.س) <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={svcPrice}
-                  onChange={e => setSvcPrice(e.target.value)}
-                  placeholder="مثال: 200"
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500"
-                />
-              </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Step: demo */}
           {step.id === "demo" && (

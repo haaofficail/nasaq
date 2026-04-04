@@ -1,7 +1,11 @@
 /**
  * Booking Number Generator — Centralized
- * Format: {PREFIX}-{YEAR}-{SEQUENCE}
- * Examples: APT-2026-0042, STY-2026-0001, TBL-2026-0007, EVT-2026-0003
+ * Format: {PREFIX}-{YEAR}-{RANDOM6}
+ * Examples: APT-2026-K3X9Q1, STY-2026-W7M2P4, TBL-2026-A5B8C2, EVT-2026-Z1N6R0
+ *
+ * Uses crypto.getRandomValues — collision-resistant (~2.17B combinations).
+ * Replaces the previous SELECT COUNT(*) + 1 approach which caused duplicate
+ * booking numbers under concurrent load.
  */
 
 const ENGINE_PREFIXES = {
@@ -15,30 +19,10 @@ const ENGINE_PREFIXES = {
 
 export type EngineType = keyof typeof ENGINE_PREFIXES;
 
-export function generateBookingNumber(engine: EngineType, sequence: number): string {
+export function generateBookingNumber(engine: EngineType): string {
   const year = new Date().getFullYear();
-  const seq  = String(sequence).padStart(4, "0");
-  return `${ENGINE_PREFIXES[engine]}-${year}-${seq}`;
-}
-
-/**
- * Get next sequence number for an org+engine from DB.
- * Usage in route:
- *   const seq = await getNextSequence(db, orgId, "appointment");
- *   const number = generateBookingNumber("appointment", seq);
- */
-export async function getNextSequence(
-  db: any,
-  orgId: string,
-  engine: EngineType
-): Promise<number> {
-  // Uses advisory lock to prevent race conditions
-  const result = await db.execute(`
-    SELECT COUNT(*) + 1 AS next_seq
-    FROM appointment_bookings
-    WHERE org_id = $1
-    AND EXTRACT(YEAR FROM created_at) = EXTRACT(YEAR FROM NOW())
-  `, [orgId]);
-  // Each engine queries its own table — overridden per engine module
-  return Number(result.rows[0]?.next_seq ?? 1);
+  const arr  = new Uint32Array(1);
+  crypto.getRandomValues(arr);
+  const random = arr[0].toString(36).padStart(6, "0").substring(0, 6).toUpperCase();
+  return `${ENGINE_PREFIXES[engine]}-${year}-${random}`;
 }

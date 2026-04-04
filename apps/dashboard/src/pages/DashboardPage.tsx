@@ -1,14 +1,81 @@
 import { useMemo } from "react";
 import { Link, Navigate } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, QrCode, Printer, ExternalLink, AlertTriangle, CalendarCheck, Users, Package } from "lucide-react";
+import { clsx } from "clsx";
 import { getProfile } from "@/lib/dashboardProfiles";
 import { ProfileDashboard } from "@/components/dashboard/ProfileDashboard";
 import { useOrgContext } from "@/hooks/useOrgContext";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useApi } from "@/hooks/useApi";
-import { bookingsApi, settingsApi } from "@/lib/api";
+import { bookingsApi, settingsApi, inventoryApi, servicesApi } from "@/lib/api";
 import { getDashboardPrimaryAction } from "@/lib/dashboardPrimaryAction";
+
+// ── SmartAlertsBanner ──────────────────────────────────────────────────────────
+// تنبيهات ذكية: مخزون منخفض، يوم مزدحم، لا خدمات
+function SmartAlertsBanner({ businessType }: { businessType: string }) {
+  const today = new Date().toISOString().split("T")[0];
+
+  const { data: todayRes }     = useApi(() => bookingsApi.list({ limit: "50", startDate: today, endDate: today }), []);
+  const { data: productsRes }  = useApi(() => inventoryApi.products(), []);
+  const { data: servicesRes }  = useApi(() => servicesApi.list({ limit: "1" }), []);
+
+  const todayCount   = (todayRes?.data ?? []).length as number;
+  const lowStock     = ((productsRes?.data ?? []) as any[]).filter(p => p.is_low_stock);
+  const hasServices  = ((servicesRes?.data ?? []) as any[]).length > 0;
+
+  const alerts: { icon: React.ElementType; msg: string; sub?: string; href?: string; color: string; iconColor: string }[] = [];
+
+  if (!hasServices) alerts.push({
+    icon: Package,
+    msg: "لم تضف أي خدمات بعد",
+    sub: "ابدأ بإضافة أول خدمة لتستقبل حجوزاتك",
+    href: "/dashboard/catalog",
+    color: "bg-brand-50 border-brand-100",
+    iconColor: "text-brand-500",
+  });
+
+  if (todayCount >= 5) alerts.push({
+    icon: CalendarCheck,
+    msg: `يومك مزدحم — ${todayCount} حجوزات اليوم`,
+    sub: "تأكد من جاهزية فريقك والمستلزمات",
+    href: "/dashboard/bookings",
+    color: "bg-amber-50 border-amber-100",
+    iconColor: "text-amber-500",
+  });
+
+  if (lowStock.length > 0) alerts.push({
+    icon: AlertTriangle,
+    msg: `${lowStock.length === 1 ? "مادة قاربت على النفاد" : `${lowStock.length} مواد قاربت على النفاد`}`,
+    sub: lowStock.slice(0, 2).map((p: any) => p.name).join("، ") + (lowStock.length > 2 ? " وأخرى..." : ""),
+    href: "/dashboard/inventory?tab=consumables",
+    color: "bg-red-50 border-red-100",
+    iconColor: "text-red-500",
+  });
+
+  if (alerts.length === 0) return null;
+
+  return (
+    <div className="space-y-2">
+      {alerts.map((a, i) => {
+        const Icon = a.icon;
+        const inner = (
+          <div className={clsx("flex items-center gap-3 px-4 py-3 rounded-2xl border text-sm", a.color)}>
+            <div className={clsx("shrink-0", a.iconColor)}><Icon className="w-4 h-4" /></div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-gray-900">{a.msg}</p>
+              {a.sub && <p className="text-xs text-gray-500 mt-0.5">{a.sub}</p>}
+            </div>
+            {a.href && <ArrowLeft className="w-4 h-4 text-gray-400 shrink-0" />}
+          </div>
+        );
+        return a.href
+          ? <Link key={i} to={a.href}>{inner}</Link>
+          : <div key={i}>{inner}</div>;
+      })}
+    </div>
+  );
+}
 
 // ── WelcomeView ────────────────────────────────────────────────────────────────
 // Shown to new orgs (≤7 days old AND no bookings yet)
@@ -16,9 +83,32 @@ function WelcomeView({ orgName, businessType }: { orgName: string; businessType:
   const action = getDashboardPrimaryAction(businessType);
   const Icon = action.icon;
 
-  const secondary = [
-    { label: "إضافة خدمة",  href: "/dashboard/services" },
-    { label: "إضافة موظف",  href: "/dashboard/team" },
+  const SECONDARY_BY_TYPE: Record<string, { label: string; href: string }[]> = {
+    flower_shop: [
+      { label: "إضافة باقة",    href: "/dashboard/arrangements" },
+      { label: "إضافة موظف",   href: "/dashboard/team" },
+      { label: "إعدادات المنشأة", href: "/dashboard/settings" },
+    ],
+    hotel: [
+      { label: "إضافة غرفة",   href: "/dashboard/hotel" },
+      { label: "إضافة موظف",   href: "/dashboard/team" },
+      { label: "إعدادات المنشأة", href: "/dashboard/settings" },
+    ],
+    car_rental: [
+      { label: "إضافة سيارة",  href: "/dashboard/car-rental" },
+      { label: "إضافة موظف",   href: "/dashboard/team" },
+      { label: "إعدادات المنشأة", href: "/dashboard/settings" },
+    ],
+    retail: [
+      { label: "إضافة منتج",   href: "/dashboard/catalog" },
+      { label: "إضافة موظف",   href: "/dashboard/team" },
+      { label: "إعدادات المنشأة", href: "/dashboard/settings" },
+    ],
+  };
+
+  const secondary = SECONDARY_BY_TYPE[businessType] ?? [
+    { label: "إضافة خدمة",      href: "/dashboard/services" },
+    { label: "إضافة موظف",      href: "/dashboard/team" },
     { label: "إعدادات المنشأة", href: "/dashboard/settings" },
   ];
 
@@ -181,10 +271,49 @@ export function DashboardPage() {
     orgId: user.orgId || context?.orgId,
   };
 
+  const orgSlug: string = profileRes?.data?.slug ?? "";
+
   return (
     <div className="space-y-4">
-      {/* Sticky CTA header for all active orgs */}
-      <ActiveDashboardHeader orgName={orgName} businessType={businessType} />
+      {/* CTA header — محل الورد لا يحتاجه (ProfileDashboard يعرض header أقوى) */}
+      {businessType !== "flower_shop" && (
+        <ActiveDashboardHeader orgName={orgName} businessType={businessType} />
+      )}
+
+      {/* Public page quick access — للمنشآت التي لديها صفحة حجز عامة فقط */}
+      {orgSlug && businessType !== "flower_shop" && (
+        <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl px-5 py-3.5">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
+              <QrCode className="w-4 h-4 text-brand-500" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-gray-900">صفحتك العامة</p>
+              <p className="text-xs text-gray-400 font-mono">nasaqpro.tech/s/{orgSlug}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <a
+              href={`/s/${orgSlug}/print`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 transition-colors"
+            >
+              <Printer className="w-3.5 h-3.5" /> طباعة QR
+            </a>
+            <a
+              href={`/s/${orgSlug}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-500 text-white text-xs hover:bg-brand-600 transition-colors"
+            >
+              <ExternalLink className="w-3.5 h-3.5" /> عرض
+            </a>
+          </div>
+        </div>
+      )}
+
+      {businessType !== "flower_shop" && <SmartAlertsBanner businessType={businessType} />}
 
       <ProfileDashboard profile={profile} user={enrichedUser} context={context ?? undefined} />
 

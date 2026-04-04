@@ -37,6 +37,33 @@ const SERVICE_TYPES: { value: string; label: string; icon: React.ElementType }[]
 const NEEDS_TIMING   = new Set(["appointment","execution","field_service","rental","event_rental","project","food_order"]);
 const NEEDS_CAPACITY = new Set(["event_rental","package","food_order","rental"]);
 
+// ── نوع الخدمة الافتراضي حسب نوع البيزنس ──────────────────────────────────
+const BUSINESS_DEFAULT_SERVICE_TYPE: Record<string, string> = {
+  salon:          "appointment",
+  barber:         "appointment",
+  spa:            "appointment",
+  fitness:        "appointment",
+  massage:        "appointment",
+  photography:    "appointment",
+  cafe:           "food_order",
+  restaurant:     "food_order",
+  bakery:         "food_order",
+  catering:       "food_order",
+  rental:         "rental",
+  car_rental:     "rental",
+  hotel:          "rental",
+  real_estate:    "rental",
+  events:         "event_rental",
+  event_organizer:"event_rental",
+  workshop:       "execution",
+  maintenance:    "execution",
+  logistics:      "field_service",
+  construction:   "project",
+  retail:         "product",
+  flower_shop:    "product",
+  school:         "product",
+};
+
 type TypeConfig = {
   hint: string;
   durationLabel: string;
@@ -306,6 +333,19 @@ export function ServiceFormPage() {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.serviceType, isEdit]);
+
+  // Auto-select service type based on business type (create mode, no type from URL)
+  useEffect(() => {
+    if (!isEdit && !typeFromUrl) {
+      try {
+        const user = JSON.parse(localStorage.getItem("nasaq_user") || "{}");
+        const bt: string = user?.businessType ?? "";
+        const defaultType = BUSINESS_DEFAULT_SERVICE_TYPE[bt];
+        if (defaultType) setForm(f => ({ ...f, serviceType: defaultType }));
+      } catch {}
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -679,7 +719,7 @@ export function ServiceFormPage() {
               </div>
             )}
 
-            {/* Card: Service info */}
+            {/* Card: Service info — Level 1 (always visible) */}
             <FormSection title="المعلومات الأساسية" icon={FileText}>
               <div className="space-y-3">
                 {selType && (isEdit || typeAlreadyPicked) && (
@@ -705,6 +745,12 @@ export function ServiceFormPage() {
                     className={clsx(iCls, errors.name && "border-red-300")} />
                   <Err msg={errors.name} />
                 </div>
+              </div>
+            </FormSection>
+
+            {/* Card: Service info — Level 2 (collapsed by default) */}
+            <FormSection title="تفاصيل إضافية" icon={FileText} defaultOpen={isEdit}>
+              <div className="space-y-3">
                 <div>
                   <label className="text-xs font-medium text-gray-700 block mb-1.5">الاسم بالإنجليزية <span className="text-gray-400 font-normal text-[11px]">(اختياري)</span></label>
                   <input value={form.nameEn} onChange={upd("nameEn")} dir="ltr"

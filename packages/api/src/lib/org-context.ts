@@ -1,6 +1,6 @@
 import { eq, or, and, isNull } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { organizations, organizationCapabilityOverrides, businessVocabulary } from "@nasaq/db/schema";
+import { organizations, organizationCapabilityOverrides, businessVocabulary, planCapabilities } from "@nasaq/db/schema";
 import { getBusinessDefaults } from "./helpers";
 
 // ============================================================
@@ -50,20 +50,27 @@ export async function resolveOrgContext(orgId: string): Promise<OrgContext | nul
   const businessType = org.businessType ?? "general";
   const operatingProfile = org.operatingProfile ?? "general";
 
-  // 2. Decision chain: businessType → operatingProfile → org stored caps → overrides
+  // 2. Decision chain: businessType → plan → operatingProfile → org stored caps → overrides
   //    Step 1: derive default capabilities from businessType
   const typeDefaults = getBusinessDefaults(businessType);
   const defaultCaps = new Set<string>(typeDefaults.enabledCapabilities);
 
-  //    Step 2: apply operatingProfile additions on top of businessType defaults
+  //    Step 2: plan capabilities (authoritative — from plan_capabilities table)
+  const planCaps = await db
+    .select({ capabilityKey: planCapabilities.capabilityKey })
+    .from(planCapabilities)
+    .where(and(eq(planCapabilities.planCode, org.plan ?? "basic"), eq(planCapabilities.enabled, true)));
+  for (const cap of planCaps) defaultCaps.add(cap.capabilityKey);
+
+  //    Step 3: apply operatingProfile additions on top of businessType + plan defaults
   const profileAdditions = getProfileCapabilityAdditions(businessType, operatingProfile);
   for (const cap of profileAdditions) defaultCaps.add(cap);
 
-  //    Step 3: merge with org-stored enabledCapabilities (respects manual additions)
+  //    Step 4: merge with org-stored enabledCapabilities (backward compat cache — still honored)
   const storedCaps = (org.enabledCapabilities as string[]) ?? [];
   for (const cap of storedCaps) defaultCaps.add(cap);
 
-  //    Step 4: apply organization_capability_overrides (force-on / force-off)
+  //    Step 5: apply organization_capability_overrides (force-on / force-off)
   const overrides = await db
     .select({ capabilityKey: organizationCapabilityOverrides.capabilityKey, enabled: organizationCapabilityOverrides.enabled })
     .from(organizationCapabilityOverrides)

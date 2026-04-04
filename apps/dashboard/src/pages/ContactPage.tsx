@@ -2,8 +2,10 @@ import { useState } from "react";
 import React from "react";
 import { Mail, MessageCircle, Clock, MapPin, MessageSquare, CheckCircle } from "lucide-react";
 import { PublicLayout } from "../components/public/PublicLayout";
+import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 
 export function ContactPage() {
+  const platform = usePlatformConfig();
   const [form, setForm] = useState({ name: "", phone: "", email: "", message: "" });
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -47,8 +49,8 @@ export function ContactPage() {
               <h2 className="text-2xl font-black text-gray-900 mb-8">معلومات التواصل</h2>
               <div className="space-y-6">
                 {[
-                  { Icon: Mail,          title: "البريد الإلكتروني", val: "support@nasaq.sa" },
-                  { Icon: MessageCircle, title: "الواتساب",          val: "+966 5X XXX XXXX" },
+                  { Icon: Mail,          title: "البريد الإلكتروني", val: platform.supportEmail ?? "info@nasaqpro.tech" },
+                  { Icon: MessageCircle, title: "الواتساب",          val: platform.supportPhone ?? "0532064321" },
                   { Icon: Clock,         title: "أوقات العمل",       val: "الأحد - الخميس، 9 ص - 6 م" },
                   { Icon: MapPin,        title: "الموقع",            val: "الرياض، المملكة العربية السعودية" },
                 ].map((item) => (
@@ -70,7 +72,7 @@ export function ContactPage() {
                   يسعدنا تقديم عرض مباشر لإظهار كيف يمكن لنسق مساعدة عملك.
                 </p>
                 <a
-                  href="https://wa.me/9665XXXXXXXX"
+                  href={`https://wa.me/966${(platform.supportPhone ?? "0532064321").replace(/^0/, "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-green-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-green-600 transition-colors"

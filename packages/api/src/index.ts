@@ -50,6 +50,7 @@ import { hotelRouter } from "./routes/hotel";
 import { carRentalRouter } from "./routes/car-rental";
 import { integrationsRouter } from "./routes/integrations";
 import { flowerMasterRouter } from "./routes/flower-master";
+import { flowerSuppliersRouter } from "./routes/flower-suppliers";
 import { treasuryRouter } from "./routes/treasury";
 import { accountingRouter } from "./routes/accounting";
 import { reconciliationRouter } from "./routes/reconciliation";
@@ -109,24 +110,25 @@ app.use("*", bodyLimit({
   onError: (c) => c.json({ error: "حجم الطلب كبير جداً (الحد الأقصى 10MB)", code: "PAYLOAD_TOO_LARGE" }, 413),
 }));
 
-// Auth rate limiter — 300 طلب/دقيقة لكل token مصادق
-// يحمي من scraping وbrute force على الـ authenticated endpoints
-// يستخدم authRlCache من cache.ts — يدعم Redis عند تفعيله
-const AUTH_RL_LIMIT = 300;
+// Auth rate limiter — 1200 طلب/دقيقة لكل token مصادق (fixed window)
+// يحمي من scraping وbrute force — نافذة ثابتة لا تُمدَّد بكل طلب
+const AUTH_RL_LIMIT = 1200;
 const AUTH_RL_WINDOW = 60_000;
 
 app.use("*", async (c, next) => {
   const token = c.req.header("Authorization")?.substring(7);
   if (!token) return next();
   const rlKey = `rl:${token}`;
-  const current = await authRlCache.get<number>(rlKey);
-  if (current === null) {
-    await authRlCache.set(rlKey, 1, AUTH_RL_WINDOW);
-  } else if (current >= AUTH_RL_LIMIT) {
+  const entry = await authRlCache.get<{ count: number; resetAt: number }>(rlKey);
+  const now = Date.now();
+  if (entry === null || now >= entry.resetAt) {
+    // نافذة جديدة — لا تُمدَّد بكل طلب بل تنتهي في وقت ثابت
+    await authRlCache.set(rlKey, { count: 1, resetAt: now + AUTH_RL_WINDOW }, AUTH_RL_WINDOW + 5_000);
+  } else if (entry.count >= AUTH_RL_LIMIT) {
     return c.json({ error: "تجاوزت الحد المسموح من الطلبات، حاول بعد دقيقة", code: "RATE_LIMIT_EXCEEDED" }, 429);
   } else {
-    // increment — set with same TTL window (conservative: resets window on each req)
-    await authRlCache.set(rlKey, current + 1, AUTH_RL_WINDOW);
+    const remaining = entry.resetAt - now;
+    await authRlCache.set(rlKey, { count: entry.count + 1, resetAt: entry.resetAt }, remaining + 5_000);
   }
   return next();
 });
@@ -538,8 +540,13 @@ app.route("/delivery", deliveryRouter);
 // --- Billing & Subscription (يعمل حتى عند إيقاف الاشتراك) ---
 // webhook عام بدون auth، status + renew يتطلبان auth لكن يتجاوزان suspension check
 app.use("/billing/*", async (c, next) => {
-  // webhook لا يحتاج auth
+  // public: webhook, plans catalog, addons catalog, resource-addons catalog
   if (c.req.path.endsWith("/webhook/moyasar")) return next();
+  if (c.req.method === "GET" && (
+    c.req.path.endsWith("/billing/plans") ||
+    c.req.path.endsWith("/billing/plan-addons") ||
+    c.req.path.endsWith("/billing/resource-addons")
+  )) return next();
   return authMiddleware(c, next);
 });
 app.route("/billing", billingRouter);
@@ -671,6 +678,11 @@ app.use("/flower-master/*", async (c, next) => {
   return superAdminMiddleware(c, next);
 });
 app.route("/flower-master", flowerMasterRouter);
+
+// --- Flower Suppliers ---
+app.use("/flower-suppliers/*", authMiddleware);
+app.use("/flower-suppliers/*", requireCapability("floral"));
+app.route("/flower-suppliers", flowerSuppliersRouter);
 
 // ============================================================
 // ERROR HANDLING

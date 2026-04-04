@@ -17,21 +17,43 @@ const TABS = [
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
-  bookings: "الحجوزات",
-  payments: "المدفوعات",
-  customers: "العملاء",
-  staff: "الموظفون",
-  inventory: "المخزون",
-  general: "عام",
+  // عام
+  bookings:     "الحجوزات",
+  payments:     "المدفوعات",
+  staff:        "الموظفون",
+  customers:    "العملاء",
+  inventory:    "المخزون",
+  general:      "عام",
+  // ورود
+  orders:       "الطلبات",
+  delivery:     "التوصيل",
+  stock:        "المخزون",
+  // فندق
+  reservations: "الحجوزات",
+  services:     "الخدمات",
+  // سيارات / تأجير
+  rentals:      "الإيجارات",
+  contracts:    "العقود",
+  // تصوير
+  sessions:     "الجلسات",
+  // مطعم — orders already covered above
 };
 
 const CATEGORY_COLORS: Record<string, string> = {
-  bookings: "bg-blue-500",
-  payments: "bg-emerald-500",
-  customers: "bg-violet-500",
-  staff: "bg-amber-500",
-  inventory: "bg-orange-500",
-  general: "bg-gray-400",
+  bookings:     "bg-blue-500",
+  payments:     "bg-emerald-500",
+  customers:    "bg-violet-500",
+  staff:        "bg-amber-500",
+  inventory:    "bg-orange-500",
+  general:      "bg-gray-400",
+  orders:       "bg-[#5b9bd5]",
+  delivery:     "bg-sky-500",
+  stock:        "bg-orange-500",
+  reservations: "bg-blue-600",
+  services:     "bg-teal-500",
+  rentals:      "bg-indigo-500",
+  contracts:    "bg-purple-500",
+  sessions:     "bg-pink-500",
 };
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
@@ -368,9 +390,11 @@ function ConnectionTab() {
 // ─── Templates Tab ────────────────────────────────────────────────
 function TemplatesTab() {
   const { data: tplRes, loading, refetch } = useApi(() => messagingApi.templates(), []);
-  const { data: varRes } = useApi(() => messagingApi.variables(), []);
+  const { data: varRes, refetch: refetchVars } = useApi(() => messagingApi.variables(), []);
+  const { data: profileRes } = useApi(() => settingsApi.profile(), []);
   const grouped: Record<string, any[]> = tplRes?.data || {};
   const standardVars: any[] = varRes?.data?.standard || [];
+  const bizType: string = (profileRes?.data as any)?.businessType || "";
 
   const { mutate: updateTemplate } = useMutation(({ id, data }: any) =>
     messagingApi.updateTemplate(id, data)
@@ -378,12 +402,23 @@ function TemplatesTab() {
   const { mutate: resetTemplate } = useMutation((eventType: string) =>
     messagingApi.resetTemplate(eventType)
   );
+  const { mutate: reseedTemplates, loading: reseeding } = useMutation(() =>
+    messagingApi.reseedTemplates()
+  );
 
   const [openCats, setOpenCats] = useState<Record<string, boolean>>({});
   const [editing, setEditing] = useState<Record<string, any>>({});
   const [saving, setSaving] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState<string | null>(null);
   const [delayUnits, setDelayUnits] = useState<Record<string, "minutes" | "hours" | "days">>({});
+
+  const handleReseed = async () => {
+    if (!confirm("سيتم حذف القوالب الحالية وإعادة توليدها حسب نوع منشأتك. هل تريد المتابعة؟")) return;
+    await reseedTemplates(null);
+    setEditing({});
+    refetch();
+    refetchVars();
+  };
 
   const getDelayUnit = (id: string) => delayUnits[id] || "minutes";
   const DELAY_UNIT_OPTIONS = [
@@ -445,8 +480,43 @@ function TemplatesTab() {
 
   const categories = Object.keys(grouped);
 
+  const BIZ_TYPE_LABELS: Record<string, string> = {
+    flower_shop:  "محل الورود",
+    salon:        "صالون التجميل",
+    hotel:        "الفندق",
+    car_rental:   "تأجير السيارات",
+    restaurant:   "المطعم",
+    photography:  "التصوير الفوتوغرافي",
+    retail:       "التجزئة",
+    rental:       "تأجير الأصول",
+    general:      "عام",
+  };
+
   return (
     <div className="space-y-3">
+      {/* Business-type context + reseed action */}
+      <div className="bg-[#5b9bd5]/5 border border-[#5b9bd5]/20 rounded-2xl px-4 py-3.5 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-xl bg-[#5b9bd5]/10 flex items-center justify-center shrink-0">
+            <FileText className="w-3.5 h-3.5 text-[#5b9bd5]" />
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-gray-700">
+              القوالب مخصصة لـ: <span className="text-[#5b9bd5]">{BIZ_TYPE_LABELS[bizType] || bizType || "عام"}</span>
+            </p>
+            <p className="text-[11px] text-gray-400 mt-0.5">تعديل أو تفعيل القوالب التلقائية لكل حدث</p>
+          </div>
+        </div>
+        <button
+          onClick={handleReseed}
+          disabled={reseeding}
+          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#5b9bd5] bg-white border border-gray-100 hover:border-[#5b9bd5]/30 px-3 py-1.5 rounded-xl transition-colors shrink-0"
+        >
+          {reseeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
+          إعادة توليد القوالب
+        </button>
+      </div>
+
       {categories.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 p-14 text-center">
           <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">

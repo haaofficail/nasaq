@@ -769,6 +769,19 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [newTemplate, setNewTemplate] = useState("");
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!orgSlug) return;
+    const url = `${window.location.origin}/flowers/${orgSlug}`;
+    import("qrcode").then(QRCode => {
+      QRCode.default.toDataURL(url, {
+        width: 300, margin: 2,
+        color: { dark: "#5b9bd5", light: "#ffffff" },
+        errorCorrectionLevel: "H",
+      }).then(setQrDataUrl);
+    });
+  }, [orgSlug]);
 
   useEffect(() => {
     if (res?.data) { setCfg(res.data); setDirty(false); }
@@ -993,26 +1006,73 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
         </div>
       </div>
 
+      {/* QR Code */}
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
+          <Globe className="w-4 h-4 text-brand-500" />
+          <h3 className="font-semibold text-gray-900 text-sm">رمز QR — صفحة العملاء</h3>
+        </div>
+        <div className="p-5 flex flex-col sm:flex-row items-center gap-6">
+          {qrDataUrl ? (
+            <img src={qrDataUrl} alt="QR Code" className="w-32 h-32 rounded-xl border border-gray-100" />
+          ) : (
+            <div className="w-32 h-32 rounded-xl bg-gray-50 border border-gray-100 animate-pulse" />
+          )}
+          <div className="flex-1 space-y-3">
+            <div>
+              <p className="text-sm font-medium text-gray-700 mb-1">رابط الصفحة</p>
+              <p className="text-xs font-mono text-brand-600 bg-brand-50 px-3 py-2 rounded-lg break-all">
+                {window.location.origin}{publicUrl}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <a
+                href={publicUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 transition-colors"
+              >
+                <ExternalLink className="w-3.5 h-3.5" /> فتح الصفحة
+              </a>
+              {qrDataUrl && (
+                <a
+                  href={qrDataUrl}
+                  download={`qr-flowers-${orgSlug}.png`}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-500 text-white text-xs hover:bg-brand-600 transition-colors"
+                >
+                  تحميل QR
+                </a>
+              )}
+              <button
+                onClick={() => { navigator.clipboard.writeText(`${window.location.origin}${publicUrl}`); toast.success("تم نسخ الرابط"); }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 transition-colors"
+              >
+                نسخ الرابط
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Live preview hint */}
       <div className="flex items-center gap-3 px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-xl text-sm text-emerald-700">
         <Globe className="w-4 h-4 shrink-0" />
-        <span>رابط صفحة العملاء: <a href={publicUrl} target="_blank" rel="noopener noreferrer"
-          className="font-mono underline underline-offset-2">{window.location.origin}{publicUrl}</a></span>
-      </div>    </div>
+        <span>شارك رمز QR مع عملائك أو ضعه على بطاقات العمل والمتجر</span>
+      </div>
+    </div>
   );
 }
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 
 const TABS = [
-  { id: "orders",   label: "الطلبات",   icon: ClipboardList },
   { id: "packages", label: "الباقات",   icon: Flower2 },
   { id: "builder",  label: "المُخصِّص", icon: Settings },
   { id: "page",     label: "الصفحة",    icon: Globe },
 ];
 
 export function ArrangementsPage() {
-  const [tab, setTab] = useState("orders");
+  const [tab, setTab] = useState("packages");
   const [orgSlug, setOrgSlug] = useState<string>("demo");
 
   useEffect(() => {
@@ -1027,9 +1087,9 @@ export function ArrangementsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-            <Flower2 className="w-5 h-5 text-pink-500" /> استوديو الورود
+            <Flower2 className="w-5 h-5 text-pink-500" /> الباقات والتنسيقات
           </h1>
-          <p className="text-sm text-gray-400 mt-0.5">إدارة الطلبات، الباقات، والمُخصِّص المرئي للعملاء</p>
+          <p className="text-sm text-gray-400 mt-0.5">إدارة الباقات الجاهزة، خيارات المُخصِّص، وإعدادات صفحة العملاء</p>
         </div>
         <a href={`/flowers/${orgSlug}`} target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">
@@ -1048,7 +1108,6 @@ export function ArrangementsPage() {
         ))}
       </div>
 
-      {tab === "orders"   && <OrdersTab />}
       {tab === "packages" && <PackagesTab />}
       {tab === "builder"  && <BuilderConfigTab />}
       {tab === "page"     && <PageSettingsTab orgSlug={orgSlug} />}
