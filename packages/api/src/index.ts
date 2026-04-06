@@ -51,6 +51,10 @@ import { carRentalRouter } from "./routes/car-rental";
 import { integrationsRouter } from "./routes/integrations";
 import { flowerMasterRouter } from "./routes/flower-master";
 import { flowerSuppliersRouter } from "./routes/flower-suppliers";
+import { decorAssetsRouter } from "./routes/decor-assets";
+import { serviceOrdersRouter } from "./routes/service-orders";
+import { flowerWasteRouter } from "./routes/flower-waste";
+import { eventPackagesRouter } from "./routes/event-packages";
 import { treasuryRouter } from "./routes/treasury";
 import { accountingRouter } from "./routes/accounting";
 import { reconciliationRouter } from "./routes/reconciliation";
@@ -88,6 +92,8 @@ import { guardianRouter } from "./routes/guardian";
 import { contractsRouter } from "./routes/contracts";
 import { hrRouter } from "./routes/hr";
 import { templatesRouter } from "./routes/templates";
+import { onboardingRouter } from "./routes/onboarding";
+import { complianceRouter } from "./routes/compliance";
 
 // ============================================================
 // APP
@@ -672,9 +678,14 @@ app.use("/flower-master/*", requireCapability("floral"));
 app.use("/flower-master/*", async (c, next) => {
   // GET — read-only, no perm check needed
   if (c.req.method === "GET") return next();
+  // Org-specific sub-paths: substitutions, pricing, recipes, disposal, stock-report
+  // These are per-org data — regular org users can mutate them
+  const orgPaths = ["/flower-master/substitutions", "/flower-master/pricing",
+                    "/flower-master/recipes", "/flower-master/disposal"];
+  if (orgPaths.some((p) => c.req.path.startsWith(p))) return next();
   // POST — merchants can add new variants (contribute to shared catalog)
   if (c.req.method === "POST") return methodGuard("services")(c, next);
-  // PUT / PATCH / DELETE — edit/disable existing global variants → super admin only
+  // PUT / PATCH / DELETE on global variants → super admin only
   return superAdminMiddleware(c, next);
 });
 app.route("/flower-master", flowerMasterRouter);
@@ -683,6 +694,31 @@ app.route("/flower-master", flowerMasterRouter);
 app.use("/flower-suppliers/*", authMiddleware);
 app.use("/flower-suppliers/*", requireCapability("floral"));
 app.route("/flower-suppliers", flowerSuppliersRouter);
+
+app.use("/decor-assets/*", authMiddleware);
+app.use("/decor-assets/*", requireCapability("floral"));
+app.route("/decor-assets", decorAssetsRouter);
+
+app.use("/service-orders/*", authMiddleware);
+app.use("/service-orders/*", requireCapability("floral"));
+app.route("/service-orders", serviceOrdersRouter);
+
+app.use("/event-packages/*", authMiddleware);
+app.use("/event-packages/*", requireCapability("floral"));
+app.route("/event-packages", eventPackagesRouter);
+
+app.use("/flower-waste/*", authMiddleware);
+app.use("/flower-waste/*", requireCapability("floral"));
+app.route("/flower-waste", flowerWasteRouter);
+
+// --- Onboarding ---
+app.use("/onboarding/*", authMiddleware);
+app.route("/onboarding", onboardingRouter);
+
+// --- Compliance Layer (PDPL + نظام التجارة الإلكترونية + ZATCA) ---
+app.use("/compliance/*", authMiddleware);
+app.use("/compliance/*", methodGuard("settings"));
+app.route("/compliance", complianceRouter);
 
 // ============================================================
 // ERROR HANDLING

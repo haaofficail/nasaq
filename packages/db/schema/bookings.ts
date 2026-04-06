@@ -98,7 +98,8 @@ export const bookings = pgTable("bookings", {
   // Notes
   customerNotes: text("customer_notes"),            // ملاحظات العميل
   internalNotes: text("internal_notes"),            // ملاحظات داخلية
-  questionAnswers: jsonb("question_answers").default([]), // إجابات الأسئلة المخصصة
+  questionAnswers:  jsonb("question_answers").default([]),  // إجابات الأسئلة المخصصة
+  consentMetadata: jsonb("consent_metadata"),               // PDPL م/8-أ: { acceptedTermsAt, acceptedPrivacyAt, policyVersion, source }
   
   // Rating
   rating: integer("rating"),                        // 1-5

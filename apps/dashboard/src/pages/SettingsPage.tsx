@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
-import { Building2, GitBranch, CreditCard, Plus, Trash2, Loader2, CheckCircle2, Zap, Shield, Pencil, User, MapPin, Clock, Star, Warehouse, Briefcase, Palette, Upload, ImageIcon, Wallet, Eye, EyeOff } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Building2, GitBranch, CreditCard, Plus, Trash2, Loader2, CheckCircle2, Zap, Shield, Pencil, User, MapPin, Clock, Star, Warehouse, Briefcase, Palette, Upload, ImageIcon, Wallet, Eye, EyeOff, Scale } from "lucide-react";
 import { clsx } from "clsx";
 import { confirmDialog } from "@/components/ui";
 import { settingsApi, financeApi } from "@/lib/api";
@@ -43,6 +44,7 @@ const tabs = [
   { label: "الاشتراك",      icon: CreditCard },
   { label: "الهوية البصرية", icon: Palette },
   { label: "بوابة الدفع",   icon: Wallet },
+  { label: "الامتثال والأنظمة", icon: Scale, href: "/dashboard/settings/legal" },
 ];
 
 const BRAND_COLORS = [
@@ -71,6 +73,7 @@ function BranchTypeIcon({ type }: { type: string }) {
 
 export function SettingsPage() {
   const [activeTab, setActiveTab] = useState(0);
+  const navigate = useNavigate();
   const [showBranch, setShowBranch] = useState(false);
   const [uploadingLogo, setUploadingLogo]   = useState(false);
   const [uploadingFav,  setUploadingFav]    = useState(false);
@@ -201,7 +204,7 @@ export function SettingsPage() {
         {tabs.map((tab, i) => (
           <button
             key={i}
-            onClick={() => setActiveTab(i)}
+            onClick={() => (tab as any).href ? navigate((tab as any).href) : setActiveTab(i)}
             className={clsx(
               "flex items-center gap-2 px-4 py-2 rounded-xl border-0 text-[13px] cursor-pointer transition-all",
               activeTab === i ? "bg-brand-400 text-white font-semibold shadow-sm" : "bg-transparent text-gray-400 font-normal hover:text-gray-600",

@@ -2,6 +2,7 @@ import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
 import { SchoolLayout } from "./components/layout/SchoolLayout";
 import { ReactNode, lazy, Suspense } from "react";
+import { NasaqThemeGuard } from "./context/NasaqThemeGuard";
 
 // ── Eager imports (needed immediately on load) ─────────────────────
 import { LoginPage } from "./pages/LoginPage";
@@ -25,6 +26,8 @@ const PricingPage            = lz(() => import("./pages/PricingPage"), "PricingP
 const FeaturesPage           = lz(() => import("./pages/FeaturesPage"), "FeaturesPage");
 const AboutPage              = lz(() => import("./pages/AboutPage"), "AboutPage");
 const ContactPage            = lz(() => import("./pages/ContactPage"), "ContactPage");
+const TermsPage              = lz(() => import("./pages/TermsPage"), "TermsPage");
+const PrivacyPage            = lz(() => import("./pages/PrivacyPage"), "PrivacyPage");
 const PublicBookingPage      = lz(() => import("./pages/PublicBookingPage"), "PublicBookingPage");
 const PublicTrackingPage     = lz(() => import("./pages/PublicTrackingPage"), "PublicTrackingPage");
 const PublicFlowerPage       = lz(() => import("./pages/PublicFlowerPage"), "PublicFlowerPage");
@@ -89,6 +92,7 @@ const HREmployeePage         = lz(() => import("./pages/HREmployeePage"), "HREmp
 const DeliveryPage           = lz(() => import("./pages/DeliveryPage"), "DeliveryPage");
 
 // Channels / Marketing
+const StorefrontPage         = lz(() => import("./pages/StorefrontPage"), "StorefrontPage");
 const WebsitePage            = lz(() => import("./pages/WebsitePage"), "WebsitePage");
 const OnlineOrdersPage       = lz(() => import("./pages/OnlineOrdersPage"), "OnlineOrdersPage");
 const AutomationPage         = lz(() => import("./pages/AutomationPage"), "AutomationPage");
@@ -110,6 +114,8 @@ const PlatformPage           = lz(() => import("./pages/PlatformPage"), "Platfor
 const AuditLogPage           = lz(() => import("./pages/AuditLogPage"), "AuditLogPage");
 const SubscriptionPage       = lz(() => import("./pages/SubscriptionPage"), "SubscriptionPage");
 const BillingPage            = lz(() => import("./pages/BillingPage"), "BillingPage");
+const LegalSettingsPage      = lz(() => import("./pages/LegalSettingsPage"), "LegalSettingsPage");
+const CompliancePage         = lz(() => import("./pages/CompliancePage"), "CompliancePage");
 
 // Verticals
 const HotelPage              = lz(() => import("./pages/HotelPage"));
@@ -125,6 +131,8 @@ const RestaurantAnalyticsPage= lz(() => import("./pages/RestaurantAnalyticsPage"
 const RestaurantBookingSettingsPage = lz(() => import("./pages/RestaurantBookingSettingsPage"), "RestaurantBookingSettingsPage");
 const LoyaltyPage            = lz(() => import("./pages/LoyaltyPage"), "LoyaltyPage");
 const FlowerAnalyticsPage    = lz(() => import("./pages/FlowerAnalyticsPage"), "FlowerAnalyticsPage");
+const FlowerCatalogPage      = lz(() => import("./pages/FlowerCatalogPage"), "FlowerCatalogPage");
+const FlowerQuickSetupPage   = lz(() => import("./pages/FlowerQuickSetupPage").then(m => ({ default: m.FlowerQuickSetupPage })));
 const RentalAnalyticsPage    = lz(() => import("./pages/RentalAnalyticsPage"), "RentalAnalyticsPage");
 const SchedulePage           = lz(() => import("./pages/SchedulePage"), "SchedulePage");
 const CommissionsPage        = lz(() => import("./pages/CommissionsPage"), "CommissionsPage");
@@ -144,6 +152,10 @@ const FlowerReportsPage      = lz(() => import("./pages/FlowerReportsPage"), "Fl
 const FlowerOccasionsPage    = lz(() => import("./pages/FlowerOccasionsPage"), "FlowerOccasionsPage");
 const FlowerCustomersPage    = lz(() => import("./pages/FlowerCustomersPage"), "FlowerCustomersPage");
 const FlowerMarginsPage      = lz(() => import("./pages/FlowerMarginsPage"), "FlowerMarginsPage");
+const FlowerAssetsPage       = lz(() => import("./pages/FlowerAssetsPage"), "FlowerAssetsPage");
+const FlowerServiceOrdersPage = lz(() => import("./pages/FlowerServiceOrdersPage"), "FlowerServiceOrdersPage");
+const FlowerWastePage        = lz(() => import("./pages/FlowerWastePage"), "FlowerWastePage");
+const EventPackagesPage      = lz(() => import("./pages/EventPackagesPage"), "EventPackagesPage");
 const AssetsPage             = lz(() => import("./pages/AssetsPage"), "AssetsPage");
 const ContractsPage          = lz(() => import("./pages/ContractsPage"), "ContractsPage");
 const ContractDetailPage     = lz(() => import("./pages/ContractDetailPage"), "ContractDetailPage");
@@ -254,18 +266,25 @@ export default function App() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public landing pages */}
-        <Route path="/" element={<LandingPage />} />
-        <Route path="/home" element={<LandingPage />} />
-        <Route path="/landing" element={<LandingPage />} />
-        <Route path="/school" element={<SchoolLandingPage />} />
-        <Route path="/school/login" element={<SchoolLoginPage />} />
-        <Route path="/school/register" element={<SchoolRegisterPage />} />
-        <Route path="/school/invite/:token" element={<SchoolInvitePage />} />
-        <Route path="/pricing" element={<PricingPage />} />
-        <Route path="/features" element={<FeaturesPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/contact" element={<ContactPage />} />
+        {/* Public landing pages — ثيم نسق الثابت */}
+        <Route path="/" element={<NasaqThemeGuard><LandingPage /></NasaqThemeGuard>} />
+        <Route path="/home" element={<NasaqThemeGuard><LandingPage /></NasaqThemeGuard>} />
+        <Route path="/landing" element={<NasaqThemeGuard><LandingPage /></NasaqThemeGuard>} />
+        <Route path="/school" element={<NasaqThemeGuard><SchoolLandingPage /></NasaqThemeGuard>} />
+        <Route path="/school/login" element={<NasaqThemeGuard><SchoolLoginPage /></NasaqThemeGuard>} />
+        <Route path="/school/register" element={<NasaqThemeGuard><SchoolRegisterPage /></NasaqThemeGuard>} />
+        <Route path="/school/invite/:token" element={<NasaqThemeGuard><SchoolInvitePage /></NasaqThemeGuard>} />
+        <Route path="/pricing" element={<NasaqThemeGuard><PricingPage /></NasaqThemeGuard>} />
+        <Route path="/features" element={<NasaqThemeGuard><FeaturesPage /></NasaqThemeGuard>} />
+        <Route path="/about" element={<NasaqThemeGuard><AboutPage /></NasaqThemeGuard>} />
+        <Route path="/contact" element={<NasaqThemeGuard><ContactPage /></NasaqThemeGuard>} />
+        {/* Legacy redirects */}
+        <Route path="/terms" element={<Navigate to="/legal/terms" replace />} />
+        <Route path="/privacy" element={<Navigate to="/legal/privacy" replace />} />
+        {/* Canonical legal pages */}
+        <Route path="/legal/terms" element={<NasaqThemeGuard><TermsPage /></NasaqThemeGuard>} />
+        <Route path="/legal/privacy" element={<NasaqThemeGuard><PrivacyPage /></NasaqThemeGuard>} />
+        <Route path="/legal/compliance" element={<NasaqThemeGuard><CompliancePage /></NasaqThemeGuard>} />
 
         {/* Auth */}
         <Route path="/login" element={<LoginPage />} />
@@ -348,6 +367,7 @@ export default function App() {
           <Route path="hr/employees/:id" element={<HREmployeePage />} />
           <Route path="delivery" element={<DeliveryPage />} />
 
+          <Route path="storefront" element={<StorefrontPage />} />
           <Route path="website" element={<WebsitePage />} />
           <Route path="online-orders" element={<OnlineOrdersPage />} />
           <Route path="automation" element={<AutomationPage />} />
@@ -370,6 +390,7 @@ export default function App() {
           <Route path="account" element={<AccountPage />} />
           <Route path="settings/website" element={<WebsiteSettingsPage />} />
           <Route path="settings/audit-log" element={<AuditLogPage />} />
+          <Route path="settings/legal" element={<LegalSettingsPage />} />
           <Route path="subscription" element={<SubscriptionPage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="customization" element={<CustomizationPage />} />
@@ -396,6 +417,8 @@ export default function App() {
           <Route path="arrangements" element={<ArrangementsPage />} />
           <Route path="flower-orders" element={<FlowerOrdersPage />} />
           <Route path="flower-analytics" element={<FlowerAnalyticsPage />} />
+          <Route path="flower-catalog" element={<FlowerCatalogPage />} />
+          <Route path="flower-setup" element={<FlowerQuickSetupPage />} />
           <Route path="flower-pos" element={<FlowerPOSPage />} />
           <Route path="flower-disposal" element={<FlowerDisposalPage />} />
           <Route path="flower-delivery" element={<FlowerDeliveryPage />} />
@@ -404,6 +427,10 @@ export default function App() {
           <Route path="flower-occasions" element={<FlowerOccasionsPage />} />
           <Route path="flower-customers" element={<FlowerCustomersPage />} />
           <Route path="flower-margins" element={<FlowerMarginsPage />} />
+          <Route path="flower-assets" element={<FlowerAssetsPage />} />
+          <Route path="flower-service-orders" element={<FlowerServiceOrdersPage />} />
+          <Route path="flower-waste" element={<FlowerWastePage />} />
+          <Route path="event-packages" element={<EventPackagesPage />} />
 
           <Route path="assets" element={<AssetsPage />} />
           <Route path="contracts" element={<ContractsPage />} />

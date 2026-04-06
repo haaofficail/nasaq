@@ -1,16 +1,16 @@
 import { Hono } from "hono";
 import { eq, and, desc, asc, count, sql, ne, inArray, notInArray } from "drizzle-orm";
-import { db } from "@nasaq/db/client";
-import { sitePages, siteConfig, blogPosts, contactSubmissions, services, categories, reviews, organizations, locations, websiteTemplates, bookings, bookingItems, bookingItemAddons, customers, addons, serviceAddons, serviceQuestions } from "@nasaq/db/schema";
+import { db, pool } from "@nasaq/db/client";
+import { sitePages, siteConfig, blogPosts, contactSubmissions, services, categories, reviews, organizations, locations, websiteTemplates, bookings, bookingItems, bookingItemAddons, customers, addons, serviceAddons, serviceQuestions, privacyRequests } from "@nasaq/db/schema";
 import type { Context } from "hono";
 import { getOrgId, getUserId, getPagination, generateSlug, generateBookingNumber } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { z } from "zod";
 import { DEFAULT_VAT_RATE, BOOKING_TRACKING_TOKEN_LENGTH } from "../lib/constants";
 
-// ── In-memory rate limiter for public booking (resets on restart — lightweight, no Redis needed) ──
+// ── In-memory rate limiters (resets on restart — lightweight) ──
 const _bookingRateMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT_MAX    = 10;                  // max bookings per window per IP
+const RATE_LIMIT_MAX    = 10;
 const RATE_LIMIT_WINDOW = 10 * 60 * 1000;     // 10 minutes
 
 function publicBookAllowed(ip: string): boolean {
@@ -21,6 +21,22 @@ function publicBookAllowed(ip: string): boolean {
     return true;
   }
   if (entry.count >= RATE_LIMIT_MAX) return false;
+  entry.count++;
+  return true;
+}
+
+const _privacyRateMap = new Map<string, { count: number; resetAt: number }>();
+const PRIVACY_RATE_MAX    = 3;
+const PRIVACY_RATE_WINDOW = 60 * 60 * 1000;   // 1 hour per IP
+
+function privacyRequestAllowed(ip: string): boolean {
+  const now = Date.now();
+  const entry = _privacyRateMap.get(ip);
+  if (!entry || entry.resetAt < now) {
+    _privacyRateMap.set(ip, { count: 1, resetAt: now + PRIVACY_RATE_WINDOW });
+    return true;
+  }
+  if (entry.count >= PRIVACY_RATE_MAX) return false;
   entry.count++;
   return true;
 }
@@ -153,9 +169,16 @@ websiteRouter.put("/config", async (c) => {
   if (existing) {
     const [updated] = await db.update(siteConfig).set({ ...body, updatedAt: new Date() })
       .where(eq(siteConfig.id, existing.id)).returning();
+    // sync primaryColor to organizations table so it's consistent everywhere
+    if (body.primaryColor) {
+      await db.update(organizations).set({ primaryColor: body.primaryColor }).where(eq(organizations.id, orgId));
+    }
     return c.json({ data: updated });
   }
   const [created] = await db.insert(siteConfig).values({ orgId, ...body }).returning();
+  if (body.primaryColor) {
+    await db.update(organizations).set({ primaryColor: body.primaryColor }).where(eq(organizations.id, orgId));
+  }
   return c.json({ data: created }, 201);
 });
 
@@ -371,6 +394,39 @@ websiteRouter.get("/public/:orgSlug", async (c) => {
     ) WHERE id = ${org.id}
   `).catch(() => {});
 
+  // Flower builder section — only if isPublic in page config
+  let flowerSection: any = null;
+  try {
+    const fpcRow = await pool.query(
+      `SELECT config FROM flower_page_configs WHERE org_id = $1 LIMIT 1`,
+      [org.id]
+    );
+    const fpc = fpcRow.rows[0]?.config;
+    if (fpc?.isPublic) {
+      const pkgsRow = await pool.query(
+        `SELECT id, name, description, base_price AS "basePrice", image, is_active AS "isActive"
+         FROM flower_packages WHERE org_id = $1 AND is_active = true ORDER BY created_at DESC LIMIT 8`,
+        [org.id]
+      );
+      const invRow = await pool.query(
+        `SELECT id, name, color, type, sell_price AS "sellPrice", stock, image_url AS "imageUrl"
+         FROM flower_inventory WHERE org_id = $1 AND stock > 0 AND (is_hidden IS NULL OR is_hidden = false)
+         ORDER BY name ASC LIMIT 12`,
+        [org.id]
+      );
+      flowerSection = {
+        isEnabled: true,
+        heroTitle: fpc.heroTitle || "باقات ورود مخصصة",
+        heroSubtitle: fpc.heroSubtitle || "اصنع لحظتك بيدك",
+        heroImage: fpc.heroImage || null,
+        accentColor: fpc.accentColor || "#e11d48",
+        packages: pkgsRow.rows,
+        inventory: invRow.rows,
+        builderUrl: `/flowers/${org.slug}`,
+      };
+    }
+  } catch { /* non-critical */ }
+
   return c.json({
     data: {
       org: {
@@ -398,6 +454,7 @@ websiteRouter.get("/public/:orgSlug", async (c) => {
         reviewCount: Number(ratingRow?.cnt ?? 0),
         serviceCount: activeServices.length,
       },
+      flowerSection,
     },
   });
 });
@@ -441,6 +498,11 @@ const publicBookSchema = z.object({
     questionId: z.string().uuid(),
     answer:     z.string().max(1000),
   })).max(50).optional().default([]),
+  // PDPL م/8-أ: الموافقة الصريحة — مطلوبة إلزامياً
+  acceptedTerms:   z.literal(true, {
+    errorMap: () => ({ message: "يجب الموافقة على الشروط والأحكام وسياسة الخصوصية" }),
+  }),
+  policyVersion:   z.string().max(20).optional().default("1.0"),
 });
 
 websiteRouter.post("/public/:orgSlug/book", async (c) => {
@@ -454,7 +516,7 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
   const body = publicBookSchema.safeParse(await c.req.json());
   if (!body.success) return c.json({ error: "بيانات غير صحيحة", details: body.error.flatten() }, 422);
 
-  const { customerName, customerPhone, serviceId, eventDate, selectedAddons, customLocation, notes, questionAnswers } = body.data;
+  const { customerName, customerPhone, serviceId, eventDate, selectedAddons, customLocation, notes, questionAnswers, acceptedTerms, policyVersion } = body.data;
 
   // 1. Resolve org
   const [org] = await db.select({ id: organizations.id, name: organizations.name })
@@ -550,9 +612,16 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
       depositAmount: depositAmount.toFixed(2),
       paidAmount: "0",
       balanceDue: total.toFixed(2),
-      source: "website",
+      source: "public_booking",
       customerNotes: notes ?? null,
       questionAnswers: enrichedAnswers as any,
+      consentMetadata: {
+        acceptedTermsAt:   new Date().toISOString(),
+        acceptedPrivacyAt: new Date().toISOString(),
+        policyVersion:     policyVersion ?? "1.0",
+        accepted:          acceptedTerms,
+        source:            "public_booking",
+      },
       trackingToken,
     }).returning();
 
@@ -687,5 +756,84 @@ websiteRouter.put("/storefront-settings", async (c) => {
   }
   if (Object.keys(updates).length === 0) return c.json({ data: { ok: true } });
   await db.update(organizations).set(updates as any).where(eq(organizations.id, orgId));
+  // مزامنة primaryColor مع site_config لضمان تطابق المصدرين
+  if (updates.primaryColor) {
+    const [existingCfg] = await db.select({ id: siteConfig.id }).from(siteConfig).where(eq(siteConfig.orgId, orgId));
+    if (existingCfg) {
+      await db.update(siteConfig).set({ primaryColor: updates.primaryColor as string, updatedAt: new Date() }).where(eq(siteConfig.id, existingCfg.id));
+    } else {
+      await db.insert(siteConfig).values({ orgId, primaryColor: updates.primaryColor as string });
+    }
+  }
   return c.json({ data: { ok: true } });
+});
+
+// ============================================================
+// POST /website/public/privacy-request
+// طلب حقوق البيانات العام — بدون مصادقة — PDPL م/11-16
+// ============================================================
+
+const publicPrivacySchema = z.object({
+  type:          z.enum(["export", "delete"]),
+  requesterName:  z.string().min(1).max(200),
+  requesterPhone: z.string().min(7).max(20),
+  requesterEmail: z.string().email().optional().nullable(),
+  // orgSlug اختياري — إذا الطلب من صفحة منشأة معينة
+  orgSlug: z.string().optional().nullable(),
+});
+
+websiteRouter.post("/public/privacy-request", async (c) => {
+  const clientIp = c.req.header("x-forwarded-for")?.split(",")[0].trim() ?? "unknown";
+
+  // Rate limit: 3 طلبات per hour per IP
+  if (!privacyRequestAllowed(clientIp)) {
+    return c.json({ error: "طلبات كثيرة جداً، حاول مرة أخرى بعد ساعة" }, 429);
+  }
+
+  const parsed = publicPrivacySchema.safeParse(await c.req.json());
+  if (!parsed.success) {
+    return c.json({ error: "بيانات غير صحيحة", details: parsed.error.flatten() }, 422);
+  }
+
+  const { type, requesterName, requesterPhone, requesterEmail, orgSlug } = parsed.data;
+
+  // Dedup: نفس الهاتف + نفس النوع خلال آخر 24 ساعة
+  const since24h = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const [existing] = await db
+    .select({ id: privacyRequests.id })
+    .from(privacyRequests)
+    .where(
+      and(
+        eq(privacyRequests.requesterPhone, requesterPhone),
+        eq(privacyRequests.type, type),
+        sql`${privacyRequests.createdAt} > ${since24h}`,
+      )
+    );
+  if (existing) {
+    return c.json({ error: "تم تسجيل طلب مماثل خلال آخر 24 ساعة — سيتم معالجته قريباً" }, 409);
+  }
+
+  // Resolve orgId from slug (optional)
+  let orgId: string | null = null;
+  if (orgSlug) {
+    const [org] = await db
+      .select({ id: organizations.id })
+      .from(organizations)
+      .where(eq(organizations.slug, orgSlug));
+    if (org) orgId = org.id;
+  }
+
+  const [request] = await db
+    .insert(privacyRequests)
+    .values({
+      orgId: orgId as any,
+      type,
+      requesterName,
+      requesterPhone,
+      requesterEmail: requesterEmail ?? null,
+      status: "pending",
+    })
+    .returning({ id: privacyRequests.id, type: privacyRequests.type, createdAt: privacyRequests.createdAt });
+
+  return c.json({ data: request }, 201);
 });

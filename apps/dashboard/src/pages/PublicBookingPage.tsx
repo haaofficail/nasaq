@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { MapPin, Check, Shield, Phone, Loader2, AlertCircle, ChevronLeft } from "lucide-react";
 import { clsx } from "clsx";
 import { websiteApi } from "@/lib/api";
+import { usePublicTheme } from "@/context/ThemeProvider";
 
 const VAT_RATE = 0.15;
 const DEPOSIT_RATIO = 0.30;
@@ -28,6 +29,7 @@ export function PublicBookingPage() {
   const [step, setStep] = useState<"services" | "details" | "questions" | "contact" | "done">("services");
   const [submitting, setSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState<any>(null);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   useEffect(() => {
     if (!slug) return;
@@ -40,9 +42,12 @@ export function PublicBookingPage() {
       .finally(() => setLoadingOrg(false));
   }, [slug]);
 
+  // يجب استدعاء الـ hook قبل أي early return (قواعد الـ hooks)
+  usePublicTheme(siteData);
+
   if (loadingOrg) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+      <Loader2 className="w-8 h-8 animate-spin text-brand" />
     </div>
   );
   if (orgError || !siteData) return (
@@ -51,7 +56,6 @@ export function PublicBookingPage() {
       <p className="text-gray-600 font-medium">{orgError || "الصفحة غير موجودة"}</p>
     </div>
   );
-
   const org = siteData.org;
   const config = siteData.config || null;
   const services: any[] = siteData.services || [];
@@ -93,6 +97,8 @@ export function PublicBookingPage() {
         customLocation: customLocation || undefined,
         notes: notes || undefined,
         questionAnswers: answers,
+        acceptedTerms: true as const,
+        policyVersion: "1.0",
       });
       if (res?.data) { setBookingResult(res.data); setStep("done"); }
     } finally {
@@ -353,7 +359,24 @@ export function PublicBookingPage() {
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-400 resize-none" />
               </div>
             </div>
-            <button disabled={!name || !phone || submitting} onClick={handleSubmit}
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={agreedToTerms}
+                onChange={e => setAgreedToTerms(e.target.checked)}
+                className="mt-0.5 w-4 h-4 rounded accent-brand-400 cursor-pointer flex-shrink-0"
+              />
+              <span className="text-xs text-gray-500 leading-relaxed">
+                أوافق على{" "}
+                <a href="/legal/terms" target="_blank" rel="noopener noreferrer"
+                  className="text-brand-400 underline underline-offset-2">شروط الخدمة</a>
+                {" "}و{" "}
+                <a href="/legal/privacy" target="_blank" rel="noopener noreferrer"
+                  className="text-brand-400 underline underline-offset-2">سياسة الخصوصية</a>
+                ، وأقرّ بأن بياناتي ستُعالَج وفق نظام حماية البيانات الشخصية (PDPL)
+              </span>
+            </label>
+            <button disabled={!name || !phone || !agreedToTerms || submitting} onClick={handleSubmit}
               className="w-full py-4 rounded-xl text-white font-bold text-base disabled:opacity-50 flex items-center justify-center gap-2"
               style={{ background: primaryColor }}>
               {submitting ? <><Loader2 className="w-4 h-4 animate-spin" /> جاري الإرسال...</> : "تأكيد الحجز"}
@@ -384,7 +407,7 @@ export function PublicBookingPage() {
               )}
             </div>
             <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-              <Shield className="w-3 h-3" /> مدعوم بواسطة <span className="font-bold text-brand-500">نسق</span>
+              <Shield className="w-3 h-3" /> مدعوم بواسطة <span className="font-bold text-brand-500">ترميز OS</span>
             </div>
           </div>
         )}
