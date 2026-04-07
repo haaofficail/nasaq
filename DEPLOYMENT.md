@@ -189,3 +189,5 @@ pnpm db:seed          # ملء بيانات تجريبية
 pnpm db:studio        # فتح Drizzle Studio (متصفح قاعدة البيانات)
 pnpm build            # بناء للإنتاج
 ```
+
+<!-- deploy-test: 2026-04-07 -->
