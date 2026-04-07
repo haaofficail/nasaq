@@ -8,6 +8,7 @@ import {
   serviceSupplyRecipes, salonSupplies, salonSupplyAdjustments,
   bookingAssignments, bookingCommissions, serviceCosts, serviceStaff,
   bookingEvents, bookingConsumptions, paymentGatewayConfigs, users,
+  bookingRecords, bookingLines, bookingTimelineEvents,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, generateBookingNumber } from "../lib/helpers";
 import { postCashSale, postDepositReceived, postRefund, isAccountingEnabled } from "../lib/posting-engine";
@@ -611,6 +612,71 @@ bookingsRouter.post("/", async (c) => {
   fireBookingEvent("booking_confirmed",  { orgId, bookingId: booking.id });
   fireBookingEvent("owner_new_booking",  { orgId, bookingId: booking.id });
 
+  // ── Phase 3: Canonical shadow write (fire-and-forget, never throws) ───────
+  if (ENABLE_CANONICAL_SHADOW_WRITE && booking.customerId && booking.eventDate) {
+    (async () => {
+      try {
+        const [canonicalBooking] = await db.insert(bookingRecords).values({
+          orgId:         booking.orgId,
+          customerId:    booking.customerId!,
+          bookingRef:    booking.id,
+          bookingNumber: booking.bookingNumber,
+          status:        "pending",
+          paymentStatus: "pending",
+          startsAt:      booking.eventDate!,
+          endsAt:        booking.eventEndDate ?? null,
+          locationId:    booking.locationId ?? null,
+          customLocation: booking.customLocation ?? null,
+          locationNotes: booking.locationNotes ?? null,
+          subtotal:      booking.subtotal,
+          discountAmount: booking.discountAmount,
+          vatAmount:     booking.vatAmount,
+          totalAmount:   booking.totalAmount,
+          depositAmount: booking.depositAmount,
+          paidAmount:    booking.paidAmount,
+          balanceDue:    booking.balanceDue,
+          source:        booking.source ?? "dashboard",
+          trackingToken: booking.trackingToken ?? null,
+          customerNotes: booking.customerNotes ?? null,
+          internalNotes: booking.internalNotes ?? null,
+          questionAnswers: (booking.questionAnswers ?? []) as any,
+          assignedUserId: booking.assignedUserId ?? null,
+          metadata:      { legacyBookingId: booking.id } as any,
+          createdAt:     booking.createdAt ?? new Date(),
+          updatedAt:     booking.updatedAt ?? new Date(),
+        } as any).returning({ id: bookingRecords.id });
+
+        if (canonicalBooking?.id && itemsToInsert.length > 0) {
+          await db.insert(bookingLines).values(
+            itemsToInsert.map((item) => ({
+              bookingRecordId: canonicalBooking.id,
+              serviceRefId:    item.serviceId ?? null,
+              itemName:        item.serviceName,
+              itemType:        item.serviceType ?? null,
+              durationMinutes: item.durationMinutes ?? null,
+              vatInclusive:    item.vatInclusive ?? true,
+              quantity:        item.quantity,
+              unitPrice:       item.unitPrice,
+              totalPrice:      item.totalPrice,
+              pricingBreakdown: (item.pricingBreakdown ?? []) as any,
+            })),
+          );
+        }
+
+        if (canonicalBooking?.id) {
+          await db.insert(bookingTimelineEvents).values({
+            orgId,
+            bookingRecordId: canonicalBooking.id,
+            userId:          getUserId(c) ?? null,
+            eventType:       "created",
+            toStatus:        "pending",
+            metadata:        { bookingNumber, source: booking.source || "dashboard" } as any,
+          });
+        }
+      } catch { /* shadow write failure is non-critical */ }
+    })();
+  }
+
   return c.json({
     data: {
       ...booking,
@@ -681,6 +747,48 @@ bookingsRouter.patch("/:id/status", async (c) => {
   }).catch(() => {});
 
   insertAuditLog({ orgId, userId: actingUserId, action: "updated", resource: "booking", resourceId: id, metadata: { status: newStatus } });
+
+  // ── Phase 3: Canonical shadow status sync (fire-and-forget, never throws) ─
+  if (ENABLE_CANONICAL_SHADOW_WRITE) {
+    (async () => {
+      try {
+        const statusMap: Record<string, string> = {
+          pending: "pending", confirmed: "confirmed",
+          deposit_paid: "confirmed", fully_confirmed: "confirmed",
+          preparing: "in_progress", in_progress: "in_progress",
+          completed: "completed", reviewed: "completed",
+          cancelled: "cancelled", no_show: "no_show",
+        };
+        const canonicalStatus = statusMap[newStatus] ?? newStatus;
+
+        const statusUpdates: Record<string, unknown> = {
+          status:    canonicalStatus,
+          updatedAt: new Date(),
+        };
+        if (newStatus === "cancelled") {
+          statusUpdates.cancelledAt        = updated.cancelledAt ?? new Date();
+          statusUpdates.cancellationReason = updated.cancellationReason ?? null;
+        }
+
+        const [canonicalRow] = await db.update(bookingRecords)
+          .set(statusUpdates as any)
+          .where(eq(bookingRecords.bookingRef, id))
+          .returning({ id: bookingRecords.id });
+
+        if (canonicalRow?.id) {
+          await db.insert(bookingTimelineEvents).values({
+            orgId,
+            bookingRecordId: canonicalRow.id,
+            userId:          actingUserId ?? null,
+            eventType:       "status_changed",
+            fromStatus:      fromStatus as string,
+            toStatus:        canonicalStatus,
+            metadata:        (reason ? { reason } : {}) as any,
+          });
+        }
+      } catch { /* shadow write failure is non-critical */ }
+    })();
+  }
 
   // قيد محاسبي تلقائي (fire-and-forget)
   if (newStatus === "confirmed") {
