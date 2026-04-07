@@ -3,7 +3,7 @@ import { useApi, useMutation } from "@/hooks/useApi";
 import { flowerMasterApi, flowerSuppliersApi } from "@/lib/api";
 import {
   Flower2, Plus, X, AlertTriangle, RefreshCw,
-  Package, TrendingDown, Clock, ChevronDown, Leaf,
+  Package, TrendingDown, Clock, ChevronDown, Leaf, Search,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { fmtDate } from "@/lib/utils";
@@ -44,6 +44,78 @@ const QUALITY_AR: Record<string, string> = {
 const BLOOM_AR: Record<string, string> = {
   bud: "برعم", semi_open: "نصف مفتوح", open: "مفتوح", full_bloom: "مفتوح كلياً",
 };
+
+// ─── Skeletons ────────────────────────────────────────────────────────────────
+function StockSkeleton() {
+  return (
+    <div className="divide-y divide-gray-50">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="px-5 py-4 flex items-center gap-4 animate-pulse">
+          <div className="w-10 h-10 rounded-xl bg-gray-100 shrink-0" />
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="h-4 bg-gray-100 rounded w-2/5" />
+            <div className="h-3 bg-gray-100 rounded w-1/4" />
+          </div>
+          <div className="shrink-0 space-y-2 text-left">
+            <div className="h-5 bg-gray-100 rounded w-16" />
+            <div className="h-3 bg-gray-100 rounded w-10" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BatchSkeleton() {
+  return (
+    <div className="divide-y divide-gray-50">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="px-5 py-4 animate-pulse">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gray-100 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="h-4 bg-gray-100 rounded w-1/3" />
+                <div className="h-5 bg-gray-100 rounded-full w-14" />
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="h-3 bg-gray-100 rounded w-20" />
+                <div className="h-3 bg-gray-100 rounded w-24" />
+                <div className="h-3 bg-gray-100 rounded w-16" />
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="h-3 bg-gray-100 rounded w-24" />
+                <div className="h-3 bg-gray-100 rounded w-20" />
+              </div>
+            </div>
+            <div className="shrink-0">
+              <div className="h-7 bg-gray-100 rounded-lg w-20" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SearchInput({ value, onChange, placeholder }: {
+  value: string; onChange: (v: string) => void; placeholder: string;
+}) {
+  return (
+    <div className="px-5 py-3 border-b border-gray-100">
+      <div className="relative">
+        <Search className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500 pr-9"
+        />
+      </div>
+    </div>
+  );
+}
 
 function Modal({ title, onClose, children }: {
   title: string; onClose: () => void; children: React.ReactNode;
@@ -107,6 +179,33 @@ export function FlowerInventoryPage() {
   const lowStock = stock.filter(r => parseInt(r.total_remaining || "0") < 20);
 
   const refetchAll = () => { refetchStock(); refetchBatches(); refetchExpiring(); };
+
+  // ─── Search State ─────────────────────────────────────────────────────────
+  const [stockSearch, setStockSearch] = useState("");
+  const [batchSearch, setBatchSearch] = useState("");
+
+  const filteredStock = stockSearch.trim()
+    ? stock.filter((r) => {
+        const q = stockSearch.trim().toLowerCase();
+        return (r.display_name_ar || "").toLowerCase().includes(q)
+          || r.flower_type.toLowerCase().includes(q);
+      })
+    : stock;
+
+  const filteredBatches = batchSearch.trim()
+    ? batches.filter((b) => {
+        const q = batchSearch.trim().toLowerCase();
+        return b.batchNumber.toLowerCase().includes(q)
+          || (b.variant?.displayNameAr || "").toLowerCase().includes(q)
+          || (b.variant?.flowerType || "").toLowerCase().includes(q)
+          || (QUALITY_AR[b.qualityStatus] || b.qualityStatus).toLowerCase().includes(q);
+      })
+    : batches;
+
+  const totalExpiringCost = expiring.reduce((sum, b) => {
+    const cost = parseFloat(b.unitCost || "0");
+    return sum + (b.quantityRemaining * cost);
+  }, 0);
 
   // ─── Receive Batch Modal ───────────────────────────────────────────────────
   const [receiveModal, setReceiveModal] = useState(false);
@@ -278,7 +377,7 @@ export function FlowerInventoryPage() {
         {tab === "stock" && (
           <div>
             {stockLoading ? (
-              <div className="p-8 text-center text-sm text-gray-400">جارٍ التحميل...</div>
+              <StockSkeleton />
             ) : stock.length === 0 ? (
               <div className="p-12 text-center">
                 <Flower2 className="w-10 h-10 text-gray-200 mx-auto mb-3" />
@@ -286,8 +385,15 @@ export function FlowerInventoryPage() {
                 <p className="text-xs text-gray-300 mt-1">استلم دفعة جديدة للبدء</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-50">
-                {stock.map((r) => {
+              <>
+                <SearchInput value={stockSearch} onChange={setStockSearch} placeholder="بحث بالاسم أو نوع الوردة..." />
+                {filteredStock.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <p className="text-sm text-gray-400">لا توجد نتائج تطابق البحث</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {filteredStock.map((r) => {
                   const remaining = parseInt(r.total_remaining || "0");
                   const expiringQty = parseInt(r.expiring_stock || "0");
                   const batches = parseInt(r.batch_count || "0");
@@ -320,7 +426,9 @@ export function FlowerInventoryPage() {
                     </div>
                   );
                 })}
-              </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -329,15 +437,22 @@ export function FlowerInventoryPage() {
         {tab === "batches" && (
           <div>
             {batchesLoading ? (
-              <div className="p-8 text-center text-sm text-gray-400">جارٍ التحميل...</div>
+              <BatchSkeleton />
             ) : batches.length === 0 ? (
               <div className="p-12 text-center">
                 <Package className="w-10 h-10 text-gray-200 mx-auto mb-3" />
                 <p className="text-sm text-gray-400">لا توجد دفعات</p>
               </div>
             ) : (
+              <>
+                <SearchInput value={batchSearch} onChange={setBatchSearch} placeholder="بحث برقم الدفعة، اسم الوردة، أو الحالة..." />
+                {filteredBatches.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <p className="text-sm text-gray-400">لا توجد نتائج تطابق البحث</p>
+                  </div>
+                ) : (
               <div className="divide-y divide-gray-50">
-                {batches.map((b) => {
+                {filteredBatches.map((b) => {
                   const days = b.daysUntilExpiry ?? 999;
                   const urgent = days <= 3;
                   const warning = days <= 7 && days > 3;
@@ -402,6 +517,8 @@ export function FlowerInventoryPage() {
                   );
                 })}
               </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -410,13 +527,19 @@ export function FlowerInventoryPage() {
         {tab === "expiring" && (
           <div>
             {expiringLoading ? (
-              <div className="p-8 text-center text-sm text-gray-400">جارٍ التحميل...</div>
+              <BatchSkeleton />
             ) : expiring.length === 0 ? (
               <div className="p-12 text-center">
                 <Clock className="w-10 h-10 text-gray-200 mx-auto mb-3" />
                 <p className="text-sm text-gray-400">لا توجد دفعات تنتهي خلال 7 أيام</p>
               </div>
             ) : (
+              <>
+                {totalExpiringCost > 0 && (
+                  <div className="px-5 py-3 bg-amber-50 border-b border-amber-100">
+                    <p className="text-sm text-amber-700 font-medium">القيمة المعرضة: {totalExpiringCost.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س</p>
+                  </div>
+                )}
               <div className="divide-y divide-gray-50">
                 {expiring.map((b) => {
                   const days = b.daysUntilExpiry ?? 0;
@@ -452,6 +575,7 @@ export function FlowerInventoryPage() {
                   );
                 })}
               </div>
+              </>
             )}
           </div>
         )}
