@@ -51,6 +51,26 @@ const BLOOM_AR: Record<string, string> = {
 };
 const GRADE_DIRECTION_AR: Record<string, string> = { up: "ترقية", same: "مماثل", down: "تخفيض" };
 
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+function MasterTableSkeleton({ cols = 6 }: { cols?: number }) {
+  return (
+    <div className="overflow-hidden">
+      <div className="bg-gray-50 px-4 py-3 flex gap-6 border-b border-gray-100">
+        {Array.from({ length: cols }).map((_, i) => (
+          <div key={i} className="h-3 bg-gray-100 rounded w-16 animate-pulse" />
+        ))}
+      </div>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="px-4 py-3.5 border-t border-gray-50 flex items-center gap-6 animate-pulse">
+          {Array.from({ length: cols }).map((_, j) => (
+            <div key={j} className="h-4 bg-gray-100 rounded flex-1" />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Modal({ title, onClose, children, wide }: {
   title: string; onClose: () => void; children: React.ReactNode; wide?: boolean;
 }) {
@@ -159,7 +179,7 @@ function VariantsTab() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">جارٍ التحميل...</div>
+        <MasterTableSkeleton cols={10} />
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
@@ -328,7 +348,7 @@ function BatchesTab() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">جارٍ التحميل...</div>
+        <MasterTableSkeleton cols={9} />
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
@@ -470,7 +490,7 @@ function PricingTab() {
         </div>
       )}
 
-      {loading ? <div className="text-center py-12 text-gray-400">جارٍ التحميل...</div> : (
+      {loading ? <MasterTableSkeleton cols={6} /> : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
@@ -591,7 +611,7 @@ function SubstitutionsTab() {
         </button>
       </div>
 
-      {loading ? <div className="text-center py-12 text-gray-400">جارٍ التحميل...</div> : (
+      {loading ? <MasterTableSkeleton cols={6} /> : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
@@ -730,7 +750,7 @@ function ReportsTab() {
         <div className="px-5 py-4 border-b border-gray-100">
           <h3 className="font-semibold text-gray-900">المخزون حسب الصنف</h3>
         </div>
-        {stockLoading ? <div className="p-6 text-center text-gray-400">جارٍ التحميل...</div> : (
+        {stockLoading ? <MasterTableSkeleton cols={6} /> : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
@@ -830,48 +850,50 @@ export function FlowerMasterPage() {
   const [tab, setTab] = useState("variants");
 
   return (
-    <div>
+    <div className="space-y-5">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="w-9 h-9 bg-pink-100 rounded-xl flex items-center justify-center">
-            <Flower2 className="w-5 h-5 text-pink-600" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">أنواع الورد وأسعاره</h1>
-            <p className="text-sm text-gray-500">إدارة الأصناف، الشحنات الواردة، التسعير، والبدائل</p>
-          </div>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-brand-50 flex items-center justify-center">
+          <Database className="w-5 h-5 text-brand-500" />
+        </div>
+        <div>
+          <h1 className="text-lg font-bold text-gray-900">ماستر الورد</h1>
+          <p className="text-xs text-gray-400">إدارة الأصناف والأسعار والبدائل</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-xl mb-6 w-fit">
-        {TABS.map((t) => {
-          const Icon = t.icon;
-          return (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={clsx(
-                "flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-all",
-                tab === t.id
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              )}
-            >
-              <Icon className="w-4 h-4" />
-              {t.label}
-            </button>
-          );
-        })}
-      </div>
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="flex border-b border-gray-100">
+          {TABS.map((t) => {
+            const Icon = t.icon;
+            return (
+              <button
+                key={t.id}
+                onClick={() => setTab(t.id)}
+                className={clsx(
+                  "flex items-center gap-2 px-5 py-3.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+                  tab === t.id
+                    ? "border-brand-500 text-brand-600 bg-brand-50/40"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
 
-      {/* Tab Content */}
-      {tab === "variants"      && <VariantsTab />}
-      {tab === "batches"       && <BatchesTab />}
-      {tab === "pricing"       && <PricingTab />}
-      {tab === "substitutions" && <SubstitutionsTab />}
-      {tab === "reports"       && <ReportsTab />}
+        {/* Tab Content */}
+        <div className="p-0">
+          {tab === "variants"      && <VariantsTab />}
+          {tab === "batches"       && <BatchesTab />}
+          {tab === "pricing"       && <PricingTab />}
+          {tab === "substitutions" && <SubstitutionsTab />}
+          {tab === "reports"       && <ReportsTab />}
+        </div>
+      </div>
     </div>
   );
 }
