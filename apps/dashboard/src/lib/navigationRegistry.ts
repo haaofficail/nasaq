@@ -193,7 +193,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedOperatingProfiles: [],
     items: [
       { name: "الباقات والتنسيقات", href: "/dashboard/arrangements",    icon: ShoppingBag,  requiredCapabilities: ["floral"] },
-      { name: "الكوش والخدمات",     href: "/dashboard/flower-catalog",  icon: PartyPopper,  requiredCapabilities: ["floral"] },
+      { name: "الخدمات الميدانية",   href: "/dashboard/flower-catalog",  icon: PartyPopper,  requiredCapabilities: ["floral"] },
       { name: "تخفيضات الطازج",    href: "/dashboard/flower-disposal", icon: TrendingDown, requiredCapabilities: ["floral"] },
     ],
   },
@@ -527,7 +527,7 @@ function buildFlowerNavigation(ctx: OrgNavContext): NavGroupEntry[] {
       requiredCapabilities: [], anyCapability: [], allowedBusinessTypes: [], allowedOperatingProfiles: [],
       items: [
         { name: "المنتجات",       href: "/dashboard/arrangements",    icon: ShoppingBag,  requiredCapabilities: [] },
-        { name: "الخدمات",        href: "/dashboard/flower-catalog",  icon: PartyPopper,  requiredCapabilities: [] },
+        { name: "الخدمات الميدانية", href: "/dashboard/flower-catalog",  icon: PartyPopper,  requiredCapabilities: [] },
         { name: "قوالب التنفيذ",  href: "/dashboard/event-packages",  icon: ClipboardList,requiredCapabilities: [] },
         { name: "تصريف الطازج",   href: "/dashboard/flower-disposal", icon: TrendingDown, requiredCapabilities: [] },
       ],
