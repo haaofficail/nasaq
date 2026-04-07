@@ -94,6 +94,10 @@ import { hrRouter } from "./routes/hr";
 import { templatesRouter } from "./routes/templates";
 import { onboardingRouter } from "./routes/onboarding";
 import { complianceRouter } from "./routes/compliance";
+import {
+  appointmentEngine, commerceEngine, stayEngine,
+  leaseEngine, tableEngine, eventEngine,
+} from "./engines";
 
 // ============================================================
 // APP
@@ -720,6 +724,34 @@ app.route("/onboarding", onboardingRouter);
 app.use("/compliance/*", authMiddleware);
 app.use("/compliance/*", methodGuard("settings"));
 app.route("/compliance", complianceRouter);
+
+// ============================================================
+// CANONICAL ENGINES — /api/v1/engines/*
+// ============================================================
+// كل engine يملك نموذجه الخاص على الجداول canonical.
+// flag ENABLE_ENGINES يتحكم في تفعيلها (default: true).
+const ENABLE_ENGINES = process.env.ENABLE_ENGINES !== "false";
+if (ENABLE_ENGINES) {
+  app.use("/engines/appointments/*", authMiddleware);
+  app.route("/engines/appointments", appointmentEngine);
+
+  app.use("/engines/commerce/*", authMiddleware);
+  app.route("/engines/commerce", commerceEngine);
+
+  app.use("/engines/stays/*", authMiddleware);
+  app.route("/engines/stays", stayEngine);
+
+  app.use("/engines/leases/*", authMiddleware);
+  app.route("/engines/leases", leaseEngine);
+
+  app.use("/engines/tables/*", authMiddleware);
+  app.route("/engines/tables", tableEngine);
+
+  app.use("/engines/events/*", authMiddleware);
+  app.route("/engines/events", eventEngine);
+
+  log.info("[engines] canonical engines mounted at /api/v1/engines/*");
+}
 
 // ============================================================
 // ERROR HANDLING
