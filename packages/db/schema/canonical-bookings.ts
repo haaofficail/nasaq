@@ -19,7 +19,7 @@ import { organizations } from "./organizations";
 import { customers } from "./customers";
 import { users } from "./auth";
 import { locations } from "./organizations";
-import { bookings } from "./bookings";
+import { bookings, payments } from "./bookings";
 
 // ============================================================
 // APPOINTMENT BOOKINGS
@@ -254,4 +254,207 @@ export const eventBookings = pgTable("event_bookings", {
   index("event_bookings_customer_idx").on(t.customerId),
   index("event_bookings_date_idx").on(t.eventDate),
   index("event_bookings_ref_idx").on(t.bookingRef),
+]);
+
+// ============================================================
+// CANONICAL BOOKING AGGREGATE (Phase 1 completion)
+// Shared model for booking replacement readiness.
+// NOTE: Not wired to runtime paths yet.
+// ============================================================
+
+export const bookingRecords = pgTable("booking_records", {
+  id:            uuid("id").defaultRandom().primaryKey(),
+  orgId:         uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  customerId:    uuid("customer_id").notNull().references(() => customers.id, { onDelete: "restrict" }),
+  bookingRef:    uuid("booking_ref").references(() => bookings.id), // legacy link for migration parity
+
+  bookingNumber: text("booking_number").notNull().unique(),
+  bookingType:   text("booking_type").notNull().default("appointment"), // appointment|event
+
+  status:        text("status").notNull().default("pending"),
+  paymentStatus: text("payment_status").notNull().default("pending"),
+
+  startsAt:      timestamp("starts_at", { withTimezone: true }).notNull(),
+  endsAt:        timestamp("ends_at", { withTimezone: true }),
+  setupAt:       timestamp("setup_at", { withTimezone: true }),
+  teardownAt:    timestamp("teardown_at", { withTimezone: true }),
+
+  locationId:     uuid("location_id").references(() => locations.id, { onDelete: "set null" }),
+  customLocation: text("custom_location"),
+  locationNotes:  text("location_notes"),
+
+  subtotal:       numeric("subtotal", { precision: 12, scale: 2 }).notNull().default("0"),
+  discountAmount: numeric("discount_amount", { precision: 10, scale: 2 }).notNull().default("0"),
+  vatAmount:      numeric("vat_amount", { precision: 10, scale: 2 }).notNull().default("0"),
+  totalAmount:    numeric("total_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  depositAmount:  numeric("deposit_amount", { precision: 10, scale: 2 }).notNull().default("0"),
+  paidAmount:     numeric("paid_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  balanceDue:     numeric("balance_due", { precision: 12, scale: 2 }).notNull().default("0"),
+
+  source:          text("source").default("dashboard"),
+  trackingToken:   text("tracking_token").unique(),
+  customerNotes:   text("customer_notes"),
+  internalNotes:   text("internal_notes"),
+  questionAnswers: jsonb("question_answers").default([]),
+  metadata:        jsonb("metadata").default({}),
+
+  assignedUserId: uuid("assigned_user_id").references(() => users.id, { onDelete: "set null" }),
+  vendorId:       uuid("vendor_id").references(() => users.id, { onDelete: "set null" }),
+
+  cancelledAt:        timestamp("cancelled_at", { withTimezone: true }),
+  cancellationReason: text("cancellation_reason"),
+  reviewedAt:         timestamp("reviewed_at", { withTimezone: true }),
+  rating:             integer("rating"),
+  reviewText:         text("review_text"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("booking_records_org_idx").on(t.orgId),
+  index("booking_records_customer_idx").on(t.customerId),
+  index("booking_records_type_idx").on(t.bookingType),
+  index("booking_records_status_idx").on(t.status),
+  index("booking_records_starts_at_idx").on(t.startsAt),
+  index("booking_records_ref_idx").on(t.bookingRef),
+]);
+
+export const bookingLines = pgTable("booking_lines", {
+  id:             uuid("id").defaultRandom().primaryKey(),
+  bookingRecordId: uuid("booking_record_id").notNull().references(() => bookingRecords.id, { onDelete: "cascade" }),
+
+  itemRefId:      uuid("item_ref_id"), // optional canonical catalog item reference
+  serviceRefId:   uuid("service_ref_id"), // optional legacy service reference during migration
+  lineType:       text("line_type").notNull().default("service"),
+
+  itemName:       text("item_name").notNull(),
+  itemType:       text("item_type"),
+  durationMinutes: integer("duration_minutes"),
+  vatInclusive:   boolean("vat_inclusive").default(true).notNull(),
+
+  quantity:       integer("quantity").notNull().default(1),
+  unitPrice:      numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
+  totalPrice:     numeric("total_price", { precision: 12, scale: 2 }).notNull(),
+  pricingBreakdown: jsonb("pricing_breakdown").default([]),
+  snapshot:       jsonb("snapshot").default({}),
+  notes:          text("notes"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("booking_lines_record_idx").on(t.bookingRecordId),
+  index("booking_lines_item_ref_idx").on(t.itemRefId),
+  index("booking_lines_service_ref_idx").on(t.serviceRefId),
+]);
+
+export const bookingLineAddons = pgTable("booking_line_addons", {
+  id:             uuid("id").defaultRandom().primaryKey(),
+  bookingLineId:  uuid("booking_line_id").notNull().references(() => bookingLines.id, { onDelete: "cascade" }),
+
+  addonRefId:     uuid("addon_ref_id"),
+  addonName:      text("addon_name").notNull(),
+  quantity:       integer("quantity").notNull().default(1),
+  unitPrice:      numeric("unit_price", { precision: 10, scale: 2 }).notNull(),
+  totalPrice:     numeric("total_price", { precision: 12, scale: 2 }).notNull(),
+  snapshot:       jsonb("snapshot").default({}),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("booking_line_addons_line_idx").on(t.bookingLineId),
+  index("booking_line_addons_ref_idx").on(t.addonRefId),
+]);
+
+export const bookingTimelineEvents = pgTable("booking_timeline_events", {
+  id:             uuid("id").defaultRandom().primaryKey(),
+  orgId:          uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  bookingRecordId: uuid("booking_record_id").notNull().references(() => bookingRecords.id, { onDelete: "cascade" }),
+  userId:         uuid("user_id").references(() => users.id, { onDelete: "set null" }),
+
+  eventType:      text("event_type").notNull(),
+  fromStatus:     text("from_status"),
+  toStatus:       text("to_status"),
+  metadata:       jsonb("metadata").default({}).notNull(),
+  notes:          text("notes"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("booking_timeline_events_record_idx").on(t.bookingRecordId),
+  index("booking_timeline_events_org_idx").on(t.orgId),
+  index("booking_timeline_events_type_idx").on(t.eventType),
+  index("booking_timeline_events_created_idx").on(t.createdAt),
+]);
+
+export const bookingRecordAssignments = pgTable("booking_record_assignments", {
+  id:             uuid("id").defaultRandom().primaryKey(),
+  orgId:          uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  bookingRecordId: uuid("booking_record_id").notNull().references(() => bookingRecords.id, { onDelete: "cascade" }),
+  userId:         uuid("user_id").notNull().references(() => users.id),
+
+  role:           text("role").notNull().default("staff"),
+  assignedAt:     timestamp("assigned_at", { withTimezone: true }).defaultNow().notNull(),
+  notes:          text("notes"),
+  createdAt:      timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("booking_record_assignments_record_idx").on(t.bookingRecordId),
+  index("booking_record_assignments_user_idx").on(t.userId),
+  index("booking_record_assignments_org_idx").on(t.orgId),
+]);
+
+export const bookingRecordCommissions = pgTable("booking_record_commissions", {
+  id:             uuid("id").defaultRandom().primaryKey(),
+  orgId:          uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  bookingRecordId: uuid("booking_record_id").notNull().references(() => bookingRecords.id, { onDelete: "cascade" }),
+  bookingLineId:  uuid("booking_line_id").references(() => bookingLines.id, { onDelete: "set null" }),
+  userId:         uuid("user_id").notNull().references(() => users.id),
+
+  serviceRefId:   uuid("service_ref_id"),
+  commissionMode: text("commission_mode").notNull().default("percentage"), // percentage|fixed
+  rate:           numeric("rate", { precision: 10, scale: 2 }).notNull().default("0"),
+  baseAmount:     numeric("base_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  commissionAmount: numeric("commission_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  status:         text("status").notNull().default("pending"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("booking_record_commissions_record_idx").on(t.bookingRecordId),
+  index("booking_record_commissions_line_idx").on(t.bookingLineId),
+  index("booking_record_commissions_user_idx").on(t.userId),
+  index("booking_record_commissions_org_idx").on(t.orgId),
+]);
+
+export const bookingRecordConsumptions = pgTable("booking_consumptions_canonical", {
+  id:             uuid("id").defaultRandom().primaryKey(),
+  orgId:          uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  bookingRecordId: uuid("booking_record_id").notNull().references(() => bookingRecords.id, { onDelete: "cascade" }),
+  bookingLineId:  uuid("booking_line_id").references(() => bookingLines.id, { onDelete: "set null" }),
+
+  supplyId:       uuid("supply_id"),
+  inventoryItemId: uuid("inventory_item_id"),
+  quantity:       numeric("quantity", { precision: 10, scale: 2 }).notNull(),
+  unit:           text("unit"),
+  consumedAt:     timestamp("consumed_at", { withTimezone: true }).defaultNow().notNull(),
+  createdBy:      uuid("created_by").references(() => users.id, { onDelete: "set null" }),
+  metadata:       jsonb("metadata").default({}),
+  notes:          text("notes"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("booking_consumptions_canonical_record_idx").on(t.bookingRecordId),
+  index("booking_consumptions_canonical_line_idx").on(t.bookingLineId),
+  index("booking_consumptions_canonical_org_idx").on(t.orgId),
+  index("booking_consumptions_canonical_supply_idx").on(t.supplyId),
+]);
+
+export const bookingPaymentLinks = pgTable("booking_payment_links", {
+  id:             uuid("id").defaultRandom().primaryKey(),
+  orgId:          uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  bookingRecordId: uuid("booking_record_id").notNull().references(() => bookingRecords.id, { onDelete: "cascade" }),
+  paymentId:      uuid("payment_id").notNull().references(() => payments.id, { onDelete: "restrict" }),
+  linkType:       text("link_type").notNull().default("payment"), // payment|deposit|refund|adjustment
+  amountApplied:  numeric("amount_applied", { precision: 12, scale: 2 }),
+  metadata:       jsonb("metadata").default({}),
+  createdAt:      timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (t) => [
+  index("booking_payment_links_record_idx").on(t.bookingRecordId),
+  index("booking_payment_links_payment_idx").on(t.paymentId),
+  index("booking_payment_links_org_idx").on(t.orgId),
 ]);
