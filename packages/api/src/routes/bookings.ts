@@ -17,6 +17,8 @@ import { insertAuditLog } from "../lib/audit";
 import { awardLoyaltyPoints } from "../lib/segments-engine";
 import { fireBookingEvent } from "../lib/messaging-engine";
 import { decryptString } from "../lib/encryption";
+import { log } from "../lib/logger";
+import { mapLegacyBookingAggregateToCanonical } from "../lib/bookings-mapping";
 import type { AuthUser } from "../middleware/auth";
 
 export const bookingsRouter = new Hono<{ Variables: { user: AuthUser | null; orgId: string; locationFilter: string[] | null; requestId: string } }>();
@@ -27,6 +29,7 @@ export const bookingsRouter = new Hono<{ Variables: { user: AuthUser | null; org
 
 // Immediate-sale types: no time slot required — booking = sale at current moment
 const IMMEDIATE_TYPES = new Set(["product", "product_shipping", "food_order", "package", "add_on"]);
+const ENABLE_CANONICAL_SHADOW_WRITE = process.env.ENABLE_CANONICAL_SHADOW_WRITE === "true";
 
 const createBookingSchema = z.object({
   customerId: z.string().uuid(),
@@ -64,6 +67,172 @@ const createBookingSchema = z.object({
   utmMedium: z.string().optional(),
   utmCampaign: z.string().optional(),
 });
+
+async function shadowWriteCanonicalBookingOnCreate(input: { orgId: string; bookingId: string; requestId: string }) {
+  const { orgId, bookingId, requestId } = input;
+
+  try {
+    const [legacyBooking] = await db.select().from(bookings)
+      .where(and(eq(bookings.id, bookingId), eq(bookings.orgId, orgId)));
+    if (!legacyBooking) return;
+
+    const [legacyItems, legacyAddons, legacyEvents, legacyAssignments, legacyCommissions, legacyConsumptions, legacyPayments] = await Promise.all([
+      db.select().from(bookingItems).where(eq(bookingItems.bookingId, bookingId)),
+      db.select().from(bookingItemAddons).where(
+        sql`${bookingItemAddons.bookingItemId} IN (SELECT id FROM booking_items WHERE booking_id = ${bookingId})`
+      ),
+      db.select().from(bookingEvents).where(eq(bookingEvents.bookingId, bookingId)),
+      db.select().from(bookingAssignments).where(eq(bookingAssignments.bookingId, bookingId)),
+      db.select().from(bookingCommissions).where(eq(bookingCommissions.bookingId, bookingId)),
+      db.select().from(bookingConsumptions).where(eq(bookingConsumptions.bookingId, bookingId)),
+      db.select().from(payments).where(eq(payments.bookingId, bookingId)),
+    ]);
+
+    const mapped = mapLegacyBookingAggregateToCanonical({
+      booking: legacyBooking,
+      items: legacyItems,
+      addons: legacyAddons,
+      events: legacyEvents,
+      assignments: legacyAssignments,
+      commissions: legacyCommissions,
+      consumptions: legacyConsumptions,
+      payments: legacyPayments,
+    });
+
+    await db.transaction(async (tx) => {
+      const record = mapped.booking_records as any;
+
+      const recordRes = await tx.execute(sql`
+        INSERT INTO booking_records (
+          org_id, customer_id, booking_ref, booking_number, status, payment_status,
+          starts_at, ends_at, setup_at, teardown_at, location_id, custom_location, location_notes,
+          subtotal, discount_amount, vat_amount, total_amount, deposit_amount, paid_amount, balance_due,
+          source, tracking_token, customer_notes, internal_notes, question_answers, assigned_user_id, vendor_id,
+          cancelled_at, cancellation_reason, reviewed_at, rating, review_text, metadata, created_at, updated_at
+        ) VALUES (
+          ${record.orgId}, ${record.customerId}, ${record.bookingRef}, ${record.bookingNumber}, ${record.status}, ${record.paymentStatus},
+          ${record.startsAt}, ${record.endsAt ?? null}, ${record.setupAt ?? null}, ${record.teardownAt ?? null},
+          ${record.locationId ?? null}, ${record.customLocation ?? null}, ${record.locationNotes ?? null},
+          ${record.subtotal}, ${record.discountAmount ?? "0"}, ${record.vatAmount ?? "0"}, ${record.totalAmount},
+          ${record.depositAmount ?? "0"}, ${record.paidAmount ?? "0"}, ${record.balanceDue ?? "0"},
+          ${record.source ?? "dashboard"}, ${record.trackingToken ?? null}, ${record.customerNotes ?? null},
+          ${record.internalNotes ?? null}, ${record.questionAnswers ?? []}, ${record.assignedUserId ?? null}, ${record.vendorId ?? null},
+          ${record.cancelledAt ?? null}, ${record.cancellationReason ?? null}, ${record.reviewedAt ?? null}, ${record.rating ?? null}, ${record.reviewText ?? null},
+          ${record.metadata ?? {}}, ${record.createdAt}, ${record.updatedAt}
+        )
+        RETURNING id
+      `);
+
+      const bookingRecordId = (recordRes.rows[0] as any)?.id as string | undefined;
+      if (!bookingRecordId) throw new Error("CANONICAL_BOOKING_RECORD_MISSING_ID");
+
+      const lineIdByLegacyItemId = new Map<string, string>();
+      for (const line of mapped.booking_lines as any[]) {
+        const row = line.row;
+        const lineRes = await tx.execute(sql`
+          INSERT INTO booking_lines (
+            booking_record_id, service_ref_id, line_type, item_name, item_type, duration_minutes, vat_inclusive,
+            quantity, unit_price, total_price, pricing_breakdown, notes, snapshot, created_at
+          ) VALUES (
+            ${bookingRecordId}, ${row.serviceRefId ?? null}, ${row.itemType ?? "service"}, ${row.itemName},
+            ${row.itemType ?? null}, ${row.durationMinutes ?? null}, ${row.vatInclusive ?? true},
+            ${row.quantity ?? 1}, ${row.unitPrice}, ${row.totalPrice}, ${row.pricingBreakdown ?? []}, ${row.notes ?? null},
+            ${{ legacyBookingItemId: line.legacyBookingItemId }}, ${row.createdAt ?? record.createdAt}
+          )
+          RETURNING id
+        `);
+        const lineId = (lineRes.rows[0] as any)?.id as string | undefined;
+        if (lineId) lineIdByLegacyItemId.set(line.legacyBookingItemId, lineId);
+      }
+
+      for (const addon of mapped.booking_line_addons as any[]) {
+        const row = addon.row;
+        const lineId = lineIdByLegacyItemId.get(addon.legacyBookingItemId);
+        if (!lineId) continue;
+        await tx.execute(sql`
+          INSERT INTO booking_line_addons (
+            booking_line_id, addon_ref_id, addon_name, quantity, unit_price, total_price, created_at
+          ) VALUES (
+            ${lineId}, ${row.addonRefId ?? null}, ${row.addonName}, ${row.quantity ?? 1},
+            ${row.unitPrice}, ${row.totalPrice}, ${record.createdAt}
+          )
+        `);
+      }
+
+      for (const eventRow of mapped.booking_timeline_events as any[]) {
+        await tx.execute(sql`
+          INSERT INTO booking_timeline_events (
+            org_id, booking_record_id, user_id, event_type, from_status, to_status, metadata, notes, created_at
+          ) VALUES (
+            ${eventRow.orgId}, ${bookingRecordId}, ${eventRow.userId ?? null}, ${eventRow.eventType},
+            ${eventRow.fromStatus ?? null}, ${eventRow.toStatus ?? null}, ${eventRow.metadata ?? {}},
+            ${eventRow.notes ?? null}, ${eventRow.createdAt ?? record.createdAt}
+          )
+        `);
+      }
+
+      for (const assignmentRow of mapped.booking_record_assignments as any[]) {
+        await tx.execute(sql`
+          INSERT INTO booking_record_assignments (
+            org_id, booking_record_id, user_id, role, assigned_at, notes, created_at
+          ) VALUES (
+            ${assignmentRow.orgId}, ${bookingRecordId}, ${assignmentRow.userId}, ${assignmentRow.role ?? "staff"},
+            ${assignmentRow.assignedAt ?? record.createdAt}, ${assignmentRow.notes ?? null}, ${assignmentRow.createdAt ?? record.createdAt}
+          )
+        `);
+      }
+
+      for (const commissionRow of mapped.booking_record_commissions as any[]) {
+        const row = commissionRow.row;
+        const lineId = commissionRow.legacyBookingItemId ? lineIdByLegacyItemId.get(commissionRow.legacyBookingItemId) : null;
+        await tx.execute(sql`
+          INSERT INTO booking_record_commissions (
+            org_id, booking_record_id, booking_line_id, user_id, service_ref_id, commission_mode,
+            rate, base_amount, commission_amount, status, created_at, updated_at
+          ) VALUES (
+            ${row.orgId}, ${bookingRecordId}, ${lineId ?? null}, ${row.userId}, ${row.serviceRefId ?? null},
+            ${row.commissionMode ?? "percentage"}, ${row.rate ?? "0"}, ${row.baseAmount ?? "0"},
+            ${row.commissionAmount ?? "0"}, ${row.status ?? "pending"}, ${row.createdAt ?? record.createdAt}, ${row.updatedAt ?? record.updatedAt}
+          )
+        `);
+      }
+
+      for (const consumptionRow of mapped.booking_consumptions_canonical as any[]) {
+        const row = consumptionRow.row;
+        const lineId = consumptionRow.legacyBookingItemId ? lineIdByLegacyItemId.get(consumptionRow.legacyBookingItemId) : null;
+        await tx.execute(sql`
+          INSERT INTO booking_consumptions_canonical (
+            org_id, booking_record_id, booking_line_id, supply_id, inventory_item_id, quantity,
+            unit, consumed_at, created_by, notes, created_at
+          ) VALUES (
+            ${row.orgId}, ${bookingRecordId}, ${lineId ?? null}, ${row.supplyId ?? null}, ${row.inventoryItemId ?? null},
+            ${row.quantity}, ${row.unit ?? null}, ${row.consumedAt ?? record.createdAt}, ${row.createdBy ?? null},
+            ${row.notes ?? null}, ${row.createdAt ?? record.createdAt}
+          )
+        `);
+      }
+
+      for (const paymentRow of mapped.booking_payment_links as any[]) {
+        await tx.execute(sql`
+          INSERT INTO booking_payment_links (
+            org_id, booking_record_id, payment_id, link_type, amount_applied, metadata, created_at
+          ) VALUES (
+            ${paymentRow.orgId}, ${bookingRecordId}, ${paymentRow.paymentId},
+            ${paymentRow.linkType ?? "payment"}, ${paymentRow.amountApplied ?? null}, ${paymentRow.metadata ?? {}},
+            ${paymentRow.createdAt ?? record.createdAt}
+          )
+        `);
+      }
+    });
+  } catch (error) {
+    log.error({
+      orgId,
+      bookingId,
+      requestId,
+      error: error instanceof Error ? error.message : String(error),
+    }, "[canonical-shadow-write] create flow failed; legacy response preserved");
+  }
+}
 
 // ============================================================
 // GET /bookings — List with filtering + pagination
@@ -233,6 +402,7 @@ bookingsRouter.get("/:id", async (c) => {
 bookingsRouter.post("/", async (c) => {
   const orgId = getOrgId(c);
   const userId = getUserId(c);
+  const requestId = c.get("requestId");
   const body = createBookingSchema.parse(await c.req.json());
 
   // 1. Verify customer exists
@@ -575,6 +745,10 @@ bookingsRouter.post("/", async (c) => {
   // إرسال إشعار تأكيد الحجز للعميل + إشعار المالك (fire-and-forget)
   fireBookingEvent("booking_confirmed",  { orgId, bookingId: booking.id });
   fireBookingEvent("owner_new_booking",  { orgId, bookingId: booking.id });
+
+  if (ENABLE_CANONICAL_SHADOW_WRITE) {
+    void shadowWriteCanonicalBookingOnCreate({ orgId, bookingId: booking.id, requestId });
+  }
 
   return c.json({
     data: {
