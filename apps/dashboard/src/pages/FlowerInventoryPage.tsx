@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { flowerMasterApi, flowerSuppliersApi } from "@/lib/api";
 import { toast } from "@/hooks/useToast";
+import { confirmDialog } from "@/components/ui";
 import {
   Flower2, Plus, X, AlertTriangle, RefreshCw,
   Package, TrendingDown, Clock, ChevronDown, Leaf, Search,
@@ -257,6 +258,9 @@ export function FlowerInventoryPage() {
   };
 
   // ─── Consume Modal ─────────────────────────────────────────────────────────
+  // NOTE: Stock limit below is UI-level only. Backend MUST validate
+  // remaining quantity in FEFO consume endpoint to prevent over-withdrawal
+  // in concurrent scenarios. See: POST /flower-master/consume
   const [consumeModal, setConsumeModal] = useState(false);
   const [consumeForm, setConsumeForm] = useState({ variantId: "", quantity: "", reason: "" });
   const consumeMut = useMutation((d: any) => flowerMasterApi.consumeBatch(d));
@@ -541,10 +545,14 @@ export function FlowerInventoryPage() {
                             onChange={async (e) => {
                               const newStatus = e.target.value;
                               const newLabel = QUALITY_AR[newStatus] ?? newStatus;
-                              if (!window.confirm(`تغيير حالة الجودة إلى "${newLabel}"؟`)) {
-                                e.target.value = b.qualityStatus;
-                                return;
-                              }
+                              // Revert select immediately; will refetch on success
+                              e.target.value = b.qualityStatus;
+                              const ok = await confirmDialog({
+                                title: `تغيير حالة الجودة إلى "${newLabel}"؟`,
+                                message: `دفعة #${b.batchNumber}`,
+                                confirmLabel: newLabel,
+                              });
+                              if (!ok) return;
                               const res = await updateQualityMut.mutate({ id: b.id, qualityStatus: newStatus });
                               if (res) {
                                 toast.success(`تم تحديث حالة الجودة إلى "${newLabel}"`);

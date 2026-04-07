@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { flowerBuilderApi, teamApi } from "@/lib/api";
 import {
@@ -9,6 +9,7 @@ import {
 import { clsx } from "clsx";
 import { fmtDate } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
+import { confirmDialog } from "@/components/ui";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 interface FlowerOrder {
@@ -322,7 +323,12 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
 
   const handleAdvance = async (nextStatus: string) => {
     const label = STATUS_CONFIG[nextStatus]?.label ?? nextStatus;
-    if (!window.confirm(`هل تريد تغيير حالة الطلب إلى "${label}"؟`)) return;
+    const ok = await confirmDialog({
+      title: `تغيير حالة الطلب إلى "${label}"؟`,
+      message: `سيتم تحديث حالة الطلب ${order.order_number}`,
+      confirmLabel: label,
+    });
+    if (!ok) return;
     const res = await updateMut.mutate({ status: nextStatus });
     if (res) {
       toast.success(`تم تحديث الحالة: ${label}`);
@@ -578,32 +584,32 @@ export function FlowerDeliveryPage() {
     () => flowerBuilderApi.orderStats(),
     []
   );
-  // Load all orders once — filter client-side for instant tab switching
+  // Server-side status filter (API supports it) + client-side search/type for instant UX
   const { data: ordersRes, loading: ordersLoading, error, refetch } = useApi(
-    () => flowerBuilderApi.orders(),
-    []
+    () => flowerBuilderApi.orders(activeStatus ? { status: activeStatus } : undefined),
+    [activeStatus]
   );
 
   const stats = statsRes?.data ?? {};
   const allOrders: FlowerOrder[] = ordersRes?.data ?? [];
 
-  // Client-side filter: status + delivery type + search
-  const orders = allOrders.filter(o => {
-    // Status filter
-    if (activeStatus && o.status !== activeStatus) return false;
-    // Delivery type filter
-    if (activeType === "pickup" && o.delivery_type !== "pickup" && o.delivery_type !== "store") return false;
-    if (activeType === "delivery" && (o.delivery_type === "pickup" || o.delivery_type === "store")) return false;
-    // Search filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      return (o.customer_name ?? "").toLowerCase().includes(q) ||
-             (o.customer_phone ?? "").toLowerCase().includes(q) ||
-             (o.order_number ?? "").toLowerCase().includes(q) ||
-             (o.driver_name ?? "").toLowerCase().includes(q);
-    }
-    return true;
-  });
+  // Client-side filter: delivery type + search (status already filtered server-side)
+  const orders = useMemo(() => {
+    return allOrders.filter(o => {
+      // Delivery type filter (client-side since API doesn't support it)
+      if (activeType === "pickup" && o.delivery_type !== "pickup" && o.delivery_type !== "store") return false;
+      if (activeType === "delivery" && (o.delivery_type === "pickup" || o.delivery_type === "store")) return false;
+      // Search filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        return (o.customer_name ?? "").toLowerCase().includes(q) ||
+               (o.customer_phone ?? "").toLowerCase().includes(q) ||
+               (o.order_number ?? "").toLowerCase().includes(q) ||
+               (o.driver_name ?? "").toLowerCase().includes(q);
+      }
+      return true;
+    });
+  }, [allOrders, activeType, searchQuery]);
 
   const todayOrders = allOrders.filter(o => {
     const d = new Date(o.created_at);

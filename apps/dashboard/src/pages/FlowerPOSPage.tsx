@@ -303,12 +303,15 @@ export function FlowerPOSPage() {
   const cartEmpty = cart.length === 0;
 
   // ─── Cart operations ─────────────────────────────────────────────────────────
+  // NOTE: Stock checks below are UI-level only (optimistic).
+  // Backend MUST validate stock availability at checkout to prevent overselling
+  // in concurrent scenarios. See: POST /flower-builder/orders
 
   function addToCart(item: CatalogItem) {
     setCart((prev) => {
       const existing = prev.find((c) => c.id === item.id);
       if (existing) {
-        // Prevent exceeding available stock (stock=999 means unlimited e.g. packages)
+        // UI-level stock guard (stock=999 means unlimited e.g. packages)
         if (item.stock < 999 && existing.qty >= item.stock) {
           toast.error(`الكمية المتاحة من "${item.name}" هي ${item.stock} فقط`);
           return prev;
@@ -325,7 +328,7 @@ export function FlowerPOSPage() {
     setCart((prev) => {
       const item = prev.find((c) => c.id === id);
       if (!item) return prev;
-      // Check stock limit from catalog
+      // UI-level stock guard
       const catalogItem = catalogItems.find((ci) => ci.id === id);
       if (catalogItem && catalogItem.stock < 999 && item.qty >= catalogItem.stock) {
         toast.error(`الكمية المتاحة من "${item.name}" هي ${catalogItem.stock} فقط`);

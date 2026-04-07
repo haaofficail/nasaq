@@ -15,6 +15,7 @@ import {
 import { clsx } from "clsx";
 import { fmtDate } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
+import { confirmDialog } from "@/components/ui";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type OrderCat = "all" | "sale" | "service";
@@ -148,7 +149,12 @@ function SaleOrderRow({ order, onStatusUpdate }: { order: SaleOrder; onStatusUpd
     const next = SALE_STATUS_NEXT[order.status];
     if (!next) return;
     const nextLabel = SALE_STATUS[next]?.label ?? next;
-    if (!window.confirm(`هل تريد تغيير الحالة إلى "${nextLabel}"؟`)) return;
+    const ok = await confirmDialog({
+      title: `تغيير الحالة إلى "${nextLabel}"؟`,
+      message: `سيتم تحديث حالة الطلب ${order.order_number}`,
+      confirmLabel: nextLabel,
+    });
+    if (!ok) return;
     const res = await updateMut.mutate(next);
     if (res) {
       toast.success(`تم تحديث الحالة إلى: ${nextLabel}`);
@@ -342,13 +348,13 @@ export function FlowerOrdersPage() {
   const [saleStatus, setSaleStatus] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Load all orders once — filter client-side for instant tab switching
+  // Server-side status filter (API supports it) + client-side search for instant UX
   const { data: saleStatsRes } = useApi(() => flowerBuilderApi.orderStats(), []);
   const { data: serviceStatsRes } = useApi(() => serviceOrdersApi.stats(), []);
 
   const { data: saleRes, loading: saleLoading, error: saleError, refetch: refetchSale } = useApi(
-    () => flowerBuilderApi.orders(),
-    []
+    () => flowerBuilderApi.orders(saleStatus ? { status: saleStatus } : undefined),
+    [saleStatus]
   );
   const { data: serviceRes, loading: serviceLoading, refetch: refetchService } = useApi(
     () => serviceOrdersApi.list({}),
@@ -360,19 +366,16 @@ export function FlowerOrdersPage() {
   const saleStats = saleStatsRes?.data ?? {};
   const serviceStats = serviceStatsRes?.data ?? {};
 
-  // Client-side filtering: status + search — no re-fetch needed
+  // Client-side search only — status is filtered server-side
   const saleOrders = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    return allSaleOrders.filter(o => {
-      if (saleStatus && o.status !== saleStatus) return false;
-      if (q) {
-        return (o.customer_name ?? "").toLowerCase().includes(q) ||
-               (o.customer_phone ?? "").toLowerCase().includes(q) ||
-               (o.order_number ?? "").toLowerCase().includes(q);
-      }
-      return true;
-    });
-  }, [allSaleOrders, saleStatus, searchQuery]);
+    if (!q) return allSaleOrders;
+    return allSaleOrders.filter(o =>
+      (o.customer_name ?? "").toLowerCase().includes(q) ||
+      (o.customer_phone ?? "").toLowerCase().includes(q) ||
+      (o.order_number ?? "").toLowerCase().includes(q)
+    );
+  }, [allSaleOrders, searchQuery]);
 
   const serviceOrders = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
