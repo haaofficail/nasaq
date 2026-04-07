@@ -134,7 +134,7 @@ function ServiceCard({
       <div className="flex items-center gap-4 py-1.5 border-t border-gray-50">
         <IndicatorDot active={hasInventory} label="مخزون" />
         <IndicatorDot active={hasTemplate} label="خطة تجهيز" />
-        {hasTemplate && service.template?.name && (
+        {service.template?.name && (
           <span className="text-[10px] text-purple-500 truncate mr-auto" title={service.template.name}>
             {service.template.name}
           </span>
