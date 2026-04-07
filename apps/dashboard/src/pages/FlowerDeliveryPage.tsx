@@ -97,16 +97,52 @@ function StatusBadge({ status }: { status: string }) {
 // ─── Skeleton ───────────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
-      <div className="flex items-center justify-between mb-3">
-        <div className="h-4 bg-gray-100 rounded w-24" />
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
+        <div className="flex items-center gap-2">
+          <div className="h-4 bg-gray-100 rounded w-20" />
+          <div className="h-5 bg-gray-100 rounded-lg w-14" />
+        </div>
         <div className="h-6 bg-gray-100 rounded-lg w-20" />
       </div>
-      <div className="space-y-2">
-        <div className="h-3 bg-gray-100 rounded w-2/3" />
-        <div className="h-3 bg-gray-100 rounded w-1/2" />
-        <div className="h-3 bg-gray-100 rounded w-3/4" />
+      {/* Body */}
+      <div className="px-4 py-3 space-y-2.5">
+        <div className="flex items-center gap-2">
+          <div className="w-3.5 h-3.5 bg-gray-100 rounded-full shrink-0" />
+          <div className="h-4 bg-gray-100 rounded w-32" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3.5 h-3.5 bg-gray-100 rounded-full shrink-0" />
+          <div className="h-3 bg-gray-100 rounded w-24" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3.5 h-3.5 bg-gray-100 rounded-full shrink-0" />
+          <div className="h-3 bg-gray-100 rounded w-3/4" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3.5 h-3.5 bg-gray-100 rounded-full shrink-0" />
+          <div className="h-3 bg-gray-100 rounded w-1/2" />
+        </div>
       </div>
+      {/* Footer */}
+      <div className="px-4 py-3 border-t border-gray-50 flex items-center justify-between">
+        <div className="h-5 bg-gray-100 rounded w-20" />
+        <div className="flex items-center gap-2">
+          <div className="h-9 bg-gray-100 rounded-xl w-24" />
+          <div className="h-9 bg-gray-100 rounded-xl w-24" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonKpiCard() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
+      <div className="w-9 h-9 rounded-xl bg-gray-100 mb-3" />
+      <div className="h-7 bg-gray-100 rounded w-10 mb-1.5" />
+      <div className="h-3 bg-gray-100 rounded w-16" />
     </div>
   );
 }
@@ -568,7 +604,8 @@ export function FlowerDeliveryPage() {
     return n > 0 ? n : allOrders.filter(o => o.status === s).length;
   };
 
-  const todayRevenue = todayOrders.reduce((sum, o) => sum + Number(o.total ?? o.subtotal ?? 0), 0);
+  // Pending = not yet out for delivery (pending + preparing + ready)
+  const pendingDeliveries = countByStatus("pending") + countByStatus("preparing") + countByStatus("ready");
 
   const todayDateStr = new Date().toLocaleDateString("ar-SA", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
@@ -596,45 +633,43 @@ export function FlowerDeliveryPage() {
         </div>
       </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center mb-3">
-            <Package className="w-4 h-4 text-blue-500" />
-          </div>
-          <p className="text-2xl font-bold text-blue-600 tabular-nums">
-            {statsLoading ? <span className="inline-block h-7 w-8 bg-gray-100 rounded animate-pulse" /> : countByStatus("pending")}
-          </p>
-          <p className="text-xs text-gray-400 mt-0.5">جديد</p>
+      {/* Delivery Summary KPIs */}
+      {statsLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => <SkeletonKpiCard key={i} />)}
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center mb-3">
-            <Truck className="w-4 h-4 text-amber-500" />
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center mb-3">
+              <Package className="w-4 h-4 text-brand-500" />
+            </div>
+            <p className="text-2xl font-bold text-brand-500 tabular-nums">{todayOrders.length}</p>
+            <p className="text-xs text-gray-400 mt-0.5">اجمالي طلبات اليوم</p>
           </div>
-          <p className="text-2xl font-bold text-amber-600 tabular-nums">
-            {statsLoading ? <span className="inline-block h-7 w-8 bg-gray-100 rounded animate-pulse" /> : countByStatus("out_for_delivery")}
-          </p>
-          <p className="text-xs text-gray-400 mt-0.5">في الطريق</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center mb-3">
-            <CheckCircle2 className="w-4 h-4 text-green-500" />
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center mb-3">
+              <Clock className="w-4 h-4 text-blue-500" />
+            </div>
+            <p className="text-2xl font-bold text-blue-600 tabular-nums">{pendingDeliveries}</p>
+            <p className="text-xs text-gray-400 mt-0.5">بانتظار التوصيل</p>
           </div>
-          <p className="text-2xl font-bold text-green-600 tabular-nums">
-            {statsLoading ? <span className="inline-block h-7 w-8 bg-gray-100 rounded animate-pulse" /> : countByStatus("delivered")}
-          </p>
-          <p className="text-xs text-gray-400 mt-0.5">تم التوصيل</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-brand-500/20 p-4">
-          <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center mb-3">
-            <span className="text-sm font-bold text-brand-500">ر.س</span>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center mb-3">
+              <Truck className="w-4 h-4 text-amber-500" />
+            </div>
+            <p className="text-2xl font-bold text-amber-600 tabular-nums">{countByStatus("out_for_delivery")}</p>
+            <p className="text-xs text-gray-400 mt-0.5">في الطريق</p>
           </div>
-          <p className="text-2xl font-bold text-brand-500 tabular-nums">
-            {statsLoading ? <span className="inline-block h-7 w-14 bg-gray-100 rounded animate-pulse" /> : todayRevenue.toLocaleString("en-US")}
-          </p>
-          <p className="text-xs text-gray-400 mt-0.5">إجمالي اليوم</p>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center mb-3">
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
+            </div>
+            <p className="text-2xl font-bold text-green-600 tabular-nums">{countByStatus("delivered")}</p>
+            <p className="text-xs text-gray-400 mt-0.5">تم التوصيل</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Delivery Type Segment */}
       <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-2xl px-4 py-3">
@@ -685,26 +720,29 @@ export function FlowerDeliveryPage() {
               {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : error ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <AlertTriangle className="w-10 h-10 text-red-300 mb-3" />
-              <p className="text-sm font-semibold text-gray-700">حدث خطأ في تحميل الطلبات</p>
-              <p className="text-xs text-gray-400 mt-1">{error}</p>
-              <button
-                onClick={refetch}
-                className="mt-3 px-4 py-2 rounded-xl bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition-colors"
-              >
+            <div className="flex flex-col items-center justify-center h-64 gap-3">
+              <AlertTriangle className="w-9 h-9 text-red-400" />
+              <p className="text-sm text-red-500">حدث خطأ في تحميل بيانات التوصيل</p>
+              <button onClick={refetch} className="text-sm text-brand-500 hover:underline">
                 إعادة المحاولة
               </button>
             </div>
           ) : orders.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-4">
+            <div className="flex flex-col items-center justify-center h-64 gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center">
                 <Truck className="w-7 h-7 text-gray-300" />
               </div>
-              <p className="text-sm font-semibold text-gray-700">لا توجد طلبات</p>
-              <p className="text-xs text-gray-400 mt-1">
-                {activeStatus ? `لا توجد طلبات بحالة "${STATUS_CONFIG[activeStatus]?.label ?? activeStatus}"` : "لم يتم استلام أي طلبات بعد"}
-              </p>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-gray-600">لا توجد طلبات توصيل</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {activeStatus
+                    ? `لا توجد طلبات بحالة "${STATUS_CONFIG[activeStatus]?.label ?? activeStatus}" لهذا اليوم`
+                    : "لم يتم استلام أي طلبات توصيل بعد لهذا اليوم"}
+                </p>
+              </div>
+              <button onClick={refetch} className="text-sm text-brand-500 hover:underline">
+                تحديث
+              </button>
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">
