@@ -82,8 +82,8 @@ function timeAgo(s?: string | null) {
 
 function QualityBar({ score }: { score: number }) {
   const pct = Math.min(100, (score / 10) * 100);
-  const color = score >= 8 ? "bg-green-500" : score >= 6 ? "bg-yellow-500" : "bg-red-500";
-  const text  = score >= 8 ? "text-green-700" : score >= 6 ? "text-yellow-700" : "text-red-600";
+  const color = score >= 7 ? "bg-green-500" : score >= 4 ? "bg-amber-500" : "bg-red-500";
+  const text  = score >= 7 ? "text-green-700" : score >= 4 ? "text-amber-700" : "text-red-600";
   return (
     <div>
       <div className="flex justify-between text-xs mb-1">
@@ -704,6 +704,12 @@ function SupplierCard({ supplier, isBest, onClick }: {
             <a href={`tel:${supplier.phone}`} className="text-brand-500 hover:underline" dir="ltr">{supplier.phone}</a>
           </div>
         )}
+        {supplier.email && (
+          <div className="flex items-center gap-2 text-xs text-gray-600" onClick={e => e.stopPropagation()}>
+            <Mail className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <a href={`mailto:${supplier.email}`} className="text-brand-500 hover:underline" dir="ltr">{supplier.email}</a>
+          </div>
+        )}
         {supplier.flower_specialty && (
           <div className="flex items-center gap-1.5 flex-wrap">
             <Leaf className="w-3.5 h-3.5 text-gray-400 shrink-0" />
@@ -895,9 +901,14 @@ export function FlowerSuppliersPage() {
     <div className="space-y-5" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">الموردون</h1>
-          <p className="text-sm text-gray-400 mt-0.5">إدارة موردي الورود وسجل المشتريات والمدفوعات</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-green-50 flex items-center justify-center">
+            <Leaf className="w-5 h-5 text-green-500" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">الموردين</h1>
+            <p className="text-xs text-gray-400">إدارة موردي الورد والزهور</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={refetch}
