@@ -5,7 +5,7 @@ import { flowerBuilderApi, flowerIntelligenceApi, flowerMasterApi } from "@/lib/
 import {
   TrendingUp, TrendingDown, Printer, DollarSign,
   ShoppingBag, Users, Star, Clock, AlertCircle,
-  Leaf, RefreshCw, Award,
+  Leaf, RefreshCw, Award, BarChart3,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { fmtDate } from "@/lib/utils";
@@ -188,9 +188,14 @@ export function FlowerReportsPage() {
 
       {/* ── Header ─────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">التقارير والتحليلات</h1>
-          <p className="text-sm text-gray-400 mt-0.5">أداء محلك خلال {periodLabels[period]}</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-brand-50 flex items-center justify-center">
+            <BarChart3 className="w-5 h-5 text-brand-500" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">تقارير الورد</h1>
+            <p className="text-xs text-gray-400">ملخص الأداء والمبيعات والمخزون</p>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
@@ -200,7 +205,7 @@ export function FlowerReportsPage() {
                 onClick={() => setPeriod(p)}
                 className={clsx(
                   "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
-                  period === p ? "bg-white text-brand-500 shadow-sm" : "text-gray-500 hover:text-gray-700"
+                  period === p ? "bg-brand-500 text-white shadow-sm" : "text-gray-500 hover:text-gray-700"
                 )}
               >
                 {periodLabels[p]}
