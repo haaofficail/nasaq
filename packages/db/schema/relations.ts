@@ -34,6 +34,16 @@ import { integrationConfigs }                              from "./integrations"
 import { reminderCategories, reminderTemplates, orgReminders } from "./reminders";
 import { events, ticketTypes, seatSections, seats, ticketIssuances } from "./events";
 import { suppliers, purchaseOrders, purchaseOrderItems, goodsReceipts, goodsReceiptItems, supplierInvoices } from "./procurement";
+import {
+  bookingRecords,
+  bookingLines,
+  bookingLineAddons,
+  bookingTimelineEvents,
+  bookingRecordAssignments,
+  bookingRecordCommissions,
+  bookingRecordConsumptions,
+  bookingPaymentLinks,
+} from "./canonical-bookings";
 
 // ============================================================
 // ORGANIZATIONS
@@ -74,6 +84,12 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   sessions:         many(sessions),
   bookingAssignments: many(bookingAssignments),
   bookingCommissions: many(bookingCommissions),
+  assignedCanonicalBookings: many(bookingRecords, { relationName: "booking_record_assigned_user" }),
+  vendorCanonicalBookings: many(bookingRecords, { relationName: "booking_record_vendor_user" }),
+  canonicalTimelineEvents: many(bookingTimelineEvents),
+  canonicalAssignments: many(bookingRecordAssignments),
+  canonicalCommissions: many(bookingRecordCommissions),
+  canonicalConsumptions: many(bookingRecordConsumptions, { relationName: "canonical_consumptions_created_by_user" }),
   serviceStaff:     many(serviceStaff),
   visitNotes:       many(visitNotes),
   shifts:           many(shifts),
@@ -178,6 +194,7 @@ export const customersRelations = relations(customers, ({ one, many }) => ({
   contacts:         many(customerContacts),
   interactions:     many(customerInteractions),
   bookings:         many(bookings),
+  canonicalBookings: many(bookingRecords),
   loyaltyTxns:      many(loyaltyTransactions),
   reviews:          many(reviews),
   beautyProfiles:   many(clientBeautyProfiles),
@@ -246,6 +263,64 @@ export const bookingCommissionsRelations = relations(bookingCommissions, ({ one 
 export const bookingEventsRelations = relations(bookingEvents, ({ one }) => ({
   booking: one(bookings, { fields: [bookingEvents.bookingId], references: [bookings.id] }),
   user:    one(users,    { fields: [bookingEvents.userId],    references: [users.id] }),
+}));
+
+export const bookingRecordsRelations = relations(bookingRecords, ({ one, many }) => ({
+  org:            one(organizations, { fields: [bookingRecords.orgId],      references: [organizations.id] }),
+  customer:       one(customers,     { fields: [bookingRecords.customerId], references: [customers.id] }),
+  location:       one(locations,     { fields: [bookingRecords.locationId], references: [locations.id] }),
+  assignedUser:   one(users,         { fields: [bookingRecords.assignedUserId], references: [users.id], relationName: "booking_record_assigned_user" }),
+  vendor:         one(users,         { fields: [bookingRecords.vendorId], references: [users.id], relationName: "booking_record_vendor_user" }),
+  legacyBooking:  one(bookings,      { fields: [bookingRecords.bookingRef], references: [bookings.id] }),
+  lines:          many(bookingLines),
+  timelineEvents: many(bookingTimelineEvents),
+  assignments:    many(bookingRecordAssignments),
+  commissions:    many(bookingRecordCommissions),
+  consumptions:   many(bookingRecordConsumptions),
+  paymentLinks:   many(bookingPaymentLinks),
+}));
+
+export const bookingLinesRelations = relations(bookingLines, ({ one, many }) => ({
+  bookingRecord: one(bookingRecords, { fields: [bookingLines.bookingRecordId], references: [bookingRecords.id] }),
+  addons:        many(bookingLineAddons),
+  commissions:   many(bookingRecordCommissions),
+  consumptions:  many(bookingRecordConsumptions),
+}));
+
+export const bookingLineAddonsRelations = relations(bookingLineAddons, ({ one }) => ({
+  bookingLine: one(bookingLines, { fields: [bookingLineAddons.bookingLineId], references: [bookingLines.id] }),
+}));
+
+export const bookingTimelineEventsRelations = relations(bookingTimelineEvents, ({ one }) => ({
+  org:           one(organizations, { fields: [bookingTimelineEvents.orgId], references: [organizations.id] }),
+  bookingRecord: one(bookingRecords, { fields: [bookingTimelineEvents.bookingRecordId], references: [bookingRecords.id] }),
+  user:          one(users, { fields: [bookingTimelineEvents.userId], references: [users.id] }),
+}));
+
+export const bookingRecordAssignmentsRelations = relations(bookingRecordAssignments, ({ one }) => ({
+  org:           one(organizations, { fields: [bookingRecordAssignments.orgId], references: [organizations.id] }),
+  bookingRecord: one(bookingRecords, { fields: [bookingRecordAssignments.bookingRecordId], references: [bookingRecords.id] }),
+  user:          one(users, { fields: [bookingRecordAssignments.userId], references: [users.id] }),
+}));
+
+export const bookingRecordCommissionsRelations = relations(bookingRecordCommissions, ({ one }) => ({
+  org:           one(organizations, { fields: [bookingRecordCommissions.orgId], references: [organizations.id] }),
+  bookingRecord: one(bookingRecords, { fields: [bookingRecordCommissions.bookingRecordId], references: [bookingRecords.id] }),
+  bookingLine:   one(bookingLines, { fields: [bookingRecordCommissions.bookingLineId], references: [bookingLines.id] }),
+  user:          one(users, { fields: [bookingRecordCommissions.userId], references: [users.id] }),
+}));
+
+export const canonicalBookingConsumptionsRelations = relations(bookingRecordConsumptions, ({ one }) => ({
+  org:           one(organizations, { fields: [bookingRecordConsumptions.orgId], references: [organizations.id] }),
+  bookingRecord: one(bookingRecords, { fields: [bookingRecordConsumptions.bookingRecordId], references: [bookingRecords.id] }),
+  bookingLine:   one(bookingLines, { fields: [bookingRecordConsumptions.bookingLineId], references: [bookingLines.id] }),
+  createdByUser: one(users, { fields: [bookingRecordConsumptions.createdBy], references: [users.id], relationName: "canonical_consumptions_created_by_user" }),
+}));
+
+export const bookingPaymentLinksRelations = relations(bookingPaymentLinks, ({ one }) => ({
+  org:           one(organizations, { fields: [bookingPaymentLinks.orgId], references: [organizations.id] }),
+  bookingRecord: one(bookingRecords, { fields: [bookingPaymentLinks.bookingRecordId], references: [bookingRecords.id] }),
+  payment:       one(payments, { fields: [bookingPaymentLinks.paymentId], references: [payments.id] }),
 }));
 
 // ============================================================
