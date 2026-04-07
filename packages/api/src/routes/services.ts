@@ -91,6 +91,8 @@ const createServiceSchema = z.object({
   barcode:            z.string().max(100).optional().nullable(),
   // ── Amenities (migration 054) — for rental, chalet, apartment, hotel ────
   amenities:          z.array(z.string()).default([]),
+  // ── Template link (migration 102) — field_service linked to event_package_template ──
+  templateId:         z.string().uuid().optional().nullable(),
 });
 
 const updateServiceSchema = createServiceSchema.partial();
@@ -111,6 +113,7 @@ servicesRouter.get("/", async (c) => {
   const visibleInPOS    = c.req.query("visibleInPOS");
   const visibleOnline   = c.req.query("visibleOnline");
   const bookableOnly    = c.req.query("bookable");
+  const serviceType     = c.req.query("serviceType");
   const sortBy = safeSortField<ServiceSortField>(c.req.query("sortBy"), SERVICE_SORT_FIELDS, "sortOrder");
   const sortDir = c.req.query("sortDir") === "desc" ? "desc" : "asc";
 
@@ -123,12 +126,13 @@ servicesRouter.get("/", async (c) => {
     // Don't show archived (soft-deleted) unless explicitly requested
     conditions.push(sql`${services.status} != 'archived'`);
   }
-  if (categoryId)            conditions.push(eq(services.categoryId, categoryId));
-  if (featured === "true")   conditions.push(eq(services.isFeatured, true));
-  if (search)                conditions.push(ilike(services.name, `%${search}%`));
+  if (categoryId)               conditions.push(eq(services.categoryId, categoryId));
+  if (featured === "true")      conditions.push(eq(services.isFeatured, true));
+  if (search)                   conditions.push(ilike(services.name, `%${search}%`));
   if (visibleInPOS === "true")  conditions.push(eq(services.isVisibleInPOS, true));
   if (visibleOnline === "true") conditions.push(eq(services.isVisibleOnline, true));
   if (bookableOnly === "true")  conditions.push(eq(services.isBookable, true));
+  if (serviceType)              conditions.push(eq(services.serviceType, serviceType as any));
 
   // Query
   const [rows, [{ total }]] = await Promise.all([
@@ -156,7 +160,94 @@ servicesRouter.get("/", async (c) => {
     covers.forEach(c => { if (c.serviceId && c.url) coverMap[c.serviceId] = c.url; });
   }
 
-  const result = rows.map(r => ({ ...r, coverImage: coverMap[r.id] || null }));
+  // Attach template names + is_deletable in parallel batch queries
+  const { pool: rawPool } = await import("@nasaq/db/client");
+
+  let templateMap: Record<string, { id: string; name: string }> = {};
+  let blockSet: Set<string> = new Set(); // service ids that cannot be deleted
+
+  const templateIds = rows.map(r => (r as any).templateId).filter(Boolean);
+
+  const [, blockRes] = await Promise.all([
+    // Batch template names
+    templateIds.length > 0
+      ? rawPool.query(
+          `SELECT id, name FROM event_package_templates WHERE id = ANY($1)`,
+          [templateIds],
+        ).then(({ rows: tRows }) => {
+          tRows.forEach((t: any) => { templateMap[t.id] = { id: t.id, name: t.name }; });
+        })
+      : Promise.resolve(),
+
+    // Batch is_deletable:
+    //   false إذا كانت الخدمة مستخدمة في:
+    //     1. service_order_items (execution items من أي طلب)
+    //     2. service_orders نشطة (طلبات غير مغلقة)
+    //     3. event_package_templates نشطة (مرتبطة كـ template_id)
+    rows.length > 0
+      ? rawPool.query<{ service_id: string }>(
+          `SELECT DISTINCT s.id AS service_id
+           FROM services s
+           WHERE s.id = ANY($1)
+             AND (
+               -- 1. مستخدمة في execution items (service_order_items)
+               --    via service_orders.service_id
+               EXISTS (
+                 SELECT 1 FROM service_order_items soi
+                 JOIN service_orders so ON so.id = soi.service_order_id
+                 WHERE so.service_id = s.id AND so.org_id = s.org_id
+               )
+               OR
+               -- 2. لها طلبات ميدانية غير مغلقة/ملغاة
+               EXISTS (
+                 SELECT 1 FROM service_orders so
+                 WHERE so.service_id = s.id
+                   AND so.org_id = s.org_id
+                   AND so.status NOT IN ('closed','cancelled')
+               )
+               OR
+               -- 3. مرتبطة بقالب نشط
+               EXISTS (
+                 SELECT 1 FROM event_package_templates t
+                 WHERE t.id = s.template_id AND t.is_active = TRUE
+               )
+             )`,
+          [rows.map(r => r.id)],
+        ).then(res => res.rows)
+      : Promise.resolve([] as { service_id: string }[]),
+  ]);
+
+  (blockRes as { service_id: string }[]).forEach(r => blockSet.add(r.service_id));
+
+  // Batch executionReady for execution-type services
+  const EXEC_TYPES_LIST = new Set(["execution", "field_service", "project"]);
+  const execIds = rows.filter(r => EXEC_TYPES_LIST.has(r.serviceType as string)).map(r => r.id);
+  const execReadyMap: Record<string, boolean> = {};
+  if (execIds.length > 0) {
+    execIds.forEach(sid => { execReadyMap[sid] = false; }); // default: not ready
+    const { rows: compRows } = await rawPool.query<{ service_id: string; comp_count: string; min_cost: string }>(
+      `SELECT service_id,
+              COUNT(*)::text            AS comp_count,
+              MIN(unit_cost::numeric)::text AS min_cost
+       FROM service_components
+       WHERE service_id = ANY($1) AND is_active = true
+       GROUP BY service_id`,
+      [execIds]
+    );
+    compRows.forEach((r: any) => {
+      execReadyMap[r.service_id] = Number(r.comp_count) > 0 && Number(r.min_cost) > 0;
+    });
+  }
+
+  const result = rows.map(r => ({
+    ...r,
+    coverImage: coverMap[r.id] || null,
+    template: (r as any).templateId ? (templateMap[(r as any).templateId] ?? null) : null,
+    // false = يمكن حذفه، true = له تبعيات (طلب نشط أو قالب مرتبط)
+    isDeletable: !blockSet.has(r.id),
+    // null = لا ينطبق (خدمة حجز)، true/false = يُحدد للخدمات التنفيذية
+    executionReady: EXEC_TYPES_LIST.has(r.serviceType as string) ? (execReadyMap[r.id] ?? false) : null,
+  }));
 
   return c.json({
     data: result,
@@ -227,9 +318,34 @@ servicesRouter.get("/:id", async (c) => {
       .orderBy(asc(serviceQuestions.sortOrder)),
   ]);
 
+  // Fetch linked template if exists
+  let template = null;
+  if ((service as any).templateId) {
+    const { pool: p } = await import("@nasaq/db/client");
+    const { rows: tRows } = await p.query(
+      `SELECT t.*, COUNT(i.id)::int AS item_count,
+              COALESCE(SUM(i.unit_cost_estimate * i.quantity), 0) AS estimated_cost
+       FROM event_package_templates t
+       LEFT JOIN event_package_template_items i ON i.template_id = t.id
+       WHERE t.id = $1
+       GROUP BY t.id`,
+      [(service as any).templateId]
+    );
+    template = tRows[0] ?? null;
+  }
+
+  // Compute executionReady (only for execution-type services)
+  const EXEC_TYPES_DETAIL = new Set(["execution", "field_service", "project"]);
+  const isExecService = EXEC_TYPES_DETAIL.has(service.serviceType as string);
+  const executionReady: boolean | null = isExecService
+    ? components.length > 0 && components.every((c: any) => Number(c.unitCost ?? 0) > 0)
+    : null;
+
   return c.json({
     data: {
       ...service,
+      executionReady,
+      template,
       category,
       media,
       addons: svcAddons.map(sa => ({
@@ -318,8 +434,9 @@ servicesRouter.put("/:id", async (c) => {
 servicesRouter.delete("/:id", async (c) => {
   const orgId = getOrgId(c);
   const id = c.req.param("id");
+  const { pool: rawPool } = await import("@nasaq/db/client");
 
-  // لا يمكن أرشفة خدمة عليها حجوزات نشطة
+  // ── فحص 1: حجوزات نشطة (bookings) ──────────────────────────────────────────
   const [{ activeCount }] = await db
     .select({ activeCount: count() })
     .from(bookings)
@@ -335,6 +452,48 @@ servicesRouter.delete("/:id", async (c) => {
   if (Number(activeCount) > 0) {
     return c.json({
       error: `لا يمكن أرشفة الخدمة — يوجد ${activeCount} حجز نشط عليها. أكمل الحجوزات أو ألغِها أولاً`,
+    }, 409);
+  }
+
+  // ── فحص 2: execution items (service_order_items) ────────────────────────────
+  const { rows: soiRows } = await rawPool.query(
+    `SELECT COUNT(*)::int AS cnt
+     FROM service_order_items soi
+     JOIN service_orders so ON so.id = soi.service_order_id
+     WHERE so.service_id=$1 AND so.org_id=$2`,
+    [id, orgId],
+  );
+  if (soiRows[0]?.cnt > 0) {
+    return c.json({
+      error: "لا يمكن حذف هذه الخدمة لأنها مستخدمة في طلب — عدِّل الطلب أو أغلقه أولاً",
+    }, 409);
+  }
+
+  // ── فحص 3: مشاريع ميدانية نشطة ─────────────────────────────────────────────
+  const { rows: soRows } = await rawPool.query(
+    `SELECT COUNT(*)::int AS cnt
+     FROM service_orders
+     WHERE service_id=$1 AND org_id=$2
+       AND status NOT IN ('closed','cancelled')`,
+    [id, orgId],
+  );
+  if (soRows[0]?.cnt > 0) {
+    return c.json({
+      error: `لا يمكن حذف هذه الخدمة لأنها مستخدمة في ${soRows[0].cnt} طلب ميداني نشط`,
+    }, 409);
+  }
+
+  // ── فحص 4: مرتبط بقالب نشط ──────────────────────────────────────────────────
+  const { rows: tplRows } = await rawPool.query(
+    `SELECT COUNT(*)::int AS cnt
+     FROM event_package_templates
+     WHERE id = (SELECT template_id FROM services WHERE id=$1 AND org_id=$2)
+       AND is_active=TRUE`,
+    [id, orgId],
+  );
+  if (tplRows[0]?.cnt > 0) {
+    return c.json({
+      error: "لا يمكن حذف هذه الخدمة لأنها مرتبطة بقالب نشط — أزل الرابط من إعدادات الخدمة أولاً",
     }, 409);
   }
 

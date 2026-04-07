@@ -34,8 +34,22 @@ export function FlowerLossAlertsBanner({ onApplyDisposal }: { onApplyDisposal?: 
 
   if (loading) return null;
 
-  const summary: LossAlertSummary | null = (data as any)?.summary ?? null;
-  const batches: LossAlertBatch[] = (data as any)?.data ?? [];
+  const rawSummary = (data as any)?.summary ?? null;
+  const summary: LossAlertSummary | null = rawSummary ? {
+    ...rawSummary,
+    totalCostAtRisk:      parseFloat(rawSummary.totalCostAtRisk      ?? rawSummary.total_cost_at_risk      ?? 0) || 0,
+    totalRevenueIfWasted: parseFloat(rawSummary.totalRevenueIfWasted ?? rawSummary.total_revenue_if_wasted ?? 0) || 0,
+    batchCount:           rawSummary.batchCount        ?? rawSummary.batch_count        ?? 0,
+    undiscountedCount:    rawSummary.undiscountedCount  ?? rawSummary.undiscounted_count  ?? 0,
+    potentialRecovery:    parseFloat(rawSummary.potentialRecovery ?? rawSummary.potential_recovery ?? 0) || 0,
+  } : null;
+  const batches: LossAlertBatch[] = ((data as any)?.data ?? []).map((b: any) => ({
+    ...b,
+    cost_at_risk:      parseFloat(b.cost_at_risk      ?? b.costAtRisk      ?? 0) || 0,
+    revenue_potential: parseFloat(b.revenue_potential ?? b.revenuePotential ?? 0) || 0,
+    quantity_remaining: b.quantity_remaining ?? b.quantityRemaining ?? 0,
+    days_until_expiry:  b.days_until_expiry  ?? b.daysUntilExpiry  ?? 0,
+  }));
 
   if (!summary || summary.batchCount === 0) return null;
 

@@ -749,7 +749,7 @@ export function SchoolDashboardPage() {
                         </p>
                       </div>
                       {s.classRoomName && (
-                        <span className="text-[9px] font-bold text-[#5b9bd5] bg-[#5b9bd5]/10 rounded-full px-1.5 py-0.5 shrink-0">
+                        <span className="text-[9px] font-bold text-brand-500 bg-brand-500/10 rounded-full px-1.5 py-0.5 shrink-0">
                           {s.classRoomName}
                         </span>
                       )}
@@ -776,14 +776,14 @@ export function SchoolDashboardPage() {
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-[#5b9bd5]/10 flex items-center justify-center">
-                <CalendarDays className="w-3.5 h-3.5 text-[#5b9bd5]" />
+              <div className="w-7 h-7 rounded-lg bg-brand-500/10 flex items-center justify-center">
+                <CalendarDays className="w-3.5 h-3.5 text-brand-500" />
               </div>
               <span className="text-sm font-black text-gray-900">أحداث هذا الأسبوع</span>
             </div>
             <button
               onClick={() => navigate("/school/academic-calendar")}
-              className="flex items-center gap-1 text-xs text-[#5b9bd5] font-bold hover:text-[#4a8bc4]"
+              className="flex items-center gap-1 text-xs text-brand-500 font-bold hover:text-[#4a8bc4]"
             >
               التقويم <ChevronLeft className="w-3.5 h-3.5" />
             </button>

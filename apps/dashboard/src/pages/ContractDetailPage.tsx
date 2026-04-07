@@ -64,7 +64,7 @@ function MarkPaidModal({
     onClose();
   });
 
-  const inp = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/20 focus:border-[#5b9bd5]";
+  const inp = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500";
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" dir="rtl">
@@ -94,7 +94,7 @@ function MarkPaidModal({
         </div>
         <div className="flex gap-3 mt-5">
           <button onClick={() => mutate(undefined as unknown as void)} disabled={loading}
-            className="flex-1 py-2.5 bg-[#5b9bd5] text-white rounded-xl text-sm font-medium hover:bg-[#4a8ac4] transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+            className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
             {loading && <Loader2 size={14} className="animate-spin" />}
             تأكيد الدفعة
           </button>
@@ -127,7 +127,7 @@ function RenewModal({
     onClose();
   });
 
-  const inp = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/20 focus:border-[#5b9bd5]";
+  const inp = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500";
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" dir="rtl">
@@ -150,7 +150,7 @@ function RenewModal({
         </div>
         <div className="flex gap-3 mt-5">
           <button onClick={() => mutate(undefined as unknown as void)} disabled={loading || !newEndDate}
-            className="flex-1 py-2.5 bg-[#5b9bd5] text-white rounded-xl text-sm font-medium hover:bg-[#4a8ac4] transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+            className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
             {loading && <Loader2 size={14} className="animate-spin" />}
             تجديد
           </button>
@@ -360,7 +360,7 @@ export function ContractDetailPage() {
                   <span className={clsx("text-xs px-2 py-0.5 rounded-full font-medium", ps.cls)}>{ps.label}</span>
                   {p.status === "pending" && (
                     <button onClick={() => setMarkPaidPayment(p)}
-                      className="text-xs px-3 py-1.5 bg-[#5b9bd5] text-white rounded-lg hover:bg-[#4a8ac4] transition-colors">
+                      className="text-xs px-3 py-1.5 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors">
                       دفع
                     </button>
                   )}
@@ -386,7 +386,7 @@ export function ContractDetailPage() {
                   <p className="text-xs text-gray-400">{fmtDate(doc.created_at)}</p>
                 </div>
                 <a href={doc.file_url} target="_blank" rel="noopener noreferrer"
-                  className="text-xs text-[#5b9bd5] hover:underline">
+                  className="text-xs text-brand-500 hover:underline">
                   عرض
                 </a>
               </div>

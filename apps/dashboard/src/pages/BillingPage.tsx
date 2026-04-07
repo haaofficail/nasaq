@@ -63,7 +63,7 @@ const FEATURE_LABELS: Record<string, string> = {
   hr_payroll:       "HR والرواتب",
   accounting:       "المحاسبة الكاملة",
   reports_advanced: "تقارير متقدمة",
-  hide_branding:    "إخفاء علامة نسق",
+  hide_branding:    "إخفاء علامة ترميز OS",
   account_manager:  "مدير حساب مخصص",
   priority_support: "دعم أولوية",
   sla:              "SLA مضمون",

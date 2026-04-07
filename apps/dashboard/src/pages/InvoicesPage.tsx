@@ -431,14 +431,14 @@ export function InvoicesPage() {
               </div>
             )}
 
-            {/* نسق watermark */}
+            {/* ترميز OS watermark */}
             <div className="pt-2 flex items-center justify-between border-t border-gray-50">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
                   <span className="text-white font-bold text-xs leading-none">ن</span>
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-brand-700 leading-none">نسق</p>
+                  <p className="text-xs font-bold text-brand-700 leading-none">ترميز OS</p>
                   <p className="text-[10px] text-gray-400 leading-none mt-0.5" dir="ltr">nasaqpro.tech</p>
                 </div>
               </div>

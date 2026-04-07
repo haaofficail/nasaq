@@ -42,7 +42,7 @@ export interface AddonDef {
 export const ADDONS: AddonDef[] = [
   { key: "extra_providers",  name: "مقدمو خدمة إضافيون", description: "أضف المزيد من مقدمي الخدمة لفريقك",      price: 890 },
   { key: "extra_branches",   name: "فروع إضافية",         description: "توسّع إلى مواقع جديدة",                  price: 1900 },
-  { key: "hide_branding",    name: "إخفاء علامة نسق",     description: "إزالة شعار نسق من صفحاتك العامة",        price: 690 },
+  { key: "hide_branding",    name: "إخفاء علامة ترميز OS",    description: "إزالة شعار ترميز OS من صفحاتك العامة",       price: 690 },
   { key: "loyalty",          name: "برنامج الولاء",        description: "برنامج ولاء لزيادة الاحتفاظ بالعملاء",   price: 1190 },
   { key: "booking_sync",     name: "ربط الجدولة",          description: "مزامنة مع منصات الحجز الخارجية",          price: 1190 },
   { key: "accounting",       name: "ربط المحاسبة",         description: "مزامنة الفواتير مع برامج المحاسبة",       price: 1190 },

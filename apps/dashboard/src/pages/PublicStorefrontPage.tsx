@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
 import { websiteApi } from "@/lib/api";
+import { usePublicTheme } from "@/context/ThemeProvider";
+import { PLATFORM_NAME } from "@/hooks/usePlatformConfig";
+import { OrgLogo } from "@/components/branding/OrgLogo";
 
 // ══ Types ══════════════════════════════════════════════════════════
 interface OrgData {
@@ -17,11 +20,39 @@ interface ServiceItem {
   pricingType?: string;
 }
 interface Category { id: string; name: string; }
+interface FlowerPackageItem {
+  id: string; name: string; description?: string;
+  basePrice: number; image?: string;
+}
+interface FlowerInventoryItem {
+  id: string; name: string; color?: string; type?: string;
+  sellPrice: number; stock: number; imageUrl?: string;
+}
+interface FlowerSection {
+  isEnabled: boolean;
+  heroTitle: string; heroSubtitle: string;
+  heroImage: string | null; accentColor: string;
+  packages: FlowerPackageItem[];
+  inventory: FlowerInventoryItem[];
+  builderUrl: string;
+}
+interface HeaderConfig {
+  showLogo?: boolean;
+  showPhone?: boolean;
+  showBookButton?: boolean;
+}
 interface SiteData {
   org: OrgData;
   services: ServiceItem[];
   categories: Category[];
-  config: { primaryColor?: string; logoUrl?: string; } | null;
+  config: {
+    primaryColor?: string;
+    secondaryColor?: string;
+    logoUrl?: string;
+    fontFamily?: string;
+    headerConfig?: HeaderConfig;
+  } | null;
+  flowerSection?: FlowerSection | null;
 }
 
 // ══ Booking Sheet ══════════════════════════════════════════════════
@@ -253,6 +284,180 @@ function WaIcon({ className }: { className?: string }) {
   );
 }
 
+// ══ Flower Section ═════════════════════════════════════════════════
+function FlowerBuilderSection({ section, slug }: { section: FlowerSection; slug: string }) {
+  const accent = section.accentColor || "#e11d48";
+  const F: React.CSSProperties = { fontFamily: "'IBM Plex Sans Arabic', sans-serif" };
+
+  // hex → rgba helper
+  const h2r = (hex: string, a: number) => {
+    try {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r},${g},${b},${a})`;
+    } catch { return hex; }
+  };
+
+  return (
+    <div style={{ ...F, margin: "16px 0 0" }}>
+      {/* Section header */}
+      <div style={{
+        margin: "0 16px",
+        borderRadius: 20,
+        overflow: "hidden",
+        background: section.heroImage
+          ? `linear-gradient(160deg, ${h2r(accent, 0.92)} 0%, ${h2r(accent, 0.75)} 100%), url(${section.heroImage}) center/cover`
+          : `linear-gradient(135deg, ${accent} 0%, ${h2r(accent, 0.75)} 100%)`,
+        padding: "24px 20px 20px",
+        position: "relative",
+      }}>
+        {/* Decorative circles */}
+        <div style={{ position: "absolute", top: -20, left: -20, width: 100, height: 100, borderRadius: "50%", background: "rgba(255,255,255,0.06)" }} />
+        <div style={{ position: "absolute", bottom: -30, right: -10, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.04)" }} />
+
+        <div style={{ position: "relative" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+            <span style={{ fontSize: 22 }}>🌸</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "rgba(255,255,255,0.7)", letterSpacing: 1, textTransform: "uppercase" }}>
+              باقات الورد
+            </span>
+          </div>
+          <h2 style={{ margin: 0, fontSize: 22, fontWeight: 900, color: "#fff", lineHeight: 1.25 }}>
+            {section.heroTitle}
+          </h2>
+          <p style={{ margin: "6px 0 16px", fontSize: 13, color: "rgba(255,255,255,0.8)", lineHeight: 1.5 }}>
+            {section.heroSubtitle}
+          </p>
+          <a
+            href={section.builderUrl}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "11px 22px", borderRadius: 14,
+              background: "rgba(255,255,255,0.95)", color: accent,
+              fontWeight: 800, fontSize: 14, textDecoration: "none",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+              fontFamily: "inherit",
+            }}
+          >
+            <span>ابني باقتك</span>
+            <svg style={{ width: 14, height: 14, transform: "rotate(180deg)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+            </svg>
+          </a>
+        </div>
+      </div>
+
+      {/* Packages grid — only if there are packages */}
+      {section.packages.length > 0 && (
+        <div style={{ padding: "16px 16px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: "#0f172a" }}>الباقات الجاهزة</p>
+            <a href={section.builderUrl} style={{ fontSize: 12, fontWeight: 600, color: accent, textDecoration: "none" }}>
+              عرض الكل
+            </a>
+          </div>
+          <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+            {section.packages.map(pkg => (
+              <a
+                key={pkg.id}
+                href={section.builderUrl}
+                style={{ textDecoration: "none", flexShrink: 0, width: 148 }}
+              >
+                <div style={{
+                  background: "white",
+                  borderRadius: 16,
+                  overflow: "hidden",
+                  border: "1px solid #f1f5f9",
+                  boxShadow: "0 1px 4px rgba(0,0,0,0.05)",
+                }}>
+                  {pkg.image ? (
+                    <img src={pkg.image} alt={pkg.name}
+                      style={{ width: "100%", height: 100, objectFit: "cover", display: "block" }} />
+                  ) : (
+                    <div style={{
+                      height: 100, background: `linear-gradient(135deg, ${h2r(accent, 0.12)}, ${h2r(accent, 0.05)})`,
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32,
+                    }}>🌷</div>
+                  )}
+                  <div style={{ padding: "10px 10px 12px" }}>
+                    <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>
+                      {pkg.name}
+                    </p>
+                    <p style={{ margin: "4px 0 0", fontSize: 12, fontWeight: 800, color: accent }}>
+                      {Number(pkg.basePrice).toFixed(0)} ر.س
+                    </p>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Flower types — only if no packages, show available flowers */}
+      {section.packages.length === 0 && section.inventory.length > 0 && (
+        <div style={{ padding: "16px 16px 0" }}>
+          <p style={{ margin: "0 0 10px", fontSize: 13, fontWeight: 800, color: "#0f172a" }}>ورود متاحة</p>
+          <div style={{ display: "flex", gap: 8, overflowX: "auto", paddingBottom: 4, scrollbarWidth: "none" }}>
+            {section.inventory.slice(0, 8).map(fl => (
+              <a key={fl.id} href={section.builderUrl}
+                style={{ textDecoration: "none", flexShrink: 0 }}>
+                <div style={{
+                  display: "flex", flexDirection: "column", alignItems: "center",
+                  gap: 6, padding: "10px 12px",
+                  background: "white", borderRadius: 14,
+                  border: "1px solid #f1f5f9",
+                  boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                  minWidth: 72,
+                }}>
+                  {fl.imageUrl ? (
+                    <img src={fl.imageUrl} alt={fl.name}
+                      style={{ width: 48, height: 48, borderRadius: 10, objectFit: "cover" }} />
+                  ) : (
+                    <div style={{
+                      width: 48, height: 48, borderRadius: 10,
+                      background: h2r(accent, 0.1),
+                      display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24,
+                    }}>🌸</div>
+                  )}
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 700, color: "#374151", textAlign: "center", lineHeight: 1.3, maxWidth: 68 }}>
+                    {fl.name}
+                  </p>
+                  <p style={{ margin: 0, fontSize: 11, fontWeight: 800, color: accent }}>
+                    {Number(fl.sellPrice).toFixed(0)} ر.س
+                  </p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* CTA row */}
+      <div style={{ padding: "14px 16px 0" }}>
+        <a
+          href={section.builderUrl}
+          style={{
+            display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            padding: "14px 0", borderRadius: 16,
+            background: h2r(accent, 0.08),
+            border: `1.5px dashed ${h2r(accent, 0.3)}`,
+            color: accent, fontWeight: 800, fontSize: 14,
+            textDecoration: "none", fontFamily: "inherit",
+          }}
+        >
+          <span style={{ fontSize: 18 }}>🌺</span>
+          صمّم باقتك الخاصة
+          <svg style={{ width: 14, height: 14, transform: "rotate(180deg)" }} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </a>
+      </div>
+    </div>
+  );
+}
+
 // ══ Main ═══════════════════════════════════════════════════════════
 export function PublicStorefrontPage() {
   const { orgSlug } = useParams<{ orgSlug: string }>();
@@ -262,33 +467,45 @@ export function PublicStorefrontPage() {
   const [bookingService, setBookingService] = useState<ServiceItem | null>(null);
   const catBarRef = useRef<HTMLDivElement>(null);
   const slug = orgSlug || "";
+  usePublicTheme(data);
 
   useEffect(() => {
     if (!slug) return;
     websiteApi.publicSite(slug)
-      .then((res: any) => { if (res?.data) setData(res.data); })
+      .then((res: any) => {
+        if (res?.data) {
+          setData(res.data);
+        }
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [slug]);
 
-  const F: React.CSSProperties = { fontFamily: "'IBM Plex Sans Arabic', sans-serif" };
+  const defaultF: React.CSSProperties = { fontFamily: "'IBM Plex Sans Arabic', sans-serif" };
 
   if (loading) return (
-    <div dir="rtl" style={{ ...F, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
+    <div dir="rtl" style={{ ...defaultF, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
       <style>{`@keyframes s{to{transform:rotate(360deg)}}`}</style>
       <div style={{ width: 36, height: 36, borderRadius: "50%", border: "3px solid #e2e8f0", borderTopColor: "#5b9bd5", animation: "s .7s linear infinite" }} />
     </div>
   );
 
   if (!data) return (
-    <div dir="rtl" style={{ ...F, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
+    <div dir="rtl" style={{ ...defaultF, minHeight: "100dvh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f8fafc" }}>
       <p style={{ color: "#94a3b8", fontSize: 14 }}>المنشأة غير موجودة</p>
     </div>
   );
 
   const { org, services, categories, config } = data;
   const primary = config?.primaryColor || org.primaryColor || "#5b9bd5";
+  const secondary = config?.secondaryColor || "";
   const logo = config?.logoUrl || org.logo;
+  const fontFamily = config?.fontFamily || "IBM Plex Sans Arabic";
+  const headerCfg = config?.headerConfig;
+  const showLogo = headerCfg?.showLogo !== false;
+  const showPhone = headerCfg?.showPhone !== false;
+  const showBookButton = headerCfg?.showBookButton !== false;
+  const F: React.CSSProperties = { fontFamily: `'${fontFamily}', sans-serif` };
 
   const activeServices = services.filter(s =>
     !s.status || s.status === "active" || s.status === "published"
@@ -314,7 +531,7 @@ export function PublicStorefrontPage() {
   return (
     <>
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily)}:wght@400;500;600;700;800;900&display=swap');
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
         body{margin:0;background:#f1f5f9;}
         @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
@@ -336,31 +553,20 @@ export function PublicStorefrontPage() {
         {/* ── Header ── */}
         <div
           style={{
-            background: `linear-gradient(160deg, ${primary} 0%, ${h2r(primary, 0.85)} 100%)`,
+            background: secondary
+              ? `linear-gradient(160deg, ${primary} 0%, ${secondary} 100%)`
+              : `linear-gradient(160deg, ${primary} 0%, ${h2r(primary, 0.75)} 100%)`,
             padding: "40px 20px 28px",
           }}
         >
-          {/* Logo / Initial */}
-          {logo ? (
-            <img
+          {/* شعار المنشأة فقط — لا يستخدم شعار المنصة أبداً */}
+          {showLogo && (
+            <OrgLogo
               src={logo}
-              alt={org.name}
-              style={{
-                width: 64, height: 64, borderRadius: 16,
-                objectFit: "contain", background: "rgba(255,255,255,0.2)",
-                padding: 8, marginBottom: 12,
-              }}
+              orgName={org.name}
+              size={64}
+              style={{ marginBottom: 12 }}
             />
-          ) : (
-            <div style={{
-              width: 64, height: 64, borderRadius: 16,
-              background: "rgba(255,255,255,0.22)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              fontSize: 28, fontWeight: 900, color: "#fff",
-              marginBottom: 12,
-            }}>
-              {org.name[0]}
-            </div>
           )}
 
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 900, color: "#fff", lineHeight: 1.2 }}>
@@ -374,41 +580,43 @@ export function PublicStorefrontPage() {
           )}
 
           {/* WhatsApp + Phone row */}
-          <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
-            {waLink && (
-              <a
-                href={waLink}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "9px 16px", borderRadius: 12,
-                  background: "rgba(255,255,255,0.18)",
-                  border: "1.5px solid rgba(255,255,255,0.35)",
-                  color: "#fff", fontWeight: 700, fontSize: 13,
-                  textDecoration: "none",
-                }}
-              >
-                <WaIcon className="w-4 h-4 fill-white" />
-                واتساب
-              </a>
-            )}
-            {org.phone && (
-              <a
-                href={`tel:${org.phone}`}
-                style={{
-                  display: "flex", alignItems: "center", gap: 6,
-                  padding: "9px 16px", borderRadius: 12,
-                  background: "rgba(255,255,255,0.12)",
-                  border: "1.5px solid rgba(255,255,255,0.25)",
-                  color: "rgba(255,255,255,0.9)", fontWeight: 600, fontSize: 13,
-                  textDecoration: "none", direction: "ltr",
-                }}
-              >
-                {org.phone}
-              </a>
-            )}
-          </div>
+          {showPhone && (
+            <div style={{ display: "flex", gap: 8, marginTop: 16, flexWrap: "wrap" }}>
+              {waLink && (
+                <a
+                  href={waLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "9px 16px", borderRadius: 12,
+                    background: "rgba(255,255,255,0.18)",
+                    border: "1.5px solid rgba(255,255,255,0.35)",
+                    color: "#fff", fontWeight: 700, fontSize: 13,
+                    textDecoration: "none",
+                  }}
+                >
+                  <WaIcon className="w-4 h-4 fill-white" />
+                  واتساب
+                </a>
+              )}
+              {org.phone && (
+                <a
+                  href={`tel:${org.phone}`}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6,
+                    padding: "9px 16px", borderRadius: 12,
+                    background: "rgba(255,255,255,0.12)",
+                    border: "1.5px solid rgba(255,255,255,0.25)",
+                    color: "rgba(255,255,255,0.9)", fontWeight: 600, fontSize: 13,
+                    textDecoration: "none", direction: "ltr",
+                  }}
+                >
+                  {org.phone}
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         {/* ── Services count pill ── */}
@@ -529,15 +737,21 @@ export function PublicStorefrontPage() {
           )}
         </div>
 
+        {/* ── Flower Section ── */}
+        {data.flowerSection?.isEnabled && (
+          <FlowerBuilderSection section={data.flowerSection} slug={slug} />
+        )}
+
         {/* ── Footer ── */}
         <div style={{
-          textAlign: "center",
-          padding: "24px 20px 8px",
-          fontSize: 11,
-          color: "#cbd5e1",
-          fontWeight: 500,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          gap: 5, padding: "28px 20px 16px",
         }}>
-          مدعوم بـ <span style={{ color: primary, fontWeight: 800 }}>نسق</span>
+          <span style={{ fontSize: 11, color: "#94a3b8", fontWeight: 400 }}>مدعوم بـ</span>
+          <span style={{
+            fontSize: 12, fontWeight: 700, color: "#5b9bd5",
+            letterSpacing: 0, lineHeight: 1,
+          }}>{PLATFORM_NAME}</span>
         </div>
 
         {/* ── Fixed bottom action bar ── */}
@@ -556,25 +770,27 @@ export function PublicStorefrontPage() {
           zIndex: 30,
           boxShadow: "0 -4px 20px rgba(0,0,0,0.06)",
         }}>
-          <button
-            onClick={() => {
-              if (activeServices.length > 0) setBookingService(activeServices[0]);
-            }}
-            style={{
-              flex: 1,
-              padding: "12px 0",
-              borderRadius: 14,
-              background: primary,
-              color: "white",
-              fontWeight: 800,
-              fontSize: 14,
-              border: "none",
-              cursor: "pointer",
-              fontFamily: "inherit",
-            }}
-          >
-            احجز الآن
-          </button>
+          {showBookButton && (
+            <button
+              onClick={() => {
+                if (activeServices.length > 0) setBookingService(activeServices[0]);
+              }}
+              style={{
+                flex: 1,
+                padding: "12px 0",
+                borderRadius: 14,
+                background: primary,
+                color: "white",
+                fontWeight: 800,
+                fontSize: 14,
+                border: "none",
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              احجز الآن
+            </button>
+          )}
           {waLink && (
             <a
               href={waLink}

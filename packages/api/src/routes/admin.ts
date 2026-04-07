@@ -611,7 +611,7 @@ adminRouter.patch("/tickets/:id", async (c) => {
 adminRouter.get("/platform-config", async (c) => {
   if (!isSuperAdmin(c)) return superAdminOnly(c);
   const [row] = await db.select().from(platformConfig).where(eq(platformConfig.id, "default"));
-  return c.json({ data: row ?? { id: "default", platformName: "نسق", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5" } });
+  return c.json({ data: row ?? { id: "default", platformName: "ترميز OS", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5" } });
 });
 
 adminRouter.put("/platform-config", async (c) => {
@@ -691,7 +691,7 @@ adminRouter.get("/platform-config/public", async (c) => {
     supportEmail: platformConfig.supportEmail,
     supportPhone: platformConfig.supportPhone,
   }).from(platformConfig).where(eq(platformConfig.id, "default"));
-  return c.json({ data: row ?? { platformName: "نسق", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5", supportEmail: null, supportPhone: null } });
+  return c.json({ data: row ?? { platformName: "ترميز OS", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5", supportEmail: null, supportPhone: null } });
 });
 
 adminRouter.get("/announcements", async (c) => {

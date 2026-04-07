@@ -17,14 +17,14 @@ export function CatalogPage() {
   const TABS = [
     { id: "services",   label: biz.terminology.items },
     { id: "categories", label: biz.terminology.categories },
-    { id: "addons",     label: "الاضافات" },
+    { id: "addons",     label: "إضافات مدفوعة" },
   ];
 
   return (
     <div dir="rtl">
       <PageHeader
         title={biz.terminology.catalog}
-        description={`أدر ${biz.terminology.items} وتصنيفاتك والاضافات من مكان واحد`}
+        description={`أدر ${biz.terminology.items} وتصنيفاتك والإضافات المدفوعة من مكان واحد`}
         tabs={TABS}
         activeTab={tab}
         onTabChange={(id) => setSearchParams({ tab: id })}
@@ -53,10 +53,10 @@ export function CatalogPage() {
               steps: ["أضف تصنيفاً لكل فئة خدمات", "لا حاجة لتصنيف إذا كانت خدماتك قليلة", "التصنيف الجيد يسهّل بحث العميل"],
             },
             {
-              title: "الإضافات",
+              title: "الإضافات المدفوعة",
               badge: "رفع القيمة",
               badgeColor: "bg-emerald-50 text-emerald-600",
-              desc: "خيارات اختيارية يضيفها العميل على حجزه. كل إضافة لها سعر منفصل وتُضاف لفاتورة الحجز تلقائياً.",
+              desc: "خيارات يختارها العميل مع طلبه بسعر منفصل — مثل: كرت تهنئة، تغليف فاخر، شوكولاتة، بالون. تُضاف تلقائياً لفاتورة الطلب.",
               steps: ["أنشئ إضافة لكل خيار مدفوع", "ربطها بالخدمات المناسبة", "تظهر للعميل عند الحجز الإلكتروني"],
             },
           ].map(s => (

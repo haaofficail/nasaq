@@ -126,12 +126,31 @@ export const SERVICE_TEMPLATES: ServiceTemplate[] = [
     businessType: "flower_shop",
     label: "محل ورد",
     items: [
-      { categoryName: "باقات الورد", name: "باقة ورد رومانسية", nameEn: "Romantic Rose Bouquet", description: "باقة من 24 وردة حمراء مع ضمة وشريط", basePrice: 150, offeringType: "product", serviceType: "product", sortOrder: 1 },
-      { categoryName: "باقات الورد", name: "باقة ورد مشكلة", nameEn: "Mixed Flower Bouquet", description: "باقة ملونة من أزهار موسمية منوعة", basePrice: 120, offeringType: "product", serviceType: "product", sortOrder: 2 },
-      { categoryName: "تنسيقات فعاليات", name: "تنسيق طاولة زفاف", nameEn: "Wedding Table Arrangement", description: "تنسيق زهور لطاولة عروس مع كانديلابرا", basePrice: 500, durationMinutes: 120, offeringType: "service", serviceType: "execution", sortOrder: 3 },
-      { categoryName: "تنسيقات فعاليات", name: "تنسيق قاعة احتفالات", nameEn: "Event Hall Floral", description: "تنسيق زهور لقاعة احتفالات (25 طاولة)", basePrice: 3500, durationMinutes: 240, offeringType: "service", serviceType: "execution", sortOrder: 4 },
-      { categoryName: "هدايا", name: "صندوق ورد فاخر", nameEn: "Luxury Flower Box", description: "صندوق هدايا مع ورد وشوكولاتة وبطاقة", basePrice: 250, offeringType: "product", serviceType: "product", sortOrder: 5 },
-      { categoryName: "هدايا", name: "توصيل باقة ورد", nameEn: "Bouquet Delivery", description: "توصيل باقة الورد للعنوان المطلوب", basePrice: 30, durationMinutes: 90, offeringType: "service", serviceType: "product_shipping", sortOrder: 6 },
+      // ─ منتجات الورد
+      { categoryName: "منتجات الورد", name: "وردة مفردة فاخرة", description: "وردة طازجة مفردة مع تغليف أنيق", basePrice: 15, offeringType: "product", serviceType: "product", sortOrder: 1 },
+      { categoryName: "منتجات الورد", name: "باقة ورد صغيرة", description: "باقة 12 وردة طازجة مع خضرة زينية", basePrice: 80, offeringType: "product", serviceType: "product", sortOrder: 2 },
+      { categoryName: "منتجات الورد", name: "باقة ورد متوسطة", description: "باقة 24 وردة مع تغليف فاخر وبطاقة", basePrice: 150, offeringType: "product", serviceType: "product", sortOrder: 3 },
+      { categoryName: "منتجات الورد", name: "باقة ورد فاخرة", description: "باقة 50 وردة فاخرة بتصميم احترافي", basePrice: 350, offeringType: "product", serviceType: "product", sortOrder: 4 },
+      // ─ صناديق وهدايا
+      { categoryName: "صناديق وهدايا", name: "صندوق ورد صغير", description: "صندوق هدايا مع ورد طازج وبطاقة", basePrice: 120, offeringType: "product", serviceType: "product", sortOrder: 5 },
+      { categoryName: "صناديق وهدايا", name: "صندوق ورد فاخر", description: "صندوق فاخر مع ورد وشوكولاتة وبطاقة شخصية", basePrice: 280, offeringType: "product", serviceType: "product", sortOrder: 6 },
+      { categoryName: "صناديق وهدايا", name: "بوكس ورد مع هدية", description: "بوكس ورد مميز مع هدية مرفقة حسب المناسبة", basePrice: 350, offeringType: "product", serviceType: "product", sortOrder: 7 },
+      // ─ تنسيقات
+      { categoryName: "تنسيقات", name: "تنسيق طاولة صغير", description: "تنسيق ورد لطاولة صغيرة أو كاونتر", basePrice: 120, offeringType: "product", serviceType: "product", sortOrder: 8 },
+      { categoryName: "تنسيقات", name: "تنسيق مكتبي", description: "تنسيق ورد طبيعي للمكاتب والاستقبالات", basePrice: 150, offeringType: "product", serviceType: "product", sortOrder: 9 },
+      { categoryName: "تنسيقات", name: "تيراريوم نباتي", description: "تيراريوم زجاجي بالنباتات الصغيرة", basePrice: 200, offeringType: "product", serviceType: "product", sortOrder: 10 },
+      // ─ نباتات
+      { categoryName: "نباتات", name: "نبتة أوركيد", description: "أوركيد أبيض أو وردي في أصيص أنيق", basePrice: 180, offeringType: "product", serviceType: "product", sortOrder: 11 },
+      { categoryName: "نباتات", name: "نبتة منزلية", description: "نبتة منزلية جميلة مناسبة للهدايا", basePrice: 120, offeringType: "product", serviceType: "product", sortOrder: 12 },
+      // ─ إضافات
+      { categoryName: "إضافات", name: "شمعة معطرة", description: "شمعة معطرة فاخرة مناسبة للهدايا", basePrice: 65, offeringType: "product", serviceType: "product", sortOrder: 13 },
+      { categoryName: "إضافات", name: "بطاقة إهداء مخصصة", description: "بطاقة إهداء بكتابة خط يد جميلة", basePrice: 20, offeringType: "product", serviceType: "product", sortOrder: 14 },
+      // ─ خدمات
+      { categoryName: "خدمات", name: "توصيل باقة ورد", description: "توصيل الطلبات للعنوان المطلوب خلال 3 ساعات", basePrice: 30, durationMinutes: 90, offeringType: "service", serviceType: "product_shipping", sortOrder: 15 },
+      { categoryName: "خدمات", name: "تغليف هدية خاص", description: "تغليف احترافي للهدايا مع ريبون وبطاقة", basePrice: 25, durationMinutes: 15, offeringType: "service", serviceType: "execution", sortOrder: 16 },
+      // ─ تنسيقات مناسبات (execution)
+      { categoryName: "تنسيقات مناسبات", name: "تنسيق طاولة زفاف", description: "تنسيق زهور لطاولة عروس مع كانديلابرا", basePrice: 500, durationMinutes: 120, offeringType: "service", serviceType: "execution", sortOrder: 17 },
+      { categoryName: "تنسيقات مناسبات", name: "تنسيق قاعة احتفالات", description: "تنسيق زهور لقاعة احتفالات (25 طاولة)", basePrice: 3500, durationMinutes: 240, offeringType: "service", serviceType: "execution", sortOrder: 18 },
     ],
   },
 

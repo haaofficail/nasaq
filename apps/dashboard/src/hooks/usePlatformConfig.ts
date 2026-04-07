@@ -17,10 +17,14 @@ export interface PlatformConfig {
   supportPhone: string | null;
 }
 
-const STORAGE_KEY = "nasaq_platform_config";
+// v2: force-busts old cache that may contain "نسق" (stale platform name)
+const STORAGE_KEY = "nasaq_platform_config_v2";
+
+export const PLATFORM_NAME = "ترميز OS";
+export const PLATFORM_LOGO = "/favicon.svg";
 
 const DEFAULT_CONFIG: PlatformConfig = {
-  platformName: "نسق",
+  platformName: PLATFORM_NAME,
   logoUrl: null,
   faviconUrl: null,
   primaryColor: "#5b9bd5",
@@ -31,6 +35,8 @@ const DEFAULT_CONFIG: PlatformConfig = {
 // قراءة الكاش من localStorage عند أول تحميل
 function readStoredConfig(): PlatformConfig | null {
   try {
+    // مسح الـ key القديم (v1) الذي قد يحتوي "نسق"
+    localStorage.removeItem("nasaq_platform_config");
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     return JSON.parse(raw) as PlatformConfig;

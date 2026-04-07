@@ -3,6 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { CheckCircle2, Clock, MapPin, Calendar, CreditCard, Shield, Phone, Loader2, AlertCircle } from "lucide-react";
 import { clsx } from "clsx";
 import { publicApi } from "@/lib/api";
+import { usePublicTheme } from "@/context/ThemeProvider";
 import { fmtDate } from "@/lib/utils";
 
 export function PublicTrackingPage() {
@@ -25,9 +26,12 @@ export function PublicTrackingPage() {
       .finally(() => setLoading(false));
   }, [token]);
 
+  // يجب استدعاء الـ hook قبل أي early return (قواعد الـ hooks)
+  usePublicTheme(b);
+
   if (loading) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+      <Loader2 className="w-8 h-8 animate-spin text-brand" />
     </div>
   );
 
@@ -37,7 +41,6 @@ export function PublicTrackingPage() {
       <p className="text-gray-600 font-medium">{error || "الحجز غير موجود"}</p>
     </div>
   );
-
   const totalAmount = parseFloat(b.totalAmount || 0);
   const paidAmount = parseFloat(b.paidAmount || 0);
   const balanceDue = parseFloat(b.balanceDue || 0);
@@ -179,7 +182,7 @@ export function PublicTrackingPage() {
         )}
 
         <div className="flex items-center justify-center gap-2 pb-8 text-xs text-gray-400">
-          <Shield className="w-3 h-3" /> مدعوم بواسطة <span className="font-bold text-brand-500">نسق</span>
+          <Shield className="w-3 h-3" /> مدعوم بواسطة <span className="font-bold text-brand-500">ترميز OS</span>
         </div>
       </div>
     </div>

@@ -11,6 +11,8 @@ import {
   X,
   Plus,
   AlertTriangle,
+  Info,
+  ArrowLeft,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -84,7 +86,7 @@ function barColor(status: MarginRow["cost_status"]) {
 }
 
 function fmtSAR(val: number) {
-  return `${val.toFixed(2)} ر.س`;
+  return `${Number(val).toFixed(2)} ر.س`;
 }
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
@@ -410,7 +412,7 @@ function ArrangementCard({
             )}
           >
             {row.margin_pct !== null
-              ? `${row.margin_amount.toFixed(2)} (${row.margin_pct.toFixed(0)}%)`
+              ? `${Number(row.margin_amount).toFixed(2)} (${Number(row.margin_pct).toFixed(0)}%)`
               : "—"}
           </p>
         </div>
@@ -425,7 +427,7 @@ function ArrangementCard({
               style={{ width: `${barWidth}%` }}
             />
             <span className="absolute inset-0 flex items-center justify-center text-xs font-semibold text-white drop-shadow-sm">
-              {row.margin_pct !== null ? `${row.margin_pct.toFixed(0)}%` : ""}
+              {row.margin_pct !== null ? `${Number(row.margin_pct).toFixed(0)}%` : ""}
             </span>
           </div>
         </div>
@@ -466,10 +468,10 @@ function ArrangementCard({
                         {item.qty} ساق
                       </td>
                       <td className="py-1.5 text-center text-gray-500 tabular-nums">
-                        {item.unitCost.toFixed(2)}
+                        {Number(item.unitCost).toFixed(2)}
                       </td>
                       <td className="py-1.5 text-left font-semibold text-gray-700 tabular-nums">
-                        {(item.qty * item.unitCost).toFixed(2)} ر.س
+                        {(Number(item.qty) * Number(item.unitCost)).toFixed(2)} ر.س
                       </td>
                     </tr>
                   ))}
@@ -607,7 +609,7 @@ export function FlowerMarginsPage() {
               label="متوسط الهامش"
               value={
                 summary?.avgMargin !== null && summary?.avgMargin !== undefined
-                  ? `${summary.avgMargin.toFixed(0)}%`
+                  ? `${Number(summary.avgMargin).toFixed(0)}%`
                   : "—"
               }
               colorClass={avgColor}
@@ -628,6 +630,56 @@ export function FlowerMarginsPage() {
               colorClass="text-emerald-600"
             />
           </div>
+
+          {/* Setup Guide — يظهر عندما كل الباقات غير محسوبة */}
+          {rows.length > 0 && rows.every(r => r.cost_status === "unknown") && (
+            <div className="bg-brand-50 border border-brand-200 rounded-2xl overflow-hidden">
+              <div className="flex items-start gap-3 p-5">
+                <div className="w-10 h-10 bg-brand-100 rounded-xl flex items-center justify-center shrink-0">
+                  <Info className="w-5 h-5 text-brand-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-brand-800 mb-1">لم تُحدَّد مكوّنات التكلفة بعد</p>
+                  <p className="text-xs text-brand-600 leading-relaxed mb-3">
+                    لحساب هامشك الحقيقي، يحتاج النظام أن تحدد لكل باقة أنواع الورود التي تدخل فيها وكمياتها.
+                    التكلفة تُحسب تلقائياً من أسعار دفعاتك الحالية في المخزون.
+                  </p>
+                  <div className="space-y-2">
+                    {[
+                      "افتح أي بطاقة باقة أدناه",
+                      "اضغط «تحديث مكوّنات التكلفة»",
+                      "اختر أنواع الورود من مخزونك وحدد الكمية لكل نوع",
+                      "سيحسب النظام هامشك فوراً بناءً على أسعار دفعاتك",
+                    ].map((step, i) => (
+                      <div key={i} className="flex items-center gap-2.5 text-xs text-brand-700">
+                        <span className="w-5 h-5 rounded-full bg-brand-500 text-white flex items-center justify-center font-bold shrink-0 text-[10px]">
+                          {i + 1}
+                        </span>
+                        {step}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="border-t border-brand-200 bg-brand-100/50 px-5 py-3 flex items-center gap-2 text-xs text-brand-600">
+                <ArrowLeft className="w-3.5 h-3.5 shrink-0" />
+                ابدأ بأكثر باقاتك مبيعاً لتحصل على صورة فورية عن ربحيتك
+              </div>
+            </div>
+          )}
+
+          {/* بانر جزئي — بعض الباقات محسوبة وبعضها لا */}
+          {rows.length > 0 && !rows.every(r => r.cost_status === "unknown") && rows.some(r => r.cost_status === "unknown") && (
+            <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+              <Info className="w-4 h-4 text-gray-400 shrink-0" />
+              <p className="text-xs text-gray-500">
+                <span className="font-semibold text-gray-700">
+                  {rows.filter(r => r.cost_status === "unknown").length} باقة
+                </span>{" "}
+                لم تُحدَّد مكوّناتها بعد — افتحها وأضف عناصر التكلفة لتكتمل الصورة
+              </p>
+            </div>
+          )}
 
           {/* Insight Banners */}
           {(summary?.lossCount ?? 0) > 0 && (

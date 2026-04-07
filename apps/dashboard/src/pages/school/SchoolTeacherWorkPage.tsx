@@ -106,7 +106,7 @@ function PreparationSheet({
           </button>
           <button onClick={() => { setForm(f => ({ ...f, status: "ready" })); save(); }}
             disabled={saving}
-            className="flex-1 py-3 rounded-xl bg-[#5b9bd5] text-white text-sm font-medium flex items-center justify-center gap-1 active:opacity-80 disabled:opacity-50">
+            className="flex-1 py-3 rounded-xl bg-brand-500 text-white text-sm font-medium flex items-center justify-center gap-1 active:opacity-80 disabled:opacity-50">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
             تم التحضير
           </button>
@@ -178,7 +178,7 @@ function DailyLogSheet({
                 className={clsx(
                   "flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors",
                   form.studentEngagement === level
-                    ? "bg-[#5b9bd5] text-white border-[#5b9bd5]"
+                    ? "bg-brand-500 text-white border-brand-500"
                     : "bg-white text-gray-600 border-gray-200"
                 )}>
                 {ENGAGEMENT_LABELS[level]}
@@ -191,7 +191,7 @@ function DailyLogSheet({
           onChange={v => setForm(f => ({ ...f, notes: v }))} placeholder="أي ملاحظات..." />
 
         <button onClick={save} disabled={saving}
-          className="w-full py-3 rounded-xl bg-[#5b9bd5] text-white text-sm font-medium flex items-center justify-center gap-1 active:opacity-80 disabled:opacity-50">
+          className="w-full py-3 rounded-xl bg-brand-500 text-white text-sm font-medium flex items-center justify-center gap-1 active:opacity-80 disabled:opacity-50">
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
           حفظ السجل
         </button>
@@ -257,7 +257,7 @@ function ViolationSheet({
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="بحث عن طالب..."
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-3 outline-none focus:border-[#5b9bd5]"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-3 outline-none focus:border-brand-500"
           />
           <div className="space-y-1 max-h-64 overflow-y-auto">
             {filteredStudents.map(s => (
@@ -372,7 +372,7 @@ function StudentNoteSheet({
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="بحث عن طالب..."
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-3 outline-none focus:border-[#5b9bd5]"
+            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-3 outline-none focus:border-brand-500"
           />
           <div className="space-y-1 max-h-64 overflow-y-auto">
             {filteredStudents.map(s => (
@@ -403,7 +403,7 @@ function StudentNoteSheet({
                   className={clsx(
                     "px-3 py-2 rounded-xl text-sm font-medium border transition-colors",
                     noteType === t
-                      ? "bg-[#5b9bd5] text-white border-[#5b9bd5]"
+                      ? "bg-brand-500 text-white border-brand-500"
                       : "bg-white text-gray-600 border-gray-200"
                   )}>
                   {NOTE_LABELS[t]}
@@ -414,7 +414,7 @@ function StudentNoteSheet({
           <Field label="الملاحظة" value={note}
             onChange={v => setNote(v)} placeholder="اكتب ملاحظتك..." required rows={3} />
           <button onClick={save} disabled={saving}
-            className="w-full py-3 rounded-xl bg-[#5b9bd5] text-white text-sm font-medium flex items-center justify-center gap-1 active:opacity-80 disabled:opacity-50">
+            className="w-full py-3 rounded-xl bg-brand-500 text-white text-sm font-medium flex items-center justify-center gap-1 active:opacity-80 disabled:opacity-50">
             {saving ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
             حفظ الملاحظة
           </button>
@@ -455,12 +455,12 @@ function Field({ label, value, onChange, placeholder, required, rows = 1 }: {
       {rows > 1 ? (
         <textarea
           value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows}
-          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#5b9bd5] resize-none"
+          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500 resize-none"
         />
       ) : (
         <input
           type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#5b9bd5]"
+          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500"
         />
       )}
     </div>
@@ -528,7 +528,7 @@ function PeriodRow({
       {/* رقم الحصة */}
       <div className={clsx(
         "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0",
-        periodStatus === "current"  ? "bg-[#5b9bd5] text-white" :
+        periodStatus === "current"  ? "bg-brand-500 text-white" :
         periodStatus === "passed"   ? "bg-gray-200 text-gray-500" :
         "bg-gray-100 text-gray-500"
       )}>
@@ -552,7 +552,7 @@ function PeriodRow({
             "p-1.5 rounded-lg transition-colors",
             isPrepared
               ? "text-green-600 bg-green-50"
-              : "text-gray-400 hover:text-[#5b9bd5] hover:bg-blue-50"
+              : "text-gray-400 hover:text-brand-500 hover:bg-blue-50"
           )}
           title={isPrepared ? "تم التحضير" : "تحضير الحصة"}>
           <BookOpen size={16} />
@@ -615,7 +615,7 @@ export function SchoolTeacherWorkPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64" dir="rtl">
-        <Loader2 className="animate-spin text-[#5b9bd5]" size={28} />
+        <Loader2 className="animate-spin text-brand-500" size={28} />
       </div>
     );
   }

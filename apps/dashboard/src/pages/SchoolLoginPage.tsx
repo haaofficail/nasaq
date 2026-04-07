@@ -115,7 +115,7 @@ export function SchoolLoginPage() {
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <div className="text-right">
-              <p className="text-xl font-black text-gray-900 leading-none">نسق</p>
+              <p className="text-xl font-black text-gray-900 leading-none">ترميز OS</p>
               <p className="text-sm font-semibold text-emerald-600">للمدارس</p>
             </div>
           </Link>

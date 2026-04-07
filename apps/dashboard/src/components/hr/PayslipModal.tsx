@@ -167,7 +167,7 @@ export function PayslipModal({
 
             {/* Footer */}
             <div className="footer text-center text-xs text-gray-400 border-t pt-3 mt-3">
-              هذه القسيمة وثيقة رسمية — تم إصدارها من نظام نسق
+              هذه القسيمة وثيقة رسمية — تم إصدارها من نظام ترميز OS
             </div>
           </div>
         </>

@@ -266,7 +266,7 @@ export function PublicPagePage() {
           <div className="flex items-center gap-3">
             {org.instagram && <a href={`https://instagram.com/${org.instagram}`} target="_blank" rel="noreferrer" className="hover:text-white transition-colors"><Instagram className="w-4 h-4" /></a>}
             {org.twitter && <a href={`https://twitter.com/${org.twitter}`} target="_blank" rel="noreferrer" className="hover:text-white transition-colors"><Twitter className="w-4 h-4" /></a>}
-            <a href="https://nasaq.sa" target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-white transition-colors text-xs"><Globe className="w-3 h-3" />نسق</a>
+            <a href="https://nasaq.sa" target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-white transition-colors text-xs"><Globe className="w-3 h-3" />ترميز OS</a>
           </div>
         </div>
       </footer>

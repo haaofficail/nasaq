@@ -290,7 +290,7 @@ export function SchoolGuidePage() {
         </div>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">دليل المستخدم</h1>
-          <p className="text-sm text-gray-500 mt-0.5">شرح كامل لجميع صفحات وميزات نظام نسق المدرسي</p>
+          <p className="text-sm text-gray-500 mt-0.5">شرح كامل لجميع صفحات وميزات نظام ترميز OS المدرسي</p>
         </div>
       </div>
 
@@ -306,7 +306,7 @@ export function SchoolGuidePage() {
         ))}
       </div>
 
-      <p className="text-xs text-gray-400 text-center pt-2">نسق — منصة الإدارة المدرسية الذكية</p>
+      <p className="text-xs text-gray-400 text-center pt-2">ترميز OS — منصة الإدارة المدرسية الذكية</p>
     </div>
   );
 }

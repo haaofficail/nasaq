@@ -44,7 +44,7 @@ export function PublicGalleryPage() {
       <div className="bg-gray-900 border-b border-gray-800 px-6 py-4">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div>
-            <p className="text-xs text-gray-500 mb-0.5">نسق — معرض صور</p>
+            <p className="text-xs text-gray-500 mb-0.5">ترميز OS — معرض صور</p>
             {gallery && (
               <>
                 <h1 className="text-lg font-bold">{gallery.name}</h1>

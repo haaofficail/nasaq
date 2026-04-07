@@ -5,6 +5,7 @@ import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { sendWhatsApp, isWhatsAppConfigured, isSmsConfigured } from "../lib/whatsapp";
 import { sendSms } from "../lib/sms";
+import { initBaileys, getBaileysState, logoutBaileys } from "../lib/whatsappBaileys";
 
 const sendBulkSchema = z.object({
   phones: z.array(z.string().min(5).max(20)).min(1).max(500),
@@ -28,42 +29,93 @@ messagingRouter.get("/status", async (c) => {
   const orgId = getOrgId(c);
   const waConfigured  = isWhatsAppConfigured();
   const smsConfigured = isSmsConfigured();
+  const baileysState  = getBaileysState(orgId);
 
-  // Check for manually-saved session record (legacy QR-based)
-  const result = await pool.query(
-    `SELECT * FROM whatsapp_sessions WHERE org_id = $1 LIMIT 1`,
-    [orgId]
-  );
-  const session = result.rows[0];
+  const connected =
+    waConfigured ||
+    baileysState.status === "connected";
 
   return c.json({
     data: {
-      connected:     waConfigured || session?.status === "connected",
-      status:        waConfigured ? "connected" : (session?.status || "disconnected"),
-      phoneNumber:   session?.phone || null,
-      provider:      waConfigured ? "api" : (smsConfigured ? "sms_only" : "none"),
+      connected,
+      status:      waConfigured ? "connected" : baileysState.status,
+      phoneNumber: baileysState.phone ?? null,
+      provider:    waConfigured ? "api" : (baileysState.status === "connected" ? "baileys" : (smsConfigured ? "sms_only" : "none")),
       waConfigured,
       smsConfigured,
     },
   });
 });
 
-// POST /messaging/connect — يُظهر حالة التهيئة (API-based، لا QR)
+// POST /messaging/connect — SSE stream: يبدأ Baileys ويُرسل QR أو connected
 messagingRouter.post("/connect", async (c) => {
-  const waConfigured = isWhatsAppConfigured();
-  if (waConfigured) {
-    return c.json({ data: { connected: true, provider: "api", message: "واتساب مُهيأ عبر API" } });
+  const orgId = getOrgId(c);
+
+  // إذا مُهيأ عبر API (Meta/Unifonic/Twilio) لا نحتاج QR
+  if (isWhatsAppConfigured()) {
+    return c.json({ data: { connected: true, provider: "api", message: "واتساب مُهيأ عبر API — لا حاجة لـ QR" } });
   }
-  return c.json({ error: "واتساب غير مُهيأ — أضف UNIFONIC_APP_SID أو بيانات Twilio في متغيرات البيئة" }, 503);
+
+  // SSE stream
+  const stream = new ReadableStream({
+    async start(controller) {
+      const enc = new TextEncoder();
+
+      const send = (obj: object) => {
+        controller.enqueue(enc.encode(`data: ${JSON.stringify(obj)}\n\n`));
+      };
+
+      // ابدأ Baileys
+      initBaileys(orgId).catch(() => {});
+
+      // انتظر QR أو connected (max 60 ثانية)
+      const TIMEOUT = 60_000;
+      const POLL    = 600;
+      const start   = Date.now();
+
+      let lastQr = "";
+
+      while (Date.now() - start < TIMEOUT) {
+        const s = getBaileysState(orgId);
+
+        if (s.status === "qr_ready" && s.qrBase64 && s.qrBase64 !== lastQr) {
+          lastQr = s.qrBase64;
+          send({ type: "qr", qr: s.qrBase64 });
+        }
+
+        if (s.status === "connected") {
+          send({ type: "connected", phone: s.phone ?? "" });
+          break;
+        }
+
+        await new Promise(r => setTimeout(r, POLL));
+      }
+
+      if (getBaileysState(orgId).status !== "connected") {
+        send({ type: "error", message: "انتهت المهلة — حاول مرة أخرى" });
+      }
+
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type":  "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection":    "keep-alive",
+    },
+  });
 });
 
 // POST /messaging/disconnect
 messagingRouter.post("/disconnect", async (c) => {
   const orgId = getOrgId(c);
+  await logoutBaileys(orgId);
   await pool.query(
     `UPDATE whatsapp_sessions SET status = 'disconnected' WHERE org_id = $1`,
     [orgId]
-  );
+  ).catch(() => {});
   return c.json({ success: true });
 });
 
@@ -554,36 +606,114 @@ messagingRouter.post("/templates/reseed", async (c) => {
   return c.json({ success: true, businessType: bizType, count: templates.length });
 });
 
-// GET /messaging/settings
+// GET /messaging/settings — يُعيد أعمدة الجدول مع aliases للـ frontend
 messagingRouter.get("/settings", async (c) => {
   const orgId = getOrgId(c);
   const result = await pool.query(
     `SELECT * FROM message_settings WHERE org_id = $1 LIMIT 1`,
     [orgId]
   );
-  return c.json({ data: result.rows[0] || { orgId, channel: "whatsapp", autoSend: false } });
+  const row = result.rows[0];
+  if (!row) {
+    return c.json({
+      data: {
+        is_enabled: false, use_business_hours: false,
+        business_hours_start: "09:00", business_hours_end: "22:00",
+        daily_limit: 100, min_delay_seconds: 3,
+        booking_reminder_enabled: false, reminder_hours_before: 24, second_reminder_hours: 2,
+        followup_enabled: false, followup_hours_after: 24,
+        notify_owner_new_booking: false, notify_owner_cancellation: false,
+        notify_owner_payment: false, notify_owner_low_stock: false,
+        notify_staff_assignment: false, notify_staff_schedule_change: false,
+      },
+    });
+  }
+  // map DB column names → frontend field names
+  return c.json({
+    data: {
+      is_enabled:                  row.messaging_enabled ?? false,
+      use_business_hours:          row.send_during_business_hours_only ?? false,
+      business_hours_start:        row.business_hours_start ?? "09:00",
+      business_hours_end:          row.business_hours_end ?? "22:00",
+      daily_limit:                 row.daily_limit ?? 100,
+      min_delay_seconds:           3,
+      booking_reminder_enabled:    row.reminder_enabled ?? false,
+      reminder_hours_before:       row.reminder_hours_before ?? 24,
+      second_reminder_hours:       row.second_reminder_hours ?? 2,
+      followup_enabled:            row.follow_up_enabled ?? false,
+      followup_hours_after:        row.follow_up_hours_after ?? 24,
+      notify_owner_new_booking:    row.notify_owner_new_booking ?? false,
+      notify_owner_cancellation:   row.notify_owner_cancellation ?? false,
+      notify_owner_payment:        row.notify_owner_payment ?? false,
+      notify_owner_low_stock:      row.notify_owner_low_stock ?? false,
+      notify_staff_assignment:     row.notify_staff_assigned_booking ?? false,
+      notify_staff_schedule_change: row.notify_staff_schedule_change ?? false,
+    },
+  });
 });
 
-// PUT /messaging/settings
+// PUT /messaging/settings — يقبل frontend field names ويخزّنها بأسماء DB
 messagingRouter.put("/settings", async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
+  const b = await c.req.json();
   const existing = await pool.query(`SELECT id FROM message_settings WHERE org_id = $1`, [orgId]);
+
+  const vals = [
+    b.is_enabled ?? false,                  // $1  messaging_enabled
+    b.use_business_hours ?? false,           // $2  send_during_business_hours_only
+    b.business_hours_start ?? "09:00",       // $3
+    b.business_hours_end ?? "22:00",         // $4
+    b.daily_limit ?? 100,                    // $5
+    b.booking_reminder_enabled ?? false,     // $6  reminder_enabled
+    b.reminder_hours_before ?? 24,           // $7
+    b.second_reminder_hours ?? 2,            // $8
+    b.followup_enabled ?? false,             // $9  follow_up_enabled
+    b.followup_hours_after ?? 24,            // $10 follow_up_hours_after
+    b.notify_owner_new_booking ?? false,     // $11
+    b.notify_owner_cancellation ?? false,    // $12
+    b.notify_owner_payment ?? false,         // $13
+    b.notify_owner_low_stock ?? false,       // $14
+    b.notify_staff_assignment ?? false,      // $15 notify_staff_assigned_booking
+    b.notify_staff_schedule_change ?? false, // $16
+  ];
 
   let result;
   if (existing.rows[0]) {
     result = await pool.query(
       `UPDATE message_settings SET
-         auto_send = COALESCE($1, auto_send),
-         channel = COALESCE($2, channel),
-         updated_at = NOW()
-       WHERE org_id = $3 RETURNING *`,
-      [body.autoSend ?? null, body.channel || null, orgId]
+         messaging_enabled               = $1,
+         send_during_business_hours_only = $2,
+         business_hours_start            = $3,
+         business_hours_end              = $4,
+         daily_limit                     = $5,
+         reminder_enabled                = $6,
+         reminder_hours_before           = $7,
+         second_reminder_hours           = $8,
+         follow_up_enabled               = $9,
+         follow_up_hours_after           = $10,
+         notify_owner_new_booking        = $11,
+         notify_owner_cancellation       = $12,
+         notify_owner_payment            = $13,
+         notify_owner_low_stock          = $14,
+         notify_staff_assigned_booking   = $15,
+         notify_staff_schedule_change    = $16,
+         updated_at                      = NOW()
+       WHERE org_id = $17 RETURNING *`,
+      [...vals, orgId]
     );
   } else {
     result = await pool.query(
-      `INSERT INTO message_settings (org_id, auto_send, channel) VALUES ($1, $2, $3) RETURNING *`,
-      [orgId, body.autoSend || false, body.channel || "whatsapp"]
+      `INSERT INTO message_settings (
+         org_id,
+         messaging_enabled, send_during_business_hours_only,
+         business_hours_start, business_hours_end, daily_limit,
+         reminder_enabled, reminder_hours_before, second_reminder_hours,
+         follow_up_enabled, follow_up_hours_after,
+         notify_owner_new_booking, notify_owner_cancellation,
+         notify_owner_payment, notify_owner_low_stock,
+         notify_staff_assigned_booking, notify_staff_schedule_change
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+      [orgId, ...vals]
     );
   }
   insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "messaging_settings", resourceId: orgId });

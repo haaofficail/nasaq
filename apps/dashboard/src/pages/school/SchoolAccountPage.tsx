@@ -256,7 +256,7 @@ export function SchoolAccountPage() {
       <div className="p-6 space-y-6 bg-gray-50">
 
         {/* ── Personal Info ── */}
-        <Section title="البيانات الشخصية" subtitle="اسمك ورقم جوالك في نسق" icon={User}>
+        <Section title="البيانات الشخصية" subtitle="اسمك ورقم جوالك في ترميز OS" icon={User}>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="الاسم الكامل">
               <TextInput value={profile.name} onChange={v => pf("name", v)} placeholder="اسمك الكامل" />

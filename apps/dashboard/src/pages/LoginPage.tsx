@@ -113,8 +113,8 @@ export function LoginPage() {
           <div className="w-14 h-14 rounded-2xl bg-brand-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-500/20">
             <Layers className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">نسق</h1>
-          <p className="text-sm text-gray-500 mt-1">نظام إدارة الأعمال</p>
+          <h1 className="text-2xl font-bold text-gray-900">ترميز OS</h1>
+          <p className="text-sm text-gray-500 mt-1">نظام تشغيل أعمالك من مكان واحد</p>
         </div>
 
         {/* Card */}
@@ -260,7 +260,7 @@ export function LoginPage() {
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">نسق v0.1 — نظام إدارة الأعمال</p>
+        <p className="text-center text-xs text-gray-400 mt-6">Tarmiz OS — نظام إدارة الأعمال</p>
       </div>
     </div>
   );

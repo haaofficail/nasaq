@@ -47,7 +47,7 @@ function InviteModal({ teacher, onClose }: { teacher: any; onClose: () => void }
   };
 
   const wa = result
-    ? encodeURIComponent(`مرحباً ${result.teacherName}،\nتمت دعوتك كمعلم في ${result.orgName} على منصة نسق.\n\nرابط تفعيل الحساب:\n${result.inviteLink}\n\nكلمة المرور المؤقتة: ${result.tempPassword}`)
+    ? encodeURIComponent(`مرحباً ${result.teacherName}،\nتمت دعوتك كمعلم في ${result.orgName} على منصة ترميز OS.\n\nرابط تفعيل الحساب:\n${result.inviteLink}\n\nكلمة المرور المؤقتة: ${result.tempPassword}`)
     : "";
 
   return (

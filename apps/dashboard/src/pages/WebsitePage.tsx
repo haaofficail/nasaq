@@ -1289,7 +1289,7 @@ export function WebsitePage() {
               </div>
               <span className={clsx("text-xs px-2.5 py-1 rounded-full font-medium",
                 settings?.customDomain ? "bg-emerald-50 text-emerald-700" : "bg-brand-50 text-brand-600")}>
-                {settings?.customDomain ? "دومين مخصص" : "رابط نسق"}
+                {settings?.customDomain ? "دومين مخصص" : "رابط ترميز OS"}
               </span>
             </div>
             {siteUrl ? (
@@ -1430,6 +1430,14 @@ export function WebsitePage() {
 
       {/* ── Design ───────────────────────────────────────────── */}
       {tabId === "design" && design && (
+        <div className="flex flex-col gap-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+            <Palette className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[13px] font-semibold text-gray-800">التصميم البصري للموقع</p>
+              <p className="text-xs text-gray-500 mt-0.5">تحكم في الألوان والخطوط وشكل البطاقات والأزرار — المعاينة على اليسار تُظهر التغيير لحظياً قبل الحفظ.</p>
+            </div>
+          </div>
         <div className="grid grid-cols-[380px_1fr] gap-4 items-start">
           {/* Options panel */}
           <div className="flex flex-col gap-3 max-h-[calc(100vh-160px)] overflow-y-auto pb-2 pr-0.5">
@@ -1634,11 +1642,19 @@ export function WebsitePage() {
             })()}
           </div>
         </div>
+        </div>
       )}
 
       {/* ── Sections ─────────────────────────────────────────── */}
       {tabId === "sections" && (
         <div className="flex flex-col gap-3">
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+            <Layers className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[13px] font-semibold text-gray-800">أقسام الصفحة الرئيسية</p>
+              <p className="text-xs text-gray-500 mt-0.5">رتّب الأقسام بالسحب وأخفِ أي قسم لا تحتاجه — البيانات كالخدمات والفريق والتقييمات تُسحب تلقائياً من النظام.</p>
+            </div>
+          </div>
           <div className="flex items-center justify-between">
             <p className="text-[13px] text-gray-400">رتّب الأقسام وأظهر أو أخفِ ما تريد — البيانات تُسحب تلقائياً</p>
             <Button icon={Save} loading={sectionsSaving} onClick={saveSections} size="sm">حفظ الترتيب</Button>
@@ -1819,7 +1835,7 @@ export function WebsitePage() {
               <p className="text-sm text-gray-700 font-medium">صفحات موقعك الإضافية</p>
               <p className="text-xs text-gray-400 mt-0.5">
                 كل صفحة تظهر على موقعك العام في رابط مثل:{" "}
-                {siteUrl ? <span className="font-mono bg-gray-100 px-1 rounded text-gray-500">{siteUrl}/p/about</span> : <span className="font-mono text-gray-400">موقعك.نسق.sa/p/الرابط</span>}
+                {siteUrl ? <span className="font-mono bg-gray-100 px-1 rounded text-gray-500">{siteUrl}/p/about</span> : <span className="font-mono text-gray-400">nasaqpro.tech/s/slug/p/الرابط</span>}
                 {" "}— بعد النشر يظهر الرابط في قائمة الموقع
               </p>
             </div>
@@ -1941,6 +1957,13 @@ export function WebsitePage() {
       {/* ── Contacts ─────────────────────────────────────────── */}
       {tabId === "contacts" && (
         <div className="flex flex-col gap-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+            <MessageSquare className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[13px] font-semibold text-gray-800">رسائل التواصل</p>
+              <p className="text-xs text-gray-500 mt-0.5">رسائل العملاء الواردة من نموذج «تواصل معنا» في موقعك — اقرأها هنا أو ردّ مباشرة عبر واتساب.</p>
+            </div>
+          </div>
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-400">رسائل زوار الموقع من نموذج التواصل</p>
             {unreadCount > 0 && (
@@ -1983,6 +2006,13 @@ export function WebsitePage() {
       {/* ── Content ──────────────────────────────────────────── */}
       {tabId === "content" && (
         <div className="flex flex-col gap-5">
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+            <Type className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[13px] font-semibold text-gray-800">محتوى الصفحة الرئيسية</p>
+              <p className="text-xs text-gray-500 mt-0.5">عدّل نصوص الترحيب وقصة المنشأة والإعلانات والأسئلة الشائعة — هذا ما يقرأه العميل أول ما يفتح موقعك.</p>
+            </div>
+          </div>
           {/* Announcement bar */}
           <Card title="شريط الإعلانات">
             <p className="text-xs text-gray-400 mb-3">نص يتحرك أعلى الموقع — استخدمه للعروض والأخبار والبيانات التعريفية</p>
@@ -2165,12 +2195,12 @@ export function WebsitePage() {
           <Card title="الدومين">
             <div className="flex flex-col gap-3">
               <div className="bg-gray-50 rounded-xl px-3.5 py-2.5">
-                <p className="text-xs text-gray-400 mb-0.5">نطاق نسق المجاني</p>
-                <p className="text-[13px] font-semibold text-brand-400 font-mono">nasaq.sa/{orgSlug || "—"}</p>
+                <p className="text-xs text-gray-400 mb-0.5">رابط ترميز OS المجاني</p>
+                <p className="text-[13px] font-semibold text-brand-400 font-mono">nasaqpro.tech/s/{orgSlug || "—"}</p>
               </div>
               <FieldInput label="نطاق مخصص (اختياري)" value={settings.customDomain} onChange={v => s("customDomain", v)} placeholder="www.yoursite.com" dir="ltr" />
               <div className="bg-amber-50 rounded-xl px-3.5 py-2.5 text-xs text-amber-700">
-                وجّه DNS Record من نوع CNAME إلى: <span className="font-mono font-bold">sites.nasaq.sa</span>
+                وجّه DNS Record من نوع CNAME إلى: <span className="font-mono font-bold">nasaqpro.tech</span>
               </div>
             </div>
           </Card>

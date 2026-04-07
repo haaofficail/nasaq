@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { Outlet, NavLink, useLocation, useNavigate, Navigate } from "react-router-dom";
 import {
   Layers, ChevronLeft, ChevronRight, Bell, Search, Plus, LogOut, Menu, X, User, WifiOff,
@@ -18,6 +18,18 @@ import { PLAN_MAP } from "@/lib/constants";
 import { useAlerts } from "@/hooks/useAlerts";
 import { FreePlanBanner } from "@/components/FreePlanBanner";
 import { FreeLimitModal } from "@/components/FreeLimitModal";
+// الداشبورد يستخدم هوية ترميز OS الثابتة — لا يُستورد DashboardThemeProvider هنا
+
+// قائمة CSS vars التي تحقنها applyOrgTheme — نُزيلها عند دخول الداشبورد
+const BRAND_VARS = [
+  "--brand-primary", "--brand-primary-hover", "--brand-primary-dark",
+  "--brand-primary-soft", "--brand-primary-light", "--brand-primary-200",
+  "--brand-primary-300", "--brand-primary-400", "--brand-primary-700",
+  "--brand-primary-focus", "--brand-secondary", "--brand-secondary-hover",
+  "--brand-secondary-soft", "--nasaq-primary", "--sys-brand",
+  "--sys-brand-dark", "--sys-brand-light", "--sys-brand-focus",
+  "--accent-business", "--accent-business-soft", "--nasaq-font-family",
+];
 
 const COLLAPSED_KEY = "nasaq_sidebar_collapsed";
 
@@ -29,6 +41,13 @@ export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
   const { isOnline } = useNetwork();
+
+  // الداشبورد يستخدم هوية ترميز OS الثابتة — يُزيل أي ثيم تاجر مُطبَّق
+  // يعمل قبل أول رسم لمنع أي flash
+  useLayoutEffect(() => {
+    const r = document.documentElement;
+    BRAND_VARS.forEach(v => r.style.removeProperty(v));
+  }, []);
 
   // Android back button — navigate back instead of closing app
   useEffect(() => {
@@ -137,17 +156,23 @@ export function Layout() {
         )}>
           {!collapsed && (
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center shadow-sm shadow-brand-500/30 overflow-hidden shrink-0">
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm overflow-hidden shrink-0"
+                style={{ backgroundColor: platformConfig.primaryColor }}
+              >
                 {platformConfig.logoUrl
                   ? <img src={platformConfig.logoUrl} alt={platformConfig.platformName} className="w-full h-full object-contain" />
                   : <Layers className="w-4 h-4 text-white" />
                 }
               </div>
-              <span className="text-lg font-bold text-brand-500 tracking-tight">{platformConfig.platformName}</span>
+              <span className="text-lg font-bold tracking-tight" style={{ color: platformConfig.primaryColor }}>{platformConfig.platformName}</span>
             </div>
           )}
           {collapsed && (
-            <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center shadow-sm shadow-brand-500/30 overflow-hidden">
+            <div
+              className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm overflow-hidden"
+              style={{ backgroundColor: platformConfig.primaryColor }}
+            >
               {platformConfig.logoUrl
                 ? <img src={platformConfig.logoUrl} alt={platformConfig.platformName} className="w-full h-full object-contain" />
                 : <Layers className="w-4 h-4 text-white" />
@@ -195,12 +220,20 @@ export function Layout() {
               {/* Regular nav groups */}
               {allGroups.map((group) => (
                 <div key={group.label} className="mb-1">
+                  {/* Section divider */}
+                  {!collapsed && group.sectionLabel && (
+                    <div className="flex items-center gap-2 px-3 pt-4 pb-1">
+                      <span className="text-[11px] font-bold text-gray-700">{group.sectionLabel}</span>
+                      <div className="flex-1 h-px bg-gray-100" />
+                    </div>
+                  )}
+                  {collapsed && group.sectionLabel && <div className="h-px bg-gray-200 mx-2 my-3" />}
                   {!collapsed && (
-                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-2">
+                    <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider px-3 py-1.5">
                       {group.label}
                     </p>
                   )}
-                  {collapsed && <div className="h-px bg-gray-100 mx-2 my-2" />}
+                  {collapsed && !group.sectionLabel && <div className="h-px bg-gray-100 mx-2 my-2" />}
                   <div className="space-y-0.5">
                     {group.items.map((item) => {
                       const active = isActive(item.href, item.exact);
@@ -392,12 +425,8 @@ export function Layout() {
               <Menu className="w-5 h-5" />
             </button>
             <nav className="flex items-center gap-1.5 text-sm">
-              <span className="text-gray-400 font-medium">نسق</span>
               {currentPage && (
-                <>
-                  <ChevronLeft className="w-3.5 h-3.5 text-gray-300" />
-                  <span className="text-gray-700 font-medium">{currentPage.name}</span>
-                </>
+                <span className="text-gray-700 font-medium">{currentPage.name}</span>
               )}
             </nav>
           </div>

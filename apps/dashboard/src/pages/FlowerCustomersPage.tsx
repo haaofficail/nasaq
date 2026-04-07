@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  Users, Phone, TrendingUp, Star, Clock, Search,
+  Users, Phone, TrendingUp, Search,
   X, ShoppingBag, AlertCircle, RefreshCw, ChevronRight,
-  MessageCircle, Award,
+  Award,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { flowerIntelligenceApi } from "@/lib/api";
@@ -86,156 +87,6 @@ function SkeletonRow() {
   );
 }
 
-// ── Customer Profile Drawer ───────────────────────────────────
-
-function CustomerDrawer({ customer, onClose }: { customer: Customer; onClose: () => void }) {
-  const tier = TIER_CONFIG[customer.customer_tier] ?? TIER_CONFIG.new;
-
-  const { data: ordersRes, loading: ordersLoading } = useApi(
-    () => flowerIntelligenceApi.customerOrders(customer.customer_phone),
-    [customer.customer_phone]
-  );
-  const orders: CustomerOrder[] = ordersRes?.data ?? [];
-
-  const whatsappLink = `https://wa.me/966${customer.customer_phone.replace(/^0/, "")}`;
-
-  return (
-    <div className="fixed inset-0 z-50 flex" dir="rtl">
-      <div className="flex-1 bg-black/40" onClick={onClose} />
-      <div className="w-full max-w-md bg-white h-full flex flex-col shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-          <h2 className="font-bold text-gray-900">ملف العميل</h2>
-          <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {/* Customer identity */}
-          <div className="px-5 py-5 border-b border-gray-100">
-            <div className="flex items-start gap-4">
-              <div className={clsx("w-14 h-14 rounded-2xl flex items-center justify-center text-xl font-bold shrink-0", tier.bg)}>
-                {customer.customer_name.charAt(0) || "؟"}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="font-bold text-gray-900 text-base">{customer.customer_name || "—"}</h3>
-                  <span className={clsx("text-xs px-2 py-0.5 rounded-full font-medium border", tier.badge)}>
-                    {tier.label}
-                  </span>
-                  {customer.is_due_return && (
-                    <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-amber-50 text-amber-700 border border-amber-200">
-                      مرشح للعودة
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-1.5 mt-1">
-                  <Phone className="w-3.5 h-3.5 text-gray-400" />
-                  <span className="text-sm text-gray-500 tabular-nums" dir="ltr">{customer.customer_phone}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Actions */}
-            <div className="flex gap-2 mt-4">
-              <a
-                href={`tel:${customer.customer_phone}`}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
-              >
-                <Phone className="w-4 h-4" />
-                اتصال
-              </a>
-              <a
-                href={whatsappLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-green-500 text-white text-sm font-medium hover:bg-green-600 transition-colors"
-              >
-                <MessageCircle className="w-4 h-4" />
-                واتساب
-              </a>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-3 px-5 py-4 border-b border-gray-100 gap-3">
-            {[
-              { label: "عدد الطلبات",    value: customer.order_count },
-              { label: "إجمالي الإنفاق", value: fmtMoney(customer.total_spent) },
-              { label: "متوسط الطلب",    value: fmtMoney(customer.avg_order_value) },
-            ].map(s => (
-              <div key={s.label} className="bg-gray-50 rounded-xl p-3 text-center">
-                <p className="text-sm font-bold text-gray-900">{s.value}</p>
-                <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
-              </div>
-            ))}
-          </div>
-
-          {/* Activity info */}
-          <div className="px-5 py-4 border-b border-gray-100 space-y-2">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-400">أول طلب</span>
-              <span className="text-gray-700 font-medium">{fmtDate(customer.first_order_at)}</span>
-            </div>
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-400">آخر طلب</span>
-              <span className="text-gray-700 font-medium">
-                {fmtDate(customer.last_order_at)}
-                <span className="text-gray-400 font-normal mr-1">({customer.days_since_last_order} يوم)</span>
-              </span>
-            </div>
-            {customer.avg_days_between_orders != null && (
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-gray-400">متوسط الشراء</span>
-                <span className="text-gray-700 font-medium">كل {customer.avg_days_between_orders} يوم</span>
-              </div>
-            )}
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-gray-400">نوع الطلب المفضل</span>
-              <span className="text-gray-700 font-medium">{ORDER_TYPE_LABEL[customer.favorite_order_type] ?? customer.favorite_order_type}</span>
-            </div>
-          </div>
-
-          {/* Order history */}
-          <div className="px-5 pt-4">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">سجل الطلبات</h4>
-            {ordersLoading ? (
-              <div className="space-y-2">
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />
-                ))}
-              </div>
-            ) : orders.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-6">لا توجد طلبات</p>
-            ) : (
-              <div className="space-y-2 pb-6">
-                {orders.map(o => {
-                  const st = STATUS_CONFIG[o.status] ?? { label: o.status, cls: "bg-gray-100 text-gray-600" };
-                  return (
-                    <div key={o.id} className="bg-gray-50 rounded-xl p-3 flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <p className="text-xs font-mono text-[#5b9bd5] font-semibold">{o.order_number}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">{fmtDate(o.created_at)}</p>
-                        {o.gift_message && (
-                          <p className="text-xs text-gray-500 mt-1 italic truncate max-w-[200px]">{o.gift_message}</p>
-                        )}
-                      </div>
-                      <div className="flex flex-col items-end gap-1.5 shrink-0">
-                        <span className="text-sm font-bold text-gray-800">{Number(o.total).toLocaleString("en-US")} ر.س</span>
-                        <span className={clsx("text-xs px-2 py-0.5 rounded-full font-medium", st.cls)}>{st.label}</span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 // ── Customer Row ──────────────────────────────────────────────
 
@@ -300,9 +151,9 @@ function CustomerRow({ customer, onClick }: { customer: Customer; onClick: () =>
 // ── Main Page ─────────────────────────────────────────────────
 
 export function FlowerCustomersPage() {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<FilterTab>("all");
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Customer | null>(null);
 
   const { data: res, loading, error, refetch } = useApi(
     () => flowerIntelligenceApi.customersIntelligence(200),
@@ -354,7 +205,7 @@ export function FlowerCustomersPage() {
           { label: "إجمالي العملاء",  value: loading ? "—" : summary.totalCustomers,  color: "text-gray-800",   icon: Users,     iconBg: "bg-blue-50 text-blue-500" },
           { label: "مرشح للعودة",     value: loading ? "—" : summary.dueReturn,       color: "text-amber-600",  icon: TrendingUp, iconBg: "bg-amber-50 text-amber-500" },
           { label: "عملاء VIP",       value: loading ? "—" : summary.vipCount,        color: "text-violet-600", icon: Award,     iconBg: "bg-violet-50 text-violet-500" },
-          { label: "متوسط الطلب",     value: loading ? "—" : fmtMoney(summary.avgOrderValue), color: "text-[#5b9bd5]", icon: ShoppingBag, iconBg: "bg-blue-50 text-[#5b9bd5]" },
+          { label: "متوسط الطلب",     value: loading ? "—" : fmtMoney(summary.avgOrderValue), color: "text-brand-500", icon: ShoppingBag, iconBg: "bg-blue-50 text-brand-500" },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4">
             <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-3", s.iconBg)}>
@@ -391,7 +242,7 @@ export function FlowerCustomersPage() {
               placeholder="بحث بالاسم أو رقم الجوال..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-[#5b9bd5] transition-colors"
+              className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-brand-500 transition-colors"
             />
             {search && (
               <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
@@ -412,7 +263,7 @@ export function FlowerCustomersPage() {
                 className={clsx(
                   "px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors whitespace-nowrap flex items-center gap-1.5",
                   activeTab === tab.id
-                    ? "border-[#5b9bd5] text-[#5b9bd5] bg-blue-50/50"
+                    ? "border-brand-500 text-brand-500 bg-blue-50/50"
                     : "border-transparent text-gray-500 hover:text-gray-700"
                 )}
               >
@@ -420,7 +271,7 @@ export function FlowerCustomersPage() {
                 {cnt != null && cnt > 0 && (
                   <span className={clsx(
                     "text-xs rounded-full px-1.5 py-0.5 font-semibold",
-                    activeTab === tab.id ? "bg-[#5b9bd5] text-white" : "bg-gray-100 text-gray-500"
+                    activeTab === tab.id ? "bg-brand-500 text-white" : "bg-gray-100 text-gray-500"
                   )}>
                     {cnt}
                   </span>
@@ -461,7 +312,7 @@ export function FlowerCustomersPage() {
               <Search className="w-8 h-8 text-gray-200 mb-3" />
               <p className="text-sm text-gray-500">لا توجد نتائج مطابقة</p>
               {search && (
-                <button onClick={() => setSearch("")} className="mt-2 text-xs text-[#5b9bd5] hover:underline">
+                <button onClick={() => setSearch("")} className="mt-2 text-xs text-brand-500 hover:underline">
                   مسح البحث
                 </button>
               )}
@@ -480,7 +331,7 @@ export function FlowerCustomersPage() {
                 <div className="w-4 shrink-0" />
               </div>
               {filtered.map(c => (
-                <CustomerRow key={c.customer_phone} customer={c} onClick={() => setSelected(c)} />
+                <CustomerRow key={c.customer_phone} customer={c} onClick={() => navigate(`/dashboard/flower-customers/${encodeURIComponent(c.customer_phone)}`)} />
               ))}
               <div className="px-4 py-3 border-t border-gray-50 bg-gray-50/40">
                 <p className="text-xs text-gray-400 text-center">
@@ -493,10 +344,6 @@ export function FlowerCustomersPage() {
         </div>
       </div>
 
-      {/* Customer drawer */}
-      {selected && (
-        <CustomerDrawer customer={selected} onClose={() => setSelected(null)} />
-      )}
     </div>
   );
 }

@@ -149,7 +149,7 @@ export function MarketingPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "حملات نشطة",    value: activeCampaigns,     color: "text-[#5b9bd5]", bg: "bg-blue-50",   icon: Megaphone },
+          { label: "حملات نشطة",    value: activeCampaigns,     color: "text-brand-500", bg: "bg-blue-50",   icon: Megaphone },
           { label: "كوبونات فعّالة", value: activeCoupons,       color: "text-violet-600", bg: "bg-violet-50", icon: Tag },
           { label: "التقييمات",     value: stats.total ?? reviews.length, color: "text-amber-600", bg: "bg-amber-50", icon: Star },
           { label: "متوسط التقييم", value: stats.avg ? stats.avg.toFixed(1) : "—", color: "text-amber-600", bg: "bg-amber-50", icon: BarChart2 },
@@ -182,7 +182,7 @@ export function MarketingPage() {
               return (
                 <div key={c.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:border-gray-200 transition-colors">
                   <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                    <Megaphone className="w-5 h-5 text-[#5b9bd5]" />
+                    <Megaphone className="w-5 h-5 text-brand-500" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold text-gray-900">{c.name}</p>
@@ -197,7 +197,7 @@ export function MarketingPage() {
                     {(c.status === "draft" || c.status === "scheduled") && (
                       <button
                         onClick={() => handleSendCampaign(c.id)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-[#5b9bd5] text-white text-xs font-semibold rounded-lg hover:bg-[#4a8bc4] transition-colors"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 text-white text-xs font-semibold rounded-lg hover:bg-[#4a8bc4] transition-colors"
                       >
                         <Send className="w-3.5 h-3.5" /> إرسال
                       </button>
@@ -217,7 +217,7 @@ export function MarketingPage() {
       {tabId === "coupons" && (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           {coLoading ? (
-            <div className="p-8 flex justify-center"><div className="w-6 h-6 border-2 border-[#5b9bd5] border-t-transparent rounded-full animate-spin" /></div>
+            <div className="p-8 flex justify-center"><div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>
           ) : coupons.length === 0 ? (
             <div className="p-12 text-center">
               <Tag className="w-10 h-10 text-gray-200 mx-auto mb-3" />
@@ -237,7 +237,7 @@ export function MarketingPage() {
               <tbody>
                 {coupons.map((c: any) => (
                   <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-[#5b9bd5]">{c.code}</td>
+                    <td className="py-3 px-4 font-mono font-bold text-brand-500">{c.code}</td>
                     <td className="py-3 px-4 font-medium text-gray-900">{c.name}</td>
                     <td className="py-3 px-4 tabular-nums">
                       {c.discountType === "percentage" ? `${c.discountValue}%` : `${c.discountValue} ر.س`}
@@ -355,7 +355,7 @@ export function MarketingPage() {
                         </button>
                       </>
                     )}
-                    <button onClick={() => setReplyId(replyId === r.id ? null : r.id)} className="p-1.5 text-gray-300 hover:text-[#5b9bd5] transition-colors rounded-lg hover:bg-blue-50" title="رد">
+                    <button onClick={() => setReplyId(replyId === r.id ? null : r.id)} className="p-1.5 text-gray-300 hover:text-brand-500 transition-colors rounded-lg hover:bg-blue-50" title="رد">
                       <MessageCircle className="w-4 h-4" />
                     </button>
                     <button onClick={async () => { if (confirm("حذف التقييم؟")) { await deleteReview(r.id); refetchReviews(); } }} className="p-1.5 text-gray-300 hover:text-red-400 transition-colors rounded-lg hover:bg-red-50">
@@ -371,7 +371,7 @@ export function MarketingPage() {
                 </div>
                 {r.comment && <p className="text-sm text-gray-600 leading-relaxed">{r.comment}</p>}
                 {r.responseText && (
-                  <div className="bg-blue-50 rounded-xl p-3 border-r-2 border-[#5b9bd5]">
+                  <div className="bg-blue-50 rounded-xl p-3 border-r-2 border-brand-500">
                     <p className="text-xs text-gray-400 mb-1 font-medium">ردك</p>
                     <p className="text-sm text-gray-700">{r.responseText}</p>
                   </div>
@@ -382,12 +382,12 @@ export function MarketingPage() {
                       value={replyText}
                       onChange={e => setReplyText(e.target.value)}
                       placeholder="اكتب ردك..."
-                      className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-[#5b9bd5] transition-colors"
+                      className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-500 transition-colors"
                     />
                     <button
                       onClick={handleReply}
                       disabled={responding || !replyText.trim()}
-                      className="px-4 py-2 bg-[#5b9bd5] text-white text-sm font-semibold rounded-xl hover:bg-[#4a8bc4] transition-colors disabled:opacity-50"
+                      className="px-4 py-2 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-[#4a8bc4] transition-colors disabled:opacity-50"
                     >
                       {responding ? <RefreshCw className="w-4 h-4 animate-spin" /> : "إرسال"}
                     </button>
@@ -405,7 +405,7 @@ export function MarketingPage() {
           {[
             { label: "إجمالي السلات المتروكة", value: cartStats.total ?? 0, icon: ShoppingCart, color: "text-gray-700", bg: "bg-gray-50" },
             { label: "تم استرداده", value: cartStats.recovered ?? 0, icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "معدل الاسترداد", value: `${cartStats.recoveryRate ?? 0}%`, icon: BarChart2, color: "text-[#5b9bd5]", bg: "bg-blue-50" },
+            { label: "معدل الاسترداد", value: `${cartStats.recoveryRate ?? 0}%`, icon: BarChart2, color: "text-brand-500", bg: "bg-blue-50" },
           ].map((s, i) => (
             <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5">
               <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center mb-3", s.bg)}>
@@ -476,7 +476,7 @@ export function MarketingPage() {
               onChange={e => setCampForm(f => ({ ...f, body: e.target.value }))}
               rows={4}
               placeholder="أهلاً {customer_name}، لدينا عرض خاص لك..."
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-[#5b9bd5] focus:ring-1 focus:ring-blue-100 transition-colors resize-none"
+              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors resize-none"
             />
             <p className="text-xs text-gray-400 mt-1">{campForm.body.length} حرف</p>
           </div>
@@ -540,7 +540,7 @@ export function MarketingPage() {
       >
         <div className="space-y-4">
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-            <p className="text-xs text-[#5b9bd5] font-medium">سيُرسل النظام رسالة واتساب/SMS تتضمن رابط التقييم</p>
+            <p className="text-xs text-brand-500 font-medium">سيُرسل النظام رسالة واتساب/SMS تتضمن رابط التقييم</p>
           </div>
           <Input label="رقم الجوال" name="phone" value={reviewPhone}
             onChange={e => setReviewPhone(e.target.value)} placeholder="05XXXXXXXX" dir="ltr" required />

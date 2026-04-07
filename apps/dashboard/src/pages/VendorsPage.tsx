@@ -195,7 +195,7 @@ function VendorFormModal({
         type={type}
         value={form[field] as string}
         onChange={(e) => set(field, e.target.value)}
-        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/30 focus:border-[#5b9bd5]"
+        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
       />
     </div>
   );
@@ -220,7 +220,7 @@ function VendorFormModal({
               type="text"
               value={form.address}
               onChange={(e) => set("address", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/30 focus:border-[#5b9bd5]"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
             />
           </div>
           <div className="col-span-1">
@@ -228,7 +228,7 @@ function VendorFormModal({
             <select
               value={form.category}
               onChange={(e) => set("category", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/30 focus:border-[#5b9bd5] bg-white"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 bg-white"
             >
               {VENDOR_CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
@@ -245,7 +245,7 @@ function VendorFormModal({
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
               rows={3}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/30 focus:border-[#5b9bd5] resize-none"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 resize-none"
             />
           </div>
           {vendor && (
@@ -266,7 +266,7 @@ function VendorFormModal({
           <button
             type="submit"
             disabled={saving}
-            className="flex-1 bg-[#5b9bd5] text-white rounded-xl py-2.5 text-sm font-medium hover:bg-[#4a8bc4] transition-colors disabled:opacity-50"
+            className="flex-1 bg-brand-500 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-[#4a8bc4] transition-colors disabled:opacity-50"
           >
             {saving ? "جاري الحفظ..." : vendor ? "حفظ التعديلات" : "إضافة المورد"}
           </button>
@@ -320,7 +320,7 @@ function StatementModal({ vendor, onClose }: { vendor: Vendor; onClose: () => vo
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/30"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
             />
           </div>
           <div className="flex-1">
@@ -329,12 +329,12 @@ function StatementModal({ vendor, onClose }: { vendor: Vendor; onClose: () => vo
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/30"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
             />
           </div>
           <button
             onClick={load}
-            className="bg-[#5b9bd5] text-white rounded-xl px-4 py-2 text-sm hover:bg-[#4a8bc4] transition-colors"
+            className="bg-brand-500 text-white rounded-xl px-4 py-2 text-sm hover:bg-[#4a8bc4] transition-colors"
           >
             تصفية
           </button>
@@ -385,7 +385,7 @@ function StatementModal({ vendor, onClose }: { vendor: Vendor; onClose: () => vo
                 <tbody>
                   {data.invoices.map((inv: any, idx: number) => (
                     <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
-                      <td className="py-2 px-3 text-[#5b9bd5] font-mono">{inv.invoice_number || "-"}</td>
+                      <td className="py-2 px-3 text-brand-500 font-mono">{inv.invoice_number || "-"}</td>
                       <td className="py-2 px-3 text-gray-600">
                         {inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString("ar-SA") : "-"}
                       </td>
@@ -522,7 +522,7 @@ export function VendorsPage() {
         </div>
         <button
           onClick={() => { setEditVendor(null); setShowForm(true); }}
-          className="flex items-center gap-2 bg-[#5b9bd5] text-white rounded-2xl px-5 py-2.5 text-sm font-medium hover:bg-[#4a8bc4] transition-colors"
+          className="flex items-center gap-2 bg-brand-500 text-white rounded-2xl px-5 py-2.5 text-sm font-medium hover:bg-[#4a8bc4] transition-colors"
         >
           <span className="text-lg leading-none">+</span>
           مورد جديد
@@ -537,7 +537,7 @@ export function VendorsPage() {
             placeholder="بحث باسم المورد أو الجوال..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm pr-10 focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/30 focus:border-[#5b9bd5]"
+            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm pr-10 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">&#128269;</span>
         </div>
@@ -596,11 +596,11 @@ export function VendorsPage() {
               ) : (
                 vendors.map((vendor) => (
                   <tr key={vendor.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-[#5b9bd5] font-mono text-xs">{vendor.vendor_code || "-"}</td>
+                    <td className="px-4 py-3 text-brand-500 font-mono text-xs">{vendor.vendor_code || "-"}</td>
                     <td className="px-4 py-3">
                       <button
                         onClick={() => setStatementVendor(vendor)}
-                        className="font-medium text-gray-800 hover:text-[#5b9bd5] transition-colors text-right"
+                        className="font-medium text-gray-800 hover:text-brand-500 transition-colors text-right"
                       >
                         {vendor.name}
                       </button>
@@ -634,7 +634,7 @@ export function VendorsPage() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setStatementVendor(vendor)}
-                          className="text-[#5b9bd5] hover:text-[#4a8bc4] text-xs border border-[#5b9bd5]/30 rounded-lg px-2 py-1 hover:bg-[#5b9bd5]/5 transition-colors"
+                          className="text-brand-500 hover:text-[#4a8bc4] text-xs border border-brand-500/30 rounded-lg px-2 py-1 hover:bg-brand-500/5 transition-colors"
                           title="كشف حساب"
                         >
                           كشف

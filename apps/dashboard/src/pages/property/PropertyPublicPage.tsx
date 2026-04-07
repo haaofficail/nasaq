@@ -126,7 +126,7 @@ export function PropertyPublicPage() {
       </main>
 
       <footer className="mt-12 py-6 text-center text-gray-400 text-xs border-t border-gray-100">
-        مدعوم بواسطة نسق
+        مدعوم بواسطة ترميز OS
       </footer>
     </div>
   );

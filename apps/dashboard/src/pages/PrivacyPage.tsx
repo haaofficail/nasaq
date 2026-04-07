@@ -124,25 +124,25 @@ function PrivacyRequestButtons() {
       <p style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", marginBottom: 14, marginTop: 0 }}>
         ممارسة حقوقك وفق PDPL — أدخل بياناتك ثم اختر الطلب
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginBottom: 10 }}>
+      <div style={{ display: "grid", gap: 10, marginBottom: 10 }} className="grid grid-cols-1 sm:grid-cols-2">
         <div>
           <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 5 }}>الاسم *</label>
           <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             placeholder="اسمك الكامل"
-            style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 10, padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+            style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 10, padding: "11px 12px", fontSize: 13, outline: "none", boxSizing: "border-box", minHeight: 44 }} />
         </div>
         <div>
           <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 5 }}>الجوال *</label>
           <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
             placeholder="05XXXXXXXX" dir="ltr"
-            style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 10, padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+            style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 10, padding: "11px 12px", fontSize: 13, outline: "none", boxSizing: "border-box", minHeight: 44 }} />
         </div>
       </div>
       <div style={{ marginBottom: 16 }}>
         <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", display: "block", marginBottom: 5 }}>البريد الإلكتروني (اختياري)</label>
         <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
           placeholder="email@example.com" dir="ltr"
-          style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 10, padding: "9px 12px", fontSize: 13, outline: "none", boxSizing: "border-box" }} />
+          style={{ width: "100%", border: "1px solid #e2e8f0", borderRadius: 10, padding: "11px 12px", fontSize: 13, outline: "none", boxSizing: "border-box", minHeight: 44 }} />
       </div>
       {status === "error" && (
         <p style={{ fontSize: 12, color: "#dc2626", marginBottom: 12 }}>
@@ -155,7 +155,7 @@ function PrivacyRequestButtons() {
           disabled={!form.name || !form.phone || status === "loading"}
           style={{
             flex: 1, background: "#5b9bd5", color: "white", border: "none",
-            borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 600,
+            borderRadius: 10, padding: "13px 16px", fontSize: 13, fontWeight: 600, minHeight: 44,
             cursor: !form.name || !form.phone ? "not-allowed" : "pointer",
             opacity: !form.name || !form.phone ? 0.5 : 1,
             display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
@@ -168,7 +168,7 @@ function PrivacyRequestButtons() {
           disabled={!form.name || !form.phone || status === "loading"}
           style={{
             flex: 1, background: "white", color: "#dc2626", border: "1px solid #fca5a5",
-            borderRadius: 10, padding: "10px 16px", fontSize: 13, fontWeight: 600,
+            borderRadius: 10, padding: "13px 16px", fontSize: 13, fontWeight: 600, minHeight: 44,
             cursor: !form.name || !form.phone ? "not-allowed" : "pointer",
             opacity: !form.name || !form.phone ? 0.5 : 1,
             display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
@@ -189,9 +189,21 @@ export function PrivacyPage() {
     <NasaqThemeGuard>
       <PublicLayout>
         <div dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic','Tajawal',sans-serif" }}>
+          <style>{`
+            @media (max-width: 767px) {
+              .legal-hero { padding: 48px 16px 36px !important; }
+              .legal-content { padding: 40px 16px !important; }
+              .legal-card { padding: 20px 16px !important; }
+              .legal-cta { padding: 20px 16px !important; }
+            }
+            @media (min-width: 768px) and (max-width: 1023px) {
+              .legal-hero { padding: 64px 20px 52px !important; }
+              .legal-content { padding: 56px 20px !important; }
+            }
+          `}</style>
 
           {/* Hero */}
-          <section style={{ background: "linear-gradient(135deg, #f8fafc 0%, #f0fdf4 100%)", padding: "96px 24px 72px", textAlign: "center" }}>
+          <section className="legal-hero" style={{ background: "linear-gradient(135deg, #f8fafc 0%, #f0fdf4 100%)", padding: "96px 24px 72px", textAlign: "center" }}>
             <div style={{ maxWidth: 720, margin: "0 auto" }}>
               <div style={{
                 display: "inline-flex", alignItems: "center", gap: 8,
@@ -225,11 +237,11 @@ export function PrivacyPage() {
           </section>
 
           {/* Content */}
-          <section style={{ padding: "72px 24px", background: "#ffffff" }}>
+          <section className="legal-content" style={{ padding: "72px 24px", background: "#ffffff" }}>
             <div style={{ maxWidth: 800, margin: "0 auto" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
                 {SECTIONS.map((s, i) => (
-                  <div key={i} style={{
+                  <div key={i} className="legal-card" style={{
                     background: "#f8fafc", borderRadius: 16, padding: "28px 32px",
                     border: "1px solid #e2e8f0",
                   }}>
@@ -251,7 +263,7 @@ export function PrivacyPage() {
               </div>
 
               {/* CTA */}
-              <div style={{ marginTop: 52, padding: "28px 32px", background: "#f0fdf4", borderRadius: 16, textAlign: "center", border: "1px solid rgba(34,197,94,0.15)" }}>
+              <div className="legal-cta" style={{ marginTop: 52, padding: "28px 32px", background: "#f0fdf4", borderRadius: 16, textAlign: "center", border: "1px solid rgba(34,197,94,0.15)" }}>
                 <p style={{ fontSize: 15, color: "#0f172a", fontWeight: 600, marginBottom: 6 }}>
                   تريد ممارسة حقوقك على بياناتك؟
                 </p>

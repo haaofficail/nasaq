@@ -59,7 +59,7 @@ export function AccountingPeriodsPage() {
           <p className="text-sm text-gray-500 mt-1">إدارة الفترات المحاسبية وقفلها</p>
         </div>
         <button onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#5b9bd5] text-white rounded-xl text-sm font-medium hover:bg-[#4a8ac4] transition-colors">
+          className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors">
           <Plus size={16} />
           فترة جديدة
         </button>
@@ -150,24 +150,24 @@ export function AccountingPeriodsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">اسم الفترة</label>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="مثال: الربع الأول 2026"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/20 focus:border-[#5b9bd5]" />
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">تاريخ البداية</label>
                   <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/20 focus:border-[#5b9bd5]" />
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">تاريخ النهاية</label>
                   <input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/20 focus:border-[#5b9bd5]" />
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
                 </div>
               </div>
             </div>
             <div className="flex gap-3 mt-6">
               <button onClick={() => { create(undefined as unknown as void); }} disabled={creating}
-                className="flex-1 py-2.5 bg-[#5b9bd5] text-white rounded-xl text-sm font-medium hover:bg-[#4a8ac4] transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+                className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                 {creating && <Loader2 size={14} className="animate-spin" />}
                 إنشاء الفترة
               </button>

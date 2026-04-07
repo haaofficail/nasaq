@@ -59,7 +59,7 @@ function SkeletonCard() {
 function SectionCard({ title, children, hint }: { title: string; children: React.ReactNode; hint?: string }) {
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-5">
-      <h2 className="text-base font-bold text-gray-800 mb-1 border-r-4 border-[#5b9bd5] pr-3">{title}</h2>
+      <h2 className="text-base font-bold text-gray-800 mb-1 border-r-4 border-brand-500 pr-3">{title}</h2>
       {hint && <p className="text-xs text-gray-400 mb-4 mr-4">{hint}</p>}
       {!hint && <div className="mb-4" />}
       {children}
@@ -200,7 +200,7 @@ export function FlowerReportsPage() {
                 onClick={() => setPeriod(p)}
                 className={clsx(
                   "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
-                  period === p ? "bg-white text-[#5b9bd5] shadow-sm" : "text-gray-500 hover:text-gray-700"
+                  period === p ? "bg-white text-brand-500 shadow-sm" : "text-gray-500 hover:text-gray-700"
                 )}
               >
                 {periodLabels[p]}
@@ -237,7 +237,7 @@ export function FlowerReportsPage() {
                 value: fmtSAR(kpis.totalSales),
                 sub: `${kpis.totalOrders} طلب`,
                 icon: DollarSign,
-                bg: "bg-[#5b9bd5]",
+                bg: "bg-brand-500",
                 trend: null,
               },
               {
@@ -300,7 +300,7 @@ export function FlowerReportsPage() {
         ) : (
           <div className="space-y-4">
             {topFlowers.map((item, idx) => {
-              const colors = ["bg-red-400","bg-pink-400","bg-purple-400","bg-[#5b9bd5]","bg-indigo-400","bg-teal-400"];
+              const colors = ["bg-red-400","bg-pink-400","bg-purple-400","bg-brand-500","bg-indigo-400","bg-teal-400"];
               return (
                 <div key={idx}>
                   <div className="flex items-center justify-between mb-1">
@@ -432,7 +432,7 @@ export function FlowerReportsPage() {
             {topCustomers.map((c: any, idx: number) => (
               <div key={idx} className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-[#5b9bd5] flex items-center justify-center text-white font-bold text-sm shrink-0">
+                  <div className="w-9 h-9 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
                     {(c.customer_name || "؟").charAt(0)}
                   </div>
                   <div>

@@ -60,8 +60,8 @@ function fmtDuration(days: number, label: string) {
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
-export function CreateBookingForm({ open, onClose, onSuccess, initialDate }: {
-  open: boolean; onClose: () => void; onSuccess?: () => void; initialDate?: string;
+export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defaultServiceId }: {
+  open: boolean; onClose: () => void; onSuccess?: () => void; initialDate?: string; defaultServiceId?: string;
 }) {
   // Core booking state
   const [customerId,    setCustomerId]    = useState("");
@@ -70,7 +70,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate }: {
   const [eventEndDate,  setEventEndDate]  = useState("");
   const [eventEndTime,  setEventEndTime]  = useState("12:00");
   const [locationId,    setLocationId]    = useState("");
-  const [items, setItems] = useState<BookingItem[]>([{ serviceId: "", quantity: 1, addons: [] }]);
+  const [items, setItems] = useState<BookingItem[]>([{ serviceId: defaultServiceId ?? "", quantity: 1, addons: [] }]);
   const [customerNotes, setCustomerNotes] = useState("");
   const [internalNotes, setInternalNotes] = useState("");
 

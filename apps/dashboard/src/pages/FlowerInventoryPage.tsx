@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { flowerMasterApi } from "@/lib/api";
+import { flowerMasterApi, flowerSuppliersApi } from "@/lib/api";
 import {
   Flower2, Plus, X, AlertTriangle, RefreshCw,
   Package, TrendingDown, Clock, ChevronDown, Leaf,
@@ -82,12 +82,25 @@ export function FlowerInventoryPage() {
     useApi(() => flowerMasterApi.batches());
   const { data: expiringRes, loading: expiringLoading, refetch: refetchExpiring } =
     useApi(() => flowerMasterApi.batchesExpiring(7));
-  const { data: variantsRes } = useApi(() => flowerMasterApi.variants());
+  const { data: variantsRes }   = useApi(() => flowerMasterApi.variants());
+  const { data: suppliersRes }  = useApi(() => flowerSuppliersApi.list());
 
   const stock: StockRow[] = stockRes?.data ?? [];
-  const batches: Batch[] = batchesRes?.data ?? [];
-  const expiring: Batch[] = expiringRes?.data ?? [];
-  const variants: Variant[] = variantsRes?.data ?? [];
+  const normBatch = (b: any): Batch => ({
+    ...b,
+    quantityReceived:  b.quantityReceived  ?? b.quantity_received  ?? 0,
+    quantityRemaining: b.quantityRemaining ?? b.quantity_remaining ?? 0,
+    batchNumber:       b.batchNumber       ?? b.batch_number       ?? "",
+    expiryEstimated:   b.expiryEstimated   ?? b.expiry_estimated   ?? "",
+    currentBloomStage: b.currentBloomStage ?? b.current_bloom_stage ?? "",
+    qualityStatus:     b.qualityStatus     ?? b.quality_status      ?? "",
+    daysUntilExpiry:   b.daysUntilExpiry   ?? b.days_until_expiry,
+    variant:           b.variant,
+  });
+  const batches: Batch[] = (batchesRes?.data ?? []).map(normBatch);
+  const expiring: Batch[] = (expiringRes?.data ?? []).map(normBatch);
+  const variants: Variant[]  = variantsRes?.data  ?? [];
+  const suppliers: any[]     = suppliersRes?.data ?? [];
 
   const totalStems = stock.reduce((s, r) => s + parseInt(r.total_remaining || "0"), 0);
   const expiringCount = expiring.length;
@@ -98,21 +111,34 @@ export function FlowerInventoryPage() {
   // ─── Receive Batch Modal ───────────────────────────────────────────────────
   const [receiveModal, setReceiveModal] = useState(false);
   const [receiveForm, setReceiveForm] = useState({
-    variantId: "", batchNumber: "", quantityReceived: "",
+    variantId: "", supplierId: "", batchNumber: "", quantityReceived: "", bunchCount: "",
     unitCost: "", expiryEstimated: "", currentBloomStage: "bud", notes: "",
   });
+  const [inputInBunches, setInputInBunches] = useState(false);
   const receiveMut = useMutation((d: any) => flowerMasterApi.receiveBatch(d));
   const setR = (f: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setReceiveForm(p => ({ ...p, [f]: e.target.value }));
 
+  const selectedVariant = variants.find(v => v.id === receiveForm.variantId) as any;
+  const bunchSize = selectedVariant?.bunchSize ?? selectedVariant?.bunch_size ?? 10;
+  const computedStems = inputInBunches && receiveForm.bunchCount
+    ? parseInt(receiveForm.bunchCount) * bunchSize
+    : null;
+
   const saveReceive = async () => {
-    if (!receiveForm.variantId || !receiveForm.quantityReceived || !receiveForm.expiryEstimated) return;
+    const qty = inputInBunches
+      ? (receiveForm.bunchCount ? parseInt(receiveForm.bunchCount) * bunchSize : 0)
+      : parseInt(receiveForm.quantityReceived);
+    if (!receiveForm.variantId || !qty || !receiveForm.expiryEstimated) return;
     await receiveMut.mutate({
       ...receiveForm,
-      quantityReceived: parseInt(receiveForm.quantityReceived),
+      supplierId: receiveForm.supplierId || undefined,
+      quantityReceived: qty,
+      bunchCount: inputInBunches ? parseInt(receiveForm.bunchCount) : undefined,
     });
     setReceiveModal(false);
-    setReceiveForm({ variantId: "", batchNumber: "", quantityReceived: "", unitCost: "", expiryEstimated: "", currentBloomStage: "bud", notes: "" });
+    setInputInBunches(false);
+    setReceiveForm({ variantId: "", supplierId: "", batchNumber: "", quantityReceived: "", bunchCount: "", unitCost: "", expiryEstimated: "", currentBloomStage: "bud", notes: "" });
     refetchAll();
   };
 
@@ -166,7 +192,7 @@ export function FlowerInventoryPage() {
             className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white rounded-xl px-4 py-2 text-sm font-semibold transition-colors shadow-sm shadow-brand-500/20"
           >
             <Plus className="w-4 h-4" />
-            استلام دفعة
+            استلام شحنة
           </button>
         </div>
       </div>
@@ -223,9 +249,9 @@ export function FlowerInventoryPage() {
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         <div className="flex border-b border-gray-100">
           {([
-            { key: "stock",    label: "المخزون الحالي", icon: Package },
-            { key: "batches",  label: "كل الدفعات",    icon: Leaf },
-            { key: "expiring", label: "قاربت الانتهاء", icon: Clock },
+            { key: "stock",    label: "المخزون الحالي",    icon: Package },
+            { key: "batches",  label: "كل الشحنات",       icon: Leaf },
+            { key: "expiring", label: "قاربت الانتهاء",   icon: Clock },
           ] as const).map(({ key, label, icon: Icon }) => (
             <button
               key={key}
@@ -433,24 +459,67 @@ export function FlowerInventoryPage() {
 
       {/* Receive Batch Modal */}
       {receiveModal && (
-        <Modal title="استلام دفعة جديدة" onClose={() => setReceiveModal(false)}>
+        <Modal title="استلام شحنة جديدة" onClose={() => setReceiveModal(false)}>
           <div className="space-y-4">
             <Field label="نوع الوردة *">
               <select value={receiveForm.variantId} onChange={setR("variantId")} className={selectCls}>
                 <option value="">اختر النوع</option>
                 {variants.map(v => (
-                  <option key={v.id} value={v.id}>{v.displayNameAr || v.flowerType}</option>
+                  <option key={v.id} value={v.id}>
+                    {(v as any).displayNameAr || v.flowerType}
+                    {(v as any).bunchSize ? ` — بنش ${(v as any).bunchSize} ساق` : ""}
+                  </option>
                 ))}
               </select>
             </Field>
+
+            <Field label="المورد">
+              <select value={receiveForm.supplierId} onChange={setR("supplierId")} className={selectCls}>
+                <option value="">— اختر المورد (اختياري) —</option>
+                {suppliers.map((s: any) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                    {s.flower_origin ? ` — ${s.flower_origin}` : ""}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            {/* Bunch toggle */}
+            <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl">
+              <label className="flex items-center gap-2 cursor-pointer select-none text-sm text-gray-700 flex-1">
+                <input
+                  type="checkbox"
+                  checked={inputInBunches}
+                  onChange={e => setInputInBunches(e.target.checked)}
+                  className="w-4 h-4 accent-brand-500"
+                />
+                إدخال بالبنش
+              </label>
+              {receiveForm.variantId && (
+                <span className="text-xs text-gray-500">بنش = {bunchSize} ساق</span>
+              )}
+            </div>
+
             <div className="grid grid-cols-2 gap-3">
               <Field label="رقم الدفعة">
                 <input value={receiveForm.batchNumber} onChange={setR("batchNumber")} placeholder="مثال: B-001" className={inputCls} />
               </Field>
-              <Field label="الكمية المستلمة (سيقان) *">
-                <input type="number" value={receiveForm.quantityReceived} onChange={setR("quantityReceived")} placeholder="مثال: 200" className={inputCls} />
-              </Field>
+              {inputInBunches ? (
+                <Field label="عدد البنشات *">
+                  <input type="number" min="1" value={receiveForm.bunchCount} onChange={setR("bunchCount")} placeholder="مثال: 20" className={inputCls} />
+                </Field>
+              ) : (
+                <Field label="الكمية المستلمة (سيقان) *">
+                  <input type="number" value={receiveForm.quantityReceived} onChange={setR("quantityReceived")} placeholder="مثال: 200" className={inputCls} />
+                </Field>
+              )}
             </div>
+            {inputInBunches && computedStems !== null && (
+              <div className="px-3 py-2 bg-brand-50 rounded-xl text-sm text-brand-700">
+                ما يعادل <span className="font-bold">{computedStems}</span> ساق
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-3">
               <Field label="تكلفة الساق (ر.س)">
                 <input type="number" step="0.01" value={receiveForm.unitCost} onChange={setR("unitCost")} placeholder="0.00" className={inputCls} />

@@ -17,21 +17,74 @@ const RESOURCES = [
 ];
 
 const ACTION_STYLES: Record<string, { cls: string; label: string; dot: string }> = {
-  created:  { cls: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "إنشاء",   dot: "bg-emerald-500" },
-  updated:  { cls: "bg-blue-50 text-blue-700 border-blue-200",         label: "تعديل",   dot: "bg-blue-500"    },
-  deleted:  { cls: "bg-red-50 text-red-700 border-red-200",            label: "حذف",     dot: "bg-red-500"     },
-  approved: { cls: "bg-violet-50 text-violet-700 border-violet-200",   label: "موافقة",  dot: "bg-violet-500"  },
-  rejected: { cls: "bg-amber-50 text-amber-700 border-amber-200",      label: "رفض",     dot: "bg-amber-500"   },
-  payment_recorded: { cls: "bg-teal-50 text-teal-700 border-teal-200", label: "دفعة",    dot: "bg-teal-500"    },
-  post:     { cls: "bg-indigo-50 text-indigo-700 border-indigo-200",   label: "ترحيل",   dot: "bg-indigo-500"  },
-  reverse:  { cls: "bg-orange-50 text-orange-700 border-orange-200",   label: "عكس",     dot: "bg-orange-500"  },
+  created:          { cls: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "إنشاء",        dot: "bg-emerald-500" },
+  create:           { cls: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "إنشاء",        dot: "bg-emerald-500" },
+  updated:          { cls: "bg-blue-50 text-blue-700 border-blue-200",          label: "تعديل",        dot: "bg-blue-500"    },
+  update:           { cls: "bg-blue-50 text-blue-700 border-blue-200",          label: "تعديل",        dot: "bg-blue-500"    },
+  edit:             { cls: "bg-blue-50 text-blue-700 border-blue-200",          label: "تعديل",        dot: "bg-blue-500"    },
+  deleted:          { cls: "bg-red-50 text-red-700 border-red-200",             label: "حذف",          dot: "bg-red-500"     },
+  delete:           { cls: "bg-red-50 text-red-700 border-red-200",             label: "حذف",          dot: "bg-red-500"     },
+  approved:         { cls: "bg-violet-50 text-violet-700 border-violet-200",    label: "موافقة",       dot: "bg-violet-500"  },
+  rejected:         { cls: "bg-amber-50 text-amber-700 border-amber-200",       label: "رفض",          dot: "bg-amber-500"   },
+  payment_recorded: { cls: "bg-teal-50 text-teal-700 border-teal-200",          label: "دفعة",         dot: "bg-teal-500"    },
+  post:             { cls: "bg-indigo-50 text-indigo-700 border-indigo-200",    label: "ترحيل",        dot: "bg-indigo-500"  },
+  reverse:          { cls: "bg-orange-50 text-orange-700 border-orange-200",    label: "عكس",          dot: "bg-orange-500"  },
+  login:            { cls: "bg-sky-50 text-sky-700 border-sky-200",             label: "دخول",         dot: "bg-sky-500"     },
+  logout:           { cls: "bg-gray-50 text-gray-600 border-gray-200",          label: "خروج",         dot: "bg-gray-400"    },
+  completed:        { cls: "bg-emerald-50 text-emerald-700 border-emerald-200", label: "اكتمل",        dot: "bg-emerald-500" },
+  adjusted:         { cls: "bg-yellow-50 text-yellow-700 border-yellow-200",    label: "تسوية",        dot: "bg-yellow-500"  },
+  moved:            { cls: "bg-purple-50 text-purple-700 border-purple-200",    label: "نقل",          dot: "bg-purple-500"  },
+  returned:         { cls: "bg-rose-50 text-rose-700 border-rose-200",          label: "إرجاع",        dot: "bg-rose-500"    },
+  send:             { cls: "bg-cyan-50 text-cyan-700 border-cyan-200",          label: "إرسال",        dot: "bg-cyan-500"    },
+  view:             { cls: "bg-gray-50 text-gray-500 border-gray-200",          label: "عرض",          dot: "bg-gray-300"    },
+  settle_gratuity:  { cls: "bg-teal-50 text-teal-700 border-teal-200",          label: "تسوية مكافأة", dot: "bg-teal-500"    },
 };
 
 const RESOURCE_LABELS: Record<string, string> = {
-  booking: "حجز", service: "خدمة", customer: "عميل",
-  invoice: "فاتورة", expense: "مصروف", staff: "موظف",
-  settings: "إعدادات", payment: "دفعة", journal_entry: "قيد محاسبي",
-  chart_of_accounts: "حساب", team: "فريق",
+  // نظام
+  auth: "تسجيل الدخول", access_log: "سجل الوصول", api_key: "مفتاح API",
+  onboarding: "تهيئة الحساب", settings: "إعدادات",
+  // حجوزات وخدمات
+  booking: "حجز", service: "خدمة", addon: "إضافة", category: "تصنيف",
+  pricing_rule: "قاعدة تسعير", approval_rule: "قاعدة موافقة",
+  // عملاء
+  customer: "عميل", customer_segment: "شريحة عملاء", beauty_profile: "ملف جمالي",
+  visit_note: "ملاحظة زيارة",
+  // مالية
+  invoice: "فاتورة", expense: "مصروف", payment: "دفعة",
+  journal_entry: "قيد محاسبي", chart_of_accounts: "حساب", treasury_account: "حساب خزينة",
+  reconciliation_statement: "كشف تسوية", reconciliation_item: "بند تسوية",
+  supplier_invoice: "فاتورة مورد", pos_sale: "بيع نقطة بيع", pos_split_sale: "بيع مشترك",
+  // فريق وموارد بشرية
+  team: "فريق", staff: "موظف", vendor_profile: "مستقل",
+  // ورد ومخزون
+  flower_order: "طلب ورد", arrangement: "تنسيق", bundle: "باقة",
+  supplier: "مورد", purchase_order: "أمر شراء", salon_supply: "مستلزمات",
+  // فندقة وسيارات
+  room_type: "نوع غرفة", room_unit: "وحدة غرفة",
+  vehicle: "مركبة", vehicle_category: "فئة مركبة", rental_contract: "عقد إيجار",
+  // عقارات
+  property: "عقار", property_expense: "مصروف عقار",
+  // مطعم
+  menu_item: "صنف قائمة", menu_category: "تصنيف قائمة",
+  restaurant_table: "طاولة", restaurant_booking_config: "إعداد حجز",
+  online_order: "طلب إلكتروني",
+  // تسويق وتواصل
+  campaign: "حملة تسويقية", coupon: "كوبون", message_template: "قالب رسائل",
+  messaging_settings: "إعدادات المراسلة", automation_rule: "أتمتة",
+  payment_link: "رابط دفع", booking_payment_link: "رابط دفع حجز",
+  // مواد وأصول
+  asset: "أصل", asset_type: "نوع أصل", work_order: "أمر عمل",
+  // موقع وتسويق
+  blog_post: "مقال", site_page: "صفحة الموقع", media_asset: "وسائط",
+  media_gallery: "معرض", service_media: "وسائط الخدمة",
+  // أخرى
+  role: "دور", capability_override: "تجاوز صلاحية",
+  payment_gateway: "بوابة دفع", payment_gateway_credentials: "بيانات بوابة",
+  ticket_issuance: "إصدار تذكرة", event: "مناسبة", event_quotation: "عرض سعر مناسبة",
+  service_recipe: "وصفة خدمة", delivery_partner: "شريك توصيل",
+  message_templates_reseeded: "إعادة قوالب الرسائل",
+  performance_review: "تقييم أداء",
 };
 
 const ROLE_LABELS: Record<string, string> = {

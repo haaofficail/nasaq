@@ -2,19 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { ChefHat, Clock, CheckCircle2, Truck, RefreshCw, Package, AlarmClock } from "lucide-react";
 import { clsx } from "clsx";
-import { api } from "@/lib/api";
+import { kitchenApi } from "@/lib/api";
 import { SkeletonRows } from "@/components/ui/Skeleton";
-
-const kitchenApi = {
-  orders: (params?: { status?: string; date?: string }) => {
-    const q = new URLSearchParams();
-    if (params?.status) q.set("status", params.status);
-    if (params?.date) q.set("date", params.date);
-    return api.get<{ data: any[] }>(`/kitchen/orders?${q}`);
-  },
-  updateStatus: (id: string, status: string) => api.patch<{ data: any }>(`/kitchen/orders/${id}/status`, { status }),
-  stats: (date?: string) => api.get<{ data: any }>(`/kitchen/stats${date ? `?date=${date}` : ""}`),
-};
 
 const STATUS_COLORS: Record<string, string> = {
   pending: "border-r-yellow-400 bg-yellow-50",

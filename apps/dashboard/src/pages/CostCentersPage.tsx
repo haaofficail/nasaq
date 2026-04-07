@@ -130,7 +130,7 @@ export function CostCentersPage() {
         </div>
         <button
           onClick={openAdd}
-          className="flex items-center gap-2 bg-[#5b9bd5] hover:bg-[#4a87c0] text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+          className="flex items-center gap-2 bg-brand-500 hover:bg-[#4a87c0] text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
         >
           <span className="text-lg leading-none">+</span>
           إضافة مركز تكلفة
@@ -166,7 +166,7 @@ export function CostCentersPage() {
           <div className="text-4xl text-gray-300 mb-4 select-none">&#9776;</div>
           <p className="text-gray-500 text-lg font-medium">لا توجد مراكز تكلفة</p>
           <p className="text-gray-400 text-sm mt-2">ابدأ بإضافة أول مركز تكلفة لمنشأتك</p>
-          <button onClick={openAdd} className="mt-6 bg-[#5b9bd5] text-white px-6 py-2 rounded-xl text-sm font-medium hover:bg-[#4a87c0] transition-colors">
+          <button onClick={openAdd} className="mt-6 bg-brand-500 text-white px-6 py-2 rounded-xl text-sm font-medium hover:bg-[#4a87c0] transition-colors">
             إضافة مركز تكلفة
           </button>
         </div>
@@ -191,7 +191,7 @@ export function CostCentersPage() {
                 {items.map((item) => (
                   <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
-                      <span className="font-mono text-sm font-semibold text-[#5b9bd5]">{item.code}</span>
+                      <span className="font-mono text-sm font-semibold text-brand-500">{item.code}</span>
                     </td>
                     <td className="px-4 py-4">
                       <div className="font-medium text-gray-900">{item.name}</div>
@@ -214,7 +214,7 @@ export function CostCentersPage() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => openEdit(item)}
-                          className="text-xs text-[#5b9bd5] hover:text-[#4a87c0] font-medium px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+                          className="text-xs text-brand-500 hover:text-[#4a87c0] font-medium px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
                         >
                           تعديل
                         </button>
@@ -258,7 +258,7 @@ export function CostCentersPage() {
                     type="text"
                     value={form.code}
                     onChange={(e) => setForm({ ...form, code: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     placeholder="مثال: CC-001"
                   />
                 </div>
@@ -267,7 +267,7 @@ export function CostCentersPage() {
                   <select
                     value={form.type}
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   >
                     {Object.entries(TYPE_LABELS).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
@@ -281,7 +281,7 @@ export function CostCentersPage() {
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   placeholder="اسم مركز التكلفة"
                 />
               </div>
@@ -291,7 +291,7 @@ export function CostCentersPage() {
                   type="text"
                   value={form.nameEn}
                   onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   placeholder="Cost center name in English"
                   dir="ltr"
                 />
@@ -301,7 +301,7 @@ export function CostCentersPage() {
                 <select
                   value={form.parentId}
                   onChange={(e) => setForm({ ...form, parentId: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 >
                   <option value="">بدون مركز أب</option>
                   {items
@@ -317,7 +317,7 @@ export function CostCentersPage() {
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   rows={2}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent resize-none"
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
                   placeholder="ملاحظات إضافية..."
                 />
               </div>
@@ -327,7 +327,7 @@ export function CostCentersPage() {
                   <button
                     type="button"
                     onClick={() => setForm({ ...form, isActive: !form.isActive })}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? "bg-[#5b9bd5]" : "bg-gray-300"}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.isActive ? "bg-brand-500" : "bg-gray-300"}`}
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.isActive ? "translate-x-1" : "translate-x-6"}`} />
                   </button>
@@ -339,7 +339,7 @@ export function CostCentersPage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 bg-[#5b9bd5] hover:bg-[#4a87c0] disabled:opacity-60 text-white py-2 rounded-xl text-sm font-medium transition-colors"
+                className="flex-1 bg-brand-500 hover:bg-[#4a87c0] disabled:opacity-60 text-white py-2 rounded-xl text-sm font-medium transition-colors"
               >
                 {saving ? "جارٍ الحفظ..." : editing ? "حفظ التعديلات" : "إضافة"}
               </button>

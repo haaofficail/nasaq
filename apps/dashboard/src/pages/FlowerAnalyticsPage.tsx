@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useApi } from "@/hooks/useApi";
-import { flowerMasterApi } from "@/lib/api";
-import { Flower2, AlertTriangle, TrendingUp, BarChart3, Clock, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
+import { flowerMasterApi, serviceOrdersApi } from "@/lib/api";
+import { Flower2, AlertTriangle, TrendingUp, BarChart3, Clock, ChevronDown, ChevronUp, RefreshCw, ClipboardList } from "lucide-react";
 import { clsx } from "clsx";
 
 function Section({ title, icon: Icon, children, defaultOpen = true }: {
@@ -26,6 +26,8 @@ function Section({ title, icon: Icon, children, defaultOpen = true }: {
 
 export function FlowerAnalyticsPage() {
   const { data, loading, refetch } = useApi(() => flowerMasterApi.intelligence(), []);
+  const { data: ordersStatsRes } = useApi(() => serviceOrdersApi.stats(), []);
+  const ordersStats = ordersStatsRes?.data;
 
   const waste:    any[] = data?.data?.waste    || [];
   const velocity: any[] = data?.data?.velocity || [];
@@ -225,6 +227,37 @@ export function FlowerAnalyticsPage() {
               </div>
             )}
           </Section>
+
+          {/* Service Orders Stats */}
+          {ordersStats && (
+            <Section title="طلبات الخدمة الميدانية" icon={ClipboardList} defaultOpen={true}>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {[
+                  { label: "إيرادات مُغلقة",  value: `${Number(ordersStats.closed_revenue ?? 0).toLocaleString("ar-SA")} ر.س`, color: "text-emerald-600 bg-emerald-50" },
+                  { label: "طلبات نشطة",       value: ordersStats.active ?? 0,         color: "text-blue-600 bg-blue-50" },
+                  { label: "تسليم اليوم",      value: ordersStats.today ?? 0,          color: "text-amber-600 bg-amber-50" },
+                  { label: "بانتظار الفحص",    value: ordersStats.pending_inspection ?? 0, color: "text-purple-600 bg-purple-50" },
+                ].map(({ label, value, color }) => (
+                  <div key={label} className="bg-gray-50 rounded-xl p-3 text-center">
+                    <p className={clsx("text-xl font-bold tabular-nums", color.split(" ")[0])}>{value}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-3 mt-3">
+                {[
+                  { label: "مسودة",         value: ordersStats.draft ?? 0 },
+                  { label: "مجدول/مؤكد",   value: ordersStats.scheduled ?? 0 },
+                  { label: "قيد التنفيذ",  value: ordersStats.in_progress ?? 0 },
+                ].map(({ label, value }) => (
+                  <div key={label} className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+                    <p className="text-lg font-bold text-gray-800 tabular-nums">{value}</p>
+                    <p className="text-xs text-gray-400">{label}</p>
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
         </>
       )}
     </div>

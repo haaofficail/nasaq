@@ -157,9 +157,11 @@ export function StorefrontPage() {
 
   useEffect(() => {
     if (config && !designForm) {
+      // الأولوية: site_config → org color → الافتراضي
+      const resolvedPrimary = config.primaryColor || storefrontData?.primaryColor || "#5b9bd5";
       setDesignForm({
         templateId: config.templateId || "default",
-        primaryColor: config.primaryColor || "#5b9bd5",
+        primaryColor: resolvedPrimary,
         secondaryColor: config.secondaryColor || "#C8A951",
         fontFamily: config.fontFamily || "IBM Plex Sans Arabic",
         logoUrl: config.logoUrl || "",
@@ -173,6 +175,7 @@ export function StorefrontPage() {
     setDesignSaving(true);
     try {
       await websiteApi.updateConfig(designForm);
+      // الثيم يُطبَّق فقط على موقع التاجر العام — لا على الداشبورد
       refetchConfig();
       toast.success("تم حفظ التصميم");
     } catch {
@@ -408,8 +411,8 @@ export function StorefrontPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">موقعي</h1>
-          <p className="text-sm text-gray-400 mt-0.5">إدارة موقعك التجاري العام ومحتواه</p>
+          <h1 className="text-xl font-bold text-gray-900">صفحة البيع السريع</h1>
+          <p className="text-sm text-gray-400 mt-0.5">صفحة عامة جاهزة للبيع الفوري — يصلها عملاؤك بالرابط أو رمز QR بدون أي إعداد معقد</p>
         </div>
         {siteUrl && (
           <a href={siteUrl} target="_blank" rel="noreferrer"
@@ -435,13 +438,20 @@ export function StorefrontPage() {
       {/* ── Tab: Overview ─────────────────────────────────────── */}
       {activeTab === "overview" && (
         <div className="space-y-5">
+          <div className="bg-blue-50 border border-blue-100 rounded-2xl px-4 py-3 flex items-start gap-3">
+            <Globe className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[13px] font-semibold text-blue-800">صفحة البيع السريع</p>
+              <p className="text-xs text-blue-600 mt-0.5">صفحة عامة يصلها عملاؤك مباشرة بالرابط أو رمز QR — تعرض خدماتك وتُمكّن الحجز الفوري. لا تحتاج إعداداً معقداً.</p>
+            </div>
+          </div>
           {/* URL Card */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-gray-900">رابط موقعك</h3>
               <span className={clsx("text-xs px-2.5 py-1 rounded-full font-medium",
                 config?.customDomain ? "bg-green-50 text-green-600" : "bg-blue-50 text-blue-600")}>
-                {config?.customDomain ? "دومين مخصص" : "رابط نسق"}
+                {config?.customDomain ? "دومين مخصص" : "رابط ترميز OS"}
               </span>
             </div>
             {siteUrl ? (
@@ -507,6 +517,13 @@ export function StorefrontPage() {
       {/* ── Tab: QR / صفحتي العامة ─────────────────────────────── */}
       {activeTab === "qr" && (
         <div className="space-y-5 max-w-2xl">
+          <div className="bg-brand-50 border border-brand-100 rounded-2xl px-4 py-3 flex items-start gap-3">
+            <QrCode className="w-4 h-4 text-brand-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[13px] font-semibold text-brand-800">رمز QR + رابط الصفحة</p>
+              <p className="text-xs text-brand-600 mt-0.5">اطبع رمز QR وضعه في متجرك أو على بطاقاتك — يُعيد توجيه العميل لصفحتك مباشرة. يمكنك أيضاً تعديل الرابط القصير.</p>
+            </div>
+          </div>
           {/* Link card */}
           <div className="bg-white rounded-2xl border border-gray-100 p-6">
             <h3 className="text-sm font-bold text-gray-900 mb-4">رابط صفحتك العامة</h3>
@@ -621,6 +638,13 @@ export function StorefrontPage() {
       {/* ── Tab: Pages ─────────────────────────────────────────── */}
       {activeTab === "pages" && (
         <div className="space-y-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+            <FileText className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[13px] font-semibold text-gray-800">صفحات إضافية</p>
+              <p className="text-xs text-gray-500 mt-0.5">أنشئ صفحات مرفقة بموقعك كـ «من نحن» أو «شروط الاستخدام» — تظهر كروابط في تذييل الصفحة العامة.</p>
+            </div>
+          </div>
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">صفحات موقعك — الرئيسية، من نحن، تواصل معنا...</p>
             <Button icon={Plus} size="sm" onClick={() => { setPageForm({ title: "", type: "custom", isPublished: false }); setPageModal({ open: true }); }}>
@@ -679,6 +703,13 @@ export function StorefrontPage() {
       {/* ── Tab: Design ─────────────────────────────────────────── */}
       {activeTab === "design" && designForm && (
         <div className="space-y-6 max-w-2xl">
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+            <Palette className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[13px] font-semibold text-gray-800">هوية بصرية الصفحة</p>
+              <p className="text-xs text-gray-500 mt-0.5">اختر القالب واللون والخط — تنعكس التغييرات مباشرة على صفحتك العامة التي يراها عملاؤك.</p>
+            </div>
+          </div>
           {/* Templates */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="font-semibold text-gray-900 mb-1">القالب</h3>
@@ -703,21 +734,104 @@ export function StorefrontPage() {
 
           {/* Colors */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="font-semibold text-gray-900 mb-4">الألوان</h3>
-            <div className="grid grid-cols-2 gap-4">
+            <h3 className="font-semibold text-gray-900 mb-1">الألوان</h3>
+            <p className="text-xs text-gray-400 mb-4">اختر من لوحة الألوان أو أدخل كود HEX مخصص</p>
+
+            {/* Palette presets */}
+            {(() => {
+              const SEMANTIC_PALETTES = [
+                { name: "أخضر البيع — الثقة والنمو", primary: "#1a9e72", secondary: "#0d7a54" },
+                { name: "لافندر — الابتكار",         primary: "#9b8fc4", secondary: "#6d5f9e" },
+                { name: "وردي دافئ — الاهتمام",     primary: "#d4917e", secondary: "#b06050" },
+                { name: "سماوي — الموثوقية",         primary: "#7eb5d4", secondary: "#4d8fb5" },
+                { name: "عسلي — القيمة والجودة",    primary: "#d4b06a", secondary: "#b08840" },
+                { name: "مرجاني — الطاقة",           primary: "#c98b8b", secondary: "#a35f5f" },
+              ];
+              const EXTRA_PALETTES = [
+                { name: "أزرق ترميز",  primary: "#5b9bd5", secondary: "#3b82f6" },
+                { name: "بنفسجي",       primary: "#7c3aed", secondary: "#a855f7" },
+                { name: "وردي فيوشيا", primary: "#db2777", secondary: "#f472b6" },
+                { name: "أخضر زمردي",  primary: "#059669", secondary: "#34d399" },
+                { name: "برتقالي",      primary: "#ea580c", secondary: "#fb923c" },
+                { name: "فيروزي",       primary: "#0891b2", secondary: "#22d3ee" },
+              ];
+              const ALL = [...SEMANTIC_PALETTES, ...EXTRA_PALETTES];
+              const active = ALL.findIndex(p => p.primary === designForm.primaryColor && p.secondary === designForm.secondaryColor);
+              return (
+                <div className="mb-5 space-y-3">
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-2">ألوان ترميز OS الرسمية</p>
+                    <div className="grid grid-cols-6 gap-2">
+                      {SEMANTIC_PALETTES.map((p, i) => (
+                        <button
+                          key={p.name}
+                          title={p.name}
+                          onClick={() => { d("primaryColor", p.primary); d("secondaryColor", p.secondary); }}
+                          className={clsx(
+                            "relative h-10 rounded-xl overflow-hidden border-2 transition-all",
+                            i === active ? "border-gray-800 scale-105 shadow-md" : "border-transparent hover:scale-105 hover:border-gray-300"
+                          )}
+                          style={{ background: `linear-gradient(135deg, ${p.primary} 0%, ${p.secondary} 100%)` }}
+                        >
+                          {i === active && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-3 h-3 rounded-full bg-white shadow" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 mb-2">ألوان إضافية</p>
+                    <div className="grid grid-cols-6 gap-2">
+                      {EXTRA_PALETTES.map((p, i) => (
+                        <button
+                          key={p.name}
+                          title={p.name}
+                          onClick={() => { d("primaryColor", p.primary); d("secondaryColor", p.secondary); }}
+                          className={clsx(
+                            "relative h-10 rounded-xl overflow-hidden border-2 transition-all",
+                            i + SEMANTIC_PALETTES.length === active ? "border-gray-800 scale-105 shadow-md" : "border-transparent hover:scale-105 hover:border-gray-300"
+                          )}
+                          style={{ background: `linear-gradient(135deg, ${p.primary} 0%, ${p.secondary} 100%)` }}
+                        >
+                          {i + SEMANTIC_PALETTES.length === active && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-3 h-3 rounded-full bg-white shadow" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Manual inputs */}
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">اللون الأساسي</label>
-                <div className="flex items-center gap-3">
-                  <input type="color" value={designForm.primaryColor} onChange={e => d("primaryColor", e.target.value)} className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer" />
+                <div className="flex items-center gap-2">
+                  <input type="color" value={designForm.primaryColor} onChange={e => d("primaryColor", e.target.value)} className="w-9 h-9 rounded-lg border border-gray-200 cursor-pointer shrink-0" />
                   <input type="text" value={designForm.primaryColor} onChange={e => d("primaryColor", e.target.value)} className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono outline-none focus:border-brand-400" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">اللون الثانوي</label>
-                <div className="flex items-center gap-3">
-                  <input type="color" value={designForm.secondaryColor || "#C8A951"} onChange={e => d("secondaryColor", e.target.value)} className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer" />
+                <div className="flex items-center gap-2">
+                  <input type="color" value={designForm.secondaryColor || "#C8A951"} onChange={e => d("secondaryColor", e.target.value)} className="w-9 h-9 rounded-lg border border-gray-200 cursor-pointer shrink-0" />
                   <input type="text" value={designForm.secondaryColor || ""} onChange={e => d("secondaryColor", e.target.value)} className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono outline-none focus:border-brand-400" />
                 </div>
+              </div>
+            </div>
+
+            {/* Live preview */}
+            <div className="mt-4 rounded-xl overflow-hidden border border-gray-100">
+              <div style={{ background: `linear-gradient(160deg, ${designForm.primaryColor} 0%, ${designForm.secondaryColor || designForm.primaryColor} 100%)`, padding: "16px 20px" }}>
+                <div className="text-white font-bold text-sm">معاينة الهيدر</div>
+                <div className="text-white/70 text-xs mt-0.5">هكذا يظهر التدرج للعملاء</div>
               </div>
             </div>
           </div>
@@ -786,6 +900,13 @@ export function StorefrontPage() {
       {/* ── Tab: Blog ──────────────────────────────────────────── */}
       {activeTab === "blog" && (
         <div className="space-y-4">
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+            <Rss className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[13px] font-semibold text-gray-800">مقالات وتدوينات</p>
+              <p className="text-xs text-gray-500 mt-0.5">انشر مقالات ونصائح تظهر في صفحتك العامة — تُقوي ثقة العميل وتُحسّن ظهورك في محركات البحث.</p>
+            </div>
+          </div>
           <div className="flex items-center justify-between">
             <p className="text-sm text-gray-500">مقالات المدونة تظهر في موقعك العام</p>
             <Button icon={Plus} size="sm" onClick={() => { setPostForm({ title: "", excerpt: "", content: "", status: "draft", tags: [], category: "" }); setPostModal({ open: true }); }}>
@@ -845,6 +966,13 @@ export function StorefrontPage() {
       {/* ── Tab: Settings ─────────────────────────────────────── */}
       {activeTab === "settings" && settingsForm && (
         <div className="space-y-5 max-w-2xl">
+          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+            <Settings2 className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-[13px] font-semibold text-gray-800">إعدادات الصفحة</p>
+              <p className="text-xs text-gray-500 mt-0.5">ربط دومين مخصص (اختياري) + إعدادات SEO لتحسين ظهور صفحتك في Google + متابعة الزوار عبر Google Analytics أو Pixel.</p>
+            </div>
+          </div>
           {/* Domain */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="font-semibold text-gray-900 mb-1">الدومين المخصص</h3>
@@ -855,7 +983,7 @@ export function StorefrontPage() {
                 <input type="text" value={settingsForm.customDomain} onChange={e => s("customDomain", e.target.value)} placeholder="www.yoursite.com" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:border-brand-400" />
               </div>
               <div className="bg-amber-50 rounded-xl p-3 text-xs text-amber-700">
-                بعد إضافة الدومين، وجّه DNS Record من نوع CNAME إلى: <span className="font-mono font-bold">sites.nasaq.sa</span>
+                بعد إضافة الدومين، وجّه DNS Record من نوع CNAME إلى: <span className="font-mono font-bold">nasaqpro.tech</span>
               </div>
             </div>
           </div>

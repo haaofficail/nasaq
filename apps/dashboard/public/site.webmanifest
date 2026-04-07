@@ -1,7 +1,7 @@
 {
-  "name": "نسق — لوحة التحكم",
-  "short_name": "نسق",
-  "description": "منصة إدارة الأعمال الموحدة",
+  "name": "Tarmiz OS",
+  "short_name": "ترميز",
+  "description": "منصة متكاملة لإدارة وتشغيل وبيع الأعمال",
   "start_url": "/dashboard",
   "display": "standalone",
   "background_color": "#f4f6f9",

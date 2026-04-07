@@ -86,12 +86,12 @@ export function PaymentsPage() {
           id="nasaq"
           active={activeMode === "nasaq"}
           enabled={hasNasaqGateway}
-          title="بوابة نسق المركزية"
+          title="بوابة ترميز OS المركزية"
           subtitle="ندير الدفع نيابةً عنك"
-          description="لا تحتاج حساباً في أي بوابة. نسق يستقبل المدفوعات ويحوّل لك صافي المبلغ بعد خصم رسوم خدمة بسيطة."
+          description="لا تحتاج حساباً في أي بوابة. ترميز OS يستقبل المدفوعات ويحوّل لك صافي المبلغ بعد خصم رسوم خدمة بسيطة."
           badge="لا إعداد مطلوب"
           badgeColor="bg-green-50 text-green-700"
-          icon={<ShieldCheck className="w-6 h-6 text-[#5b9bd5]" />}
+          icon={<ShieldCheck className="w-6 h-6 text-brand-500" />}
           bg="bg-blue-50"
           onClick={() => hasNasaqGateway && setActiveMode("nasaq")}
         />
@@ -110,7 +110,7 @@ export function PaymentsPage() {
         />
       </div>
 
-      {/* ── بوابة نسق ── */}
+      {/* ── بوابة ترميز OS ── */}
       {activeMode === "nasaq" && (
         hasNasaqGateway ? (
           <NasaqGatewaySection
@@ -130,8 +130,8 @@ export function PaymentsPage() {
           />
         ) : (
           <LockedSection
-            title="بوابة نسق المركزية"
-            description="تواصل مع فريق نسق لتفعيل الدفع عبر البوابة المركزية."
+            title="بوابة ترميز OS المركزية"
+            description="تواصل مع فريق ترميز OS لتفعيل الدفع عبر البوابة المركزية."
           />
         )
       )}
@@ -143,7 +143,7 @@ export function PaymentsPage() {
         ) : (
           <LockedSection
             title="بوابة الدفع الخاصة"
-            description="هذه الميزة غير مفعّلة لحسابك. تواصل مع فريق نسق للتفعيل."
+            description="هذه الميزة غير مفعّلة لحسابك. تواصل مع فريق ترميز OS للتفعيل."
           />
         )
       )}
@@ -170,7 +170,7 @@ function ModeCard({
         !enabled
           ? "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"
           : active
-            ? "border-[#5b9bd5] bg-white shadow-sm"
+            ? "border-brand-500 bg-white shadow-sm"
             : "border-gray-200 bg-white hover:border-gray-300"
       }`}
     >
@@ -192,18 +192,18 @@ function ModeCard({
               </span>
             )}
           </div>
-          <p className="text-xs text-[#5b9bd5] font-medium mb-1.5">{subtitle}</p>
+          <p className="text-xs text-brand-500 font-medium mb-1.5">{subtitle}</p>
           <p className="text-xs text-gray-500 leading-relaxed">{description}</p>
         </div>
         {active && enabled && (
-          <CheckCircle2 className="w-5 h-5 text-[#5b9bd5] shrink-0 mt-0.5" />
+          <CheckCircle2 className="w-5 h-5 text-brand-500 shrink-0 mt-0.5" />
         )}
       </div>
     </button>
   );
 }
 
-// ── بوابة نسق Section ────────────────────────────────────────
+// ── بوابة ترميز OS Section ────────────────────────────────────────
 
 function NasaqGatewaySection({
   stats, statsLoading, txList, txLoading, statusFilter, setStatusFilter,
@@ -236,7 +236,7 @@ function NasaqGatewaySection({
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard icon={<TrendingUp className="w-5 h-5 text-green-600" />}  bg="bg-green-50"  label="إجمالي المحصّل"    value={`${Number(stats?.totalPaid    ?? 0).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س`} />
-          <KpiCard icon={<BadgeDollarSign className="w-5 h-5 text-[#5b9bd5]" />} bg="bg-blue-50" label="بانتظار التسوية" value={`${Number(stats?.unsettledAmount ?? 0).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س`} />
+          <KpiCard icon={<BadgeDollarSign className="w-5 h-5 text-brand-500" />} bg="bg-blue-50" label="بانتظار التسوية" value={`${Number(stats?.unsettledAmount ?? 0).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س`} />
           <KpiCard icon={<Clock className="w-5 h-5 text-amber-600" />}       bg="bg-amber-50"  label="معاملات معلقة"   value={String(stats?.countPending ?? 0)} />
           <KpiCard icon={<XCircle className="w-5 h-5 text-red-500" />}       bg="bg-red-50"    label="معاملات فاشلة"   value={String(stats?.countFailed  ?? 0)} />
         </div>
@@ -247,7 +247,7 @@ function NasaqGatewaySection({
         {(["transactions", "settlement"] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors ${
-              tab === t ? "border-b-2 border-[#5b9bd5] text-[#5b9bd5]" : "text-gray-500 hover:text-gray-700"
+              tab === t ? "border-b-2 border-brand-500 text-brand-500" : "text-gray-500 hover:text-gray-700"
             }`}>
             {t === "transactions" ? "المعاملات" : "بيانات التسوية"}
           </button>
@@ -257,7 +257,7 @@ function NasaqGatewaySection({
       {tab === "transactions" && (
         <div className="space-y-3">
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/30">
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
             <option value="">كل الحالات</option>
             {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
@@ -343,7 +343,7 @@ function NasaqGatewaySection({
                     onChange={tf(field as any)}
                     placeholder={placeholder}
                     dir={dir as any}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/30"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
                   />
                 </div>
               ))}
@@ -351,7 +351,7 @@ function NasaqGatewaySection({
               <div className="flex items-center justify-between pt-2">
                 {saveMsg && <p className={`text-sm ${saveMsg === "تم الحفظ" ? "text-green-600" : "text-red-500"}`}>{saveMsg}</p>}
                 <button onClick={handleSave} disabled={saving}
-                  className="mr-auto flex items-center gap-2 px-5 py-2.5 bg-[#5b9bd5] text-white rounded-xl text-sm font-medium disabled:opacity-50">
+                  className="mr-auto flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium disabled:opacity-50">
                   {saving && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
                   حفظ البيانات
                 </button>
@@ -382,7 +382,7 @@ function OwnGatewaySection({ navigate }: { navigate: (path: string) => void }) {
         <div>
           <p className="text-sm font-medium text-blue-800 mb-0.5">ربط بوابة خاصة</p>
           <p className="text-xs text-blue-600">
-            اربط بوابتك الخاصة من صفحة التكاملات. المال يُحوَّل مباشرة لحسابك دون أي وساطة من نسق.
+            اربط بوابتك الخاصة من صفحة التكاملات. المال يُحوَّل مباشرة لحسابك دون أي وساطة من ترميز OS.
           </p>
         </div>
       </div>
@@ -392,7 +392,7 @@ function OwnGatewaySection({ navigate }: { navigate: (path: string) => void }) {
           <button
             key={g.provider}
             onClick={() => navigate(`/dashboard/integrations`)}
-            className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-100 hover:border-[#5b9bd5]/40 hover:shadow-sm transition-all text-right"
+            className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-100 hover:border-brand-500/40 hover:shadow-sm transition-all text-right"
           >
             <div className={`w-10 h-10 ${g.color} rounded-xl flex items-center justify-center font-bold text-sm shrink-0`}>
               {g.logo}
@@ -408,7 +408,7 @@ function OwnGatewaySection({ navigate }: { navigate: (path: string) => void }) {
 
       <button
         onClick={() => navigate("/dashboard/integrations")}
-        className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 rounded-2xl text-sm text-gray-500 hover:border-[#5b9bd5]/40 hover:text-[#5b9bd5] transition-colors"
+        className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 rounded-2xl text-sm text-gray-500 hover:border-brand-500/40 hover:text-brand-500 transition-colors"
       >
         <Settings className="w-4 h-4" />
         إدارة التكاملات والبوابات

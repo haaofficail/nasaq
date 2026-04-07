@@ -373,7 +373,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
 
             {tab === "manager" && (
               <div className="space-y-4">
-                <p className="text-sm text-gray-500">اختر مدير حساب من فريق نسق لمتابعة هذه المنشأة.</p>
+                <p className="text-sm text-gray-500">اختر مدير حساب من فريق ترميز OS لمتابعة هذه المنشأة.</p>
                 {detail.accountManagerId ? (
                   <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-100 rounded-xl">
                     <UserCheck className="w-5 h-5 text-emerald-500 shrink-0" />
@@ -393,7 +393,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                 )}
                 {staffList.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-xs text-gray-400 font-medium">فريق نسق المتاح</p>
+                    <p className="text-xs text-gray-400 font-medium">فريق ترميز OS المتاح</p>
                     {staffList.map((s: any) => (
                       <div key={s.id} className={clsx("flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all",
                         detail.accountManagerId === s.id ? "border-brand-200 bg-brand-50" : "border-gray-100 hover:bg-gray-50"

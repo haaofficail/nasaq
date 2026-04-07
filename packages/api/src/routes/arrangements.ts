@@ -102,6 +102,27 @@ arrangementsRouter.patch("/:id/toggle", async (c) => {
   return c.json({ data: result.rows[0] });
 });
 
+// POST /arrangements/:id/duplicate
+arrangementsRouter.post("/:id/duplicate", async (c) => {
+  const orgId = getOrgId(c);
+  const { rows: [src] } = await pool.query(
+    `SELECT * FROM flower_packages WHERE id = $1 AND org_id = $2`,
+    [c.req.param("id"), orgId]
+  );
+  if (!src) return c.json({ error: "Not found" }, 404);
+
+  const slug = generateSlug(src.name) + "-copy-" + Date.now().toString(36);
+  const { rows: [created] } = await pool.query(
+    `INSERT INTO flower_packages
+       (org_id, name, slug, description, image, category_tag, base_price, components, linked_to_inventory)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+    [orgId, `${src.name} — نسخة`, slug, src.description, src.image,
+     src.category_tag, src.base_price, src.components, src.linked_to_inventory]
+  );
+  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "arrangement", resourceId: created.id });
+  return c.json({ data: created }, 201);
+});
+
 // DELETE /arrangements/:id
 arrangementsRouter.delete("/:id", async (c) => {
   const orgId = getOrgId(c);

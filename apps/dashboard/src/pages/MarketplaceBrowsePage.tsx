@@ -63,7 +63,7 @@ export function MarketplaceBrowsePage() {
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-lg bg-brand-500 flex items-center justify-center"><Layers className="w-5 h-5 text-white" /></div>
-            <span className="font-bold text-brand-500 text-lg">سوق نسق</span>
+            <span className="font-bold text-brand-500 text-lg">سوق ترميز OS</span>
           </div>
           <div className="flex items-center gap-3">
             <a href="/login" className="text-sm text-gray-500 hover:text-gray-700">دخول مقدمي الخدمة</a>
@@ -172,7 +172,7 @@ export function MarketplaceBrowsePage() {
         <div className="max-w-6xl mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-3">
             <Layers className="w-5 h-5 text-brand-500" />
-            <span className="font-bold text-brand-500">سوق نسق</span>
+            <span className="font-bold text-brand-500">سوق ترميز OS</span>
           </div>
           <p className="text-sm text-gray-400">منصة الفعاليات الأذكى في السعودية</p>
           <div className="flex justify-center gap-6 mt-4 text-xs text-gray-400">

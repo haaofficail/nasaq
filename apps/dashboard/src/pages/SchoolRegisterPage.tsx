@@ -181,7 +181,7 @@ export function SchoolRegisterPage() {
               <GraduationCap className="w-6 h-6 text-white" />
             </div>
             <div className="text-right">
-              <p className="text-xl font-black text-gray-900 leading-none">نسق</p>
+              <p className="text-xl font-black text-gray-900 leading-none">ترميز OS</p>
               <p className="text-sm font-semibold text-emerald-600">للمدارس</p>
             </div>
           </Link>
@@ -193,7 +193,7 @@ export function SchoolRegisterPage() {
           {step === "form" && (
             <>
               <h1 className="text-2xl font-black text-gray-900 mb-1">تسجيل مدرستك</h1>
-              <p className="text-gray-500 text-sm mb-7">أنشئ حساب نسق لمدرستك مجاناً</p>
+              <p className="text-gray-500 text-sm mb-7">أنشئ حساب ترميز OS لمدرستك مجاناً</p>
 
               <div className="space-y-4">
 

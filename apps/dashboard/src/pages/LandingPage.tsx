@@ -189,6 +189,111 @@ const STYLES = `
   0%,100%{ box-shadow: 0 0 0 0 rgba(91,155,213,0); }
   50%    { box-shadow: 0 0 32px 8px rgba(91,155,213,0.18); }
 }
+@keyframes lp-brand-reveal {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes lp-logo-settle {
+  0%   { transform: scale(0.92); box-shadow: 0 2px 6px rgba(91,155,213,0.1); }
+  60%  { transform: scale(1.05); box-shadow: 0 10px 30px rgba(91,155,213,0.42); }
+  100% { transform: scale(1);    box-shadow: 0 6px 18px rgba(91,155,213,0.3); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-brand-opener, .lp-brand-opener * { animation: none !important; }
+}
+
+/* ── Hero Brand Moment (mobile only) ──────────────────────── */
+@keyframes lp-logo-cinematic {
+  0%   { opacity: 0; transform: scale(0.55) translateY(10px); filter: blur(10px); }
+  55%  { opacity: 1; transform: scale(1.06) translateY(-3px); filter: blur(0px); }
+  78%  { transform: scale(0.97) translateY(0); }
+  100% { opacity: 1; transform: scale(1) translateY(0);    filter: blur(0px); }
+}
+@keyframes lp-halo-expand {
+  0%   { opacity: 0; transform: scale(0.3); }
+  55%  { opacity: 0.75; transform: scale(1.08); }
+  100% { opacity: 0.45; transform: scale(1); }
+}
+@keyframes lp-halo-breathe {
+  0%,100% { opacity: 0.38; transform: scale(1); }
+  50%     { opacity: 0.65; transform: scale(1.14); }
+}
+@keyframes lp-divider-grow {
+  from { width: 0; opacity: 0; }
+  to   { width: 52px; opacity: 1; }
+}
+@keyframes lp-name-rise {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes lp-brand-shimmer {
+  0%   { box-shadow: 0 24px 64px rgba(91,155,213,0.22), 0 6px 20px rgba(91,155,213,0.12); }
+  50%  { box-shadow: 0 28px 80px rgba(91,155,213,0.38), 0 8px 28px rgba(91,155,213,0.2); }
+  100% { box-shadow: 0 24px 64px rgba(91,155,213,0.22), 0 6px 20px rgba(91,155,213,0.12); }
+}
+
+.lp-brand-moment {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  padding: 96px 24px 48px;
+  position: relative;
+  text-align: center;
+  width: 100%;
+  background: #ffffff;
+  min-height: 60vh;
+  justify-content: center;
+}
+.lp-brand-halo {
+  position: absolute;
+  width: 78%;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0,0,0,0.04) 0%, rgba(0,0,0,0.02) 50%, transparent 72%);
+  animation: lp-halo-expand 1s cubic-bezier(0.22,1,0.36,1) 0.1s both,
+             lp-halo-breathe 4s ease-in-out 1.3s infinite;
+  pointer-events: none;
+}
+.lp-brand-logo-wrap {
+  width: 68%;
+  aspect-ratio: 1 / 1;
+  border-radius: 20%;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.10), 0 4px 14px rgba(0,0,0,0.07);
+  animation: lp-logo-cinematic 0.95s cubic-bezier(0.22,1,0.36,1) 0.2s both;
+}
+.lp-brand-divider {
+  width: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #cbd5e1, transparent);
+  border-radius: 2px;
+  margin: 24px auto 0;
+  animation: lp-divider-grow 0.55s cubic-bezier(0.22,1,0.36,1) 1.1s both;
+}
+.lp-brand-name {
+  margin-top: 20px;
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.2;
+  animation: lp-name-rise 0.6s cubic-bezier(0.22,1,0.36,1) 1s both;
+}
+.lp-brand-tagline {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #94a3b8;
+  animation: lp-name-rise 0.6s cubic-bezier(0.22,1,0.36,1) 1.15s both;
+}
+@media (max-width: 767px) {
+  .lp-brand-moment { display: flex; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lp-brand-moment, .lp-brand-moment *,
+  .lp-brand-halo { animation: none !important; opacity: 1 !important; }
+}
 @keyframes reveal-line {
   from { width: 0; }
   to   { width: 100%; }
@@ -197,6 +302,9 @@ const STYLES = `
   from { opacity: 0; transform: scale(0.7); }
   to   { opacity: 1; transform: scale(1); }
 }
+/* Section label: remove letterSpacing for Arabic (cursive script breaks with spacing) */
+.lp-section-label { letter-spacing: 0 !important; }
+
 .hover-lift {
   transition: transform 0.22s ease, box-shadow 0.22s ease;
 }
@@ -207,6 +315,72 @@ const STYLES = `
 .hover-brand:hover {
   border-color: rgba(91,155,213,0.4) !important;
   box-shadow: 0 12px 40px rgba(91,155,213,0.15) !important;
+}
+
+/* ── Responsive ──────────────────────────────────────────── */
+
+/* ── Mobile (≤767px) ─────────── */
+@media (max-width: 767px) {
+  /* Header inner: tighter padding, logo always visible */
+  .lp-header-inner { padding: 0 16px !important; }
+  /* Hide platform name text on small screens — logo icon is enough */
+  .lp-header-name { display: none !important; }
+
+  /* All sections: base mobile padding */
+  .lp-root section { padding-top: 48px !important; padding-bottom: 40px !important; padding-left: 16px !important; padding-right: 16px !important; }
+
+  /* Hero: keep more padding-top for sticky header, auto min-height */
+  .lp-root .lp-hero-sec { padding-top: 80px !important; padding-bottom: 48px !important; min-height: auto !important; }
+
+  /* Hero inner grid: single column */
+  .lp-hero-grid { grid-template-columns: 1fr !important; gap: 36px !important; }
+
+  /* Hero visual: hide TransformVisual on small screens */
+  .lp-hero-visual { display: none !important; }
+
+  /* Trust strip */
+  .lp-trust-sec { padding: 20px 16px !important; }
+  .lp-trust-inner { flex-direction: column !important; align-items: flex-start !important; gap: 14px !important; }
+
+  /* Before/After comparison table: horizontal scroll preserving design */
+  .lp-comp-table { overflow-x: auto !important; -webkit-overflow-scrolling: touch; }
+  .lp-comp-row { min-width: 520px; }
+  /* Metrics grid: 2x2 */
+  .lp-comp-metrics { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Steps: single column + hide connecting line */
+  .lp-steps-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
+  .lp-steps-line { display: none !important; }
+
+  /* Stats: remove side borders, add bottom separators */
+  .lp-stats-item { border-right: none !important; border-left: none !important; border-bottom: 1px solid #e2e8f0 !important; }
+  .lp-stats-item:last-child { border-bottom: none !important; }
+
+  /* Footer */
+  .lp-footer { padding: 40px 16px 24px !important; }
+  .lp-footer-grid { grid-template-columns: 1fr 1fr !important; gap: 24px !important; margin-bottom: 32px !important; }
+  .lp-footer-bottom { flex-direction: column !important; text-align: center !important; gap: 10px !important; }
+  .lp-footer-bottom > div:last-child { justify-content: center !important; }
+}
+
+/* ── Tablet (768–1023px) ─────── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .lp-root section { padding-top: 64px !important; padding-bottom: 52px !important; padding-left: 20px !important; padding-right: 20px !important; }
+  .lp-root .lp-hero-sec { padding-top: 90px !important; }
+  /* Single-column hero on tablet — TransformVisual cards overflow narrow columns */
+  .lp-hero-grid { grid-template-columns: 1fr !important; gap: 36px !important; }
+  .lp-hero-visual { display: none !important; }
+  .lp-trust-sec { padding: 24px 20px !important; }
+  .lp-trust-inner { gap: 16px !important; }
+  .lp-footer { padding: 52px 20px 28px !important; }
+  .lp-footer-grid { grid-template-columns: 1fr 1fr !important; gap: 32px !important; }
+  .lp-comp-metrics { grid-template-columns: repeat(2, 1fr) !important; }
+  .lp-steps-grid { grid-template-columns: repeat(3, 1fr) !important; }
+}
+
+/* ── Reduce decorative grid on mobile ─── */
+@media (max-width: 767px) {
+  .lp-deco { opacity: 0.4 !important; background-size: 40px 40px !important; }
 }
 `;
 
@@ -553,7 +727,6 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 // ── Public Header ──────────────────────────────────────────────────────────────
 function PublicHeader() {
   const [scrolled, setScrolled] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const platform = usePlatformConfig();
 
   useEffect(() => {
@@ -578,37 +751,32 @@ function PublicHeader() {
 
   return (
     <header style={{
-      position: "fixed", top: 0, insetInline: 0, zIndex: 50,
+      position: "fixed", top: 0, left: 0, right: 0, zIndex: 50,
       transition: "all 0.35s ease",
       background: scrolled ? "rgba(255,255,255,0.96)" : "transparent",
       backdropFilter: scrolled ? "blur(20px)" : "none",
       borderBottom: scrolled ? "1px solid rgba(0,0,0,0.07)" : "1px solid transparent",
     }}>
-      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 24px", height: 68,
+      <div className="lp-header-inner" style={{ maxWidth: 1180, margin: "0 auto", padding: "0 24px", height: 68,
         display: "flex", alignItems: "center", justifyContent: "space-between" }}>
 
         {/* Logo */}
         <Link to="/" style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
           <div style={{
             width: 38, height: 38, borderRadius: 10,
-            background: platform.logoUrl ? "transparent" : "#5b9bd5",
-            border: "none",
             display: "flex", alignItems: "center", justifyContent: "center",
-            boxShadow: platform.logoUrl ? "none" : "0 4px 14px rgba(91,155,213,0.25)",
             overflow: "hidden",
           }}>
-            {platform.logoUrl
-              ? <img src={platform.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-              : <span style={{ color: "white", fontWeight: 800, fontSize: 14 }}>ت</span>
-            }
+            <img src={platform.logoUrl || "/favicon.svg"} alt={platform.platformName}
+              style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "contain" }} />
           </div>
-          <span style={{ fontWeight: 800, fontSize: 16, color: textColor, transition: "color 0.35s ease" }}>
+          <span className="lp-header-name" style={{ fontWeight: 800, fontSize: 16, color: textColor, transition: "color 0.35s ease" }}>
             {platform.platformName}
           </span>
         </Link>
 
         {/* Nav */}
-        <nav style={{ display: "flex", alignItems: "center", gap: 26 }} className="hidden md:flex">
+        <nav style={{ alignItems: "center", gap: 26 }} className="hidden md:flex">
           {navLinks.map(n => (
             <a key={n.href} href={n.href} style={{
               fontSize: 14, fontWeight: 500, color: navColor,
@@ -622,7 +790,7 @@ function PublicHeader() {
         </nav>
 
         {/* CTA */}
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }} className="hidden md:flex">
+        <div style={{ alignItems: "center", gap: 10 }} className="hidden md:flex">
           <Link to="/school" style={{
             fontSize: 13, fontWeight: 500,
             color: "#7fb09b",
@@ -653,45 +821,24 @@ function PublicHeader() {
           </Link>
         </div>
 
-        {/* Mobile toggle */}
-        <button
-          className="md:hidden"
-          onClick={() => setMobileOpen(!mobileOpen)}
-          style={{ background: "none", border: "none", cursor: "pointer", color: "#0f172a", padding: 4 }}
-        >
-          {mobileOpen ? <X size={22} /> : <Menu size={22} />}
-        </button>
-      </div>
-
-      {/* Mobile menu */}
-      {mobileOpen && (
-        <div style={{
-          background: "white", borderTop: "1px solid #f1f5f9",
-          padding: "16px 24px 20px",
-          display: "flex", flexDirection: "column", gap: 4,
-        }}>
-          {navLinks.map(n => (
-            <a key={n.href} href={n.href}
-              onClick={() => setMobileOpen(false)}
-              style={{ fontSize: 15, fontWeight: 500, color: "#475569", padding: "10px 0",
-                textDecoration: "none", borderBottom: "1px solid #f1f5f9" }}>
-              {n.label}
-            </a>
-          ))}
-          <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
-            <Link to="/login" onClick={() => setMobileOpen(false)} style={{
-              flex: 1, textAlign: "center", padding: "10px", borderRadius: 10,
-              border: "1px solid #e2e8f0", fontSize: 14, fontWeight: 500,
-              color: "#64748b", textDecoration: "none",
-            }}>الدخول</Link>
-            <Link to="/register" onClick={() => setMobileOpen(false)} style={{
-              flex: 1, textAlign: "center", padding: "10px", borderRadius: 10,
-              background: "#5b9bd5", fontSize: 14, fontWeight: 600,
-              color: "white", textDecoration: "none",
-            }}>ابدأ مجاناً</Link>
-          </div>
+        {/* Mobile CTA — login + register directly in header bar */}
+        <div className="flex md:hidden" style={{ alignItems: "center", gap: 8 }}>
+          <Link to="/login" style={{
+            fontSize: 13, fontWeight: 500, color: "#64748b",
+            padding: "8px 14px", borderRadius: 10, textDecoration: "none",
+            border: "1px solid #e2e8f0",
+          }}>
+            دخول
+          </Link>
+          <Link to="/register" style={{
+            fontSize: 13, fontWeight: 600, color: "white",
+            padding: "8px 14px", borderRadius: 10, textDecoration: "none",
+            background: "#5b9bd5",
+          }}>
+            ابدأ
+          </Link>
         </div>
-      )}
+      </div>
     </header>
   );
 }
@@ -1052,7 +1199,7 @@ function SystemShowcase() {
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 52,
           opacity: inView ? 1 : 0, animation: inView ? "fadeInUp 0.6s ease both" : "none" }}>
-          <p style={{ fontSize: 13, fontWeight: 600, color: "#5b9bd5", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
+          <p className="lp-section-label" style={{ fontSize: 13, fontWeight: 600, color: "#5b9bd5", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
             أمثلة حية من النظام
           </p>
           <h2 style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, color: "#0f172a", marginBottom: 16, lineHeight: 1.2 }}>
@@ -1288,20 +1435,32 @@ export function LandingPage() {
   const F: React.CSSProperties = { fontFamily: "'IBM Plex Sans Arabic', 'Tajawal', sans-serif" };
 
   return (
-    <div dir="rtl" style={{ ...F, background: "#ffffff", color: "#0f172a", overflowX: "hidden" }}>
+    <div dir="rtl" className="lp-root" style={{ ...F, background: "#ffffff", color: "#0f172a", overflowX: "hidden" }}>
       <style>{STYLES}</style>
       <CursorGlow />
       <PublicHeader />
 
+      {/* ══ MOBILE BRAND MOMENT (before hero, mobile only) ══════════════════════ */}
+      <div className="lp-brand-moment">
+        <div className="lp-brand-halo" />
+        <div className="lp-brand-logo-wrap">
+          <img src={platform.logoUrl || "/favicon.svg"} alt={platform.platformName}
+            style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }} />
+        </div>
+        <div className="lp-brand-divider" />
+        <div className="lp-brand-name">{platform.platformName}</div>
+        <div className="lp-brand-tagline">نظام إدارة الأعمال العربي</div>
+      </div>
+
       {/* ══ 1. HERO ══════════════════════════════════════════════════════════════ */}
-      <section style={{
+      <section className="lp-hero-sec" style={{
         minHeight: "100dvh", display: "flex", alignItems: "center",
         padding: "100px 24px 80px",
         background: "radial-gradient(ellipse 80% 60% at 50% 0%, rgba(91,155,213,0.08) 0%, transparent 70%), radial-gradient(ellipse 60% 50% at 90% 80%, rgba(127,176,155,0.05) 0%, transparent 60%), #ffffff",
         position: "relative", overflow: "hidden",
       }}>
         {/* Subtle grid */}
-        <div style={{
+        <div className="lp-deco" style={{
           position: "absolute", inset: 0, pointerEvents: "none",
           backgroundImage: "linear-gradient(rgba(91,155,213,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(91,155,213,0.04) 1px, transparent 1px)",
           backgroundSize: "64px 64px",
@@ -1318,9 +1477,8 @@ export function LandingPage() {
           bottom: "0%", left: "-5%", pointerEvents: "none",
         }} />
 
-        <div style={{ maxWidth: 1180, margin: "0 auto", width: "100%", position: "relative",
-          display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}
-          className="grid-cols-1 md:grid-cols-2">
+        <div className="lp-hero-grid" style={{ maxWidth: 1180, margin: "0 auto", width: "100%", position: "relative",
+          display: "grid", gridTemplateColumns: "1fr 1fr", gap: 64, alignItems: "center" }}>
 
           {/* Text */}
           <div style={{ animation: "fadeInLeft 0.8s ease both" }}>
@@ -1409,7 +1567,7 @@ export function LandingPage() {
           </div>
 
           {/* Transform Visual */}
-          <div style={{ display: "flex", justifyContent: "center", animation: "scaleIn 0.9s ease 0.2s both" }}>
+          <div className="lp-hero-visual" style={{ display: "flex", justifyContent: "center", animation: "scaleIn 0.9s ease 0.2s both" }}>
             <TransformVisual />
           </div>
         </div>
@@ -1444,7 +1602,7 @@ export function LandingPage() {
       <section id="transform" style={{ padding: "96px 24px", background: "#ffffff" }}>
         <div style={{ maxWidth: 880, margin: "0 auto", textAlign: "center" }}>
           <div ref={tags.ref}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#94a3b8", letterSpacing: 3, marginBottom: 14, textTransform: "uppercase" }}>
+            <p className="lp-section-label" style={{ fontSize: 13, fontWeight: 600, color: "#94a3b8", letterSpacing: 3, marginBottom: 14, textTransform: "uppercase" }}>
               الواقع بدون نظام
             </p>
             <h2 style={{
@@ -1504,7 +1662,7 @@ export function LandingPage() {
             {/* Header */}
             <div style={{ textAlign: "center", marginBottom: 56,
               opacity: comp.inView ? 1 : 0, animation: comp.inView ? "fadeInUp 0.6s ease both" : "none" }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#5b9bd5", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
+              <p className="lp-section-label" style={{ fontSize: 13, fontWeight: 600, color: "#5b9bd5", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
                 التحوّل الحقيقي
               </p>
               <h2 style={{ fontSize: "clamp(26px, 4vw, 42px)", fontWeight: 800, color: "#0f172a", marginBottom: 14, lineHeight: 1.2 }}>
@@ -1516,14 +1674,14 @@ export function LandingPage() {
             </div>
 
             {/* Comparison rows */}
-            <div style={{
+            <div className="lp-comp-table" style={{
               background: "white", borderRadius: 24, overflow: "hidden",
               border: "1px solid #e2e8f0",
               boxShadow: "0 8px 40px rgba(0,0,0,0.06)",
               opacity: comp.inView ? 1 : 0, animation: comp.inView ? "fadeInUp 0.6s 0.1s ease both" : "none",
             }}>
               {/* Table header */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr" }}>
+              <div className="lp-comp-row" style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr" }}>
                 <div style={{ background: "#fff5f5", padding: "16px 28px", display: "flex", alignItems: "center", gap: 10 }}>
                   <div style={{ width: 34, height: 34, borderRadius: 10, background: "#fee2e2",
                     display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
@@ -1561,7 +1719,7 @@ export function LandingPage() {
                 { pain: "لا موقع لك ويضيع عليك عملاء",   fix: "موقع حجز احترافي جاهز في دقائق",          icon: Globe },
                 { pain: "لا تعرف أداء فروعك أو موظفيك",  fix: "لوحة تحكم موحّدة لكل الفروع والفريق",     icon: Layers },
               ].map((item, i) => (
-                <div key={i} style={{
+                <div key={i} className="lp-comp-row" style={{
                   display: "grid", gridTemplateColumns: "1fr auto 1fr",
                   borderTop: "1px solid #f1f5f9",
                   opacity: comp.inView ? 1 : 0,
@@ -1591,7 +1749,7 @@ export function LandingPage() {
             </div>
 
             {/* Bottom metrics */}
-            <div style={{
+            <div className="lp-comp-metrics" style={{
               display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, marginTop: 20,
               opacity: comp.inView ? 1 : 0, animation: comp.inView ? "fadeInUp 0.6s 0.5s ease both" : "none",
             }}>
@@ -1617,7 +1775,7 @@ export function LandingPage() {
       <section id="modules" style={{ padding: "96px 24px" }}>
         <div style={{ maxWidth: 1180, margin: "0 auto" }}>
           <div ref={mods.ref} style={{ textAlign: "center", marginBottom: 60 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#5b9bd5", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
+            <p className="lp-section-label" style={{ fontSize: 13, fontWeight: 600, color: "#5b9bd5", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
               المخرجات
             </p>
             <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, color: "#0f172a", marginBottom: 14 }}>
@@ -1697,7 +1855,7 @@ export function LandingPage() {
         <div style={{ maxWidth: 1180, margin: "0 auto" }}>
           <div ref={secs.ref}>
             <div style={{ textAlign: "center", marginBottom: 56 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#94a3b8", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
+              <p className="lp-section-label" style={{ fontSize: 13, fontWeight: 600, color: "#94a3b8", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
                 القطاعات
               </p>
               <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, color: "#0f172a", marginBottom: 12 }}>
@@ -1759,7 +1917,7 @@ export function LandingPage() {
         <div style={{ maxWidth: 1180, margin: "0 auto" }}>
           <div ref={diff.ref}>
             <div style={{ textAlign: "center", marginBottom: 60 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#5b9bd5", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
+              <p className="lp-section-label" style={{ fontSize: 13, fontWeight: 600, color: "#5b9bd5", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
                 لماذا ترميز OS؟
               </p>
               <h2 style={{ fontSize: "clamp(28px, 4vw, 42px)", fontWeight: 800, color: "#0f172a", marginBottom: 14 }}>
@@ -1846,9 +2004,9 @@ export function LandingPage() {
           </div>
 
           {/* Steps */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 0, position: "relative" }}>
+          <div className="lp-steps-grid" style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 0, position: "relative" }}>
             {/* Animated connecting line — dashed with traveling dot */}
-            <div style={{
+            <div className="lp-steps-line" style={{
               position: "absolute", top: 44, right: "16.67%", left: "16.67%",
               height: 4, borderRadius: 2, zIndex: 0, overflow: "visible",
             }}>
@@ -2139,7 +2297,7 @@ export function LandingPage() {
 
           {/* Payment methods */}
           <div style={{ marginTop: 60, textAlign: "center" }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#94a3b8", letterSpacing: 2, marginBottom: 24, textTransform: "uppercase" }}>
+            <p className="lp-section-label" style={{ fontSize: 13, fontWeight: 600, color: "#94a3b8", letterSpacing: 2, marginBottom: 24, textTransform: "uppercase" }}>
               وسائل دفع مدعومة
             </p>
             <div style={{ display: "flex", flexWrap: "wrap", gap: 12, justifyContent: "center", alignItems: "center" }}>
@@ -2188,7 +2346,7 @@ export function LandingPage() {
               { target: 99,   suffix: "٪",  label: "وقت التشغيل",        sub: "SLA مضمون بالعقد" },
               { target: 15,   suffix: "+",  label: "قطاع تجاري",         sub: "كل قطاع بوحداته الخاصة" },
             ].map((s, i) => (
-              <div key={i} style={{
+              <div key={i} className="lp-stats-item" style={{
                 borderRight: i < 3 ? "1px solid #e2e8f0" : "none",
               }}>
                 <StatItem key={i} {...s} start={stats.inView} />
@@ -2203,7 +2361,7 @@ export function LandingPage() {
       <section id="testimonials" style={{ padding: "96px 24px", background: "#ffffff" }}>
         <div style={{ maxWidth: 1140, margin: "0 auto" }}>
           <div ref={test.ref} style={{ textAlign: "center", marginBottom: 56 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#94a3b8", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
+            <p className="lp-section-label" style={{ fontSize: 13, fontWeight: 600, color: "#94a3b8", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
               شهادات العملاء
             </p>
             <h2 style={{ fontSize: "clamp(26px, 4vw, 40px)", fontWeight: 800, color: "#0f172a", marginBottom: 10 }}>
@@ -2262,7 +2420,7 @@ export function LandingPage() {
             <div style={{ textAlign: "center", marginBottom: 52,
               opacity: addons.inView ? 1 : 0,
               animation: addons.inView ? "fadeInUp 0.6s ease both" : "none" }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#5b9bd5", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
+              <p className="lp-section-label" style={{ fontSize: 13, fontWeight: 600, color: "#5b9bd5", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
                 وحدات عمودية متخصصة
               </p>
               <h2 style={{ fontSize: "clamp(26px, 4vw, 40px)", fontWeight: 800, color: "#0f172a", marginBottom: 12 }}>
@@ -2354,7 +2512,7 @@ export function LandingPage() {
       <section id="pricing" style={{ padding: "96px 24px", background: "#ffffff" }}>
         <div style={{ maxWidth: 1060, margin: "0 auto" }}>
           <div ref={price.ref} style={{ textAlign: "center", marginBottom: 56 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: "#5b9bd5", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
+            <p className="lp-section-label" style={{ fontSize: 13, fontWeight: 600, color: "#5b9bd5", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
               الأسعار
             </p>
             <h2 style={{ fontSize: "clamp(28px, 4vw, 44px)", fontWeight: 800, color: "#0f172a", marginBottom: 12 }}>
@@ -2545,7 +2703,7 @@ export function LandingPage() {
         <div style={{ maxWidth: 760, margin: "0 auto" }}>
           <div ref={faq.ref}>
             <div style={{ textAlign: "center", marginBottom: 52 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#94a3b8", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
+              <p className="lp-section-label" style={{ fontSize: 13, fontWeight: 600, color: "#94a3b8", letterSpacing: 3, marginBottom: 12, textTransform: "uppercase" }}>
                 الأسئلة الشائعة
               </p>
               <h2 style={{ fontSize: "clamp(26px, 4vw, 40px)", fontWeight: 800, color: "#0f172a", marginBottom: 10 }}>
@@ -2570,8 +2728,8 @@ export function LandingPage() {
       </section>
 
       {/* ══ 12. COMPLIANCE TRUST STRIP ════════════════════════════════════════════ */}
-      <section style={{ padding: "32px 24px", background: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>
-        <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 20 }}>
+      <section className="lp-trust-sec" style={{ padding: "32px 24px", background: "#f8fafc", borderTop: "1px solid #e2e8f0" }}>
+        <div className="lp-trust-inner" style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 20 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#475569", fontWeight: 600 }}>
             <Shield size={15} color="#5b9bd5" style={{ flexShrink: 0 }} />
             متوافق مع الأنظمة السعودية
@@ -2680,10 +2838,9 @@ export function LandingPage() {
       </section>
 
       {/* ══ FOOTER ═══════════════════════════════════════════════════════════════ */}
-      <footer style={{ background: "#f8fafc", borderTop: "1px solid #e2e8f0", padding: "64px 24px 32px" }}>
+      <footer className="lp-footer" style={{ background: "#f8fafc", borderTop: "1px solid #e2e8f0", padding: "64px 24px 32px" }}>
         <div style={{ maxWidth: 1180, margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 1fr", gap: 40, marginBottom: 52 }}
-            className="grid-cols-1 md:grid-cols-4">
+          <div className="lp-footer-grid" style={{ display: "grid", gridTemplateColumns: "2.2fr 1fr 1fr 1fr", gap: 40, marginBottom: 52 }}>
 
             {/* Brand */}
             <div>
@@ -2771,7 +2928,7 @@ export function LandingPage() {
           </div>
 
           {/* Bottom bar */}
-          <div style={{ borderTop: "1px solid #e2e8f0", paddingTop: 28,
+          <div className="lp-footer-bottom" style={{ borderTop: "1px solid #e2e8f0", paddingTop: 28,
             display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
             <div style={{ fontSize: 12, color: "#94a3b8" }}>
               © {new Date().getFullYear()} {platform.platformName || "ترميز OS"}. جميع الحقوق محفوظة.

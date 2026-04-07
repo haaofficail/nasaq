@@ -238,6 +238,7 @@ app.use("/bookings/*", async (c, next) => {
 });
 app.use("/customers/*", authMiddleware);
 app.use("/uploads/*", authMiddleware);
+app.use("/file-upload/*", authMiddleware);
 app.use("/import/*", authMiddleware);
 app.use("/approvals/*", authMiddleware);
 app.use("/uploads/*", methodGuard("services"));
@@ -620,7 +621,7 @@ app.get("/platform-config/public", async (c) => {
     faviconUrl: platformConfig.faviconUrl,
     primaryColor: platformConfig.primaryColor,
   }).from(platformConfig).where(eq(platformConfig.id, "default"));
-  return c.json({ data: row ?? { platformName: "نسق", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5" } });
+  return c.json({ data: row ?? { platformName: "ترميز OS", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5" } });
 });
 
 // --- Super Admin Panel ---

@@ -3,7 +3,7 @@ import { Plus, Pencil, Trash2, ChevronLeft, Tag, Loader2, AlertCircle } from "lu
 import { clsx } from "clsx";
 import { toast } from "@/hooks/useToast";
 import { confirmDialog } from "@/components/ui";
-import { categoriesApi } from "@/lib/api";
+import { categoriesApi, servicesApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Modal, Input, Select, Button } from "@/components/ui";
 
@@ -14,6 +14,11 @@ export function CategoriesPage() {
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
 
   const { data: res, loading, error, refetch } = useApi(() => categoriesApi.list(true), []);
+  const { data: servicesRes } = useApi(() => servicesApi.list(), []);
+  const servicesByCategoryId = ((servicesRes?.data ?? []) as any[]).reduce((acc: Record<string, number>, s: any) => {
+    if (s.categoryId) acc[s.categoryId] = (acc[s.categoryId] ?? 0) + 1;
+    return acc;
+  }, {});
   const { mutate: createCat, loading: creating } = useMutation((data: any) => categoriesApi.create(data));
   const { mutate: updateCat, loading: updating } = useMutation(({ id, data }: any) => categoriesApi.update(id, data));
   const { mutate: deleteCat } = useMutation((id: string) => categoriesApi.delete(id));
@@ -115,6 +120,11 @@ export function CategoriesPage() {
                         {children.length} فرعي
                       </span>
                     )}
+                    {servicesByCategoryId[parent.id] != null && (
+                      <span className="text-xs text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full">
+                        {servicesByCategoryId[parent.id]} خدمة
+                      </span>
+                    )}
                   </div>
                   <div className="flex items-center gap-1">
                     <button
@@ -142,6 +152,11 @@ export function CategoriesPage() {
                       <ChevronLeft className="w-3 h-3 text-gray-300" />
                       {child.icon && <span className="text-base">{child.icon}</span>}
                       <span className="text-sm text-gray-700">{child.name}</span>
+                      {servicesByCategoryId[child.id] != null && (
+                        <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">
+                          {servicesByCategoryId[child.id]} خدمة
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <button
@@ -175,6 +190,11 @@ export function CategoriesPage() {
                   {cat.icon && <span className="text-xl">{cat.icon}</span>}
                   <Tag className="w-4 h-4 text-gray-400" />
                   <span className="text-sm text-gray-700">{cat.name}</span>
+                  {servicesByCategoryId[cat.id] != null && (
+                    <span className="text-xs text-brand-600 bg-brand-50 px-2 py-0.5 rounded-full">
+                      {servicesByCategoryId[cat.id]} خدمة
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center gap-1">
                   <button

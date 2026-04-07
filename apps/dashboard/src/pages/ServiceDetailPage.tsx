@@ -5,10 +5,11 @@ import {
   ArrowRight, Pencil, Trash2, Package, Star, CalendarCheck, Banknote,
   Loader2, AlertCircle, Copy, Eye, Plus, ChevronUp, ChevronDown, Save, HelpCircle, Settings2,
   Boxes, Wrench, FlaskConical, TrendingUp, Users, Layers, AlignLeft, ClipboardList,
-  Check, X,
+  Check, X, ShoppingCart, AlertTriangle,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, questionsApi, inventoryApi, teamApi, salonApi } from "@/lib/api";
+import { CreateBookingForm } from "@/components/bookings/CreateBookingForm";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Modal, Input, TextArea, Select, Button, Toggle } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
@@ -39,6 +40,7 @@ export function ServiceDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("info");
+  const [showBooking, setShowBooking] = useState(false);
 
   const { data: res, loading, error, refetch } = useApi(() => servicesApi.get(id!), [id]);
   const { data: qRes, refetch: refetchQ } = useApi(() => questionsApi.list(id!), [id]);
@@ -308,6 +310,11 @@ export function ServiceDetailPage() {
   };
   const sc = statusConfig[service.status] || statusConfig.draft;
 
+  // executionReady — single source of truth: API field from GET /services/:id
+  const EXEC_TYPES = new Set(["execution", "field_service", "project"]);
+  const isExecService = EXEC_TYPES.has(service.serviceType ?? "");
+  const executionReady: boolean = isExecService ? Boolean(service.executionReady) : true;
+
   const tabs: { key: Tab; label: string; icon: any; badge?: number }[] = [
     { key: "info", label: "معلومات الخدمة", icon: Package },
     { key: "components", label: "المكونات والتكاليف", icon: Boxes },
@@ -328,10 +335,46 @@ export function ServiceDetailPage() {
           <p className="text-sm text-gray-500">{service.categoryName || "بدون تصنيف"}</p>
         </div>
         <span className={clsx("px-3 py-1 rounded-full text-xs font-medium", sc.cls)}>{sc.label}</span>
+        <button
+          onClick={() => setShowBooking(true)}
+          disabled={isExecService && !executionReady}
+          title={isExecService && !executionReady ? "الخدمة غير مكتملة — أكمل المكونات والتكاليف أولاً" : undefined}
+          className={clsx(
+            "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-colors shadow-sm",
+            isExecService && !executionReady
+              ? "bg-gray-100 text-gray-400 cursor-not-allowed shadow-none"
+              : "bg-brand-500 hover:bg-brand-600 text-white shadow-brand-500/20"
+          )}
+        >
+          <ShoppingCart className="w-4 h-4" /> حجز الخدمة
+        </button>
         <button onClick={() => navigate(`/dashboard/services/${id}/edit`)} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm hover:bg-gray-50"><Pencil className="w-4 h-4" /> تعديل</button>
         <button onClick={handleDuplicate} className="p-2 rounded-lg hover:bg-gray-100"><Copy className="w-4 h-4 text-gray-400" /></button>
         <button onClick={handleDelete} disabled={deleting} className="p-2 rounded-lg hover:bg-red-50"><Trash2 className="w-4 h-4 text-red-400" /></button>
       </div>
+
+      {/* Execution readiness banner */}
+      {isExecService && !executionReady && (
+        <div className="flex items-start gap-3 px-4 py-3.5 bg-amber-50 border border-amber-200 rounded-xl">
+          <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-800">
+              الخدمة غير مكتملة — لن تُستخدم في الطلبات حتى تكتمل التكلفة والمكونات
+            </p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              {components.length === 0
+                ? "أضف مكونات للخدمة من تبويب «المكونات والتكاليف»."
+                : "بعض المكونات لا تحتوي على تكلفة — افتح تبويب «المكونات والتكاليف» وأكمل التكاليف."}
+            </p>
+          </div>
+          <button
+            onClick={() => setActiveTab("components")}
+            className="mr-auto shrink-0 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors"
+          >
+            إكمال الخدمة
+          </button>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 gap-1">
@@ -934,15 +977,19 @@ export function ServiceDetailPage() {
             </div>
           ) : (
             <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-50">
-              {serviceStaff.map((ss: any) => (
+              {serviceStaff.map((ss: any) => {
+                const isOrphan = !ss.userName;
+                return (
                 <div key={ss.id} className="flex items-center justify-between px-5 py-3 gap-4">
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold shrink-0">
-                      {ss.userName?.[0] || "م"}
+                    <div className={clsx("w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0", isOrphan ? "bg-gray-100 text-gray-400" : "bg-brand-100 text-brand-600")}>
+                      {ss.userName?.[0] || "؟"}
                     </div>
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-gray-900">{ss.userName || ss.userId}</p>
-                      <p className="text-xs text-gray-400">{ss.jobTitle || "—"}</p>
+                      <p className={clsx("text-sm font-medium", isOrphan ? "text-gray-400 italic" : "text-gray-900")}>
+                        {ss.userName || "موظف غير موجود"}
+                      </p>
+                      <p className="text-xs text-gray-400">{ss.userJobTitle || ss.jobTitle || "—"}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 shrink-0">
@@ -984,7 +1031,7 @@ export function ServiceDetailPage() {
                     </button>
                   </div>
                 </div>
-              ))}
+              );})}
             </div>
           )}
         </div>
@@ -1337,6 +1384,14 @@ export function ServiceDetailPage() {
         </div>
       </Modal>
 
+      {showBooking && (
+        <CreateBookingForm
+          open={true}
+          onClose={() => setShowBooking(false)}
+          onSuccess={() => { setShowBooking(false); toast.success("تم إنشاء الحجز بنجاح"); }}
+          defaultServiceId={id}
+        />
+      )}
     </div>
   );
 }

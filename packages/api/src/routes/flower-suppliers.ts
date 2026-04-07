@@ -112,6 +112,47 @@ flowerSuppliersRouter.delete("/:id", async (c) => {
   return c.json({ success: true });
 });
 
+// GET /flower-suppliers/:id/waste-analysis — هدر منسوب لهذا المورد عبر الدفعات
+flowerSuppliersRouter.get("/:id/waste-analysis", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+
+  const { rows } = await pool.query(
+    `SELECT
+       w.reason,
+       COUNT(w.id)        AS waste_entries,
+       SUM(w.quantity)    AS total_wasted,
+       ROUND(
+         SUM(w.quantity)::NUMERIC / NULLIF(
+           (SELECT SUM(b2.quantity_received) FROM flower_batches b2
+            WHERE b2.supplier_id = $2 AND b2.org_id = $1), 0
+         ) * 100, 1
+       ) AS waste_rate_pct
+     FROM flower_waste_logs w
+     JOIN flower_batches b ON b.id = w.batch_id
+     WHERE w.org_id = $1 AND b.supplier_id = $2
+     GROUP BY w.reason
+     ORDER BY total_wasted DESC`,
+    [orgId, id]
+  );
+
+  const { rows: [totals] } = await pool.query(
+    `SELECT
+       COALESCE(SUM(w.quantity), 0)        AS total_wasted_stems,
+       COALESCE(SUM(b.quantity_received), 0) AS total_received_stems,
+       ROUND(
+         COALESCE(SUM(w.quantity), 0)::NUMERIC /
+         NULLIF(SUM(b.quantity_received), 0) * 100, 1
+       ) AS overall_waste_rate_pct
+     FROM flower_batches b
+     LEFT JOIN flower_waste_logs w ON w.batch_id = b.id AND w.org_id = b.org_id
+     WHERE b.org_id = $1 AND b.supplier_id = $2`,
+    [orgId, id]
+  );
+
+  return c.json({ data: { byReason: rows, totals } });
+});
+
 // GET /flower-suppliers/quality-ranking
 flowerSuppliersRouter.get("/quality/ranking", async (c) => {
   const orgId = getOrgId(c);

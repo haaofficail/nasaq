@@ -151,6 +151,7 @@ const FlowerSuppliersPage    = lz(() => import("./pages/FlowerSuppliersPage"), "
 const FlowerReportsPage      = lz(() => import("./pages/FlowerReportsPage"), "FlowerReportsPage");
 const FlowerOccasionsPage    = lz(() => import("./pages/FlowerOccasionsPage"), "FlowerOccasionsPage");
 const FlowerCustomersPage    = lz(() => import("./pages/FlowerCustomersPage"), "FlowerCustomersPage");
+const FlowerCustomerDetailPage = lz(() => import("./pages/FlowerCustomerDetailPage"), "FlowerCustomerDetailPage");
 const FlowerMarginsPage      = lz(() => import("./pages/FlowerMarginsPage"), "FlowerMarginsPage");
 const FlowerAssetsPage       = lz(() => import("./pages/FlowerAssetsPage"), "FlowerAssetsPage");
 const FlowerServiceOrdersPage = lz(() => import("./pages/FlowerServiceOrdersPage"), "FlowerServiceOrdersPage");
@@ -426,6 +427,7 @@ export default function App() {
           <Route path="flower-reports" element={<FlowerReportsPage />} />
           <Route path="flower-occasions" element={<FlowerOccasionsPage />} />
           <Route path="flower-customers" element={<FlowerCustomersPage />} />
+          <Route path="flower-customers/:phone" element={<FlowerCustomerDetailPage />} />
           <Route path="flower-margins" element={<FlowerMarginsPage />} />
           <Route path="flower-assets" element={<FlowerAssetsPage />} />
           <Route path="flower-service-orders" element={<FlowerServiceOrdersPage />} />

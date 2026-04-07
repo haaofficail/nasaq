@@ -11,52 +11,112 @@ import { useBusiness } from "@/hooks/useBusiness";
 import { useOrgContext } from "@/hooks/useOrgContext";
 import { toast } from "@/hooks/useToast";
 
-const SERVICE_TYPES: Array<{ value: string; label: string; icon: LucideIcon }> = [
-  { value: "appointment",      label: "بموعد",         icon: Calendar },
-  { value: "execution",        label: "تنفيذ",          icon: Wrench },
-  { value: "field_service",    label: "ميداني",         icon: MapPin },
-  { value: "rental",           label: "تأجير",          icon: Home },
-  { value: "event_rental",     label: "تأجير فعالية",   icon: Star },
-  { value: "product",          label: "منتج",           icon: Package },
-  { value: "product_shipping", label: "شحن",            icon: Truck },
-  { value: "food_order",       label: "طعام",           icon: UtensilsCrossed },
-  { value: "package",          label: "باقة",           icon: Gift },
-  { value: "add_on",           label: "إضافة",          icon: Plus },
-  { value: "project",          label: "مشروع",          icon: ClipboardList },
+const SERVICE_TYPES: Array<{ value: string; label: string; desc: string; icon: LucideIcon }> = [
+  { value: "appointment",      label: "حجز موعد",      desc: "العميل يحجز وقتاً محدداً مع موظف",         icon: Calendar },
+  { value: "execution",        label: "تنفيذ وصيانة",  desc: "تنفيذ عمل أو صيانة في موعد محدد",          icon: Wrench },
+  { value: "field_service",    label: "خدمة ميدانية",  desc: "الموظف يزور العميل في موقعه",              icon: MapPin },
+  { value: "rental",           label: "تأجير",          desc: "العميل يستأجر أصلاً لفترة محددة",          icon: Home },
+  { value: "event_rental",     label: "تأجير فعالية",   desc: "تأجير قاعة أو مكان لحدث بعينه",           icon: Star },
+  { value: "product",          label: "منتج",           desc: "منتج يُباع مباشرة عبر الكاشير أو الموقع", icon: Package },
+  { value: "product_shipping", label: "منتج بشحن",     desc: "منتج يُشحن للعميل عبر المتجر الإلكتروني", icon: Truck },
+  { value: "food_order",       label: "طعام ومشروبات", desc: "وجبة أو منتج غذائي يظهر في قائمة الطعام", icon: UtensilsCrossed },
+  { value: "package",          label: "باقة",           desc: "مجموعة خدمات مجمّعة بسعر موحد",            icon: Gift },
+  { value: "add_on",           label: "خيار إضافي",    desc: "خيار يختاره العميل مع خدمة أخرى",          icon: Plus },
+  { value: "project",          label: "مشروع",          desc: "عمل طويل المدى يُنفَّذ على مراحل",         icon: ClipboardList },
 ];
 
-function TypePickerOverlay({ onSelect, onClose }: { onSelect: (type: string) => void; onClose: () => void }) {
+const BUSINESS_TYPE_GROUPS: Record<string, string[]> = {
+  salon:           ["appointment", "package", "product", "add_on"],
+  barber:          ["appointment", "package", "product", "add_on"],
+  spa:             ["appointment", "package", "product", "add_on"],
+  fitness:         ["appointment", "package", "product", "add_on"],
+  massage:         ["appointment", "package", "add_on"],
+  photography:     ["appointment", "package", "add_on"],
+  cafe:            ["food_order", "product", "package", "add_on"],
+  restaurant:      ["food_order", "product", "package", "add_on"],
+  bakery:          ["food_order", "product", "product_shipping", "package"],
+  catering:        ["food_order", "package", "execution"],
+  rental:          ["rental", "event_rental", "product", "add_on"],
+  car_rental:      ["rental", "product", "add_on"],
+  hotel:           ["rental", "event_rental", "add_on"],
+  real_estate:     ["rental"],
+  events:          ["event_rental", "rental", "package", "add_on"],
+  event_organizer: ["event_rental", "package", "add_on"],
+  workshop:        ["execution", "field_service", "product", "add_on"],
+  maintenance:     ["execution", "field_service", "add_on"],
+  logistics:       ["field_service", "product_shipping", "execution"],
+  construction:    ["project", "execution", "field_service"],
+  retail:          ["product", "product_shipping", "package", "add_on"],
+  flower_shop:     ["product", "package", "add_on"],
+  school:          ["product", "package", "appointment"],
+};
+
+function TypePickerOverlay({ onSelect, onClose, businessType }: {
+  onSelect: (type: string) => void;
+  onClose: () => void;
+  businessType?: string;
+}) {
+  const [showAll, setShowAll] = useState(false);
+  const allowedKeys = !showAll && businessType && BUSINESS_TYPE_GROUPS[businessType]
+    ? BUSINESS_TYPE_GROUPS[businessType]
+    : null;
+  const visibleTypes = allowedKeys
+    ? SERVICE_TYPES.filter(t => allowedKeys.includes(t.value))
+    : SERVICE_TYPES;
+  const isFiltered = !showAll && !!allowedKeys;
+  const showAddOnNote = visibleTypes.some(t => t.value === "add_on");
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
       <div
-        className="relative bg-white rounded-2xl shadow-xl border border-gray-100 p-6 w-full max-w-md"
+        className="relative bg-white rounded-2xl shadow-xl border border-gray-100 w-full max-w-lg max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <div>
             <h2 className="text-base font-bold text-gray-900">نوع الخدمة</h2>
-            <p className="text-xs text-gray-400 mt-0.5">اختر نوع الخدمة التي تريد إضافتها</p>
+            <p className="text-xs text-gray-400 mt-0.5">اختر النوع المناسب لنشاطك</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors">
             <X className="w-4 h-4 text-gray-400" />
           </button>
         </div>
-        <div className="grid grid-cols-4 gap-2">
-          {SERVICE_TYPES.map(t => {
-            const TIcon = t.icon;
-            return (
-              <button
-                key={t.value}
-                type="button"
-                onClick={() => onSelect(t.value)}
-                className="flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl border border-gray-100 bg-white text-center hover:border-brand-400 hover:bg-brand-50 transition-all"
-              >
-                <TIcon className="w-5 h-5 text-gray-500" />
-                <span className="text-[11px] font-medium text-gray-600 leading-tight">{t.label}</span>
-              </button>
-            );
-          })}
+        <div className="overflow-y-auto p-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {visibleTypes.map(t => {
+              const TIcon = t.icon;
+              return (
+                <button
+                  key={t.value}
+                  type="button"
+                  onClick={() => onSelect(t.value)}
+                  className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-100 bg-white text-right hover:border-brand-300 hover:bg-brand-50 transition-all group"
+                >
+                  <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0 group-hover:bg-brand-100 transition-colors">
+                    <TIcon className="w-5 h-5 text-gray-500 group-hover:text-brand-600 transition-colors" />
+                  </div>
+                  <div className="flex-1 min-w-0 text-right">
+                    <div className="text-sm font-semibold text-gray-900 group-hover:text-brand-700 transition-colors">{t.label}</div>
+                    <div className="text-[11px] text-gray-400 mt-0.5 leading-tight">{t.desc}</div>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {showAddOnNote && (
+            <p className="text-[11px] text-gray-400 text-center pb-1">
+              للإضافات المرتبطة بخدمات قائمة، استخدم تبويب «الإضافات المدفوعة»
+            </p>
+          )}
+          {isFiltered && (
+            <button
+              onClick={() => setShowAll(true)}
+              className="w-full py-2 text-xs text-gray-400 hover:text-brand-500 transition-colors border-t border-gray-50"
+            >
+              عرض جميع أنواع الخدمات
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -75,16 +135,16 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 const TYPE_META: Record<string, string> = {
-  appointment:      "بموعد",
-  execution:        "تنفيذ",
-  field_service:    "ميداني",
+  appointment:      "حجز موعد",
+  execution:        "تنفيذ وصيانة",
+  field_service:    "خدمة ميدانية",
   rental:           "تأجير",
-  event_rental:     "تأجير ميداني",
+  event_rental:     "تأجير فعالية",
   product:          "منتج",
-  product_shipping: "شحن",
-  food_order:       "طعام",
+  product_shipping: "منتج بشحن",
+  food_order:       "طعام ومشروبات",
   package:          "باقة",
-  add_on:           "إضافة",
+  add_on:           "خيار إضافي",
   project:          "مشروع",
 };
 
@@ -240,15 +300,15 @@ function ImportTemplateModal({ businessType, onClose, onImported }: {
   );
 }
 
-export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
+export function ServicesPage({ embedded, defaultServiceType }: { embedded?: boolean; defaultServiceType?: string } = {}) {
   const navigate = useNavigate();
   const biz = useBusiness();
   const { context } = useOrgContext();
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("الكل");
-  const [typeFilter, setTypeFilter] = useState("الكل");
-  const [view, setView] = useState<"grid" | "list">("grid");
+  const [typeFilter, setTypeFilter] = useState(defaultServiceType ?? "الكل");
+  const [view, setView] = useState<"grid" | "list">("list");
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -427,7 +487,7 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
               {/* Clickable image area */}
               <div
                 className="h-36 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center relative overflow-hidden cursor-pointer"
-                onClick={() => navigate("/dashboard/services/" + service.id)}
+                onClick={() => navigate(`/dashboard/services/${service.id}/edit`)}
               >
                 {service.coverImage
                   ? <img src={service.coverImage} alt={service.name} className="w-full h-full object-cover" />
@@ -446,7 +506,7 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
               {/* Info area */}
               <div
                 className="p-4 flex-1 cursor-pointer"
-                onClick={() => navigate("/dashboard/services/" + service.id)}
+                onClick={() => navigate(`/dashboard/services/${service.id}/edit`)}
               >
                 <h3 className="text-sm font-semibold text-gray-900 mb-0.5 group-hover:text-brand-600 line-clamp-1 transition-colors">{service.name}</h3>
                 <div className="flex items-center gap-1.5 mb-2">
@@ -535,7 +595,7 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
                 <tr
                   key={service.id}
                   className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 cursor-pointer transition-colors"
-                  onClick={() => navigate("/dashboard/services/" + service.id)}
+                  onClick={() => navigate(`/dashboard/services/${service.id}/edit`)}
                 >
                   <td className="py-3.5 px-4" onClick={e => e.stopPropagation()}>
                     <input type="checkbox" checked={selected.has(service.id)} onChange={() => toggleOne(service.id)} onClick={e => e.stopPropagation()} className="rounded" />
@@ -583,6 +643,7 @@ export function ServicesPage({ embedded }: { embedded?: boolean } = {}) {
 
       {showTypePicker && (
         <TypePickerOverlay
+          businessType={context?.businessType}
           onSelect={type => { setShowTypePicker(false); navigate(`/dashboard/services/new?type=${type}`); }}
           onClose={() => setShowTypePicker(false)}
         />

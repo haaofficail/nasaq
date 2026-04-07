@@ -66,7 +66,7 @@ function SchoolHeader() {
           </div>
           <div className="flex flex-col leading-none">
             <span className={`text-base font-black transition-colors ${scrolled ? "text-gray-900" : "text-white"}`}>
-              نسق
+              ترميز OS
             </span>
             <span className={`text-[10px] font-semibold transition-colors ${scrolled ? "text-emerald-600" : "text-emerald-300"}`}>
               للمدارس
@@ -249,7 +249,7 @@ export function SchoolLandingPage() {
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
             <div className="text-right">
-              <p className="text-white font-black text-2xl leading-none">نسق</p>
+              <p className="text-white font-black text-2xl leading-none">ترميز OS</p>
               <p className="text-emerald-400 text-sm font-semibold">نظام إدارة المدارس</p>
             </div>
           </div>
@@ -302,7 +302,7 @@ export function SchoolLandingPage() {
         <div ref={statsRef} className="max-w-4xl mx-auto px-6 grid grid-cols-3 gap-8 text-center">
           <div>
             <p className="text-4xl font-black text-gray-900">{s1}+</p>
-            <p className="text-sm text-gray-500 mt-1 font-medium">مدرسة تثق بنسق</p>
+            <p className="text-sm text-gray-500 mt-1 font-medium">مدرسة تثق بترميز OS</p>
           </div>
           <div>
             <p className="text-4xl font-black text-gray-900">{s2.toLocaleString("en-US")}+</p>
@@ -327,7 +327,7 @@ export function SchoolLandingPage() {
               <span className="text-emerald-600"> يوم دراسي متكامل</span>
             </h2>
             <p className="text-gray-500 text-lg max-w-2xl mx-auto">
-              نسق للمدارس ليس نظاماً حكومياً — هو نظام تشغيل يومي خفيف يخدم الوكيل والإدارة.
+              ترميز OS للمدارس ليس نظاماً حكومياً — هو نظام تشغيل يومي خفيف يخدم الوكيل والإدارة.
             </p>
           </div>
 
@@ -451,9 +451,9 @@ export function SchoolLandingPage() {
             <div className="w-7 h-7 rounded-lg bg-emerald-600 flex items-center justify-center">
               <GraduationCap className="w-4 h-4 text-white" />
             </div>
-            <span className="text-white font-bold text-sm">نسق للمدارس</span>
+            <span className="text-white font-bold text-sm">ترميز OS للمدارس</span>
           </div>
-          <p className="text-gray-500 text-xs">جزء من منصة نسق — نظام إدارة الأعمال المتكامل</p>
+          <p className="text-gray-500 text-xs">جزء من منصة ترميز OS — نظام إدارة الأعمال المتكامل</p>
           <div className="flex items-center gap-4">
             <Link to="/" className="text-xs text-gray-500 hover:text-gray-300 transition-colors">الصفحة الرئيسية</Link>
             <Link to="/school/login" className="text-xs text-gray-500 hover:text-gray-300 transition-colors">تسجيل الدخول</Link>

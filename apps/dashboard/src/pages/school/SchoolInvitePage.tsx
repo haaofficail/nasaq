@@ -88,7 +88,7 @@ export function SchoolInvitePage() {
           </div>
           <h1 className="text-lg font-black">مرحباً، {info.teacherName}</h1>
           <p className="text-sm text-emerald-200 mt-1">{info.orgName}</p>
-          <p className="text-xs text-emerald-300 mt-3">عيّن كلمة مرورك للدخول إلى منصة نسق</p>
+          <p className="text-xs text-emerald-300 mt-3">عيّن كلمة مرورك للدخول إلى منصة ترميز OS</p>
         </div>
 
         {/* Form */}

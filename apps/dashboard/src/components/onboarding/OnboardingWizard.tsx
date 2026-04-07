@@ -45,7 +45,7 @@ interface Step {
 }
 
 const STEPS: Step[] = [
-  { id: "welcome",  icon: Rocket,    title: "مرحباً بك في نسق",        subtitle: "دعنا نعدّ حسابك في دقيقتين" },
+  { id: "welcome",  icon: Rocket,    title: "مرحباً بك في ترميز OS",        subtitle: "دعنا نعدّ حسابك في دقيقتين" },
   { id: "branch",   icon: Building2, title: "أضف أول فرع",              subtitle: "حدّد موقع عملك الرئيسي" },
   { id: "service",  icon: Wrench,    title: "أضف أول خدمة",             subtitle: "ما الذي تقدمه لعملائك؟" },
   { id: "demo",     icon: Database,  title: "بيانات تجريبية",            subtitle: "هل تريد أمثلة جاهزة لاستكشاف النظام؟" },

@@ -82,7 +82,7 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
     onClose();
   });
 
-  const inp = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/20 focus:border-[#5b9bd5]";
+  const inp = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500";
   const set = (k: keyof CreateForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
@@ -150,12 +150,12 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">ملاحظات</label>
             <textarea value={form.notes} onChange={set("notes")} rows={2}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/20 focus:border-[#5b9bd5] resize-none" />
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 resize-none" />
           </div>
         </div>
         <div className="p-6 border-t border-gray-100 flex gap-3">
           <button onClick={() => doCreate(undefined as unknown as void)} disabled={loading}
-            className="flex-1 py-2.5 bg-[#5b9bd5] text-white rounded-xl text-sm font-medium hover:bg-[#4a8ac4] transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+            className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
             {loading && <Loader2 size={14} className="animate-spin" />}
             إنشاء العقد
           </button>
@@ -199,7 +199,7 @@ export function ContractsPage() {
           <p className="text-sm text-gray-500 mt-1">إدارة عقود المنشأة — إيجار، خدمات، توريد، توظيف</p>
         </div>
         <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#5b9bd5] text-white rounded-xl text-sm font-medium hover:bg-[#4a8ac4] transition-colors">
+          className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors">
           <Plus size={16} />
           عقد جديد
         </button>
@@ -212,7 +212,7 @@ export function ContractsPage() {
             { label: "نشطة",        value: stats.active_count ?? 0,     cls: "text-green-700",  bg: "bg-green-50" },
             { label: "تنتهي قريباً", value: stats.expiring_soon ?? 0,    cls: "text-orange-700", bg: "bg-orange-50" },
             { label: "مسودة",       value: stats.draft_count ?? 0,      cls: "text-gray-700",   bg: "bg-gray-50" },
-            { label: "قيمة العقود", value: fmt(stats.active_value ?? 0), cls: "text-[#5b9bd5]",  bg: "bg-blue-50" },
+            { label: "قيمة العقود", value: fmt(stats.active_value ?? 0), cls: "text-brand-500",  bg: "bg-blue-50" },
           ].map(s => (
             <div key={s.label} className={clsx("rounded-2xl p-4 border border-gray-100", s.bg)}>
               <p className="text-xs text-gray-500 mb-1">{s.label}</p>
@@ -230,7 +230,7 @@ export function ContractsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="بحث بالعنوان أو اسم الطرف..."
-            className="w-full pr-9 pl-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/20 focus:border-[#5b9bd5]"
+            className="w-full pr-9 pl-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -241,7 +241,7 @@ export function ContractsPage() {
             <button key={f.v}
               onClick={() => setStatusFilter(f.v)}
               className={clsx("px-3 py-1.5 rounded-xl text-xs font-medium transition-colors", statusFilter === f.v
-                ? "bg-[#5b9bd5] text-white"
+                ? "bg-brand-500 text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200")}>
               {f.l}
             </button>
@@ -302,7 +302,7 @@ export function ContractsPage() {
                       </button>
                     )}
                     <Link to={`/dashboard/contracts/${c.id}`}
-                      className="p-1.5 text-gray-400 hover:text-[#5b9bd5] rounded-lg hover:bg-blue-50 transition-colors">
+                      className="p-1.5 text-gray-400 hover:text-brand-500 rounded-lg hover:bg-blue-50 transition-colors">
                       <Eye size={16} />
                     </Link>
                   </div>

@@ -75,7 +75,7 @@ function LabelCard({ service, size }: LabelCardProps) {
           {service.barcode}
         </span>
         {service.price && (
-          <span className={clsx("font-bold text-[#5b9bd5]", isSmall ? "text-[8px]" : "text-[10px]")}>
+          <span className={clsx("font-bold text-brand-500", isSmall ? "text-[8px]" : "text-[10px]")}>
             {fmt(service.price)}
           </span>
         )}
@@ -206,7 +206,7 @@ export default function BarcodeLabelPage() {
             className={clsx(
               "flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-semibold transition-colors",
               selectedServices.length > 0
-                ? "bg-[#5b9bd5] text-white hover:bg-[#4a8ac4]"
+                ? "bg-brand-500 text-white hover:bg-brand-600"
                 : "bg-gray-100 text-gray-300 cursor-not-allowed"
             )}
           >
@@ -227,11 +227,11 @@ export default function BarcodeLabelPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="بحث بالاسم أو الباركود أو SKU..."
-                  className="w-full border border-gray-200 rounded-xl py-2 pr-9 pl-3 text-sm focus:outline-none focus:border-[#5b9bd5] transition-colors"
+                  className="w-full border border-gray-200 rounded-xl py-2 pr-9 pl-3 text-sm focus:outline-none focus:border-brand-500 transition-colors"
                 />
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-400">
-                <button onClick={selectAll} className="text-[#5b9bd5] hover:underline font-medium">تحديد الكل</button>
+                <button onClick={selectAll} className="text-brand-500 hover:underline font-medium">تحديد الكل</button>
                 <span>|</span>
                 <button onClick={clearAll} className="hover:underline">إلغاء التحديد</button>
                 <span className="mr-auto">{filtered.length} خدمة</span>
@@ -251,7 +251,7 @@ export default function BarcodeLabelPage() {
             {!loading && error && (
               <div className="bg-red-50 rounded-2xl border border-red-100 p-6 text-center">
                 <p className="text-sm text-red-500">{error}</p>
-                <button onClick={refetch} className="mt-2 text-xs text-[#5b9bd5] hover:underline">إعادة المحاولة</button>
+                <button onClick={refetch} className="mt-2 text-xs text-brand-500 hover:underline">إعادة المحاولة</button>
               </div>
             )}
 
@@ -278,14 +278,14 @@ export default function BarcodeLabelPage() {
                     className={clsx(
                       "bg-white rounded-2xl border p-4 flex items-center gap-4 cursor-pointer transition-colors",
                       selected.has(service.id)
-                        ? "border-[#5b9bd5] bg-blue-50/30"
+                        ? "border-brand-500 bg-blue-50/30"
                         : "border-gray-100 hover:border-gray-200"
                     )}
                   >
                     {/* Checkbox */}
                     <div className={clsx(
                       "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
-                      selected.has(service.id) ? "bg-[#5b9bd5] border-[#5b9bd5]" : "border-gray-300"
+                      selected.has(service.id) ? "bg-brand-500 border-brand-500" : "border-gray-300"
                     )}>
                       {selected.has(service.id) && (
                         <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -302,7 +302,7 @@ export default function BarcodeLabelPage() {
 
                     {/* Price */}
                     {service.price && (
-                      <span className="text-sm font-bold text-[#5b9bd5] shrink-0">{fmt(service.price)}</span>
+                      <span className="text-sm font-bold text-brand-500 shrink-0">{fmt(service.price)}</span>
                     )}
 
                     {/* Quantity */}
@@ -357,7 +357,7 @@ export default function BarcodeLabelPage() {
                     <button
                       onClick={() => handleGenerateBarcode(service.id)}
                       disabled={generatingId === service.id}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#5b9bd5]/10 text-[#5b9bd5] text-xs font-semibold hover:bg-[#5b9bd5]/20 transition-colors disabled:opacity-50"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-500/10 text-brand-500 text-xs font-semibold hover:bg-brand-500/20 transition-colors disabled:opacity-50"
                     >
                       {generatingId === service.id ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -385,7 +385,7 @@ export default function BarcodeLabelPage() {
                     className={clsx(
                       "w-full flex items-center justify-between px-3 py-2 rounded-xl border text-sm transition-colors",
                       selectedSize === s.id
-                        ? "border-[#5b9bd5] bg-[#5b9bd5]/5 text-[#5b9bd5] font-semibold"
+                        ? "border-brand-500 bg-brand-500/5 text-brand-500 font-semibold"
                         : "border-gray-100 text-gray-600 hover:border-gray-200"
                     )}
                   >

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { api } from "@/lib/api";
+import { api, flowerDisposalApi } from "@/lib/api";
 import { toast } from "@/hooks/useToast";
 import { FlowerLossAlertsBanner } from "@/components/dashboard/FlowerLossAlertsBanner";
 import {
@@ -44,34 +44,6 @@ interface TodayBundle {
   expected_margin: number;
   generated_at: string;
 }
-
-interface ApiResponse<T> {
-  data: T;
-  message?: string;
-}
-
-// ─── API helpers ──────────────────────────────────────────────────────────────
-
-const getDisposalRules = () =>
-  api.get<ApiResponse<DisposalRule[]>>("/flower-master/disposal/rules");
-
-const createDisposalRule = (data: Omit<DisposalRule, "id">) =>
-  api.post<ApiResponse<DisposalRule>>("/flower-master/disposal/rules", data);
-
-const updateDisposalRule = (id: string, data: Partial<DisposalRule>) =>
-  api.put<ApiResponse<DisposalRule>>(`/flower-master/disposal/rules/${id}`, data);
-
-const deleteDisposalRule = (id: string) =>
-  api.delete<ApiResponse<void>>(`/flower-master/disposal/rules/${id}`);
-
-const applyDisposalRules = () =>
-  api.post<ApiResponse<{ batches_updated: number }>>("/flower-master/disposal/apply", {});
-
-const getTodayBundle = () =>
-  api.get<ApiResponse<TodayBundle>>("/flower-master/today-bundle");
-
-const publishBundle = (bundle: TodayBundle) =>
-  api.post<ApiResponse<void>>("/flower-master/today-bundle/publish", bundle);
 
 // ─── Freshness helpers ────────────────────────────────────────────────────────
 
@@ -162,7 +134,7 @@ type RuleForm = typeof emptyRuleForm;
 // ─── Tab 1: Disposal Rules ────────────────────────────────────────────────────
 
 function DisposalRulesTab() {
-  const { data: rulesRes, loading, error, refetch } = useApi(() => getDisposalRules(), []);
+  const { data: rulesRes, loading, error, refetch } = useApi(() => flowerDisposalApi.rules(), []);
   const rules: DisposalRule[] = (rulesRes as any)?.data ?? [];
 
   const [showModal, setShowModal] = useState(false);
@@ -172,17 +144,40 @@ function DisposalRulesTab() {
 
   const { mutate: saveRule, loading: saving } = useMutation(
     (payload: { id?: string; data: Partial<DisposalRule> }) =>
-      payload.id ? updateDisposalRule(payload.id, payload.data) : createDisposalRule(payload.data as Omit<DisposalRule, "id">)
+      payload.id ? flowerDisposalApi.updateRule(payload.id, payload.data) : flowerDisposalApi.createRule(payload.data)
   );
 
-  const { mutate: removeRule, loading: deleting } = useMutation((id: string) => deleteDisposalRule(id));
+  const { mutate: removeRule, loading: deleting } = useMutation((id: string) => flowerDisposalApi.deleteRule(id));
 
-  const { mutate: applyRules, loading: applying } = useMutation(() => applyDisposalRules());
+  const { mutate: applyRules, loading: applying } = useMutation(() => flowerDisposalApi.apply());
 
   const { mutate: toggleRule } = useMutation(
     (payload: { id: string; is_active: boolean }) =>
-      updateDisposalRule(payload.id, { is_active: payload.is_active })
+      flowerDisposalApi.updateRule(payload.id, { is_active: payload.is_active })
   );
+
+  const DEFAULT_RULES = [
+    { name: "طازج — سعر عادي",       min_age_days: 0, max_age_days: 2,  discount_percent: 0,  show_as_sale: false, display_label_ar: "طازج",       auto_apply: true, is_active: true },
+    { name: "جيد — خصم 15%",          min_age_days: 3, max_age_days: 4,  discount_percent: 15, show_as_sale: true,  display_label_ar: "عرض خاص",    auto_apply: true, is_active: true },
+    { name: "مقبول — خصم 30%",        min_age_days: 5, max_age_days: 6,  discount_percent: 30, show_as_sale: true,  display_label_ar: "تصفية",      auto_apply: true, is_active: true },
+    { name: "حرج — أوقف البيع",       min_age_days: 7, max_age_days: -1, discount_percent: 100, show_as_sale: false, display_label_ar: "غير متاح",  auto_apply: true, is_active: true },
+  ];
+
+  const [seeding, setSeeding] = useState(false);
+
+  async function handleSeedDefaults() {
+    setSeeding(true);
+    let created = 0;
+    for (const rule of DEFAULT_RULES) {
+      const res = await saveRule({ data: rule });
+      if (res) created++;
+    }
+    setSeeding(false);
+    if (created > 0) {
+      toast.success(`تم إضافة ${created} قواعد افتراضية`);
+      refetch();
+    }
+  }
 
   function openCreate() {
     setEditingRule(null);
@@ -287,7 +282,7 @@ function DisposalRulesTab() {
       <div className="flex items-center justify-between gap-3">
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 bg-[#5b9bd5] text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors"
+          className="flex items-center gap-2 bg-brand-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors"
         >
           <Plus className="w-4 h-4" />
           إضافة قاعدة
@@ -314,17 +309,43 @@ function DisposalRulesTab() {
           <button onClick={refetch} className="mt-3 text-sm text-red-600 underline">إعادة المحاولة</button>
         </div>
       ) : sorted.length === 0 ? (
-        <div className="bg-gray-50 rounded-2xl border border-gray-100 p-12 text-center">
-          <Leaf className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-          <p className="text-gray-500 font-medium">لا توجد قواعد تصريف بعد</p>
-          <p className="text-gray-400 text-sm mt-1">أضف قاعدتك الأولى لتفعيل محرك التصريف الذكي</p>
-          <button
-            onClick={openCreate}
-            className="mt-4 flex items-center gap-2 bg-[#5b9bd5] text-white px-4 py-2 rounded-xl text-sm font-medium mx-auto hover:bg-blue-600 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            إضافة قاعدة
-          </button>
+        <div className="bg-gray-50 rounded-2xl border border-gray-100 p-10 text-center space-y-4">
+          <Leaf className="w-12 h-12 mx-auto text-gray-300" />
+          <div>
+            <p className="text-gray-600 font-semibold text-base">لا توجد قواعد تصريف بعد</p>
+            <p className="text-gray-400 text-sm mt-1">ابدأ بالقواعد الافتراضية المجربة، أو أنشئ قاعدة مخصصة</p>
+          </div>
+
+          {/* Default rules preview */}
+          <div className="bg-white border border-gray-200 rounded-2xl p-4 text-right space-y-2 max-w-sm mx-auto">
+            <p className="text-xs font-semibold text-gray-500 mb-3">القواعد الافتراضية</p>
+            {DEFAULT_RULES.map((r, i) => (
+              <div key={i} className="flex items-center justify-between text-sm">
+                <span className="text-gray-700">{r.name}</span>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${r.discount_percent === 0 ? "bg-green-100 text-green-700" : r.discount_percent === 100 ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>
+                  {r.discount_percent === 0 ? "سعر عادي" : r.discount_percent === 100 ? "أوقف البيع" : `خصم ${r.discount_percent}%`}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <button
+              onClick={handleSeedDefaults}
+              disabled={seeding}
+              className="flex items-center gap-2 bg-brand-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50"
+            >
+              {seeding ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+              تطبيق الإعدادات الافتراضية
+            </button>
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-2 border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              إضافة قاعدة مخصصة
+            </button>
+          </div>
         </div>
       ) : (
         <div className="space-y-3">
@@ -359,7 +380,7 @@ function DisposalRulesTab() {
                       {/* Customer label speech bubble */}
                       {rule.show_as_sale && (
                         <div className="relative">
-                          <div className="bg-[#5b9bd5] text-white text-xs font-bold px-3 py-1 rounded-full">
+                          <div className="bg-brand-500 text-white text-xs font-bold px-3 py-1 rounded-full">
                             {rule.display_label_ar}
                           </div>
                         </div>
@@ -476,7 +497,7 @@ function DisposalRulesTab() {
               <label className="flex items-center gap-3 cursor-pointer group">
                 <div
                   onClick={() => setForm(f => ({ ...f, show_as_sale: !f.show_as_sale }))}
-                  className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 cursor-pointer ${form.show_as_sale ? "bg-[#5b9bd5]" : "bg-gray-200"}`}
+                  className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 cursor-pointer ${form.show_as_sale ? "bg-brand-500" : "bg-gray-200"}`}
                 >
                   <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${form.show_as_sale ? "translate-x-4" : "translate-x-0"}`} />
                 </div>
@@ -486,7 +507,7 @@ function DisposalRulesTab() {
               <label className="flex items-center gap-3 cursor-pointer group">
                 <div
                   onClick={() => setForm(f => ({ ...f, auto_apply: !f.auto_apply }))}
-                  className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 cursor-pointer ${form.auto_apply ? "bg-[#5b9bd5]" : "bg-gray-200"}`}
+                  className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 cursor-pointer ${form.auto_apply ? "bg-brand-500" : "bg-gray-200"}`}
                 >
                   <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${form.auto_apply ? "translate-x-4" : "translate-x-0"}`} />
                 </div>
@@ -498,7 +519,7 @@ function DisposalRulesTab() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 bg-[#5b9bd5] text-white py-2.5 rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 bg-brand-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {saving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                 {editingRule ? "حفظ التعديلات" : "إضافة القاعدة"}
@@ -549,11 +570,11 @@ function DisposalRulesTab() {
 
 function FreshnessTab() {
   const { data: batchesRes, loading, error, refetch } = useApi(
-    () => api.get<ApiResponse<any[]>>("/flower-master/batches"),
+    () => api.get<{ data: any[] }>("/flower-master/batches"),
     []
   );
 
-  const { mutate: applyRules, loading: applying } = useMutation(() => applyDisposalRules());
+  const { mutate: applyRules, loading: applying } = useMutation(() => flowerDisposalApi.apply());
 
   // API returns camelCase from Drizzle — map to display shape
   const batches: FreshnessBatch[] = ((batchesRes as any)?.data ?? []).map((b: any) => {
@@ -622,7 +643,7 @@ function FreshnessTab() {
         <button
           onClick={handleRefresh}
           disabled={applying}
-          className="flex items-center gap-2 bg-[#5b9bd5] text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 bg-brand-500 text-white px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50"
         >
           {applying ? <RefreshCw className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
           تحديث الطزاجة
@@ -721,11 +742,11 @@ function FreshnessTab() {
 // ─── Tab 3: Today's Bundle ────────────────────────────────────────────────────
 
 function TodayBundleTab() {
-  const { data: bundleRes, loading, error, refetch } = useApi(() => getTodayBundle(), []);
+  const { data: bundleRes, loading, error, refetch } = useApi(() => flowerDisposalApi.todayBundle(), []);
   const bundle: TodayBundle | null = (bundleRes as any)?.data ?? null;
 
   const { mutate: publish, loading: publishing } = useMutation(
-    (b: TodayBundle) => publishBundle(b)
+    (b: TodayBundle) => flowerDisposalApi.publishBundle(b)
   );
 
   async function handlePublish() {
@@ -776,7 +797,7 @@ function TodayBundleTab() {
           </p>
           <button
             onClick={handleRegenerate}
-            className="flex items-center gap-2 bg-[#5b9bd5] text-white px-5 py-2.5 rounded-xl text-sm font-medium mx-auto hover:bg-blue-600 transition-colors"
+            className="flex items-center gap-2 bg-brand-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium mx-auto hover:bg-blue-600 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
             محاولة التوليد
@@ -785,9 +806,9 @@ function TodayBundleTab() {
       ) : (
         <>
           {/* Bundle Main Card */}
-          <div className="bg-gradient-to-br from-[#5b9bd5]/10 via-white to-green-50 border border-[#5b9bd5]/30 rounded-2xl p-6 shadow-sm">
+          <div className="bg-gradient-to-br from-brand-500/10 via-white to-green-50 border border-brand-500/30 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-5">
-              <div className="w-10 h-10 bg-[#5b9bd5] rounded-xl flex items-center justify-center">
+              <div className="w-10 h-10 bg-brand-500 rounded-xl flex items-center justify-center">
                 <ShoppingBag className="w-5 h-5 text-white" />
               </div>
               <div>
@@ -803,7 +824,7 @@ function TodayBundleTab() {
                 {bundle.composition.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#5b9bd5]" />
+                      <div className="w-1.5 h-1.5 rounded-full bg-brand-500" />
                       <span className="text-gray-700 font-medium">{item.name}</span>
                     </div>
                     <span className="text-gray-500">{item.quantity} {item.unit}</span>
@@ -828,7 +849,7 @@ function TodayBundleTab() {
               </div>
               <div className="bg-blue-50 rounded-xl p-3 text-center">
                 <div className="text-xs text-blue-600 mb-1">هامش الربح</div>
-                <div className="text-2xl font-black text-[#5b9bd5]">
+                <div className="text-2xl font-black text-brand-500">
                   {bundle.expected_margin.toFixed(0)} ر.س
                 </div>
               </div>
@@ -849,7 +870,7 @@ function TodayBundleTab() {
               <button
                 onClick={handlePublish}
                 disabled={publishing}
-                className="flex-1 bg-[#5b9bd5] text-white py-3 rounded-xl font-bold hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                className="flex-1 bg-brand-500 text-white py-3 rounded-xl font-bold hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {publishing ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                 نشر باقة اليوم
@@ -875,7 +896,7 @@ function TodayBundleTab() {
                 </div>
                 <div className="w-full bg-gray-100 rounded-full h-2.5">
                   <div
-                    className="h-2.5 rounded-full bg-[#5b9bd5] transition-all"
+                    className="h-2.5 rounded-full bg-brand-500 transition-all"
                     style={{ width: `${bundle.discount_percent}%` }}
                   />
                 </div>
@@ -905,15 +926,15 @@ function TodayBundleTab() {
 type TabId = "rules" | "freshness" | "bundle";
 
 const TABS: Array<{ id: TabId; label: string; icon: React.ElementType }> = [
-  { id: "rules", label: "قواعد التصريف", icon: BarChart2 },
-  { id: "freshness", label: "لوحة الطزاجة اليوم", icon: Leaf },
+  { id: "rules", label: "قواعد الخصم التلقائي", icon: BarChart2 },
+  { id: "freshness", label: "حالة المخزون الآن", icon: Leaf },
   { id: "bundle", label: "باقة اليوم", icon: ShoppingBag },
 ];
 
 export function FlowerDisposalPage() {
   const [activeTab, setActiveTab] = useState<TabId>("rules");
 
-  const { mutate: applyDisposal } = useMutation(() => applyDisposalRules());
+  const { mutate: applyDisposal } = useMutation(() => flowerDisposalApi.apply());
 
   async function handleApplyDisposal() {
     const res = await applyDisposal(undefined as unknown as void);
@@ -934,10 +955,10 @@ export function FlowerDisposalPage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 bg-[#5b9bd5] rounded-xl flex items-center justify-center shadow-sm">
+                <div className="w-10 h-10 bg-brand-500 rounded-xl flex items-center justify-center shadow-sm">
                   <Zap className="w-5 h-5 text-white" />
                 </div>
-                <h1 className="text-2xl font-black text-gray-900">محرك التصريف الذكي</h1>
+                <h1 className="text-2xl font-black text-gray-900">تخفيضات الورد الطازج</h1>
               </div>
               <p className="text-gray-500 text-sm leading-relaxed max-w-lg">
                 سعّر الورد تلقائياً حسب طزاجته — العميل يشوف "عرض خاص" فقط
@@ -961,7 +982,7 @@ export function FlowerDisposalPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
                   isActive
-                    ? "bg-[#5b9bd5] text-white shadow-sm"
+                    ? "bg-brand-500 text-white shadow-sm"
                     : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
                 }`}
               >

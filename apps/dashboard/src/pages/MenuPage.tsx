@@ -99,7 +99,7 @@ function ModifierGroupsPanel({ itemId }: { itemId: string }) {
               {g.is_required && <span className="text-xs bg-red-50 text-red-500 px-2 py-0.5 rounded-full">مطلوب</span>}
               <span className="text-xs text-gray-400">{(g.modifiers || []).length} خيار</span>
             </button>
-            <button onClick={() => handleDeleteGroup(g)} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
+            <button onClick={() => handleDeleteGroup(g)} className="w-9 h-9 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
               <Trash2 className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -116,7 +116,7 @@ function ModifierGroupsPanel({ itemId }: { itemId: string }) {
                     : <span className="text-xs text-gray-300">مجاني</span>
                   }
                   {m.is_default && <span className="text-xs bg-brand-50 text-brand-600 px-2 py-0.5 rounded-lg">افتراضي</span>}
-                  <button onClick={() => handleDeleteMod(m)} className="w-6 h-6 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all">
+                  <button onClick={() => handleDeleteMod(m)} className="w-8 h-8 flex items-center justify-center rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all">
                     <X className="w-3 h-3" />
                   </button>
                 </div>
@@ -363,10 +363,10 @@ export function MenuPage() {
                     <p className={clsx("text-xs", active ? "text-blue-100" : "text-gray-400")}>{count} صنف</p>
                   </div>
                   <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                    <button onClick={() => openCatModal(cat)} className={clsx("w-6 h-6 flex items-center justify-center rounded-lg", active ? "hover:bg-blue-600" : "hover:bg-gray-100 text-gray-400")}>
+                    <button onClick={() => openCatModal(cat)} className={clsx("w-8 h-8 flex items-center justify-center rounded-lg", active ? "hover:bg-blue-600" : "hover:bg-gray-100 text-gray-400")}>
                       <Edit2 className="w-3 h-3" />
                     </button>
-                    <button onClick={() => handleDeleteCat(cat.id, cat.name)} className={clsx("w-6 h-6 flex items-center justify-center rounded-lg", active ? "hover:bg-red-400" : "hover:bg-red-50 text-gray-400 hover:text-red-500")}>
+                    <button onClick={() => handleDeleteCat(cat.id, cat.name)} className={clsx("w-8 h-8 flex items-center justify-center rounded-lg", active ? "hover:bg-red-400" : "hover:bg-red-50 text-gray-400 hover:text-red-500")}>
                       <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
@@ -428,13 +428,13 @@ export function MenuPage() {
                     <div className="flex items-center justify-between mt-2">
                       <p className="text-sm font-bold text-brand-600 tabular-nums">{item.price} ر.س</p>
                       <div className="flex items-center gap-0.5">
-                        <button onClick={() => handleToggleAvailable(item)} title={item.is_available !== false ? "إيقاف مؤقت" : "إتاحة"} className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
+                        <button onClick={() => handleToggleAvailable(item)} title={item.is_available !== false ? "إيقاف مؤقت" : "إتاحة"} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">
                           {item.is_available !== false ? <ToggleRight className="w-3.5 h-3.5 text-emerald-500" /> : <ToggleLeft className="w-3.5 h-3.5 text-red-400" />}
                         </button>
-                        <button onClick={() => openItemModal(item.category_id || activeCatId!, item)} className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-brand-500 transition-colors">
+                        <button onClick={() => openItemModal(item.category_id || activeCatId!, item)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 hover:text-brand-500 transition-colors">
                           <Edit2 className="w-3 h-3" />
                         </button>
-                        <button onClick={() => handleDeleteItem(item.id, item.name)} className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
+                        <button onClick={() => handleDeleteItem(item.id, item.name)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
                           <Trash2 className="w-3 h-3" />
                         </button>
                       </div>

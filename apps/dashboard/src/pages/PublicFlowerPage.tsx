@@ -7,6 +7,7 @@ import {
   ArrowUp, Info, Heart,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { usePublicTheme } from "@/context/ThemeProvider";
 
 /* ─── Types ──────────────────────────────────────────────────── */
 interface FlowerItem {
@@ -24,14 +25,16 @@ interface FlowerPackage {
 interface OrgInfo {
   name: string; slug: string; phone?: string; logo?: string; primaryColor?: string; city?: string;
 }
+interface DeliveryZone { name: string; fee: number; }
 interface PageConfig {
   heroTitle: string; heroSubtitle: string; heroImage: string | null;
-  accentColor: string;
+  accentColor: string; isPublic: boolean;
   features: { showPackages: boolean; showGifts: boolean; showCard: boolean; deliveryEnabled: boolean; pickupEnabled: boolean };
   minFlowers: number; maxFlowers: number;
   cardTemplates: string[];
   deliveryNote: string; thankYouMessage: string;
   upsellThreshold: number; showUrgencyBadge: boolean; showPricePerStem: boolean;
+  deliveryZones: DeliveryZone[];
 }
 interface PublicData {
   org: OrgInfo;
@@ -44,12 +47,13 @@ interface PublicData {
 /* ─── Default config ──────────────────────────────────────────── */
 const DEFAULT_CFG: PageConfig = {
   heroTitle: "باقة ورود مخصصة", heroSubtitle: "اصنع لحظتك بيدك",
-  heroImage: null, accentColor: "#e11d48",
+  heroImage: null, accentColor: "#e11d48", isPublic: true,
   features: { showPackages: true, showGifts: true, showCard: true, deliveryEnabled: true, pickupEnabled: true },
   minFlowers: 1, maxFlowers: 50,
   cardTemplates: ["بكل الحب والتقدير", "بمناسبة عيد ميلادك", "تهانينا من القلب"],
   deliveryNote: "", thankYouMessage: "شكراً لطلبك! سنتواصل معك قريباً",
   upsellThreshold: 5, showUrgencyBadge: true, showPricePerStem: true,
+  deliveryZones: [],
 };
 
 /* ─── Color dot map ───────────────────────────────────────────── */
@@ -97,6 +101,8 @@ export function PublicFlowerPage() {
   const [custName, setCustName]   = useState("");
   const [custPhone, setCustPhone] = useState("");
   const [notes, setNotes]         = useState("");
+  const [isSurprise, setIsSurprise] = useState(false);
+  const [selectedZone, setSelectedZone] = useState("");
 
   /* packages */
   const [pkgMode, setPkgMode] = useState(false);
@@ -169,6 +175,7 @@ export function PublicFlowerPage() {
   };
 
   /* ── Derived values ───────────────────────────────────────── */
+  usePublicTheme(data);
   const cfg: PageConfig  = { ...DEFAULT_CFG, ...(data?.pageConfig || {}) };
   const accent           = cfg.accentColor || "#e11d48";
   const steps            = data ? getSteps(cfg) : getSteps(DEFAULT_CFG);
@@ -195,7 +202,15 @@ export function PublicFlowerPage() {
     return data.catalog.card.find(x => x.id === cardId)?.price || 0;
   })();
 
-  const grandTotal = flowerTotal + packagingTotal + giftsTotal + cardTotal;
+  const deliveryFee = (() => {
+    if (delivType === "pickup") return 0;
+    const zones = cfg.deliveryZones || [];
+    if (!zones.length) return 0;
+    const zone = zones.find(z => z.name === selectedZone);
+    return zone ? Number(zone.fee) : 0;
+  })();
+
+  const grandTotal = flowerTotal + packagingTotal + giftsTotal + cardTotal + deliveryFee;
 
   /* ── Smart upsell: show banner when >= threshold ──────────── */
   useEffect(() => {
@@ -271,13 +286,17 @@ export function PublicFlowerPage() {
           packaging:        packagingItem?.name || "بدون",
           packagingPrice:   packagingItem?.price || 0,
           addons:           addonsPayload,
+          cardMessage:      cardMsg || undefined,
           giftMessage:      cardMsg || undefined,
           deliveryType:     delivType,
           deliveryDate:     delivDate || undefined,
           deliveryAddress:  delivAddr ? { address: delivAddr } : undefined,
+          deliveryFee:      deliveryFee,
           recipientName:    recipName || undefined,
           recipientPhone:   recipPhone || undefined,
-          subtotal: grandTotal, total: grandTotal,
+          isSurprise:       isSurprise,
+          subtotal: flowerTotal + packagingTotal + giftsTotal + cardTotal,
+          total: grandTotal,
           notes: notes || undefined,
           selections: { packagingItemId: packaging || undefined, cardItemId: cardId || undefined, cardMessage: cardMsg || undefined },
           ...(pkgMode && selPkg ? { packageId: selPkg } : {}),
@@ -325,22 +344,38 @@ export function PublicFlowerPage() {
   if (!data) return null;
 
   if (orderNum) return (
-    <div dir="rtl" className="min-h-screen flex flex-col items-center justify-center px-4 text-center" style={{ background: `linear-gradient(135deg, ${accent}15, ${accent}05)` }}>
-      <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-5 shadow">
+    <div dir="rtl" className="min-h-screen flex flex-col items-center justify-center px-4 text-center py-12" style={{ background: `linear-gradient(135deg, ${accent}15, ${accent}05)` }}>
+      <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mb-5 shadow-lg">
         <Heart className="w-10 h-10 text-green-600" fill="currentColor" />
       </div>
       <h1 className="text-2xl font-black text-gray-900 mb-2">تم استلام طلبك!</h1>
       <p className="text-gray-500 mb-1">رقم الطلب</p>
-      <p className="font-mono font-black text-2xl text-gray-800 mb-4">#{orderNum}</p>
-      <p className="text-gray-400 text-sm max-w-xs leading-relaxed">{cfg.thankYouMessage}</p>
-      {data.org.phone && (
-        <a href={`tel:${data.org.phone}`}
-          className="mt-6 flex items-center gap-2 text-white px-6 py-3 rounded-2xl font-medium shadow-lg text-sm"
-          style={{ background: accent }}>
-          <Phone className="w-4 h-4" />
-          {data.org.phone}
-        </a>
-      )}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-8 py-4 mb-4">
+        <p className="font-mono font-black text-3xl text-gray-900">#{orderNum}</p>
+        <p className="text-xs text-gray-400 mt-1">احتفظ بهذا الرقم لمتابعة الطلب</p>
+      </div>
+      <p className="text-gray-400 text-sm max-w-xs leading-relaxed mb-6">{cfg.thankYouMessage}</p>
+      <div className="flex flex-col gap-3 w-full max-w-xs">
+        {data.org.phone && (
+          <a href={`https://wa.me/${data.org.phone.replace(/\D/g,"")}?text=${encodeURIComponent(`مرحباً، لدي طلب برقم #${orderNum}`)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-2xl font-medium shadow text-sm transition-colors">
+            <Phone className="w-4 h-4" /> تواصل عبر واتساب
+          </a>
+        )}
+        {data.org.phone && (
+          <a href={`tel:${data.org.phone}`}
+            className="flex items-center justify-center gap-2 text-white px-6 py-3 rounded-2xl font-medium shadow text-sm"
+            style={{ background: accent }}>
+            <Phone className="w-4 h-4" />
+            {data.org.phone}
+          </a>
+        )}
+        <button onClick={() => { setOrderNum(""); setStep(1); setFlowers({}); setPackaging(""); setGifts({}); setCardId(""); setCardMsg(""); }}
+          className="text-gray-400 text-sm py-2 hover:text-gray-600 transition-colors">
+          طلب جديد
+        </button>
+      </div>
     </div>
   );
 
@@ -812,6 +847,43 @@ export function PublicFlowerPage() {
               </div>
             )}
 
+            {/* Delivery zones */}
+            {delivType === "delivery" && cfg.deliveryZones?.length > 0 && (
+              <div>
+                <label className="block text-xs font-bold text-gray-600 mb-2">اختر منطقة التوصيل</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {cfg.deliveryZones.map(z => (
+                    <button key={z.name} onClick={() => setSelectedZone(z.name)}
+                      className={clsx("p-3 rounded-xl border text-right text-sm transition-all",
+                        selectedZone === z.name ? "text-white font-bold" : "border-gray-200 bg-white text-gray-600")}
+                      style={selectedZone === z.name ? { background: accent, borderColor: accent } : {}}>
+                      <p className="font-semibold">{z.name}</p>
+                      <p className={clsx("text-xs mt-0.5", selectedZone === z.name ? "text-white/80" : "text-gray-400")}>
+                        {Number(z.fee) === 0 ? "مجاناً" : `${z.fee} ر.س`}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Surprise toggle */}
+            <button onClick={() => setIsSurprise(v => !v)}
+              className={clsx("w-full flex items-center gap-3 p-4 rounded-2xl border text-right transition-all",
+                isSurprise ? "text-white" : "border-gray-200 bg-white")}
+              style={isSurprise ? { background: accent, borderColor: accent } : {}}>
+              <div className={clsx("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0",
+                isSurprise ? "border-white bg-white/30" : "border-gray-300")}>
+                {isSurprise && <Check className="w-3 h-3 text-white" />}
+              </div>
+              <div>
+                <p className="font-bold text-sm">هدية مفاجأة</p>
+                <p className={clsx("text-xs mt-0.5", isSurprise ? "text-white/70" : "text-gray-400")}>
+                  نخفي تفاصيل الطلب عن المستلم
+                </p>
+              </div>
+            </button>
+
             {/* Recipient */}
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -961,11 +1033,35 @@ export function PublicFlowerPage() {
               )}
             </div>
 
-            {/* Grand total */}
-            <div className="p-5 rounded-2xl text-white text-right shadow-lg flex items-center justify-between"
-              style={{ background: `linear-gradient(135deg, ${accent}, ${accent}cc)` }}>
-              <span className="font-bold text-lg">المجموع</span>
-              <span className="text-3xl font-black">{grandTotal.toLocaleString("en-US")} <span className="text-base font-medium opacity-80">ر.س</span></span>
+            {/* Grand total breakdown */}
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="divide-y divide-gray-50">
+                {flowerTotal > 0 && <div className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-600">
+                  <span>الورود</span><span className="font-semibold">{flowerTotal.toLocaleString("en-US")} ر.س</span>
+                </div>}
+                {packagingTotal > 0 && <div className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-600">
+                  <span>التغليف</span><span className="font-semibold">{packagingTotal.toLocaleString("en-US")} ر.س</span>
+                </div>}
+                {giftsTotal > 0 && <div className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-600">
+                  <span>الهدايا</span><span className="font-semibold">{giftsTotal.toLocaleString("en-US")} ر.س</span>
+                </div>}
+                {cardTotal > 0 && <div className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-600">
+                  <span>البطاقة</span><span className="font-semibold">{cardTotal.toLocaleString("en-US")} ر.س</span>
+                </div>}
+                {deliveryFee > 0 && <div className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-600">
+                  <span className="flex items-center gap-1.5"><Truck className="w-3.5 h-3.5" /> رسوم التوصيل {selectedZone && `(${selectedZone})`}</span>
+                  <span className="font-semibold">{deliveryFee.toLocaleString("en-US")} ر.س</span>
+                </div>}
+                {delivType === "delivery" && deliveryFee === 0 && cfg.deliveryZones?.length === 0 && <div className="flex items-center justify-between px-4 py-2.5 text-sm text-emerald-600">
+                  <span className="flex items-center gap-1.5"><Truck className="w-3.5 h-3.5" /> التوصيل</span>
+                  <span className="font-semibold">مجاناً</span>
+                </div>}
+              </div>
+              <div className="px-4 py-3 flex items-center justify-between"
+                style={{ background: `linear-gradient(135deg, ${accent}15, ${accent}08)` }}>
+                <span className="font-black text-gray-900">المجموع الكلي</span>
+                <span className="text-2xl font-black" style={{ color: accent }}>{grandTotal.toLocaleString("en-US")} ر.س</span>
+              </div>
             </div>
 
             {/* Validation */}

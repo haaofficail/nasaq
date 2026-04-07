@@ -1,3 +1,16 @@
+import type {
+  FlowerVariantPOS,
+  FlowerVariant,
+  FlowerBatch,
+  FlowerBatchExpiring,
+  FlowerPricing,
+  FlowerStockRow,
+  FlowerIntelligence,
+  FlowerArrangement,
+  FlowerArrangementStats,
+  FlowerBuilderCatalog,
+} from "./api.types";
+
 const API_BASE = "/api/v1";
 
 // In dev: these come from localStorage after login
@@ -695,12 +708,16 @@ export const auditApi = {
 // --- Flower Builder ---
 export const flowerBuilderApi = {
   // Catalog (packaging / gifts / cards / delivery)
-  catalog: () => api.get<{ data: { packaging: any[]; gift: any[]; card: any[]; delivery: any[] } }>("/flower-builder/catalog"),
+  catalog: () => api.get<{ data: FlowerBuilderCatalog }>("/flower-builder/catalog"),
   createItem: (data: any) => api.post<{ data: any }>("/flower-builder/catalog", data),
   updateItem: (id: string, data: any) => api.put<{ data: any }>(`/flower-builder/catalog/${id}`, data),
   deleteItem: (id: string) => api.delete(`/flower-builder/catalog/${id}`),
   // Inventory (available flowers for builder)
   inventory: () => api.get<{ data: any[] }>("/flower-builder/inventory"),
+  inventoryAll: () => api.get<{ data: any[] }>("/flower-builder/inventory?all=true"),
+  createInventoryItem: (data: any) => api.post<{ data: any }>("/flower-builder/inventory", data),
+  updateInventoryItem: (id: string, data: any) => api.put<{ data: any }>(`/flower-builder/inventory/${id}`, data),
+  deleteInventoryItem: (id: string) => api.delete(`/flower-builder/inventory/${id}`),
   // Orders
   orders: (params?: { status?: string; page?: string; limit?: string }) => {
     const q = new URLSearchParams();
@@ -746,6 +763,7 @@ export const flowerSuppliersApi = {
   update: (id: string, data: any) => api.put<{ data: any }>(`/flower-suppliers/${id}`, data),
   delete: (id: string) => api.delete(`/flower-suppliers/${id}`),
   qualityRanking: () => api.get<{ data: any[] }>("/flower-suppliers/quality/ranking"),
+  wasteAnalysis: (id: string) => api.get<{ data: any }>(`/flower-suppliers/${id}/waste-analysis`),
 };
 
 // --- Flower Intelligence ---
@@ -792,12 +810,13 @@ export const menuApi = {
 
 // --- Arrangements (Flower Packages) ---
 export const arrangementsApi = {
-  list: (category?: string) => api.get<{ data: any[] }>(`/arrangements${category ? `?category=${category}` : ""}`),
-  stats: () => api.get<{ data: any }>("/arrangements/stats"),
-  create: (data: any) => api.post<{ data: any }>("/arrangements", data),
-  update: (id: string, data: any) => api.put<{ data: any }>(`/arrangements/${id}`, data),
-  toggle: (id: string) => api.patch<{ data: any }>(`/arrangements/${id}/toggle`, {}),
-  delete: (id: string) => api.delete(`/arrangements/${id}`),
+  list:      (category?: string) => api.get<{ data: FlowerArrangement[] }>(`/arrangements${category ? `?category=${category}` : ""}`),
+  stats:     () => api.get<{ data: FlowerArrangementStats }>("/arrangements/stats"),
+  create:    (data: any) => api.post<{ data: FlowerArrangement }>("/arrangements", data),
+  update:    (id: string, data: any) => api.put<{ data: FlowerArrangement }>(`/arrangements/${id}`, data),
+  toggle:    (id: string) => api.patch<{ data: FlowerArrangement }>(`/arrangements/${id}/toggle`, {}),
+  delete:    (id: string) => api.delete(`/arrangements/${id}`),
+  duplicate: (id: string) => api.post<{ data: FlowerArrangement }>(`/arrangements/${id}/duplicate`, {}),
 };
 
 // --- Settings ---
@@ -866,7 +885,7 @@ export const websiteApi = {
   unpublish: () => api.post("/website/unpublish", {}),
   analytics: () => api.get<{ data: any }>("/website/analytics"),
   // Public (no auth)
-  publicSite: (orgSlug: string) => fetch(`/api/v1/website/public/${orgSlug}`).then(r => r.json()),
+  publicSite: (orgSlug: string) => fetch(`/api/v1/website/public/${orgSlug}`, { cache: "no-store" }).then(r => r.json()),
   publicPage: (orgSlug: string, pageSlug: string) => fetch(`/api/v1/website/public/${orgSlug}/page/${pageSlug}`).then(r => r.json()),
   publicBook: (orgSlug: string, data: any) => fetch(`/api/v1/website/public/${orgSlug}/book`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
   // Storefront settings
@@ -881,7 +900,7 @@ export const publicApi = {
     fetch(`/api/v1/bookings/track/${token}/payment`, { method: "POST", headers: { "Content-Type": "application/json" } }).then(r => r.json()),
 };
 
-// --- Marketplace (سوق نسق) ---
+// --- Marketplace (سوق ترميز OS) ---
 export const marketplaceApi = {
   // Public (no auth)
   browse: (params?: Record<string, string>) => {
@@ -1057,48 +1076,53 @@ export const carRentalApi = {
 
 // --- Flower Master Data ---
 export const flowerMasterApi = {
+  // POS catalog — Arabic name + real stock + sell price in one call
+  posCatalog: () =>
+    api.get<{ data: FlowerVariantPOS[] }>("/flower-master/pos-catalog"),
+
   // Variants
   variants: (params?: Record<string, string>) => {
     const qs = params ? "?" + new URLSearchParams(params).toString() : "";
-    return api.get<{ data: any[]; total: number }>(`/flower-master/variants${qs}`);
+    return api.get<{ data: FlowerVariant[]; total: number }>(`/flower-master/variants${qs}`);
   },
   getVariant: (id: string, mode?: string) => {
     const qs = mode ? `?mode=${mode}` : "";
-    return api.get<{ data: any }>(`/flower-master/variants/${id}${qs}`);
+    return api.get<{ data: FlowerVariant }>(`/flower-master/variants/${id}${qs}`);
   },
-  createVariant: (data: any) => api.post<{ data: any }>("/flower-master/variants", data),
-  updateVariant: (id: string, data: any) => api.put<{ data: any }>(`/flower-master/variants/${id}`, data),
-  toggleVariant: (id: string) => api.patch<{ data: any }>(`/flower-master/variants/${id}/toggle`, {}),
+  createVariant: (data: any) => api.post<{ data: FlowerVariant }>("/flower-master/variants", data),
+  updateVariant: (id: string, data: any) => api.put<{ data: FlowerVariant }>(`/flower-master/variants/${id}`, data),
+  toggleVariant: (id: string) => api.patch<{ data: FlowerVariant }>(`/flower-master/variants/${id}/toggle`, {}),
 
   // Enums (for dropdowns)
-  enums: () => api.get<{ data: any }>("/flower-master/enums"),
+  enums: () => api.get<{ data: Record<string, string[]> }>("/flower-master/enums"),
 
   // Batches
   batches: (params?: Record<string, string>) => {
     const qs = params ? "?" + new URLSearchParams(params).toString() : "";
-    return api.get<{ data: any[]; total: number }>(`/flower-master/batches${qs}`);
+    return api.get<{ data: FlowerBatch[]; total: number }>(`/flower-master/batches${qs}`);
   },
   expiringBatches: (days?: number) => {
     const qs = days ? `?days=${days}` : "";
-    return api.get<{ data: any[] }>(`/flower-master/batches/expiring${qs}`);
+    return api.get<{ data: FlowerBatchExpiring[] }>(`/flower-master/batches/expiring${qs}`);
   },
   batchesExpiring: (days?: number) => {
     const qs = days ? `?days=${days}` : "";
-    return api.get<{ data: any[] }>(`/flower-master/batches/expiring${qs}`);
+    return api.get<{ data: FlowerBatchExpiring[] }>(`/flower-master/batches/expiring${qs}`);
   },
   fefoBatches: (variantId: string) =>
-    api.get<{ data: any[] }>(`/flower-master/batches/fefo/${variantId}`),
-  receiveBatch: (data: any) => api.post<{ data: any }>("/flower-master/batches", data),
-  updateBatch: (id: string, data: any) => api.patch<{ data: any }>(`/flower-master/batches/${id}`, data),
+    api.get<{ data: FlowerBatch[] }>(`/flower-master/batches/fefo/${variantId}`),
+  receiveBatch: (data: any) => api.post<{ data: FlowerBatch }>("/flower-master/batches", data),
+  updateBatch: (id: string, data: any) => api.patch<{ data: FlowerBatch }>(`/flower-master/batches/${id}`, data),
   consumeBatch: (data: { variantId: string; quantity: number; reason?: string }) =>
-    api.post<{ data: any }>("/flower-master/batches/consume", data),
+    api.post<{ data: { consumed: number } }>("/flower-master/batches/consume", data),
 
   // Pricing
   pricing: (variantId?: string) => {
     const qs = variantId ? `?variantId=${variantId}` : "";
-    return api.get<{ data: any[] }>(`/flower-master/pricing${qs}`);
+    return api.get<{ data: FlowerPricing[] }>(`/flower-master/pricing${qs}`);
   },
-  setPrice: (data: any) => api.post<{ data: any }>("/flower-master/pricing", data),
+  setPrice: (data: any) => api.post<{ data: FlowerPricing }>("/flower-master/pricing", data),
+  updatePrice: (id: string, data: any) => api.patch<{ data: FlowerPricing }>(`/flower-master/pricing/${id}`, data),
   deletePrice: (id: string) => api.delete(`/flower-master/pricing/${id}`),
 
   // Substitutions
@@ -1118,14 +1142,83 @@ export const flowerMasterApi = {
   deleteRecipe: (id: string) => api.delete(`/flower-master/recipes/${id}`),
 
   // Reports
-  stockReport: () => api.get<{ data: any[] }>("/flower-master/reports/stock"),
+  stockReport: () => api.get<{ data: FlowerStockRow[] }>("/flower-master/reports/stock"),
   originsReport: () => api.get<{ data: any[] }>("/flower-master/reports/origins"),
   gradesReport: () => api.get<{ data: any[] }>("/flower-master/reports/grades"),
   consumptionReport: () => api.get<{ data: any[] }>("/flower-master/reports/consumption"),
-  reportStock: () => api.get<{ data: any[] }>("/flower-master/reports/stock"),
+  reportStock: () => api.get<{ data: FlowerStockRow[] }>("/flower-master/reports/stock"),
   reportOrigins: () => api.get<{ data: any[] }>("/flower-master/reports/origins"),
   reportGrades: () => api.get<{ data: any[] }>("/flower-master/reports/grades"),
-  intelligence: () => api.get<{ data: any }>("/flower-master/reports/intelligence"),
+  intelligence: () => api.get<{ data: FlowerIntelligence }>("/flower-master/reports/intelligence"),
+};
+
+// --- Decor Assets (الأصول الصناعية) ---
+export const decorAssetsApi = {
+  list: (params?: { status?: string; category?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status)   q.set("status", params.status);
+    if (params?.category) q.set("category", params.category);
+    return api.get<{ data: any[] }>(`/decor-assets?${q}`);
+  },
+  stats: () => api.get<{ data: any }>("/decor-assets/stats"),
+  create: (data: any) => api.post<{ data: any }>("/decor-assets", data),
+  update: (id: string, data: any) => api.put<{ data: any }>(`/decor-assets/${id}`, data),
+  changeStatus: (id: string, data: { status: string; notes?: string; reference_id?: string }) =>
+    api.patch<{ data: any }>(`/decor-assets/${id}/status`, data),
+  delete: (id: string) => api.delete(`/decor-assets/${id}`),
+  movements: (id: string) => api.get<{ data: any[] }>(`/decor-assets/${id}/movements`),
+  addMaintenance: (id: string, data: any) => api.post<{ data: any }>(`/decor-assets/${id}/maintenance`, data),
+};
+
+// --- Service Orders (كوشة / استقبال مولود / تنفيذ ميداني) ---
+export const serviceOrdersApi = {
+  list: (params?: { status?: string; type?: string; date_from?: string; date_to?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status)    q.set("status", params.status);
+    if (params?.type)      q.set("type", params.type);
+    if (params?.date_from) q.set("date_from", params.date_from);
+    if (params?.date_to)   q.set("date_to", params.date_to);
+    return api.get<{ data: any[] }>(`/service-orders?${q}`);
+  },
+  stats: () => api.get<{ data: any }>("/service-orders/stats"),
+  create: (data: any) => api.post<{ data: any }>("/service-orders", data),
+  get: (id: string) => api.get<{ data: any }>(`/service-orders/${id}`),
+  update: (id: string, data: any) => api.put<{ data: any }>(`/service-orders/${id}`, data),
+  changeStatus: (id: string, data: { status: string; notes?: string }) =>
+    api.patch<{ data: any }>(`/service-orders/${id}/status`, data),
+  addItem: (id: string, data: any) => api.post<{ data: any }>(`/service-orders/${id}/items`, data),
+  deleteItem: (id: string, itemId: string) => api.delete(`/service-orders/${id}/items/${itemId}`),
+  inspect: (id: string, data: any) => api.post<{ data: any }>(`/service-orders/${id}/inspect`, data),
+  applyPackage: (id: string, templateId: string) =>
+    api.post<{ data: any }>(`/service-orders/${id}/apply-package`, { template_id: templateId }),
+  listStaff: (id: string) => api.get<{ data: any[] }>(`/service-orders/${id}/staff`),
+  assignStaff: (id: string, data: { employee_id: string; role?: string }) =>
+    api.post<{ data: any }>(`/service-orders/${id}/staff`, data),
+  removeStaff: (id: string, staffId: string) => api.delete(`/service-orders/${id}/staff/${staffId}`),
+};
+
+// --- Event Package Templates (باقات الأحداث الميدانية) ---
+export const eventPackagesApi = {
+  list: () => api.get<{ data: any[] }>("/event-packages"),
+  get: (id: string) => api.get<{ data: any }>(`/event-packages/${id}`),
+  preview: (id: string) => api.get<{ data: any }>(`/event-packages/${id}/preview`),
+  create: (data: any) => api.post<{ data: any }>("/event-packages", data),
+  update: (id: string, data: any) => api.put<{ data: any }>(`/event-packages/${id}`, data),
+  delete: (id: string) => api.delete(`/event-packages/${id}`),
+  addItem: (id: string, data: any) => api.post<{ data: any }>(`/event-packages/${id}/items`, data),
+  deleteItem: (id: string, itemId: string) => api.delete(`/event-packages/${id}/items/${itemId}`),
+};
+
+// --- Flower Waste (سجل الهدر) ---
+export const flowerWasteApi = {
+  list: (params?: { limit?: number; offset?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.limit)  q.set("limit", String(params.limit));
+    if (params?.offset) q.set("offset", String(params.offset));
+    return api.get<{ data: any[]; total: number }>(`/flower-waste?${q}`);
+  },
+  summary: () => api.get<{ data: any[] }>("/flower-waste/summary"),
+  log: (data: any) => api.post<{ data: any }>("/flower-waste", data),
 };
 
 // --- Rental ---
@@ -1580,7 +1673,7 @@ export const adminApi = {
   uploadOrgLogo: (orgId: string, file: File): Promise<{ data: { url: string } }> => {
     const formData = new FormData();
     formData.append("file", file);
-    const token = localStorage.getItem("nasaq_token") || "";
+    const token = localStorage.getItem("nasaq_token") || sessionStorage.getItem("nasaq_token") || "";
     return fetch(`/api/v1/admin/orgs/${orgId}/logo`, {
       method: "POST",
       headers: { Authorization: `Bearer ${token}` },
@@ -1755,7 +1848,7 @@ export const adminApi = {
   uploadPlatformLogo: (file: File): Promise<{ data: { url: string } }> => {
     const formData = new FormData();
     formData.append("file", file);
-    const token = localStorage.getItem("nasaq_token") || "";
+    const token = localStorage.getItem("nasaq_token") || sessionStorage.getItem("nasaq_token") || "";
     return fetch("/api/v1/admin/platform-config/logo", {
       method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData,
     }).then(r => r.json());
@@ -1763,7 +1856,7 @@ export const adminApi = {
   uploadPlatformFavicon: (file: File): Promise<{ data: { url: string } }> => {
     const formData = new FormData();
     formData.append("file", file);
-    const token = localStorage.getItem("nasaq_token") || "";
+    const token = localStorage.getItem("nasaq_token") || sessionStorage.getItem("nasaq_token") || "";
     return fetch("/api/v1/admin/platform-config/favicon", {
       method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData,
     }).then(r => r.json());
@@ -1837,6 +1930,18 @@ export const remindersApi = {
   complete:     (id: string) => api.post<{ data: any }>(`/reminders/${id}/complete`),
   snooze:       (id: string, until: string) => api.post<{ data: any }>(`/reminders/${id}/snooze`, { until }),
   delete:       (id: string) => api.delete(`/reminders/${id}`),
+};
+
+// --- Kitchen ---
+export const kitchenApi = {
+  orders: (params?: { status?: string; date?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set("status", params.status);
+    if (params?.date) q.set("date", params.date);
+    return api.get<{ data: any[] }>(`/kitchen/orders?${q}`);
+  },
+  updateStatus: (id: string, status: string) => api.patch<{ data: any }>(`/kitchen/orders/${id}/status`, { status }),
+  stats: (date?: string) => api.get<{ data: any }>(`/kitchen/stats${date ? `?date=${date}` : ""}`),
 };
 
 // --- Events & Tickets ---
@@ -2658,6 +2763,24 @@ export const hrApi = {
   // ZKTeco
   zkDevices:          () => api.get<any>("/hr/zkteco/devices"),
   createZkDevice:     (d: any) => api.post<any>("/hr/zkteco/devices", d),
+};
+
+// --- Onboarding ---
+export const onboardingApi = {
+  getStatus:   () => api.get<{ data: { hasSetup: boolean } }>("/onboarding/status"),
+  getProfiles: () => api.get<{ data: Array<{ id: string; profile_key: string; name: string; description: string; version: number }> }>("/onboarding/profiles"),
+  flowerSetup: (profileKey: string) => api.post<{ data: { profile: string; created: Record<string, number>; message: string } }>("/onboarding/flower-full-setup", { profileKey }),
+};
+
+// ── Compliance API (PDPL + التجارة الإلكترونية + ZATCA) ───
+export const complianceApi = {
+  legalSettings:        () => api.get<{ data: any }>("/compliance/legal-settings"),
+  updateLegalSettings:  (d: any) => api.put<{ data: any }>("/compliance/legal-settings", d),
+  privacyRequests:      () => api.get<{ data: any[] }>("/compliance/privacy-requests"),
+  createPrivacyRequest: (d: any) => api.post<{ data: any }>("/compliance/privacy-requests", d),
+  updateRequestStatus:  (id: string, d: { status: string; notes?: string }) =>
+    api.put<{ data: any }>(`/compliance/privacy-requests/${id}/status`, d),
+  securityIncidents:    () => api.get<{ data: any[] }>("/compliance/security-incidents"),
 };
 
 // ── Billing Pricing API (الباقات الجديدة) ─────────────────

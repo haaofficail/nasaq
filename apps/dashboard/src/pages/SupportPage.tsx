@@ -437,7 +437,7 @@ export function SupportPage() {
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-xl font-bold text-gray-900">بوابة الدعم الفني</h1>
-          <p className="text-sm text-gray-400 mt-0.5">تواصل مع فريق نسق وتتبّع طلباتك</p>
+          <p className="text-sm text-gray-400 mt-0.5">تواصل مع فريق ترميز OS وتتبّع طلباتك</p>
         </div>
         <button onClick={() => setShowCreate(true)}
           className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 transition-colors shadow-sm shadow-brand-500/20">

@@ -245,7 +245,7 @@ export function FixedAssetsPage() {
     {
       label: "إجمالي التكلفة",
       value: summaryLoading ? null : fmt(summary?.total_cost),
-      color: "text-[#5b9bd5]",
+      color: "text-brand-500",
       bg: "bg-blue-50",
     },
     {
@@ -287,13 +287,13 @@ export function FixedAssetsPage() {
           <button
             onClick={handleDepreciateMonthly}
             disabled={depreciating}
-            className="flex items-center gap-2 border border-[#5b9bd5] text-[#5b9bd5] hover:bg-blue-50 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-60"
+            className="flex items-center gap-2 border border-brand-500 text-brand-500 hover:bg-blue-50 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-60"
           >
             {depreciating ? "جارٍ التشغيل..." : "شغّل إهلاك هذا الشهر"}
           </button>
           <button
             onClick={openAdd}
-            className="flex items-center gap-2 bg-[#5b9bd5] hover:bg-[#4a87c0] text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+            className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors"
           >
             <span className="text-lg leading-none">+</span>
             إضافة أصل
@@ -331,7 +331,7 @@ export function FixedAssetsPage() {
             onClick={() => setActiveTab(tab.key)}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
               activeTab === tab.key
-                ? "bg-[#5b9bd5] text-white"
+                ? "bg-brand-500 text-white"
                 : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
             }`}
           >
@@ -365,7 +365,7 @@ export function FixedAssetsPage() {
             {activeTab ? "لا توجد أصول في هذا التصنيف" : "ابدأ بتسجيل أول أصل ثابت"}
           </p>
           {!activeTab && (
-            <button onClick={openAdd} className="mt-6 bg-[#5b9bd5] text-white px-6 py-2 rounded-xl text-sm font-medium hover:bg-[#4a87c0] transition-colors">
+            <button onClick={openAdd} className="mt-6 bg-brand-500 text-white px-6 py-2 rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors">
               إضافة أصل
             </button>
           )}
@@ -394,7 +394,7 @@ export function FixedAssetsPage() {
                 {assets.map((asset) => (
                   <tr key={asset.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-5 py-4">
-                      <span className="font-mono text-xs font-semibold text-[#5b9bd5]">{asset.asset_code}</span>
+                      <span className="font-mono text-xs font-semibold text-brand-500">{asset.asset_code}</span>
                     </td>
                     <td className="px-4 py-4">
                       <div className="font-medium text-gray-900">{asset.name}</div>
@@ -429,7 +429,7 @@ export function FixedAssetsPage() {
                         </button>
                         <button
                           onClick={() => openEdit(asset)}
-                          className="text-xs text-[#5b9bd5] hover:text-[#4a87c0] font-medium px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
+                          className="text-xs text-brand-500 hover:text-[#4a87c0] font-medium px-2 py-1 rounded-lg hover:bg-blue-50 transition-colors"
                         >
                           تعديل
                         </button>
@@ -473,7 +473,7 @@ export function FixedAssetsPage() {
                     type="text"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     placeholder="مثال: سيارة تويوتا لاندكروزر"
                   />
                 </div>
@@ -482,7 +482,7 @@ export function FixedAssetsPage() {
                   <select
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   >
                     {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
@@ -494,7 +494,7 @@ export function FixedAssetsPage() {
                   <select
                     value={form.depreciationMethod}
                     onChange={(e) => setForm({ ...form, depreciationMethod: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   >
                     <option value="straight_line">القسط الثابت</option>
                     <option value="declining_balance">القسط المتناقص</option>
@@ -506,7 +506,7 @@ export function FixedAssetsPage() {
                     type="date"
                     value={form.purchaseDate}
                     onChange={(e) => setForm({ ...form, purchaseDate: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     dir="ltr"
                   />
                 </div>
@@ -516,7 +516,7 @@ export function FixedAssetsPage() {
                     type="number"
                     value={form.usefulLifeMonths}
                     onChange={(e) => setForm({ ...form, usefulLifeMonths: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     min="1"
                     dir="ltr"
                   />
@@ -527,7 +527,7 @@ export function FixedAssetsPage() {
                     type="number"
                     value={form.purchasePrice}
                     onChange={(e) => setForm({ ...form, purchasePrice: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     min="0"
                     step="0.01"
                     dir="ltr"
@@ -539,7 +539,7 @@ export function FixedAssetsPage() {
                     type="number"
                     value={form.salvageValue}
                     onChange={(e) => setForm({ ...form, salvageValue: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     min="0"
                     step="0.01"
                     dir="ltr"
@@ -550,7 +550,7 @@ export function FixedAssetsPage() {
                   <select
                     value={form.costCenterId}
                     onChange={(e) => setForm({ ...form, costCenterId: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   >
                     <option value="">بدون مركز تكلفة</option>
                     {costCenters.filter((cc) => cc.is_active).map((cc) => (
@@ -564,7 +564,7 @@ export function FixedAssetsPage() {
                     type="text"
                     value={form.vendorName}
                     onChange={(e) => setForm({ ...form, vendorName: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     placeholder="اسم المورد أو الشركة"
                   />
                 </div>
@@ -574,7 +574,7 @@ export function FixedAssetsPage() {
                     type="text"
                     value={form.location}
                     onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     placeholder="مكان الأصل"
                   />
                 </div>
@@ -584,7 +584,7 @@ export function FixedAssetsPage() {
                     type="text"
                     value={form.serialNumber}
                     onChange={(e) => setForm({ ...form, serialNumber: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     placeholder="رقم تسلسلي أو موديل"
                     dir="ltr"
                   />
@@ -595,7 +595,7 @@ export function FixedAssetsPage() {
                     value={form.notes}
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
                     rows={2}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5] focus:border-transparent resize-none"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
                     placeholder="ملاحظات إضافية..."
                   />
                 </div>
@@ -605,7 +605,7 @@ export function FixedAssetsPage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="flex-1 bg-[#5b9bd5] hover:bg-[#4a87c0] disabled:opacity-60 text-white py-2 rounded-xl text-sm font-medium transition-colors"
+                className="flex-1 bg-brand-500 hover:bg-brand-600 disabled:opacity-60 text-white py-2 rounded-xl text-sm font-medium transition-colors"
               >
                 {saving ? "جارٍ الحفظ..." : editing ? "حفظ التعديلات" : "إضافة الأصل"}
               </button>

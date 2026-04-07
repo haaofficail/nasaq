@@ -455,7 +455,7 @@ export default function IntegrationsPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">التكاملات</h1>
           <p className="text-sm text-gray-500 mt-1">
-            ربط نسق بمنصات الدفع والشحن والمراسلة والتحليلات وأكثر من ذلك
+            ربط ترميز OS بمنصات الدفع والشحن والمراسلة والتحليلات وأكثر من ذلك
           </p>
         </div>
         {activeCount > 0 && (

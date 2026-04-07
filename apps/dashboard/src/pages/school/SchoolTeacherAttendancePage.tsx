@@ -220,7 +220,7 @@ function StandbyModal({
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm font-bold text-gray-900">{p.subject}</span>
                           {p.classGrade && (
-                            <span className="text-[10px] bg-[#5b9bd5]/10 text-[#5b9bd5] border border-[#5b9bd5]/20 rounded-full px-2 py-0.5 font-semibold">
+                            <span className="text-[10px] bg-brand-500/10 text-brand-500 border border-brand-500/20 rounded-full px-2 py-0.5 font-semibold">
                               {p.classGrade} — فصل {p.className}
                             </span>
                           )}

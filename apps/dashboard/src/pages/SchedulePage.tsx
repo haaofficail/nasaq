@@ -305,12 +305,12 @@ export function SchedulePage() {
                           </div>
                           <div className="flex gap-1 shrink-0">
                             {b.status === "confirmed" && (
-                              <button onClick={() => handleStatus(b.id, "completed")} className="w-7 h-7 flex items-center justify-center rounded-lg bg-green-100 hover:bg-green-200 text-green-600 transition-colors" title="مكتمل">
+                              <button onClick={() => handleStatus(b.id, "completed")} className="w-9 h-9 flex items-center justify-center rounded-lg bg-green-100 hover:bg-green-200 text-green-600 transition-colors" title="مكتمل">
                                 <CheckCircle2 className="w-3.5 h-3.5" />
                               </button>
                             )}
                             {!["cancelled", "completed"].includes(b.status) && (
-                              <button onClick={() => handleStatus(b.id, "cancelled")} className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-colors" title="إلغاء">
+                              <button onClick={() => handleStatus(b.id, "cancelled")} className="w-9 h-9 flex items-center justify-center rounded-lg bg-red-50 hover:bg-red-100 text-red-500 transition-colors" title="إلغاء">
                                 <XCircle className="w-3.5 h-3.5" />
                               </button>
                             )}

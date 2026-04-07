@@ -5,68 +5,70 @@ import { PublicLayout } from "../components/public/PublicLayout";
 
 const plans = [
   {
-    id: "free",
-    name: "المجاني",
-    monthly: 0,
-    yearly: 0,
-    desc: "جميع الميزات — 15 حجز مدى الحياة",
+    id: "basic",
+    name: "الأساسي",
+    monthly: 79,
+    yearly: 63,
+    desc: "للأنشطة الصغيرة والمتوسطة التي تبدأ رحلتها",
     features: [
-      "جميع ميزات النظام",
-      "15 حجز مدى الحياة",
-      "5 موظفين",
-      "موقع حجز كامل",
-      "دعم عبر البريد",
+      "30 يوم مجاناً بدون بطاقة",
+      "حجوزات غير محدودة",
+      "10 موظفين",
+      "فرع واحد",
+      "جميع وحدات النظام",
+      "دعم مباشر عبر الواتساب",
     ],
-    cta: "ابدأ مجاناً",
+    cta: "ابدأ تجربتك المجانية",
     href: "/register",
     highlight: false,
   },
   {
-    id: "basic",
-    name: "الأساسي",
-    monthly: 199,
-    yearly: 159,
-    desc: "للأنشطة النامية والمحترفين",
+    id: "advanced",
+    name: "المتقدم",
+    monthly: 299,
+    yearly: 239,
+    desc: "للأنشطة النامية التي تحتاج استمرارية وتقارير",
     features: [
+      "30 يوم مجاناً بدون بطاقة",
       "حجوزات غير محدودة",
-      "10 موظفين",
-      "فرع واحد",
-      "تقارير متقدمة",
-      "دعم أولوي",
+      "30 موظف",
+      "3 فروع",
+      "جميع وحدات النظام",
+      "تقارير متقدمة + تسويق",
     ],
-    cta: "ابدأ الآن",
+    cta: "ابدأ تجربتك المجانية",
     href: "/register",
     highlight: true,
   },
   {
-    id: "pro",
-    name: "الاحترافي",
-    monthly: 999,
-    yearly: 799,
-    desc: "للشركات والفروع المتعددة",
+    id: "enterprise",
+    name: "المؤسسي",
+    monthly: 399,
+    yearly: 319,
+    desc: "للشركات والفروع المتعددة مع دعم مخصص",
     features: [
+      "30 يوم مجاناً بدون بطاقة",
       "حجوزات غير محدودة",
-      "50 موظف",
-      "5 فروع",
-      "API مخصص",
+      "100 موظف",
+      "10 فروع",
+      "جميع وحدات النظام",
       "مدير حساب مخصص",
-      "SLA 99.9%",
     ],
-    cta: "تواصل معنا",
-    href: "/contact",
+    cta: "ابدأ تجربتك المجانية",
+    href: "/register",
     highlight: false,
   },
 ];
 
 const comparison = [
-  { feature: "الحجوزات",        free: "15 مدى الحياة", basic: "غير محدود", pro: "غير محدود" },
-  { feature: "أعضاء الفريق",    free: "5",             basic: "10",         pro: "50"         },
-  { feature: "الفروع",          free: "1",             basic: "1",          pro: "5"          },
-  { feature: "إدارة المخزون",   free: true,            basic: true,         pro: true         },
-  { feature: "التقارير المتقدمة", free: false,          basic: true,         pro: true         },
-  { feature: "التسويق والحملات", free: false,           basic: true,         pro: true         },
-  { feature: "تكامل API",       free: false,           basic: false,        pro: true         },
-  { feature: "مدير حساب",       free: false,           basic: false,        pro: true         },
+  { feature: "الحجوزات",           basic: "غير محدود", advanced: "غير محدود", enterprise: "غير محدود" },
+  { feature: "أعضاء الفريق",       basic: "10",         advanced: "30",          enterprise: "100"        },
+  { feature: "الفروع",             basic: "1",          advanced: "3",           enterprise: "10"         },
+  { feature: "جميع وحدات النظام",  basic: true,         advanced: true,          enterprise: true         },
+  { feature: "التقارير المتقدمة",   basic: false,        advanced: true,          enterprise: true         },
+  { feature: "التسويق والحملات",    basic: false,        advanced: true,          enterprise: true         },
+  { feature: "إخفاء علامة ترميز OS",    basic: false,        advanced: true,          enterprise: true         },
+  { feature: "مدير حساب مخصص",     basic: false,        advanced: false,         enterprise: true         },
 ];
 
 const faqs = [
@@ -112,7 +114,7 @@ export function PricingPage() {
                 key={plan.id}
                 className={`rounded-2xl p-8 flex flex-col ${
                   plan.highlight
-                    ? "bg-[#5b9bd5] text-white shadow-2xl scale-105"
+                    ? "bg-brand-500 text-white shadow-2xl scale-105"
                     : "bg-white border border-gray-200"
                 }`}
               >
@@ -149,7 +151,7 @@ export function PricingPage() {
                 <ul className="space-y-3 flex-1 mb-8">
                   {plan.features.map((f) => (
                     <li key={f} className={`flex items-center gap-2 text-sm ${plan.highlight ? "text-blue-100" : "text-gray-600"}`}>
-                      <Check className={`w-4 h-4 shrink-0 ${plan.highlight ? "text-white" : "text-[#5b9bd5]"}`} />
+                      <Check className={`w-4 h-4 shrink-0 ${plan.highlight ? "text-white" : "text-brand-500"}`} />
                       {f}
                     </li>
                   ))}
@@ -158,8 +160,8 @@ export function PricingPage() {
                   to={plan.href}
                   className={`text-center py-3.5 rounded-xl font-bold text-sm transition-colors ${
                     plan.highlight
-                      ? "bg-white text-[#5b9bd5] hover:bg-gray-100"
-                      : "bg-[#5b9bd5] text-white hover:bg-blue-700"
+                      ? "bg-white text-brand-500 hover:bg-gray-100"
+                      : "bg-brand-500 text-white hover:bg-blue-700"
                   }`}
                 >
                   {plan.cta}
@@ -176,9 +178,9 @@ export function PricingPage() {
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="text-right py-4 pr-4 text-sm font-semibold text-gray-500 w-1/2">الميزة</th>
-                    <th className="text-center py-4 text-sm font-semibold text-gray-700">المجاني</th>
-                    <th className="text-center py-4 text-sm font-bold text-[#5b9bd5]">الأساسي</th>
-                    <th className="text-center py-4 text-sm font-semibold text-gray-700">الاحترافي</th>
+                    <th className="text-center py-4 text-sm font-semibold text-gray-700">الأساسي</th>
+                    <th className="text-center py-4 text-sm font-bold text-brand-500">المتقدم</th>
+                    <th className="text-center py-4 text-sm font-semibold text-gray-700">المؤسسي</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -186,17 +188,17 @@ export function PricingPage() {
                     const cell = (v: string | boolean, highlight?: boolean) => {
                       if (typeof v === "boolean") {
                         return v
-                          ? <Check className={`w-4 h-4 mx-auto ${highlight ? "text-[#5b9bd5] font-semibold" : "text-gray-400"}`} />
+                          ? <Check className={`w-4 h-4 mx-auto ${highlight ? "text-brand-500 font-semibold" : "text-gray-400"}`} />
                           : <X className="w-4 h-4 mx-auto text-gray-200" />;
                       }
-                      return <span className={highlight ? "font-semibold text-[#5b9bd5]" : ""}>{v}</span>;
+                      return <span className={highlight ? "font-semibold text-brand-500" : ""}>{v}</span>;
                     };
                     return (
                       <tr key={row.feature} className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}>
                         <td className="py-3.5 pr-4 text-sm text-gray-700">{row.feature}</td>
-                        <td className="py-3.5 text-center text-sm text-gray-500">{cell(row.free)}</td>
-                        <td className="py-3.5 text-center text-sm">{cell(row.basic, true)}</td>
-                        <td className="py-3.5 text-center text-sm text-gray-500">{cell(row.pro)}</td>
+                        <td className="py-3.5 text-center text-sm text-gray-500">{cell(row.basic)}</td>
+                        <td className="py-3.5 text-center text-sm">{cell(row.advanced, true)}</td>
+                        <td className="py-3.5 text-center text-sm text-gray-500">{cell(row.enterprise)}</td>
                       </tr>
                     );
                   })}

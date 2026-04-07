@@ -46,7 +46,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   staff:        "bg-amber-500",
   inventory:    "bg-orange-500",
   general:      "bg-gray-400",
-  orders:       "bg-[#5b9bd5]",
+  orders:       "bg-brand-500",
   delivery:     "bg-sky-500",
   stock:        "bg-orange-500",
   reservations: "bg-blue-600",
@@ -82,7 +82,7 @@ function ConnectionTab() {
   const [connecting, setConnecting] = useState(false);
   const [connectMsg, setConnectMsg] = useState("");
   const [testPhone, setTestPhone] = useState("");
-  const [testMsg, setTestMsg] = useState("مرحباً! هذه رسالة تجريبية من نسق.");
+  const [testMsg, setTestMsg] = useState("مرحباً! هذه رسالة تجريبية من ترميز OS.");
   const [noticeOpen, setNoticeOpen] = useState(false);
   const { mutate: sendTest, loading: testing } = useMutation(({ phone, message }: any) =>
     messagingApi.test(phone, message)
@@ -156,8 +156,8 @@ function ConnectionTab() {
     <div className="space-y-4">
 
       {/* Org identity card */}
-      <div className="bg-gradient-to-br from-[#5b9bd5]/8 to-[#5b9bd5]/3 border border-[#5b9bd5]/20 rounded-2xl px-5 py-4 flex items-center gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-[#5b9bd5] flex items-center justify-center shrink-0 shadow-sm">
+      <div className="bg-gradient-to-br from-brand-500/8 to-[#5b9bd5]/3 border border-brand-500/20 rounded-2xl px-5 py-4 flex items-center gap-4">
+        <div className="w-12 h-12 rounded-2xl bg-brand-500 flex items-center justify-center shrink-0 shadow-sm">
           <MessageCircle className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1 min-w-0">
@@ -174,7 +174,7 @@ function ConnectionTab() {
               </span>
             )}
             {org.businessType && (
-              <span className="text-xs bg-[#5b9bd5]/10 text-[#5b9bd5] px-2.5 py-0.5 rounded-full font-medium">
+              <span className="text-xs bg-brand-500/10 text-brand-500 px-2.5 py-0.5 rounded-full font-medium">
                 {org.businessType}
               </span>
             )}
@@ -220,7 +220,7 @@ function ConnectionTab() {
             </ul>
             <div className="border-t border-amber-200 pt-3">
               <p className="text-[11px] text-amber-600 leading-relaxed">
-                <span className="font-semibold">إخلاء المسؤولية:</span> نسق يوفر أداة إرسال تقنية فقط. أي حظر أو تقييد يطرأ على حسابك في واتساب يقع على عاتق المستخدم كاملاً، ولا تتحمل نسق أي مسؤولية قانونية أو مالية ناتجة عن سوء الاستخدام أو انتهاك سياسات واتساب.
+                <span className="font-semibold">إخلاء المسؤولية:</span> ترميز OS يوفر أداة إرسال تقنية فقط. أي حظر أو تقييد يطرأ على حسابك في واتساب يقع على عاتق المستخدم كاملاً، ولا تتحمل ترميز OS أي مسؤولية قانونية أو مالية ناتجة عن سوء الاستخدام أو انتهاك سياسات واتساب.
               </p>
             </div>
           </div>
@@ -274,7 +274,7 @@ function ConnectionTab() {
             ) : (
               <button
                 onClick={handleConnect}
-                className="flex items-center gap-2 bg-[#5b9bd5] hover:bg-[#4a8ac4] text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors shadow-sm shadow-[#5b9bd5]/20"
+                className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl transition-colors shadow-sm shadow-[#5b9bd5]/20"
               >
                 <MessageCircle className="w-4 h-4" />
                 ربط واتساب
@@ -305,14 +305,14 @@ function ConnectionTab() {
         <div className="flex flex-col items-center gap-5 py-4">
           {connecting ? (
             <div className="flex flex-col items-center gap-4 py-6">
-              <div className="w-16 h-16 rounded-2xl bg-[#5b9bd5]/10 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-[#5b9bd5]" />
+              <div className="w-16 h-16 rounded-2xl bg-brand-500/10 flex items-center justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
               </div>
               <p className="text-sm text-gray-500">{connectMsg}</p>
             </div>
           ) : qrData ? (
             <>
-              <div className="bg-white p-4 rounded-2xl border-2 border-[#5b9bd5]/20 shadow-md shadow-[#5b9bd5]/5">
+              <div className="bg-white p-4 rounded-2xl border-2 border-brand-500/20 shadow-md shadow-[#5b9bd5]/5">
                 <img
                   src={qrData}
                   alt="QR واتساب"
@@ -327,7 +327,7 @@ function ConnectionTab() {
                   "اضغط «اقتران جهاز» وامسح الرمز",
                 ].map((step, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <span className="w-6 h-6 rounded-full bg-[#5b9bd5]/10 text-[#5b9bd5] text-xs font-bold flex items-center justify-center shrink-0">
+                    <span className="w-6 h-6 rounded-full bg-brand-500/10 text-brand-500 text-xs font-bold flex items-center justify-center shrink-0">
                       {i + 1}
                     </span>
                     <p className="text-xs text-gray-500">{step}</p>
@@ -344,8 +344,8 @@ function ConnectionTab() {
       {/* Test Send */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-[#5b9bd5]/10 flex items-center justify-center">
-            <Send className="w-4 h-4 text-[#5b9bd5]" />
+          <div className="w-8 h-8 rounded-xl bg-brand-500/10 flex items-center justify-center">
+            <Send className="w-4 h-4 text-brand-500" />
           </div>
           <h2 className="text-sm font-semibold text-gray-900">إرسال تجريبي</h2>
         </div>
@@ -364,7 +364,7 @@ function ConnectionTab() {
               type="text"
               value={testMsg}
               onChange={(e) => setTestMsg(e.target.value)}
-              className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 transition-all"
+              className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
             />
           </div>
         </div>
@@ -473,7 +473,7 @@ function TemplatesTab() {
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
-      <Loader2 className="w-7 h-7 animate-spin text-[#5b9bd5]" />
+      <Loader2 className="w-7 h-7 animate-spin text-brand-500" />
       <p className="text-sm text-gray-400">جارٍ التحميل...</p>
     </div>
   );
@@ -495,14 +495,14 @@ function TemplatesTab() {
   return (
     <div className="space-y-3">
       {/* Business-type context + reseed action */}
-      <div className="bg-[#5b9bd5]/5 border border-[#5b9bd5]/20 rounded-2xl px-4 py-3.5 flex items-center justify-between gap-3">
+      <div className="bg-brand-500/5 border border-brand-500/20 rounded-2xl px-4 py-3.5 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-xl bg-[#5b9bd5]/10 flex items-center justify-center shrink-0">
-            <FileText className="w-3.5 h-3.5 text-[#5b9bd5]" />
+          <div className="w-7 h-7 rounded-xl bg-brand-500/10 flex items-center justify-center shrink-0">
+            <FileText className="w-3.5 h-3.5 text-brand-500" />
           </div>
           <div>
             <p className="text-xs font-semibold text-gray-700">
-              القوالب مخصصة لـ: <span className="text-[#5b9bd5]">{BIZ_TYPE_LABELS[bizType] || bizType || "عام"}</span>
+              القوالب مخصصة لـ: <span className="text-brand-500">{BIZ_TYPE_LABELS[bizType] || bizType || "عام"}</span>
             </p>
             <p className="text-[11px] text-gray-400 mt-0.5">تعديل أو تفعيل القوالب التلقائية لكل حدث</p>
           </div>
@@ -510,7 +510,7 @@ function TemplatesTab() {
         <button
           onClick={handleReseed}
           disabled={reseeding}
-          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-[#5b9bd5] bg-white border border-gray-100 hover:border-[#5b9bd5]/30 px-3 py-1.5 rounded-xl transition-colors shrink-0"
+          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-brand-500 bg-white border border-gray-100 hover:border-brand-500/30 px-3 py-1.5 rounded-xl transition-colors shrink-0"
         >
           {reseeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
           إعادة توليد القوالب
@@ -583,7 +583,7 @@ function TemplatesTab() {
                               onClick={() => setField(tpl.id, "is_active", !ed.is_active)}
                               className={clsx(
                                 "relative w-11 h-6 rounded-full transition-colors shrink-0",
-                                ed.is_active ? "bg-[#5b9bd5]" : "bg-gray-200"
+                                ed.is_active ? "bg-brand-500" : "bg-gray-200"
                               )}
                             >
                               <span className={clsx(
@@ -596,7 +596,7 @@ function TemplatesTab() {
                               className={clsx(
                                 "p-1.5 rounded-lg transition-colors",
                                 isPreviewing
-                                  ? "bg-[#5b9bd5]/10 text-[#5b9bd5]"
+                                  ? "bg-brand-500/10 text-brand-500"
                                   : "hover:bg-gray-100 text-gray-400"
                               )}
                               title="معاينة"
@@ -620,7 +620,7 @@ function TemplatesTab() {
                             <select
                               value={ed.send_to}
                               onChange={(e) => setField(tpl.id, "send_to", e.target.value)}
-                              className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 bg-white transition-all"
+                              className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 bg-white transition-all"
                             >
                               {SEND_TO_OPTIONS.map((o) => (
                                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -639,13 +639,13 @@ function TemplatesTab() {
                                   const factor = DELAY_UNIT_OPTIONS.find(u => u.value === unit)!.factor;
                                   setField(tpl.id, "delay_minutes", Number(e.target.value) * factor);
                                 }}
-                                className="w-20 border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 transition-all"
+                                className="w-20 border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
                                 dir="ltr"
                               />
                               <select
                                 value={getDelayUnit(tpl.id)}
                                 onChange={(e) => setDelayUnits(p => ({ ...p, [tpl.id]: e.target.value as any }))}
-                                className="flex-1 border border-gray-100 rounded-xl px-2 py-2 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 bg-white transition-all"
+                                className="flex-1 border border-gray-100 rounded-xl px-2 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 bg-white transition-all"
                               >
                                 {DELAY_UNIT_OPTIONS.map(o => (
                                   <option key={o.value} value={o.value}>{o.label}</option>
@@ -671,7 +671,7 @@ function TemplatesTab() {
                               rows={3}
                               value={ed.message_ar}
                               onChange={(e) => setField(tpl.id, "message_ar", e.target.value)}
-                              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 transition-all resize-none font-mono leading-relaxed"
+                              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all resize-none font-mono leading-relaxed"
                               dir="rtl"
                             />
                           </div>
@@ -692,7 +692,7 @@ function TemplatesTab() {
                               <button
                                 key={v.key}
                                 onClick={() => setField(tpl.id, "message_ar", ed.message_ar + `{${v.key}}`)}
-                                className="text-[10px] bg-[#5b9bd5]/8 text-[#5b9bd5] border border-[#5b9bd5]/20 px-2 py-0.5 rounded-full hover:bg-[#5b9bd5]/15 transition-colors font-mono"
+                                className="text-[10px] bg-brand-500/8 text-brand-500 border border-brand-500/20 px-2 py-0.5 rounded-full hover:bg-brand-500/15 transition-colors font-mono"
                                 title={v.description}
                               >
                                 {v.label || v.key} <span className="opacity-60 font-mono">{`{${v.key}}`}</span>
@@ -737,7 +737,7 @@ function SettingsTab() {
 
   if (loading || !form) return (
     <div className="flex flex-col items-center justify-center py-20 gap-3">
-      <Loader2 className="w-7 h-7 animate-spin text-[#5b9bd5]" />
+      <Loader2 className="w-7 h-7 animate-spin text-brand-500" />
       <p className="text-sm text-gray-400">جارٍ التحميل...</p>
     </div>
   );
@@ -757,7 +757,7 @@ function SettingsTab() {
         onClick={() => set(field, !form[field])}
         className={clsx(
           "relative w-12 h-6 rounded-full transition-colors shrink-0",
-          form[field] ? "bg-[#5b9bd5]" : "bg-gray-200"
+          form[field] ? "bg-brand-500" : "bg-gray-200"
         )}
       >
         <span className={clsx(
@@ -770,7 +770,7 @@ function SettingsTab() {
 
   const SectionTitle = ({ children }: { children: React.ReactNode }) => (
     <h3 className="flex items-center gap-2 text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1">
-      <span className="border-r-2 border-[#5b9bd5] pr-2 text-gray-500">{children}</span>
+      <span className="border-r-2 border-brand-500 pr-2 text-gray-500">{children}</span>
     </h3>
   );
 
@@ -804,7 +804,7 @@ function SettingsTab() {
                   className={clsx(
                     "px-3 py-1.5 rounded-xl text-xs font-medium transition-colors border",
                     form[`wh_${d.key}`]
-                      ? "bg-[#5b9bd5] text-white border-[#5b9bd5]"
+                      ? "bg-brand-500 text-white border-brand-500"
                       : "bg-white text-gray-500 border-gray-100 hover:border-gray-200"
                   )}
                 >
@@ -819,7 +819,7 @@ function SettingsTab() {
                   type="time"
                   value={form.business_hours_start || "09:00"}
                   onChange={(e) => set("business_hours_start", e.target.value)}
-                  className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 transition-all"
+                  className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
                   dir="ltr"
                 />
               </div>
@@ -829,7 +829,7 @@ function SettingsTab() {
                   type="time"
                   value={form.business_hours_end || "22:00"}
                   onChange={(e) => set("business_hours_end", e.target.value)}
-                  className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 transition-all"
+                  className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
                   dir="ltr"
                 />
               </div>
@@ -849,7 +849,7 @@ function SettingsTab() {
               min={1}
               value={form.daily_limit || 100}
               onChange={(e) => set("daily_limit", Number(e.target.value))}
-              className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 transition-all"
+              className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
               dir="ltr"
             />
           </div>
@@ -860,7 +860,7 @@ function SettingsTab() {
               min={0}
               value={form.min_delay_seconds || 3}
               onChange={(e) => set("min_delay_seconds", Number(e.target.value))}
-              className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 transition-all"
+              className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
               dir="ltr"
             />
           </div>
@@ -882,7 +882,7 @@ function SettingsTab() {
                 min={1}
                 value={form.reminder_hours_before || 24}
                 onChange={(e) => set("reminder_hours_before", Number(e.target.value))}
-                className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 transition-all"
+                className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
                 dir="ltr"
               />
             </div>
@@ -893,7 +893,7 @@ function SettingsTab() {
                 min={0}
                 value={form.second_reminder_hours || 2}
                 onChange={(e) => set("second_reminder_hours", Number(e.target.value))}
-                className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 transition-all"
+                className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
                 dir="ltr"
               />
             </div>
@@ -915,7 +915,7 @@ function SettingsTab() {
               min={1}
               value={form.followup_hours_after || 24}
               onChange={(e) => set("followup_hours_after", Number(e.target.value))}
-              className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 transition-all max-w-[180px]"
+              className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all max-w-[180px]"
               dir="ltr"
             />
           </div>
@@ -992,9 +992,9 @@ function LogsTab() {
     {
       label: "اليوم",
       value: stats.today || 0,
-      numCls: "text-[#5b9bd5]",
-      iconBg: "bg-[#5b9bd5]/10",
-      iconCls: "text-[#5b9bd5]",
+      numCls: "text-brand-500",
+      iconBg: "bg-brand-500/10",
+      iconCls: "text-brand-500",
       icon: Send,
     },
     {
@@ -1034,7 +1034,7 @@ function LogsTab() {
         <select
           value={filters.status}
           onChange={(e) => setFilter("status", e.target.value)}
-          className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 bg-white transition-all"
+          className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 bg-white transition-all"
         >
           <option value="">كل الحالات</option>
           <option value="sent">مرسل</option>
@@ -1045,7 +1045,7 @@ function LogsTab() {
         <select
           value={filters.category}
           onChange={(e) => setFilter("category", e.target.value)}
-          className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 bg-white transition-all"
+          className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 bg-white transition-all"
         >
           <option value="">كل الفئات</option>
           {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
@@ -1056,7 +1056,7 @@ function LogsTab() {
           type="date"
           value={filters.date}
           onChange={(e) => setFilter("date", e.target.value)}
-          className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-[#5b9bd5]/40 focus:ring-2 focus:ring-[#5b9bd5]/10 transition-all"
+          className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
           dir="ltr"
         />
       </div>
@@ -1065,7 +1065,7 @@ function LogsTab() {
       <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Loader2 className="w-7 h-7 animate-spin text-[#5b9bd5]" />
+            <Loader2 className="w-7 h-7 animate-spin text-brand-500" />
             <p className="text-sm text-gray-400">جارٍ التحميل...</p>
           </div>
         ) : logs.length === 0 ? (
@@ -1094,7 +1094,7 @@ function LogsTab() {
                     <tr
                       key={log.id}
                       className={clsx(
-                        "border-b border-gray-50 hover:bg-[#5b9bd5]/3 transition-colors",
+                        "border-b border-gray-50 hover:bg-brand-500/3 transition-colors",
                         idx % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                       )}
                     >
@@ -1167,8 +1167,8 @@ export function MessagingSettingsPage() {
           <h1 className="text-xl font-bold text-gray-900">رسائل واتساب</h1>
           <p className="text-sm text-gray-400 mt-0.5">إدارة الاتصال والقوالب وإعدادات الإرسال التلقائي</p>
         </div>
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#5b9bd5]/20 to-[#5b9bd5]/5 border border-[#5b9bd5]/15 flex items-center justify-center shrink-0">
-          <MessageCircle className="w-5 h-5 text-[#5b9bd5]" />
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-brand-500/20 to-[#5b9bd5]/5 border border-brand-500/15 flex items-center justify-center shrink-0">
+          <MessageCircle className="w-5 h-5 text-brand-500" />
         </div>
       </div>
 
@@ -1183,7 +1183,7 @@ export function MessagingSettingsPage() {
                 className={clsx(
                   "flex items-center gap-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-all -mb-px whitespace-nowrap",
                   activeTab === i
-                    ? "border-[#5b9bd5] text-[#5b9bd5]"
+                    ? "border-brand-500 text-brand-500"
                     : "border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-200"
                 )}
               >

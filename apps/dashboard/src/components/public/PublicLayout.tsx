@@ -27,7 +27,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
             <div className="w-8 h-8 rounded-lg bg-[#5b9bd5] flex items-center justify-center">
               <span className="text-white font-black text-sm">ن</span>
             </div>
-            <span className="text-xl font-black text-gray-900">نسق</span>
+            <span className="text-xl font-black text-gray-900">ترميز OS</span>
           </Link>
 
           {/* Desktop Nav */}
@@ -87,9 +87,9 @@ export function PublicLayout({ children }: { children: ReactNode }) {
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg bg-[#5b9bd5] flex items-center justify-center">
-                  <span className="text-white font-black text-sm">ن</span>
+                  <span className="text-white font-black text-sm">ت</span>
                 </div>
-                <span className="text-xl font-black text-white">نسق</span>
+                <span className="text-xl font-black text-white">ترميز OS</span>
               </div>
               <p className="text-sm leading-relaxed">منصة متكاملة لإدارة حجوزاتك وفعالياتك</p>
             </div>
@@ -121,7 +121,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
             </div>
           </div>
           <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-sm">© 2026 نسق. جميع الحقوق محفوظة.</p>
+            <p className="text-sm">© 2026 ترميز OS. جميع الحقوق محفوظة.</p>
             <div className="flex gap-6">
               <a href="#" className="text-sm hover:text-white transition-colors">سياسة الخصوصية</a>
               <a href="#" className="text-sm hover:text-white transition-colors">شروط الاستخدام</a>

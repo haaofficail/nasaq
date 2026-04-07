@@ -49,9 +49,10 @@ flowerBuilderRouter.post("/catalog", async (c) => {
   const orgId = getOrgId(c);
   const body = createCatalogItemSchema.parse(await c.req.json());
   const result = await pool.query(
-    `INSERT INTO flower_builder_items (org_id, type, name, name_en, price, icon, is_active)
-     VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-    [orgId, body.type, body.name, body.nameEn || null, body.price || 0, body.icon || body.image || null, body.isActive !== false]
+    `INSERT INTO flower_builder_items (org_id, type, name, name_en, price, icon, image, is_active)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+    [orgId, body.type, body.name, body.nameEn || null, body.price || 0,
+     body.icon || null, body.image || null, body.isActive !== false]
   );
   insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "flower_builder_item", resourceId: result.rows[0]?.id });
   return c.json({ data: result.rows[0] }, 201);
@@ -67,9 +68,11 @@ flowerBuilderRouter.put("/catalog/:id", async (c) => {
        name_en = COALESCE($2, name_en),
        price = COALESCE($3, price),
        icon = COALESCE($4, icon),
-       is_active = COALESCE($5, is_active)
-     WHERE id = $6 AND org_id = $7 RETURNING *`,
-    [body.name || null, body.nameEn || null, body.price ?? null, body.icon || body.image || null,
+       image = COALESCE($5, image),
+       is_active = COALESCE($6, is_active)
+     WHERE id = $7 AND org_id = $8 RETURNING *`,
+    [body.name || null, body.nameEn || null, body.price ?? null,
+     body.icon || null, body.image || null,
      body.isActive ?? null, c.req.param("id"), orgId]
   );
   if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
@@ -87,14 +90,64 @@ flowerBuilderRouter.delete("/catalog/:id", async (c) => {
   return c.json({ success: true });
 });
 
-// GET /flower-builder/inventory
+// GET /flower-builder/inventory — for dashboard (all items including hidden/zero)
 flowerBuilderRouter.get("/inventory", async (c) => {
   const orgId = getOrgId(c);
-  const result = await pool.query(
-    `SELECT * FROM flower_inventory WHERE org_id = $1 AND stock > 0 ORDER BY name ASC`,
-    [orgId]
-  );
+  const all = c.req.query("all") === "true";
+  const query = all
+    ? `SELECT * FROM flower_inventory WHERE org_id = $1 ORDER BY name ASC`
+    : `SELECT * FROM flower_inventory WHERE org_id = $1 AND stock > 0 ORDER BY name ASC`;
+  const result = await pool.query(query, [orgId]);
   return c.json({ data: result.rows });
+});
+
+// POST /flower-builder/inventory
+flowerBuilderRouter.post("/inventory", async (c) => {
+  const orgId = getOrgId(c);
+  const body = await c.req.json();
+  const result = await pool.query(
+    `INSERT INTO flower_inventory (org_id, name, color, type, stock, sell_price, is_hidden, image_url)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+    [orgId, body.name, body.color || null, body.type || null,
+     parseInt(body.stock) || 0, parseFloat(body.sellPrice) || 0,
+     body.isHidden === true, body.imageUrl || null]
+  );
+  return c.json({ data: result.rows[0] }, 201);
+});
+
+// PUT /flower-builder/inventory/:id
+flowerBuilderRouter.put("/inventory/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const body = await c.req.json();
+  const result = await pool.query(
+    `UPDATE flower_inventory SET
+       name = COALESCE($1, name),
+       color = $2,
+       type = $3,
+       stock = COALESCE($4, stock),
+       sell_price = COALESCE($5, sell_price),
+       is_hidden = COALESCE($6, is_hidden),
+       image_url = $7
+     WHERE id = $8 AND org_id = $9 RETURNING *`,
+    [body.name || null, body.color || null, body.type || null,
+     body.stock !== undefined ? parseInt(body.stock) : null,
+     body.sellPrice !== undefined ? parseFloat(body.sellPrice) : null,
+     body.isHidden !== undefined ? body.isHidden : null,
+     body.imageUrl || null, c.req.param("id"), orgId]
+  );
+  if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  return c.json({ data: result.rows[0] });
+});
+
+// DELETE /flower-builder/inventory/:id
+flowerBuilderRouter.delete("/inventory/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const result = await pool.query(
+    `DELETE FROM flower_inventory WHERE id = $1 AND org_id = $2 RETURNING id`,
+    [c.req.param("id"), orgId]
+  );
+  if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  return c.json({ success: true });
 });
 
 // GET /flower-builder/orders
@@ -264,59 +317,82 @@ flowerBuilderRouter.get("/delivery", async (c) => {
 flowerBuilderRouter.get("/page-config", async (c) => {
   const orgId = getOrgId(c);
   const result = await pool.query(
-    `SELECT * FROM flower_page_configs WHERE org_id = $1 LIMIT 1`,
+    `SELECT config FROM flower_page_configs WHERE org_id = $1 LIMIT 1`,
     [orgId]
   );
-  return c.json({ data: result.rows[0] || { orgId, isPublic: false } });
+  return c.json({ data: result.rows[0]?.config || {} });
 });
 
 // PUT /flower-builder/page-config
 flowerBuilderRouter.put("/page-config", async (c) => {
   const orgId = getOrgId(c);
   const body = await c.req.json();
-  const existing = await pool.query(`SELECT id FROM flower_page_configs WHERE org_id = $1`, [orgId]);
-
-  let result;
-  if (existing.rows[0]) {
-    result = await pool.query(
-      `UPDATE flower_page_configs SET
-         is_public = COALESCE($1, is_public),
-         banner_image = COALESCE($2, banner_image),
-         title = COALESCE($3, title),
-         description = COALESCE($4, description),
-         updated_at = NOW()
-       WHERE org_id = $5 RETURNING *`,
-      [body.isPublic ?? null, body.bannerImage || null, body.title || null, body.description || null, orgId]
-    );
-  } else {
-    result = await pool.query(
-      `INSERT INTO flower_page_configs (org_id, is_public, banner_image, title, description)
-       VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [orgId, body.isPublic || false, body.bannerImage || null, body.title || null, body.description || null]
-    );
-  }
-  return c.json({ data: result.rows[0] });
+  const result = await pool.query(
+    `INSERT INTO flower_page_configs (org_id, config)
+     VALUES ($1, $2)
+     ON CONFLICT (org_id) DO UPDATE SET config = $2, updated_at = NOW()
+     RETURNING config`,
+    [orgId, JSON.stringify(body)]
+  );
+  return c.json({ data: result.rows[0]?.config });
 });
 
 // GET /flower-builder/public/:slug — no auth
 flowerBuilderRouter.get("/public/:slug", async (c) => {
   const slug = c.req.param("slug");
   const orgResult = await pool.query(
-    `SELECT o.id, o.name, o.logo FROM organizations o
+    `SELECT o.id, o.name, o.logo, o.phone FROM organizations o
      WHERE o.slug = $1 OR o.subdomain = $2`,
     [slug, slug]
   );
   if (!orgResult.rows[0]) return c.json({ error: "Not found" }, 404);
   const orgId = orgResult.rows[0].id;
 
-  const config = await pool.query(`SELECT * FROM flower_page_configs WHERE org_id = $1`, [orgId]);
-  if (!config.rows[0]?.is_public) return c.json({ error: "Store not public" }, 403);
+  const configRow = await pool.query(`SELECT config FROM flower_page_configs WHERE org_id = $1`, [orgId]);
+  const pageConfig = configRow.rows[0]?.config || {};
+  if (!pageConfig.isPublic) return c.json({ error: "Store not public" }, 403);
 
-  const packages = await pool.query(
-    `SELECT * FROM flower_packages WHERE org_id = $1 AND is_active = true ORDER BY name ASC`,
+  // Inventory: flowers with stock > 0
+  const inventory = await pool.query(
+    `SELECT id, name, type, color, sell_price AS "sellPrice", stock,
+            public_label AS "publicLabel", image_url AS "imageUrl",
+            CASE WHEN stock <= 5 THEN true ELSE false END AS "isLowStock"
+     FROM flower_inventory
+     WHERE org_id = $1 AND stock > 0 AND is_hidden = false
+     ORDER BY type ASC, name ASC`,
     [orgId]
   );
-  return c.json({ data: { org: orgResult.rows[0], config: config.rows[0], packages: packages.rows } });
+
+  // Catalog: packaging, gifts, cards
+  const catalogRows = await pool.query(
+    `SELECT id, type, name, name_en AS "nameEn", description, price,
+            icon, image, is_default AS "isDefault", max_quantity AS "maxQuantity"
+     FROM flower_builder_items
+     WHERE org_id = $1 AND is_active = true
+     ORDER BY sort_order ASC, name ASC`,
+    [orgId]
+  );
+  const catalog: Record<string, any[]> = { packaging: [], gift: [], card: [], delivery: [] };
+  for (const item of catalogRows.rows) {
+    if (catalog[item.type]) catalog[item.type].push(item);
+  }
+
+  // Packages (arrangements)
+  const packages = await pool.query(
+    `SELECT id, name, description, base_price AS "basePrice", image, components
+     FROM flower_packages WHERE org_id = $1 AND is_active = true ORDER BY name ASC`,
+    [orgId]
+  );
+
+  return c.json({
+    data: {
+      org: orgResult.rows[0],
+      pageConfig,
+      inventory: inventory.rows,
+      catalog,
+      packages: packages.rows,
+    }
+  });
 });
 
 // POST /flower-builder/public/:slug/order — no auth
@@ -332,16 +408,38 @@ flowerBuilderRouter.post("/public/:slug/order", async (c) => {
   const body = await c.req.json();
   const orderNum = `FLW-${Date.now().toString(36).toUpperCase()}`;
 
+  const delivType = body.deliveryType === "pickup" ? "pickup" : "delivery";
+  const orderType = body.isSurprise ? "gift" : (delivType === "pickup" ? "pickup" : "delivery");
+
   const result = await pool.query(
     `INSERT INTO flower_orders
-       (org_id, order_number, customer_name, customer_phone, items, subtotal, total,
-        delivery_address, gift_message, packaging)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id, order_number, status`,
-    [orgId, orderNum, body.customerName, body.customerPhone,
-     JSON.stringify(body.items || []), body.subtotal || body.totalPrice || 0,
-     body.total || body.totalPrice || 0,
-     body.deliveryAddress ? JSON.stringify(body.deliveryAddress) : null,
-     body.giftMessage || null, body.packaging || "bouquet"]
+       (org_id, order_number, customer_name, customer_phone, items, addons,
+        subtotal, total, delivery_type, delivery_address, delivery_date, delivery_fee,
+        gift_message, packaging, packaging_price,
+        recipient_name, recipient_phone, is_surprise,
+        order_type, notes, selections)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21)
+     RETURNING id, order_number, status`,
+    [
+      orgId, orderNum, body.customerName, body.customerPhone,
+      JSON.stringify(body.items || []),
+      JSON.stringify(body.addons || []),
+      body.subtotal || body.totalPrice || 0,
+      body.total || body.totalPrice || 0,
+      delivType,
+      body.deliveryAddress ? JSON.stringify(body.deliveryAddress) : null,
+      body.deliveryDate || null,
+      body.deliveryFee || 0,
+      body.giftMessage || body.cardMessage || null,
+      body.packaging || "bouquet",
+      body.packagingPrice || 0,
+      body.recipientName || null,
+      body.recipientPhone || null,
+      body.isSurprise || false,
+      orderType,
+      body.notes || null,
+      JSON.stringify(body.selections || {}),
+    ]
   );
   return c.json({ data: result.rows[0] }, 201);
 });

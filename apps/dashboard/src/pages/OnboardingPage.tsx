@@ -220,7 +220,7 @@ export function OnboardingPage() {
           <div className="w-12 h-12 rounded-2xl bg-brand-500 flex items-center justify-center mx-auto mb-3">
             <Layers className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">إنشاء حساب في نسق</h1>
+          <h1 className="text-xl font-bold text-gray-900">إنشاء حساب في ترميز OS</h1>
           <p className="text-sm text-gray-500 mt-1">14 يوم تجربة مجانية — لا يحتاج بطاقة</p>
         </div>
 

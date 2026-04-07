@@ -23,9 +23,9 @@ fileUploadRouter.post("/", async (c) => {
     return c.json({ error: "لم يتم إرسال ملف" }, 400);
   }
 
-  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+  const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/svg+xml", "image/x-icon", "image/vnd.microsoft.icon"];
   if (!allowedTypes.includes(file.type)) {
-    return c.json({ error: "نوع الملف غير مدعوم. يُسمح بـ JPG, PNG, WebP فقط" }, 400);
+    return c.json({ error: "نوع الملف غير مدعوم. يُسمح بـ JPG, PNG, WebP, SVG, ICO فقط" }, 400);
   }
 
   const maxSize = 5 * 1024 * 1024; // 5MB

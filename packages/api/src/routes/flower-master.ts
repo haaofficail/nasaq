@@ -187,7 +187,12 @@ const batchSchema = z.object({
   locationId:       z.string().uuid().optional().nullable(),
   supplierId:       z.string().uuid().optional().nullable(),
   batchNumber:      z.string().optional(),
-  quantityReceived: z.number().int().min(1),
+  // استلام بالبنش — الطريقة الصحيحة للورد الطبيعي
+  bunchesReceived:  z.number().int().min(1).optional(),
+  stemsPerBunch:    z.number().int().min(1).optional(),
+  costPerBunch:     z.string().optional(),
+  // fallback: إدخال مباشر بالسيقان
+  quantityReceived: z.number().int().min(1).optional(),
   unitCost:         z.string().optional(),
   receivedAt:       z.string().optional(),
   expiryEstimated:  z.string(),
@@ -483,6 +488,20 @@ flowerMasterRouter.post("/batches", async (c) => {
   const orgId = getOrgId(c);
   const body  = batchSchema.parse(await c.req.json());
 
+  // حساب عدد السيقان: إما من البنشات × سيقان/بنش، أو مدخل مباشراً
+  const derivedStems = body.bunchesReceived && body.stemsPerBunch
+    ? body.bunchesReceived * body.stemsPerBunch
+    : body.quantityReceived;
+
+  if (!derivedStems || derivedStems < 1) {
+    return c.json({ error: "يجب إدخال عدد البنشات أو عدد السيقان" }, 400);
+  }
+
+  // تكلفة الساق المشتقة من تكلفة البنش
+  const derivedUnitCost = body.costPerBunch && body.stemsPerBunch
+    ? String(Number(body.costPerBunch) / body.stemsPerBunch)
+    : body.unitCost;
+
   // Auto-generate batch number if not provided
   const batchNumber = body.batchNumber ?? `BTC-${Date.now().toString(36).toUpperCase()}`;
 
@@ -490,11 +509,22 @@ flowerMasterRouter.post("/batches", async (c) => {
     .insert(flowerBatches)
     .values({
       orgId,
-      ...body,
+      variantId:         body.variantId,
+      locationId:        body.locationId,
+      supplierId:        body.supplierId,
       batchNumber,
-      quantityRemaining: body.quantityReceived, // starts equal to received
+      quantityReceived:  derivedStems,
+      quantityRemaining: derivedStems,
+      unitCost:          derivedUnitCost,
       receivedAt:        body.receivedAt ? new Date(body.receivedAt) : new Date(),
       expiryEstimated:   new Date(body.expiryEstimated),
+      currentBloomStage: body.currentBloomStage,
+      qualityStatus:     body.qualityStatus,
+      notes:             body.notes,
+      // حقول البنش الجديدة (تُحفظ للمرجعية والتدقيق)
+      ...(body.bunchesReceived && { bunchesReceived: body.bunchesReceived } as any),
+      ...(body.stemsPerBunch   && { stemsPerBunch: body.stemsPerBunch }     as any),
+      ...(body.costPerBunch    && { costPerBunch: body.costPerBunch }        as any),
     })
     .returning();
 
@@ -693,6 +723,35 @@ flowerMasterRouter.delete("/recipes/:id", async (c) => {
 });
 
 // ============================================================
+// POS Catalog — variants with Arabic name, real stock, and selling price
+flowerMasterRouter.get("/pos-catalog", async (c) => {
+  const orgId = getOrgId(c);
+  const { rows } = await pool.query(
+    `SELECT
+       v.id                                                                AS variant_id,
+       COALESCE(v.display_name_ar, v.flower_type || ' ' || v.color)       AS display_name,
+       v.flower_type,
+       v.color,
+       v.grade,
+       COALESCE(
+         SUM(b.quantity_remaining) FILTER (WHERE b.is_active AND b.quantity_remaining > 0),
+         0
+       )::integer                                                          AS total_stock,
+       COALESCE(p.price_per_stem, v.base_price_per_stem, 0)::numeric      AS sell_price
+     FROM flower_variants v
+     LEFT JOIN flower_batches b
+            ON b.variant_id = v.id AND b.org_id = $1
+     LEFT JOIN flower_variant_pricing p
+            ON p.variant_id = v.id AND p.org_id = $1 AND p.is_active = true
+     WHERE v.is_active = true
+     GROUP BY v.id, v.display_name_ar, v.flower_type, v.color, v.grade,
+              v.base_price_per_stem, p.price_per_stem
+     ORDER BY total_stock DESC, v.flower_type ASC`,
+    [orgId]
+  );
+  return c.json({ data: rows });
+});
+
 // REPORTS
 // ============================================================
 
@@ -1152,13 +1211,26 @@ flowerMasterRouter.get("/loss-alerts", async (c) => {
 
 // ── مناسبات الورد الذكية ───────────────────────────────────
 const SYSTEM_OCCASIONS = [
-  { name_ar: "عيد الحب",             date_month: 2,  date_day: 14, icon: "heart",  color: "rose",   sales_multiplier: 4.0, stock_increase_pct: 200, lead_days: 21 },
-  { name_ar: "يوم الأم",             date_month: 3,  date_day: 21, icon: "flower", color: "pink",   sales_multiplier: 3.0, stock_increase_pct: 150, lead_days: 14 },
-  { name_ar: "اليوم الوطني السعودي", date_month: 9,  date_day: 23, icon: "flag",   color: "green",  sales_multiplier: 2.0, stock_increase_pct: 80,  lead_days: 10 },
-  { name_ar: "رأس السنة الميلادية",  date_month: 12, date_day: 31, icon: "star",   color: "amber",  sales_multiplier: 1.8, stock_increase_pct: 60,  lead_days: 7  },
-  { name_ar: "يوم تأسيس المملكة",    date_month: 2,  date_day: 22, icon: "crown",  color: "violet", sales_multiplier: 1.5, stock_increase_pct: 50,  lead_days: 7  },
-  { name_ar: "موسم التخرج (يونيو)",  date_month: 6,  date_day: 1,  icon: "award",  color: "blue",   sales_multiplier: 2.5, stock_increase_pct: 100, lead_days: 14 },
-  { name_ar: "موسم الأعراس (مارس)",  date_month: 3,  date_day: 1,  icon: "rings",  color: "rose",   sales_multiplier: 2.2, stock_increase_pct: 80,  lead_days: 14 },
+  // ── سعودية ──
+  { name_ar: "عيد الحب",                   date_month: 2,  date_day: 14, icon: "💝", color: "rose",   category: "عالمية",  sales_multiplier: 4.0, stock_increase_pct: 200, lead_days: 21 },
+  { name_ar: "يوم الأم",                   date_month: 3,  date_day: 21, icon: "🌸", color: "pink",   category: "عالمية",  sales_multiplier: 3.0, stock_increase_pct: 150, lead_days: 14 },
+  { name_ar: "اليوم الوطني السعودي",       date_month: 9,  date_day: 23, icon: "🇸🇦", color: "green",  category: "سعودية",  sales_multiplier: 2.0, stock_increase_pct: 80,  lead_days: 10 },
+  { name_ar: "يوم تأسيس المملكة",          date_month: 2,  date_day: 22, icon: "👑", color: "violet", category: "سعودية",  sales_multiplier: 1.5, stock_increase_pct: 50,  lead_days: 7  },
+  { name_ar: "موسم التخرج (يونيو)",        date_month: 6,  date_day: 1,  icon: "🎓", color: "blue",   category: "موسمي",   sales_multiplier: 2.5, stock_increase_pct: 100, lead_days: 14 },
+  { name_ar: "موسم الأعراس (مارس-مايو)",   date_month: 3,  date_day: 15, icon: "💒", color: "rose",   category: "موسمي",   sales_multiplier: 2.2, stock_increase_pct: 80,  lead_days: 14 },
+  // ── عالمية ──
+  { name_ar: "يوم المرأة العالمي",         date_month: 3,  date_day: 8,  icon: "♀️", color: "pink",   category: "عالمية",  sales_multiplier: 2.8, stock_increase_pct: 120, lead_days: 14 },
+  { name_ar: "عيد الميلاد",                date_month: 12, date_day: 25, icon: "🎄", color: "green",  category: "عالمية",  sales_multiplier: 1.8, stock_increase_pct: 70,  lead_days: 10 },
+  { name_ar: "رأس السنة الميلادية",        date_month: 12, date_day: 31, icon: "🎆", color: "amber",  category: "عالمية",  sales_multiplier: 1.8, stock_increase_pct: 60,  lead_days: 7  },
+  { name_ar: "يوم الصداقة العالمي",        date_month: 7,  date_day: 30, icon: "🤝", color: "amber",  category: "عالمية",  sales_multiplier: 1.6, stock_increase_pct: 50,  lead_days: 7  },
+  { name_ar: "عيد الأب العالمي",           date_month: 6,  date_day: 16, icon: "👔", color: "blue",   category: "عالمية",  sales_multiplier: 1.8, stock_increase_pct: 60,  lead_days: 10 },
+  { name_ar: "يوم الأرض",                  date_month: 4,  date_day: 22, icon: "🌍", color: "green",  category: "عالمية",  sales_multiplier: 1.2, stock_increase_pct: 20,  lead_days: 5  },
+  // ── موسمي ──
+  { name_ar: "موسم الربيع (مارس)",         date_month: 3,  date_day: 21, icon: "🌼", color: "amber",  category: "موسمي",   sales_multiplier: 1.5, stock_increase_pct: 40,  lead_days: 7  },
+  { name_ar: "موسم الصيف (يوليو)",         date_month: 7,  date_day: 1,  icon: "☀️", color: "amber",  category: "موسمي",   sales_multiplier: 1.3, stock_increase_pct: 30,  lead_days: 7  },
+  { name_ar: "موسم الأعمال (سبتمبر)",      date_month: 9,  date_day: 1,  icon: "💼", color: "blue",   category: "موسمي",   sales_multiplier: 1.4, stock_increase_pct: 30,  lead_days: 7  },
+  { name_ar: "يوم المعلم العالمي",         date_month: 10, date_day: 5,  icon: "📚", color: "blue",   category: "عالمية",  sales_multiplier: 1.6, stock_increase_pct: 50,  lead_days: 7  },
+  { name_ar: "موسم الفالنتاين التجاري",    date_month: 2,  date_day: 7,  icon: "🎁", color: "rose",   category: "موسمي",   sales_multiplier: 2.0, stock_increase_pct: 80,  lead_days: 7  },
 ];
 
 function calcUpcoming(allOcc: any[], daysAhead: number) {

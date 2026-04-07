@@ -79,7 +79,7 @@ export function PublicPaymentPage() {
         <p className="text-gray-500 text-sm mb-6">يرجى المحاولة مرة أخرى أو التواصل مع المنشأة.</p>
         <button
           onClick={() => { setPayFailed(false); }}
-          className="px-6 py-2.5 bg-[#5b9bd5] text-white rounded-xl text-sm font-medium"
+          className="px-6 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium"
         >
           المحاولة مجدداً
         </button>
@@ -91,12 +91,12 @@ export function PublicPaymentPage() {
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6" dir="rtl">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 max-w-sm w-full">
         <div className="flex items-center gap-3 mb-6">
-          <div className="w-10 h-10 bg-[#5b9bd5]/10 rounded-xl flex items-center justify-center">
-            <CreditCard className="w-5 h-5 text-[#5b9bd5]" />
+          <div className="w-10 h-10 bg-brand-500/10 rounded-xl flex items-center justify-center">
+            <CreditCard className="w-5 h-5 text-brand-500" />
           </div>
           <div>
             <h1 className="text-base font-bold text-gray-800">إتمام الدفع</h1>
-            <p className="text-xs text-gray-400">بوابة نسق الآمنة</p>
+            <p className="text-xs text-gray-400">بوابة ترميز OS الآمنة</p>
           </div>
         </div>
 
@@ -130,7 +130,7 @@ export function PublicPaymentPage() {
         <button
           onClick={handlePay}
           disabled={loading || !amount}
-          className="w-full py-3 bg-[#5b9bd5] text-white rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+          className="w-full py-3 bg-brand-500 text-white rounded-xl text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CreditCard className="w-4 h-4" />}
           {loading ? "جاري التحويل..." : "ادفع الآن"}

@@ -221,12 +221,12 @@ function SemesterModal({
               <label className="block text-xs font-bold text-gray-600 mb-1">السنة الدراسية</label>
               <input value={form.yearLabel} onChange={e => set("yearLabel", e.target.value)}
                 placeholder="1446-1447"
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5]" dir="ltr" />
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500" dir="ltr" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">رقم الفصل</label>
               <select value={form.semesterNumber} onChange={e => set("semesterNumber", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5]">
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500">
                 <option value={1}>الأول</option>
                 <option value={2}>الثاني</option>
               </select>
@@ -237,33 +237,33 @@ function SemesterModal({
             <label className="block text-xs font-bold text-gray-600 mb-1">التسمية (اختياري)</label>
             <input value={form.label} onChange={e => set("label", e.target.value)}
               placeholder="الفصل الدراسي الأول"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5]" />
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">تاريخ البداية</label>
               <input type="date" value={form.startDate} onChange={e => set("startDate", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5]" dir="ltr" />
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500" dir="ltr" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">تاريخ النهاية</label>
               <input type="date" value={form.endDate} onChange={e => set("endDate", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5]" dir="ltr" />
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500" dir="ltr" />
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-gray-600 mb-1">ملاحظات</label>
             <textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={2}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5] resize-none" />
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500 resize-none" />
           </div>
 
           {err && <p className="text-xs text-red-600">{err}</p>}
         </div>
         <div className="flex items-center gap-2 px-5 pb-5">
           <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#5b9bd5] text-white rounded-xl text-sm font-bold hover:bg-[#4a8bc4] disabled:opacity-50">
+            className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-bold hover:bg-[#4a8bc4] disabled:opacity-50">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             حفظ
           </button>
@@ -351,26 +351,26 @@ function EventModal({
             <label className="block text-xs font-bold text-gray-600 mb-1">العنوان</label>
             <input value={form.title} onChange={e => set("title", e.target.value)}
               placeholder="مثال: إجازة اليوم الوطني"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5]" />
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">تاريخ البداية</label>
               <input type="date" value={form.startDate} onChange={e => set("startDate", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5]" dir="ltr" />
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500" dir="ltr" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">تاريخ النهاية (اختياري)</label>
               <input type="date" value={form.endDate} onChange={e => set("endDate", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5]" dir="ltr" />
+                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500" dir="ltr" />
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-gray-600 mb-1">الوصف (اختياري)</label>
             <textarea value={form.description} onChange={e => set("description", e.target.value)} rows={2}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5] resize-none" />
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500 resize-none" />
           </div>
 
           <label className="flex items-center gap-2 cursor-pointer">
@@ -383,7 +383,7 @@ function EventModal({
         </div>
         <div className="flex items-center gap-2 px-5 pb-5">
           <button onClick={handleSave} disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#5b9bd5] text-white rounded-xl text-sm font-bold hover:bg-[#4a8bc4] disabled:opacity-50">
+            className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-bold hover:bg-[#4a8bc4] disabled:opacity-50">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             حفظ
           </button>
@@ -538,12 +538,12 @@ const SEASON_LABELS: Record<string, string> = {
   ramadan: "دوام رمضان",
 };
 const SEASON_COLORS: Record<string, string> = {
-  winter: "border-[#5b9bd5] bg-[#5b9bd5]/5",
+  winter: "border-brand-500 bg-brand-500/5",
   summer: "border-amber-300 bg-amber-50",
   ramadan: "border-emerald-300 bg-emerald-50",
 };
 const SEASON_TITLE_COLORS: Record<string, string> = {
-  winter: "text-[#5b9bd5]",
+  winter: "text-brand-500",
   summer: "text-amber-600",
   ramadan: "text-emerald-700",
 };
@@ -713,7 +713,7 @@ function SchoolYearSetupModal({ onClose, onDone }: { onClose: () => void; onDone
               {/* Year selector */}
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-black text-gray-800 mb-2">
-                  <CalendarRange className="w-4 h-4 text-[#5b9bd5]" /> العام الدراسي
+                  <CalendarRange className="w-4 h-4 text-brand-500" /> العام الدراسي
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   {(["1446-1447","1447-1448"] as const).map(y => (
@@ -756,8 +756,8 @@ function SchoolYearSetupModal({ onClose, onDone }: { onClose: () => void; onDone
                   </div>
                 </div>
               )}
-              <div className="bg-[#5b9bd5]/5 border border-[#5b9bd5]/20 rounded-xl px-4 py-3">
-                <p className="text-xs text-[#5b9bd5] font-medium">سيتم إنشاء:</p>
+              <div className="bg-brand-500/5 border border-brand-500/20 rounded-xl px-4 py-3">
+                <p className="text-xs text-brand-500 font-medium">سيتم إنشاء:</p>
                 <ul className="mt-1.5 space-y-1 text-xs text-gray-600">
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-3 h-3 text-emerald-500" /> فصلان دراسيان + {calendar.semesters.reduce((a,s) => a+s.events.length, 0)} حدث رسمي</li>
                   <li className="flex items-center gap-2"><CheckCircle2 className="w-3 h-3 text-emerald-500" /> 3 قوالب دوام (شتوي / صيفي / رمضان) بحصصها</li>
@@ -847,9 +847,9 @@ function SchoolYearSetupModal({ onClose, onDone }: { onClose: () => void; onDone
                   <div className="bg-gray-50 rounded-2xl p-4 space-y-2.5">
                     <p className="text-xs font-black text-gray-700">ملخص الإعداد</p>
                     <div className="text-xs text-gray-600 space-y-1.5">
-                      <p className="flex items-center gap-2"><MapPin className="w-3 h-3 text-[#5b9bd5]" /> <span className="font-medium">المدينة:</span> {city} — {directorate?.region}</p>
-                      <p className="flex items-center gap-2"><CalendarDays className="w-3 h-3 text-[#5b9bd5]" /> <span className="font-medium">التقويم:</span> {calendar.label}</p>
-                      <p className="flex items-center gap-2"><Clock className="w-3 h-3 text-[#5b9bd5]" /> <span className="font-medium">الدوام الشتوي:</span> {schedules.winter?.start} - {schedules.winter?.end} ({schedules.winter?.periods} حصص)</p>
+                      <p className="flex items-center gap-2"><MapPin className="w-3 h-3 text-brand-500" /> <span className="font-medium">المدينة:</span> {city} — {directorate?.region}</p>
+                      <p className="flex items-center gap-2"><CalendarDays className="w-3 h-3 text-brand-500" /> <span className="font-medium">التقويم:</span> {calendar.label}</p>
+                      <p className="flex items-center gap-2"><Clock className="w-3 h-3 text-brand-500" /> <span className="font-medium">الدوام الشتوي:</span> {schedules.winter?.start} - {schedules.winter?.end} ({schedules.winter?.periods} حصص)</p>
                       <p className="flex items-center gap-2"><Clock className="w-3 h-3 text-amber-500" /> <span className="font-medium">الدوام الصيفي:</span> {schedules.summer?.start} - {schedules.summer?.end} ({schedules.summer?.periods} حصص)</p>
                       <p className="flex items-center gap-2"><Clock className="w-3 h-3 text-emerald-600" /> <span className="font-medium">دوام رمضان:</span> {schedules.ramadan?.start} - {schedules.ramadan?.end} ({schedules.ramadan?.periods} حصص)</p>
                     </div>
@@ -869,7 +869,7 @@ function SchoolYearSetupModal({ onClose, onDone }: { onClose: () => void; onDone
                   {progress.map((p, i) => (
                     <div key={i} className={clsx(
                       "flex items-center gap-2 text-xs",
-                      i === progress.length - 1 && running ? "text-[#5b9bd5]" : "text-gray-500"
+                      i === progress.length - 1 && running ? "text-brand-500" : "text-gray-500"
                     )}>
                       {i === progress.length - 1 && running
                         ? <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
@@ -963,8 +963,8 @@ function ImportCalendarModal({ onClose, onImported }: { onClose: () => void; onI
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg my-4" dir="rtl">
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#5b9bd5]/10 flex items-center justify-center">
-              <Download className="w-4 h-4 text-[#5b9bd5]" />
+            <div className="w-8 h-8 rounded-xl bg-brand-500/10 flex items-center justify-center">
+              <Download className="w-4 h-4 text-brand-500" />
             </div>
             <div>
               <h2 className="text-sm font-black text-gray-900">استيراد التقويم الدراسي الرسمي</h2>
@@ -979,11 +979,11 @@ function ImportCalendarModal({ onClose, onImported }: { onClose: () => void; onI
             <div key={si} className="border border-gray-100 rounded-2xl overflow-hidden">
               <div className={clsx(
                 "px-4 py-2.5 flex items-center gap-2",
-                si === 0 ? "bg-[#5b9bd5]/8 border-b border-[#5b9bd5]/10" : "bg-amber-50/60 border-b border-amber-100"
+                si === 0 ? "bg-brand-500/8 border-b border-brand-500/10" : "bg-amber-50/60 border-b border-amber-100"
               )}>
                 <div className={clsx(
                   "w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black",
-                  si === 0 ? "bg-[#5b9bd5]/15 text-[#5b9bd5]" : "bg-amber-100 text-amber-700"
+                  si === 0 ? "bg-brand-500/15 text-brand-500" : "bg-amber-100 text-amber-700"
                 )}>
                   {si + 1}
                 </div>
@@ -1026,7 +1026,7 @@ function ImportCalendarModal({ onClose, onImported }: { onClose: () => void; onI
           {progress && (
             <div className={clsx(
               "flex items-center gap-2 text-sm px-3 py-2 rounded-xl",
-              done ? "bg-emerald-50 text-emerald-700" : "bg-[#5b9bd5]/8 text-[#5b9bd5]"
+              done ? "bg-emerald-50 text-emerald-700" : "bg-brand-500/8 text-brand-500"
             )}>
               {importing ? <Loader2 className="w-4 h-4 animate-spin shrink-0" /> : <CheckCircle2 className="w-4 h-4 shrink-0" />}
               {progress}
@@ -1043,7 +1043,7 @@ function ImportCalendarModal({ onClose, onImported }: { onClose: () => void; onI
             </button>
           ) : (
             <button onClick={handleImport} disabled={importing}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[#5b9bd5] text-white rounded-xl text-sm font-bold hover:bg-[#4a8bc4] disabled:opacity-50">
+              className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-bold hover:bg-[#4a8bc4] disabled:opacity-50">
               {importing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
               استيراد التقويم
             </button>
@@ -1150,14 +1150,14 @@ export function SchoolAcademicCalendarPage() {
           </button>
           <button
             onClick={() => setShowImportModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 border border-[#5b9bd5] text-[#5b9bd5] rounded-xl text-sm font-bold hover:bg-[#5b9bd5]/8 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 border border-brand-500 text-brand-500 rounded-xl text-sm font-bold hover:bg-brand-500/8 transition-colors"
           >
             <Download className="w-4 h-4" />
             استيراد التقويم فقط
           </button>
           <button
             onClick={() => setSemModal({ open: true })}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#5b9bd5] text-white rounded-xl text-sm font-bold hover:bg-[#4a8bc4] transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-bold hover:bg-[#4a8bc4] transition-colors"
           >
             <Plus className="w-4 h-4" />
             فصل دراسي
@@ -1179,7 +1179,7 @@ export function SchoolAcademicCalendarPage() {
           <p className="text-xs text-gray-400 mt-1">أضف الفصل الدراسي الأول والثاني لبدء التخطيط</p>
           <button
             onClick={() => setSemModal({ open: true })}
-            className="mt-4 px-5 py-2.5 bg-[#5b9bd5] text-white rounded-xl text-sm font-bold hover:bg-[#4a8bc4]"
+            className="mt-4 px-5 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-bold hover:bg-[#4a8bc4]"
           >
             إضافة فصل دراسي
           </button>
@@ -1198,15 +1198,15 @@ export function SchoolAcademicCalendarPage() {
                 className={clsx(
                   "text-right p-4 rounded-2xl border transition-all",
                   isSelected
-                    ? "border-[#5b9bd5] bg-[#5b9bd5]/5 ring-2 ring-[#5b9bd5]/20"
-                    : "border-gray-100 bg-white hover:border-[#5b9bd5]/40"
+                    ? "border-brand-500 bg-brand-500/5 ring-2 ring-[#5b9bd5]/20"
+                    : "border-gray-100 bg-white hover:border-brand-500/40"
                 )}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <div className="flex items-center gap-2">
                     <div className={clsx(
                       "w-8 h-8 rounded-xl flex items-center justify-center text-xs font-black",
-                      sem.semesterNumber === 1 ? "bg-[#5b9bd5]/10 text-[#5b9bd5]" : "bg-amber-100 text-amber-700"
+                      sem.semesterNumber === 1 ? "bg-brand-500/10 text-brand-500" : "bg-amber-100 text-amber-700"
                     )}>
                       {sem.semesterNumber}
                     </div>
@@ -1224,7 +1224,7 @@ export function SchoolAcademicCalendarPage() {
                       </span>
                     )}
                     <button onClick={() => setSemModal({ open: true, initial: sem })}
-                      className="p-1 rounded-lg text-gray-400 hover:text-[#5b9bd5] hover:bg-[#5b9bd5]/10 transition-colors">
+                      className="p-1 rounded-lg text-gray-400 hover:text-brand-500 hover:bg-brand-500/10 transition-colors">
                       <Edit2 className="w-3 h-3" />
                     </button>
                     <button onClick={() => handleDeleteSem(sem.id)}
@@ -1245,7 +1245,7 @@ export function SchoolAcademicCalendarPage() {
                     </div>
                   )}
                   {weeks !== null && (
-                    <p className="text-[11px] text-[#5b9bd5] font-semibold">
+                    <p className="text-[11px] text-brand-500 font-semibold">
                       {weeks} أسبوع
                     </p>
                   )}
@@ -1253,7 +1253,7 @@ export function SchoolAcademicCalendarPage() {
                 {!sem.isActive && (
                   <button
                     onClick={e => { e.stopPropagation(); handleSetActive(sem); }}
-                    className="mt-2 text-[10px] text-[#5b9bd5] underline hover:no-underline"
+                    className="mt-2 text-[10px] text-brand-500 underline hover:no-underline"
                   >
                     تعيين كفصل نشط
                   </button>
@@ -1271,8 +1271,8 @@ export function SchoolAcademicCalendarPage() {
           {/* Panel header */}
           <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-[#5b9bd5]/10 flex items-center justify-center">
-                <Layers className="w-4 h-4 text-[#5b9bd5]" />
+              <div className="w-9 h-9 rounded-xl bg-brand-500/10 flex items-center justify-center">
+                <Layers className="w-4 h-4 text-brand-500" />
               </div>
               <div>
                 <h2 className="text-sm font-black text-gray-900">
@@ -1300,7 +1300,7 @@ export function SchoolAcademicCalendarPage() {
               {activeTab === "events" && (
                 <button
                   onClick={() => setEvtModal({ open: true })}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-[#5b9bd5] text-white rounded-xl text-xs font-bold hover:bg-[#4a8bc4] transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-500 text-white rounded-xl text-xs font-bold hover:bg-[#4a8bc4] transition-colors"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   حدث
@@ -1318,7 +1318,7 @@ export function SchoolAcademicCalendarPage() {
                   <p className="text-sm text-gray-400">حدد تاريخ بداية ونهاية الفصل لعرض الأسابيع</p>
                   <button
                     onClick={() => setSemModal({ open: true, initial: selectedSem })}
-                    className="mt-3 text-xs text-[#5b9bd5] underline"
+                    className="mt-3 text-xs text-brand-500 underline"
                   >
                     تعديل الفصل
                   </button>
@@ -1335,8 +1335,8 @@ export function SchoolAcademicCalendarPage() {
                     <>
                       {/* إحصاء سريع */}
                       <div className="flex items-center gap-3 px-5 py-3 bg-gray-50/60 border-b border-gray-100 flex-wrap">
-                        <div className="flex items-center gap-1.5 text-xs font-bold text-[#5b9bd5]">
-                          <div className="w-3 h-3 rounded-full bg-[#5b9bd5]" />
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-brand-500">
+                          <div className="w-3 h-3 rounded-full bg-brand-500" />
                           {weekWithEvents.length} أسبوع إجمالاً
                         </div>
                         <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700">
@@ -1379,7 +1379,7 @@ export function SchoolAcademicCalendarPage() {
                                         "w-7 h-7 rounded-full text-xs font-black flex items-center justify-center",
                                         hasFullHoliday   ? "bg-red-100 text-red-600"       :
                                         hasPartialHoliday? "bg-amber-100 text-amber-600"   :
-                                        "bg-[#5b9bd5]/10 text-[#5b9bd5]"
+                                        "bg-brand-500/10 text-brand-500"
                                       )}>
                                         {w.num}
                                       </div>
@@ -1443,7 +1443,7 @@ export function SchoolAcademicCalendarPage() {
                   <p className="text-sm text-gray-400 font-medium">لا توجد أحداث لهذا الفصل</p>
                   <button
                     onClick={() => setEvtModal({ open: true })}
-                    className="mt-3 px-4 py-2 bg-[#5b9bd5] text-white rounded-xl text-xs font-bold hover:bg-[#4a8bc4]"
+                    className="mt-3 px-4 py-2 bg-brand-500 text-white rounded-xl text-xs font-bold hover:bg-[#4a8bc4]"
                   >
                     إضافة حدث
                   </button>
@@ -1489,7 +1489,7 @@ export function SchoolAcademicCalendarPage() {
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             <button onClick={() => setEvtModal({ open: true, initial: e })}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-[#5b9bd5] hover:bg-[#5b9bd5]/10 transition-colors">
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-brand-500 hover:bg-brand-500/10 transition-colors">
                               <Edit2 className="w-3.5 h-3.5" />
                             </button>
                             <button onClick={() => handleDeleteEvt(e.id)} disabled={deletingEvtId === e.id}

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/useToast";
 import { Building2, Save, RefreshCw, Phone, Globe, Hash, Palette, Crown, AlertCircle, Briefcase, ImageIcon, Upload, X } from "lucide-react";
 import { clsx } from "clsx";
-import { settingsApi } from "@/lib/api";
+import { settingsApi, websiteApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Input, Select } from "@/components/ui";
 import { invalidateOrgContextCache } from "@/hooks/useOrgContext";
@@ -48,6 +48,7 @@ export function ProfileSettingsPage() {
   const navigate = useNavigate();
   const { data: profileRes, loading, refetch } = useApi(() => settingsApi.profile(), []);
   const { data: subRes }                       = useApi(() => settingsApi.subscription(), []);
+  const { data: configRes }                    = useApi(() => websiteApi.config(), []);
   const { mutate: updateProfile }              = useMutation((d: any) => settingsApi.updateProfile(d));
 
   const [form, setForm] = useState({
@@ -60,8 +61,9 @@ export function ProfileSettingsPage() {
   const [saving, setSaving]         = useState(false);
   const [logoPicker, setLogoPicker] = useState(false);
 
-  const org  = profileRes?.data;
-  const sub  = subRes?.data;
+  const org    = profileRes?.data;
+  const sub    = subRes?.data;
+  const siteConfig = configRes?.data;
   const plan = PLAN_LABELS[sub?.plan || "basic"] || PLAN_LABELS.basic;
 
   const handleBeforeUnload = useCallback((e: BeforeUnloadEvent) => {
@@ -85,14 +87,14 @@ export function ProfileSettingsPage() {
         address: org.address || "",
         commercialRegister: org.commercialRegister || "",
         vatNumber: org.vatNumber || "",
-        primaryColor: org.primaryColor || "#5b9bd5",
-        secondaryColor: org.secondaryColor || "#C8A951",
+        primaryColor: siteConfig?.primaryColor || org.primaryColor || "#5b9bd5",
+        secondaryColor: siteConfig?.secondaryColor || org.secondaryColor || "#C8A951",
         businessType: org.businessType || "",
         logo: org.logo || "",
       });
       setDirty(false);
     }
-  }, [org]);
+  }, [org, siteConfig]);
 
   const f = (k: string, v: string) => { setForm(p => ({ ...p, [k]: v })); setDirty(true); };
 
@@ -101,6 +103,11 @@ export function ProfileSettingsPage() {
     setSaving(true);
     try {
       await updateProfile(form);
+      // sync colors to site_config (source of truth for public pages)
+      await websiteApi.updateConfig({
+        primaryColor: form.primaryColor,
+        secondaryColor: form.secondaryColor,
+      });
       invalidateOrgContextCache();
       toast.success("تم حفظ الإعدادات بنجاح");
       setDirty(false);
@@ -160,7 +167,7 @@ export function ProfileSettingsPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Input label="اسم المنشأة *" name="name" value={form.name}
-              onChange={e => f("name", e.target.value)} placeholder="مثال: شركة نسق للفعاليات" required />
+              onChange={e => f("name", e.target.value)} placeholder="مثال: شركة ترميز OS للفعاليات" required />
             <Input label="الاسم بالإنجليزية" name="nameEn" value={form.nameEn}
               onChange={e => f("nameEn", e.target.value)} placeholder="Nasaq Events Co." dir="ltr" />
           </div>

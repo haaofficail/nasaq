@@ -82,7 +82,9 @@ export function CustomerDetailPage() {
   const [editForm, setEditForm]         = useState({
     name: "", phone: "", email: "", city: "",
     type: "individual", companyName: "", notes: "",
+    tier: "regular", tagInput: "",
   });
+  const [editTags, setEditTags]         = useState<string[]>([]);
 
   const { data: res, loading, error, refetch } = useApi(() => customersApi.get(id!), [id]);
   const { data: bookingsRes }  = useApi(() => bookingsApi.list({ customerId: id!, limit: "50" }), [id]);
@@ -124,7 +126,10 @@ export function CustomerDetailPage() {
       type:        customer.type        || "individual",
       companyName: customer.companyName || "",
       notes:       customer.notes       || "",
+      tier:        customer.tier        || "regular",
+      tagInput:    "",
     });
+    setEditTags(customer.tags || []);
     setEditOpen(true);
   };
 
@@ -140,6 +145,8 @@ export function CustomerDetailPage() {
         type:        editForm.type,
         companyName: editForm.companyName.trim() || null,
         notes:       editForm.notes.trim()       || null,
+        tier:        editForm.tier,
+        tags:        editTags,
       });
       toast.success("تم حفظ بيانات العميل");
       setEditOpen(false);
@@ -185,36 +192,43 @@ export function CustomerDetailPage() {
         <span className="text-gray-700 font-medium">{customer.name}</span>
       </div>
 
-      {/* ── customer header card ────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-start gap-5">
+      {/* ── customer hero ───────────────────────────────────── */}
+      <div className="bg-white rounded-2xl border border-gray-100">
+        {/* top: avatar + info + actions */}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-5 p-6 pb-5">
           {/* avatar */}
           <div className={clsx(
             "w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold flex-shrink-0",
-            customer.isVip ? "bg-amber-100 text-amber-700" : "bg-brand-50 text-brand-600",
+            customer.tier === "vip" ? "bg-amber-100 text-amber-700" :
+            customer.type === "business" ? "bg-violet-100 text-violet-700" :
+            "bg-brand-50 text-brand-600",
           )}>
-            {customer.type === "corporate" ? <Building2 className="w-8 h-8" /> : initials}
+            {customer.type === "business" ? <Building2 className="w-8 h-8" /> : initials}
           </div>
 
           {/* info */}
           <div className="flex-1 min-w-0">
-            <div className="flex flex-wrap items-center gap-2 mb-1">
+            <div className="flex flex-wrap items-center gap-2 mb-1.5">
               <h1 className="text-xl font-bold text-gray-900">{customer.name}</h1>
-              {customer.isVip && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-medium border border-amber-200">
+              {customer.tier === "vip" && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-200">
                   <Star className="w-3 h-3" fill="currentColor" /> VIP
                 </span>
               )}
-              {customer.tier && customer.tier !== "regular" && (
-                <span className="px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 text-xs font-medium border border-purple-200">
-                  {customer.tier === "silver" ? "فضي" : customer.tier === "gold" ? "ذهبي" : customer.tier === "platinum" ? "بلاتيني" : customer.tier}
+              {customer.tier === "enterprise" && (
+                <span className="px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 text-xs font-semibold border border-violet-200">
+                  مؤسسة
                 </span>
               )}
+              {(customer.tags || []).map((t: string) => (
+                <span key={t} className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-medium">{t}</span>
+              ))}
             </div>
-
-            <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-sm text-gray-500 mt-2">
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500">
               {customer.phone && (
-                <span className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5 text-gray-300" /><span dir="ltr">{customer.phone}</span></span>
+                <a href={`tel:${customer.phone}`} className="flex items-center gap-1.5 hover:text-brand-500 transition-colors">
+                  <Phone className="w-3.5 h-3.5 text-gray-300" /><span dir="ltr">{customer.phone}</span>
+                </a>
               )}
               {customer.email && (
                 <span className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5 text-gray-300" />{customer.email}</span>
@@ -222,19 +236,18 @@ export function CustomerDetailPage() {
               {customer.city && (
                 <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5 text-gray-300" />{customer.city}</span>
               )}
-              <span className="flex items-center gap-1.5">
-                <Hash className="w-3.5 h-3.5 text-gray-300" />
-                <span className="font-mono text-xs">{id?.substring(0, 8).toUpperCase()}</span>
-              </span>
-              <span className="flex items-center gap-1.5">
-                <CalendarCheck className="w-3.5 h-3.5 text-gray-300" />
-                {customer.createdAt ? fmtDate(customer.createdAt) : "—"}
+              {customer.source && (
+                <span className="flex items-center gap-1.5 text-gray-400 text-xs">المصدر: {customer.source}</span>
+              )}
+              <span className="flex items-center gap-1.5 text-gray-400 text-xs">
+                <CalendarCheck className="w-3 h-3 text-gray-300" />
+                عميل منذ {customer.createdAt ? fmtDate(customer.createdAt) : "—"}
               </span>
             </div>
           </div>
 
           {/* quick actions */}
-          <div className="flex gap-2 flex-shrink-0">
+          <div className="flex gap-2 flex-shrink-0 flex-wrap">
             <Link to={`/bookings/new?customerId=${id}`}>
               <Button size="sm" variant="primary">
                 <Plus className="w-4 h-4 ml-1" /> {biz.terminology.newBooking}
@@ -255,88 +268,108 @@ export function CustomerDetailPage() {
           </div>
         </div>
 
-        {/* stats row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-5 border-t border-gray-50">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-brand-600">{customer.totalBookings || bookingList.length || 0}</p>
-            <p className="text-xs text-gray-400 mt-0.5">إجمالي {biz.terminology.bookings}</p>
+        {/* stats bar */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-x-reverse divide-gray-100 border-t border-gray-100">
+          <div className="px-6 py-4 text-center">
+            <p className="text-2xl font-bold text-brand-600 tabular-nums">{customer.totalBookings || bookingList.length || 0}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{biz.terminology.bookings}</p>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-emerald-600">{fmt(customer.totalSpent || 0)}</p>
+          <div className="px-6 py-4 text-center">
+            <p className="text-2xl font-bold text-emerald-600 tabular-nums">{fmt(customer.totalSpent || 0)}</p>
             <p className="text-xs text-gray-400 mt-0.5">إجمالي الإنفاق ر.س</p>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-purple-600">{customer.loyaltyPoints || 0}</p>
+          <div className="px-6 py-4 text-center">
+            <p className="text-2xl font-bold text-violet-600 tabular-nums">{customer.loyaltyPoints || 0}</p>
             <p className="text-xs text-gray-400 mt-0.5">نقاط الولاء</p>
           </div>
-          <div className="text-center">
-            <p className="text-sm font-bold text-gray-700 mt-1">{customer.lastBookingDate ? fmtDate(customer.lastBookingDate) : "—"}</p>
+          <div className="px-6 py-4 text-center">
+            <p className="text-sm font-bold text-gray-700 tabular-nums mt-1">
+              {customer.lastBookingAt ? fmtDate(customer.lastBookingAt) : "—"}
+            </p>
             <p className="text-xs text-gray-400 mt-0.5">آخر {biz.terminology.booking}</p>
           </div>
         </div>
       </div>
 
-      {/* ── tabs ───────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        {/* tab bar */}
-        <div className="flex overflow-x-auto border-b border-gray-100 px-1">
-          {TABS.map(t => {
-            const Icon = t.icon;
-            return (
-              <button
-                key={t.key}
-                onClick={() => setTab(t.key)}
-                className={clsx(
-                  "flex items-center gap-1.5 px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
-                  tab === t.key
-                    ? "border-brand-500 text-brand-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700",
-                )}
-              >
-                <Icon className="w-4 h-4" /> {t.label}
-              </button>
-            );
-          })}
-        </div>
+      {/* ── tab bar — part of the page, not a card ─────────── */}
+      <div className="flex overflow-x-auto border-b border-gray-100 bg-white rounded-2xl px-2 gap-1">
+        {TABS.map(t => {
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.key}
+              onClick={() => setTab(t.key)}
+              className={clsx(
+                "flex items-center gap-1.5 px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+                tab === t.key
+                  ? "border-brand-500 text-brand-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700",
+              )}
+            >
+              <Icon className="w-4 h-4" /> {t.label}
+            </button>
+          );
+        })}
+      </div>
 
-        <div className="p-5">
+      {/* ── tab content — open sections, no outer frame ──── */}
+      <div>
 
           {/* ── TAB: الملف الشخصي ─────────────────────────── */}
           {tab === "profile" && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* contact info */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">بيانات التواصل</h3>
-                <div className="space-y-2.5">
+              <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">بيانات التواصل</h3>
+                <div className="space-y-3">
                   {[
                     { icon: Phone, label: "الجوال", value: customer.phone, dir: "ltr" as const },
                     { icon: Mail,  label: "البريد", value: customer.email },
                     { icon: Building2, label: "الشركة", value: customer.companyName },
                     { icon: MapPin, label: "المدينة", value: customer.city },
                     { icon: MessageSquare, label: "المصدر", value: customer.source },
+                    { icon: Hash, label: "رقم الإحالة", value: customer.referralCode },
                   ].filter(r => r.value).map(row => {
                     const Icon = row.icon;
                     return (
                       <div key={row.label} className="flex items-center gap-3 text-sm">
                         <Icon className="w-4 h-4 text-gray-300 flex-shrink-0" />
-                        <span className="text-gray-400 w-16 flex-shrink-0">{row.label}</span>
-                        <span className="text-gray-700 font-medium" dir={row.dir}>{row.value}</span>
+                        <span className="text-gray-400 w-20 flex-shrink-0 text-xs">{row.label}</span>
+                        <span className="text-gray-800 font-medium" dir={row.dir}>{row.value}</span>
                       </div>
                     );
                   })}
                   {customer.notes && (
-                    <div className="mt-3 p-3 bg-amber-50 rounded-lg border border-amber-100 text-sm text-amber-800">
+                    <div className="mt-2 p-3 bg-amber-50 rounded-xl border border-amber-100 text-sm text-amber-800 leading-relaxed">
                       {customer.notes}
                     </div>
                   )}
                 </div>
               </div>
 
+              {/* financial summary */}
+              <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">الملخص المالي</h3>
+                <div className="space-y-3">
+                  {[
+                    { label: "إجمالي الإنفاق",   value: `${fmt(customer.totalSpent || 0)} ر.س`,   color: "text-emerald-600" },
+                    { label: "متوسط قيمة الطلب", value: `${fmt(customer.avgBookingValue || 0)} ر.س`, color: "text-brand-600" },
+                    { label: "رصيد المحفظة",      value: `${fmt(customer.walletBalance || 0)} ر.س`,  color: "text-violet-600" },
+                    { label: "نقاط الولاء",        value: `${customer.loyaltyPoints || 0} نقطة`,      color: "text-amber-600" },
+                  ].map(row => (
+                    <div key={row.label} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-500">{row.label}</span>
+                      <span className={clsx("font-bold tabular-nums", row.color)}>{row.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* B2B contacts */}
               {customer.contacts?.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">جهات الاتصال</h3>
-                  <div className="space-y-2">
+                <div className="bg-white rounded-2xl border border-gray-100 p-5 lg:col-span-2">
+                  <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">جهات الاتصال</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {customer.contacts.map((c: any) => (
                       <div key={c.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                         <div>
@@ -354,122 +387,118 @@ export function CustomerDetailPage() {
 
           {/* ── TAB: الحجوزات ─────────────────────────────── */}
           {tab === "bookings" && (
-            <div>
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               {bookingList.length === 0 ? (
-                <div className="text-center py-12">
+                <div className="text-center py-16">
                   <CalendarDays className="w-10 h-10 text-gray-200 mx-auto mb-3" />
                   <p className="text-gray-400 text-sm">{biz.terminology.bookingEmpty} لهذا {biz.terminology.client}</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-100">
-                        {["رقم الحجز", "الخدمة", "تاريخ الحدث", "المبلغ", "الحالة", ""].map(h => (
-                          <th key={h} className="text-right pb-3 px-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bookingList.map((b: any) => {
-                        const st = BOOKING_STATUS[b.status] || { label: b.status, color: "bg-gray-100 text-gray-500 border-gray-200" };
-                        return (
-                          <tr key={b.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                            <td className="py-3 px-2 font-mono text-xs text-brand-500">#{b.bookingNumber || b.id?.substring(0, 8)}</td>
-                            <td className="py-3 px-2 text-gray-700">{b.serviceName || b.locationName || "—"}</td>
-                            <td className="py-3 px-2 text-gray-500">{b.eventDate ? fmtDate(b.eventDate) : "—"}</td>
-                            <td className="py-3 px-2 font-bold text-gray-800">{fmt(b.totalAmount)} ر.س</td>
-                            <td className="py-3 px-2">
-                              <span className={clsx("text-[11px] px-2 py-0.5 rounded-full font-medium border", st.color)}>{st.label}</span>
-                            </td>
-                            <td className="py-3 px-2 text-left">
-                              <Link to={`/bookings/${b.id}`} className="text-xs text-brand-500 hover:underline">عرض</Link>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      {["رقم الحجز", "الخدمة", "تاريخ الحدث", "المبلغ", "الحالة", ""].map(h => (
+                        <th key={h} className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bookingList.map((b: any) => {
+                      const st = BOOKING_STATUS[b.status] || { label: b.status, color: "bg-gray-100 text-gray-500 border-gray-200" };
+                      return (
+                        <tr key={b.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                          <td className="py-3.5 px-4 font-mono text-xs text-brand-500">#{b.bookingNumber || b.id?.substring(0, 8)}</td>
+                          <td className="py-3.5 px-4 text-gray-700 font-medium">{b.serviceName || b.locationName || "—"}</td>
+                          <td className="py-3.5 px-4 text-gray-500 text-xs">{b.eventDate ? fmtDate(b.eventDate) : "—"}</td>
+                          <td className="py-3.5 px-4 font-bold text-gray-900 tabular-nums">{fmt(b.totalAmount)} ر.س</td>
+                          <td className="py-3.5 px-4">
+                            <span className={clsx("text-[11px] px-2 py-0.5 rounded-full font-medium border", st.color)}>{st.label}</span>
+                          </td>
+                          <td className="py-3.5 px-4 text-left">
+                            <Link to={`/bookings/${b.id}`} className="text-xs text-brand-500 hover:text-brand-700 font-medium">عرض</Link>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               )}
             </div>
           )}
 
           {/* ── TAB: الفواتير ─────────────────────────────── */}
           {tab === "invoices" && (
-            <div>
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
               {invoiceList.length === 0 ? (
-                <div className="text-center py-12">
+                <div className="text-center py-16">
                   <Receipt className="w-10 h-10 text-gray-200 mx-auto mb-3" />
                   <p className="text-gray-400 text-sm">لا توجد فواتير لهذا العميل</p>
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-gray-100">
-                        {["رقم الفاتورة", "تاريخ الإصدار", "الإجمالي", "المدفوع", "الحالة", ""].map(h => (
-                          <th key={h} className="text-right pb-3 px-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {invoiceList.map((inv: any) => {
-                        const st = INV_STATUS[inv.status] || INV_STATUS.draft;
-                        const Icon = st.icon;
-                        const canSend = ["issued","sent","overdue","partially_paid"].includes(inv.status);
-                        return (
-                          <tr key={inv.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                            <td className="py-3 px-2 font-mono text-xs text-brand-500">{inv.invoiceNumber}</td>
-                            <td className="py-3 px-2 text-gray-500">{inv.issueDate ? fmtDate(inv.issueDate) : "—"}</td>
-                            <td className="py-3 px-2 font-bold text-gray-800">{fmt(inv.totalAmount)} ر.س</td>
-                            <td className="py-3 px-2 text-emerald-600 font-medium">{fmt(inv.paidAmount || 0)} ر.س</td>
-                            <td className="py-3 px-2">
-                              <span className={clsx("inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium border", st.color)}>
-                                <Icon className="w-3 h-3" /> {st.label}
-                              </span>
-                            </td>
-                            <td className="py-3 px-2 text-left">
-                              {canSend && (
-                                <button
-                                  onClick={() => sendInvoice(inv.id)}
-                                  disabled={sendingInv === inv.id}
-                                  className="inline-flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-700 disabled:opacity-40 transition-colors"
-                                >
-                                  <Send className="w-3 h-3" /> إرسال
-                                </button>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                      {["رقم الفاتورة", "تاريخ الإصدار", "الإجمالي", "المدفوع", "الحالة", ""].map(h => (
+                        <th key={h} className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoiceList.map((inv: any) => {
+                      const st = INV_STATUS[inv.status] || INV_STATUS.draft;
+                      const Icon = st.icon;
+                      const canSend = ["issued","sent","overdue","partially_paid"].includes(inv.status);
+                      return (
+                        <tr key={inv.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
+                          <td className="py-3.5 px-4 font-mono text-xs text-brand-500 font-semibold">{inv.invoiceNumber}</td>
+                          <td className="py-3.5 px-4 text-gray-500 text-xs">{inv.issueDate ? fmtDate(inv.issueDate) : "—"}</td>
+                          <td className="py-3.5 px-4 font-bold text-gray-900 tabular-nums">{fmt(inv.totalAmount)} ر.س</td>
+                          <td className="py-3.5 px-4 text-emerald-600 font-semibold tabular-nums">{fmt(inv.paidAmount || 0)} ر.س</td>
+                          <td className="py-3.5 px-4">
+                            <span className={clsx("inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium border", st.color)}>
+                              <Icon className="w-3 h-3" /> {st.label}
+                            </span>
+                          </td>
+                          <td className="py-3.5 px-4 text-left">
+                            {canSend && (
+                              <button
+                                onClick={() => sendInvoice(inv.id)}
+                                disabled={sendingInv === inv.id}
+                                className="inline-flex items-center gap-1 text-xs text-indigo-500 hover:text-indigo-700 disabled:opacity-40 transition-colors"
+                              >
+                                <Send className="w-3 h-3" /> إرسال
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               )}
             </div>
           )}
 
           {/* ── TAB: الرسائل ──────────────────────────────── */}
           {tab === "messages" && (
-            <div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
               {messages.length === 0 ? (
                 <div className="text-center py-12">
                   <MessageSquare className="w-10 h-10 text-gray-200 mx-auto mb-3" />
                   <p className="text-gray-400 text-sm">لا توجد رسائل مُرسلة لهذا العميل</p>
                 </div>
               ) : (
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {messages.map((msg: any) => {
                     const st = MSG_STATUS[msg.status] || { label: msg.status, color: "bg-gray-100 text-gray-500" };
                     return (
-                      <div key={msg.id} className="flex gap-3 p-3.5 bg-gray-50 rounded-xl">
+                      <div key={msg.id} className="flex gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
                         <div className="w-8 h-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center flex-shrink-0">
                           <MessageSquare className="w-4 h-4 text-gray-300" />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <span className="text-xs font-medium text-gray-500">{MSG_CHANNEL[msg.channel] || msg.channel}</span>
+                          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+                            <span className="text-xs font-semibold text-gray-600">{MSG_CHANNEL[msg.channel] || msg.channel}</span>
                             <span className={clsx("text-[10px] px-1.5 py-0.5 rounded-full font-medium", st.color)}>{st.label}</span>
                             {msg.category && (
                               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-500">{msg.category}</span>
@@ -490,39 +519,39 @@ export function CustomerDetailPage() {
 
           {/* ── TAB: التفاعلات ────────────────────────────── */}
           {tab === "interactions" && (
-            <div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-gray-500">{interactions.length} تفاعل مسجّل</p>
+                <p className="text-sm text-gray-500 font-medium">{interactions.length} تفاعل مسجّل</p>
                 <button
                   onClick={() => setShowInteraction(true)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-50 text-brand-600 text-sm font-medium hover:bg-brand-100 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-50 text-brand-600 text-sm font-medium hover:bg-brand-100 transition-colors"
                 >
-                  <Plus className="w-3.5 h-3.5" /> إضافة
+                  <Plus className="w-3.5 h-3.5" /> إضافة تفاعل
                 </button>
               </div>
-
               {interactions.length === 0 ? (
                 <div className="text-center py-10">
                   <StickyNote className="w-10 h-10 text-gray-200 mx-auto mb-3" />
                   <p className="text-gray-400 text-sm">لا توجد ملاحظات أو تفاعلات</p>
+                  <button onClick={() => setShowInteraction(true)} className="mt-3 text-sm text-brand-500 hover:underline">سجّل أول تفاعل</button>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {interactions.map((int: any) => (
-                    <div key={int.id} className="flex gap-3 p-4 bg-gray-50 rounded-xl">
-                      <div className="w-8 h-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center flex-shrink-0">
+                    <div key={int.id} className="flex gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                      <div className="w-8 h-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
                         <StickyNote className="w-4 h-4 text-gray-300" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-brand-50 text-brand-600">
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-brand-50 text-brand-600">
                             {INT_TYPE[int.type] || int.type}
                           </span>
                           <span className="text-[11px] text-gray-400">
                             {int.createdAt ? new Date(int.createdAt).toLocaleString("ar-SA") : ""}
                           </span>
                         </div>
-                        {int.subject && <p className="text-sm font-medium text-gray-700 mb-0.5">{int.subject}</p>}
+                        {int.subject && <p className="text-sm font-semibold text-gray-800 mb-0.5">{int.subject}</p>}
                         <p className="text-sm text-gray-600 leading-relaxed">{int.content}</p>
                       </div>
                     </div>
@@ -534,7 +563,7 @@ export function CustomerDetailPage() {
 
           {/* ── TAB: السجل ────────────────────────────────── */}
           {tab === "timeline" && (
-            <div>
+            <div className="bg-white rounded-2xl border border-gray-100 p-5">
               {timeline.length === 0 ? (
                 <div className="text-center py-10">
                   <History className="w-10 h-10 text-gray-200 mx-auto mb-3" />
@@ -586,7 +615,6 @@ export function CustomerDetailPage() {
             </div>
           )}
 
-        </div>
       </div>
 
       {/* ── edit customer modal ─────────────────────────────── */}
@@ -634,17 +662,30 @@ export function CustomerDetailPage() {
               onChange={e => setEditForm(f => ({ ...f, city: e.target.value }))}
             />
           </div>
-          <Select
-            label="نوع العميل"
-            name="type"
-            value={editForm.type}
-            onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}
-            options={[
-              { value: "individual", label: "فرد" },
-              { value: "corporate",  label: "مؤسسة" },
-            ]}
-          />
-          {editForm.type === "corporate" && (
+          <div className="grid grid-cols-2 gap-3">
+            <Select
+              label="نوع العميل"
+              name="type"
+              value={editForm.type}
+              onChange={e => setEditForm(f => ({ ...f, type: e.target.value }))}
+              options={[
+                { value: "individual", label: "فرد" },
+                { value: "business",   label: "مؤسسة" },
+              ]}
+            />
+            <Select
+              label="تصنيف العميل"
+              name="tier"
+              value={editForm.tier}
+              onChange={e => setEditForm(f => ({ ...f, tier: e.target.value }))}
+              options={[
+                { value: "regular",    label: "عادي" },
+                { value: "vip",        label: "VIP — عميل مميز" },
+                { value: "enterprise", label: "مؤسسة — حساب كبير" },
+              ]}
+            />
+          </div>
+          {editForm.type === "business" && (
             <Input
               label="اسم المؤسسة"
               name="companyName"
@@ -652,6 +693,38 @@ export function CustomerDetailPage() {
               onChange={e => setEditForm(f => ({ ...f, companyName: e.target.value }))}
             />
           )}
+          {/* Tags */}
+          <div className="space-y-2">
+            <label className="text-xs font-medium text-gray-600">الوسوم (Tags)</label>
+            <div className="flex flex-wrap gap-1.5 min-h-[2rem] p-2 border border-gray-200 rounded-xl bg-gray-50">
+              {editTags.map(tag => (
+                <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-gray-200 text-xs text-gray-700">
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => setEditTags(p => p.filter(t => t !== tag))}
+                    className="text-gray-400 hover:text-red-400 transition-colors"
+                  >×</button>
+                </span>
+              ))}
+              <input
+                type="text"
+                value={editForm.tagInput}
+                onChange={e => setEditForm(f => ({ ...f, tagInput: e.target.value }))}
+                onKeyDown={e => {
+                  if ((e.key === "Enter" || e.key === ",") && editForm.tagInput.trim()) {
+                    e.preventDefault();
+                    const tag = editForm.tagInput.trim().replace(/,/g, "");
+                    if (tag && !editTags.includes(tag)) setEditTags(p => [...p, tag]);
+                    setEditForm(f => ({ ...f, tagInput: "" }));
+                  }
+                }}
+                placeholder={editTags.length === 0 ? "اكتب وسم ثم Enter..." : ""}
+                className="flex-1 min-w-[120px] bg-transparent text-xs outline-none text-gray-700 placeholder:text-gray-300"
+              />
+            </div>
+            <p className="text-[11px] text-gray-400">اضغط Enter أو فاصلة لإضافة وسم</p>
+          </div>
           <TextArea
             label="ملاحظات"
             name="notes"

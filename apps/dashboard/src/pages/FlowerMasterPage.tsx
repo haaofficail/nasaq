@@ -15,6 +15,7 @@ interface Variant {
   displayNameAr?: string; basePricePerStem?: string;
   shelfLifeDays?: number; isActive: boolean;
   originPriceMultiplier?: string; gradePriceMultiplier?: string;
+  bunchSize?: number;
 }
 interface Batch {
   id: string; variantId: string; batchNumber: string; quantityReceived: number;
@@ -88,7 +89,7 @@ function VariantsTab() {
   const [form, setForm] = useState({
     flowerType: "rose", color: "red", origin: "netherlands", grade: "premium",
     size: "large", bloomStage: "bud", displayNameAr: "", basePricePerStem: "",
-    shelfLifeDays: 7, notesAr: "", isActive: true,
+    shelfLifeDays: 7, bunchSize: "", notesAr: "", isActive: true,
   });
 
   const createMut  = useMutation((d: any) => flowerMasterApi.createVariant(d));
@@ -108,19 +109,23 @@ function VariantsTab() {
   const openCreate = () => {
     setForm({ flowerType: "rose", color: "red", origin: "netherlands", grade: "premium",
               size: "large", bloomStage: "bud", displayNameAr: "", basePricePerStem: "",
-              shelfLifeDays: 7, notesAr: "", isActive: true });
+              shelfLifeDays: 7, bunchSize: "", notesAr: "", isActive: true });
     setModal({ open: true });
   };
   const openEdit = (v: Variant) => {
     setForm({ flowerType: v.flowerType, color: v.color, origin: v.origin, grade: v.grade,
               size: v.size, bloomStage: v.bloomStage, displayNameAr: v.displayNameAr ?? "",
               basePricePerStem: v.basePricePerStem ?? "", shelfLifeDays: v.shelfLifeDays ?? 7,
-              notesAr: "", isActive: v.isActive });
+              bunchSize: v.bunchSize?.toString() ?? "", notesAr: "", isActive: v.isActive });
     setModal({ open: true, item: v });
   };
 
   const save = async () => {
-    const payload = { ...form, basePricePerStem: form.basePricePerStem || "0" };
+    const payload = {
+      ...form,
+      basePricePerStem: form.basePricePerStem || "0",
+      bunchSize: form.bunchSize ? parseInt(form.bunchSize) : undefined,
+    };
     if (modal.item) { await updateMut.mutate(payload); }
     else             { await createMut.mutate(payload); }
     setModal({ open: false });
@@ -160,7 +165,7 @@ function VariantsTab() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {["الصنف","اللون","المنشأ","الدرجة","المرحلة","السعر الأساسي","الصلاحية","الحالة",""].map((h) => (
+                {["الصنف","اللون","المنشأ","الدرجة","المرحلة","السعر الأساسي","البنش","الصلاحية","الحالة",""].map((h) => (
                   <th key={h} className="text-right px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>
                 ))}
               </tr>
@@ -186,6 +191,7 @@ function VariantsTab() {
                   </td>
                   <td className="px-4 py-3 text-gray-600">{BLOOM_AR[v.bloomStage] ?? v.bloomStage}</td>
                   <td className="px-4 py-3 font-medium">{v.basePricePerStem ? `${v.basePricePerStem} ر.س` : "—"}</td>
+                  <td className="px-4 py-3 text-gray-600">{v.bunchSize ? `${v.bunchSize} ساق` : "—"}</td>
                   <td className="px-4 py-3 text-gray-600">{v.shelfLifeDays} يوم</td>
                   <td className="px-4 py-3">
                     <span className={clsx("px-2 py-0.5 rounded-full text-xs",
@@ -255,6 +261,10 @@ function VariantsTab() {
                 onChange={(e) => setForm((p) => ({ ...p, shelfLifeDays: parseInt(e.target.value) || 7 }))}
                 className="input text-sm" />
             </Field>
+            <Field label="عدد سيقان البنش (اختياري)">
+              <input type="number" min="1" value={form.bunchSize} onChange={set("bunchSize")}
+                className="input text-sm" placeholder="مثال: 10 للورد، 5 للأوركيد" />
+            </Field>
             <div className="col-span-2">
               <Field label="الاسم المعروض (اختياري — يُحسب تلقائياً)">
                 <input value={form.displayNameAr} onChange={set("displayNameAr")} className="input text-sm"
@@ -283,34 +293,15 @@ function VariantsTab() {
   );
 }
 
-// ─── Tab: الدُفعات (Batches — FEFO)
+// ─── Tab: الشحنات الواردة (Batches — FEFO)
 function BatchesTab() {
-  const { data: variantsData } = useApi(() => flowerMasterApi.variants());
   const { data, loading, refetch } = useApi(() => flowerMasterApi.batches());
-  const { data: expiringData, refetch: refetchExpiring } = useApi(() => flowerMasterApi.batchesExpiring(3));
-  const [modal, setModal] = useState(false);
-  const [form, setForm] = useState({
-    variantId: "", quantityReceived: "", unitCost: "",
-    expiryEstimated: "", currentBloomStage: "bud", notes: "",
-  });
+  const { data: expiringData } = useApi(() => flowerMasterApi.batchesExpiring(3));
 
-  const createMut  = useMutation((d: any) => flowerMasterApi.receiveBatch(d));
   const updateMut  = useMutation(({ id, ...d }: any) => flowerMasterApi.updateBatch(id, d));
 
   const batches: Batch[]   = data?.data ?? [];
   const expiring: Batch[]  = expiringData?.data ?? [];
-  const variants: Variant[] = variantsData?.data ?? [];
-
-  const save = async () => {
-    if (!form.variantId || !form.quantityReceived || !form.expiryEstimated) return;
-    await createMut.mutate({ ...form, quantityReceived: parseInt(form.quantityReceived) });
-    setModal(false);
-    refetch();
-    refetchExpiring();
-  };
-
-  const set = (f: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
-    setForm((p) => ({ ...p, [f]: e.target.value }));
 
   return (
     <div>
@@ -330,10 +321,10 @@ function BatchesTab() {
       )}
 
       <div className="flex justify-end mb-4">
-        <button onClick={() => setModal(true)}
+        <a href="/dashboard/flower-inventory"
           className="flex items-center gap-1.5 bg-brand-500 text-white rounded-xl px-4 py-2 text-sm font-medium hover:bg-brand-600">
-          <Plus className="w-4 h-4" /> استلام دُفعة
-        </button>
+          <Plus className="w-4 h-4" /> استلام شحنة
+        </a>
       </div>
 
       {loading ? (
@@ -341,12 +332,12 @@ function BatchesTab() {
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
-            <p className="text-xs text-gray-500 font-medium">مرتبة حسب FEFO — الأقدم أولاً</p>
+            <p className="text-xs text-gray-500 font-medium">مرتبة حسب الأقدم صلاحية أولاً</p>
           </div>
           <table className="w-full text-sm">
             <thead className="bg-gray-50">
               <tr>
-                {["رقم الدُفعة","الصنف","المستلم","المتبقي","التكلفة","انتهاء الصلاحية","مرحلة التفتح","الجودة",""].map((h) => (
+                {["رقم الدفعة","الصنف","المستلم","المتبقي","التكلفة","انتهاء الصلاحية","مرحلة التفتح","الجودة",""].map((h) => (
                   <th key={h} className="text-right px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>
                 ))}
               </tr>
@@ -381,7 +372,7 @@ function BatchesTab() {
                   </td>
                   <td className="px-4 py-3">
                     <select
-                      defaultValue={b.qualityStatus}
+                      value={b.qualityStatus}
                       onChange={async (e) => {
                         await updateMut.mutate({ id: b.id, qualityStatus: e.target.value });
                         refetch();
@@ -400,52 +391,6 @@ function BatchesTab() {
         </div>
       )}
 
-      {modal && (
-        <Modal title="استلام دُفعة جديدة" onClose={() => setModal(false)}>
-          <div className="space-y-3">
-            <Field label="الصنف">
-              <select value={form.variantId} onChange={set("variantId")} className="input text-sm">
-                <option value="">اختر الصنف</option>
-                {variants.map((v) => (
-                  <option key={v.id} value={v.id}>{v.displayNameAr ?? v.flowerType}</option>
-                ))}
-              </select>
-            </Field>
-            <div className="grid grid-cols-2 gap-3">
-              <Field label="الكمية المستلمة (ساق)">
-                <input type="number" value={form.quantityReceived} onChange={set("quantityReceived")}
-                  className="input text-sm" placeholder="100" />
-              </Field>
-              <Field label="تكلفة الساق (ر.س)">
-                <input type="number" step="0.01" value={form.unitCost} onChange={set("unitCost")}
-                  className="input text-sm" placeholder="0.00" />
-              </Field>
-            </div>
-            <Field label="تاريخ انتهاء الصلاحية المتوقع">
-              <input type="datetime-local" value={form.expiryEstimated} onChange={set("expiryEstimated")}
-                className="input text-sm" />
-            </Field>
-            <Field label="مرحلة التفتح عند الاستلام">
-              <select value={form.currentBloomStage} onChange={set("currentBloomStage")} className="input text-sm">
-                {Object.entries(BLOOM_AR).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-              </select>
-            </Field>
-            <Field label="ملاحظات">
-              <textarea value={form.notes} onChange={set("notes")} rows={2} className="input text-sm" />
-            </Field>
-            <div className="flex gap-3 mt-4">
-              <button onClick={save}
-                className="flex-1 bg-brand-500 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand-600">
-                تسجيل الاستلام
-              </button>
-              <button onClick={() => setModal(false)}
-                className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm text-gray-600 hover:bg-gray-50">
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }
@@ -454,10 +399,12 @@ function BatchesTab() {
 function PricingTab() {
   const { data: variantsData } = useApi(() => flowerMasterApi.variants());
   const { data, loading, refetch } = useApi(() => flowerMasterApi.pricing());
+  const [editTarget, setEditTarget] = useState<Pricing | null>(null);
   const [modal, setModal] = useState(false);
   const [form, setForm] = useState({ variantId: "", pricePerStem: "", costPerStem: "", notes: "" });
 
   const createMut = useMutation((d: any) => flowerMasterApi.setPrice(d));
+  const updateMut = useMutation((d: any) => flowerMasterApi.updatePrice(d.id, d));
   const deleteMut = useMutation((id: string) => flowerMasterApi.deletePrice(id));
 
   const pricingRows: Pricing[] = data?.data ?? [];
@@ -465,9 +412,25 @@ function PricingTab() {
   const pricedIds = new Set(pricingRows.map((p) => p.variantId));
   const unpricedVariants = variants.filter((v) => !pricedIds.has(v.id));
 
+  const openCreate = (preselectedVariantId?: string) => {
+    setEditTarget(null);
+    setForm({ variantId: preselectedVariantId ?? "", pricePerStem: "", costPerStem: "", notes: "" });
+    setModal(true);
+  };
+
+  const openEdit = (p: Pricing) => {
+    setEditTarget(p);
+    setForm({ variantId: p.variantId, pricePerStem: p.pricePerStem, costPerStem: p.costPerStem ?? "", notes: p.notes ?? "" });
+    setModal(true);
+  };
+
   const save = async () => {
     if (!form.variantId || !form.pricePerStem) return;
-    await createMut.mutate(form);
+    if (editTarget) {
+      await updateMut.mutate({ id: editTarget.id, ...form });
+    } else {
+      await createMut.mutate(form);
+    }
     setModal(false);
     refetch();
   };
@@ -481,7 +444,7 @@ function PricingTab() {
   return (
     <div>
       <div className="flex justify-end mb-4">
-        <button onClick={() => { setForm({ variantId: "", pricePerStem: "", costPerStem: "", notes: "" }); setModal(true); }}
+        <button onClick={() => openCreate()}
           className="flex items-center gap-1.5 bg-brand-500 text-white rounded-xl px-4 py-2 text-sm font-medium hover:bg-brand-600">
           <Plus className="w-4 h-4" /> تسعير صنف
         </button>
@@ -489,7 +452,21 @@ function PricingTab() {
 
       {unpricedVariants.length > 0 && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl">
-          <p className="text-sm text-blue-700">{unpricedVariants.length} صنف لم يُسعَّر بعد</p>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <p className="text-sm font-medium text-blue-700">{unpricedVariants.length} صنف لم يُسعَّر بعد</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {unpricedVariants.map(v => (
+              <button
+                key={v.id}
+                onClick={() => openCreate(v.id)}
+                className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-blue-200 text-xs text-blue-700 hover:bg-blue-50 transition-colors"
+              >
+                <Plus className="w-3 h-3" />
+                {v.displayNameAr ?? v.flowerType}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -524,8 +501,11 @@ function PricingTab() {
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">{p.notes ?? "—"}</td>
                     <td className="px-4 py-3">
-                      <button onClick={async () => { await deleteMut.mutate(p.id); refetch(); }}
-                        className="text-xs text-red-500 hover:underline">حذف</button>
+                      <div className="flex gap-2">
+                        <button onClick={() => openEdit(p)} className="text-xs text-blue-600 hover:underline">تعديل</button>
+                        <button onClick={async () => { await deleteMut.mutate(p.id); refetch(); }}
+                          className="text-xs text-red-500 hover:underline">حذف</button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -536,10 +516,10 @@ function PricingTab() {
       )}
 
       {modal && (
-        <Modal title="تسعير صنف" onClose={() => setModal(false)}>
+        <Modal title={editTarget ? "تعديل السعر" : "تسعير صنف"} onClose={() => setModal(false)}>
           <div className="space-y-3">
             <Field label="الصنف">
-              <select value={form.variantId} onChange={set("variantId")} className="input text-sm">
+              <select value={form.variantId} onChange={set("variantId")} className="input text-sm" disabled={!!editTarget}>
                 <option value="">اختر الصنف</option>
                 {variants.map((v) => <option key={v.id} value={v.id}>{v.displayNameAr ?? v.flowerType}</option>)}
               </select>
@@ -560,7 +540,7 @@ function PricingTab() {
             <div className="flex gap-3 mt-4">
               <button onClick={save}
                 className="flex-1 bg-brand-500 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand-600">
-                حفظ السعر
+                {editTarget ? "حفظ التعديلات" : "حفظ السعر"}
               </button>
               <button onClick={() => setModal(false)}
                 className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm text-gray-600 hover:bg-gray-50">
@@ -839,11 +819,11 @@ function ReportsTab() {
 
 // ─── Main Page
 const TABS = [
-  { id: "variants",       label: "الأصناف",    icon: Flower2 },
-  { id: "batches",        label: "الدُفعات",   icon: Database },
-  { id: "pricing",        label: "التسعير",    icon: Tag },
-  { id: "substitutions",  label: "البدائل",    icon: RefreshCw },
-  { id: "reports",        label: "التقارير",   icon: BarChart3 },
+  { id: "variants",       label: "الأصناف",          icon: Flower2 },
+  { id: "batches",        label: "الشحنات الواردة",  icon: Database },
+  { id: "pricing",        label: "التسعير",          icon: Tag },
+  { id: "substitutions",  label: "البدائل",          icon: RefreshCw },
+  { id: "reports",        label: "التقارير",         icon: BarChart3 },
 ];
 
 export function FlowerMasterPage() {
@@ -858,8 +838,8 @@ export function FlowerMasterPage() {
             <Flower2 className="w-5 h-5 text-pink-600" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">بيانات الورد</h1>
-            <p className="text-sm text-gray-500">Flower Master Data — أصناف، دُفعات، FEFO، تسعير، بدائل</p>
+            <h1 className="text-xl font-bold text-gray-900">أنواع الورد وأسعاره</h1>
+            <p className="text-sm text-gray-500">إدارة الأصناف، الشحنات الواردة، التسعير، والبدائل</p>
           </div>
         </div>
       </div>

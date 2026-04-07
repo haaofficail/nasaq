@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { api } from "@/lib/api";
+import { flowerMasterApi, flowerBuilderApi, arrangementsApi } from "@/lib/api";
 import { toast } from "@/hooks/useToast";
 import {
   Flower2, Gift, Layers, ShoppingBag, Truck,
@@ -79,19 +79,6 @@ const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: React.Elemen
 
 const DELIVERY_FEES = [30, 50, 70];
 
-const MOCK_CATALOG: CatalogItem[] = [
-  { id: "1", name: "وردة حمراء", price: 8, type: "ورد مفرد", stock: 45 },
-  { id: "2", name: "وردة وردية", price: 7, type: "ورد مفرد", stock: 30 },
-  { id: "3", name: "أوركيد أبيض", price: 25, type: "ورد مفرد", stock: 8 },
-  { id: "4", name: "باقة رومانسية", price: 150, type: "باقات", stock: 5 },
-  { id: "5", name: "باقة العروس", price: 350, type: "باقات", stock: 3 },
-  { id: "6", name: "تنسيق طاولة", price: 280, type: "تنسيقات", stock: 4 },
-  { id: "7", name: "بالون قلب", price: 15, type: "هدايا وإكسسوارات", stock: 20 },
-  { id: "8", name: "شوكولاتة فيريرو", price: 45, type: "هدايا وإكسسوارات", stock: 10 },
-  { id: "9", name: "دباب صغير", price: 35, type: "هدايا وإكسسوارات", stock: 7 },
-  { id: "10", name: "توصيل الرياض", price: 30, type: "توصيل وخدمات", stock: 999 },
-];
-
 const VAT_RATE = 0.15;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -130,7 +117,7 @@ function ProductCard({ item, onAdd }: { item: CatalogItem; onAdd: (item: Catalog
       )}
     >
       <span className="font-semibold text-gray-800 text-sm leading-snug">{item.name}</span>
-      <span className="text-base font-bold text-[#5b9bd5]">{fmtPrice(item.price)}</span>
+      <span className="text-base font-bold text-brand-500">{fmtPrice(item.price)}</span>
       <StockBadge stock={item.stock} />
     </button>
   );
@@ -153,19 +140,19 @@ function CartRow({
         <p className="text-sm font-medium text-gray-800 truncate">{item.name}</p>
         <p className="text-xs text-gray-400">{fmtPrice(item.price)}</p>
       </div>
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0">
         <button
           onClick={onDecrease}
-          className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 active:scale-95 transition-all"
+          className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 active:scale-95 transition-all"
         >
-          <Minus size={12} />
+          <Minus size={14} />
         </button>
-        <span className="w-6 text-center text-sm font-semibold text-gray-800">{item.qty}</span>
+        <span className="w-7 text-center text-sm font-semibold text-gray-800">{item.qty}</span>
         <button
           onClick={onIncrease}
-          className="w-7 h-7 rounded-lg border border-[#5b9bd5] flex items-center justify-center text-[#5b9bd5] hover:bg-blue-50 active:scale-95 transition-all"
+          className="w-10 h-10 rounded-xl border border-brand-500 flex items-center justify-center text-brand-500 hover:bg-brand-50 active:scale-95 transition-all"
         >
-          <Plus size={12} />
+          <Plus size={14} />
         </button>
       </div>
       <span className="text-sm font-bold text-gray-800 w-16 text-left shrink-0">
@@ -227,36 +214,31 @@ export function FlowerPOSPage() {
     delivery:  "توصيل وخدمات",
   };
 
-  const { data: inventoryData, loading: invLoading, error: invError } = useApi(
-    () => api.get<any>("/flower-master/batches"),
+  const { data: posCatalogData, loading: invLoading, error: invError } = useApi(
+    () => flowerMasterApi.posCatalog(),
     []
   );
   const { data: catalogData, loading: catLoading } = useApi(
-    () => api.get<any>("/flower-builder/catalog"),
+    () => flowerBuilderApi.catalog(),
     []
   );
   const { data: arrangementsData } = useApi(
-    () => api.get<any>("/arrangements"),
-    []
-  );
-  const { data: variantsData } = useApi(
-    () => api.get<any>("/flower-master/variants"),
+    () => arrangementsApi.list(),
     []
   );
 
   useEffect(() => {
     const items: CatalogItem[] = [];
 
-    // 1. Individual flower variants → "ورد مفرد"
-    const variants: any[] = variantsData?.data ?? [];
-    variants.filter((v: any) => v.is_active !== false).forEach((v: any) => {
-      const label = v.display_name_ar || v.flower_type || v.flowerType || v.displayNameAr || "";
+    // 1. Individual flower variants → "ورد مفرد" (via pos-catalog: display_name, sell_price, total_stock)
+    const variants: any[] = posCatalogData?.data ?? [];
+    variants.forEach((v: any) => {
       items.push({
-        id: `variant-${v.id}`,
-        name: label,
-        price: Number(v.price_per_stem ?? v.pricePerStem ?? 0),
+        id: `variant-${v.variant_id}`,
+        name: v.display_name,
+        price: Number(v.sell_price ?? 0),
         type: "ورد مفرد",
-        stock: v.total_stock ?? v.totalStock ?? 999,
+        stock: Number(v.total_stock ?? 0),
       });
     });
 
@@ -289,12 +271,8 @@ export function FlowerPOSPage() {
         });
     }
 
-    if (items.length > 0) {
-      setCatalogItems(items);
-    } else {
-      setCatalogItems(MOCK_CATALOG);
-    }
-  }, [catalogData, arrangementsData, variantsData]);
+    setCatalogItems(items);
+  }, [catalogData, arrangementsData, posCatalogData]);
 
   // ─── Derived values ─────────────────────────────────────────────────────────
 
@@ -381,7 +359,7 @@ export function FlowerPOSPage() {
         ...(saleType === "pickup" && { pickup_details: pickupDetails }),
       };
 
-      await api.post("/flower-builder/orders", orderPayload);
+      await flowerBuilderApi.createOrder(orderPayload);
       setShowSuccess(true);
       toast.success("تم إتمام البيع بنجاح");
     } catch {
@@ -429,7 +407,7 @@ export function FlowerPOSPage() {
             </button>
             <button
               onClick={clearCart}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-[#5b9bd5] py-3 text-sm font-medium text-white hover:bg-[#4a8ac4] transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-brand-500 py-3 text-sm font-medium text-white hover:bg-brand-600 transition-colors"
             >
               <RefreshCw size={16} />
               بيع جديد
@@ -442,7 +420,7 @@ export function FlowerPOSPage() {
 
   // ─── Loading skeleton ────────────────────────────────────────────────────────
 
-  const isLoading = invLoading && catLoading;
+  const isLoading = invLoading || catLoading;
 
   // ─── Main POS Layout ─────────────────────────────────────────────────────────
 
@@ -451,7 +429,7 @@ export function FlowerPOSPage() {
       {/* Header */}
       <div className="bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
-          <Flower2 size={20} className="text-[#5b9bd5]" />
+          <Flower2 size={20} className="text-brand-500" />
           <span className="font-bold text-gray-800 text-lg">كاشير الورد</span>
         </div>
         <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -476,9 +454,9 @@ export function FlowerPOSPage() {
                   key={cat.id}
                   onClick={() => setActiveCategory(cat.id)}
                   className={clsx(
-                    "flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all shrink-0",
+                    "flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all shrink-0",
                     active
-                      ? "bg-[#5b9bd5] text-white shadow-sm"
+                      ? "bg-brand-500 text-white shadow-sm"
                       : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                   )}
                 >
@@ -505,7 +483,7 @@ export function FlowerPOSPage() {
               <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
                 <AlertTriangle size={32} className="text-amber-400" />
                 <p className="text-gray-500 text-sm">تعذّر تحميل المنتجات</p>
-                <p className="text-gray-400 text-xs">يتم عرض الكتالوج الافتراضي</p>
+                <p className="text-gray-400 text-xs">تحقق من الاتصال وأعد تحميل الصفحة</p>
               </div>
             ) : filteredItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
@@ -583,7 +561,7 @@ export function FlowerPOSPage() {
                 </div>
                 <div className="flex justify-between font-bold text-gray-800 text-base border-t border-gray-200 pt-1.5 mt-0.5">
                   <span>الإجمالي</span>
-                  <span className="text-[#5b9bd5]">{fmtPrice(total)}</span>
+                  <span className="text-brand-500">{fmtPrice(total)}</span>
                 </div>
               </div>
             )}
@@ -597,9 +575,9 @@ export function FlowerPOSPage() {
                     key={st.value}
                     onClick={() => setSaleType(st.value)}
                     className={clsx(
-                      "py-2 rounded-xl text-xs font-medium transition-all",
+                      "py-3 rounded-xl text-xs font-medium transition-all",
                       saleType === st.value
-                        ? "bg-[#5b9bd5] text-white"
+                        ? "bg-brand-500 text-white"
                         : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                     )}
                   >
@@ -618,28 +596,28 @@ export function FlowerPOSPage() {
                   placeholder="اسم المستلم"
                   value={giftDetails.recipientName}
                   onChange={(e) => setGiftDetails((g) => ({ ...g, recipientName: e.target.value }))}
-                  className="w-full rounded-lg border border-pink-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#5b9bd5]"
+                  className="w-full rounded-lg border border-pink-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-brand-500"
                 />
                 <input
                   type="tel"
                   placeholder="جوال المستلم"
                   value={giftDetails.recipientPhone}
                   onChange={(e) => setGiftDetails((g) => ({ ...g, recipientPhone: e.target.value }))}
-                  className="w-full rounded-lg border border-pink-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#5b9bd5]"
+                  className="w-full rounded-lg border border-pink-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-brand-500"
                 />
                 <textarea
                   placeholder="كل عام وأنتِ بخير..."
                   rows={2}
                   value={giftDetails.message}
                   onChange={(e) => setGiftDetails((g) => ({ ...g, message: e.target.value }))}
-                  className="w-full rounded-lg border border-pink-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#5b9bd5] resize-none"
+                  className="w-full rounded-lg border border-pink-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-brand-500 resize-none"
                 />
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={giftDetails.isSurprise}
                     onChange={(e) => setGiftDetails((g) => ({ ...g, isSurprise: e.target.checked }))}
-                    className="w-4 h-4 rounded accent-[#5b9bd5]"
+                    className="w-4 h-4 rounded accent-brand-500"
                   />
                   <span className="text-xs text-gray-600">مفاجأة — لا تتصل بالمستلم مسبقاً</span>
                 </label>
@@ -656,14 +634,14 @@ export function FlowerPOSPage() {
                     placeholder="اسم المستلم"
                     value={deliveryDetails.recipientName}
                     onChange={(e) => setDeliveryDetails((d) => ({ ...d, recipientName: e.target.value }))}
-                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#5b9bd5]"
+                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-brand-500"
                   />
                   <input
                     type="tel"
                     placeholder="جوال المستلم"
                     value={deliveryDetails.recipientPhone}
                     onChange={(e) => setDeliveryDetails((d) => ({ ...d, recipientPhone: e.target.value }))}
-                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#5b9bd5]"
+                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-brand-500"
                   />
                 </div>
                 <input
@@ -671,19 +649,19 @@ export function FlowerPOSPage() {
                   placeholder="عنوان التوصيل"
                   value={deliveryDetails.address}
                   onChange={(e) => setDeliveryDetails((d) => ({ ...d, address: e.target.value }))}
-                  className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#5b9bd5]"
+                  className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-brand-500"
                 />
                 <div className="grid grid-cols-2 gap-2">
                   <input
                     type="datetime-local"
                     value={deliveryDetails.deliveryTime}
                     onChange={(e) => setDeliveryDetails((d) => ({ ...d, deliveryTime: e.target.value }))}
-                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[#5b9bd5]"
+                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-brand-500"
                   />
                   <select
                     value={deliveryDetails.deliveryFee}
                     onChange={(e) => setDeliveryDetails((d) => ({ ...d, deliveryFee: Number(e.target.value) }))}
-                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[#5b9bd5]"
+                    className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-brand-500"
                   >
                     {DELIVERY_FEES.map((fee) => (
                       <option key={fee} value={fee}>{fee} ر.س</option>
@@ -695,7 +673,7 @@ export function FlowerPOSPage() {
                   rows={2}
                   value={deliveryDetails.message}
                   onChange={(e) => setDeliveryDetails((d) => ({ ...d, message: e.target.value }))}
-                  className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#5b9bd5] resize-none"
+                  className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-brand-500 resize-none"
                 />
               </div>
             )}
@@ -709,13 +687,13 @@ export function FlowerPOSPage() {
                   placeholder="اسم المستلم"
                   value={pickupDetails.recipientName}
                   onChange={(e) => setPickupDetails((p) => ({ ...p, recipientName: e.target.value }))}
-                  className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-[#5b9bd5]"
+                  className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:border-brand-500"
                 />
                 <input
                   type="datetime-local"
                   value={pickupDetails.pickupTime}
                   onChange={(e) => setPickupDetails((p) => ({ ...p, pickupTime: e.target.value }))}
-                  className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-[#5b9bd5]"
+                  className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-brand-500"
                 />
               </div>
             )}
@@ -734,7 +712,7 @@ export function FlowerPOSPage() {
                       className={clsx(
                         "flex flex-col items-center gap-1 py-2.5 rounded-xl text-xs font-medium transition-all",
                         active
-                          ? "bg-[#5b9bd5] text-white shadow-sm"
+                          ? "bg-brand-500 text-white shadow-sm"
                           : "bg-gray-50 text-gray-600 hover:bg-gray-100"
                       )}
                     >

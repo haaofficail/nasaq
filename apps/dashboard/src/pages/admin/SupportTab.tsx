@@ -141,7 +141,7 @@ function AdminTicketDetail({ ticketId, onClose, onRefresh }: { ticketId: string;
                       <div className={clsx("border rounded-2xl px-4 py-3 shadow-sm max-w-[85%]",
                         isAdmin ? "bg-brand-500 border-brand-500 rounded-tl-sm" : "bg-white border-gray-100 rounded-tr-sm"
                       )}>
-                        {isAdmin && <p className="text-[10px] font-semibold text-brand-200 mb-1">{msg.senderName || "فريق نسق"}</p>}
+                        {isAdmin && <p className="text-[10px] font-semibold text-brand-200 mb-1">{msg.senderName || "فريق ترميز OS"}</p>}
                         <p className={clsx("text-sm leading-relaxed whitespace-pre-wrap", isAdmin ? "text-white" : "text-gray-800")}>{msg.message}</p>
                       </div>
                       <p className="text-[10px] text-gray-400 mt-1 mx-1">{fmtDate(msg.createdAt)}</p>

@@ -54,7 +54,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; b
   cancelled:        { label: "ملغي",        bg: "bg-red-50",    text: "text-red-600",    border: "border-red-200",   dot: "bg-red-400" },
 };
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/30 focus:border-[#5b9bd5]";
+const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 function parseItems(raw: any): any[] {
@@ -204,7 +204,7 @@ function StaffSelectModal({ title, filterKeyword, onClose, onConfirm, loading }:
             <button
               onClick={handleConfirm}
               disabled={loading || !selectedId}
-              className="flex-1 bg-[#5b9bd5] hover:bg-[#4a8ac4] text-white rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
+              className="flex-1 bg-brand-500 hover:bg-brand-600 text-white rounded-xl py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "تأكيد التعيين"}
             </button>
@@ -241,7 +241,7 @@ function GiftMessageCell({ message }: { message: string }) {
         {short && (
           <button
             onClick={() => setExpanded(e => !e)}
-            className="text-[#5b9bd5] hover:underline mr-1 inline-flex items-center gap-0.5"
+            className="text-brand-500 hover:underline mr-1 inline-flex items-center gap-0.5"
           >
             {expanded ? (<><ChevronUp className="w-3 h-3" />أقل</>) : (<><ChevronDown className="w-3 h-3" />المزيد</>)}
           </button>
@@ -315,20 +315,20 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
   if (order.status === "pending") {
     actionButtons.push(
       <button key="assign-florist" onClick={() => setShowFlorist(true)}
-        className="flex-1 px-3 py-2 rounded-xl border border-amber-400 text-amber-600 hover:bg-amber-50 text-xs font-semibold transition-colors">
-        تعيين منسق
+        className="flex-1 px-3 py-3 rounded-xl border border-amber-400 text-amber-600 hover:bg-amber-50 text-xs font-semibold transition-colors">
+        تعيين مترميز OS
       </button>
     );
     actionButtons.push(
       <button key="start" onClick={() => handleAdvance("preparing")} disabled={updateMut.loading}
-        className="flex-1 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors disabled:opacity-60">
+        className="flex-1 px-3 py-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors disabled:opacity-60">
         {updateMut.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : "ابدأ التجهيز"}
       </button>
     );
   } else if (order.status === "preparing") {
     actionButtons.push(
       <button key="ready" onClick={() => handleAdvance("ready")} disabled={updateMut.loading}
-        className="flex-1 px-3 py-2 rounded-xl bg-purple-500 hover:bg-purple-600 text-white text-xs font-semibold transition-colors disabled:opacity-60">
+        className="flex-1 px-3 py-3 rounded-xl bg-purple-500 hover:bg-purple-600 text-white text-xs font-semibold transition-colors disabled:opacity-60">
         {updateMut.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : "جاهز للتسليم"}
       </button>
     );
@@ -337,7 +337,7 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
       // Pickup: customer comes to store — no driver needed
       actionButtons.push(
         <button key="pickup-done" onClick={() => handleAdvance("delivered")} disabled={updateMut.loading}
-          className="flex-1 px-3 py-2 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-xs font-semibold transition-colors disabled:opacity-60">
+          className="flex-1 px-3 py-3 rounded-xl bg-teal-500 hover:bg-teal-600 text-white text-xs font-semibold transition-colors disabled:opacity-60">
           {updateMut.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : "تم الاستلام من المحل"}
         </button>
       );
@@ -345,13 +345,13 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
       // Delivery: assign driver first
       actionButtons.push(
         <button key="assign" onClick={() => setShowDriver(true)}
-          className="flex-1 px-3 py-2 rounded-xl border border-[#5b9bd5] text-[#5b9bd5] hover:bg-blue-50 text-xs font-semibold transition-colors">
+          className="flex-1 px-3 py-3 rounded-xl border border-brand-500 text-brand-500 hover:bg-blue-50 text-xs font-semibold transition-colors">
           تعيين مندوب
         </button>
       );
       actionButtons.push(
         <button key="dispatch" onClick={() => handleAdvance("out_for_delivery")} disabled={updateMut.loading}
-          className="flex-1 px-3 py-2 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold transition-colors disabled:opacity-60">
+          className="flex-1 px-3 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-xs font-semibold transition-colors disabled:opacity-60">
           {updateMut.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : "تسليم للمندوب"}
         </button>
       );
@@ -359,7 +359,7 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
   } else if (order.status === "out_for_delivery") {
     actionButtons.push(
       <button key="deliver" onClick={() => handleAdvance("delivered")} disabled={updateMut.loading}
-        className="flex-1 px-3 py-2 rounded-xl bg-green-500 hover:bg-green-600 text-white text-xs font-semibold transition-colors disabled:opacity-60">
+        className="flex-1 px-3 py-3 rounded-xl bg-green-500 hover:bg-green-600 text-white text-xs font-semibold transition-colors disabled:opacity-60">
         {updateMut.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin mx-auto" /> : "تأكيد التوصيل"}
       </button>
     );
@@ -387,7 +387,7 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
               <span className="text-sm font-medium text-gray-800">{order.customer_name}</span>
               <a
                 href={`tel:${order.customer_phone}`}
-                className="flex items-center gap-1 text-xs text-[#5b9bd5] hover:underline mt-0.5 w-fit"
+                className="flex items-center gap-1 text-xs text-brand-500 hover:underline mt-0.5 w-fit"
               >
                 <Phone className="w-3 h-3" />
                 {order.customer_phone}
@@ -407,7 +407,7 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
                     <span className="text-gray-500">هدية لـ: </span>
                     <span className="font-medium text-gray-800">{order.recipient_name ?? "—"}</span>
                     {order.recipient_phone && (
-                      <a href={`tel:${order.recipient_phone}`} className="text-[#5b9bd5] hover:underline mr-2">
+                      <a href={`tel:${order.recipient_phone}`} className="text-brand-500 hover:underline mr-2">
                         {order.recipient_phone}
                       </a>
                     )}
@@ -457,7 +457,7 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
             <div className="flex items-center gap-2 text-xs text-gray-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
               <User className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span>
-                <span className="text-gray-500">المنسق: </span>
+                <span className="text-gray-500">المترميز OS: </span>
                 <span className="font-medium">{(order as any).assigned_staff_name}</span>
               </span>
             </div>
@@ -471,7 +471,7 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
                 <span className="text-gray-500">المندوب: </span>
                 <span className="font-medium">{order.driver_name}</span>
                 {order.driver_phone && (
-                  <a href={`tel:${order.driver_phone}`} className="text-[#5b9bd5] hover:underline mr-1">— {order.driver_phone}</a>
+                  <a href={`tel:${order.driver_phone}`} className="text-brand-500 hover:underline mr-1">— {order.driver_phone}</a>
                 )}
               </span>
             </div>
@@ -500,8 +500,8 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
       {/* Florist Assignment Modal */}
       {showFlorist && (
         <StaffSelectModal
-          title="تعيين منسق للطلب"
-          filterKeyword="منسق"
+          title="تعيين مترميز OS للطلب"
+          filterKeyword="مترميز OS"
           orderId={order.id}
           onClose={() => setShowFlorist(false)}
           onConfirm={handleAssignFlorist}
@@ -577,12 +577,12 @@ export function FlowerDeliveryPage() {
       {/* Page Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">تشغيل الطلبات</h1>
+          <h1 className="text-xl font-bold text-gray-900">متابعة التوصيل</h1>
           <p className="text-sm text-gray-400 mt-0.5">{todayDateStr}</p>
         </div>
         <div className="flex items-center gap-2">
           {!statsLoading && (
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#5b9bd5]/10 text-[#5b9bd5] text-sm font-semibold">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-50 text-brand-500 text-sm font-semibold">
               <Truck className="w-4 h-4" />
               {todayOrders.length} طلب اليوم
             </span>
@@ -625,11 +625,11 @@ export function FlowerDeliveryPage() {
           </p>
           <p className="text-xs text-gray-400 mt-0.5">تم التوصيل</p>
         </div>
-        <div className="bg-white rounded-2xl border border-[#5b9bd5]/20 p-4">
-          <div className="w-9 h-9 rounded-xl bg-[#5b9bd5]/10 flex items-center justify-center mb-3">
-            <span className="text-sm font-bold text-[#5b9bd5]">ر.س</span>
+        <div className="bg-white rounded-2xl border border-brand-500/20 p-4">
+          <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center mb-3">
+            <span className="text-sm font-bold text-brand-500">ر.س</span>
           </div>
-          <p className="text-2xl font-bold text-[#5b9bd5] tabular-nums">
+          <p className="text-2xl font-bold text-brand-500 tabular-nums">
             {statsLoading ? <span className="inline-block h-7 w-14 bg-gray-100 rounded animate-pulse" /> : todayRevenue.toLocaleString("en-US")}
           </p>
           <p className="text-xs text-gray-400 mt-0.5">إجمالي اليوم</p>
@@ -646,7 +646,7 @@ export function FlowerDeliveryPage() {
               className={clsx(
                 "px-3 py-1.5 rounded-xl text-xs font-semibold transition-colors",
                 activeType === t.value
-                  ? "bg-[#5b9bd5] text-white"
+                  ? "bg-brand-500 text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               )}
             >
@@ -669,7 +669,7 @@ export function FlowerDeliveryPage() {
               className={clsx(
                 "px-4 py-2.5 text-sm font-medium rounded-t-lg border-b-2 transition-colors whitespace-nowrap",
                 activeStatus === tab.value
-                  ? "border-[#5b9bd5] text-[#5b9bd5] bg-blue-50/50"
+                  ? "border-brand-500 text-brand-500 bg-blue-50/50"
                   : "border-transparent text-gray-500 hover:text-gray-700"
               )}
             >

@@ -114,7 +114,7 @@ export default function PlatformSettingsTab() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-base font-bold text-gray-900">إعدادات المنصة</h2>
-          <p className="text-xs text-gray-400 mt-0.5">هوية نسق — الشعار والاسم والألوان</p>
+          <p className="text-xs text-gray-400 mt-0.5">هوية ترميز OS — الشعار والاسم والألوان</p>
         </div>
         <button onClick={refetch} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
           <RefreshCw className="w-3.5 h-3.5" /> تحديث
@@ -160,7 +160,7 @@ export default function PlatformSettingsTab() {
           <div>
             <label className="text-xs text-gray-500 block mb-1.5">اسم المنصة</label>
             <input
-              value={f.platformName ?? "نسق"}
+              value={f.platformName ?? "ترميز OS"}
               onChange={(e) => setForm((prev: any) => ({ ...(prev ?? config), platformName: e.target.value }))}
               className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-300"
             />
@@ -220,11 +220,11 @@ export default function PlatformSettingsTab() {
               style={{ backgroundColor: f.primaryColor ?? "#5b9bd5" }}>
               {f.logoUrl
                 ? <img src={f.logoUrl} alt="شعار" className="w-full h-full object-contain" />
-                : <span className="text-white text-xs font-bold">{(f.platformName ?? "نسق")[0]}</span>
+                : <span className="text-white text-xs font-bold">{(f.platformName ?? "ترميز OS")[0]}</span>
               }
             </div>
             <span className="text-sm font-bold" style={{ color: f.primaryColor ?? "#5b9bd5" }}>
-              {f.platformName ?? "نسق"}
+              {f.platformName ?? "ترميز OS"}
             </span>
           </div>
         </div>

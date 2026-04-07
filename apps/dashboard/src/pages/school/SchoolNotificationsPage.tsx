@@ -106,7 +106,7 @@ function TemplateEditor({
         rows={4}
         value={value}
         onChange={e => onChange(field, e.target.value)}
-        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5] focus:ring-2 focus:ring-[#5b9bd5]/10 resize-none font-mono"
+        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 resize-none font-mono"
         dir="rtl"
       />
       <div className="flex flex-wrap gap-1">
@@ -114,7 +114,7 @@ function TemplateEditor({
           <button
             key={v.var}
             onClick={() => onChange(field, value + v.var)}
-            className="text-[10px] px-2 py-0.5 bg-gray-100 hover:bg-[#5b9bd5]/10 hover:text-[#5b9bd5] rounded-lg border border-gray-200 transition-colors"
+            className="text-[10px] px-2 py-0.5 bg-gray-100 hover:bg-brand-500/10 hover:text-brand-500 rounded-lg border border-gray-200 transition-colors"
           >
             {v.label}
           </button>
@@ -243,7 +243,7 @@ function WhatsAppConnectCard() {
                 "وجّه الكاميرا نحو الباركود",
               ].map((step, i) => (
                 <li key={i} className="flex items-start gap-2 text-xs text-gray-600">
-                  <span className="shrink-0 w-4 h-4 rounded-full bg-[#5b9bd5] text-white flex items-center justify-center text-[9px] font-bold mt-0.5">
+                  <span className="shrink-0 w-4 h-4 rounded-full bg-brand-500 text-white flex items-center justify-center text-[9px] font-bold mt-0.5">
                     {i + 1}
                   </span>
                   {step}
@@ -273,7 +273,7 @@ function WhatsAppConnectCard() {
     return (
       <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex items-center gap-4">
         <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-          <Loader2 className="w-5 h-5 text-[#5b9bd5] animate-spin" />
+          <Loader2 className="w-5 h-5 text-brand-500 animate-spin" />
         </div>
         <div>
           <p className="text-sm font-bold text-gray-800">جاري إنشاء الباركود...</p>
@@ -364,7 +364,7 @@ export function SchoolNotificationsPage() {
 
   // Test panel
   const [testPhone,   setTestPhone]   = useState("");
-  const [testMessage, setTestMessage] = useState("رسالة اختبار من نسق للمدارس");
+  const [testMessage, setTestMessage] = useState("رسالة اختبار من ترميز OS للمدارس");
   const [testing,     setTesting]     = useState(false);
   const [testResult,  setTestResult]  = useState<boolean | null>(null);
 
@@ -514,7 +514,7 @@ export function SchoolNotificationsPage() {
                     value={testPhone}
                     onChange={e => setTestPhone(e.target.value)}
                     placeholder="9665xxxxxxxx"
-                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5] focus:ring-2 focus:ring-[#5b9bd5]/10"
+                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10"
                     dir="ltr"
                   />
                 </div>
@@ -525,7 +525,7 @@ export function SchoolNotificationsPage() {
                   rows={2}
                   value={testMessage}
                   onChange={e => setTestMessage(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5] focus:ring-2 focus:ring-[#5b9bd5]/10 resize-none"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 resize-none"
                 />
               </div>
               <button
@@ -622,7 +622,7 @@ export function SchoolNotificationsPage() {
             <select
               value={filterEvent}
               onChange={e => setFilterEvent(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/30 bg-white"
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white"
             >
               <option value="">كل الأحداث</option>
               <option value="violation">مخالفة</option>
@@ -635,7 +635,7 @@ export function SchoolNotificationsPage() {
             <select
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#5b9bd5]/30 bg-white"
+              className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white"
             >
               <option value="">كل الحالات</option>
               <option value="sent">تم الإرسال</option>

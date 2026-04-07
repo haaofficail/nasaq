@@ -69,7 +69,7 @@ export function ContactPage() {
               <div className="mt-10 bg-brand-50 rounded-2xl p-6">
                 <h3 className="font-bold text-gray-900 mb-2">هل تريد عرضاً تجريبياً؟</h3>
                 <p className="text-sm text-gray-600 mb-4">
-                  يسعدنا تقديم عرض مباشر لإظهار كيف يمكن لنسق مساعدة عملك.
+                  يسعدنا تقديم عرض مباشر لإظهار كيف يمكن لترميز OS مساعدة عملك.
                 </p>
                 <a
                   href={`https://wa.me/966${(platform.supportPhone ?? "0532064321").replace(/^0/, "")}`}

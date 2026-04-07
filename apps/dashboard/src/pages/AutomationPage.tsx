@@ -23,7 +23,7 @@ const TRIGGER_EVENT_COLORS: Record<string, string> = {
   booking_reminder_24h: "bg-amber-50 text-amber-600",
   booking_reminder_1h:  "bg-orange-50 text-orange-600",
   booking_cancelled:    "bg-red-50 text-red-500",
-  payment_received:     "bg-[#5b9bd5]/10 text-[#5b9bd5]",
+  payment_received:     "bg-brand-500/10 text-brand-500",
 };
 
 const TEMPLATE_VARIABLES = [
@@ -41,7 +41,7 @@ const SAMPLE_VARS: Record<string, string> = {
   "{{booking_date}}":   "السبت 1 فبراير",
   "{{booking_time}}":   "10:00 ص",
   "{{amount}}":         "120",
-  "{{business_name}}":  "صالون نسق",
+  "{{business_name}}":  "صالون ترميز OS",
 };
 
 function previewMessage(body: string): string {
@@ -111,7 +111,7 @@ function TemplateModal({ initial, onClose, onSave, saving }: TemplateModalProps)
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="مثال: تأكيد حجز واتساب"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5b9bd5] transition-colors"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors"
             />
           </div>
 
@@ -122,7 +122,7 @@ function TemplateModal({ initial, onClose, onSave, saving }: TemplateModalProps)
               <select
                 value={triggerEvent}
                 onChange={(e) => setTriggerEvent(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5b9bd5] transition-colors appearance-none bg-white"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors appearance-none bg-white"
               >
                 {TRIGGER_EVENTS.map(([val, label]) => (
                   <option key={val} value={val}>{label}</option>
@@ -139,7 +139,7 @@ function TemplateModal({ initial, onClose, onSave, saving }: TemplateModalProps)
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5b9bd5] transition-colors appearance-none bg-white"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors appearance-none bg-white"
               >
                 <option value="ar">عربي</option>
                 <option value="en">English</option>
@@ -157,7 +157,7 @@ function TemplateModal({ initial, onClose, onSave, saving }: TemplateModalProps)
                   key={v}
                   type="button"
                   onClick={() => insertVariable(v)}
-                  className="px-2 py-1 rounded-lg bg-[#5b9bd5]/10 text-[#5b9bd5] text-xs font-mono hover:bg-[#5b9bd5]/20 transition-colors"
+                  className="px-2 py-1 rounded-lg bg-brand-500/10 text-brand-500 text-xs font-mono hover:bg-brand-500/20 transition-colors"
                 >
                   {v}
                 </button>
@@ -175,7 +175,7 @@ function TemplateModal({ initial, onClose, onSave, saving }: TemplateModalProps)
               required
               rows={5}
               placeholder="مرحبا {{customer_name}}، تم تأكيد حجزك لخدمة {{service_name}} يوم {{booking_date}} الساعة {{booking_time}}"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5b9bd5] transition-colors resize-none"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors resize-none"
             />
           </div>
 
@@ -184,7 +184,7 @@ function TemplateModal({ initial, onClose, onSave, saving }: TemplateModalProps)
             <button
               type="button"
               onClick={() => setShowPreview((p) => !p)}
-              className="text-xs text-[#5b9bd5] hover:underline font-medium"
+              className="text-xs text-brand-500 hover:underline font-medium"
             >
               {showPreview ? "إخفاء المعاينة" : "معاينة الرسالة"}
             </button>
@@ -201,7 +201,7 @@ function TemplateModal({ initial, onClose, onSave, saving }: TemplateModalProps)
             <button
               type="button"
               onClick={() => setIsActive((p: boolean) => !p)}
-              className={clsx("transition-colors", isActive ? "text-[#5b9bd5]" : "text-gray-300")}
+              className={clsx("transition-colors", isActive ? "text-brand-500" : "text-gray-300")}
             >
               {isActive
                 ? <ToggleRight className="w-8 h-8" />
@@ -222,7 +222,7 @@ function TemplateModal({ initial, onClose, onSave, saving }: TemplateModalProps)
           <button
             onClick={(e) => { e.preventDefault(); handleSubmit(e as any); }}
             disabled={saving || !name.trim() || !messageBody.trim()}
-            className="flex-1 py-2 rounded-xl bg-[#5b9bd5] text-white text-sm font-semibold hover:bg-[#4a8ac4] transition-colors disabled:opacity-50"
+            className="flex-1 py-2 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors disabled:opacity-50"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "حفظ"}
           </button>
@@ -274,7 +274,7 @@ function TestModal({ templateId, onClose }: TestModalProps) {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+966501234567"
               dir="ltr"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-[#5b9bd5] transition-colors"
+              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors"
             />
           </div>
           {result && (
@@ -288,7 +288,7 @@ function TestModal({ templateId, onClose }: TestModalProps) {
           <button
             onClick={handleSend}
             disabled={loading || !phone.trim()}
-            className="w-full py-2.5 rounded-xl bg-[#5b9bd5] text-white text-sm font-semibold hover:bg-[#4a8ac4] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
             إرسال تجريبي
@@ -422,14 +422,14 @@ function WhatsappConnectionPanel() {
             onClick={() => setMode("api")}
             className={clsx(
               "flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-right",
-              mode === "api" ? "border-[#5b9bd5] bg-[#5b9bd5]/5" : "border-gray-100 hover:border-gray-200"
+              mode === "api" ? "border-brand-500 bg-brand-500/5" : "border-gray-100 hover:border-gray-200"
             )}
           >
-            <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", mode === "api" ? "bg-[#5b9bd5] text-white" : "bg-gray-100 text-gray-400")}>
+            <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", mode === "api" ? "bg-brand-500 text-white" : "bg-gray-100 text-gray-400")}>
               <Key className="w-4 h-4" />
             </div>
             <div>
-              <p className={clsx("text-sm font-semibold", mode === "api" ? "text-[#5b9bd5]" : "text-gray-700")}>واتساب API</p>
+              <p className={clsx("text-sm font-semibold", mode === "api" ? "text-brand-500" : "text-gray-700")}>واتساب API</p>
               <p className="text-xs text-gray-400">Meta Business API الرسمي</p>
             </div>
           </button>
@@ -437,14 +437,14 @@ function WhatsappConnectionPanel() {
             onClick={() => setMode("qr")}
             className={clsx(
               "flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-right",
-              mode === "qr" ? "border-[#5b9bd5] bg-[#5b9bd5]/5" : "border-gray-100 hover:border-gray-200"
+              mode === "qr" ? "border-brand-500 bg-brand-500/5" : "border-gray-100 hover:border-gray-200"
             )}
           >
-            <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", mode === "qr" ? "bg-[#5b9bd5] text-white" : "bg-gray-100 text-gray-400")}>
+            <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", mode === "qr" ? "bg-brand-500 text-white" : "bg-gray-100 text-gray-400")}>
               <QrCode className="w-4 h-4" />
             </div>
             <div>
-              <p className={clsx("text-sm font-semibold", mode === "qr" ? "text-[#5b9bd5]" : "text-gray-700")}>مسح الباركود</p>
+              <p className={clsx("text-sm font-semibold", mode === "qr" ? "text-brand-500" : "text-gray-700")}>مسح الباركود</p>
               <p className="text-xs text-gray-400">ربط رقم واتساب مباشرة</p>
             </div>
           </button>
@@ -462,7 +462,7 @@ function WhatsappConnectionPanel() {
               onChange={(e) => setPhoneId(e.target.value)}
               placeholder="من Meta Business Dashboard"
               dir="ltr"
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#5b9bd5] font-mono"
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-500 font-mono"
             />
           </div>
           <div>
@@ -473,7 +473,7 @@ function WhatsappConnectionPanel() {
               onChange={(e) => setAccessToken(e.target.value)}
               placeholder="••••••••••••••••••••"
               dir="ltr"
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#5b9bd5] font-mono"
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-500 font-mono"
             />
           </div>
           <div>
@@ -484,13 +484,13 @@ function WhatsappConnectionPanel() {
               onChange={(e) => setWebhookVerify(e.target.value)}
               placeholder="nasaq_webhook_secret"
               dir="ltr"
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#5b9bd5] font-mono"
+              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-500 font-mono"
             />
           </div>
           <button
             onClick={handleSaveApi}
             disabled={saving || !phoneId.trim() || !accessToken.trim()}
-            className="flex items-center gap-2 px-5 py-2.5 bg-[#5b9bd5] text-white text-sm font-semibold rounded-xl hover:bg-[#4a8ac4] disabled:opacity-50 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 disabled:opacity-50 transition-colors"
           >
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
             حفظ وتفعيل
@@ -511,7 +511,7 @@ function WhatsappConnectionPanel() {
               <button
                 onClick={handleStartQr}
                 disabled={startingQr}
-                className="inline-flex items-center gap-2 px-5 py-2.5 bg-[#5b9bd5] text-white text-sm font-semibold rounded-xl hover:bg-[#4a8ac4] disabled:opacity-50 transition-colors"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 disabled:opacity-50 transition-colors"
               >
                 {startingQr ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
                 إنشاء باركود الاتصال
@@ -572,12 +572,12 @@ function WhatsappConnectionPanel() {
                 onChange={(e) => setTestPhone(e.target.value)}
                 placeholder="9665XXXXXXXX"
                 dir="ltr"
-                className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-[#5b9bd5] font-mono"
+                className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-500 font-mono"
               />
               <button
                 onClick={handleTestSend}
                 disabled={testing || !testPhone.trim()}
-                className="flex items-center gap-2 px-4 py-2 bg-[#5b9bd5] text-white text-sm font-semibold rounded-xl hover:bg-[#4a8ac4] disabled:opacity-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white text-sm font-semibold rounded-xl hover:bg-brand-600 disabled:opacity-50 transition-colors"
               >
                 {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 إرسال
@@ -662,7 +662,7 @@ function WhatsappTemplatesTab() {
   if (error) return (
     <div className="bg-red-50 rounded-2xl border border-red-100 p-6 text-center">
       <p className="text-sm text-red-500">{error}</p>
-      <button onClick={refetch} className="mt-2 text-xs text-[#5b9bd5] hover:underline">إعادة المحاولة</button>
+      <button onClick={refetch} className="mt-2 text-xs text-brand-500 hover:underline">إعادة المحاولة</button>
     </div>
   );
 
@@ -672,7 +672,7 @@ function WhatsappTemplatesTab() {
       <div className="flex justify-end">
         <button
           onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-[#5b9bd5] text-white text-sm font-semibold hover:bg-[#4a8ac4] transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors"
         >
           <Plus className="w-4 h-4" />
           قالب جديد
@@ -687,7 +687,7 @@ function WhatsappTemplatesTab() {
           <p className="text-xs text-gray-400 mt-1">أنشئ قوالب لإرسال رسائل تلقائية عند كل حدث</p>
           <button
             onClick={openCreate}
-            className="mt-4 px-4 py-2 rounded-xl bg-[#5b9bd5]/10 text-[#5b9bd5] text-sm font-semibold hover:bg-[#5b9bd5]/20 transition-colors"
+            className="mt-4 px-4 py-2 rounded-xl bg-brand-500/10 text-brand-500 text-sm font-semibold hover:bg-brand-500/20 transition-colors"
           >
             إنشاء قالب
           </button>
@@ -701,9 +701,9 @@ function WhatsappTemplatesTab() {
             {/* Icon */}
             <div className={clsx(
               "w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
-              tpl.is_active ? "bg-[#5b9bd5]/10" : "bg-gray-100"
+              tpl.is_active ? "bg-brand-500/10" : "bg-gray-100"
             )}>
-              <MessageCircle className={clsx("w-4 h-4", tpl.is_active ? "text-[#5b9bd5]" : "text-gray-300")} />
+              <MessageCircle className={clsx("w-4 h-4", tpl.is_active ? "text-brand-500" : "text-gray-300")} />
             </div>
 
             {/* Content */}
@@ -729,7 +729,7 @@ function WhatsappTemplatesTab() {
             <div className="flex items-center gap-1 shrink-0">
               <button
                 onClick={() => handleToggleActive(tpl)}
-                className={clsx("p-1.5 rounded-lg transition-colors", tpl.is_active ? "text-[#5b9bd5] hover:bg-[#5b9bd5]/10" : "text-gray-300 hover:bg-gray-100")}
+                className={clsx("p-1.5 rounded-lg transition-colors", tpl.is_active ? "text-brand-500 hover:bg-brand-500/10" : "text-gray-300 hover:bg-gray-100")}
                 title={tpl.is_active ? "تعطيل" : "تفعيل"}
               >
                 {tpl.is_active ? <ToggleRight className="w-5 h-5" /> : <ToggleLeft className="w-5 h-5" />}
@@ -817,7 +817,7 @@ export function AutomationPage() {
         {[
           { label: "قواعد نشطة",    value: activeRules,       color: "text-brand-600",    bg: "bg-brand-50",    icon: Zap },
           { label: "القوالب",       value: templates.length,  color: "text-violet-600",   bg: "bg-violet-50",   icon: Bell },
-          { label: "قوالب واتساب", value: waTemplates.length, color: "text-[#5b9bd5]",    bg: "bg-[#5b9bd5]/10", icon: MessageCircle },
+          { label: "قوالب واتساب", value: waTemplates.length, color: "text-brand-500",    bg: "bg-brand-500/10", icon: MessageCircle },
           { label: "رسائل مرسلة",  value: logs.length,        color: "text-emerald-600",  bg: "bg-emerald-50",  icon: FileText },
         ].map((s, i) => (
           <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">

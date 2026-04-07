@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Building2, GitBranch, CreditCard, Plus, Trash2, Loader2, CheckCircle2, Zap, Shield, Pencil, User, MapPin, Clock, Star, Warehouse, Briefcase, Palette, Upload, ImageIcon, Wallet, Eye, EyeOff, Scale } from "lucide-react";
+import { toast } from "@/hooks/useToast";
 import { clsx } from "clsx";
 import { confirmDialog } from "@/components/ui";
 import { settingsApi, financeApi } from "@/lib/api";
@@ -121,12 +122,23 @@ export function SettingsPage() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const token = localStorage.getItem("nasaq_token") || "";
+      const token = localStorage.getItem("nasaq_token") || sessionStorage.getItem("nasaq_token") || "";
       const res = await fetch("/api/v1/file-upload", { method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData });
-      const json = await res.json();
-      if (json?.data?.url) {
+      // parse JSON safely — Nginx might return HTML on 413/502
+      let json: any = {};
+      try { json = await res.json(); } catch { /* non-JSON body */ }
+      if (res.ok && json?.data?.url) {
         setForm((prev: any) => ({ ...(prev || org), [field]: json.data.url }));
+        toast.success("تم رفع الصورة بنجاح");
+      } else if (res.status === 401) {
+        toast.error("انتهت جلستك — أعد تسجيل الدخول");
+      } else if (res.status === 413) {
+        toast.error("حجم الصورة كبير جداً — يُرجى اختيار صورة أصغر من 5MB");
+      } else {
+        toast.error(json?.error || `فشل رفع الصورة (${res.status})`);
       }
+    } catch {
+      toast.error("تعذّر الاتصال بالخادم — تحقق من الاتصال");
     } finally {
       setLoading(false);
     }
@@ -200,7 +212,7 @@ export function SettingsPage() {
       </div>
 
       {/* Tab navigation */}
-      <div className="flex gap-1 bg-white border border-gray-100 rounded-2xl p-1 w-fit">
+      <div className="flex gap-1 bg-white border border-gray-100 rounded-2xl p-1 w-fit max-w-full overflow-x-auto">
         {tabs.map((tab, i) => (
           <button
             key={i}

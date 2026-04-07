@@ -1,4 +1,4 @@
-import React, { Suspense, useState, lazy } from "react";
+import React, { Suspense, useState, lazy, useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Building2, Users2, Briefcase, CreditCard, Package,
@@ -39,7 +39,7 @@ const PlatformSettingsTab    = lazy(() => import("./admin/PlatformSettingsTab"))
 const SECTIONS = [
   { id: "overview",   icon: LayoutDashboard, label: "نظرة عامة",        roles: [] },
   { id: "orgs",       icon: Building2,       label: "المنشآت",          roles: [] },
-  { id: "team",       icon: Users2,          label: "فريق نسق",         roles: ["super_admin"] },
+  { id: "team",       icon: Users2,          label: "فريق ترميز OS",         roles: ["super_admin"] },
   { id: "clients",    icon: Briefcase,       label: "إدارة الحسابات",   roles: ["super_admin", "account_manager"] },
   { id: "plans",      icon: CreditCard,      label: "الباقات والأسعار", roles: ["super_admin"] },
   { id: "orders",     icon: CreditCard,      label: "طلبات الشراء",     roles: ["super_admin"] },
@@ -89,10 +89,28 @@ function useCurrentAdmin() {
   try { return JSON.parse(localStorage.getItem("nasaq_user") || "{}"); } catch { return {}; }
 }
 
+// CSS vars injected by applyOrgTheme — must be cleared so admin always shows platform colors
+const BRAND_VARS = [
+  "--brand-primary", "--brand-primary-hover", "--brand-primary-dark",
+  "--brand-primary-soft", "--brand-primary-light", "--brand-primary-200",
+  "--brand-primary-300", "--brand-primary-400", "--brand-primary-700",
+  "--brand-primary-focus", "--brand-secondary", "--brand-secondary-hover",
+  "--brand-secondary-soft", "--nasaq-primary", "--sys-brand",
+  "--sys-brand-dark", "--sys-brand-light", "--sys-brand-focus",
+  "--accent-business", "--accent-business-soft", "--nasaq-font-family",
+];
+
 export function AdminPage() {
   const [section, setSection] = useState("overview");
   const user = useCurrentAdmin();
   const navigate = useNavigate();
+
+  // مسح ثيم أي منشأة قد يكون مُطبَّقاً — الأدمن يرى ألوان المنصة دائماً
+  useLayoutEffect(() => {
+    const r = document.documentElement;
+    BRAND_VARS.forEach(v => r.style.removeProperty(v));
+    try { localStorage.removeItem("nasaq_theme_cache"); } catch { /* */ }
+  }, []);
 
   const adminRole: string = user?.isSuperAdmin ? "super_admin" : (user?.nasaqRole || "");
 
@@ -108,7 +126,7 @@ export function AdminPage() {
     return (
       <div className="flex flex-col items-center justify-center h-96 gap-4">
         <ShieldAlert className="w-14 h-14 text-gray-200" />
-        <p className="text-gray-400 text-sm font-medium">هذه الصفحة مخصصة لفريق نسق فقط</p>
+        <p className="text-gray-400 text-sm font-medium">هذه الصفحة مخصصة لفريق ترميز OS فقط</p>
       </div>
     );
   }
@@ -150,7 +168,7 @@ export function AdminPage() {
               <ShieldCheck className="w-4 h-4 text-white" />
             </div>
             <div>
-              <p className="text-sm font-bold text-white">نسق Admin</p>
+              <p className="text-sm font-bold text-white">Tarmiz Admin</p>
               <p className="text-[10px] text-gray-500">لوحة التحكم</p>
             </div>
           </div>

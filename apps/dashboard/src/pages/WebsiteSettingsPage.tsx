@@ -148,14 +148,26 @@ export function WebsiteSettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <Field label="اللون الرئيسي">
               <div className="flex items-center gap-2">
-                <input type="color" value={profile.primaryColor || profile.primary_color || "#5b9bd5"} onChange={(e) => sp("primaryColor", e.target.value)} className="w-10 h-10 rounded-xl border border-gray-100 cursor-pointer p-1" />
-                <input className={cls + " font-mono"} value={profile.primaryColor || profile.primary_color || "#5b9bd5"} onChange={(e) => sp("primaryColor", e.target.value)} dir="ltr" />
+                <input type="color"
+                  value={config?.primaryColor || profile.primaryColor || "#5b9bd5"}
+                  onChange={(e) => { sp("primaryColor", e.target.value); sc("primaryColor", e.target.value); }}
+                  className="w-10 h-10 rounded-xl border border-gray-100 cursor-pointer p-1" />
+                <input className={cls + " font-mono"}
+                  value={config?.primaryColor || profile.primaryColor || "#5b9bd5"}
+                  onChange={(e) => { sp("primaryColor", e.target.value); sc("primaryColor", e.target.value); }}
+                  dir="ltr" />
               </div>
             </Field>
             <Field label="اللون الثانوي">
               <div className="flex items-center gap-2">
-                <input type="color" value={profile.secondaryColor || profile.secondary_color || "#C8A951"} onChange={(e) => sp("secondaryColor", e.target.value)} className="w-10 h-10 rounded-xl border border-gray-100 cursor-pointer p-1" />
-                <input className={cls + " font-mono"} value={profile.secondaryColor || profile.secondary_color || "#C8A951"} onChange={(e) => sp("secondaryColor", e.target.value)} dir="ltr" />
+                <input type="color"
+                  value={config?.secondaryColor || profile.secondaryColor || "#C8A951"}
+                  onChange={(e) => { sp("secondaryColor", e.target.value); sc("secondaryColor", e.target.value); }}
+                  className="w-10 h-10 rounded-xl border border-gray-100 cursor-pointer p-1" />
+                <input className={cls + " font-mono"}
+                  value={config?.secondaryColor || profile.secondaryColor || "#C8A951"}
+                  onChange={(e) => { sp("secondaryColor", e.target.value); sc("secondaryColor", e.target.value); }}
+                  dir="ltr" />
               </div>
             </Field>
             <Field label="الخط">

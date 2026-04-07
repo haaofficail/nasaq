@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, desc, asc, gte, lte, sql, count } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { shifts, bookingTasks, performanceReviews, vendorProfiles, timeOff, users, roles, rolePermissions, permissions as permissionsTable, bookings } from "@nasaq/db/schema";
+import { shifts, bookingTasks, performanceReviews, vendorProfiles, timeOff, users, roles, rolePermissions, permissions as permissionsTable, bookings, hrEmployees } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { invalidatePermissionCache } from "../middleware/auth";
@@ -521,6 +521,35 @@ teamRouter.post("/members", async (c) => {
     startDate: body.startDate ? new Date(body.startDate) : null,
     skills: body.skills || [],
   }).returning();
+
+  // Auto-create HR record so the employee appears in the HR module
+  try {
+    const lastEmp = await db
+      .select({ num: hrEmployees.employeeNumber })
+      .from(hrEmployees)
+      .where(eq(hrEmployees.orgId, orgId))
+      .orderBy(desc(hrEmployees.createdAt))
+      .limit(1);
+    const last = lastEmp[0]?.num ?? "EMP-000";
+    const n = parseInt(last.split("-")[1] || "0") + 1;
+    const employeeNumber = `EMP-${String(n).padStart(3, "0")}`;
+
+    await db.insert(hrEmployees).values({
+      orgId,
+      userId: user.id,
+      employeeNumber,
+      fullName: body.name,
+      phone: body.phone ?? null,
+      email: body.email ?? null,
+      jobTitle: body.jobTitle ?? null,
+      hireDate: body.startDate ?? new Date().toISOString().split("T")[0],
+      basicSalary: body.salary ? String(body.salary) : "0",
+      status: (body.status === "inactive" ? "terminated" : "active"),
+    });
+  } catch (_) {
+    // HR record creation is non-critical — team member is already created
+  }
+
   return c.json({ data: user }, 201);
 });
 

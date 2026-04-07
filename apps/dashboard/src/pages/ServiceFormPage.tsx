@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, AlignJustify, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image, Wrench, Home, Package, Truck, Gift, FileText, Star, ShoppingBag, CalendarCheck, CheckSquare, Barcode, RefreshCw, DollarSign, Clock, MessageSquare, Settings } from "lucide-react";
+import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, AlignJustify, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image, Wrench, Home, Package, Truck, Gift, FileText, Star, ShoppingBag, CalendarCheck, CheckSquare, Barcode, RefreshCw, DollarSign, Clock, MessageSquare, Settings, Layers, AlertTriangle } from "lucide-react";
 import { clsx } from "clsx";
-import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi, membersApi, inventoryApi, settingsApi } from "@/lib/api";
+import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi, membersApi, inventoryApi, settingsApi, eventPackagesApi } from "@/lib/api";
 import { DurationInput } from "@/components/ui/DurationInput";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { toast } from "@/hooks/useToast";
@@ -21,16 +21,16 @@ function parseDur(mins: number): { v: string; u: DurationUnit } {
 }
 
 const SERVICE_TYPES: { value: string; label: string; icon: React.ElementType }[] = [
-  { value: "appointment",      label: "بموعد",         icon: CalendarCheck },
-  { value: "execution",        label: "تنفيذ",          icon: Wrench },
-  { value: "field_service",    label: "ميداني",         icon: MapPin },
+  { value: "appointment",      label: "حجز موعد",      icon: CalendarCheck },
+  { value: "execution",        label: "تنفيذ وصيانة",  icon: Wrench },
+  { value: "field_service",    label: "خدمة ميدانية",  icon: MapPin },
   { value: "rental",           label: "تأجير",          icon: Home },
   { value: "event_rental",     label: "تأجير فعالية",   icon: Star },
   { value: "product",          label: "منتج",           icon: Package },
-  { value: "product_shipping", label: "شحن",            icon: Truck },
-  { value: "food_order",       label: "طعام",           icon: ShoppingBag },
+  { value: "product_shipping", label: "منتج بشحن",     icon: Truck },
+  { value: "food_order",       label: "طعام ومشروبات", icon: ShoppingBag },
   { value: "package",          label: "باقة",           icon: Gift },
-  { value: "add_on",           label: "إضافة",          icon: Plus },
+  { value: "add_on",           label: "خيار إضافي",    icon: Plus },
   { value: "project",          label: "مشروع",          icon: FileText },
 ];
 
@@ -60,7 +60,7 @@ const BUSINESS_DEFAULT_SERVICE_TYPE: Record<string, string> = {
   logistics:      "field_service",
   construction:   "project",
   retail:         "product",
-  flower_shop:    "product",
+  flower_shop:    "field_service",
   school:         "product",
 };
 
@@ -165,6 +165,15 @@ const DEFAULT_TYPE_CONFIG: TypeConfig = {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type ServiceMode = "booking" | "execution";
+
+// Service types that default to execution mode
+const EXECUTION_TYPES = new Set(["execution", "field_service", "project"]);
+
+function deriveServiceMode(serviceType: string): ServiceMode {
+  return EXECUTION_TYPES.has(serviceType) ? "execution" : "booking";
+}
+
 type Form = {
   serviceType: string; name: string; nameEn: string; categoryId: string;
   shortDescription: string; description: string;
@@ -176,6 +185,8 @@ type Form = {
   isBookable: boolean; isVisibleInPOS: boolean; isVisibleOnline: boolean;
   barcode: string;
   amenities: string[];
+  templateId: string;
+  serviceMode: ServiceMode;
 };
 
 const INIT: Form = {
@@ -188,6 +199,8 @@ const INIT: Form = {
   isBookable: true, isVisibleInPOS: true, isVisibleOnline: true,
   barcode: "",
   amenities: [],
+  templateId: "",
+  serviceMode: "booking",
 };
 
 type AddonDraft = {
@@ -306,6 +319,7 @@ export function ServiceFormPage() {
   const [loadedAddons,       setLoadedAddons]       = useState<any[]>([]);
   const [loadedComponents,setLoadedComponents] = useState<any[]>([]);
   const [branches,       setBranches]       = useState<any[]>([]);
+  const [templates,      setTemplates]      = useState<any[]>([]);
   const [allowedBranches,setAllowedBranches]= useState<string[]>([]); // [] = all
   const [staffMembers,   setStaffMembers]   = useState<any[]>([]);  // all members
   const [pendingStaffIds,setPendingStaffIds]= useState<string[]>([]);  // to be added on save (create)
@@ -323,13 +337,28 @@ export function ServiceFormPage() {
   const [questionPickerIdx, setQuestionPickerIdx] = useState<number | null>(null);
   const [uploadErr,    setUploadErr]        = useState<string | null>(null);
 
-  const needsTiming = NEEDS_TIMING.has(form.serviceType);
-  const typeConfig  = TYPE_CONFIG[form.serviceType] || DEFAULT_TYPE_CONFIG;
+  const needsTiming       = NEEDS_TIMING.has(form.serviceType);
+  const typeConfig        = TYPE_CONFIG[form.serviceType] || DEFAULT_TYPE_CONFIG;
+  const isExecutionMode   = form.serviceMode === "execution";
+  const canToggleMode     = EXECUTION_TYPES.has(form.serviceType) || ["appointment","execution","field_service","project"].includes(form.serviceType);
+
+  // executionReady: has components + all have cost > 0
+  const allCompsForReady = [
+    ...loadedComponents.map((c: any) => parseFloat(c.unitCost) || 0),
+    ...componentDrafts.map(c => parseFloat(c.unitCost) || 0),
+  ];
+  const hasComponents   = allCompsForReady.length > 0;
+  const allHaveCost     = allCompsForReady.length > 0 && allCompsForReady.every(v => v > 0);
+  const executionReady  = isExecutionMode ? (hasComponents && allHaveCost) : true;
 
   // Apply type-specific defaults when user picks a new type (create mode only)
   useEffect(() => {
     if (!isEdit && form.serviceType && TYPE_CONFIG[form.serviceType]) {
-      setForm(f => ({ ...f, ...TYPE_CONFIG[form.serviceType].defaults }));
+      setForm(f => ({
+        ...f,
+        ...TYPE_CONFIG[form.serviceType].defaults,
+        serviceMode: deriveServiceMode(form.serviceType),
+      }));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.serviceType, isEdit]);
@@ -350,9 +379,16 @@ export function ServiceFormPage() {
   // ── Load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     categoriesApi.list(true).then(r => setCategories(r.data || [])).catch(() => {});
-    membersApi.list().then(r => setStaffMembers(r.data || [])).catch(() => {});
+    membersApi.list().then(r => setStaffMembers(
+      (r.data || []).map((m: any) => ({
+        id:   m.user?.id   ?? m.id,
+        name: m.user?.name ?? m.name ?? "موظف",
+        jobTitle: m.jobTitle,
+      }))
+    )).catch(() => {});
     inventoryApi.products().then(r => setProducts(r.data || [])).catch(() => {});
     settingsApi.branches().then(r => setBranches(r.data || [])).catch(() => {});
+    eventPackagesApi.list().then(r => setTemplates(r.data || [])).catch(() => {});
 
     // Pre-select type passed from the type picker
     if (!isEdit && typeFromUrl) {
@@ -399,6 +435,8 @@ export function ServiceFormPage() {
           isVisibleOnline:       s.isVisibleOnline  ?? true,
           barcode:               s.barcode          || "",
           amenities:             Array.isArray(s.amenities) ? s.amenities : [],
+          templateId:            s.templateId       || "",
+          serviceMode:           deriveServiceMode(s.serviceType || "appointment"),
         });
         setLoadedAddons(s.addons || []);
         setQuestionDrafts((qRes.data || []).map((q: any) => ({
@@ -512,6 +550,7 @@ export function ServiceFormPage() {
         ...bookingPayload,
         barcode: form.barcode || undefined,
         amenities: form.amenities,
+        templateId: form.templateId || undefined,
       };
 
       const saveAddons = async (svcId: string, base: number) => {
@@ -660,6 +699,16 @@ export function ServiceFormPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {isEdit && (
+            <button
+              onClick={() => navigate(`/dashboard/services/${id}`)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+              title="موظفون، متطلبات، وصفة، أسئلة..."
+            >
+              <Settings className="w-3.5 h-3.5" />
+              إعدادات متقدمة
+            </button>
+          )}
           <button onClick={cancel}
             className="px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
             إلغاء
@@ -716,6 +765,37 @@ export function ServiceFormPage() {
               <div className="flex items-start gap-2.5 px-4 py-3 bg-brand-50 border border-brand-100 rounded-xl text-sm text-brand-700">
                 <span className="shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5" />
                 {typeConfig.hint}
+              </div>
+            )}
+
+            {/* Service Mode toggle */}
+            {canToggleMode && (
+              <div className="flex items-center justify-between px-4 py-3 bg-white border border-gray-100 rounded-xl">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-gray-400" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">نوع التشغيل</p>
+                    <p className="text-xs text-gray-400">
+                      {isExecutionMode
+                        ? "وضع التنفيذ — يُظهر حقول المواد والفريق، يُخفي قواعد الحجز"
+                        : "وضع الحجز — يُظهر إعدادات التوقيت والإتاحة"}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-0.5 bg-gray-100 rounded-xl p-0.5">
+                  {([
+                    { v: "booking",   l: "حجز" },
+                    { v: "execution", l: "تنفيذ" },
+                  ] as const).map(m => (
+                    <button key={m.v} type="button"
+                      onClick={() => setForm(f => ({ ...f, serviceMode: m.v }))}
+                      className={clsx("px-4 py-1.5 rounded-lg text-xs font-medium transition-all",
+                        form.serviceMode === m.v
+                          ? "bg-white text-gray-900 shadow-sm"
+                          : "text-gray-500 hover:text-gray-700"
+                      )}>{m.l}</button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -886,8 +966,8 @@ export function ServiceFormPage() {
               </div>
             </FormSection>
 
-            {/* Card: Booking rules */}
-            {typeConfig.showBookingRules && <FormSection title="الإتاحة والحجوزات" icon={Clock}>
+            {/* Card: Booking rules — hidden in execution mode */}
+            {typeConfig.showBookingRules && !isExecutionMode && <FormSection title="الإتاحة والحجوزات" icon={Clock}>
               <div className="divide-y divide-gray-50">
                 {/* إلغاء مجاني — ساعة / يوم */}
                 <div className="flex items-center justify-between py-2.5">
@@ -1122,12 +1202,15 @@ export function ServiceFormPage() {
                               active ? p.filter(x => x !== b.id) : [...p, b.id]
                             )}
                             className={clsx(
-                              "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
+                              "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
                               active
                                 ? "bg-brand-50 text-brand-700 border-brand-300"
                                 : "bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300"
                             )}>
                             {b.name}
+                            {b.isMainBranch && (
+                              <span className="text-[10px] bg-gray-200 text-gray-500 rounded px-1 leading-4">رئيسي</span>
+                            )}
                           </button>
                         );
                       })}
@@ -1149,6 +1232,23 @@ export function ServiceFormPage() {
                 </div>
               </div>
             </FormSection>
+
+            {/* Card: Execution template — shown for all execution-mode services */}
+            {isExecutionMode && (
+              <FormSection title="قالب التنفيذ الافتراضي" icon={Package} defaultOpen={false}>
+                <p className="text-xs text-gray-400 -mt-2 mb-3">خطة داخلية لتجهيز الخدمة (العناصر، الكميات، العمال) — تُطبَّق تلقائياً عند إنشاء الطلب</p>
+                <select
+                  value={form.templateId}
+                  onChange={upd("templateId")}
+                  className={clsx(iCls, "max-w-sm")}
+                >
+                  <option value="">بدون خطة تجهيز</option>
+                  {templates.map((t: any) => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </FormSection>
+            )}
 
             {/* Card: Service provider (staff) */}
             {typeConfig.showStaff && <FormSection title="مقدمو الخدمة" icon={Package} defaultOpen={false}>
@@ -1228,7 +1328,7 @@ export function ServiceFormPage() {
             </FormSection>}
 
             {/* Card: Inventory components */}
-            {typeConfig.showComponents && <FormSection title={typeConfig.componentTitle} icon={Package} defaultOpen={false}>
+            {typeConfig.showComponents && <FormSection title={typeConfig.componentTitle} icon={Package} defaultOpen={isExecutionMode}>
               <div className="flex items-center justify-between -mt-2 mb-2">
                 <p className="text-xs text-gray-400">{typeConfig.componentDesc}</p>
                 <button onClick={() => setComponentDrafts(d => [...d, { ...INIT_COMP }])}
@@ -1260,6 +1360,45 @@ export function ServiceFormPage() {
               {componentDrafts.length === 0 && loadedComponents.length === 0 && (
                 <p className="text-xs text-gray-400 py-1">لا توجد مكونات — اضغط "إضافة" لربط مواد من المخزون</p>
               )}
+
+              {/* Cost summary — execution mode */}
+              {isExecutionMode && (componentDrafts.length > 0 || (isEdit && loadedComponents.length > 0)) && (() => {
+                const allComps = [
+                  ...loadedComponents.map((c: any) => ({ qty: parseFloat(c.quantity) || 0, cost: parseFloat(c.unitCost) || 0 })),
+                  ...componentDrafts.map(c => ({ qty: parseFloat(c.quantity) || 0, cost: parseFloat(c.unitCost) || 0 })),
+                ];
+                const totalCost = allComps.reduce((s, c) => s + c.qty * c.cost, 0);
+                const hasZeroCost = allComps.some(c => c.cost === 0);
+                const servicePrice = parseFloat(form.basePrice) || 0;
+                const margin = servicePrice > 0 ? ((servicePrice - totalCost) / servicePrice) * 100 : null;
+                return (
+                  <div className={clsx(
+                    "flex items-center justify-between px-3 py-2.5 rounded-xl text-sm border",
+                    hasZeroCost
+                      ? "bg-amber-50 border-amber-100"
+                      : "bg-emerald-50 border-emerald-100"
+                  )}>
+                    <div className="flex items-center gap-2">
+                      {hasZeroCost
+                        ? <AlertTriangle className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                        : <DollarSign className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                      <span className={clsx("text-xs font-medium", hasZeroCost ? "text-amber-700" : "text-emerald-700")}>
+                        {hasZeroCost ? "تكلفة بعض المكونات غير مكتملة" : "إجمالي تكلفة المواد"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={clsx("font-semibold tabular-nums text-xs", hasZeroCost ? "text-amber-700" : "text-emerald-700")}>
+                        {totalCost.toLocaleString()} ر.س
+                      </span>
+                      {margin !== null && !hasZeroCost && (
+                        <span className="text-[10px] bg-white text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-full font-medium tabular-nums">
+                          هامش {Math.round(margin)}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {componentDrafts.length > 0 && (
                 <div className="space-y-3">
@@ -1335,8 +1474,8 @@ export function ServiceFormPage() {
               )}
             </FormSection>}
 
-            {/* Card: Add-ons */}
-            {typeConfig.showAddons && <FormSection title="العناصر والإضافات" icon={Package} defaultOpen={false}>
+            {/* Card: Add-ons — hidden in execution mode */}
+            {typeConfig.showAddons && !isExecutionMode && <FormSection title="العناصر والإضافات" icon={Package} defaultOpen={false}>
               <div className="flex items-center justify-between -mt-2 mb-2">
                 <p className="text-xs text-gray-400">خيارات إضافية يختارها العميل عند الحجز</p>
                 <button onClick={() => setAddonDrafts(d => [...d, { ...INIT_ADDON }])}
@@ -1647,6 +1786,21 @@ export function ServiceFormPage() {
                 </div>
               )}
             </FormSection>
+
+            {/* Execution readiness warning */}
+            {isExecutionMode && !executionReady && (
+              <div className="flex items-start gap-3 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-amber-800">الخدمة غير مكتملة — لن تُستخدم في الطلبات</p>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    {!hasComponents
+                      ? "أضف مكونات للخدمة (المواد أو المعدات المطلوبة) من قسم المكونات أعلاه."
+                      : "بعض المكونات لا تحتوي على تكلفة — أكمل حقل التكلفة لكل مكون."}
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Global error */}
             {errors._submit && (

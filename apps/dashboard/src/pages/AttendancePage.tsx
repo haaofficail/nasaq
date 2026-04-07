@@ -55,7 +55,7 @@ type Tab = "daily" | "schedules" | "policies" | "adjustments" | "reports";
 // DAILY TAB
 // ============================================================
 
-function DailyTab() {
+function DailyTab({ onTabChange }: { onTabChange: (t: Tab) => void }) {
   const [date, setDate] = useState(today());
   const [checkingIn, setCheckingIn] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
@@ -64,10 +64,20 @@ function DailyTab() {
   const { data: dailyRes, loading, refetch } = useApi(() => attendanceEngineApi.daily(date), [date]);
   const { data: summaryRes, refetch: refetchSummary } = useApi(() => attendanceEngineApi.summary(date), [date]);
   const { data: staffRes } = useApi(() => staffApi.list(), []);
+  const { data: assignRes } = useApi(() => attendanceEngineApi.assignments(), []);
 
   const records: any[] = dailyRes?.data || [];
   const summary: any = summaryRes?.data || {};
   const allStaff: any[] = staffRes?.data || [];
+
+  // Build a set of user IDs who have a schedule assigned
+  const assignedUserIds = new Set<string>(
+    (assignRes?.data || []).filter((a: any) => a.schedule_name).map((a: any) => a.id)
+  );
+  const unassignedWeekOff = records.filter(
+    (r: any) => (r.status === "week_off" || r.status === "holiday") && !r.scheduledStart && !assignedUserIds.has(r.userId)
+  );
+  const hasUnassigned = unassignedWeekOff.length > 0;
 
   const { mutate: doCheckIn } = useMutation((d: any) => attendanceEngineApi.checkIn(d));
   const { mutate: doCheckout } = useMutation(({ id, data }: any) => attendanceEngineApi.checkout(id, data));
@@ -133,6 +143,27 @@ function DailyTab() {
         </div>
       </div>
 
+      {/* Unassigned employees banner */}
+      {!loading && hasUnassigned && (
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-4 py-3">
+          <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-800">
+              {unassignedWeekOff.length} موظف بدون جدول دوام معين
+            </p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              الموظفون بدون جدول يظهرون دائماً كـ "عطلة". عيّن لهم جدولاً لتتبع حضورهم.
+            </p>
+          </div>
+          <button
+            onClick={() => onTabChange("schedules")}
+            className="text-xs font-semibold text-amber-700 hover:text-amber-900 whitespace-nowrap border border-amber-300 px-3 py-1.5 rounded-xl hover:bg-amber-100 transition-colors"
+          >
+            تعيين الجداول
+          </button>
+        </div>
+      )}
+
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {STAT_CARDS.map(({ key, label, icon: Icon, color, bg }) => (
@@ -197,7 +228,13 @@ function DailyTab() {
                       </div>
                     </td>
                     <td className="py-3 px-3 text-xs text-gray-500 tabular-nums">
-                      {r.scheduledStart ? `${r.scheduledStart} - ${r.scheduledEnd}` : "—"}
+                      {r.scheduledStart
+                        ? `${r.scheduledStart} - ${r.scheduledEnd}`
+                        : (r.status === "week_off" || r.status === "holiday")
+                          ? assignedUserIds.has(r.userId)
+                            ? <span className="text-gray-400">يوم راحة</span>
+                            : <span className="text-amber-500 font-medium">بدون جدول</span>
+                          : "—"}
                     </td>
                     <td className="py-3 px-3 text-xs tabular-nums font-medium">
                       <span className={r.actualStart ? (r.lateMinutes > 0 ? "text-amber-600" : "text-emerald-600") : "text-gray-300"}>
@@ -290,6 +327,10 @@ function SchedulesTab() {
   const schedules: any[] = schedsRes?.data || [];
   const assignments: any[] = assignRes?.data || [];
   const allStaff: any[] = staffRes?.data || [];
+
+  // Employees who exist in staff list but have no schedule assigned
+  const assignedStaffIds = new Set<string>(assignments.filter((a: any) => a.schedule_name).map((a: any) => a.id));
+  const unassignedStaff = allStaff.filter((s: any) => !assignedStaffIds.has(s.id));
 
   const openCreate = () => {
     setEditing(null); setForm({ ...EMPTY_SCHED });
@@ -419,6 +460,33 @@ function SchedulesTab() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Unassigned staff warning */}
+      {unassignedStaff.length > 0 && schedules.length > 0 && (
+        <div className="bg-white rounded-2xl border border-amber-200 overflow-hidden">
+          <div className="px-5 py-3.5 border-b border-amber-100 bg-amber-50 flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <h2 className="font-semibold text-amber-800 text-sm">{unassignedStaff.length} موظف بدون جدول معين</h2>
+          </div>
+          <div className="divide-y divide-gray-50">
+            {unassignedStaff.map((s: any) => (
+              <div key={s.id} className="flex items-center justify-between px-5 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-50 text-amber-600 font-bold text-sm flex items-center justify-center shrink-0">{s.name?.[0]}</div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{s.name}</p>
+                    <p className="text-xs text-gray-400">{s.jobTitle || s.job_title}</p>
+                  </div>
+                </div>
+                <button onClick={() => { setShowAssign(schedules[0]); setSelectedUsers([s.id]); }}
+                  className="text-xs text-brand-600 font-medium hover:underline">
+                  تعيين جدول
+                </button>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -885,7 +953,7 @@ export function AttendancePage() {
       </div>
 
       {/* Tab Content */}
-      {tab === "daily"       && <DailyTab />}
+      {tab === "daily"       && <DailyTab onTabChange={setTab} />}
       {tab === "schedules"   && <SchedulesTab />}
       {tab === "adjustments" && <AdjustmentsTab />}
       {tab === "policies"    && <PoliciesTab />}

@@ -138,7 +138,7 @@ export function SchoolLayout() {
                 <GraduationCap className="w-4.5 h-4.5 text-white" />
               </div>
               <div className="leading-none">
-                <span className="text-[15px] font-black text-gray-900 block tracking-tight">نسق</span>
+                <span className="text-[15px] font-black text-gray-900 block tracking-tight">ترميز OS</span>
                 <span className="text-[10px] font-semibold text-emerald-600">للمدارس</span>
               </div>
             </div>
@@ -279,7 +279,7 @@ export function SchoolLayout() {
                 <div className="w-6 h-6 rounded-lg bg-emerald-600 flex items-center justify-center">
                   <GraduationCap className="w-3.5 h-3.5 text-white" />
                 </div>
-                <span className="font-black text-gray-900">نسق</span>
+                <span className="font-black text-gray-900">ترميز OS</span>
                 <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-full px-2 py-0.5">للمدارس</span>
               </div>
               {currentPage && (

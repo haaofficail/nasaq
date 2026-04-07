@@ -11,6 +11,78 @@
   --safe-area-right: env(safe-area-inset-right, 0px);
 }
 
+/* ── Tarmiz OS Design Tokens ─────────────────────────────── */
+:root {
+  /* Base colors */
+  --ink:       #2c2c2c;
+  --ink-soft:  #4a4a4a;
+  --ink-muted: #7a7a7a;
+  --cream:     #fefcf9;
+  --sand:      #f9f7f4;
+  --sand-d:    #f0ece6;
+
+  /* Semantic palette */
+  --sage-main:       #7fb09b;
+  --sage-soft:       #e8f2ed;
+  --sage-bg:         #f4f9f6;
+  --lavender-main:   #9b8fc4;
+  --lavender-soft:   #eee9f7;
+  --lavender-bg:     #f7f5fb;
+  --rose-main:       #d4917e;
+  --rose-soft:       #fae8e2;
+  --rose-bg:         #fdf5f2;
+  --sky-main:        #7eb5d4;
+  --sky-soft:        #e1eff7;
+  --sky-bg:          #f2f8fc;
+  --honey-main:      #d4b06a;
+  --honey-soft:      #f5edda;
+  --honey-bg:        #faf7ef;
+  --coral-main:      #c98b8b;
+  --coral-soft:      #f5e3e3;
+  --coral-bg:        #fdf6f6;
+
+  /* Typography scale */
+  --text-xs:   11px;
+  --text-sm:   12px;
+  --text-base: 14px;
+  --text-md:   15px;
+  --text-lg:   16px;
+  --text-xl:   18px;
+  --text-2xl:  20px;
+  --text-3xl:  28px;
+  --text-4xl:  36px;
+  --text-hero: clamp(36px, 6.2vw, 78px);
+
+  /* Radius */
+  --radius-sm:   8px;
+  --radius-md:   14px;
+  --radius-lg:   24px;
+  --radius-xl:   32px;
+  --radius-full: 100px;
+
+  /* Shadows */
+  --shadow-xs:      0 1px 2px rgba(0,0,0,0.02);
+  --shadow-sm:      0 4px 12px rgba(0,0,0,0.03);
+  --shadow-md:      0 8px 24px rgba(0,0,0,0.04);
+  --shadow-lg:      0 20px 56px rgba(0,0,0,0.04);
+  --shadow-xl:      0 24px 64px rgba(0,0,0,0.06);
+  --shadow-glow:    0 8px 32px rgba(127,176,155,0.2);
+  --shadow-glow-lg: 0 16px 48px rgba(127,176,155,0.3);
+
+  /* Motion */
+  --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast:    0.2s;
+  --dur-base:    0.4s;
+  --dur-slow:    0.6s;
+  --dur-reveal:  0.9s;
+  --stagger:     70ms;
+
+  /* Layout */
+  --max-width:     1200px;
+  --space-section: 140px;
+}
+
 @layer base {
   * {
     @apply border-gray-200;
@@ -19,30 +91,103 @@
   }
   body {
     @apply text-gray-900;
-    font-family: 'IBM Plex Sans Arabic', 'Tajawal', system-ui, sans-serif;
+    font-family: var(--nasaq-font-family, 'IBM Plex Sans Arabic', 'Tajawal', system-ui, sans-serif);
   }
 }
 
-/* ── System Theme Tokens ─────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════
+   NASAQ UNIFIED DESIGN SYSTEM — CSS Variables
+   ══════════════════════════════════════════════════════════════
+   طبقة واحدة — ثلاث مستويات:
+   1) Brand     — ديناميكي — يُحقن من site_config عبر applyOrgTheme()
+   2) Semantic  — ثابت — ألوان معنوية مستقلة عن الـ brand
+   3) State     — يشير للـ semantic — success/warning/danger/info
+   ══════════════════════════════════════════════════════════════ */
 :root {
-  --sys-brand:        #5b9bd5;
-  --sys-brand-dark:   #3a7abf;
-  --sys-brand-light:  #dbeafe;
-  --sys-brand-focus:  rgba(91,155,213,0.25);
-}
+  /* ── 1. Brand Layer (dynamic — overridden by applyOrgTheme) ── */
+  --brand-primary:       #5b9bd5;
+  --brand-primary-hover: #3a7abf;
+  --brand-primary-dark:  #3a7abf;
+  --brand-primary-soft:  #EBF3FB;
+  --brand-primary-light: #EBF3FB;
+  --brand-primary-200:   #ADCFEF;
+  --brand-primary-300:   #85B7E7;
+  --brand-primary-400:   #5b9bd5;
+  --brand-primary-700:   #2d6a9f;
+  --brand-primary-focus: rgba(91,155,213,0.25);
+  --brand-secondary:       #5b9bd5;
+  --brand-secondary-hover: #3a7abf;
+  --brand-secondary-soft:  #EBF3FB;
 
-[data-system="commerce"] {
-  --sys-brand:        #5b9bd5;
-  --sys-brand-dark:   #3a7abf;
-  --sys-brand-light:  #dbeafe;
-  --sys-brand-focus:  rgba(91,155,213,0.25);
-}
+  /* ── 2. Semantic Palette (fixed — meaningful colors) ── */
+  --semantic-sage:          #1a9e72;
+  --semantic-sage-soft:     #d1fae5;
+  --semantic-lavender:      #9b8fc4;
+  --semantic-lavender-soft: #ede9fe;
+  --semantic-rose:          #d4917e;
+  --semantic-rose-soft:     #fce7e7;
+  --semantic-sky:           #7eb5d4;
+  --semantic-sky-soft:      #e0f2fe;
+  --semantic-honey:         #d4b06a;
+  --semantic-honey-soft:    #fef3c7;
+  --semantic-coral:         #c98b8b;
+  --semantic-coral-soft:    #fee2e2;
 
-[data-system="school"] {
-  --sys-brand:        #059669;   /* emerald-600 */
-  --sys-brand-dark:   #047857;   /* emerald-700 */
-  --sys-brand-light:  #d1fae5;   /* emerald-100 */
-  --sys-brand-focus:  rgba(5,150,105,0.20);
+  /* ── 3. State Layer (semantic aliases) ── */
+  --color-success:      var(--semantic-sage);
+  --color-success-soft: var(--semantic-sage-soft);
+  --color-warning:      var(--semantic-honey);
+  --color-warning-soft: var(--semantic-honey-soft);
+  --color-danger:       #dc2626;
+  --color-danger-soft:  #fee2e2;
+  --color-info:         var(--semantic-sky);
+  --color-info-soft:    var(--semantic-sky-soft);
+
+  /* ── 4. businessType Accent Layer (يُحقن ديناميكياً — لا يستبدل brand) ── */
+  --accent-business:      var(--brand-primary);
+  --accent-business-soft: var(--brand-primary-soft);
+
+  /* ── 5. Typography ── */
+  --nasaq-font-family: 'IBM Plex Sans Arabic', 'Tajawal', system-ui, sans-serif;
+
+  /* ── 6. Surface ── */
+  --surface-page:     #f8fafc;
+  --surface-card:     #ffffff;
+  --surface-elevated: #ffffff;
+
+  /* ── 7. Text ── */
+  --text-primary:   #0f172a;
+  --text-secondary: #475569;
+  --text-muted:     #94a3b8;
+
+  /* ── 8. Border ── */
+  --border-default: #e2e8f0;
+  --border-strong:  #cbd5e1;
+
+  /* ── Legacy aliases (backward compat) ── */
+  --nasaq-primary:       var(--brand-primary);
+  --nasaq-primary-hover: var(--brand-primary-hover);
+  --nasaq-primary-dark:  var(--brand-primary-dark);
+  --nasaq-primary-soft:  var(--brand-primary-soft);
+  --nasaq-primary-light: var(--brand-primary-light);
+  --nasaq-primary-200:   var(--brand-primary-200);
+  --nasaq-primary-300:   var(--brand-primary-300);
+  --nasaq-primary-400:   var(--brand-primary-400);
+  --nasaq-primary-700:   var(--brand-primary-700);
+  --nasaq-primary-focus: var(--brand-primary-focus);
+  --nasaq-secondary:     var(--brand-secondary);
+  --sys-brand:           var(--brand-primary);
+  --sys-brand-dark:      var(--brand-primary-dark);
+  --sys-brand-light:     var(--brand-primary-soft);
+  --sys-brand-focus:     var(--brand-primary-focus);
+  --state-success:       var(--color-success);
+  --state-success-soft:  var(--color-success-soft);
+  --state-warning:       var(--color-warning);
+  --state-warning-soft:  var(--color-warning-soft);
+  --state-danger:        var(--color-danger);
+  --state-danger-soft:   var(--color-danger-soft);
+  --state-info:          var(--color-info);
+  --state-info-soft:     var(--color-info-soft);
 }
 
 /* Focus visible */

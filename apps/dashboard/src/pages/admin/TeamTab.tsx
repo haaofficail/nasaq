@@ -44,7 +44,7 @@ function TeamTab() {
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-between">
-        <SectionHeader title="فريق نسق" sub="موظفو المنصة وصلاحياتهم" />
+        <SectionHeader title="فريق ترميز OS" sub="موظفو المنصة وصلاحياتهم" />
         <button onClick={() => { setAddOpen(true); setFormErr(""); }}
           className="flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600">
           <Plus className="w-4 h-4" /> إضافة عضو
@@ -57,7 +57,7 @@ function TeamTab() {
           className="flex-1 text-sm outline-none" />
       </div>
 
-      {loading ? <Spinner /> : filtered.length === 0 ? <Empty icon={Users2} text="لا يوجد فريق نسق" /> : (
+      {loading ? <Spinner /> : filtered.length === 0 ? <Empty icon={Users2} text="لا يوجد فريق ترميز OS" /> : (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -113,7 +113,7 @@ function TeamTab() {
       )}
 
       {/* Add member modal */}
-      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="إضافة عضو جديد لفريق نسق">
+      <Modal open={addOpen} onClose={() => setAddOpen(false)} title="إضافة عضو جديد لفريق ترميز OS">
         <div className="space-y-3">
           <div>
             <label className="text-xs text-gray-500 block mb-1">الاسم *</label>
@@ -165,7 +165,7 @@ function TeamTab() {
       {/* Role edit modal */}
       <Modal open={!!editRole} onClose={() => setEditRole(null)} title="تعديل دور الموظف">
         <div className="space-y-3">
-          <p className="text-sm text-gray-500">اختر الدور المناسب لهذا الموظف في فريق نسق.</p>
+          <p className="text-sm text-gray-500">اختر الدور المناسب لهذا الموظف في فريق ترميز OS.</p>
           <div className="space-y-2">
             {ROLES_CONFIG.map((r) => (
               <div key={r.value} onClick={() => setEditRole((prev) => prev ? { ...prev, current: r.value } : null)}

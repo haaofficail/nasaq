@@ -42,7 +42,7 @@ export function AdminLoginPage() {
           <div className="w-14 h-14 rounded-2xl bg-brand-500 flex items-center justify-center shadow-lg shadow-brand-500/30 mb-4">
             <ShieldCheck className="w-7 h-7 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-white">لوحة إدارة نسق</h1>
+          <h1 className="text-xl font-bold text-white">لوحة إدارة ترميز OS</h1>
           <p className="text-sm text-gray-400 mt-1">للمسؤولين فقط</p>
         </div>
 

@@ -1,10 +1,11 @@
-import { useMemo } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { useMemo, useEffect } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ArrowLeft, QrCode, Printer, ExternalLink, AlertTriangle, CalendarCheck, Users, Package } from "lucide-react";
 import { clsx } from "clsx";
 import { getProfile } from "@/lib/dashboardProfiles";
 import { ProfileDashboard } from "@/components/dashboard/ProfileDashboard";
 import { useOrgContext } from "@/hooks/useOrgContext";
+import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useApi } from "@/hooks/useApi";
@@ -78,8 +79,17 @@ function SmartAlertsBanner({ businessType }: { businessType: string }) {
 }
 
 // ── WelcomeView ────────────────────────────────────────────────────────────────
-// Shown to new orgs (≤7 days old AND no bookings yet)
-function WelcomeView({ orgName, businessType }: { orgName: string; businessType: string }) {
+// Shown to new orgs (≤7 days old AND no bookings yet) — once per org only
+function WelcomeView({ orgName, businessType, orgId }: { orgName: string; businessType: string; orgId: string }) {
+  const navigate = useNavigate();
+  const { platformName } = usePlatformConfig();
+  const welcomeKey = `nasaq_welcome_seen_${orgId}`;
+
+  // Mark as seen on first render — never show again after this
+  useEffect(() => {
+    localStorage.setItem(welcomeKey, "1");
+  }, [welcomeKey]);
+
   const action = getDashboardPrimaryAction(businessType);
   const Icon = action.icon;
 
@@ -116,9 +126,9 @@ function WelcomeView({ orgName, businessType }: { orgName: string; businessType:
     <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-4 gap-8">
       {/* Greeting */}
       <div className="space-y-2">
-        <p className="text-sm text-gray-400 font-medium">مرحباً بك في نسق</p>
+        <p className="text-sm text-gray-400 font-medium">مرحباً بك في {platformName}</p>
         <h1 className="text-2xl font-bold text-gray-900">
-          {orgName ? `أهلاً، ${orgName}` : "ابدأ رحلتك مع نسق"}
+          {orgName ? `أهلاً، ${orgName}` : `ابدأ رحلتك مع ${platformName}`}
         </h1>
         <p className="text-sm text-gray-500 max-w-sm mx-auto">
           كل شيء جاهز — خطوة واحدة تفصلك عن تشغيل منشأتك
@@ -153,13 +163,13 @@ function WelcomeView({ orgName, businessType }: { orgName: string; businessType:
       </div>
 
       {/* Skip to dashboard */}
-      <Link
-        to="/dashboard?skip_welcome=1"
+      <button
+        onClick={() => navigate("/dashboard", { replace: true })}
         className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
       >
         <span>تخطي إلى الداشبورد</span>
         <ArrowLeft className="w-3.5 h-3.5" />
-      </Link>
+      </button>
     </div>
   );
 }
@@ -228,8 +238,9 @@ export function DashboardPage() {
     return daysOld <= 7;
   }, [bookingsLoading, profileLoading, bookingsRes, profileRes]);
 
-  // Check if user explicitly skipped the welcome screen
-  const skipWelcome = new URLSearchParams(window.location.search).get("skip_welcome") === "1";
+  const orgId: string = user?.orgId ?? context?.orgId ?? "";
+  const welcomeKey = `nasaq_welcome_seen_${orgId}`;
+  const welcomeSeen = localStorage.getItem(welcomeKey) === "1";
 
   const orgName: string = profileRes?.data?.name ?? user?.orgName ?? "";
 
@@ -257,9 +268,9 @@ export function DashboardPage() {
     );
   }
 
-  // New org → show focused welcome view (unless explicitly skipped)
-  if (isNewOrg && !skipWelcome) {
-    return <WelcomeView orgName={orgName} businessType={businessType} />;
+  // New org → show focused welcome view once (never again after first visit)
+  if (isNewOrg && !welcomeSeen) {
+    return <WelcomeView orgName={orgName} businessType={businessType} orgId={orgId} />;
   }
 
   // Single source of truth: dashboardProfile from backend org context.
@@ -280,8 +291,8 @@ export function DashboardPage() {
         <ActiveDashboardHeader orgName={orgName} businessType={businessType} />
       )}
 
-      {/* Public page quick access — للمنشآت التي لديها صفحة حجز عامة فقط */}
-      {orgSlug && businessType !== "flower_shop" && (
+      {/* Public page quick access */}
+      {orgSlug && (
         <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl px-5 py-3.5">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
@@ -293,13 +304,19 @@ export function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <Link
+              to="/dashboard/storefront?tab=qr"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 transition-colors"
+            >
+              <QrCode className="w-3.5 h-3.5" /> باركود QR
+            </Link>
             <a
               href={`/s/${orgSlug}/print`}
               target="_blank"
               rel="noreferrer"
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 transition-colors"
             >
-              <Printer className="w-3.5 h-3.5" /> طباعة QR
+              <Printer className="w-3.5 h-3.5" /> طباعة
             </a>
             <a
               href={`/s/${orgSlug}`}
