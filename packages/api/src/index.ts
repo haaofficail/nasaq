@@ -838,10 +838,24 @@ try {
   }
 
   let ran = 0;
+  const isIgnorableMigrationError = (err: unknown): boolean => {
+    if (!err || typeof err !== "object") return false;
+    const maybe = err as { code?: string; message?: string };
+    // PostgreSQL duplicate-ish error codes:
+    // 42710 duplicate_object, 42P07 duplicate_table, 42701 duplicate_column
+    if (maybe.code && ["42710", "42P07", "42701"].includes(maybe.code)) return true;
+    return typeof maybe.message === "string" && maybe.message.toLowerCase().includes("already exists");
+  };
+
   for (const file of files) {
     if (applied.has(file)) continue;
     const sqlText = fs.readFileSync(path.join(migrationsDir, file), "utf8");
-    await directPool.query(sqlText);
+    try {
+      await directPool.query(sqlText);
+    } catch (err) {
+      if (!isIgnorableMigrationError(err)) throw err;
+      log.warn({ migration: file, err }, "migration already exists — marking as applied");
+    }
     await directPool.query("INSERT INTO _migrations (name) VALUES ($1) ON CONFLICT DO NOTHING", [file]);
     log.info({ migration: file }, "migration applied");
     ran++;

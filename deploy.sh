@@ -1,17 +1,25 @@
 #!/bin/bash
 # =============================================================
-# نسق — نشر التحديثات على السيرفر
-# الاستخدام: bash deploy.sh "وصف التغيير"
+# نسق — سكربت النشر الرسمي على السيرفر
+# التشغيل (على السيرفر):
+#   bash /var/www/nasaq/deploy.sh
 # =============================================================
-set -e
+set -euo pipefail
 
-MSG="${1:-تحديث}"
+APP_DIR="${APP_DIR:-/var/www/nasaq}"
+BRANCH="${BRANCH:-main}"
 
-echo "📦 حفظ التغييرات في git..."
-git add -A
-git commit -m "$MSG" 2>/dev/null || echo "(لا يوجد تغيير جديد)"
+cd "$APP_DIR"
 
-echo "🚀 رفع على السيرفر..."
-git push server main
+echo "→ جلب أحدث نسخة من GitHub (${BRANCH})..."
+git fetch origin
+git checkout "$BRANCH"
+git pull origin "$BRANCH"
 
-echo "✅ انتهى!"
+echo "→ تثبيت الاعتمادات (pnpm)..."
+pnpm install --frozen-lockfile
+
+echo "→ إعادة تشغيل الخدمة..."
+pm2 restart all --update-env
+
+echo "✅ تم النشر بنجاح"
