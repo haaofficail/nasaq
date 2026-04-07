@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { flowerBuilderApi, teamApi } from "@/lib/api";
 import {
   Truck, Phone, MapPin, Clock, MessageSquare, CheckCircle2,
   AlertTriangle, Package, Loader2, X, User, ChevronDown, ChevronUp,
-  RefreshCw, Gift,
+  RefreshCw, Gift, Search,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { fmtDate } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
+import { confirmDialog } from "@/components/ui";
 
 // ─── Types ──────────────────────────────────────────────────────────────────────
 interface FlowerOrder {
@@ -97,16 +98,52 @@ function StatusBadge({ status }: { status: string }) {
 // ─── Skeleton ───────────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
-      <div className="flex items-center justify-between mb-3">
-        <div className="h-4 bg-gray-100 rounded w-24" />
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
+        <div className="flex items-center gap-2">
+          <div className="h-4 bg-gray-100 rounded w-20" />
+          <div className="h-5 bg-gray-100 rounded-lg w-14" />
+        </div>
         <div className="h-6 bg-gray-100 rounded-lg w-20" />
       </div>
-      <div className="space-y-2">
-        <div className="h-3 bg-gray-100 rounded w-2/3" />
-        <div className="h-3 bg-gray-100 rounded w-1/2" />
-        <div className="h-3 bg-gray-100 rounded w-3/4" />
+      {/* Body */}
+      <div className="px-4 py-3 space-y-2.5">
+        <div className="flex items-center gap-2">
+          <div className="w-3.5 h-3.5 bg-gray-100 rounded-full shrink-0" />
+          <div className="h-4 bg-gray-100 rounded w-32" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3.5 h-3.5 bg-gray-100 rounded-full shrink-0" />
+          <div className="h-3 bg-gray-100 rounded w-24" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3.5 h-3.5 bg-gray-100 rounded-full shrink-0" />
+          <div className="h-3 bg-gray-100 rounded w-3/4" />
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3.5 h-3.5 bg-gray-100 rounded-full shrink-0" />
+          <div className="h-3 bg-gray-100 rounded w-1/2" />
+        </div>
       </div>
+      {/* Footer */}
+      <div className="px-4 py-3 border-t border-gray-50 flex items-center justify-between">
+        <div className="h-5 bg-gray-100 rounded w-20" />
+        <div className="flex items-center gap-2">
+          <div className="h-9 bg-gray-100 rounded-xl w-24" />
+          <div className="h-9 bg-gray-100 rounded-xl w-24" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SkeletonKpiCard() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
+      <div className="w-9 h-9 rounded-xl bg-gray-100 mb-3" />
+      <div className="h-7 bg-gray-100 rounded w-10 mb-1.5" />
+      <div className="h-3 bg-gray-100 rounded w-16" />
     </div>
   );
 }
@@ -285,9 +322,16 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
   const isGift = !!(order.recipient_name || order.recipient_phone);
 
   const handleAdvance = async (nextStatus: string) => {
+    const label = STATUS_CONFIG[nextStatus]?.label ?? nextStatus;
+    const ok = await confirmDialog({
+      title: `تغيير حالة الطلب إلى "${label}"؟`,
+      message: `سيتم تحديث حالة الطلب ${order.order_number}`,
+      confirmLabel: label,
+    });
+    if (!ok) return;
     const res = await updateMut.mutate({ status: nextStatus });
     if (res) {
-      toast.success(`تم تحديث الحالة: ${STATUS_CONFIG[nextStatus]?.label ?? nextStatus}`);
+      toast.success(`تم تحديث الحالة: ${label}`);
       onRefresh();
     }
   };
@@ -316,7 +360,7 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
     actionButtons.push(
       <button key="assign-florist" onClick={() => setShowFlorist(true)}
         className="flex-1 px-3 py-3 rounded-xl border border-amber-400 text-amber-600 hover:bg-amber-50 text-xs font-semibold transition-colors">
-        تعيين مترميز OS
+        تعيين منسق ورد
       </button>
     );
     actionButtons.push(
@@ -457,7 +501,7 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
             <div className="flex items-center gap-2 text-xs text-gray-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
               <User className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span>
-                <span className="text-gray-500">المترميز OS: </span>
+                <span className="text-gray-500">المنسق: </span>
                 <span className="font-medium">{(order as any).assigned_staff_name}</span>
               </span>
             </div>
@@ -500,8 +544,8 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
       {/* Florist Assignment Modal */}
       {showFlorist && (
         <StaffSelectModal
-          title="تعيين مترميز OS للطلب"
-          filterKeyword="مترميز OS"
+          title="تعيين منسق ورد للطلب"
+          filterKeyword="منسق"
           orderId={order.id}
           onClose={() => setShowFlorist(false)}
           onConfirm={handleAssignFlorist}
@@ -534,11 +578,13 @@ const TYPE_TABS: { value: DeliveryTypeFilter; label: string }[] = [
 export function FlowerDeliveryPage() {
   const [activeStatus, setActiveStatus]         = useState("");
   const [activeType,   setActiveType]           = useState<DeliveryTypeFilter>("");
+  const [searchQuery, setSearchQuery]           = useState("");
 
   const { data: statsRes, loading: statsLoading } = useApi(
     () => flowerBuilderApi.orderStats(),
     []
   );
+  // Server-side status filter (API supports it) + client-side search/type for instant UX
   const { data: ordersRes, loading: ordersLoading, error, refetch } = useApi(
     () => flowerBuilderApi.orders(activeStatus ? { status: activeStatus } : undefined),
     [activeStatus]
@@ -547,12 +593,23 @@ export function FlowerDeliveryPage() {
   const stats = statsRes?.data ?? {};
   const allOrders: FlowerOrder[] = ordersRes?.data ?? [];
 
-  // Client-side filter by delivery type
-  const orders = activeType === ""
-    ? allOrders
-    : activeType === "pickup"
-    ? allOrders.filter(o => o.delivery_type === "pickup" || o.delivery_type === "store")
-    : allOrders.filter(o => o.delivery_type !== "pickup" && o.delivery_type !== "store");
+  // Client-side filter: delivery type + search (status already filtered server-side)
+  const orders = useMemo(() => {
+    return allOrders.filter(o => {
+      // Delivery type filter (client-side since API doesn't support it)
+      if (activeType === "pickup" && o.delivery_type !== "pickup" && o.delivery_type !== "store") return false;
+      if (activeType === "delivery" && (o.delivery_type === "pickup" || o.delivery_type === "store")) return false;
+      // Search filter
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase().trim();
+        return (o.customer_name ?? "").toLowerCase().includes(q) ||
+               (o.customer_phone ?? "").toLowerCase().includes(q) ||
+               (o.order_number ?? "").toLowerCase().includes(q) ||
+               (o.driver_name ?? "").toLowerCase().includes(q);
+      }
+      return true;
+    });
+  }, [allOrders, activeType, searchQuery]);
 
   const todayOrders = allOrders.filter(o => {
     const d = new Date(o.created_at);
@@ -568,7 +625,8 @@ export function FlowerDeliveryPage() {
     return n > 0 ? n : allOrders.filter(o => o.status === s).length;
   };
 
-  const todayRevenue = todayOrders.reduce((sum, o) => sum + Number(o.total ?? o.subtotal ?? 0), 0);
+  // Pending = not yet out for delivery (pending + preparing + ready)
+  const pendingDeliveries = countByStatus("pending") + countByStatus("preparing") + countByStatus("ready");
 
   const todayDateStr = new Date().toLocaleDateString("ar-SA", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
 
@@ -596,45 +654,43 @@ export function FlowerDeliveryPage() {
         </div>
       </div>
 
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center mb-3">
-            <Package className="w-4 h-4 text-blue-500" />
-          </div>
-          <p className="text-2xl font-bold text-blue-600 tabular-nums">
-            {statsLoading ? <span className="inline-block h-7 w-8 bg-gray-100 rounded animate-pulse" /> : countByStatus("pending")}
-          </p>
-          <p className="text-xs text-gray-400 mt-0.5">جديد</p>
+      {/* Delivery Summary KPIs */}
+      {statsLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => <SkeletonKpiCard key={i} />)}
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center mb-3">
-            <Truck className="w-4 h-4 text-amber-500" />
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center mb-3">
+              <Package className="w-4 h-4 text-brand-500" />
+            </div>
+            <p className="text-2xl font-bold text-brand-500 tabular-nums">{todayOrders.length}</p>
+            <p className="text-xs text-gray-400 mt-0.5">اجمالي طلبات اليوم</p>
           </div>
-          <p className="text-2xl font-bold text-amber-600 tabular-nums">
-            {statsLoading ? <span className="inline-block h-7 w-8 bg-gray-100 rounded animate-pulse" /> : countByStatus("out_for_delivery")}
-          </p>
-          <p className="text-xs text-gray-400 mt-0.5">في الطريق</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
-          <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center mb-3">
-            <CheckCircle2 className="w-4 h-4 text-green-500" />
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center mb-3">
+              <Clock className="w-4 h-4 text-blue-500" />
+            </div>
+            <p className="text-2xl font-bold text-blue-600 tabular-nums">{pendingDeliveries}</p>
+            <p className="text-xs text-gray-400 mt-0.5">بانتظار التوصيل</p>
           </div>
-          <p className="text-2xl font-bold text-green-600 tabular-nums">
-            {statsLoading ? <span className="inline-block h-7 w-8 bg-gray-100 rounded animate-pulse" /> : countByStatus("delivered")}
-          </p>
-          <p className="text-xs text-gray-400 mt-0.5">تم التوصيل</p>
-        </div>
-        <div className="bg-white rounded-2xl border border-brand-500/20 p-4">
-          <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center mb-3">
-            <span className="text-sm font-bold text-brand-500">ر.س</span>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center mb-3">
+              <Truck className="w-4 h-4 text-amber-500" />
+            </div>
+            <p className="text-2xl font-bold text-amber-600 tabular-nums">{countByStatus("out_for_delivery")}</p>
+            <p className="text-xs text-gray-400 mt-0.5">في الطريق</p>
           </div>
-          <p className="text-2xl font-bold text-brand-500 tabular-nums">
-            {statsLoading ? <span className="inline-block h-7 w-14 bg-gray-100 rounded animate-pulse" /> : todayRevenue.toLocaleString("en-US")}
-          </p>
-          <p className="text-xs text-gray-400 mt-0.5">إجمالي اليوم</p>
+          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center mb-3">
+              <CheckCircle2 className="w-4 h-4 text-green-500" />
+            </div>
+            <p className="text-2xl font-bold text-green-600 tabular-nums">{countByStatus("delivered")}</p>
+            <p className="text-xs text-gray-400 mt-0.5">تم التوصيل</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Delivery Type Segment */}
       <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-2xl px-4 py-3">
@@ -657,6 +713,18 @@ export function FlowerDeliveryPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="بحث باسم العميل، رقم الجوال، رقم الطلب، أو اسم المندوب..."
+          className="w-full bg-white border border-gray-100 rounded-2xl pr-10 pl-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500"
+        />
       </div>
 
       {/* Status Filter Tabs */}
@@ -685,26 +753,29 @@ export function FlowerDeliveryPage() {
               {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : error ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <AlertTriangle className="w-10 h-10 text-red-300 mb-3" />
-              <p className="text-sm font-semibold text-gray-700">حدث خطأ في تحميل الطلبات</p>
-              <p className="text-xs text-gray-400 mt-1">{error}</p>
-              <button
-                onClick={refetch}
-                className="mt-3 px-4 py-2 rounded-xl bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition-colors"
-              >
+            <div className="flex flex-col items-center justify-center h-64 gap-3">
+              <AlertTriangle className="w-9 h-9 text-red-400" />
+              <p className="text-sm text-red-500">حدث خطأ في تحميل بيانات التوصيل</p>
+              <button onClick={refetch} className="text-sm text-brand-500 hover:underline">
                 إعادة المحاولة
               </button>
             </div>
           ) : orders.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-4">
+            <div className="flex flex-col items-center justify-center h-64 gap-3">
+              <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center">
                 <Truck className="w-7 h-7 text-gray-300" />
               </div>
-              <p className="text-sm font-semibold text-gray-700">لا توجد طلبات</p>
-              <p className="text-xs text-gray-400 mt-1">
-                {activeStatus ? `لا توجد طلبات بحالة "${STATUS_CONFIG[activeStatus]?.label ?? activeStatus}"` : "لم يتم استلام أي طلبات بعد"}
-              </p>
+              <div className="text-center">
+                <p className="text-sm font-semibold text-gray-600">لا توجد طلبات توصيل</p>
+                <p className="text-xs text-gray-400 mt-1">
+                  {activeStatus
+                    ? `لا توجد طلبات بحالة "${STATUS_CONFIG[activeStatus]?.label ?? activeStatus}" لهذا اليوم`
+                    : "لم يتم استلام أي طلبات توصيل بعد لهذا اليوم"}
+                </p>
+              </div>
+              <button onClick={refetch} className="text-sm text-brand-500 hover:underline">
+                تحديث
+              </button>
             </div>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2">

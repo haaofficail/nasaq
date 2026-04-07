@@ -6,7 +6,7 @@ import {
   Flower2, Gift, Layers, ShoppingBag, Truck,
   Banknote, CreditCard, Clock, Plus, Minus, Trash2,
   CheckCircle2, Printer, RefreshCw, AlertTriangle,
-  Loader2, ShoppingCart, X,
+  Loader2, ShoppingCart, X, Search,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -81,6 +81,14 @@ const DELIVERY_FEES = [30, 50, 70];
 
 const VAT_RATE = 0.15;
 
+// Map builder catalog English types → Arabic POS categories
+const CATALOG_TYPE_MAP: Record<string, string> = {
+  packaging: "هدايا وإكسسوارات",
+  gift:      "هدايا وإكسسوارات",
+  card:      "هدايا وإكسسوارات",
+  delivery:  "توصيل وخدمات",
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtPrice(n: number | undefined | null) {
@@ -120,6 +128,16 @@ function ProductCard({ item, onAdd }: { item: CatalogItem; onAdd: (item: Catalog
       <span className="text-base font-bold text-brand-500">{fmtPrice(item.price)}</span>
       <StockBadge stock={item.stock} />
     </button>
+  );
+}
+
+function SkeletonProductCard() {
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-3 flex flex-col gap-2 animate-pulse">
+      <div className="h-4 bg-gray-100 rounded-lg w-3/4" />
+      <div className="h-5 bg-gray-100 rounded-lg w-1/2" />
+      <div className="h-3 bg-gray-100 rounded-lg w-1/3" />
+    </div>
   );
 }
 
@@ -174,11 +192,13 @@ export function FlowerPOSPage() {
   // Catalog state
   const [activeCategory, setActiveCategory] = useState("الكل");
   const [catalogItems, setCatalogItems] = useState<CatalogItem[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Cart state
   const [cart, setCart] = useState<CartItem[]>([]);
   const [saleType, setSaleType] = useState<SaleType>("regular");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const [customerName, setCustomerName] = useState("");
 
   // Form states
   const [giftDetails, setGiftDetails] = useState<GiftDetails>({
@@ -206,15 +226,7 @@ export function FlowerPOSPage() {
 
   // ─── Fetch catalog ──────────────────────────────────────────────────────────
 
-  // Map builder catalog English types → Arabic POS categories
-  const CATALOG_TYPE_MAP: Record<string, string> = {
-    packaging: "هدايا وإكسسوارات",
-    gift:      "هدايا وإكسسوارات",
-    card:      "هدايا وإكسسوارات",
-    delivery:  "توصيل وخدمات",
-  };
-
-  const { data: posCatalogData, loading: invLoading, error: invError } = useApi(
+  const { data: posCatalogData, loading: invLoading, error: invError, refetch: refetchPosCatalog } = useApi(
     () => flowerMasterApi.posCatalog(),
     []
   );
@@ -276,10 +288,12 @@ export function FlowerPOSPage() {
 
   // ─── Derived values ─────────────────────────────────────────────────────────
 
-  const filteredItems =
-    activeCategory === "الكل"
-      ? catalogItems
-      : catalogItems.filter((item) => item.type === activeCategory);
+  const filteredItems = catalogItems.filter((item) => {
+    const matchesCategory = activeCategory === "الكل" || item.type === activeCategory;
+    const q = searchQuery.trim().toLowerCase();
+    const matchesSearch = !q || item.name.toLowerCase().includes(q);
+    return matchesCategory && matchesSearch;
+  });
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const deliveryExtra = saleType === "delivery" ? deliveryDetails.deliveryFee : 0;
@@ -290,11 +304,19 @@ export function FlowerPOSPage() {
   const cartEmpty = cart.length === 0;
 
   // ─── Cart operations ─────────────────────────────────────────────────────────
+  // NOTE: Stock checks below are UI-level only (optimistic).
+  // Backend MUST validate stock availability at checkout to prevent overselling
+  // in concurrent scenarios. See: POST /flower-builder/orders
 
   function addToCart(item: CatalogItem) {
     setCart((prev) => {
       const existing = prev.find((c) => c.id === item.id);
       if (existing) {
+        // UI-level stock guard (stock=999 means unlimited e.g. packages)
+        if (item.stock < 999 && existing.qty >= item.stock) {
+          toast.error(`الكمية المتاحة من "${item.name}" هي ${item.stock} فقط`);
+          return prev;
+        }
         return prev.map((c) =>
           c.id === item.id ? { ...c, qty: c.qty + 1 } : c
         );
@@ -304,9 +326,17 @@ export function FlowerPOSPage() {
   }
 
   function increaseQty(id: string) {
-    setCart((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, qty: c.qty + 1 } : c))
-    );
+    setCart((prev) => {
+      const item = prev.find((c) => c.id === id);
+      if (!item) return prev;
+      // UI-level stock guard
+      const catalogItem = catalogItems.find((ci) => ci.id === id);
+      if (catalogItem && catalogItem.stock < 999 && item.qty >= catalogItem.stock) {
+        toast.error(`الكمية المتاحة من "${item.name}" هي ${catalogItem.stock} فقط`);
+        return prev;
+      }
+      return prev.map((c) => (c.id === id ? { ...c, qty: c.qty + 1 } : c));
+    });
   }
 
   function decreaseQty(id: string) {
@@ -326,6 +356,7 @@ export function FlowerPOSPage() {
     setCart([]);
     setSaleType("regular");
     setPaymentMethod("cash");
+    setCustomerName("");
     setGiftDetails({ recipientName: "", recipientPhone: "", message: "", isSurprise: false });
     setDeliveryDetails({ recipientName: "", recipientPhone: "", address: "", deliveryTime: "", deliveryFee: 30, message: "" });
     setPickupDetails({ pickupTime: "", recipientName: "" });
@@ -338,6 +369,40 @@ export function FlowerPOSPage() {
     if (cartEmpty) {
       toast.error("السلة فارغة");
       return;
+    }
+
+    // Validate required fields per sale type
+    if (saleType === "delivery") {
+      if (!deliveryDetails.recipientName.trim()) {
+        toast.error("اسم المستلم مطلوب للتوصيل");
+        return;
+      }
+      if (!deliveryDetails.recipientPhone.trim()) {
+        toast.error("رقم جوال المستلم مطلوب للتوصيل");
+        return;
+      }
+      if (!deliveryDetails.address.trim()) {
+        toast.error("عنوان التوصيل مطلوب");
+        return;
+      }
+    }
+
+    if (saleType === "gift") {
+      if (!giftDetails.recipientName.trim()) {
+        toast.error("اسم المستلم مطلوب للهدية");
+        return;
+      }
+      if (!giftDetails.recipientPhone.trim()) {
+        toast.error("رقم جوال المستلم مطلوب للهدية");
+        return;
+      }
+    }
+
+    if (saleType === "pickup") {
+      if (!pickupDetails.pickupTime) {
+        toast.error("وقت الاستلام مطلوب");
+        return;
+      }
     }
 
     setProcessing(true);
@@ -354,6 +419,7 @@ export function FlowerPOSPage() {
         total,
         payment_method: paymentMethod,
         sale_type: saleType,
+        ...(customerName.trim() && { customer_name: customerName.trim() }),
         ...(saleType === "gift" && { gift_details: giftDetails }),
         ...(saleType === "delivery" && { delivery_details: deliveryDetails }),
         ...(saleType === "pickup" && { pickup_details: pickupDetails }),
@@ -467,23 +533,35 @@ export function FlowerPOSPage() {
             })}
           </div>
 
+          {/* Search bar */}
+          <div className="bg-white px-4 pt-3 pb-2 shrink-0">
+            <div className="relative">
+              <Search size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="بحث عن منتج..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500"
+              />
+            </div>
+          </div>
+
           {/* Product grid */}
           <div className="flex-1 overflow-y-auto p-4">
             {isLoading ? (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {Array.from({ length: 9 }).map((_, i) => (
-                  <div key={i} className="rounded-2xl border border-gray-100 bg-white p-3 h-24 animate-pulse">
-                    <div className="h-4 bg-gray-100 rounded-lg w-3/4 mb-2" />
-                    <div className="h-5 bg-gray-100 rounded-lg w-1/2 mb-2" />
-                    <div className="h-3 bg-gray-100 rounded-lg w-1/3" />
-                  </div>
+                  <SkeletonProductCard key={i} />
                 ))}
               </div>
             ) : invError && catalogItems.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
-                <AlertTriangle size={32} className="text-amber-400" />
-                <p className="text-gray-500 text-sm">تعذّر تحميل المنتجات</p>
-                <p className="text-gray-400 text-xs">تحقق من الاتصال وأعد تحميل الصفحة</p>
+              <div className="flex flex-col items-center justify-center h-64 gap-3">
+                <AlertTriangle className="w-9 h-9 text-red-400" />
+                <p className="text-sm text-red-500">حدث خطأ في تحميل المنتجات</p>
+                <button onClick={refetchPosCatalog} className="text-sm text-brand-500 hover:underline">
+                  إعادة المحاولة
+                </button>
               </div>
             ) : filteredItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
@@ -519,10 +597,14 @@ export function FlowerPOSPage() {
             </div>
 
             {cartEmpty ? (
-              <div className="flex flex-col items-center justify-center h-40 gap-2 text-center">
-                <ShoppingCart size={28} className="text-gray-200" />
-                <p className="text-gray-400 text-sm">السلة فارغة</p>
-                <p className="text-gray-300 text-xs">اضغط على منتج لإضافته</p>
+              <div className="flex flex-col items-center justify-center h-40 gap-3 text-center">
+                <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center">
+                  <ShoppingCart size={24} className="text-gray-300" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-400">السلة فارغة</p>
+                  <p className="text-xs text-gray-300 mt-0.5">أضف منتجات للسلة</p>
+                </div>
               </div>
             ) : (
               <div>
@@ -565,6 +647,18 @@ export function FlowerPOSPage() {
                 </div>
               </div>
             )}
+
+            {/* Customer name */}
+            <div>
+              <p className="text-xs font-medium text-gray-400 mb-1.5">اسم العميل</p>
+              <input
+                type="text"
+                placeholder="اسم العميل (اختياري)"
+                value={customerName}
+                onChange={(e) => setCustomerName(e.target.value)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500"
+              />
+            </div>
 
             {/* Sale type tabs */}
             <div>

@@ -3,18 +3,19 @@
  * الطلبات: بيع مباشر + طلبات خدمات تحت كيان Order واحد
  * نوع الطلب: sale | service
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { flowerBuilderApi, serviceOrdersApi } from "@/lib/api";
 import {
   Package, Phone, ChevronDown, ChevronRight, RefreshCw, AlertTriangle,
   MapPin, MessageSquare, Clock, Loader2, Calendar, Briefcase,
-  ArrowLeft, ShoppingBag,
+  ArrowLeft, ShoppingBag, Search, ClipboardList,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { fmtDate } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
+import { confirmDialog } from "@/components/ui";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type OrderCat = "all" | "sale" | "service";
@@ -147,9 +148,16 @@ function SaleOrderRow({ order, onStatusUpdate }: { order: SaleOrder; onStatusUpd
   const handleAdvance = async () => {
     const next = SALE_STATUS_NEXT[order.status];
     if (!next) return;
+    const nextLabel = SALE_STATUS[next]?.label ?? next;
+    const ok = await confirmDialog({
+      title: `تغيير الحالة إلى "${nextLabel}"؟`,
+      message: `سيتم تحديث حالة الطلب ${order.order_number}`,
+      confirmLabel: nextLabel,
+    });
+    if (!ok) return;
     const res = await updateMut.mutate(next);
     if (res) {
-      toast.success(`تم تحديث الحالة إلى: ${SALE_STATUS[next]?.label ?? next}`);
+      toast.success(`تم تحديث الحالة إلى: ${nextLabel}`);
       onStatusUpdate();
     }
   };
@@ -338,8 +346,9 @@ function ServiceOrderRow({ order }: { order: any }) {
 export function FlowerOrdersPage() {
   const [orderCat, setOrderCat] = useState<OrderCat>("all");
   const [saleStatus, setSaleStatus] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  // Always load both in parallel — combined view merges client-side
+  // Server-side status filter (API supports it) + client-side search for instant UX
   const { data: saleStatsRes } = useApi(() => flowerBuilderApi.orderStats(), []);
   const { data: serviceStatsRes } = useApi(() => serviceOrdersApi.stats(), []);
 
@@ -352,14 +361,35 @@ export function FlowerOrdersPage() {
     []
   );
 
-  const saleOrders: SaleOrder[] = saleRes?.data ?? [];
-  const serviceOrders: any[] = serviceRes?.data ?? [];
+  const allSaleOrders: SaleOrder[] = saleRes?.data ?? [];
+  const allServiceOrders: any[] = serviceRes?.data ?? [];
   const saleStats = saleStatsRes?.data ?? {};
   const serviceStats = serviceStatsRes?.data ?? {};
 
+  // Client-side search only — status is filtered server-side
+  const saleOrders = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return allSaleOrders;
+    return allSaleOrders.filter(o =>
+      (o.customer_name ?? "").toLowerCase().includes(q) ||
+      (o.customer_phone ?? "").toLowerCase().includes(q) ||
+      (o.order_number ?? "").toLowerCase().includes(q)
+    );
+  }, [allSaleOrders, searchQuery]);
+
+  const serviceOrders = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return allServiceOrders;
+    return allServiceOrders.filter((o: any) =>
+      (o.customer_name ?? "").toLowerCase().includes(q) ||
+      (o.customer_phone ?? "").toLowerCase().includes(q) ||
+      (o.order_number ?? "").toLowerCase().includes(q)
+    );
+  }, [allServiceOrders, searchQuery]);
+
   const totalRevenue =
     Number(saleStats.total_revenue ?? 0) +
-    serviceOrders.reduce((s: number, o: any) => s + Number(o.total_amount ?? o.total ?? 0), 0);
+    allServiceOrders.reduce((s: number, o: any) => s + Number(o.total_amount ?? o.total ?? 0), 0);
 
   const loading = saleLoading || serviceLoading;
 
@@ -369,10 +399,19 @@ export function FlowerOrdersPage() {
   const showSale    = orderCat === "all" || orderCat === "sale";
   const showService = orderCat === "all" || orderCat === "service";
 
-  const CAT_TABS: { value: OrderCat; label: string; count?: number }[] = [
-    { value: "all",     label: "كل الطلبات", count: (saleOrders.length + serviceOrders.length) || undefined },
-    { value: "sale",    label: "بيع مباشر",  count: saleOrders.length || undefined },
-    { value: "service", label: "طلبات خدمات", count: serviceOrders.length || undefined },
+  // Count badges for sale status tabs (computed from unfiltered sale orders)
+  const saleStatusCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const o of allSaleOrders) {
+      counts[o.status] = (counts[o.status] ?? 0) + 1;
+    }
+    return counts;
+  }, [allSaleOrders]);
+
+  const CAT_TABS: { value: OrderCat; label: string; count: number }[] = [
+    { value: "all",     label: "كل الطلبات", count: allSaleOrders.length + allServiceOrders.length },
+    { value: "sale",    label: "بيع مباشر",  count: allSaleOrders.length },
+    { value: "service", label: "طلبات خدمات", count: allServiceOrders.length },
   ];
 
   return (
@@ -380,9 +419,14 @@ export function FlowerOrdersPage() {
 
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">الطلبات</h1>
-          <p className="text-sm text-gray-400 mt-0.5">بيع مباشر، طلبات خدمات، وتنفيذ ميداني</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-brand-50 flex items-center justify-center">
+            <ClipboardList className="w-5 h-5 text-brand-500" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">الطلبات</h1>
+            <p className="text-xs text-gray-400">إدارة طلبات البيع والخدمات</p>
+          </div>
         </div>
         <button onClick={refetchAll} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-100 hover:bg-gray-50 text-gray-400 transition-colors">
           <RefreshCw className="w-4 h-4" />
@@ -392,8 +436,8 @@ export function FlowerOrdersPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "بيع مباشر",    value: String(saleStats.total ?? saleOrders.length ?? 0),     color: "text-brand-600" },
-          { label: "طلبات خدمات",  value: String(serviceStats.active ?? serviceOrders.length ?? 0), color: "text-violet-600" },
+          { label: "بيع مباشر",    value: String(saleStats.total ?? allSaleOrders.length ?? 0),     color: "text-brand-600" },
+          { label: "طلبات خدمات",  value: String(serviceStats.active ?? allServiceOrders.length ?? 0), color: "text-violet-600" },
           { label: "تحت التنفيذ",  value: String(serviceStats.in_progress ?? 0),                  color: "text-amber-600" },
           { label: "الإيرادات",    value: `${totalRevenue.toLocaleString("en-US")} ر.س`,           color: "text-emerald-600" },
         ].map(s => (
@@ -419,7 +463,7 @@ export function FlowerOrdersPage() {
               )}
             >
               {t.label}
-              {t.count != null && t.count > 0 && (
+              {t.count > 0 && (
                 <span className={clsx("text-[10px] px-1.5 py-0.5 rounded-full font-bold",
                   orderCat === t.value ? "bg-brand-100 text-brand-600" : "bg-gray-100 text-gray-500"
                 )}>{t.count}</span>
@@ -430,25 +474,48 @@ export function FlowerOrdersPage() {
           {/* Status filter — only for sale view */}
           {orderCat === "sale" && (
             <div className="mr-auto pr-2 flex items-center gap-1">
-              {SALE_STATUS_TABS.map(t => (
-                <button
-                  key={t.value}
-                  onClick={() => setSaleStatus(t.value)}
-                  className={clsx(
-                    "px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors whitespace-nowrap",
-                    saleStatus === t.value ? "bg-brand-500 text-white border-brand-500" : "border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700"
-                  )}
-                >
-                  {t.label}
-                </button>
-              ))}
+              {SALE_STATUS_TABS.map(t => {
+                const cnt = t.value === "" ? allSaleOrders.length : (saleStatusCounts[t.value] ?? 0);
+                return (
+                  <button
+                    key={t.value}
+                    onClick={() => setSaleStatus(t.value)}
+                    className={clsx(
+                      "px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors whitespace-nowrap flex items-center gap-1",
+                      saleStatus === t.value ? "bg-brand-500 text-white border-brand-500" : "border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                    )}
+                  >
+                    {t.label}
+                    {cnt > 0 && (
+                      <span className={clsx(
+                        "text-[10px] px-1 py-px rounded-full font-bold min-w-[18px] text-center",
+                        saleStatus === t.value ? "bg-white/20 text-white" : "bg-gray-100 text-gray-400"
+                      )}>{cnt}</span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
 
+        {/* Search bar */}
+        <div className="px-4 pt-3">
+          <div className="relative">
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="بحث باسم العميل، رقم الهاتف، أو رقم الطلب..."
+              className="w-full border border-gray-200 rounded-xl pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500"
+            />
+          </div>
+        </div>
+
         {/* List */}
         {loading ? (
-          <div>{Array.from({ length: 4 }).map((_, i) => <SkeletonRow key={i} />)}</div>
+          <div>{Array.from({ length: 6 }).map((_, i) => <SkeletonRow key={i} />)}</div>
         ) : saleError ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
             <AlertTriangle className="w-10 h-10 text-red-300 mb-3" />
@@ -502,8 +569,17 @@ export function FlowerOrdersPage() {
               </>
             )}
 
+            {/* Search empty state */}
+            {searchQuery.trim() && saleOrders.length === 0 && serviceOrders.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <Search className="w-10 h-10 text-gray-200 mb-3" />
+                <p className="text-sm font-semibold text-gray-700">لا توجد نتائج</p>
+                <p className="text-xs text-gray-400 mt-1">لم يتم العثور على طلبات تطابق &quot;{searchQuery}&quot;</p>
+              </div>
+            )}
+
             {/* Combined empty state */}
-            {orderCat === "all" && saleOrders.length === 0 && serviceOrders.length === 0 && (
+            {!searchQuery.trim() && orderCat === "all" && saleOrders.length === 0 && serviceOrders.length === 0 && (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <Package className="w-12 h-12 text-gray-200 mb-3" />
                 <p className="text-sm font-semibold text-gray-700">لا توجد طلبات بعد</p>

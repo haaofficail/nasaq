@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import {
   Users, Phone, TrendingUp, Search,
   X, ShoppingBag, AlertCircle, RefreshCw, ChevronRight,
-  Award,
+  Award, Clock,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { flowerIntelligenceApi } from "@/lib/api";
@@ -119,9 +119,17 @@ function CustomerRow({ customer, onClick }: { customer: Customer; onClick: () =>
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1 mt-0.5">
-          <Phone className="w-3 h-3 text-gray-400 shrink-0" />
-          <span className="text-xs text-gray-400 tabular-nums" dir="ltr">{customer.customer_phone}</span>
+        <div className="flex items-center gap-3 mt-0.5">
+          <a href={`tel:${customer.customer_phone}`} onClick={e => e.stopPropagation()} className="text-brand-500 hover:underline flex items-center gap-1">
+            <Phone className="w-3 h-3 shrink-0" />
+            <span className="text-xs tabular-nums" dir="ltr">{customer.customer_phone}</span>
+          </a>
+          {customer.last_order_at && (
+            <span className="flex items-center gap-1 text-xs text-gray-400">
+              <Clock className="w-3 h-3 shrink-0" />
+              آخر طلب: {fmtDate(customer.last_order_at)}
+            </span>
+          )}
         </div>
       </div>
 
@@ -187,9 +195,14 @@ export function FlowerCustomersPage() {
     <div className="space-y-5" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">عملاء الورود</h1>
-          <p className="text-sm text-gray-400 mt-0.5">سجل كامل لكل عميل وتاريخ طلباته</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-brand-50 flex items-center justify-center">
+            <Users className="w-5 h-5 text-brand-500" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">عملاء الورد</h1>
+            <p className="text-xs text-gray-400">تحليل وتصنيف العملاء</p>
+          </div>
         </div>
         <button
           onClick={refetch}

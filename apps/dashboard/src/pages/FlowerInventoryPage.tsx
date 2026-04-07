@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { flowerMasterApi, flowerSuppliersApi } from "@/lib/api";
+import { toast } from "@/hooks/useToast";
+import { confirmDialog } from "@/components/ui";
 import {
   Flower2, Plus, X, AlertTriangle, RefreshCw,
-  Package, TrendingDown, Clock, ChevronDown, Leaf,
+  Package, TrendingDown, Clock, ChevronDown, Leaf, Search,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { fmtDate } from "@/lib/utils";
@@ -44,6 +46,78 @@ const QUALITY_AR: Record<string, string> = {
 const BLOOM_AR: Record<string, string> = {
   bud: "برعم", semi_open: "نصف مفتوح", open: "مفتوح", full_bloom: "مفتوح كلياً",
 };
+
+// ─── Skeletons ────────────────────────────────────────────────────────────────
+function StockSkeleton() {
+  return (
+    <div className="divide-y divide-gray-50">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="px-5 py-4 flex items-center gap-4 animate-pulse">
+          <div className="w-10 h-10 rounded-xl bg-gray-100 shrink-0" />
+          <div className="flex-1 min-w-0 space-y-2">
+            <div className="h-4 bg-gray-100 rounded w-2/5" />
+            <div className="h-3 bg-gray-100 rounded w-1/4" />
+          </div>
+          <div className="shrink-0 space-y-2 text-left">
+            <div className="h-5 bg-gray-100 rounded w-16" />
+            <div className="h-3 bg-gray-100 rounded w-10" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BatchSkeleton() {
+  return (
+    <div className="divide-y divide-gray-50">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="px-5 py-4 animate-pulse">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gray-100 shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <div className="h-4 bg-gray-100 rounded w-1/3" />
+                <div className="h-5 bg-gray-100 rounded-full w-14" />
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="h-3 bg-gray-100 rounded w-20" />
+                <div className="h-3 bg-gray-100 rounded w-24" />
+                <div className="h-3 bg-gray-100 rounded w-16" />
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="h-3 bg-gray-100 rounded w-24" />
+                <div className="h-3 bg-gray-100 rounded w-20" />
+              </div>
+            </div>
+            <div className="shrink-0">
+              <div className="h-7 bg-gray-100 rounded-lg w-20" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SearchInput({ value, onChange, placeholder }: {
+  value: string; onChange: (v: string) => void; placeholder: string;
+}) {
+  return (
+    <div className="px-5 py-3 border-b border-gray-100">
+      <div className="relative">
+        <Search className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+        <input
+          type="text"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+          className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500 pr-9"
+        />
+      </div>
+    </div>
+  );
+}
 
 function Modal({ title, onClose, children }: {
   title: string; onClose: () => void; children: React.ReactNode;
@@ -108,6 +182,33 @@ export function FlowerInventoryPage() {
 
   const refetchAll = () => { refetchStock(); refetchBatches(); refetchExpiring(); };
 
+  // ─── Search State ─────────────────────────────────────────────────────────
+  const [stockSearch, setStockSearch] = useState("");
+  const [batchSearch, setBatchSearch] = useState("");
+
+  const stockQ = stockSearch.trim().toLowerCase();
+  const filteredStock = stockQ
+    ? stock.filter((r) =>
+        (r.display_name_ar || "").toLowerCase().includes(stockQ)
+        || r.flower_type.toLowerCase().includes(stockQ)
+      )
+    : stock;
+
+  const batchQ = batchSearch.trim().toLowerCase();
+  const filteredBatches = batchQ
+    ? batches.filter((b) =>
+        b.batchNumber.toLowerCase().includes(batchQ)
+        || (b.variant?.displayNameAr || "").toLowerCase().includes(batchQ)
+        || (b.variant?.flowerType || "").toLowerCase().includes(batchQ)
+        || (QUALITY_AR[b.qualityStatus] || b.qualityStatus).toLowerCase().includes(batchQ)
+      )
+    : batches;
+
+  const totalExpiringCost = expiring.reduce((sum, b) => {
+    const cost = parseFloat(b.unitCost || "0");
+    return sum + (b.quantityRemaining * cost);
+  }, 0);
+
   // ─── Receive Batch Modal ───────────────────────────────────────────────────
   const [receiveModal, setReceiveModal] = useState(false);
   const [receiveForm, setReceiveForm] = useState({
@@ -129,32 +230,71 @@ export function FlowerInventoryPage() {
     const qty = inputInBunches
       ? (receiveForm.bunchCount ? parseInt(receiveForm.bunchCount) * bunchSize : 0)
       : parseInt(receiveForm.quantityReceived);
-    if (!receiveForm.variantId || !qty || !receiveForm.expiryEstimated) return;
-    await receiveMut.mutate({
+    if (!receiveForm.variantId) {
+      toast.error("اختر نوع الوردة");
+      return;
+    }
+    if (!qty || qty <= 0) {
+      toast.error("أدخل الكمية المستلمة");
+      return;
+    }
+    if (!receiveForm.expiryEstimated) {
+      toast.error("حدد تاريخ انتهاء الصلاحية المتوقع");
+      return;
+    }
+    const res = await receiveMut.mutate({
       ...receiveForm,
       supplierId: receiveForm.supplierId || undefined,
       quantityReceived: qty,
       bunchCount: inputInBunches ? parseInt(receiveForm.bunchCount) : undefined,
     });
-    setReceiveModal(false);
-    setInputInBunches(false);
-    setReceiveForm({ variantId: "", supplierId: "", batchNumber: "", quantityReceived: "", bunchCount: "", unitCost: "", expiryEstimated: "", currentBloomStage: "bud", notes: "" });
-    refetchAll();
+    if (res) {
+      toast.success(`تم استلام ${qty} ساق بنجاح`);
+      setReceiveModal(false);
+      setInputInBunches(false);
+      setReceiveForm({ variantId: "", supplierId: "", batchNumber: "", quantityReceived: "", bunchCount: "", unitCost: "", expiryEstimated: "", currentBloomStage: "bud", notes: "" });
+      refetchAll();
+    }
   };
 
   // ─── Consume Modal ─────────────────────────────────────────────────────────
+  // NOTE: Stock limit below is UI-level only. Backend MUST validate
+  // remaining quantity in FEFO consume endpoint to prevent over-withdrawal
+  // in concurrent scenarios. See: POST /flower-master/consume
   const [consumeModal, setConsumeModal] = useState(false);
   const [consumeForm, setConsumeForm] = useState({ variantId: "", quantity: "", reason: "" });
   const consumeMut = useMutation((d: any) => flowerMasterApi.consumeBatch(d));
   const setC = (f: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setConsumeForm(p => ({ ...p, [f]: e.target.value }));
 
+  // Available stock for selected variant in consume modal
+  const consumeVariantStock = useMemo(() => {
+    if (!consumeForm.variantId) return 0;
+    const row = stock.find(r => r.variant_id === consumeForm.variantId);
+    return parseInt(row?.total_remaining || "0");
+  }, [consumeForm.variantId, stock]);
+
   const saveConsume = async () => {
-    if (!consumeForm.variantId || !consumeForm.quantity) return;
-    await consumeMut.mutate({ ...consumeForm, quantity: parseInt(consumeForm.quantity) });
-    setConsumeModal(false);
-    setConsumeForm({ variantId: "", quantity: "", reason: "" });
-    refetchAll();
+    if (!consumeForm.variantId) {
+      toast.error("اختر نوع الوردة");
+      return;
+    }
+    const qty = parseInt(consumeForm.quantity);
+    if (!qty || qty <= 0) {
+      toast.error("أدخل الكمية المراد سحبها");
+      return;
+    }
+    if (qty > consumeVariantStock) {
+      toast.error(`الكمية المتاحة ${consumeVariantStock} ساق فقط`);
+      return;
+    }
+    const res = await consumeMut.mutate({ ...consumeForm, quantity: qty });
+    if (res) {
+      toast.success(`تم سحب ${qty} ساق بنجاح`);
+      setConsumeModal(false);
+      setConsumeForm({ variantId: "", quantity: "", reason: "" });
+      refetchAll();
+    }
   };
 
   // ─── Update Batch Quality ──────────────────────────────────────────────────
@@ -278,7 +418,7 @@ export function FlowerInventoryPage() {
         {tab === "stock" && (
           <div>
             {stockLoading ? (
-              <div className="p-8 text-center text-sm text-gray-400">جارٍ التحميل...</div>
+              <StockSkeleton />
             ) : stock.length === 0 ? (
               <div className="p-12 text-center">
                 <Flower2 className="w-10 h-10 text-gray-200 mx-auto mb-3" />
@@ -286,8 +426,15 @@ export function FlowerInventoryPage() {
                 <p className="text-xs text-gray-300 mt-1">استلم دفعة جديدة للبدء</p>
               </div>
             ) : (
-              <div className="divide-y divide-gray-50">
-                {stock.map((r) => {
+              <>
+                <SearchInput value={stockSearch} onChange={setStockSearch} placeholder="بحث بالاسم أو نوع الوردة..." />
+                {filteredStock.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <p className="text-sm text-gray-400">لا توجد نتائج تطابق البحث</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-50">
+                    {filteredStock.map((r) => {
                   const remaining = parseInt(r.total_remaining || "0");
                   const expiringQty = parseInt(r.expiring_stock || "0");
                   const batches = parseInt(r.batch_count || "0");
@@ -320,7 +467,9 @@ export function FlowerInventoryPage() {
                     </div>
                   );
                 })}
-              </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -329,15 +478,22 @@ export function FlowerInventoryPage() {
         {tab === "batches" && (
           <div>
             {batchesLoading ? (
-              <div className="p-8 text-center text-sm text-gray-400">جارٍ التحميل...</div>
+              <BatchSkeleton />
             ) : batches.length === 0 ? (
               <div className="p-12 text-center">
                 <Package className="w-10 h-10 text-gray-200 mx-auto mb-3" />
                 <p className="text-sm text-gray-400">لا توجد دفعات</p>
               </div>
             ) : (
+              <>
+                <SearchInput value={batchSearch} onChange={setBatchSearch} placeholder="بحث برقم الدفعة، اسم الوردة، أو الحالة..." />
+                {filteredBatches.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <p className="text-sm text-gray-400">لا توجد نتائج تطابق البحث</p>
+                  </div>
+                ) : (
               <div className="divide-y divide-gray-50">
-                {batches.map((b) => {
+                {filteredBatches.map((b) => {
                   const days = b.daysUntilExpiry ?? 999;
                   const urgent = days <= 3;
                   const warning = days <= 7 && days > 3;
@@ -387,8 +543,21 @@ export function FlowerInventoryPage() {
                           <select
                             value={b.qualityStatus}
                             onChange={async (e) => {
-                              await updateQualityMut.mutate({ id: b.id, qualityStatus: e.target.value });
-                              refetchBatches();
+                              const newStatus = e.target.value;
+                              const newLabel = QUALITY_AR[newStatus] ?? newStatus;
+                              // Revert select immediately; will refetch on success
+                              e.target.value = b.qualityStatus;
+                              const ok = await confirmDialog({
+                                title: `تغيير حالة الجودة إلى "${newLabel}"؟`,
+                                message: `دفعة #${b.batchNumber}`,
+                                confirmLabel: newLabel,
+                              });
+                              if (!ok) return;
+                              const res = await updateQualityMut.mutate({ id: b.id, qualityStatus: newStatus });
+                              if (res) {
+                                toast.success(`تم تحديث حالة الجودة إلى "${newLabel}"`);
+                                refetchBatches();
+                              }
                             }}
                             className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-brand-300"
                           >
@@ -402,6 +571,8 @@ export function FlowerInventoryPage() {
                   );
                 })}
               </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -410,13 +581,19 @@ export function FlowerInventoryPage() {
         {tab === "expiring" && (
           <div>
             {expiringLoading ? (
-              <div className="p-8 text-center text-sm text-gray-400">جارٍ التحميل...</div>
+              <BatchSkeleton />
             ) : expiring.length === 0 ? (
               <div className="p-12 text-center">
                 <Clock className="w-10 h-10 text-gray-200 mx-auto mb-3" />
                 <p className="text-sm text-gray-400">لا توجد دفعات تنتهي خلال 7 أيام</p>
               </div>
             ) : (
+              <>
+                {totalExpiringCost > 0 && (
+                  <div className="px-5 py-3 bg-amber-50 border-b border-amber-100">
+                    <p className="text-sm text-amber-700 font-medium">القيمة المعرضة: {totalExpiringCost.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س</p>
+                  </div>
+                )}
               <div className="divide-y divide-gray-50">
                 {expiring.map((b) => {
                   const days = b.daysUntilExpiry ?? 0;
@@ -452,6 +629,7 @@ export function FlowerInventoryPage() {
                   );
                 })}
               </div>
+              </>
             )}
           </div>
         )}
@@ -574,6 +752,17 @@ export function FlowerInventoryPage() {
             </Field>
             <Field label="الكمية المسحوبة (سيقان) *">
               <input type="number" value={consumeForm.quantity} onChange={setC("quantity")} placeholder="مثال: 50" className={inputCls} />
+              {consumeForm.variantId && (
+                <p className={clsx(
+                  "text-xs mt-1 font-medium",
+                  consumeVariantStock <= 0 ? "text-red-500" : consumeVariantStock < 20 ? "text-amber-600" : "text-gray-500"
+                )}>
+                  المتاح: {consumeVariantStock.toLocaleString("en-US")} ساق
+                  {consumeForm.quantity && parseInt(consumeForm.quantity) > consumeVariantStock && (
+                    <span className="text-red-500 mr-2">— الكمية المطلوبة تتجاوز المتاح</span>
+                  )}
+                </p>
+              )}
             </Field>
             <Field label="سبب السحب">
               <input value={consumeForm.reason} onChange={setC("reason")} placeholder="مثال: تنسيق طلب رقم 123" className={inputCls} />

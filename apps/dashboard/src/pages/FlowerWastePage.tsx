@@ -1,10 +1,51 @@
 import { useState } from "react";
-import { AlertTriangle, Plus, AlertCircle, Loader2, Trash2 } from "lucide-react";
+import { AlertTriangle, Plus, AlertCircle, Trash2, TrendingDown } from "lucide-react";
 import { clsx } from "clsx";
 import { toast } from "@/hooks/useToast";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { flowerWasteApi, flowerMasterApi } from "@/lib/api";
 import { Modal, Input, Select, Button } from "@/components/ui";
+
+// ─── Skeletons ────────────────────────────────────────────────────────────────
+function SummarySkeleton() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+      <div className="h-4 bg-gray-100 rounded w-32 mb-4 animate-pulse" />
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="bg-gray-50 rounded-xl p-3 animate-pulse space-y-2">
+            <div className="h-6 bg-gray-100 rounded w-16" />
+            <div className="h-3 bg-gray-100 rounded w-20" />
+            <div className="h-3 bg-gray-100 rounded w-12" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TableSkeleton() {
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-gray-50 border-b border-gray-100 px-4 py-3 flex gap-16">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-4 bg-gray-100 rounded w-16 animate-pulse" />
+        ))}
+      </div>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <div key={i} className="px-4 py-4 border-t border-gray-50 flex items-center gap-16 animate-pulse">
+          <div className="space-y-1.5 flex-1">
+            <div className="h-4 bg-gray-100 rounded w-28" />
+            <div className="h-3 bg-gray-100 rounded w-16" />
+          </div>
+          <div className="h-4 bg-gray-100 rounded w-14" />
+          <div className="h-4 bg-gray-100 rounded w-20" />
+          <div className="h-3 bg-gray-100 rounded w-16" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 const REASONS = [
   { value: "natural_expiry",  label: "انتهاء الصلاحية الطبيعي" },
@@ -62,8 +103,18 @@ export function FlowerWastePage() {
   };
 
   if (loading) return (
-    <div className="flex items-center justify-center h-64">
-      <Loader2 className="w-7 h-7 animate-spin text-brand-500" />
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-red-50 flex items-center justify-center">
+          <AlertTriangle className="w-5 h-5 text-red-500" />
+        </div>
+        <div>
+          <h1 className="text-lg font-bold text-gray-900">هدر الورد</h1>
+          <p className="text-xs text-gray-400">تتبع وتسجيل الهدر والتالف</p>
+        </div>
+      </div>
+      <SummarySkeleton />
+      <TableSkeleton />
     </div>
   );
   if (error) return (
@@ -83,9 +134,14 @@ export function FlowerWastePage() {
     <div className="space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-gray-900">سجل الهدر</h1>
-          <p className="text-sm text-gray-400 mt-0.5">تتبع هدر الورد الطبيعي بدقة لتحسين المشتريات</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-red-50 flex items-center justify-center">
+            <AlertTriangle className="w-5 h-5 text-red-500" />
+          </div>
+          <div>
+            <h1 className="text-lg font-bold text-gray-900">هدر الورد</h1>
+            <p className="text-xs text-gray-400">تتبع وتسجيل الهدر والتالف</p>
+          </div>
         </div>
         <Button icon={Plus} onClick={() => setShowForm(true)}>تسجيل هدر</Button>
       </div>
@@ -94,7 +150,7 @@ export function FlowerWastePage() {
       {summary.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 p-4">
           <p className="text-sm font-semibold text-gray-700 mb-3">ملخص آخر 30 يوم</p>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {summary.map((s: any) => (
               <div key={s.reason} className="bg-red-50/50 rounded-xl p-3">
                 <p className="text-lg font-bold text-red-600">{s.total_stems_estimate}</p>
@@ -102,6 +158,24 @@ export function FlowerWastePage() {
                 <p className="text-xs text-gray-400">{s.entries} تسجيل</p>
               </div>
             ))}
+            {/* Cost Impact Card */}
+            {(() => {
+              const totalWasteCost = summary.reduce((sum: number, s: any) => {
+                const qty = parseFloat(s.total_stems_estimate || "0");
+                const cost = parseFloat(s.avg_unit_cost || "0");
+                return sum + (qty * cost);
+              }, 0);
+              return totalWasteCost > 0 ? (
+                <div className="bg-red-100/60 rounded-xl p-3 border border-red-200/50">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <TrendingDown className="w-3.5 h-3.5 text-red-500" />
+                    <p className="text-xs font-medium text-red-600">القيمة المهدرة</p>
+                  </div>
+                  <p className="text-lg font-bold text-red-700">{totalWasteCost.toLocaleString("en-US", { maximumFractionDigits: 0 })} ر.س</p>
+                  <p className="text-xs text-red-400">آخر 30 يوم</p>
+                </div>
+              ) : null;
+            })()}
           </div>
         </div>
       )}

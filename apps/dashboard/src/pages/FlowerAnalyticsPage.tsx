@@ -1,8 +1,34 @@
 import { useState } from "react";
 import { useApi } from "@/hooks/useApi";
 import { flowerMasterApi, serviceOrdersApi } from "@/lib/api";
-import { Flower2, AlertTriangle, TrendingUp, BarChart3, Clock, ChevronDown, ChevronUp, RefreshCw, ClipboardList } from "lucide-react";
+import { Flower2, AlertTriangle, AlertCircle, TrendingUp, BarChart3, Clock, ChevronDown, ChevronUp, RefreshCw, ClipboardList } from "lucide-react";
 import { clsx } from "clsx";
+
+function SkeletonSection() {
+  return (
+    <div className="space-y-5">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[1, 2, 3, 4].map(i => (
+          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3 animate-pulse">
+            <div className="w-10 h-10 rounded-xl bg-gray-100 shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-5 bg-gray-100 rounded w-2/3" />
+              <div className="h-3 bg-gray-100 rounded w-1/2" />
+            </div>
+          </div>
+        ))}
+      </div>
+      {[1, 2, 3].map(i => (
+        <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse space-y-3">
+          <div className="h-4 bg-gray-100 rounded w-1/3" />
+          <div className="h-3 bg-gray-100 rounded w-full" />
+          <div className="h-3 bg-gray-100 rounded w-3/4" />
+          <div className="h-3 bg-gray-100 rounded w-1/2" />
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function Section({ title, icon: Icon, children, defaultOpen = true }: {
   title: string; icon: any; children: React.ReactNode; defaultOpen?: boolean;
@@ -58,23 +84,38 @@ export function FlowerAnalyticsPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-16 text-gray-400 text-sm">جاري التحليل...</div>
+        <SkeletonSection />
+      ) : !data && !loading ? (
+        <div className="bg-white rounded-2xl border border-gray-100 p-8 flex flex-col items-center justify-center text-center">
+          <AlertCircle className="w-10 h-10 text-red-300 mb-3" />
+          <p className="text-sm font-semibold text-gray-700">حدث خطأ في تحميل التحليلات</p>
+          <p className="text-xs text-gray-400 mt-1">تعذّر الاتصال بالخادم أو حدث خطأ غير متوقع</p>
+          <button
+            onClick={refetch}
+            className="mt-4 flex items-center gap-2 px-4 py-2 rounded-xl bg-gray-100 text-sm text-gray-600 hover:bg-gray-200 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            إعادة المحاولة
+          </button>
+        </div>
       ) : (
         <>
           {/* KPI summary */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "تكلفة الهدر",     value: `${totalWasteCost.toFixed(0)} ر.س`, color: "text-red-500 bg-red-50",      icon: AlertTriangle },
-              { label: "وحدات هدر",       value: `${totalWasteUnits.toFixed(0)} ساق`, color: "text-orange-500 bg-orange-50", icon: Flower2 },
-              { label: "تنتهي خلال 7 أيام", value: expiring.length,                    color: "text-amber-600 bg-amber-50",   icon: Clock },
-              { label: "تحتاج إعادة طلب", value: reorderNeeded.length,                color: "text-purple-600 bg-purple-50", icon: RefreshCw },
-            ].map(({ label, value, color, icon: Icon }) => (
+              { label: "تكلفة الهدر",     value: totalWasteCost.toFixed(0), unit: "ر.س", color: "text-red-500 bg-red-50",      icon: AlertTriangle },
+              { label: "وحدات هدر",       value: totalWasteUnits.toFixed(0), unit: "وحدة", color: "text-orange-500 bg-orange-50", icon: Flower2 },
+              { label: "تنتهي خلال 7 أيام", value: expiring.length,         unit: "صنف", color: "text-amber-600 bg-amber-50",   icon: Clock },
+              { label: "تحتاج إعادة طلب", value: reorderNeeded.length,     unit: "صنف", color: "text-purple-600 bg-purple-50", icon: RefreshCw },
+            ].map(({ label, value, unit, color, icon: Icon }) => (
               <div key={label} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
                 <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", color.split(" ")[1])}>
                   <Icon className={clsx("w-5 h-5", color.split(" ")[0])} />
                 </div>
                 <div>
-                  <p className="text-lg font-bold text-gray-900 tabular-nums">{value}</p>
+                  <p className="text-lg font-bold text-gray-900 tabular-nums">
+                    {value} <span className="text-xs font-medium text-gray-400">{unit}</span>
+                  </p>
                   <p className="text-xs text-gray-400">{label}</p>
                 </div>
               </div>
