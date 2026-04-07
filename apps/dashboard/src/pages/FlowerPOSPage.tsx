@@ -290,7 +290,8 @@ export function FlowerPOSPage() {
 
   const filteredItems = catalogItems.filter((item) => {
     const matchesCategory = activeCategory === "الكل" || item.type === activeCategory;
-    const matchesSearch = searchQuery.trim() === "" || item.name.toLowerCase().includes(searchQuery.trim().toLowerCase());
+    const q = searchQuery.trim().toLowerCase();
+    const matchesSearch = !q || item.name.toLowerCase().includes(q);
     return matchesCategory && matchesSearch;
   });
 

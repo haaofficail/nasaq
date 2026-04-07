@@ -186,22 +186,22 @@ export function FlowerInventoryPage() {
   const [stockSearch, setStockSearch] = useState("");
   const [batchSearch, setBatchSearch] = useState("");
 
-  const filteredStock = stockSearch.trim()
-    ? stock.filter((r) => {
-        const q = stockSearch.trim().toLowerCase();
-        return (r.display_name_ar || "").toLowerCase().includes(q)
-          || r.flower_type.toLowerCase().includes(q);
-      })
+  const stockQ = stockSearch.trim().toLowerCase();
+  const filteredStock = stockQ
+    ? stock.filter((r) =>
+        (r.display_name_ar || "").toLowerCase().includes(stockQ)
+        || r.flower_type.toLowerCase().includes(stockQ)
+      )
     : stock;
 
-  const filteredBatches = batchSearch.trim()
-    ? batches.filter((b) => {
-        const q = batchSearch.trim().toLowerCase();
-        return b.batchNumber.toLowerCase().includes(q)
-          || (b.variant?.displayNameAr || "").toLowerCase().includes(q)
-          || (b.variant?.flowerType || "").toLowerCase().includes(q)
-          || (QUALITY_AR[b.qualityStatus] || b.qualityStatus).toLowerCase().includes(q);
-      })
+  const batchQ = batchSearch.trim().toLowerCase();
+  const filteredBatches = batchQ
+    ? batches.filter((b) =>
+        b.batchNumber.toLowerCase().includes(batchQ)
+        || (b.variant?.displayNameAr || "").toLowerCase().includes(batchQ)
+        || (b.variant?.flowerType || "").toLowerCase().includes(batchQ)
+        || (QUALITY_AR[b.qualityStatus] || b.qualityStatus).toLowerCase().includes(batchQ)
+      )
     : batches;
 
   const totalExpiringCost = expiring.reduce((sum, b) => {
