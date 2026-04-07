@@ -147,9 +147,11 @@ function SaleOrderRow({ order, onStatusUpdate }: { order: SaleOrder; onStatusUpd
   const handleAdvance = async () => {
     const next = SALE_STATUS_NEXT[order.status];
     if (!next) return;
+    const nextLabel = SALE_STATUS[next]?.label ?? next;
+    if (!window.confirm(`هل تريد تغيير الحالة إلى "${nextLabel}"؟`)) return;
     const res = await updateMut.mutate(next);
     if (res) {
-      toast.success(`تم تحديث الحالة إلى: ${SALE_STATUS[next]?.label ?? next}`);
+      toast.success(`تم تحديث الحالة إلى: ${nextLabel}`);
       onStatusUpdate();
     }
   };
@@ -340,13 +342,13 @@ export function FlowerOrdersPage() {
   const [saleStatus, setSaleStatus] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Always load both in parallel — combined view merges client-side
+  // Load all orders once — filter client-side for instant tab switching
   const { data: saleStatsRes } = useApi(() => flowerBuilderApi.orderStats(), []);
   const { data: serviceStatsRes } = useApi(() => serviceOrdersApi.stats(), []);
 
   const { data: saleRes, loading: saleLoading, error: saleError, refetch: refetchSale } = useApi(
-    () => flowerBuilderApi.orders(saleStatus ? { status: saleStatus } : undefined),
-    [saleStatus]
+    () => flowerBuilderApi.orders(),
+    []
   );
   const { data: serviceRes, loading: serviceLoading, refetch: refetchService } = useApi(
     () => serviceOrdersApi.list({}),
@@ -358,25 +360,29 @@ export function FlowerOrdersPage() {
   const saleStats = saleStatsRes?.data ?? {};
   const serviceStats = serviceStatsRes?.data ?? {};
 
-  // Client-side search filter
-  const matchesSearch = (o: { customer_name?: string; customer_phone?: string; order_number?: string }) => {
-    if (!searchQuery.trim()) return true;
+  // Client-side filtering: status + search — no re-fetch needed
+  const saleOrders = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    return (
+    return allSaleOrders.filter(o => {
+      if (saleStatus && o.status !== saleStatus) return false;
+      if (q) {
+        return (o.customer_name ?? "").toLowerCase().includes(q) ||
+               (o.customer_phone ?? "").toLowerCase().includes(q) ||
+               (o.order_number ?? "").toLowerCase().includes(q);
+      }
+      return true;
+    });
+  }, [allSaleOrders, saleStatus, searchQuery]);
+
+  const serviceOrders = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return allServiceOrders;
+    return allServiceOrders.filter((o: any) =>
       (o.customer_name ?? "").toLowerCase().includes(q) ||
       (o.customer_phone ?? "").toLowerCase().includes(q) ||
       (o.order_number ?? "").toLowerCase().includes(q)
     );
-  };
-
-  const saleOrders = useMemo(
-    () => allSaleOrders.filter(matchesSearch),
-    [allSaleOrders, searchQuery],
-  );
-  const serviceOrders = useMemo(
-    () => allServiceOrders.filter(matchesSearch),
-    [allServiceOrders, searchQuery],
-  );
+  }, [allServiceOrders, searchQuery]);
 
   const totalRevenue =
     Number(saleStats.total_revenue ?? 0) +

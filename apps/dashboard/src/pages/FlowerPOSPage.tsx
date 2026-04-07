@@ -81,6 +81,14 @@ const DELIVERY_FEES = [30, 50, 70];
 
 const VAT_RATE = 0.15;
 
+// Map builder catalog English types → Arabic POS categories
+const CATALOG_TYPE_MAP: Record<string, string> = {
+  packaging: "هدايا وإكسسوارات",
+  gift:      "هدايا وإكسسوارات",
+  card:      "هدايا وإكسسوارات",
+  delivery:  "توصيل وخدمات",
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function fmtPrice(n: number | undefined | null) {
@@ -218,14 +226,6 @@ export function FlowerPOSPage() {
 
   // ─── Fetch catalog ──────────────────────────────────────────────────────────
 
-  // Map builder catalog English types → Arabic POS categories
-  const CATALOG_TYPE_MAP: Record<string, string> = {
-    packaging: "هدايا وإكسسوارات",
-    gift:      "هدايا وإكسسوارات",
-    card:      "هدايا وإكسسوارات",
-    delivery:  "توصيل وخدمات",
-  };
-
   const { data: posCatalogData, loading: invLoading, error: invError, refetch: refetchPosCatalog } = useApi(
     () => flowerMasterApi.posCatalog(),
     []
@@ -308,6 +308,11 @@ export function FlowerPOSPage() {
     setCart((prev) => {
       const existing = prev.find((c) => c.id === item.id);
       if (existing) {
+        // Prevent exceeding available stock (stock=999 means unlimited e.g. packages)
+        if (item.stock < 999 && existing.qty >= item.stock) {
+          toast.error(`الكمية المتاحة من "${item.name}" هي ${item.stock} فقط`);
+          return prev;
+        }
         return prev.map((c) =>
           c.id === item.id ? { ...c, qty: c.qty + 1 } : c
         );
@@ -317,9 +322,17 @@ export function FlowerPOSPage() {
   }
 
   function increaseQty(id: string) {
-    setCart((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, qty: c.qty + 1 } : c))
-    );
+    setCart((prev) => {
+      const item = prev.find((c) => c.id === id);
+      if (!item) return prev;
+      // Check stock limit from catalog
+      const catalogItem = catalogItems.find((ci) => ci.id === id);
+      if (catalogItem && catalogItem.stock < 999 && item.qty >= catalogItem.stock) {
+        toast.error(`الكمية المتاحة من "${item.name}" هي ${catalogItem.stock} فقط`);
+        return prev;
+      }
+      return prev.map((c) => (c.id === id ? { ...c, qty: c.qty + 1 } : c));
+    });
   }
 
   function decreaseQty(id: string) {
@@ -352,6 +365,40 @@ export function FlowerPOSPage() {
     if (cartEmpty) {
       toast.error("السلة فارغة");
       return;
+    }
+
+    // Validate required fields per sale type
+    if (saleType === "delivery") {
+      if (!deliveryDetails.recipientName.trim()) {
+        toast.error("اسم المستلم مطلوب للتوصيل");
+        return;
+      }
+      if (!deliveryDetails.recipientPhone.trim()) {
+        toast.error("رقم جوال المستلم مطلوب للتوصيل");
+        return;
+      }
+      if (!deliveryDetails.address.trim()) {
+        toast.error("عنوان التوصيل مطلوب");
+        return;
+      }
+    }
+
+    if (saleType === "gift") {
+      if (!giftDetails.recipientName.trim()) {
+        toast.error("اسم المستلم مطلوب للهدية");
+        return;
+      }
+      if (!giftDetails.recipientPhone.trim()) {
+        toast.error("رقم جوال المستلم مطلوب للهدية");
+        return;
+      }
+    }
+
+    if (saleType === "pickup") {
+      if (!pickupDetails.pickupTime) {
+        toast.error("وقت الاستلام مطلوب");
+        return;
+      }
     }
 
     setProcessing(true);

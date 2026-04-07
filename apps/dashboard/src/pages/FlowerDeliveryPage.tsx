@@ -4,7 +4,7 @@ import { flowerBuilderApi, teamApi } from "@/lib/api";
 import {
   Truck, Phone, MapPin, Clock, MessageSquare, CheckCircle2,
   AlertTriangle, Package, Loader2, X, User, ChevronDown, ChevronUp,
-  RefreshCw, Gift,
+  RefreshCw, Gift, Search,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { fmtDate } from "@/lib/utils";
@@ -321,9 +321,11 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
   const isGift = !!(order.recipient_name || order.recipient_phone);
 
   const handleAdvance = async (nextStatus: string) => {
+    const label = STATUS_CONFIG[nextStatus]?.label ?? nextStatus;
+    if (!window.confirm(`هل تريد تغيير حالة الطلب إلى "${label}"؟`)) return;
     const res = await updateMut.mutate({ status: nextStatus });
     if (res) {
-      toast.success(`تم تحديث الحالة: ${STATUS_CONFIG[nextStatus]?.label ?? nextStatus}`);
+      toast.success(`تم تحديث الحالة: ${label}`);
       onRefresh();
     }
   };
@@ -352,7 +354,7 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
     actionButtons.push(
       <button key="assign-florist" onClick={() => setShowFlorist(true)}
         className="flex-1 px-3 py-3 rounded-xl border border-amber-400 text-amber-600 hover:bg-amber-50 text-xs font-semibold transition-colors">
-        تعيين مترميز OS
+        تعيين منسق ورد
       </button>
     );
     actionButtons.push(
@@ -493,7 +495,7 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
             <div className="flex items-center gap-2 text-xs text-gray-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
               <User className="w-3.5 h-3.5 text-amber-400 shrink-0" />
               <span>
-                <span className="text-gray-500">المترميز OS: </span>
+                <span className="text-gray-500">المنسق: </span>
                 <span className="font-medium">{(order as any).assigned_staff_name}</span>
               </span>
             </div>
@@ -536,8 +538,8 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
       {/* Florist Assignment Modal */}
       {showFlorist && (
         <StaffSelectModal
-          title="تعيين مترميز OS للطلب"
-          filterKeyword="مترميز OS"
+          title="تعيين منسق ورد للطلب"
+          filterKeyword="منسق"
           orderId={order.id}
           onClose={() => setShowFlorist(false)}
           onConfirm={handleAssignFlorist}
@@ -570,25 +572,38 @@ const TYPE_TABS: { value: DeliveryTypeFilter; label: string }[] = [
 export function FlowerDeliveryPage() {
   const [activeStatus, setActiveStatus]         = useState("");
   const [activeType,   setActiveType]           = useState<DeliveryTypeFilter>("");
+  const [searchQuery, setSearchQuery]           = useState("");
 
   const { data: statsRes, loading: statsLoading } = useApi(
     () => flowerBuilderApi.orderStats(),
     []
   );
+  // Load all orders once — filter client-side for instant tab switching
   const { data: ordersRes, loading: ordersLoading, error, refetch } = useApi(
-    () => flowerBuilderApi.orders(activeStatus ? { status: activeStatus } : undefined),
-    [activeStatus]
+    () => flowerBuilderApi.orders(),
+    []
   );
 
   const stats = statsRes?.data ?? {};
   const allOrders: FlowerOrder[] = ordersRes?.data ?? [];
 
-  // Client-side filter by delivery type
-  const orders = activeType === ""
-    ? allOrders
-    : activeType === "pickup"
-    ? allOrders.filter(o => o.delivery_type === "pickup" || o.delivery_type === "store")
-    : allOrders.filter(o => o.delivery_type !== "pickup" && o.delivery_type !== "store");
+  // Client-side filter: status + delivery type + search
+  const orders = allOrders.filter(o => {
+    // Status filter
+    if (activeStatus && o.status !== activeStatus) return false;
+    // Delivery type filter
+    if (activeType === "pickup" && o.delivery_type !== "pickup" && o.delivery_type !== "store") return false;
+    if (activeType === "delivery" && (o.delivery_type === "pickup" || o.delivery_type === "store")) return false;
+    // Search filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      return (o.customer_name ?? "").toLowerCase().includes(q) ||
+             (o.customer_phone ?? "").toLowerCase().includes(q) ||
+             (o.order_number ?? "").toLowerCase().includes(q) ||
+             (o.driver_name ?? "").toLowerCase().includes(q);
+    }
+    return true;
+  });
 
   const todayOrders = allOrders.filter(o => {
     const d = new Date(o.created_at);
@@ -692,6 +707,18 @@ export function FlowerDeliveryPage() {
             </button>
           ))}
         </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          placeholder="بحث باسم العميل، رقم الجوال، رقم الطلب، أو اسم المندوب..."
+          className="w-full bg-white border border-gray-100 rounded-2xl pr-10 pl-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500"
+        />
       </div>
 
       {/* Status Filter Tabs */}
