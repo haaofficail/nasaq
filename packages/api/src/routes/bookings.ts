@@ -17,9 +17,17 @@ import { insertAuditLog } from "../lib/audit";
 import { awardLoyaltyPoints } from "../lib/segments-engine";
 import { fireBookingEvent } from "../lib/messaging-engine";
 import { decryptString } from "../lib/encryption";
+import { log } from "../lib/logger";
 import type { AuthUser } from "../middleware/auth";
 
 export const bookingsRouter = new Hono<{ Variables: { user: AuthUser | null; orgId: string; locationFilter: string[] | null; requestId: string } }>();
+
+// ============================================================
+// PHASE 0 GUARDRAILS — Feature Flags (no behavior changes)
+// ============================================================
+const ENABLE_CANONICAL_SHADOW_WRITE = process.env.ENABLE_CANONICAL_SHADOW_WRITE === "true";
+const ENABLE_CANONICAL_READ_DETAIL = process.env.ENABLE_CANONICAL_READ_DETAIL === "true";
+const ENABLE_CANONICAL_READ_LIST = process.env.ENABLE_CANONICAL_READ_LIST === "true";
 
 // ============================================================
 // SCHEMAS
@@ -181,6 +189,18 @@ bookingsRouter.get("/calendar", async (c) => {
 bookingsRouter.get("/:id", async (c) => {
   const orgId = getOrgId(c);
   const id = c.req.param("id");
+  const requestId = c.get("requestId");
+
+  log.info({
+    orgId,
+    bookingId: id,
+    requestId,
+    guardrails: {
+      ENABLE_CANONICAL_SHADOW_WRITE,
+      ENABLE_CANONICAL_READ_DETAIL,
+      ENABLE_CANONICAL_READ_LIST,
+    },
+  }, "[guardrails] bookings.detail.read (legacy source)");
 
   const [booking] = await db.select().from(bookings)
     .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)));
@@ -233,7 +253,22 @@ bookingsRouter.get("/:id", async (c) => {
 bookingsRouter.post("/", async (c) => {
   const orgId = getOrgId(c);
   const userId = getUserId(c);
+  const requestId = c.get("requestId");
   const body = createBookingSchema.parse(await c.req.json());
+
+  log.info({
+    orgId,
+    userId,
+    requestId,
+    customerId: body.customerId,
+    itemsCount: body.items.length,
+    source: body.source,
+    guardrails: {
+      ENABLE_CANONICAL_SHADOW_WRITE,
+      ENABLE_CANONICAL_READ_DETAIL,
+      ENABLE_CANONICAL_READ_LIST,
+    },
+  }, "[guardrails] bookings.create (legacy write path)");
 
   // 1. Verify customer exists
   const [customer] = await db.select().from(customers)
@@ -597,8 +632,23 @@ const updateStatusSchema = z.object({
 bookingsRouter.patch("/:id/status", async (c) => {
   const orgId = getOrgId(c);
   const actingUserId = getUserId(c);
+  const requestId = c.get("requestId");
   const id = c.req.param("id");
   const { status: newStatus, reason } = updateStatusSchema.parse(await c.req.json());
+
+  log.info({
+    orgId,
+    bookingId: id,
+    actingUserId,
+    requestId,
+    newStatus,
+    hasReason: Boolean(reason),
+    guardrails: {
+      ENABLE_CANONICAL_SHADOW_WRITE,
+      ENABLE_CANONICAL_READ_DETAIL,
+      ENABLE_CANONICAL_READ_LIST,
+    },
+  }, "[guardrails] bookings.status.update (legacy write path)");
 
   // Read current status for audit trail
   const [existing] = await db.select({ status: bookings.status })
