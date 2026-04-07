@@ -20,7 +20,7 @@ import { awardLoyaltyPoints } from "../lib/segments-engine";
 import { fireBookingEvent } from "../lib/messaging-engine";
 import { decryptString } from "../lib/encryption";
 import { log } from "../lib/logger";
-import { mapLegacyBookingAggregateToCanonical } from "../lib/bookings-mapping";
+import { shadowWriteBookingOnCreate, shadowWriteBookingStatus } from "../lib/canonical-shadow";
 import type { AuthUser } from "../middleware/auth";
 
 export const bookingsRouter = new Hono<{ Variables: { user: AuthUser | null; orgId: string; locationFilter: string[] | null; requestId: string } }>();
@@ -31,148 +31,6 @@ export const bookingsRouter = new Hono<{ Variables: { user: AuthUser | null; org
 const ENABLE_CANONICAL_SHADOW_WRITE = process.env.ENABLE_CANONICAL_SHADOW_WRITE === "true";
 const ENABLE_CANONICAL_READ_DETAIL = process.env.ENABLE_CANONICAL_READ_DETAIL === "true";
 const ENABLE_CANONICAL_READ_LIST = process.env.ENABLE_CANONICAL_READ_LIST === "true";
-
-async function shadowWriteCanonicalBookingOnCreate(params: {
-  orgId: string;
-  bookingId: string;
-  requestId: string;
-}) {
-  const startedAt = Date.now();
-  const { orgId, bookingId, requestId } = params;
-
-  const [existingCanonical] = await db
-    .select({ id: bookingRecords.id })
-    .from(bookingRecords)
-    .where(and(eq(bookingRecords.orgId, orgId), eq(bookingRecords.bookingRef, bookingId)))
-    .limit(1);
-
-  if (existingCanonical) {
-    log.info({
-      orgId,
-      bookingId,
-      requestId,
-      canonicalBookingRecordId: existingCanonical.id,
-      elapsedMs: Date.now() - startedAt,
-    }, "[canonical-shadow] bookings.create skipped (already mirrored)");
-    return;
-  }
-
-  const [booking, items, eventsRows, assignmentsRows, commissionsRows, consumptionsRows, paymentsRows] = await Promise.all([
-    db.select().from(bookings).where(and(eq(bookings.id, bookingId), eq(bookings.orgId, orgId))).then((rows) => rows[0] ?? null),
-    db.select().from(bookingItems).where(eq(bookingItems.bookingId, bookingId)),
-    db.select().from(bookingEvents).where(eq(bookingEvents.bookingId, bookingId)),
-    db.select().from(bookingAssignments).where(eq(bookingAssignments.bookingId, bookingId)),
-    db.select().from(bookingCommissions).where(eq(bookingCommissions.bookingId, bookingId)),
-    db.select().from(bookingConsumptions).where(eq(bookingConsumptions.bookingId, bookingId)),
-    db.select().from(payments).where(eq(payments.bookingId, bookingId)),
-  ]);
-
-  const addonsRows = items.length > 0
-    ? await db.select().from(bookingItemAddons).where(inArray(bookingItemAddons.bookingItemId, items.map((item) => item.id)))
-    : [];
-
-  if (!booking) {
-    log.warn({ orgId, bookingId, requestId }, "[canonical-shadow] bookings.create skipped (legacy booking not found)");
-    return;
-  }
-
-  const canonicalPayload = mapLegacyBookingAggregateToCanonical({
-    booking,
-    items,
-    addons: addonsRows,
-    events: eventsRows,
-    assignments: assignmentsRows,
-    commissions: commissionsRows,
-    consumptions: consumptionsRows,
-    payments: paymentsRows,
-  });
-
-  await db.transaction(async (tx) => {
-    const [bookingRecord] = await tx.insert(bookingRecords)
-      .values(canonicalPayload.booking_records as any)
-      .returning({ id: bookingRecords.id });
-
-    const lineByLegacyItemId = new Map<string, string>();
-    for (const line of canonicalPayload.booking_lines) {
-      const [insertedLine] = await tx.insert(bookingLines).values({
-        ...line.row,
-        bookingRecordId: bookingRecord.id,
-      } as any).returning({ id: bookingLines.id });
-      lineByLegacyItemId.set(line.legacyBookingItemId, insertedLine.id);
-    }
-
-    if (canonicalPayload.booking_line_addons.length > 0) {
-      const addonRows = canonicalPayload.booking_line_addons
-        .map((addon) => {
-          const bookingLineId = lineByLegacyItemId.get(addon.legacyBookingItemId);
-          if (!bookingLineId) return null;
-          return {
-            ...addon.row,
-            bookingLineId,
-          };
-        })
-        .filter((row): row is NonNullable<typeof row> => Boolean(row));
-
-      if (addonRows.length > 0) {
-        await tx.insert(bookingLineAddons).values(addonRows as any);
-      }
-    }
-
-    if (canonicalPayload.booking_timeline_events.length > 0) {
-      await tx.insert(bookingTimelineEvents).values(
-        canonicalPayload.booking_timeline_events.map((eventRow) => ({
-          ...eventRow,
-          bookingRecordId: bookingRecord.id,
-        })) as any,
-      );
-    }
-
-    if (canonicalPayload.booking_record_assignments.length > 0) {
-      await tx.insert(bookingRecordAssignments).values(
-        canonicalPayload.booking_record_assignments.map((assignmentRow) => ({
-          ...assignmentRow,
-          bookingRecordId: bookingRecord.id,
-        })) as any,
-      );
-    }
-
-    if (canonicalPayload.booking_record_commissions.length > 0) {
-      await tx.insert(bookingRecordCommissions).values(
-        canonicalPayload.booking_record_commissions.map((commissionRow) => ({
-          ...commissionRow.row,
-          bookingRecordId: bookingRecord.id,
-          bookingLineId: commissionRow.legacyBookingItemId ? (lineByLegacyItemId.get(commissionRow.legacyBookingItemId) ?? null) : null,
-        })) as any,
-      );
-    }
-
-    if (canonicalPayload.booking_consumptions_canonical.length > 0) {
-      await tx.insert(bookingRecordConsumptions).values(
-        canonicalPayload.booking_consumptions_canonical.map((consumptionRow) => ({
-          ...consumptionRow.row,
-          bookingRecordId: bookingRecord.id,
-          bookingLineId: consumptionRow.legacyBookingItemId ? (lineByLegacyItemId.get(consumptionRow.legacyBookingItemId) ?? null) : null,
-        })) as any,
-      );
-    }
-
-    if (canonicalPayload.booking_payment_links.length > 0) {
-      await tx.insert(bookingPaymentLinks).values(
-        canonicalPayload.booking_payment_links.map((paymentLinkRow) => ({
-          ...paymentLinkRow,
-          bookingRecordId: bookingRecord.id,
-        })) as any,
-      );
-    }
-  });
-
-  log.info({
-    orgId,
-    bookingId,
-    requestId,
-    elapsedMs: Date.now() - startedAt,
-  }, "[canonical-shadow] bookings.create mirrored");
-}
 
 // ============================================================
 // SCHEMAS
@@ -936,7 +794,7 @@ bookingsRouter.post("/", async (c) => {
 
   if (ENABLE_CANONICAL_SHADOW_WRITE) {
     try {
-      await shadowWriteCanonicalBookingOnCreate({ orgId, bookingId: booking.id, requestId });
+      await shadowWriteBookingOnCreate({ orgId, bookingId: booking.id, requestId });
     } catch (error) {
       log.error({
         orgId,
@@ -1020,44 +878,13 @@ bookingsRouter.patch("/:id/status", async (c) => {
 
   // ── Phase 3: Canonical shadow status sync (fire-and-forget, never throws) ─
   if (ENABLE_CANONICAL_SHADOW_WRITE) {
-    (async () => {
-      try {
-        const statusMap: Record<string, string> = {
-          pending: "pending", confirmed: "confirmed",
-          deposit_paid: "confirmed", fully_confirmed: "confirmed",
-          preparing: "in_progress", in_progress: "in_progress",
-          completed: "completed", reviewed: "completed",
-          cancelled: "cancelled", no_show: "no_show",
-        };
-        const canonicalStatus = statusMap[newStatus] ?? newStatus;
-
-        const statusUpdates: Record<string, unknown> = {
-          status:    canonicalStatus,
-          updatedAt: new Date(),
-        };
-        if (newStatus === "cancelled") {
-          statusUpdates.cancelledAt        = updated.cancelledAt ?? new Date();
-          statusUpdates.cancellationReason = updated.cancellationReason ?? null;
-        }
-
-        const [canonicalRow] = await db.update(bookingRecords)
-          .set(statusUpdates as any)
-          .where(eq(bookingRecords.bookingRef, id))
-          .returning({ id: bookingRecords.id });
-
-        if (canonicalRow?.id) {
-          await db.insert(bookingTimelineEvents).values({
-            orgId,
-            bookingRecordId: canonicalRow.id,
-            userId:          actingUserId ?? null,
-            eventType:       "status_changed",
-            fromStatus:      fromStatus as string,
-            toStatus:        canonicalStatus,
-            metadata:        (reason ? { reason } : {}) as any,
-          });
-        }
-      } catch { /* shadow write failure is non-critical */ }
-    })();
+    shadowWriteBookingStatus({
+      orgId, bookingId: id,
+      userId:     actingUserId ?? null,
+      fromStatus: fromStatus as string,
+      newStatus,
+      reason,
+    }).catch(() => {});
   }
 
   // قيد محاسبي تلقائي (fire-and-forget)

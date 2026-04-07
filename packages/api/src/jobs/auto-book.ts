@@ -3,6 +3,9 @@ import { db } from "@nasaq/db/client";
 import { customerSubscriptions, bookings, customers } from "@nasaq/db/schema";
 import { log } from "../lib/logger";
 import { generateBookingNumber } from "../lib/helpers";
+import { shadowWriteBookingOnCreate } from "../lib/canonical-shadow";
+
+const ENABLE_CANONICAL_SHADOW_WRITE = process.env.ENABLE_CANONICAL_SHADOW_WRITE === "true";
 
 // ============================================================
 // AUTO-BOOK JOB — الحجز التلقائي من الاشتراكات
@@ -40,6 +43,7 @@ export async function runAutoBook(): Promise<void> {
   let created = 0;
 
   for (const sub of subs) {
+    let newBookingId: string | null = null;
     try {
       // Validate customer still exists
       const [customer] = await db.select({ id: customers.id, orgId: customers.orgId })
@@ -58,7 +62,7 @@ export async function runAutoBook(): Promise<void> {
         }
       }
 
-      await db.transaction(async (tx) => {
+      const txResult = await db.transaction(async (tx) => {
         const [booking] = await tx.insert(bookings).values({
           orgId: sub.orgId,
           customerId: sub.customerId,
@@ -92,6 +96,16 @@ export async function runAutoBook(): Promise<void> {
 
         return booking;
       });
+      newBookingId = txResult?.id ?? null;
+
+      // shadow write to canonical (fire-and-forget)
+      if (ENABLE_CANONICAL_SHADOW_WRITE && newBookingId) {
+        shadowWriteBookingOnCreate({
+          orgId: sub.orgId,
+          bookingId: newBookingId,
+          requestId: `auto-book-${sub.id}`,
+        }).catch(() => {});
+      }
 
       created++;
     } catch (err) {
