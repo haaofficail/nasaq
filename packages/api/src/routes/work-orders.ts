@@ -6,7 +6,6 @@ import { workOrders, customers, users, locations } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, validateBody } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { getAccountsByKeys, createJournalEntry, reverseJournalEntry } from "../lib/posting-engine";
-import { requirePermission } from "../middleware/auth";
 
 export const workOrdersRouter = new Hono();
 
@@ -316,32 +315,11 @@ workOrdersRouter.patch("/:id/status", async (c) => {
     }, 422);
   }
 
-  // ── Build timestamps for each phase ───────────────────────────
-  const timestamps: Partial<typeof workOrders.$inferInsert> = { updatedAt: new Date() };
-  if (body.status === "diagnosing")    timestamps.diagnosingAt   = new Date();
-  if (body.status === "waiting_parts") timestamps.waitingPartsAt = new Date();
-  if (body.status === "in_progress")   timestamps.inProgressAt   = new Date();
-  if (body.status === "ready")         timestamps.readyAt        = new Date();
-  if (body.status === "delivered")     timestamps.deliveredAt    = new Date();
-  if (body.status === "cancelled") {
-    timestamps.cancelledAt       = new Date();
-    timestamps.cancellationReason = body.cancellationReason ?? null;
-    timestamps.cancelledBy        = userId ?? null;
-  }
-
   // ── Atomic: status change + version bump + financial posting ──
   // Use raw pool for transaction because Drizzle + financial posting spans multiple queries
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
-
-    // Optimistic lock: version check
-    const currentVersion = existing.version;
-    const tsEntries = Object.entries(timestamps)
-      .map(([k, _v]) => {
-        const col = k.replace(/([A-Z])/g, "_$1").toLowerCase(); // camelCase → snake_case
-        return col;
-      });
 
     // Build SET clause dynamically
     const setFields: string[] = [`status = $3`, `updated_at = NOW()`, `version = version + 1`];
@@ -358,7 +336,7 @@ workOrdersRouter.patch("/:id/status", async (c) => {
       queryParams.push(userId || null); setFields.push(`cancelled_by = $${queryParams.length}`);
     }
 
-    queryParams.push(currentVersion);
+    queryParams.push(existing.version);
     const versionCheck = `AND version = $${queryParams.length}`;
 
     const { rows: [updated] } = await client.query(

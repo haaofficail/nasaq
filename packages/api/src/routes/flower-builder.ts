@@ -4,7 +4,6 @@ import { pool } from "@nasaq/db/client";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { postCashSale, reverseJournalEntry } from "../lib/posting-engine";
-import { requirePermission } from "../middleware/auth";
 
 // ── Status enum & state machine ──────────────────────────────────────────────
 const FLOWER_ORDER_STATUSES = [

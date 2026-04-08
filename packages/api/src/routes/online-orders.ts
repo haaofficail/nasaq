@@ -3,7 +3,6 @@ import { z } from "zod";
 import { pool } from "@nasaq/db/client";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
-import { requirePermission } from "../middleware/auth";
 
 // ── Status enum & state machine ──────────────────────────────────────────────
 const ONLINE_ORDER_STATUSES = [
