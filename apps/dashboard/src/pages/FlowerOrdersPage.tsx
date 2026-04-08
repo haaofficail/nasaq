@@ -10,7 +10,8 @@ import { flowerBuilderApi, serviceOrdersApi } from "@/lib/api";
 import {
   Package, Phone, ChevronDown, ChevronRight, RefreshCw, AlertTriangle,
   MapPin, MessageSquare, Clock, Loader2, Calendar, Briefcase,
-  ArrowLeft, ShoppingBag, Search, ClipboardList, Plus,
+  ArrowLeft, ShoppingBag, Search, ClipboardList, Plus, X,
+  Pencil, Ban, Save,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { fmtDate } from "@/lib/utils";
@@ -29,11 +30,15 @@ interface SaleOrder {
   subtotal: string | number;
   total: string | number;
   status: string;
+  version: number;
   delivery_address?: any;
   delivery_date?: string;
   gift_message?: string;
   packaging?: string;
   created_at: string;
+  cancelled_at?: string;
+  cancellation_reason?: string;
+  payment_status?: string;
 }
 
 // ─── Sale Order Constants ────────────────────────────────────────────────────
@@ -143,7 +148,8 @@ function SkeletonRow() {
 // ─── Sale Order Row (existing behaviour) ─────────────────────────────────────
 function SaleOrderRow({ order, onStatusUpdate }: { order: SaleOrder; onStatusUpdate: () => void }) {
   const [expanded, setExpanded] = useState(false);
-  const updateMut = useMutation((status: string) => flowerBuilderApi.updateOrderStatus(order.id, status));
+  const updateMut = useMutation((status: string) => flowerBuilderApi.updateOrderStatus(order.id, status, order.version ?? 1));
+  const cancelMut = useMutation((reason: string) => flowerBuilderApi.cancelOrder(order.id, reason, order.version ?? 1));
 
   const handleAdvance = async () => {
     const next = SALE_STATUS_NEXT[order.status];
@@ -162,6 +168,21 @@ function SaleOrderRow({ order, onStatusUpdate }: { order: SaleOrder; onStatusUpd
     }
   };
 
+  const handleCancel = async () => {
+    const ok = await confirmDialog({
+      title: "إلغاء الطلب؟",
+      message: `سيتم إلغاء الطلب ${order.order_number} وعكس القيد المالي واسترداد المخزون.`,
+      confirmLabel: "إلغاء الطلب",
+      danger: true,
+    });
+    if (!ok) return;
+    const res = await cancelMut.mutate("إلغاء من قبل المستخدم");
+    if (res) {
+      toast.success("تم إلغاء الطلب بنجاح");
+      onStatusUpdate();
+    }
+  };
+
   const total = Number(order.total ?? order.subtotal ?? 0);
   const items: any[] = Array.isArray(order.items)
     ? order.items
@@ -169,6 +190,8 @@ function SaleOrderRow({ order, onStatusUpdate }: { order: SaleOrder; onStatusUpd
   const deliveryAddress = order.delivery_address
     ? (typeof order.delivery_address === "string" ? JSON.parse(order.delivery_address) : order.delivery_address)
     : null;
+
+  const canCancel = !["delivered", "cancelled"].includes(order.status);
 
   return (
     <div className="border-b border-gray-50 last:border-0">
@@ -202,11 +225,18 @@ function SaleOrderRow({ order, onStatusUpdate }: { order: SaleOrder; onStatusUpd
 
         <div className="shrink-0"><SaleBadge status={order.status} /></div>
 
-        {SALE_STATUS_NEXT[order.status] && (
-          <button onClick={handleAdvance} disabled={updateMut.loading} className="shrink-0 px-3 py-1.5 rounded-lg bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors">
-            {updateMut.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : SALE_STATUS_ACTION[order.status]}
-          </button>
-        )}
+        <div className="shrink-0 flex items-center gap-1.5">
+          {SALE_STATUS_NEXT[order.status] && (
+            <button onClick={handleAdvance} disabled={updateMut.loading} className="px-3 py-1.5 rounded-lg bg-brand-500 text-white text-xs font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors">
+              {updateMut.loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : SALE_STATUS_ACTION[order.status]}
+            </button>
+          )}
+          {canCancel && (
+            <button onClick={handleCancel} disabled={cancelMut.loading} title="إلغاء الطلب" className="w-8 h-8 flex items-center justify-center rounded-lg border border-red-200 text-red-500 hover:bg-red-50 disabled:opacity-50 transition-colors">
+              {cancelMut.loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Ban className="w-3.5 h-3.5" />}
+            </button>
+          )}
+        </div>
       </div>
 
       {expanded && (
@@ -350,6 +380,18 @@ export function FlowerOrdersPage() {
   const [saleStatus, setSaleStatus] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [salePage, setSalePage] = useState(1);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    customerName: "",
+    customerPhone: "",
+    orderType: "delivery" as string,
+    deliveryAddress: "",
+    deliveryDate: "",
+    giftMessage: "",
+    notes: "",
+    total: "",
+  });
+  const [createLoading, setCreateLoading] = useState(false);
 
   // Server-side status filter + pagination (API supports status/page/limit)
   const { data: saleStatsRes } = useApi(() => flowerBuilderApi.orderStats(), []);
@@ -457,12 +499,19 @@ export function FlowerOrdersPage() {
           <button onClick={refetchAll} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-100 hover:bg-gray-50 text-gray-400 transition-colors">
             <RefreshCw className="w-4 h-4" />
           </button>
-          <Link
-            to="/dashboard/flower-pos"
+          <button
+            onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-xl px-4 py-2 transition-colors"
           >
             <Plus className="w-4 h-4" />
             طلب جديد
+          </button>
+          <Link
+            to="/dashboard/flower-pos"
+            className="flex items-center gap-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-xl px-4 py-2 transition-colors"
+          >
+            <ShoppingBag className="w-4 h-4" />
+            نقطة البيع
           </Link>
         </div>
       </div>
@@ -643,6 +692,152 @@ export function FlowerOrdersPage() {
           </>
         )}
       </div>
+
+      {/* ─── Create Order Modal ────────────────────────────────────────────── */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowCreateModal(false)}>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h2 className="text-base font-bold text-gray-900">طلب جديد</h2>
+              <button onClick={() => setShowCreateModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">اسم العميل *</label>
+                  <input
+                    value={createForm.customerName}
+                    onChange={e => setCreateForm(f => ({ ...f, customerName: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    placeholder="اسم العميل"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">رقم الجوال *</label>
+                  <input
+                    value={createForm.customerPhone}
+                    onChange={e => setCreateForm(f => ({ ...f, customerPhone: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    placeholder="05xxxxxxxx"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">نوع الطلب</label>
+                  <select
+                    value={createForm.orderType}
+                    onChange={e => setCreateForm(f => ({ ...f, orderType: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                  >
+                    <option value="delivery">توصيل</option>
+                    <option value="pickup">استلام</option>
+                    <option value="gift">هدية</option>
+                    <option value="regular">بيع مباشر</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">المبلغ الإجمالي *</label>
+                  <input
+                    type="number"
+                    value={createForm.total}
+                    onChange={e => setCreateForm(f => ({ ...f, total: e.target.value }))}
+                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    placeholder="0.00"
+                    dir="ltr"
+                  />
+                </div>
+              </div>
+
+              {createForm.orderType === "delivery" && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">عنوان التوصيل</label>
+                    <input
+                      value={createForm.deliveryAddress}
+                      onChange={e => setCreateForm(f => ({ ...f, deliveryAddress: e.target.value }))}
+                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                      placeholder="الحي، الشارع"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">تاريخ التوصيل</label>
+                    <input
+                      type="datetime-local"
+                      value={createForm.deliveryDate}
+                      onChange={e => setCreateForm(f => ({ ...f, deliveryDate: e.target.value }))}
+                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                      dir="ltr"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">ملاحظات / رسالة الهدية</label>
+                <textarea
+                  value={createForm.giftMessage}
+                  onChange={e => setCreateForm(f => ({ ...f, giftMessage: e.target.value }))}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 resize-none"
+                  rows={2}
+                  placeholder="رسالة أو ملاحظات..."
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              >
+                إلغاء
+              </button>
+              <button
+                onClick={async () => {
+                  if (!createForm.customerName.trim()) { toast.error("اسم العميل مطلوب"); return; }
+                  if (!createForm.customerPhone.trim()) { toast.error("رقم الجوال مطلوب"); return; }
+                  if (!createForm.total || Number(createForm.total) <= 0) { toast.error("المبلغ مطلوب"); return; }
+
+                  setCreateLoading(true);
+                  try {
+                    const totalNum = Number(createForm.total);
+                    await flowerBuilderApi.createOrder({
+                      customerName: createForm.customerName.trim(),
+                      customerPhone: createForm.customerPhone.trim(),
+                      items: [],
+                      subtotal: totalNum,
+                      total: totalNum,
+                      totalPrice: totalNum,
+                      orderType: createForm.orderType,
+                      paymentMethod: "cash",
+                      paidAmount: 0,
+                      ...(createForm.deliveryAddress && { deliveryAddress: { street: createForm.deliveryAddress } }),
+                      ...(createForm.deliveryDate && { deliveryDate: createForm.deliveryDate }),
+                      ...(createForm.giftMessage && { giftMessage: createForm.giftMessage }),
+                    });
+                    toast.success("تم إنشاء الطلب بنجاح");
+                    setShowCreateModal(false);
+                    setCreateForm({ customerName: "", customerPhone: "", orderType: "delivery", deliveryAddress: "", deliveryDate: "", giftMessage: "", notes: "", total: "" });
+                    refetchAll();
+                  } catch {
+                    toast.error("فشل إنشاء الطلب");
+                  } finally {
+                    setCreateLoading(false);
+                  }
+                }}
+                disabled={createLoading}
+                className="flex items-center gap-1.5 px-5 py-2 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors"
+              >
+                {createLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                إنشاء الطلب
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
