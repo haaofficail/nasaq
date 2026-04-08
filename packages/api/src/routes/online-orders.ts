@@ -3,6 +3,18 @@ import { z } from "zod";
 import { pool } from "@nasaq/db/client";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
+import { postCashSale, reverseJournalEntry } from "../lib/posting-engine";
+
+// ─── Status transition rules ──────────────────────────────────────────────────
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  pending:    ["confirmed", "preparing", "cancelled"],
+  confirmed:  ["preparing", "cancelled"],
+  preparing:  ["ready", "cancelled"],
+  ready:      ["out_for_delivery", "delivered", "cancelled"],
+  out_for_delivery: ["delivered", "cancelled"],
+  delivered:  [],
+  cancelled:  [],
+};
 
 const createOrderSchema = z.object({
   orderType: z.enum(["delivery", "pickup", "dine_in"]).default("delivery"),
@@ -101,23 +113,110 @@ onlineOrdersRouter.post("/", async (c) => {
 onlineOrdersRouter.patch("/:id/status", async (c) => {
   const orgId = getOrgId(c);
   const id = c.req.param("id");
-  const { status } = await c.req.json();
-  const result = await pool.query(
-    `UPDATE online_orders SET status = $1, updated_at = NOW() WHERE id = $2 AND org_id = $3 RETURNING *`,
-    [status, id, orgId]
+  const body = z.object({
+    status: z.string().min(1),
+    version: z.number().int().min(1),
+  }).parse(await c.req.json());
+
+  // Fetch current state
+  const current = await pool.query(
+    `SELECT status, version, journal_entry_id, total_amount, order_number FROM online_orders WHERE id = $1 AND org_id = $2`,
+    [id, orgId]
   );
-  if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
-  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "online_order", resourceId: id, metadata: { status } });
-  return c.json({ data: result.rows[0] });
+  if (!current.rows[0]) return c.json({ error: "الطلب غير موجود" }, 404);
+
+  const order = current.rows[0];
+
+  // State machine enforcement
+  const allowed = VALID_TRANSITIONS[order.status] ?? [];
+  if (!allowed.includes(body.status)) {
+    return c.json({ error: `لا يمكن الانتقال من "${order.status}" إلى "${body.status}"` }, 400);
+  }
+
+  // Optimistic locking
+  const result = await pool.query(
+    `UPDATE online_orders
+     SET status = $1, version = version + 1, updated_at = NOW()
+     WHERE id = $2 AND org_id = $3 AND version = $4
+     RETURNING *`,
+    [body.status, id, orgId, body.version]
+  );
+  if (!result.rows[0]) return c.json({ error: "تعارض في التحديث — حاول مرة أخرى" }, 409);
+
+  const updated = result.rows[0];
+  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "online_order", resourceId: id, metadata: { status: body.status } });
+
+  // ── Financial posting on delivery (idempotent) ──────────────────────────
+  if (body.status === "delivered" && !order.journal_entry_id) {
+    const amount = Number(updated.total_amount ?? 0);
+    if (amount > 0) {
+      try {
+        const postResult = await postCashSale({
+          orgId,
+          date: new Date(),
+          amount,
+          vatAmount: Number(updated.tax_amount ?? 0),
+          description: `طلب إلكتروني #${updated.order_number}`,
+          sourceType: "pos",
+          sourceId: updated.id,
+          createdBy: getUserId(c) ?? undefined,
+        });
+        if (postResult?.entryId) {
+          await pool.query(
+            `UPDATE online_orders SET journal_entry_id = $1 WHERE id = $2`,
+            [postResult.entryId, id]
+          );
+        }
+      } catch {
+        // المحاسبة غير مُفعّلة — نكمل بدون قيد
+      }
+    }
+  }
+
+  // ── Reverse financial posting on cancellation ───────────────────────────
+  if (body.status === "cancelled" && order.journal_entry_id) {
+    try {
+      await reverseJournalEntry(order.journal_entry_id, getUserId(c) ?? "system", "إلغاء طلب إلكتروني");
+    } catch {
+      // تجاهل أخطاء العكس
+    }
+  }
+
+  return c.json({ data: updated });
 });
 
 // DELETE /online-orders/:id
 onlineOrdersRouter.delete("/:id", async (c) => {
   const orgId = getOrgId(c);
-  const result = await pool.query(
-    `UPDATE online_orders SET status = 'cancelled', updated_at = NOW() WHERE id = $1 AND org_id = $2 RETURNING id`,
-    [c.req.param("id"), orgId]
+  const id = c.req.param("id");
+
+  // Fetch current state for journal reversal
+  const current = await pool.query(
+    `SELECT status, journal_entry_id FROM online_orders WHERE id = $1 AND org_id = $2`,
+    [id, orgId]
   );
-  if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  if (!current.rows[0]) return c.json({ error: "الطلب غير موجود" }, 404);
+
+  const order = current.rows[0];
+  if (order.status === "delivered") {
+    return c.json({ error: "لا يمكن إلغاء طلب تم تسليمه" }, 400);
+  }
+
+  const result = await pool.query(
+    `UPDATE online_orders SET status = 'cancelled', version = version + 1, updated_at = NOW()
+     WHERE id = $1 AND org_id = $2 RETURNING id`,
+    [id, orgId]
+  );
+  if (!result.rows[0]) return c.json({ error: "الطلب غير موجود" }, 404);
+
+  // Reverse journal if exists
+  if (order.journal_entry_id) {
+    try {
+      await reverseJournalEntry(order.journal_entry_id, getUserId(c) ?? "system", "إلغاء طلب إلكتروني");
+    } catch {
+      // تجاهل أخطاء العكس
+    }
+  }
+
   return c.json({ success: true });
 });

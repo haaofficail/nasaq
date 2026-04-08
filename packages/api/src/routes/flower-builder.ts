@@ -3,7 +3,18 @@ import { z } from "zod";
 import { pool } from "@nasaq/db/client";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
-import { postCashSale } from "../lib/posting-engine";
+import { postCashSale, reverseJournalEntry } from "../lib/posting-engine";
+
+// ─── Status transition rules ──────────────────────────────────────────────────
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  pending:          ["confirmed", "preparing", "cancelled"],
+  confirmed:        ["preparing", "cancelled"],
+  preparing:        ["ready", "cancelled"],
+  ready:            ["out_for_delivery", "delivered", "cancelled"],
+  out_for_delivery: ["delivered", "cancelled"],
+  delivered:        [],
+  cancelled:        [],
+};
 
 const createCatalogItemSchema = z.object({
   type: z.enum(["packaging", "gift", "card", "delivery"]),
@@ -219,37 +230,76 @@ flowerBuilderRouter.post("/orders", async (c) => {
 flowerBuilderRouter.patch("/orders/:id/status", async (c) => {
   const orgId = getOrgId(c);
   const id = c.req.param("id");
-  const { status } = await c.req.json();
-  const result = await pool.query(
-    `UPDATE flower_orders SET status = $1, updated_at = NOW() WHERE id = $2 AND org_id = $3 RETURNING *`,
-    [status, id, orgId]
-  );
-  if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
-  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "flower_order", resourceId: id, metadata: { status } });
+  const body = z.object({
+    status: z.string().min(1),
+    version: z.number().int().min(1),
+  }).parse(await c.req.json());
 
-  // ── قيد محاسبي عند التسليم ────────────────────────────────
-  if (status === "delivered") {
-    const order = result.rows[0];
-    const amount = Number(order.total ?? order.subtotal ?? 0);
+  // Fetch current state
+  const current = await pool.query(
+    `SELECT status, version, journal_entry_id, total, subtotal, order_number FROM flower_orders WHERE id = $1 AND org_id = $2`,
+    [id, orgId]
+  );
+  if (!current.rows[0]) return c.json({ error: "الطلب غير موجود" }, 404);
+
+  const order = current.rows[0];
+
+  // State machine enforcement
+  const allowed = VALID_TRANSITIONS[order.status] ?? [];
+  if (!allowed.includes(body.status)) {
+    return c.json({ error: `لا يمكن الانتقال من "${order.status}" إلى "${body.status}"` }, 400);
+  }
+
+  // Optimistic locking
+  const result = await pool.query(
+    `UPDATE flower_orders
+     SET status = $1, version = version + 1, updated_at = NOW()
+     WHERE id = $2 AND org_id = $3 AND version = $4
+     RETURNING *`,
+    [body.status, id, orgId, body.version]
+  );
+  if (!result.rows[0]) return c.json({ error: "تعارض في التحديث — حاول مرة أخرى" }, 409);
+
+  const updated = result.rows[0];
+  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "flower_order", resourceId: id, metadata: { status: body.status } });
+
+  // ── Financial posting on delivery (idempotent) ──────────────────────────
+  if (body.status === "delivered" && !order.journal_entry_id) {
+    const amount = Number(updated.total ?? updated.subtotal ?? 0);
     if (amount > 0) {
       try {
-        await postCashSale({
+        const postResult = await postCashSale({
           orgId,
           date: new Date(),
           amount,
           vatAmount: 0,
-          description: `طلب ورود #${order.order_number}`,
+          description: `طلب ورود #${updated.order_number}`,
           sourceType: "pos",
-          sourceId: order.id,
+          sourceId: updated.id,
           createdBy: getUserId(c) ?? undefined,
         });
+        if (postResult?.entryId) {
+          await pool.query(
+            `UPDATE flower_orders SET journal_entry_id = $1 WHERE id = $2`,
+            [postResult.entryId, id]
+          );
+        }
       } catch {
-        // القيد المحاسبي اختياري — لا يوقف التحديث إن لم تكن الحسابات مهيأة
+        // المحاسبة غير مُفعّلة — نكمل بدون قيد
       }
     }
   }
 
-  return c.json({ data: result.rows[0] });
+  // ── Reverse financial posting on cancellation ───────────────────────────
+  if (body.status === "cancelled" && order.journal_entry_id) {
+    try {
+      await reverseJournalEntry(order.journal_entry_id, getUserId(c) ?? "system", "إلغاء طلب ورود");
+    } catch {
+      // تجاهل أخطاء العكس
+    }
+  }
+
+  return c.json({ data: updated });
 });
 
 // PATCH /flower-builder/orders/:id/driver

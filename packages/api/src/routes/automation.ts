@@ -283,7 +283,7 @@ const whatsappTemplateUpdateSchema = whatsappTemplateSchema.partial();
 automationRouter.get("/whatsapp-templates", async (c) => {
   const orgId = getOrgId(c);
   const result = await pool.query(
-    `SELECT * FROM whatsapp_templates WHERE org_id = $1 ORDER BY created_at DESC`,
+    `SELECT * FROM whatsapp_templates WHERE org_id = $1 ORDER BY created_at DESC LIMIT 200`,
     [orgId]
   );
   return c.json({ data: result.rows });

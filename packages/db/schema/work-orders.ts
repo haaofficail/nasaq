@@ -63,6 +63,10 @@ export const workOrders = pgTable("work_orders", {
   createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
   createdAt:   timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt:   timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+
+  // Optimistic locking & financial idempotency (migration 112)
+  version:        integer("version").default(1).notNull(),
+  journalEntryId: uuid("journal_entry_id"),
 }, (t) => [
   index("work_orders_org_idx").on(t.orgId),
   index("work_orders_status_idx").on(t.orgId, t.status),

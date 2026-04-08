@@ -5,9 +5,20 @@ import { db } from "@nasaq/db/client";
 import { workOrders, customers, users, locations } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, validateBody } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
-import { getAccountsByKeys, createJournalEntry } from "../lib/posting-engine";
+import { getAccountsByKeys, createJournalEntry, reverseJournalEntry } from "../lib/posting-engine";
 
 export const workOrdersRouter = new Hono();
+
+// ── Status transition rules ─────────────────────────────────────────────────
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  received:      ["diagnosing", "in_progress", "cancelled"],
+  diagnosing:    ["waiting_parts", "in_progress", "cancelled"],
+  waiting_parts: ["in_progress", "cancelled"],
+  in_progress:   ["ready", "cancelled"],
+  ready:         ["delivered", "cancelled"],
+  delivered:     [],
+  cancelled:     [],
+};
 
 // ── Validation schemas ──────────────────────────────────────────────────────
 
@@ -269,26 +280,49 @@ workOrdersRouter.patch("/:id/status", async (c) => {
   const orgId  = getOrgId(c);
   const userId = getUserId(c);
   const id     = c.req.param("id");
-  const body   = await validateBody(c, z.object({ status: statusEnum }));
+  const body   = await validateBody(c, z.object({ status: statusEnum, version: z.number().int().min(1) }));
   if (!body) return;
 
-  const timestamps: Partial<typeof workOrders.$inferInsert> = { updatedAt: new Date() };
+  // Fetch current state
+  const [current] = await db.select({
+    status: workOrders.status,
+    version: workOrders.version,
+    journalEntryId: workOrders.journalEntryId,
+    customerName: workOrders.customerName,
+    itemName: workOrders.itemName,
+    finalCost: workOrders.finalCost,
+  }).from(workOrders).where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)));
+
+  if (!current) return c.json({ error: "أمر العمل غير موجود" }, 404);
+
+  // State machine enforcement
+  const allowed = VALID_TRANSITIONS[current.status] ?? [];
+  if (!allowed.includes(body.status)) {
+    return c.json({ error: `لا يمكن الانتقال من "${current.status}" إلى "${body.status}"` }, 400);
+  }
+
+  // Optimistic locking
+  if (current.version !== body.version) {
+    return c.json({ error: "تعارض في التحديث — حاول مرة أخرى" }, 409);
+  }
+
+  const timestamps: Partial<typeof workOrders.$inferInsert> = { updatedAt: new Date(), version: current.version + 1 };
   if (body.status === "ready")     timestamps.readyAt     = new Date();
   if (body.status === "delivered") timestamps.deliveredAt = new Date();
 
   const [updated] = await db.update(workOrders)
     .set({ status: body.status, ...timestamps })
-    .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)))
+    .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId), eq(workOrders.version, body.version)))
     .returning();
 
-  if (!updated) return c.json({ error: "أمر العمل غير موجود" }, 404);
+  if (!updated) return c.json({ error: "تعارض في التحديث — حاول مرة أخرى" }, 409);
 
-  // Financial posting when delivered and has a finalCost
-  if (body.status === "delivered" && updated.finalCost && Number(updated.finalCost) > 0) {
+  // ── Financial posting on delivery (idempotent) ──────────────────────────
+  if (body.status === "delivered" && !current.journalEntryId && updated.finalCost && Number(updated.finalCost) > 0) {
     try {
       const accounts = await getAccountsByKeys(orgId, ["AR", "SERVICE_REVENUE"]);
       if (accounts.AR && accounts.SERVICE_REVENUE) {
-        await createJournalEntry({
+        const result = await createJournalEntry({
           orgId,
           date: new Date(),
           description: `إيراد أمر عمل — ${updated.customerName} (${updated.itemName})`,
@@ -300,8 +334,24 @@ workOrdersRouter.patch("/:id/status", async (c) => {
             { accountId: accounts.SERVICE_REVENUE, credit: Number(updated.finalCost) },
           ],
         });
+        if (result?.entryId) {
+          await db.update(workOrders)
+            .set({ journalEntryId: result.entryId })
+            .where(eq(workOrders.id, id));
+        }
       }
-    } catch { /* accounting not configured — skip silently */ }
+    } catch {
+      // المحاسبة غير مُفعّلة — نكمل بدون قيد
+    }
+  }
+
+  // ── Reverse financial posting on cancellation ───────────────────────────
+  if (body.status === "cancelled" && current.journalEntryId) {
+    try {
+      await reverseJournalEntry(current.journalEntryId, userId ?? "system", "إلغاء أمر عمل");
+    } catch {
+      // تجاهل أخطاء العكس
+    }
   }
 
   insertAuditLog({ orgId, userId, action: "update", resource: "work_order", resourceId: id, metadata: { status: body.status } });

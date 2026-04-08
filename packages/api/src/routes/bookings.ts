@@ -1186,14 +1186,12 @@ bookingsRouter.post("/:id/payments", async (c) => {
     newValue: { bookingId, amount: body.amount, method: body.method, status: body.status },
   });
 
-  // ترحيل محاسبي (غير متزامن — لا يُوقِف الرد)
+  // ترحيل محاسبي (متزامن — يجب أن يكتمل قبل الرد)
   if (payment.status === "completed") {
-    (async () => {
-      try {
-        const [org] = await db.select({ settings: organizations.settings }).from(organizations).where(eq(organizations.id, orgId));
-        if (!isAccountingEnabled((org?.settings as any) ?? {})) return;
-
-        const amount = parseFloat(body.amount);
+    try {
+      const [org] = await db.select({ settings: organizations.settings }).from(organizations).where(eq(organizations.id, orgId));
+      if (isAccountingEnabled((org?.settings as any) ?? {})) {
+        const amount = Number(body.amount);
         const vatAmount = 0; // الضريبة محسوبة مسبقاً في totalAmount
 
         if (body.type === "deposit") {
@@ -1203,8 +1201,8 @@ bookingsRouter.post("/:id/payments", async (c) => {
         } else {
           await postCashSale({ orgId, date: new Date(), amount, vatAmount, description: `تحصيل دفعة حجز ${bookingId}`, sourceType: "booking", sourceId: payment.id, createdBy: userId ?? undefined });
         }
-      } catch { /* فشل الترحيل لا يُوقف العملية */ }
-    })();
+      }
+    } catch { /* المحاسبة غير مُفعّلة — نكمل بدون قيد */ }
   }
 
   return c.json({ data: payment }, 201);

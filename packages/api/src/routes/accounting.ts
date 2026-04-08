@@ -1114,7 +1114,11 @@ accountingRouter.post("/cost-centers", async (c) => {
 
 accountingRouter.put("/cost-centers/:id", async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
+  const body = z.object({
+    name: z.string().min(1).max(200).optional(),
+    notes: z.string().optional().nullable(),
+    isActive: z.boolean().optional(),
+  }).parse(await c.req.json());
   const [row] = await db.update(costCenters).set({ name: body.name, notes: body.notes ?? null, isActive: body.isActive ?? true, updatedAt: new Date() })
     .where(and(eq(costCenters.id, c.req.param("id")), eq(costCenters.orgId, orgId))).returning();
   if (!row) return c.json({ error: "مركز التكلفة غير موجود" }, 404);
@@ -1203,7 +1207,17 @@ accountingRouter.post("/vendors", async (c) => {
 
 accountingRouter.put("/vendors/:id", async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
+  const body = z.object({
+    name: z.string().min(1).max(200).optional(),
+    phone: z.string().max(20).optional().nullable(),
+    email: z.string().email().optional().nullable(),
+    taxNumber: z.string().max(50).optional().nullable(),
+    bankName: z.string().optional().nullable(),
+    iban: z.string().optional().nullable(),
+    address: z.string().optional().nullable(),
+    notes: z.string().optional().nullable(),
+    isActive: z.boolean().optional(),
+  }).parse(await c.req.json());
   const [row] = await db.update(vendors).set({ ...body, updatedAt: new Date() })
     .where(and(eq(vendors.id, c.req.param("id")), eq(vendors.orgId, orgId))).returning();
   if (!row) return c.json({ error: "المورد غير موجود" }, 404);
@@ -1457,7 +1471,13 @@ accountingRouter.post("/budgets", async (c) => {
 
 accountingRouter.patch("/budgets/:id", async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
+  const body = z.object({
+    name: z.string().min(1).optional(),
+    periodStart: z.string().optional(),
+    periodEnd: z.string().optional(),
+    notes: z.string().optional().nullable(),
+    status: z.enum(["draft", "active", "closed"]).optional(),
+  }).parse(await c.req.json());
   const [row] = await db.update(budgets).set({ ...body, updatedAt: new Date() })
     .where(and(eq(budgets.id, c.req.param("id")), eq(budgets.orgId, orgId))).returning();
   if (!row) return c.json({ error: "الموازنة غير موجودة" }, 404);
@@ -1493,7 +1513,10 @@ accountingRouter.post("/budgets/:id/lines", async (c) => {
 });
 
 accountingRouter.put("/budgets/:id/lines/:lineId", async (c) => {
-  const body = await c.req.json();
+  const body = z.object({
+    budgetAmount: z.string().or(z.number()).transform(v => String(v)).optional(),
+    actualAmount: z.string().or(z.number()).transform(v => String(v)).optional(),
+  }).parse(await c.req.json());
   const [line] = await db.update(budgetLines).set({
     budgetAmount: body.budgetAmount !== undefined ? String(body.budgetAmount) : undefined,
     actualAmount: body.actualAmount !== undefined ? String(body.actualAmount) : undefined,
