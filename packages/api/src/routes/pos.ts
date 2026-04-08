@@ -7,11 +7,56 @@ import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import {
   getAccountsByKeys, createJournalEntry, reverseJournalEntry,
-  isAccountingEnabled,
+  isAccountingEnabled, postInventoryMovement,
 } from "../lib/posting-engine";
 import { nanoid } from "nanoid";
 import { DEFAULT_VAT_RATE } from "@nasaq/db/constants";
 import { lookupByBarcode } from "../lib/barcode";
+
+// ============================================================
+// INVENTORY HELPERS — POS stock deduction
+// ============================================================
+
+/** Deduct stock from flower_inventory after POS sale */
+async function deductPOSInventory(orgId: string, items: { id: string; name: string; quantity: number; price: number }[]) {
+  for (const item of items) {
+    if (!item.id) continue;
+    // Deduct from flower_inventory (atomic, floor at 0)
+    await pool.query(
+      `UPDATE flower_inventory SET stock = GREATEST(stock - $1, 0), updated_at = NOW()
+       WHERE id = $2 AND org_id = $3`,
+      [item.quantity, item.id, orgId],
+    );
+    // Post COGS entry
+    try {
+      await postInventoryMovement({
+        orgId,
+        productId: item.id,
+        productName: item.name,
+        movementType: "out",
+        quantity: item.quantity,
+        unitCost: item.price,
+        description: `بيع POS: ${item.name} × ${item.quantity}`,
+      });
+    } catch { /* COGS is optional */ }
+  }
+}
+
+/** Restore stock when POS sale is refunded */
+async function restorePOSInventory(orgId: string, items: any[]) {
+  const parsed = typeof items === "string" ? JSON.parse(items) : items;
+  if (!Array.isArray(parsed)) return;
+  for (const item of parsed) {
+    const itemId = item.id || item.product_id;
+    const qty = item.quantity || item.qty || 1;
+    if (!itemId) continue;
+    await pool.query(
+      `UPDATE flower_inventory SET stock = stock + $1, updated_at = NOW()
+       WHERE id = $2 AND org_id = $3`,
+      [qty, itemId, orgId],
+    );
+  }
+}
 
 // ============================================================
 // SCHEMAS
@@ -367,7 +412,7 @@ posRouter.post("/sale", async (c) => {
   // Link invoice to transaction
   await pool.query(`UPDATE pos_transactions SET invoice_id = $1 WHERE id = $2`, [invoice.id, tx.id]);
 
-  // Async: journal entry + customer stats
+  // Async: journal entry + customer stats + inventory deduction
   (async () => {
     try {
       if (isAccountingEnabled((orgRow?.settings as any) ?? {})) {
@@ -382,6 +427,11 @@ posRouter.post("/sale", async (c) => {
         });
       }
     } catch { /* لا يوقف العملية */ }
+
+    // Deduct inventory for sold items
+    try {
+      await deductPOSInventory(orgId, body.items);
+    } catch { /* لا يوقف */ }
 
     if (body.customerId) {
       try {
@@ -565,11 +615,11 @@ posRouter.post("/sale/:id/refund", async (c) => {
   // Mark original as refunded
   await pool.query(`UPDATE pos_transactions SET status = 'refunded' WHERE id = $1`, [orig.rows[0].id]);
 
-  // Reverse journal entry (async)
-  if (orig.rows[0].invoice_id) {
-    (async () => {
+  // Reverse journal entry + restore inventory (async)
+  (async () => {
+    // Reverse financial entry
+    if (orig.rows[0].invoice_id) {
       try {
-        // Find journal entry for this sale
         const je = await pool.query(
           `SELECT je.id FROM journal_entries je WHERE je.source_id = $1 AND je.org_id = $2 AND je.source_type = 'pos' AND je.status = 'posted' LIMIT 1`,
           [orig.rows[0].id, orgId]
@@ -578,8 +628,13 @@ posRouter.post("/sale/:id/refund", async (c) => {
           await reverseJournalEntry(je.rows[0].id, userId, reason || "استرداد POS");
         }
       } catch { /* لا يوقف */ }
-    })();
-  }
+    }
+
+    // Restore inventory for refunded items
+    try {
+      await restorePOSInventory(orgId, orig.rows[0].items);
+    } catch { /* لا يوقف */ }
+  })();
 
   insertAuditLog({ orgId, userId, action: "deleted", resource: "pos_sale", resourceId: orig.rows[0].id, metadata: { refundTx: txNum, reason } });
   return c.json({ data: result.rows[0] }, 201);
