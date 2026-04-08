@@ -727,15 +727,20 @@ export const flowerBuilderApi = {
     return api.get<{ data: any[] }>(`/flower-builder/orders?${q}`);
   },
   orderStats: () => api.get<{ data: any }>("/flower-builder/orders/stats"),
+  getOrder: (id: string) => api.get<{ data: any }>(`/flower-builder/orders/${id}`),
   createOrder: (data: any) => api.post<{ data: any }>("/flower-builder/orders", data),
-  updateOrderStatus: (id: string, status: string) => api.patch<{ data: any }>(`/flower-builder/orders/${id}/status`, { status }),
+  updateOrder: (id: string, data: any) => api.put<{ data: any }>(`/flower-builder/orders/${id}`, data),
+  updateOrderStatus: (id: string, status: string, version?: number) =>
+    api.patch<{ data: any }>(`/flower-builder/orders/${id}/status`, { status, version: version ?? 1 }),
+  cancelOrder: (id: string, reason?: string, version?: number) =>
+    api.patch<{ data: any }>(`/flower-builder/orders/${id}/status`, { status: "cancelled", reason, version: version ?? 1 }),
   // Page config (authenticated dashboard)
   pageConfig: () => api.get<{ data: any }>("/flower-builder/page-config"),
   updatePageConfig: (config: any) => api.put<{ data: any }>("/flower-builder/page-config", config),
   // Delivery queue
   delivery: (date?: string) => api.get<{ data: any[]; stats: any }>(`/flower-builder/delivery${date ? `?date=${date}` : ""}`),
-  assignDriver: (id: string, data: { driverName: string; driverPhone?: string }) => api.patch<{ data: any }>(`/flower-builder/orders/${id}/driver`, data),
-  assignStaff: (id: string, data: { staffId: string; staffName: string }) => api.patch<{ data: any }>(`/flower-builder/orders/${id}/assign-staff`, data),
+  assignDriver: (id: string, data: { driverName: string; driverPhone?: string; version?: number }) => api.patch<{ data: any }>(`/flower-builder/orders/${id}/driver`, data),
+  assignStaff: (id: string, data: { staffId: string; staffName: string; version?: number }) => api.patch<{ data: any }>(`/flower-builder/orders/${id}/assign-staff`, data),
   // Public (no auth — for customers)
   publicCatalog: (slug: string) => fetch(`/api/v1/flower-builder/public/${slug}`).then(r => r.json()),
   publicOrder: (slug: string, data: any) => fetch(`/api/v1/flower-builder/public/${slug}/order`, {
