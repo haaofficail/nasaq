@@ -484,19 +484,17 @@ flowerBuilderRouter.patch("/orders/:id/status", async (c) => {
     setClauses.push(`delivered_at = COALESCE(delivered_at, NOW())`);
   }
   if (body.status === "cancelled") {
-    setClauses.push(`cancelled_at = NOW()`);
-    setClauses.push(`cancellation_reason = $${params.length + 1}`);
     params.push(body.reason || null);
+    setClauses.push(`cancelled_at = NOW()`);
+    setClauses.push(`cancellation_reason = $${params.length}`);
   }
 
+  // WHERE clause params: id, orgId, version — always last 3
   params.push(id, orgId, body.version);
-  const idIdx = params.length - 2;
-  const orgIdx = params.length - 1;
-  const verIdx = params.length;
 
   const result = await pool.query(
     `UPDATE flower_orders SET ${setClauses.join(", ")}
-     WHERE id = $${idIdx} AND org_id = $${orgIdx} AND version = $${verIdx} RETURNING *`,
+     WHERE id = $${params.length - 2} AND org_id = $${params.length - 1} AND version = $${params.length} RETURNING *`,
     params,
   );
 

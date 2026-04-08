@@ -18,7 +18,7 @@ import { lookupByBarcode } from "../lib/barcode";
 // ============================================================
 
 /** Deduct stock from flower_inventory after POS sale */
-async function deductPOSInventory(orgId: string, items: { id: string; name: string; quantity: number; price: number }[]) {
+async function deductPOSInventory(orgId: string, items: { id?: string; name: string; quantity: number; price: number }[]) {
   for (const item of items) {
     if (!item.id) continue;
     // Deduct from flower_inventory (atomic, floor at 0)

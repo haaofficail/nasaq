@@ -530,8 +530,10 @@ export function FlowerPOSPage() {
           <div className="flex gap-3 w-full">
             <button
               onClick={() => {
-                const orderNo = lastOrderData?.order_number ?? `FLW-${Date.now().toString(36).toUpperCase()}`;
+                const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+                const orderNo = esc(lastOrderData?.order_number ?? `FLW-${Date.now().toString(36).toUpperCase()}`);
                 const receiptItems = cart.length > 0 ? cart : [];
+                const escapedCustomer = esc(customerName.trim());
                 const receiptHtml = `
                   <html dir="rtl"><head><meta charset="utf-8">
                   <style>
@@ -548,18 +550,18 @@ export function FlowerPOSPage() {
                     <h2>ترميز OS</h2>
                     <p>فاتورة مبسّطة</p>
                     <p>${orderNo}</p>
-                    <p>${new Date().toLocaleDateString("ar-SA")} ${new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}</p>
-                    ${customerName.trim() ? `<p>العميل: ${customerName.trim()}</p>` : ""}
+                    <p>${esc(new Date().toLocaleDateString("ar-SA"))} ${esc(new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" }))}</p>
+                    ${escapedCustomer ? `<p>العميل: ${escapedCustomer}</p>` : ""}
                   </div>
                   <div class="line"></div>
-                  ${receiptItems.map(ci => `<div class="row"><span>${ci.name} × ${ci.qty}</span><span>${(ci.price * ci.qty).toFixed(2)}</span></div>`).join("")}
+                  ${receiptItems.map(ci => `<div class="row"><span>${esc(ci.name)} × ${ci.qty}</span><span>${(ci.price * ci.qty).toFixed(2)}</span></div>`).join("")}
                   <div class="line"></div>
                   <div class="row"><span>المجموع الفرعي</span><span>${subtotal.toFixed(2)} ر.س</span></div>
                   <div class="row"><span>ضريبة القيمة المضافة</span><span>${vat.toFixed(2)} ر.س</span></div>
                   <div class="line"></div>
                   <div class="row total-row"><span>الإجمالي</span><span>${total.toFixed(2)} ر.س</span></div>
                   <div class="line"></div>
-                  <div class="row"><span>طريقة الدفع</span><span>${PAYMENT_METHODS.find(p => p.value === paymentMethod)?.label ?? paymentMethod}</span></div>
+                  <div class="row"><span>طريقة الدفع</span><span>${esc(PAYMENT_METHODS.find(p => p.value === paymentMethod)?.label ?? paymentMethod)}</span></div>
                   <div class="center" style="margin-top:12px">
                     <p>شكراً لزيارتكم</p>
                     <p style="font-size:10px;color:#999">ترميز OS — نظام نقاط البيع</p>
