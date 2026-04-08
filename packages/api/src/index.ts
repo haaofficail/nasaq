@@ -602,6 +602,7 @@ app.route("/payments", paymentsRouter);
 
 // --- Work Orders (workshop, phone repair, tailor, laundry, field service) ---
 app.use("/work-orders/*", authMiddleware);
+app.use("/work-orders/*", requireCapability("workshop"));
 app.use("/work-orders/*", methodGuard("bookings"));
 app.route("/work-orders", workOrdersRouter);
 
@@ -706,6 +707,7 @@ app.route("/decor-assets", decorAssetsRouter);
 
 app.use("/service-orders/*", authMiddleware);
 app.use("/service-orders/*", requireCapability("floral"));
+app.use("/service-orders/*", methodGuard("bookings"));
 app.route("/service-orders", serviceOrdersRouter);
 
 app.use("/event-packages/*", authMiddleware);

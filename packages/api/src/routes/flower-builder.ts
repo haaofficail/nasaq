@@ -6,23 +6,34 @@ import { insertAuditLog } from "../lib/audit";
 import { postCashSale, reverseJournalEntry, postInventoryMovement } from "../lib/posting-engine";
 import { requirePermission } from "../middleware/auth";
 
-// ============================================================
-// STATUS STATE MACHINE — يمنع الانتقالات غير المنطقية
-// ============================================================
+// ── Status enum & state machine ──────────────────────────────────────────────
+const FLOWER_ORDER_STATUSES = [
+  "pending", "confirmed", "preparing", "ready",
+  "out_for_delivery", "delivered", "cancelled",
+  "delivery_failed", "returned",
+] as const;
+
+const flowerOrderStatusEnum = z.enum(FLOWER_ORDER_STATUSES);
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  pending:          ["confirmed", "cancelled"],
+  pending:          ["confirmed", "preparing", "cancelled"],
   confirmed:        ["preparing", "cancelled"],
   preparing:        ["ready", "cancelled"],
-  ready:            ["out_for_delivery", "delivered", "cancelled"],
-  out_for_delivery: ["delivered", "cancelled"],
-  delivered:        [],   // terminal
-  cancelled:        [],   // terminal
+  ready:            ["out_for_delivery", "delivered", "cancelled"],   // delivered = pickup
+  out_for_delivery: ["delivered", "delivery_failed"],
+  delivered:        [],                                                // terminal
+  cancelled:        [],                                                // terminal
+  delivery_failed:  ["out_for_delivery", "returned", "cancelled"],
+  returned:         [],                                                // terminal
 };
+
+// Terminal statuses — no edits allowed
+const TERMINAL_STATUSES = new Set(["delivered", "cancelled", "returned"]);
 
 // ============================================================
 // ZOD SCHEMAS — تحقق صارم من البيانات
 // ============================================================
+
 
 const createCatalogItemSchema = z.object({
   type: z.enum(["packaging", "gift", "card", "delivery"]),
@@ -443,118 +454,158 @@ flowerBuilderRouter.put("/orders/:id", requirePermission("bookings", "edit"), as
 
 // PATCH /flower-builder/orders/:id/status — with state machine + optimistic locking + idempotent posting
 flowerBuilderRouter.patch("/orders/:id/status", async (c) => {
-  const orgId = getOrgId(c);
-  const id = c.req.param("id");
-  const body = updateStatusSchema.parse(await c.req.json());
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const id     = c.req.param("id");
+  const body   = updateStatusSchema.parse(await c.req.json());
+  const { status, version, reason } = body;
 
-  const current = await pool.query(
+  // ── Fetch current order ───────────────────────────────────────
+  const { rows: [order] } = await pool.query(
     `SELECT * FROM flower_orders WHERE id = $1 AND org_id = $2`,
-    [id, orgId],
+    [id, orgId]
   );
-  if (!current.rows[0]) return c.json({ error: "الطلب غير موجود" }, 404);
+  if (!order) return c.json({ error: "الطلب غير موجود" }, 404);
 
-  const order = current.rows[0];
-
-  // Optimistic locking
-  if (order.version !== body.version) {
+  // ── Optimistic locking ────────────────────────────────────────
+  if (order.version !== version) {
     return c.json({
       error: "تم تعديل الطلب من قبل مستخدم آخر — يرجى إعادة تحميل الصفحة",
       code: "VERSION_CONFLICT",
     }, 409);
   }
 
-  // State machine validation
-  const allowed = VALID_TRANSITIONS[order.status];
-  if (!allowed || !allowed.includes(body.status)) {
+  // ── State machine validation ──────────────────────────────────
+  const allowed = VALID_TRANSITIONS[order.status] ?? [];
+  if (!allowed.includes(status)) {
     return c.json({
-      error: `لا يمكن تغيير الحالة من "${order.status}" إلى "${body.status}"`,
+      error: `لا يمكن الانتقال من "${order.status}" إلى "${status}"`,
       code: "INVALID_TRANSITION",
-    }, 400);
+    }, 422);
   }
 
-  // Build dynamic SET clause based on status
-  const setClauses = [
-    `status = $1`,
-    `version = version + 1`,
-    `updated_at = NOW()`,
-  ];
-  const params: any[] = [body.status];
+  // ── Build timestamp & cancellation fields ─────────────────────
+  const tsField: Record<string, string> = {
+    confirmed: "confirmed_at",
+    preparing: "preparing_at",
+    ready: "ready_at",
+    out_for_delivery: "dispatched_at",
+    delivered: "delivered_at",
+    cancelled: "cancelled_at",
+    delivery_failed: "updated_at",
+    returned: "updated_at",
+  };
+  const tsCol = tsField[status] || "updated_at";
 
-  if (body.status === "delivered") {
-    setClauses.push(`delivered_at = COALESCE(delivered_at, NOW())`);
-  }
-  if (body.status === "cancelled") {
-    params.push(body.reason || null);
-    setClauses.push(`cancelled_at = NOW()`);
-    setClauses.push(`cancellation_reason = $${params.length}`);
-  }
+  // ── Atomic: status change + financial posting in one transaction ─
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-  // WHERE clause params: id, orgId, version — always last 3
-  params.push(id, orgId, body.version);
+    const setClauses = [
+      `status = $3`,
+      `${tsCol} = NOW()`,
+      `updated_at = NOW()`,
+      `version = version + 1`,
+    ];
+    const params: any[] = [id, orgId, status];
 
-  const result = await pool.query(
-    `UPDATE flower_orders SET ${setClauses.join(", ")}
-     WHERE id = $${params.length - 2} AND org_id = $${params.length - 1} AND version = $${params.length} RETURNING *`,
-    params,
-  );
+    if (status === "cancelled") {
+      params.push(reason || null);
+      setClauses.push(`cancellation_reason = $${params.length}`);
+      params.push(userId || null);
+      setClauses.push(`cancelled_by = $${params.length}`);
+    }
 
-  if (!result.rows[0]) {
-    return c.json({ error: "تعارض في التحديث — يرجى إعادة المحاولة", code: "VERSION_CONFLICT" }, 409);
-  }
+    // Version check for optimistic locking
+    params.push(version);
+    const versionCheck = `AND version = $${params.length}`;
 
-  const updated = result.rows[0];
-  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "flower_order", resourceId: id, metadata: { status: body.status } });
+    const { rows: [updated] } = await client.query(
+      `UPDATE flower_orders SET ${setClauses.join(", ")}
+       WHERE id = $1 AND org_id = $2 ${versionCheck}
+       RETURNING *`,
+      params
+    );
 
-  // ── Financial posting on delivery (idempotent — use updated row to check journal_entry_id) ──
-  if (body.status === "delivered" && !updated.journal_entry_id) {
-    const amount = Number(updated.total ?? updated.subtotal ?? 0);
-    if (amount > 0) {
-      try {
-        const je = await postCashSale({
-          orgId,
-          date: new Date(),
-          amount,
-          vatAmount: 0,
-          description: `طلب ورود #${updated.order_number}`,
-          sourceType: "pos",
-          sourceId: updated.id,
-          createdBy: getUserId(c) ?? undefined,
-        });
-        if (je) {
-          await pool.query(
-            `UPDATE flower_orders SET journal_entry_id = $1, payment_status = 'paid', paid_amount = $2
-             WHERE id = $3 AND version = $4`,
-            [je.entryId, amount, id, updated.version],
-          );
+    if (!updated) {
+      await client.query("ROLLBACK");
+      return c.json({ error: "تعارض في التحديث — يرجى إعادة المحاولة", code: "VERSION_CONFLICT" }, 409);
+    }
+
+    // ── Financial posting when delivered (with duplicate protection) ──
+    if (status === "delivered" && !updated.journal_entry_id) {
+      const amount = Number(updated.total ?? updated.subtotal ?? 0);
+      if (amount > 0) {
+        try {
+          const postResult = await postCashSale({
+            orgId,
+            date: new Date(),
+            amount,
+            vatAmount: 0,
+            description: `طلب ورود #${updated.order_number}`,
+            sourceType: "pos",
+            sourceId: updated.id,
+            createdBy: userId ?? undefined,
+          });
+          if (postResult?.entryId) {
+            await client.query(
+              `UPDATE flower_orders SET journal_entry_id = $1, payment_status = 'paid', paid_amount = $2 WHERE id = $3`,
+              [postResult.entryId, amount, id]
+            );
+          }
+        } catch {
+          // المحاسبة غير مُفعّلة — نكمل بدون قيد
         }
-      } catch {
-        // Accounting is optional
       }
     }
-  }
 
-  // ── Cancellation: reverse journal entry + restore inventory ──
-  if (body.status === "cancelled") {
-    // Reverse financial entry (use updated row which has the latest journal_entry_id)
-    if (updated.journal_entry_id) {
+    // ── Reverse financial entry on cancellation ─────────────────
+    if (status === "cancelled" && updated.journal_entry_id) {
       try {
-        const userId = getUserId(c);
-        if (userId) {
-          await reverseJournalEntry(updated.journal_entry_id, userId, body.reason || "إلغاء طلب ورود");
-        }
+        await reverseJournalEntry(
+          updated.journal_entry_id,
+          userId ?? "system",
+          reason || `إلغاء طلب ورود #${order.order_number}`
+        );
+        await client.query(
+          `UPDATE flower_orders SET payment_status = 'refunded' WHERE id = $1`,
+          [id]
+        );
       } catch {
-        // Reversal is optional
+        // تجاهل أخطاء المحاسبة
       }
     }
 
-    // Restore inventory
-    const items = typeof order.items === "string" ? JSON.parse(order.items || "[]") : (order.items || []);
-    if (items.length > 0) {
-      restoreInventoryForOrder(orgId, items).catch(() => {});
-    }
-  }
+    await client.query("COMMIT");
 
-  return c.json({ data: updated });
+    // ── Restore inventory on cancellation (async, non-blocking) ──
+    if (status === "cancelled") {
+      const items = typeof order.items === "string" ? JSON.parse(order.items || "[]") : (order.items || []);
+      if (items.length > 0) {
+        restoreInventoryForOrder(orgId, items).catch(() => {});
+      }
+    }
+
+    // ── Audit with old/new status ───────────────────────────────
+    insertAuditLog({
+      orgId,
+      userId,
+      action: "updated",
+      resource: "flower_order",
+      resourceId: id,
+      oldValue: { status: order.status },
+      newValue: { status },
+      metadata: { status, reason },
+    });
+
+    return c.json({ data: updated });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 });
 
 // PATCH /flower-builder/orders/:id/driver — assign driver (with optimistic locking)
@@ -567,16 +618,42 @@ flowerBuilderRouter.patch("/orders/:id/driver", async (c) => {
     return c.json({ error: "version مطلوب" }, 400);
   }
 
-  const result = await pool.query(
+  // Verify current status allows driver assignment
+  const { rows: [current] } = await pool.query(
+    `SELECT id, status, version FROM flower_orders WHERE id = $1 AND org_id = $2`,
+    [id, orgId]
+  );
+  if (!current) return c.json({ error: "الطلب غير موجود" }, 404);
+
+  if (!["ready", "delivery_failed"].includes(current.status)) {
+    return c.json({
+      error: `لا يمكن تعيين مندوب والطلب في حالة "${current.status}" — يجب أن يكون "ready" أو "delivery_failed"`,
+    }, 422);
+  }
+
+  const { rows: [updated] } = await pool.query(
     `UPDATE flower_orders
      SET driver_name=$3, driver_phone=$4, status='out_for_delivery',
          dispatched_at=COALESCE(dispatched_at, NOW()), updated_at=NOW(),
          version = version + 1
      WHERE id=$1 AND org_id=$2 AND version=$5 RETURNING *`,
-    [id, orgId, driverName || null, driverPhone || null, version],
+    [id, orgId, driverName || null, driverPhone || null, version]
   );
-  if (!result.rows[0]) return c.json({ error: "الطلب غير موجود أو تم تعديله", code: "VERSION_CONFLICT" }, 409);
-  return c.json({ data: result.rows[0] });
+  if (!updated) {
+    return c.json({ error: "الطلب غير موجود أو تم تعديله", code: "VERSION_CONFLICT" }, 409);
+  }
+
+  insertAuditLog({
+    orgId,
+    userId: getUserId(c),
+    action: "updated",
+    resource: "flower_order",
+    resourceId: id,
+    oldValue: { status: current.status },
+    newValue: { status: "out_for_delivery" },
+    metadata: { driverName },
+  });
+  return c.json({ data: updated });
 });
 
 // PATCH /flower-builder/orders/:id/assign-staff — assign florist (with optimistic locking)
@@ -589,17 +666,42 @@ flowerBuilderRouter.patch("/orders/:id/assign-staff", async (c) => {
     return c.json({ error: "version مطلوب" }, 400);
   }
 
-  const result = await pool.query(
+  // Verify current status allows staff assignment
+  const { rows: [current] } = await pool.query(
+    `SELECT id, status, version FROM flower_orders WHERE id = $1 AND org_id = $2`,
+    [id, orgId]
+  );
+  if (!current) return c.json({ error: "الطلب غير موجود" }, 404);
+
+  if (!["pending", "confirmed"].includes(current.status)) {
+    return c.json({
+      error: `لا يمكن تعيين منسق والطلب في حالة "${current.status}" — يجب أن يكون "pending" أو "confirmed"`,
+    }, 422);
+  }
+
+  const { rows: [updated] } = await pool.query(
     `UPDATE flower_orders
      SET assigned_staff_id=$3, assigned_staff_name=$4,
          status='preparing', preparing_at=COALESCE(preparing_at, NOW()), updated_at=NOW(),
          version = version + 1
      WHERE id=$1 AND org_id=$2 AND version=$5 RETURNING *`,
-    [id, orgId, staffId || null, staffName || null, version],
+    [id, orgId, staffId || null, staffName || null, version]
   );
-  if (!result.rows[0]) return c.json({ error: "الطلب غير موجود أو تم تعديله", code: "VERSION_CONFLICT" }, 409);
-  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "flower_order", resourceId: id, metadata: { assigned_staff_id: staffId } });
-  return c.json({ data: result.rows[0] });
+  if (!updated) {
+    return c.json({ error: "الطلب غير موجود أو تم تعديله", code: "VERSION_CONFLICT" }, 409);
+  }
+
+  insertAuditLog({
+    orgId,
+    userId: getUserId(c),
+    action: "updated",
+    resource: "flower_order",
+    resourceId: id,
+    oldValue: { status: current.status },
+    newValue: { status: "preparing" },
+    metadata: { assigned_staff_id: staffId },
+  });
+  return c.json({ data: updated });
 });
 
 // DELETE /flower-builder/orders/:id — cancel order (shortcut)

@@ -1,13 +1,23 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { pool } from "@nasaq/db/client";
 import { getOrgId, getUserId } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
-import { postCreditSale } from "../lib/posting-engine";
+import { postCreditSale, reverseJournalEntry } from "../lib/posting-engine";
 import { applyBlueprint, createProjectFromService, type OverridePolicy } from "../lib/execution-engine";
 
 export const serviceOrdersRouter = new Hono();
 
 // ─── Status transition rules ──────────────────────────────────────────────────
+const SERVICE_ORDER_STATUSES = [
+  "draft", "deposit_pending", "confirmed", "scheduled",
+  "preparing", "ready", "dispatched", "in_setup",
+  "completed_on_site", "returned", "inspected",
+  "closed", "cancelled",
+] as const;
+
+const serviceOrderStatusEnum = z.enum(SERVICE_ORDER_STATUSES);
+
 const VALID_TRANSITIONS: Record<string, string[]> = {
   draft:             ["confirmed","deposit_pending","cancelled"],
   deposit_pending:   ["confirmed","cancelled"],
@@ -23,6 +33,9 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   closed:            [],
   cancelled:         [],
 };
+
+// Terminal statuses — no edits allowed
+const TERMINAL_STATUSES = new Set(["closed", "cancelled"]);
 
 // ─── GET / — قائمة طلبات الخدمة ──────────────────────────────────────────────
 
@@ -200,6 +213,15 @@ serviceOrdersRouter.put("/:id", async (c) => {
   const { id } = c.req.param();
   const body   = await c.req.json();
 
+  // Verify order exists and check terminal status
+  const { rows: existing } = await pool.query(
+    `SELECT status FROM service_orders WHERE id=$1 AND org_id=$2`, [id, orgId]
+  );
+  if (!existing[0]) return c.json({ error: "الطلب غير موجود" }, 404);
+  if (TERMINAL_STATUSES.has(existing[0].status)) {
+    return c.json({ error: `لا يمكن تعديل طلب في حالة "${existing[0].status}"` }, 422);
+  }
+
   const {
     customer_name, customer_phone, event_date, event_time,
     event_location, description, notes, deposit_amount,
@@ -237,11 +259,24 @@ serviceOrdersRouter.patch("/:id/status", async (c) => {
   const orgId  = getOrgId(c);
   const userId = getUserId(c);
   const { id } = c.req.param();
-  const { status, notes } = await c.req.json();
 
-  // تحقق من الطلب الحالي
+  // ── Validate with Zod ─────────────────────────────────────────
+  const parsed = z.object({
+    status: serviceOrderStatusEnum,
+    notes: z.string().optional(),
+    cancellationReason: z.string().optional(),
+  }).safeParse(await c.req.json());
+
+  if (!parsed.success) {
+    return c.json({ error: "حالة غير صالحة", details: parsed.error.errors }, 400);
+  }
+  const { status, notes, cancellationReason } = parsed.data;
+
+  // ── Fetch current order with version ──────────────────────────
   const { rows: current } = await pool.query(
-    `SELECT status FROM service_orders WHERE id=$1 AND org_id=$2`, [id, orgId]
+    `SELECT id, status, version, journal_entry_id, total_amount, customer_name,
+            order_number, customer_id
+     FROM service_orders WHERE id=$1 AND org_id=$2`, [id, orgId]
   );
   if (!current[0]) return c.json({ error: "الطلب غير موجود" }, 404);
 
@@ -249,130 +284,182 @@ serviceOrdersRouter.patch("/:id/status", async (c) => {
   if (!allowed.includes(status)) {
     return c.json({
       error: `لا يمكن الانتقال من "${current[0].status}" إلى "${status}"`,
-    }, 400);
+    }, 422);
   }
 
-  const { rows } = await pool.query(
-    `UPDATE service_orders SET status=$3, internal_notes=COALESCE($4,internal_notes), updated_at=NOW()
-     WHERE id=$1 AND org_id=$2 RETURNING *`,
-    [id, orgId, status, notes ?? null]
-  );
+  // ── Atomic: status change + version bump + financial posting ──
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-  const order = rows[0];
+    const setFields: string[] = [`status = $3`, `updated_at = NOW()`, `version = version + 1`];
+    const queryParams: any[] = [id, orgId, status];
 
-  // عند confirmed: أنشئ قيد محاسبي
-  if (status === "confirmed" && order.total_amount && Number(order.total_amount) > 0) {
-    try {
-      const result = await postCreditSale({
-        orgId,
-        date: new Date(),
-        amount: Number(order.total_amount),
-        vatAmount: 0,
-        description: `طلب خدمة ${order.order_number} — ${order.customer_name}`,
-        sourceType: "booking",
-        sourceId: id,
-        createdBy: userId ?? undefined,
-      });
-      if (result?.entryId) {
-        await pool.query(
-          `UPDATE service_orders SET journal_entry_id=$1 WHERE id=$2`,
-          [result.entryId, id]
+    if (notes) {
+      queryParams.push(notes);
+      setFields.push(`internal_notes = COALESCE($${queryParams.length}, internal_notes)`);
+    }
+
+    if (status === "cancelled") {
+      queryParams.push(new Date());
+      setFields.push(`cancelled_at = $${queryParams.length}`);
+      queryParams.push(cancellationReason || null);
+      setFields.push(`cancellation_reason = $${queryParams.length}`);
+      queryParams.push(userId || null);
+      setFields.push(`cancelled_by = $${queryParams.length}`);
+    }
+
+    // Version check for optimistic locking
+    queryParams.push(current[0].version);
+    const versionCheck = `AND version = $${queryParams.length}`;
+
+    const { rows } = await client.query(
+      `UPDATE service_orders SET ${setFields.join(", ")}
+       WHERE id=$1 AND org_id=$2 ${versionCheck}
+       RETURNING *`,
+      queryParams
+    );
+
+    if (!rows[0]) {
+      await client.query("ROLLBACK");
+      return c.json({ error: "الطلب تم تعديله بواسطة مستخدم آخر — أعد التحميل" }, 409);
+    }
+
+    const order = rows[0];
+
+    // ── Financial posting when confirmed (with duplicate protection) ──
+    if (status === "confirmed" && !current[0].journal_entry_id && order.total_amount && Number(order.total_amount) > 0) {
+      try {
+        const result = await postCreditSale({
+          orgId,
+          date: new Date(),
+          amount: Number(order.total_amount),
+          vatAmount: 0,
+          description: `طلب خدمة ${order.order_number} — ${order.customer_name}`,
+          sourceType: "booking",
+          sourceId: id,
+          createdBy: userId ?? undefined,
+        });
+        if (result?.entryId) {
+          await client.query(
+            `UPDATE service_orders SET journal_entry_id=$1 WHERE id=$2`,
+            [result.entryId, id]
+          );
+        }
+      } catch {
+        // المحاسبة غير مُفعّلة — نكمل بدون قيد
+      }
+    }
+
+    // ── Reverse financial entry on cancellation ─────────────────
+    if (status === "cancelled" && current[0].journal_entry_id) {
+      try {
+        await reverseJournalEntry(
+          current[0].journal_entry_id,
+          userId ?? "system",
+          `إلغاء طلب خدمة #${current[0].order_number}`
+        );
+      } catch {
+        // تجاهل أخطاء المحاسبة
+      }
+    }
+
+    // عند closed: حدّث إحصائيات العميل
+    if (status === "closed" && order.customer_id) {
+      await client.query(
+        `UPDATE customers SET
+           total_spent       = COALESCE(total_spent, 0) + $2,
+           total_bookings    = COALESCE(total_bookings, 0) + 1,
+           last_booking_at   = NOW(),
+           updated_at        = NOW()
+         WHERE id=$1`,
+        [order.customer_id, Number(order.total_amount ?? 0)]
+      );
+    }
+
+    // عند dispatched: غيّر حالة الأصول المحجوزة → in_use
+    if (status === "dispatched") {
+      const { rows: reservations } = await client.query(
+        `SELECT asset_id FROM decor_asset_reservations WHERE service_order_id=$1 AND status='reserved'`,
+        [id]
+      );
+      for (const r of reservations) {
+        await client.query(
+          `UPDATE decor_assets SET status='in_use', updated_at=NOW() WHERE id=$1`, [r.asset_id]
+        );
+        await client.query(
+          `UPDATE decor_asset_reservations SET status='dispatched', updated_at=NOW()
+           WHERE service_order_id=$1 AND asset_id=$2`,
+          [id, r.asset_id]
+        );
+        await client.query(
+          `INSERT INTO decor_asset_movements (asset_id, org_id, movement_type, reference_id, reference_label, notes, created_by)
+           VALUES ($1,$2,'dispatched',$3,$4,$5,$6)`,
+          [r.asset_id, orgId, id, `طلب ${order.order_number}`, notes ?? null, userId]
         );
       }
-    } catch {
-      // المحاسبة غير مُفعّلة — نكمل بدون قيد
-    }
-  }
-
-  // عند cancelled: عكس القيد المحاسبي إن وجد
-  if (status === "cancelled" && order.journal_entry_id) {
-    try {
-      await pool.query(
-        `UPDATE journal_entries SET is_reversed=TRUE, updated_at=NOW() WHERE id=$1 AND org_id=$2`,
-        [order.journal_entry_id, orgId]
+      // اخصم المواد المستهلكة
+      const { rows: matRes } = await client.query(
+        `SELECT * FROM material_reservations WHERE service_order_id=$1 AND status='reserved'`, [id]
       );
-    } catch {
-      // تجاهل أخطاء المحاسبة
-    }
-  }
-
-  // عند closed: حدّث إحصائيات العميل
-  if (status === "closed" && order.customer_id) {
-    await pool.query(
-      `UPDATE customers SET
-         total_spent       = COALESCE(total_spent, 0) + $2,
-         total_bookings    = COALESCE(total_bookings, 0) + 1,
-         last_booking_at   = NOW(),
-         updated_at        = NOW()
-       WHERE id=$1`,
-      [order.customer_id, Number(order.total_amount ?? 0)]
-    );
-  }
-
-  // عند dispatched: غيّر حالة الأصول المحجوزة → in_use
-  if (status === "dispatched") {
-    const { rows: reservations } = await pool.query(
-      `SELECT asset_id FROM decor_asset_reservations WHERE service_order_id=$1 AND status='reserved'`,
-      [id]
-    );
-    for (const r of reservations) {
-      await pool.query(
-        `UPDATE decor_assets SET status='in_use', updated_at=NOW() WHERE id=$1`, [r.asset_id]
-      );
-      await pool.query(
-        `UPDATE decor_asset_reservations SET status='dispatched', updated_at=NOW()
-         WHERE service_order_id=$1 AND asset_id=$2`,
-        [id, r.asset_id]
-      );
-      await pool.query(
-        `INSERT INTO decor_asset_movements (asset_id, org_id, movement_type, reference_id, reference_label, notes, created_by)
-         VALUES ($1,$2,'dispatched',$3,$4,$5,$6)`,
-        [r.asset_id, orgId, id, `طلب ${rows[0].order_number}`, notes ?? null, userId]
-      );
-    }
-    // اخصم المواد المستهلكة
-    const { rows: matRes } = await pool.query(
-      `SELECT * FROM material_reservations WHERE service_order_id=$1 AND status='reserved'`, [id]
-    );
-    for (const m of matRes) {
-      if (m.batch_id) {
-        await pool.query(
-          `UPDATE flower_batches SET quantity_remaining = GREATEST(0, quantity_remaining - $1), updated_at=NOW()
-           WHERE id=$2 AND org_id=$3`,
-          [m.quantity_stems, m.batch_id, orgId]
+      for (const m of matRes) {
+        if (m.batch_id) {
+          await client.query(
+            `UPDATE flower_batches SET quantity_remaining = GREATEST(0, quantity_remaining - $1), updated_at=NOW()
+             WHERE id=$2 AND org_id=$3`,
+            [m.quantity_stems, m.batch_id, orgId]
+          );
+        }
+        await client.query(
+          `UPDATE material_reservations SET status='consumed', updated_at=NOW() WHERE id=$1`, [m.id]
         );
       }
-      await pool.query(
-        `UPDATE material_reservations SET status='consumed', updated_at=NOW() WHERE id=$1`, [m.id]
-      );
     }
-  }
 
-  // عند cancelled: أطلق الحجوزات
-  if (status === "cancelled") {
-    await pool.query(
-      `UPDATE decor_asset_reservations SET status='returned_ok', updated_at=NOW()
-       WHERE service_order_id=$1 AND status IN ('reserved','dispatched')`, [id]
-    );
-    await pool.query(
-      `UPDATE material_reservations SET status='released', updated_at=NOW()
-       WHERE service_order_id=$1 AND status='reserved'`, [id]
-    );
-    // أرجع الأصول للمخزون
-    const { rows: assetIds } = await pool.query(
-      `SELECT DISTINCT asset_id FROM decor_asset_reservations WHERE service_order_id=$1`, [id]
-    );
-    for (const a of assetIds) {
-      await pool.query(
-        `UPDATE decor_assets SET status='available', updated_at=NOW()
-         WHERE id=$1 AND org_id=$2 AND status IN ('reserved','in_use')`,
-        [a.asset_id, orgId]
+    // عند cancelled: أطلق الحجوزات
+    if (status === "cancelled") {
+      await client.query(
+        `UPDATE decor_asset_reservations SET status='returned_ok', updated_at=NOW()
+         WHERE service_order_id=$1 AND status IN ('reserved','dispatched')`, [id]
       );
+      await client.query(
+        `UPDATE material_reservations SET status='released', updated_at=NOW()
+         WHERE service_order_id=$1 AND status='reserved'`, [id]
+      );
+      // أرجع الأصول للمخزون
+      const { rows: assetIds } = await client.query(
+        `SELECT DISTINCT asset_id FROM decor_asset_reservations WHERE service_order_id=$1`, [id]
+      );
+      for (const a of assetIds) {
+        await client.query(
+          `UPDATE decor_assets SET status='available', updated_at=NOW()
+           WHERE id=$1 AND org_id=$2 AND status IN ('reserved','in_use')`,
+          [a.asset_id, orgId]
+        );
+      }
     }
-  }
 
-  insertAuditLog({ orgId, userId, action: "update", resource: "service_order_status", resourceId: id });
-  return c.json({ data: rows[0] });
+    await client.query("COMMIT");
+
+    // ── Audit with old/new status ───────────────────────────────
+    insertAuditLog({
+      orgId,
+      userId,
+      action: "update",
+      resource: "service_order_status",
+      resourceId: id,
+      oldValue: { status: current[0].status },
+      newValue: { status },
+      metadata: { status, cancellationReason },
+    });
+
+    return c.json({ data: order });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 });
 
 // ─── POST /:id/items — إضافة بند للطلب ───────────────────────────────────────
