@@ -50,14 +50,30 @@ export const workOrders = pgTable("work_orders", {
   // Warranty period in days
   warrantyDays: integer("warranty_days").default(0),
 
+  // Financial integration
+  journalEntryId: uuid("journal_entry_id"),
+  paymentStatus:  text("payment_status").notNull().default("unpaid"), // unpaid | paid | refunded
+
   // Key dates
   estimatedReadyAt: timestamp("estimated_ready_at", { withTimezone: true }),
+  confirmedAt:      timestamp("confirmed_at",       { withTimezone: true }),
+  diagnosingAt:     timestamp("diagnosing_at",      { withTimezone: true }),
+  waitingPartsAt:   timestamp("waiting_parts_at",   { withTimezone: true }),
+  inProgressAt:     timestamp("in_progress_at",     { withTimezone: true }),
   readyAt:          timestamp("ready_at",           { withTimezone: true }),
   deliveredAt:      timestamp("delivered_at",       { withTimezone: true }),
+  cancelledAt:      timestamp("cancelled_at",       { withTimezone: true }),
+
+  // Cancellation tracking
+  cancellationReason: text("cancellation_reason"),
+  cancelledBy:        uuid("cancelled_by").references(() => users.id, { onDelete: "set null" }),
 
   // Assignment
   assignedToId:  uuid("assigned_to_id").references(() => users.id, { onDelete: "set null" }),
   internalNotes: text("internal_notes"),
+
+  // Optimistic locking
+  version: integer("version").notNull().default(1),
 
   isActive:    boolean("is_active").default(true).notNull(),
   createdById: uuid("created_by_id").references(() => users.id, { onDelete: "set null" }),
