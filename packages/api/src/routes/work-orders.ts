@@ -244,7 +244,7 @@ workOrdersRouter.patch("/:id", async (c) => {
   if (!body) return;
 
   const [existing] = await db
-    .select({ id: workOrders.id, status: workOrders.status })
+    .select({ id: workOrders.id, status: workOrders.status, version: workOrders.version })
     .from(workOrders)
     .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)));
   if (!existing) return c.json({ error: "أمر العمل غير موجود" }, 404);
@@ -280,9 +280,17 @@ workOrdersRouter.patch("/:id", async (c) => {
   if (body.assignedToId       !== undefined) updates.assignedToId       = body.assignedToId;
   if (body.internalNotes      !== undefined) updates.internalNotes      = body.internalNotes;
 
+  // Optimistic lock: version check
   const [updated] = await db.update(workOrders).set(updates)
-    .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)))
+    .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId), eq(workOrders.version, existing.version)))
     .returning();
+
+  if (!updated) {
+    return c.json({ error: "أمر العمل تم تعديله بواسطة مستخدم آخر — أعد التحميل" }, 409);
+  }
+
+  // Bump version after successful update
+  await db.update(workOrders).set({ version: sql`version + 1` }).where(eq(workOrders.id, id));
 
   insertAuditLog({ orgId, userId, action: "update", resource: "work_order", resourceId: id });
   return c.json({ data: updated });
@@ -425,10 +433,15 @@ workOrdersRouter.delete("/:id", async (c) => {
   const userId = getUserId(c);
   const id     = c.req.param("id");
 
-  const [existing] = await db.select({ id: workOrders.id })
+  const [existing] = await db.select({ id: workOrders.id, status: workOrders.status })
     .from(workOrders)
     .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)));
   if (!existing) return c.json({ error: "أمر العمل غير موجود" }, 404);
+
+  // Prevent deletion of terminal orders (delivered/cancelled/returned)
+  if (TERMINAL_STATUSES.has(existing.status)) {
+    return c.json({ error: `لا يمكن حذف أمر عمل في حالة "${existing.status}"` }, 422);
+  }
 
   await db.update(workOrders)
     .set({ isActive: false, updatedAt: new Date() })
