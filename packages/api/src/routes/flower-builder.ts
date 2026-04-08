@@ -397,9 +397,9 @@ flowerBuilderRouter.patch("/orders/:id/driver", async (c) => {
   const id = c.req.param("id");
   const { driverName, driverPhone, notes } = await c.req.json();
 
-  // Verify current status allows driver assignment
+  // Verify current status allows driver assignment + fetch version
   const { rows: [current] } = await pool.query(
-    `SELECT id, status FROM flower_orders WHERE id = $1 AND org_id = $2`,
+    `SELECT id, status, version FROM flower_orders WHERE id = $1 AND org_id = $2`,
     [id, orgId]
   );
   if (!current) return c.json({ error: "الطلب غير موجود" }, 404);
@@ -410,15 +410,18 @@ flowerBuilderRouter.patch("/orders/:id/driver", async (c) => {
     }, 422);
   }
 
-  const result = await pool.query(
+  // Optimistic lock: version check
+  const { rows: [updated] } = await pool.query(
     `UPDATE flower_orders
      SET driver_name=$3, driver_phone=$4, status='out_for_delivery',
          dispatched_at=COALESCE(dispatched_at, NOW()), updated_at=NOW(),
          version = version + 1
-     WHERE id=$1 AND org_id=$2 RETURNING *`,
-    [id, orgId, driverName || null, driverPhone || null]
+     WHERE id=$1 AND org_id=$2 AND version=$5 RETURNING *`,
+    [id, orgId, driverName || null, driverPhone || null, current.version]
   );
-  if (!result.rows[0]) return c.json({ error: "الطلب غير موجود" }, 404);
+  if (!updated) {
+    return c.json({ error: "الطلب تم تعديله بواسطة مستخدم آخر — أعد التحميل" }, 409);
+  }
 
   insertAuditLog({
     orgId,
@@ -430,7 +433,7 @@ flowerBuilderRouter.patch("/orders/:id/driver", async (c) => {
     newValue: { status: "out_for_delivery" },
     metadata: { driverName },
   });
-  return c.json({ data: result.rows[0] });
+  return c.json({ data: updated });
 });
 
 // PATCH /flower-builder/orders/:id/assign-staff — assign a florist to an order
@@ -439,9 +442,9 @@ flowerBuilderRouter.patch("/orders/:id/assign-staff", async (c) => {
   const id = c.req.param("id");
   const { staffId, staffName } = await c.req.json();
 
-  // Verify current status allows staff assignment
+  // Verify current status allows staff assignment + fetch version
   const { rows: [current] } = await pool.query(
-    `SELECT id, status FROM flower_orders WHERE id = $1 AND org_id = $2`,
+    `SELECT id, status, version FROM flower_orders WHERE id = $1 AND org_id = $2`,
     [id, orgId]
   );
   if (!current) return c.json({ error: "الطلب غير موجود" }, 404);
@@ -452,15 +455,18 @@ flowerBuilderRouter.patch("/orders/:id/assign-staff", async (c) => {
     }, 422);
   }
 
-  const result = await pool.query(
+  // Optimistic lock: version check
+  const { rows: [updated] } = await pool.query(
     `UPDATE flower_orders
      SET assigned_staff_id=$3, assigned_staff_name=$4,
          status='preparing', preparing_at=COALESCE(preparing_at, NOW()), updated_at=NOW(),
          version = version + 1
-     WHERE id=$1 AND org_id=$2 RETURNING *`,
-    [id, orgId, staffId || null, staffName || null]
+     WHERE id=$1 AND org_id=$2 AND version=$5 RETURNING *`,
+    [id, orgId, staffId || null, staffName || null, current.version]
   );
-  if (!result.rows[0]) return c.json({ error: "الطلب غير موجود" }, 404);
+  if (!updated) {
+    return c.json({ error: "الطلب تم تعديله بواسطة مستخدم آخر — أعد التحميل" }, 409);
+  }
 
   insertAuditLog({
     orgId,
@@ -472,7 +478,7 @@ flowerBuilderRouter.patch("/orders/:id/assign-staff", async (c) => {
     newValue: { status: "preparing" },
     metadata: { assigned_staff_id: staffId },
   });
-  return c.json({ data: result.rows[0] });
+  return c.json({ data: updated });
 });
 
 // GET /flower-builder/delivery — today's delivery queue

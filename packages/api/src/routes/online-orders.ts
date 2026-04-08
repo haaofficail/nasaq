@@ -213,9 +213,9 @@ onlineOrdersRouter.delete("/:id", async (c) => {
   const userId = getUserId(c);
   const id     = c.req.param("id");
 
-  // Fetch current status
+  // Fetch current status + version for optimistic lock
   const { rows: [current] } = await pool.query(
-    `SELECT id, status FROM online_orders WHERE id = $1 AND org_id = $2`,
+    `SELECT id, status, version FROM online_orders WHERE id = $1 AND org_id = $2`,
     [id, orgId]
   );
   if (!current) return c.json({ error: "الطلب غير موجود" }, 404);
@@ -228,13 +228,16 @@ onlineOrdersRouter.delete("/:id", async (c) => {
     }, 422);
   }
 
-  const result = await pool.query(
+  // Optimistic lock: version check
+  const { rows: [updated] } = await pool.query(
     `UPDATE online_orders SET status = 'cancelled', cancelled_at = NOW(), cancelled_by = $3,
             updated_at = NOW(), version = version + 1
-     WHERE id = $1 AND org_id = $2 RETURNING id`,
-    [id, orgId, userId || null]
+     WHERE id = $1 AND org_id = $2 AND version = $4 RETURNING id`,
+    [id, orgId, userId || null, current.version]
   );
-  if (!result.rows[0]) return c.json({ error: "الطلب غير موجود" }, 404);
+  if (!updated) {
+    return c.json({ error: "الطلب تم تعديله بواسطة مستخدم آخر — أعد التحميل" }, 409);
+  }
 
   insertAuditLog({
     orgId,
