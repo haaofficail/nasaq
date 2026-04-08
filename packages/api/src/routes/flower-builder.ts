@@ -231,7 +231,7 @@ flowerBuilderRouter.patch("/orders/:id/status", async (c) => {
   const orgId = getOrgId(c);
   const id = c.req.param("id");
   const body = z.object({
-    status: z.string().min(1),
+    status: z.enum(["pending", "confirmed", "preparing", "ready", "out_for_delivery", "delivered", "cancelled"]),
     version: z.number().int().min(1),
   }).parse(await c.req.json());
 
