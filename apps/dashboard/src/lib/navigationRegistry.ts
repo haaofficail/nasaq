@@ -482,11 +482,11 @@ export const BOTTOM_NAV: NavItemEntry[] = [
   { name: "التذكيرات",    href: "/dashboard/reminders",          icon: Bell,          exact: false, requiredCapabilities: [] },
   { name: "الدليل الشامل", href: "/dashboard/guide",             icon: BookOpen,      exact: false, requiredCapabilities: [] },
   { name: "الدعم الفني",  href: "/dashboard/support",            icon: MessageCircle, exact: false, requiredCapabilities: [] },
-  { name: "الاعدادات",    href: "/dashboard/settings",           icon: Settings,      exact: false, requiredCapabilities: [] },
+  { name: "الإعدادات",    href: "/dashboard/settings",           icon: Settings,      exact: false, requiredCapabilities: [] },
 ];
 
 export const SUPER_ADMIN_NAV: NavItemEntry = {
-  name: "ادارة المنصة", href: "/admin", icon: Shield, exact: false, requiredCapabilities: [],
+  name: "إدارة المنصة", href: "/admin", icon: Shield, exact: false, requiredCapabilities: [],
 };
 
 // ============================================================

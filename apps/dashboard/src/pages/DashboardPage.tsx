@@ -1,6 +1,6 @@
 import { useMemo, useEffect } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { ArrowLeft, QrCode, Printer, ExternalLink, AlertTriangle, CalendarCheck, Users, Package } from "lucide-react";
+import { ArrowLeft, QrCode, Printer, ExternalLink, AlertTriangle, CalendarCheck, Users, Package, Clock, CheckCircle2, Truck } from "lucide-react";
 import { clsx } from "clsx";
 import { getProfile } from "@/lib/dashboardProfiles";
 import { ProfileDashboard } from "@/components/dashboard/ProfileDashboard";
@@ -9,7 +9,7 @@ import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { useOnboarding } from "@/hooks/useOnboarding";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useApi } from "@/hooks/useApi";
-import { bookingsApi, settingsApi, inventoryApi, servicesApi } from "@/lib/api";
+import { bookingsApi, settingsApi, inventoryApi, servicesApi, flowerBuilderApi, serviceOrdersApi } from "@/lib/api";
 import { getDashboardPrimaryAction } from "@/lib/dashboardPrimaryAction";
 
 // ── SmartAlertsBanner ──────────────────────────────────────────────────────────
@@ -73,6 +73,84 @@ function SmartAlertsBanner({ businessType }: { businessType: string }) {
         return a.href
           ? <Link key={i} to={a.href}>{inner}</Link>
           : <div key={i}>{inner}</div>;
+      })}
+    </div>
+  );
+}
+
+// ── FlowerOpsPanel ─────────────────────────────────────────────────────────────
+// Active / Late / Ready orders quick-view for flower shops
+function FlowerOpsPanel() {
+  const { data: statsRes, loading } = useApi(() => flowerBuilderApi.orderStats(), []);
+  const { data: serviceStatsRes } = useApi(() => serviceOrdersApi.stats(), []);
+
+  const stats = statsRes?.data ?? {};
+  const serviceStats = serviceStatsRes?.data ?? {};
+
+  const panels: { label: string; value: number; href: string; color: string; bg: string; icon: React.ElementType }[] = [
+    {
+      label: "طلبات نشطة",
+      value: Number(stats.pending ?? 0) + Number(stats.confirmed ?? 0) + Number(stats.preparing ?? 0),
+      href: "/dashboard/flower-orders",
+      color: "text-blue-600",
+      bg: "bg-blue-50",
+      icon: Package,
+    },
+    {
+      label: "جاهز للتسليم",
+      value: Number(stats.ready ?? 0),
+      href: "/dashboard/flower-orders",
+      color: "text-emerald-600",
+      bg: "bg-emerald-50",
+      icon: CheckCircle2,
+    },
+    {
+      label: "في الطريق",
+      value: Number(stats.out_for_delivery ?? 0),
+      href: "/dashboard/flower-delivery",
+      color: "text-orange-600",
+      bg: "bg-orange-50",
+      icon: Truck,
+    },
+    {
+      label: "خدمات تحت التنفيذ",
+      value: Number(serviceStats.in_progress ?? serviceStats.active ?? 0),
+      href: "/dashboard/flower-service-orders",
+      color: "text-violet-600",
+      bg: "bg-violet-50",
+      icon: Clock,
+    },
+  ];
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[0, 1, 2, 3].map(i => (
+          <div key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      {panels.map(p => {
+        const Icon = p.icon;
+        return (
+          <Link
+            key={p.label}
+            to={p.href}
+            className="group bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3 hover:border-gray-200 hover:shadow-sm transition-all"
+          >
+            <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", p.bg)}>
+              <Icon className={clsx("w-5 h-5", p.color)} />
+            </div>
+            <div className="min-w-0">
+              <p className={clsx("text-xl font-bold tabular-nums", p.color)}>{p.value}</p>
+              <p className="text-[11px] text-gray-400 truncate">{p.label}</p>
+            </div>
+          </Link>
+        );
       })}
     </div>
   );
@@ -331,6 +409,9 @@ export function DashboardPage() {
       )}
 
       {businessType !== "flower_shop" && <SmartAlertsBanner businessType={businessType} />}
+
+      {/* Flower shop operations panel — active/ready/delivery/service orders */}
+      {businessType === "flower_shop" && <FlowerOpsPanel />}
 
       <ProfileDashboard profile={profile} user={enrichedUser} context={context ?? undefined} />
 

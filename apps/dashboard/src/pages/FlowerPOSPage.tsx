@@ -394,6 +394,16 @@ export function FlowerPOSPage() {
       return;
     }
 
+    // Pre-checkout stock validation — check items with finite stock
+    const outOfStock = cart.filter(ci => {
+      const catItem = catalogItems.find(c => c.id === ci.id);
+      return catItem && catItem.stock < 999 && ci.qty > catItem.stock;
+    });
+    if (outOfStock.length > 0) {
+      toast.error(`الكمية المطلوبة من "${outOfStock[0].name}" تتجاوز المخزون المتاح`);
+      return;
+    }
+
     // Validate required fields per sale type
     if (saleType === "delivery") {
       if (!deliveryDetails.recipientName.trim()) {

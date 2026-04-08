@@ -63,8 +63,15 @@ export function FlowerServiceOrdersPage() {
 
 
   const handleStatusChange = async (orderId: string, status: string) => {
+    const label = STATUS_LABELS_AR[status] ?? status;
+    const ok = await confirmDialog({
+      title: `تغيير الحالة إلى "${label}"؟`,
+      message: "سيتم تحديث حالة طلب الخدمة",
+      confirmLabel: label,
+    });
+    if (!ok) return;
     await changeStatus({ id: orderId, status });
-    toast.success(`تم التحديث: ${STATUS_LABELS_AR[status] ?? status}`);
+    toast.success(`تم التحديث: ${label}`);
     refetch(); refetchStats();
     if (selectedOrder?.id === orderId) {
       setSelectedOrder((prev: any) => ({ ...prev, status }));
