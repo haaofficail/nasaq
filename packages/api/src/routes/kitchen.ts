@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { pool } from "@nasaq/db/client";
 import { getOrgId, getUserId } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
@@ -67,40 +68,63 @@ kitchenRouter.get("/stats", async (c) => {
 // ============================================================
 // PATCH /kitchen/orders/:id/status
 // Advance order status from kitchen screen
+// Uses same state machine as online-orders for consistency
 // ============================================================
-const VALID_KITCHEN_TRANSITIONS: Record<string, string> = {
-  pending:   "preparing",
-  preparing: "ready",
-  ready:     "delivered",
+const VALID_KITCHEN_TRANSITIONS: Record<string, string[]> = {
+  pending:   ["preparing"],
+  preparing: ["ready"],
+  ready:     ["delivered"],
 };
+
+const kitchenStatusSchema = z.object({
+  status: z.enum(["preparing", "ready", "delivered"]),
+});
 
 kitchenRouter.patch("/orders/:id/status", async (c) => {
   const orgId  = getOrgId(c);
   const userId = getUserId(c);
   const id     = c.req.param("id");
-  const { status } = await c.req.json();
 
-  if (!status) return c.json({ error: "status مطلوب" }, 400);
+  // ── Strict Zod validation ─────────────────────────────────────
+  const parsed = kitchenStatusSchema.safeParse(await c.req.json());
+  if (!parsed.success) {
+    return c.json({ error: "حالة غير صالحة", details: parsed.error.errors }, 400);
+  }
+  const { status } = parsed.data;
 
-  // Verify order belongs to org
+  // Verify order belongs to org + fetch version for optimistic lock
   const { rows: [order] } = await pool.query(
-    `SELECT id, status FROM online_orders WHERE id = $1 AND org_id = $2`,
+    `SELECT id, status, version FROM online_orders WHERE id = $1 AND org_id = $2`,
     [id, orgId],
   );
   if (!order) return c.json({ error: "الطلب غير موجود" }, 404);
 
   // Validate transition
-  const allowed = VALID_KITCHEN_TRANSITIONS[order.status];
-  if (allowed !== status) {
+  const allowed = VALID_KITCHEN_TRANSITIONS[order.status] ?? [];
+  if (!allowed.includes(status)) {
     return c.json({ error: `لا يمكن الانتقال من "${order.status}" إلى "${status}"` }, 422);
   }
 
+  // Timestamp field for the new status
+  const tsField: Record<string, string> = {
+    preparing: "preparing_at",
+    ready: "ready_at",
+    delivered: "delivered_at",
+  };
+  const tsCol = tsField[status];
+  const tsClause = tsCol ? `, ${tsCol} = NOW()` : "";
+
+  // Optimistic lock: version check prevents race conditions
   const { rows: [updated] } = await pool.query(
-    `UPDATE online_orders SET status = $1, updated_at = NOW()
-     WHERE id = $2 AND org_id = $3
+    `UPDATE online_orders SET status = $1, updated_at = NOW(), version = version + 1${tsClause}
+     WHERE id = $2 AND org_id = $3 AND version = $4
      RETURNING id, order_number, status`,
-    [status, id, orgId],
+    [status, id, orgId, order.version],
   );
+
+  if (!updated) {
+    return c.json({ error: "الطلب تم تعديله بواسطة مستخدم آخر — أعد التحميل" }, 409);
+  }
 
   insertAuditLog({
     orgId,

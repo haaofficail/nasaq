@@ -5,16 +5,28 @@ import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { postCashSale, reverseJournalEntry } from "../lib/posting-engine";
 
-// ─── Status transition rules ──────────────────────────────────────────────────
+// ── Status enum & state machine ──────────────────────────────────────────────
+const ONLINE_ORDER_STATUSES = [
+  "pending", "confirmed", "preparing", "ready",
+  "delivered", "cancelled",
+  "delivery_failed", "returned",
+] as const;
+
+const onlineOrderStatusEnum = z.enum(ONLINE_ORDER_STATUSES);
+
 const VALID_TRANSITIONS: Record<string, string[]> = {
-  pending:    ["confirmed", "preparing", "cancelled"],
-  confirmed:  ["preparing", "cancelled"],
-  preparing:  ["ready", "cancelled"],
-  ready:      ["out_for_delivery", "delivered", "cancelled"],
-  out_for_delivery: ["delivered", "cancelled"],
-  delivered:  [],
-  cancelled:  [],
+  pending:          ["confirmed", "preparing", "cancelled"],
+  confirmed:        ["preparing", "cancelled"],
+  preparing:        ["ready", "cancelled"],
+  ready:            ["delivered", "cancelled"],
+  delivered:        [],                                   // terminal
+  cancelled:        [],                                   // terminal
+  delivery_failed:  ["ready", "returned", "cancelled"],
+  returned:         [],                                   // terminal
 };
+
+// Terminal statuses — no edits allowed
+const TERMINAL_STATUSES = new Set(["delivered", "cancelled", "returned"]);
 
 const createOrderSchema = z.object({
   orderType: z.enum(["delivery", "pickup", "dine_in"]).default("delivery"),
@@ -111,43 +123,90 @@ onlineOrdersRouter.post("/", async (c) => {
 
 // PATCH /online-orders/:id/status
 onlineOrdersRouter.patch("/:id/status", async (c) => {
-  const orgId = getOrgId(c);
-  const id = c.req.param("id");
-  const body = z.object({
-    status: z.enum(["pending", "confirmed", "preparing", "ready", "out_for_delivery", "delivered", "cancelled"]),
-    version: z.number().int().min(1),
-  }).parse(await c.req.json());
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const id     = c.req.param("id");
 
-  // Fetch current state
-  const current = await pool.query(
-    `SELECT status, version, journal_entry_id, total_amount, order_number FROM online_orders WHERE id = $1 AND org_id = $2`,
+  // ── Strict Zod validation ─────────────────────────────────────
+  const body = z.object({
+    status: onlineOrderStatusEnum,
+    cancellationReason: z.string().optional(),
+  }).safeParse(await c.req.json());
+
+  if (!body.success) {
+    return c.json({ error: "حالة غير صالحة", details: body.error.errors }, 400);
+  }
+  const { status, cancellationReason } = body.data;
+
+  // ── Fetch current order ───────────────────────────────────────
+  const { rows: [current] } = await pool.query(
+    `SELECT id, status, version, order_number FROM online_orders WHERE id = $1 AND org_id = $2`,
     [id, orgId]
   );
-  if (!current.rows[0]) return c.json({ error: "الطلب غير موجود" }, 404);
+  if (!current) return c.json({ error: "الطلب غير موجود" }, 404);
 
-  const order = current.rows[0];
-
-  // State machine enforcement
-  const allowed = VALID_TRANSITIONS[order.status] ?? [];
-  if (!allowed.includes(body.status)) {
-    return c.json({ error: `لا يمكن الانتقال من "${order.status}" إلى "${body.status}"` }, 400);
+  // ── State machine validation ──────────────────────────────────
+  const allowed = VALID_TRANSITIONS[current.status] ?? [];
+  if (!allowed.includes(status)) {
+    return c.json({
+      error: `لا يمكن الانتقال من "${current.status}" إلى "${status}"`,
+    }, 422);
   }
 
-  // Optimistic locking
-  const result = await pool.query(
-    `UPDATE online_orders
-     SET status = $1, version = version + 1, updated_at = NOW()
-     WHERE id = $2 AND org_id = $3 AND version = $4
+  // ── Build timestamp field ─────────────────────────────────────
+  const tsField: Record<string, string> = {
+    confirmed: "confirmed_at",
+    preparing: "preparing_at",
+    ready: "ready_at",
+    delivered: "delivered_at",
+    cancelled: "cancelled_at",
+  };
+  const tsCol = tsField[status];
+
+  const setClauses = [`status = $3`, `updated_at = NOW()`, `version = version + 1`];
+  const params: any[] = [id, orgId, status];
+
+  if (tsCol) {
+    params.push(new Date());
+    setClauses.push(`${tsCol} = $${params.length}`);
+  }
+
+  if (status === "cancelled") {
+    params.push(cancellationReason || null);
+    setClauses.push(`cancellation_reason = $${params.length}`);
+    params.push(userId || null);
+    setClauses.push(`cancelled_by = $${params.length}`);
+  }
+
+  // Optimistic lock
+  params.push(current.version);
+  const versionCheck = `AND version = $${params.length}`;
+
+  const { rows: [updated] } = await pool.query(
+    `UPDATE online_orders SET ${setClauses.join(", ")}
+     WHERE id = $1 AND org_id = $2 ${versionCheck}
      RETURNING *`,
-    [body.status, id, orgId, body.version]
+    params
   );
-  if (!result.rows[0]) return c.json({ error: "تعارض في التحديث — حاول مرة أخرى" }, 409);
 
-  const updated = result.rows[0];
-  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "online_order", resourceId: id, metadata: { status: body.status } });
+  if (!updated) {
+    return c.json({ error: "الطلب تم تعديله بواسطة مستخدم آخر — أعد التحميل" }, 409);
+  }
 
-  // ── Financial posting on delivery (idempotent) ──────────────────────────
-  if (body.status === "delivered" && !order.journal_entry_id) {
+  // ── Audit with old/new status ─────────────────────────────────
+  insertAuditLog({
+    orgId,
+    userId,
+    action: "updated",
+    resource: "online_order",
+    resourceId: id,
+    oldValue: { status: current.status },
+    newValue: { status },
+    metadata: { status, cancellationReason },
+  });
+
+  // ── Financial posting on delivery (idempotent) ────────────────
+  if (status === "delivered" && !updated.journal_entry_id) {
     const amount = Number(updated.total_amount ?? 0);
     if (amount > 0) {
       try {
@@ -159,7 +218,7 @@ onlineOrdersRouter.patch("/:id/status", async (c) => {
           description: `طلب إلكتروني #${updated.order_number}`,
           sourceType: "pos",
           sourceId: updated.id,
-          createdBy: getUserId(c) ?? undefined,
+          createdBy: userId ?? undefined,
         });
         if (postResult?.entryId) {
           await pool.query(
@@ -173,10 +232,10 @@ onlineOrdersRouter.patch("/:id/status", async (c) => {
     }
   }
 
-  // ── Reverse financial posting on cancellation ───────────────────────────
-  if (body.status === "cancelled" && order.journal_entry_id) {
+  // ── Reverse financial posting on cancellation ─────────────────
+  if (status === "cancelled" && updated.journal_entry_id) {
     try {
-      await reverseJournalEntry(order.journal_entry_id, getUserId(c) ?? "system", "إلغاء طلب إلكتروني");
+      await reverseJournalEntry(updated.journal_entry_id, userId ?? "system", "إلغاء طلب إلكتروني");
     } catch {
       // تجاهل أخطاء العكس
     }
@@ -185,34 +244,53 @@ onlineOrdersRouter.patch("/:id/status", async (c) => {
   return c.json({ data: updated });
 });
 
-// DELETE /online-orders/:id
+// DELETE /online-orders/:id — cancel order (uses state machine)
 onlineOrdersRouter.delete("/:id", async (c) => {
-  const orgId = getOrgId(c);
-  const id = c.req.param("id");
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const id     = c.req.param("id");
 
-  // Fetch current state for journal reversal
-  const current = await pool.query(
-    `SELECT status, journal_entry_id FROM online_orders WHERE id = $1 AND org_id = $2`,
+  // Fetch current status + version for optimistic lock
+  const { rows: [current] } = await pool.query(
+    `SELECT id, status, version, journal_entry_id FROM online_orders WHERE id = $1 AND org_id = $2`,
     [id, orgId]
   );
-  if (!current.rows[0]) return c.json({ error: "الطلب غير موجود" }, 404);
+  if (!current) return c.json({ error: "الطلب غير موجود" }, 404);
 
-  const order = current.rows[0];
-  if (order.status === "delivered") {
-    return c.json({ error: "لا يمكن إلغاء طلب تم تسليمه" }, 400);
+  // State machine: check if cancellation is allowed
+  const allowed = VALID_TRANSITIONS[current.status] ?? [];
+  if (!allowed.includes("cancelled")) {
+    return c.json({
+      error: `لا يمكن إلغاء طلب في حالة "${current.status}"`,
+    }, 422);
   }
 
-  const result = await pool.query(
-    `UPDATE online_orders SET status = 'cancelled', version = version + 1, updated_at = NOW()
-     WHERE id = $1 AND org_id = $2 RETURNING id`,
-    [id, orgId]
+  // Optimistic lock: version check
+  const { rows: [updated] } = await pool.query(
+    `UPDATE online_orders SET status = 'cancelled', cancelled_at = NOW(), cancelled_by = $3,
+            updated_at = NOW(), version = version + 1
+     WHERE id = $1 AND org_id = $2 AND version = $4 RETURNING id`,
+    [id, orgId, userId || null, current.version]
   );
-  if (!result.rows[0]) return c.json({ error: "الطلب غير موجود" }, 404);
+  if (!updated) {
+    return c.json({ error: "الطلب تم تعديله بواسطة مستخدم آخر — أعد التحميل" }, 409);
+  }
 
-  // Reverse journal if exists
-  if (order.journal_entry_id) {
+  insertAuditLog({
+    orgId,
+    userId,
+    action: "updated",
+    resource: "online_order",
+    resourceId: id,
+    oldValue: { status: current.status },
+    newValue: { status: "cancelled" },
+    metadata: { reason: "DELETE endpoint" },
+  });
+
+  // ── Reverse financial posting if journal exists ───────────────
+  if (current.journal_entry_id) {
     try {
-      await reverseJournalEntry(order.journal_entry_id, getUserId(c) ?? "system", "إلغاء طلب إلكتروني");
+      await reverseJournalEntry(current.journal_entry_id, userId ?? "system", "إلغاء طلب إلكتروني");
     } catch {
       // تجاهل أخطاء العكس
     }

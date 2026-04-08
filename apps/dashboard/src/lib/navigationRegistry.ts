@@ -482,140 +482,19 @@ export const BOTTOM_NAV: NavItemEntry[] = [
   { name: "التذكيرات",    href: "/dashboard/reminders",          icon: Bell,          exact: false, requiredCapabilities: [] },
   { name: "الدليل الشامل", href: "/dashboard/guide",             icon: BookOpen,      exact: false, requiredCapabilities: [] },
   { name: "الدعم الفني",  href: "/dashboard/support",            icon: MessageCircle, exact: false, requiredCapabilities: [] },
-  { name: "الاعدادات",    href: "/dashboard/settings",           icon: Settings,      exact: false, requiredCapabilities: [] },
+  { name: "الإعدادات",    href: "/dashboard/settings",           icon: Settings,      exact: false, requiredCapabilities: [] },
 ];
 
 export const SUPER_ADMIN_NAV: NavItemEntry = {
-  name: "ادارة المنصة", href: "/admin", icon: Shield, exact: false, requiredCapabilities: [],
+  name: "إدارة المنصة", href: "/admin", icon: Shield, exact: false, requiredCapabilities: [],
 };
 
 // ============================================================
-// Flower Shop — self-contained navigation builder
-// Architecture: Order-Centric — الطلب هو محور النظام
+// Flower Shop navigation is now fully defined in NAV_REGISTRY above
+// (specialty_flower_* groups). The buildVisibleNav function handles
+// flower_shop as an isolated vertical (home + specialty groups),
+// same pattern as school and real_estate.
 // ============================================================
-
-function buildFlowerNavigation(ctx: OrgNavContext): NavGroupEntry[] {
-  const cap  = (c: string) => ctx.capabilities.includes(c);
-  const plan = (p: SubscriptionPlan) => planAllows(ctx.plan, p);
-
-  const groups: (NavGroupEntry | null)[] = [
-
-    // 1. لوحة التحكم
-    {
-      id: "home", label: "لوحة التحكم",
-      requiredCapabilities: [], anyCapability: [], allowedBusinessTypes: [], allowedOperatingProfiles: [],
-      items: [
-        { name: "الرئيسية", href: "/dashboard", icon: LayoutDashboard, exact: true, requiredCapabilities: [] },
-      ],
-    },
-
-    // 2. المبيعات — الطلب محور التشغيل
-    cap("floral") ? {
-      id: "sales", label: "المبيعات",
-      requiredCapabilities: [], anyCapability: [], allowedBusinessTypes: [], allowedOperatingProfiles: [],
-      items: [
-        { name: "الكاشير",  href: "/dashboard/flower-pos",       icon: ScanBarcode, requiredCapabilities: [] },
-        { name: "الطلبات",  href: "/dashboard/flower-orders",    icon: Package,     requiredCapabilities: [] },
-        { name: "التوصيل",  href: "/dashboard/flower-delivery",  icon: Truck,       requiredCapabilities: [] },
-        { name: "العملاء",  href: "/dashboard/flower-customers", icon: Users,       requiredCapabilities: [] },
-      ],
-    } : null,
-
-    // 3. الكتالوج — ما يُباع (منتج / خدمة / إضافة)
-    cap("floral") ? {
-      id: "catalog", label: "الكتالوج",
-      requiredCapabilities: [], anyCapability: [], allowedBusinessTypes: [], allowedOperatingProfiles: [],
-      items: [
-        { name: "المنتجات",       href: "/dashboard/arrangements",    icon: ShoppingBag,  requiredCapabilities: [] },
-        { name: "الخدمات الميدانية", href: "/dashboard/flower-catalog",  icon: PartyPopper,  requiredCapabilities: [] },
-        { name: "قوالب التنفيذ",  href: "/dashboard/event-packages",  icon: ClipboardList,requiredCapabilities: [] },
-        { name: "تصريف الطازج",   href: "/dashboard/flower-disposal", icon: TrendingDown, requiredCapabilities: [] },
-      ],
-    } : null,
-
-    // 4. المخزون — الورد بالساق، الشراء بالبنش
-    cap("floral") ? {
-      id: "inventory", label: "المخزون",
-      requiredCapabilities: [], anyCapability: [], allowedBusinessTypes: [], allowedOperatingProfiles: [],
-      items: [
-        { name: "مخزون الورد", href: "/dashboard/flower-inventory", icon: Box,         requiredCapabilities: [] },
-        { name: "الأصناف",     href: "/dashboard/flower-master",    icon: Layers,      requiredCapabilities: [] },
-        { name: "الموردون",    href: "/dashboard/flower-suppliers", icon: Truck,       requiredCapabilities: [] },
-        { name: "سجل الهدر",   href: "/dashboard/flower-waste",     icon: AlertCircle, requiredCapabilities: [] },
-      ],
-    } : null,
-
-    // 5. التنفيذ — خدمات الفعاليات والأصول (بدون مشاريع منفصلة)
-    cap("floral") ? {
-      id: "execution", label: "التنفيذ",
-      requiredCapabilities: [], anyCapability: [], allowedBusinessTypes: [], allowedOperatingProfiles: [],
-      items: [
-        { name: "طلبات الخدمات", href: "/dashboard/flower-service-orders", icon: Briefcase, requiredCapabilities: [] },
-        { name: "الأصول",        href: "/dashboard/flower-assets",          icon: Archive,   requiredCapabilities: [] },
-      ],
-    } : null,
-
-    // 6. التسويق — الحملات والقنوات والمناسبات
-    {
-      id: "marketing", label: "التسويق",
-      requiredCapabilities: [], anyCapability: [], allowedBusinessTypes: [], allowedOperatingProfiles: [],
-      items: [
-        ...(cap("floral") ? [{ name: "المناسبات", href: "/dashboard/flower-occasions", icon: Calendar, requiredCapabilities: [] }] : []),
-        ...(plan("basic")    ? [{ name: "التقييمات",      href: "/dashboard/reviews",         icon: Star,         requiredCapabilities: [] }] : []),
-        ...(plan("advanced") ? [{ name: "الحملات",        href: "/dashboard/marketing",       icon: Send,         requiredCapabilities: [] }] : []),
-        ...(plan("advanced") ? [{ name: "الشرائح",        href: "/dashboard/segments",        icon: Tag,          requiredCapabilities: [] }] : []),
-        ...(plan("advanced") ? [{ name: "السلات المتروكة", href: "/dashboard/abandoned-carts", icon: ShoppingCart, requiredCapabilities: [] }] : []),
-        ...(plan("advanced") ? [{ name: "واتساب",         href: "/dashboard/messaging",       icon: MessageCircle,requiredCapabilities: [] }] : []),
-      ],
-    },
-
-    // 7. التقارير — بيانات وهوامش
-    cap("floral") ? {
-      id: "reports", label: "التقارير",
-      requiredCapabilities: [], anyCapability: [], allowedBusinessTypes: [], allowedOperatingProfiles: [],
-      items: [
-        { name: "التحليلات",   href: "/dashboard/flower-analytics", icon: TrendingUp, requiredCapabilities: [] },
-        { name: "التقارير",    href: "/dashboard/flower-reports",   icon: BarChart3,  requiredCapabilities: [] },
-        { name: "هوامش الربح", href: "/dashboard/flower-margins",   icon: DollarSign, requiredCapabilities: [] },
-      ],
-    } : null,
-
-    // 8. المالية — plan-gated
-    plan("basic") ? {
-      id: "finance", label: "المالية",
-      requiredCapabilities: [], anyCapability: [], allowedBusinessTypes: [], allowedOperatingProfiles: [],
-      items: [
-        { name: "المالية",               href: "/dashboard/finance",   icon: Wallet,    requiredCapabilities: [] },
-        { name: "المدفوعات الإلكترونية", href: "/dashboard/payments",  icon: CreditCard,requiredCapabilities: [] },
-      ],
-    } : null,
-
-    // 9. الفريق — الفريق دائم + الموظفون plan-gated
-    {
-      id: "team", label: "الفريق",
-      requiredCapabilities: [], anyCapability: [], allowedBusinessTypes: [], allowedOperatingProfiles: [],
-      items: [
-        { name: "الفريق",   href: "/dashboard/team", icon: UsersRound, requiredCapabilities: [] },
-        ...(plan("basic") ? [{ name: "الموظفون", href: "/dashboard/hr", icon: UserCog, requiredCapabilities: [] }] : []),
-      ],
-    },
-
-    // 10. الإعدادات — القنوات والأدوات والنظام
-    {
-      id: "settings", label: "الإعدادات",
-      requiredCapabilities: [], anyCapability: [], allowedBusinessTypes: [], allowedOperatingProfiles: [],
-      items: [
-        { name: "صفحة البيع",      href: "/dashboard/storefront",     icon: Globe,      requiredCapabilities: [] },
-        ...(plan("basic") ? [{ name: "الموقع الإلكتروني", href: "/dashboard/website", icon: Monitor, requiredCapabilities: [] }] : []),
-        { name: "بطاقات الباركود", href: "/dashboard/barcode-labels",  icon: ScanBarcode,requiredCapabilities: [] },
-        ...(plan("pro") ? [{ name: "التكاملات", href: "/dashboard/integrations", icon: Plug, requiredCapabilities: [] }] : []),
-      ],
-    },
-
-  ];
-
-  return groups.filter((g): g is NavGroupEntry => g !== null && g.items.length > 0);
-}
 
 // ============================================================
 // Builder
@@ -648,17 +527,12 @@ export function buildVisibleNav(ctx: OrgNavContext): NavGroupEntry[] {
   const specialty   = visible.filter((g) => isSpecialty(g));
 
   // Isolated verticals: show only home + their specialty modules (no commercial nav)
-  if (ctx.businessType === "school" || ctx.businessType === "real_estate") {
+  if (ctx.businessType === "school" || ctx.businessType === "real_estate" || ctx.businessType === "flower_shop") {
     const homeGroup = universal.find((g) => g.id === "home");
     return [
       ...(homeGroup ? [homeGroup] : []),
       ...specialty,
     ];
-  }
-
-  // Flower Shop: fully self-contained navigation (no registry groups)
-  if (ctx.businessType === "flower_shop") {
-    return buildFlowerNavigation(ctx);
   }
 
   // Food & Beverage: focused sidebar with only café-relevant items

@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { flowerMasterApi, flowerBuilderApi, arrangementsApi } from "@/lib/api";
+import { flowerMasterApi, flowerBuilderApi, arrangementsApi, settingsApi } from "@/lib/api";
 import { toast } from "@/hooks/useToast";
+import { VAT_RATE } from "@/lib/constants";
+import { confirmDialog } from "@/components/ui";
 import {
   Flower2, Gift, Layers, ShoppingBag, Truck,
   Banknote, CreditCard, Clock, Plus, Minus, Trash2,
@@ -54,7 +56,8 @@ interface PickupDetails {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CATEGORIES = [
+// Categories for POS catalog filtering
+const DEFAULT_CATEGORIES: { id: string; label: string; icon: React.ElementType | null }[] = [
   { id: "الكل", label: "الكل", icon: null },
   { id: "ورد مفرد", label: "ورد مفرد", icon: Flower2 },
   { id: "باقات", label: "باقات", icon: Gift },
@@ -77,9 +80,10 @@ const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: React.Elemen
   { value: "credit", label: "آجل", icon: Clock },
 ];
 
-const DELIVERY_FEES = [30, 50, 70];
+// Default delivery fees — overridden by settings when available
+const DEFAULT_DELIVERY_FEES = [30, 50, 70];
 
-const VAT_RATE = 0.15;
+// VAT_RATE is imported from @/lib/constants (single source of truth)
 
 // Map builder catalog English types → Arabic POS categories
 const CATALOG_TYPE_MAP: Record<string, string> = {
@@ -223,6 +227,23 @@ export function FlowerPOSPage() {
   // UI state
   const [showSuccess, setShowSuccess] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [lastOrderData, setLastOrderData] = useState<any>(null);
+
+  // ─── Fetch settings (dynamic delivery fees / VAT) ──────────────────────────
+
+  const { data: settingsData } = useApi(() => settingsApi.bookingSettings(), []);
+  const deliveryFees: number[] = useMemo(() => {
+    const fees = (settingsData?.data as any)?.delivery_fees ?? (settingsData?.data as any)?.deliveryFees;
+    if (Array.isArray(fees) && fees.length > 0) return fees.map(Number);
+    return DEFAULT_DELIVERY_FEES;
+  }, [settingsData]);
+
+  const vatRate: number = useMemo(() => {
+    const rate = (settingsData?.data as any)?.vat_rate ?? (settingsData?.data as any)?.vatRate;
+    return typeof rate === "number" && rate >= 0 ? rate : VAT_RATE;
+  }, [settingsData]);
+
+  const vatPercent = Math.round(vatRate * 100);
 
   // ─── Fetch catalog ──────────────────────────────────────────────────────────
 
@@ -298,7 +319,7 @@ export function FlowerPOSPage() {
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const deliveryExtra = saleType === "delivery" ? deliveryDetails.deliveryFee : 0;
   const baseTotal = subtotal + deliveryExtra;
-  const vat = parseFloat((baseTotal * VAT_RATE).toFixed(2));
+  const vat = parseFloat((baseTotal * vatRate).toFixed(2));
   const total = parseFloat((baseTotal + vat).toFixed(2));
 
   const cartEmpty = cart.length === 0;
@@ -371,6 +392,16 @@ export function FlowerPOSPage() {
       return;
     }
 
+    // Pre-checkout stock validation — check items with finite stock
+    const outOfStock = cart.filter(ci => {
+      const catItem = catalogItems.find(c => c.id === ci.id);
+      return catItem && catItem.stock < 999 && ci.qty > catItem.stock;
+    });
+    if (outOfStock.length > 0) {
+      toast.error(`الكمية المطلوبة من "${outOfStock[0].name}" تتجاوز المخزون المتاح`);
+      return;
+    }
+
     // Validate required fields per sale type
     if (saleType === "delivery") {
       if (!deliveryDetails.recipientName.trim()) {
@@ -405,27 +436,60 @@ export function FlowerPOSPage() {
       }
     }
 
+    // Confirm checkout before processing
+    const ok = await confirmDialog({
+      title: "تأكيد عملية البيع",
+      message: `إجمالي ${fmtPrice(total)} — ${PAYMENT_METHODS.find(p => p.value === paymentMethod)?.label ?? paymentMethod}`,
+      confirmLabel: "تأكيد البيع",
+    });
+    if (!ok) return;
+
     setProcessing(true);
     try {
-      const orderPayload = {
+      const mappedPayment = paymentMethod === "cash" ? "cash" : "card";
+      const orderPayload: any = {
+        customerName: customerName.trim() || "زائر",
+        customerPhone: "",
         items: cart.map((item) => ({
           product_id: item.id,
+          id: item.id,
           name: item.name,
           qty: item.qty,
+          quantity: item.qty,
+          price: item.price,
           unit_price: item.price,
         })),
         subtotal,
-        vat,
         total,
-        payment_method: paymentMethod,
-        sale_type: saleType,
-        ...(customerName.trim() && { customer_name: customerName.trim() }),
-        ...(saleType === "gift" && { gift_details: giftDetails }),
-        ...(saleType === "delivery" && { delivery_details: deliveryDetails }),
-        ...(saleType === "pickup" && { pickup_details: pickupDetails }),
+        totalPrice: total,
+        paymentMethod: mappedPayment,
+        paidAmount: total,
+        orderType: saleType,
       };
 
-      await flowerBuilderApi.createOrder(orderPayload);
+      if (saleType === "gift") {
+        orderPayload.recipientName = giftDetails.recipientName;
+        orderPayload.recipientPhone = giftDetails.recipientPhone;
+        orderPayload.giftMessage = giftDetails.message;
+        orderPayload.isSurprise = giftDetails.isSurprise;
+        orderPayload.customerPhone = giftDetails.recipientPhone;
+      }
+      if (saleType === "delivery") {
+        orderPayload.recipientName = deliveryDetails.recipientName;
+        orderPayload.recipientPhone = deliveryDetails.recipientPhone;
+        orderPayload.deliveryAddress = { street: deliveryDetails.address };
+        orderPayload.deliveryTime = deliveryDetails.deliveryTime;
+        orderPayload.deliveryFee = deliveryDetails.deliveryFee;
+        orderPayload.giftMessage = deliveryDetails.message;
+        orderPayload.customerPhone = deliveryDetails.recipientPhone;
+      }
+      if (saleType === "pickup") {
+        orderPayload.deliveryTime = pickupDetails.pickupTime;
+        if (pickupDetails.recipientName) orderPayload.recipientName = pickupDetails.recipientName;
+      }
+
+      const res = await flowerBuilderApi.createOrder(orderPayload);
+      setLastOrderData(res?.data ?? orderPayload);
       setShowSuccess(true);
       toast.success("تم إتمام البيع بنجاح");
     } catch {
@@ -465,7 +529,52 @@ export function FlowerPOSPage() {
           </div>
           <div className="flex gap-3 w-full">
             <button
-              onClick={() => toast.info("جاري الطباعة...")}
+              onClick={() => {
+                const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+                const orderNo = esc(lastOrderData?.order_number ?? `FLW-${Date.now().toString(36).toUpperCase()}`);
+                const receiptItems = cart.length > 0 ? cart : [];
+                const escapedCustomer = esc(customerName.trim());
+                const receiptHtml = `
+                  <html dir="rtl"><head><meta charset="utf-8">
+                  <style>
+                    body { font-family: 'IBM Plex Sans Arabic', sans-serif; width: 280px; margin: 0 auto; padding: 12px; font-size: 12px; color: #222; }
+                    .center { text-align: center; }
+                    .bold { font-weight: bold; }
+                    .line { border-top: 1px dashed #999; margin: 8px 0; }
+                    .row { display: flex; justify-content: space-between; padding: 2px 0; }
+                    .total-row { font-weight: bold; font-size: 14px; }
+                    h2 { margin: 4px 0; font-size: 16px; }
+                    p { margin: 2px 0; }
+                  </style></head><body>
+                  <div class="center">
+                    <h2>ترميز OS</h2>
+                    <p>فاتورة مبسّطة</p>
+                    <p>${orderNo}</p>
+                    <p>${esc(new Date().toLocaleDateString("ar-SA"))} ${esc(new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" }))}</p>
+                    ${escapedCustomer ? `<p>العميل: ${escapedCustomer}</p>` : ""}
+                  </div>
+                  <div class="line"></div>
+                  ${receiptItems.map(ci => `<div class="row"><span>${esc(ci.name)} × ${ci.qty}</span><span>${(ci.price * ci.qty).toFixed(2)}</span></div>`).join("")}
+                  <div class="line"></div>
+                  <div class="row"><span>المجموع الفرعي</span><span>${subtotal.toFixed(2)} ر.س</span></div>
+                  <div class="row"><span>ضريبة القيمة المضافة</span><span>${vat.toFixed(2)} ر.س</span></div>
+                  <div class="line"></div>
+                  <div class="row total-row"><span>الإجمالي</span><span>${total.toFixed(2)} ر.س</span></div>
+                  <div class="line"></div>
+                  <div class="row"><span>طريقة الدفع</span><span>${esc(PAYMENT_METHODS.find(p => p.value === paymentMethod)?.label ?? paymentMethod)}</span></div>
+                  <div class="center" style="margin-top:12px">
+                    <p>شكراً لزيارتكم</p>
+                    <p style="font-size:10px;color:#999">ترميز OS — نظام نقاط البيع</p>
+                  </div>
+                  </body></html>`;
+                const printWin = window.open("", "_blank", "width=320,height=600");
+                if (printWin) {
+                  printWin.document.write(receiptHtml);
+                  printWin.document.close();
+                  printWin.focus();
+                  printWin.print();
+                }
+              }}
               className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
             >
               <Printer size={16} />
@@ -512,7 +621,7 @@ export function FlowerPOSPage() {
 
           {/* Category tabs */}
           <div className="bg-white border-b border-gray-100 px-4 py-2 flex gap-2 overflow-x-auto shrink-0 scrollbar-hide">
-            {CATEGORIES.map((cat) => {
+            {DEFAULT_CATEGORIES.map((cat) => {
               const Icon = cat.icon;
               const active = activeCategory === cat.id;
               return (
@@ -638,7 +747,7 @@ export function FlowerPOSPage() {
                   </div>
                 )}
                 <div className="flex justify-between text-gray-500">
-                  <span>ضريبة القيمة المضافة 15%</span>
+                  <span>ضريبة القيمة المضافة {vatPercent}%</span>
                   <span>{fmtPrice(vat)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-gray-800 text-base border-t border-gray-200 pt-1.5 mt-0.5">
@@ -757,7 +866,7 @@ export function FlowerPOSPage() {
                     onChange={(e) => setDeliveryDetails((d) => ({ ...d, deliveryFee: Number(e.target.value) }))}
                     className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-brand-500"
                   >
-                    {DELIVERY_FEES.map((fee) => (
+                    {deliveryFees.map((fee) => (
                       <option key={fee} value={fee}>{fee} ر.س</option>
                     ))}
                   </select>
