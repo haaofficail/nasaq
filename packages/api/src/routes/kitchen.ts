@@ -67,11 +67,12 @@ kitchenRouter.get("/stats", async (c) => {
 // ============================================================
 // PATCH /kitchen/orders/:id/status
 // Advance order status from kitchen screen
+// Uses same state machine as online-orders for consistency
 // ============================================================
-const VALID_KITCHEN_TRANSITIONS: Record<string, string> = {
-  pending:   "preparing",
-  preparing: "ready",
-  ready:     "delivered",
+const VALID_KITCHEN_TRANSITIONS: Record<string, string[]> = {
+  pending:   ["preparing"],
+  preparing: ["ready"],
+  ready:     ["delivered"],
 };
 
 kitchenRouter.patch("/orders/:id/status", async (c) => {
@@ -90,13 +91,22 @@ kitchenRouter.patch("/orders/:id/status", async (c) => {
   if (!order) return c.json({ error: "الطلب غير موجود" }, 404);
 
   // Validate transition
-  const allowed = VALID_KITCHEN_TRANSITIONS[order.status];
-  if (allowed !== status) {
+  const allowed = VALID_KITCHEN_TRANSITIONS[order.status] ?? [];
+  if (!allowed.includes(status)) {
     return c.json({ error: `لا يمكن الانتقال من "${order.status}" إلى "${status}"` }, 422);
   }
 
+  // Timestamp field for the new status
+  const tsField: Record<string, string> = {
+    preparing: "preparing_at",
+    ready: "ready_at",
+    delivered: "delivered_at",
+  };
+  const tsCol = tsField[status];
+  const tsClause = tsCol ? `, ${tsCol} = NOW()` : "";
+
   const { rows: [updated] } = await pool.query(
-    `UPDATE online_orders SET status = $1, updated_at = NOW()
+    `UPDATE online_orders SET status = $1, updated_at = NOW(), version = version + 1${tsClause}
      WHERE id = $2 AND org_id = $3
      RETURNING id, order_number, status`,
     [status, id, orgId],

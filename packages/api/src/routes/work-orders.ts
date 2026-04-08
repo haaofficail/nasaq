@@ -1,19 +1,40 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, desc, or, ilike, count, sql } from "drizzle-orm";
-import { db } from "@nasaq/db/client";
+import { db, pool } from "@nasaq/db/client";
 import { workOrders, customers, users, locations } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, validateBody } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
-import { getAccountsByKeys, createJournalEntry } from "../lib/posting-engine";
+import { getAccountsByKeys, createJournalEntry, reverseJournalEntry } from "../lib/posting-engine";
+import { requirePermission } from "../middleware/auth";
 
 export const workOrdersRouter = new Hono();
 
-// ── Validation schemas ──────────────────────────────────────────────────────
+// ── Status enum & state machine ──────────────────────────────────────────────
+const WORK_ORDER_STATUSES = [
+  "received", "diagnosing", "waiting_parts", "in_progress",
+  "ready", "delivered", "cancelled",
+  "delivery_failed", "returned",
+] as const;
 
-const statusEnum = z.enum([
-  "received", "diagnosing", "waiting_parts", "in_progress", "ready", "delivered", "cancelled",
-]);
+const statusEnum = z.enum(WORK_ORDER_STATUSES);
+
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  received:       ["diagnosing", "in_progress", "cancelled"],
+  diagnosing:     ["waiting_parts", "in_progress", "cancelled"],
+  waiting_parts:  ["in_progress", "cancelled"],
+  in_progress:    ["ready", "cancelled"],
+  ready:          ["delivered", "cancelled"],
+  delivered:      [],                                             // terminal
+  cancelled:      [],                                             // terminal
+  delivery_failed:["ready", "returned", "cancelled"],
+  returned:       [],                                             // terminal
+};
+
+// Terminal statuses — no edits allowed
+const TERMINAL_STATUSES = new Set(["delivered", "cancelled", "returned"]);
+
+// ── Validation schemas ──────────────────────────────────────────────────────
 const categoryEnum = z.enum(["repair", "service", "maintenance", "installation", "other"]);
 
 const createSchema = z.object({
@@ -119,12 +140,12 @@ workOrdersRouter.get("/stats", async (c) => {
     .where(and(...conds))
     .groupBy(workOrders.status);
 
-  const statuses = ["received", "diagnosing", "waiting_parts", "in_progress", "ready", "delivered", "cancelled"];
+  const statuses = ["received", "diagnosing", "waiting_parts", "in_progress", "ready", "delivered", "cancelled", "delivery_failed", "returned"];
   const byStatus = Object.fromEntries(statuses.map(s => [s, 0]));
   for (const r of rows) byStatus[r.status] = Number(r.count);
 
   const totalActive   = statuses
-    .filter(s => s !== "delivered" && s !== "cancelled")
+    .filter(s => s !== "delivered" && s !== "cancelled" && s !== "returned")
     .reduce((s, k) => s + byStatus[k], 0);
   const totalRevenue  = await db
     .select({ rev: sql<string>`COALESCE(SUM(final_cost), 0)` })
@@ -224,10 +245,15 @@ workOrdersRouter.patch("/:id", async (c) => {
   if (!body) return;
 
   const [existing] = await db
-    .select({ id: workOrders.id })
+    .select({ id: workOrders.id, status: workOrders.status })
     .from(workOrders)
     .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)));
   if (!existing) return c.json({ error: "أمر العمل غير موجود" }, 404);
+
+  // Prevent modification of terminal orders
+  if (TERMINAL_STATUSES.has(existing.status)) {
+    return c.json({ error: `لا يمكن تعديل أمر عمل في حالة "${existing.status}"` }, 422);
+  }
 
   const updates: Partial<typeof workOrders.$inferInsert> = {
     updatedAt: new Date(),
@@ -269,43 +295,147 @@ workOrdersRouter.patch("/:id/status", async (c) => {
   const orgId  = getOrgId(c);
   const userId = getUserId(c);
   const id     = c.req.param("id");
-  const body   = await validateBody(c, z.object({ status: statusEnum }));
+  const body   = await validateBody(c, z.object({
+    status: statusEnum,
+    cancellationReason: z.string().optional(),
+  }));
   if (!body) return;
 
-  const timestamps: Partial<typeof workOrders.$inferInsert> = { updatedAt: new Date() };
-  if (body.status === "ready")     timestamps.readyAt     = new Date();
-  if (body.status === "delivered") timestamps.deliveredAt = new Date();
+  // ── Fetch current order (with version for optimistic lock) ────
+  const [existing] = await db
+    .select()
+    .from(workOrders)
+    .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)));
+  if (!existing) return c.json({ error: "أمر العمل غير موجود" }, 404);
 
-  const [updated] = await db.update(workOrders)
-    .set({ status: body.status, ...timestamps })
-    .where(and(eq(workOrders.id, id), eq(workOrders.orgId, orgId)))
-    .returning();
-
-  if (!updated) return c.json({ error: "أمر العمل غير موجود" }, 404);
-
-  // Financial posting when delivered and has a finalCost
-  if (body.status === "delivered" && updated.finalCost && Number(updated.finalCost) > 0) {
-    try {
-      const accounts = await getAccountsByKeys(orgId, ["AR", "SERVICE_REVENUE"]);
-      if (accounts.AR && accounts.SERVICE_REVENUE) {
-        await createJournalEntry({
-          orgId,
-          date: new Date(),
-          description: `إيراد أمر عمل — ${updated.customerName} (${updated.itemName})`,
-          sourceType: "invoice",
-          sourceId: updated.id,
-          createdBy: userId ?? undefined,
-          lines: [
-            { accountId: accounts.AR, debit: Number(updated.finalCost) },
-            { accountId: accounts.SERVICE_REVENUE, credit: Number(updated.finalCost) },
-          ],
-        });
-      }
-    } catch { /* accounting not configured — skip silently */ }
+  // ── State machine validation ──────────────────────────────────
+  const allowed = VALID_TRANSITIONS[existing.status] ?? [];
+  if (!allowed.includes(body.status)) {
+    return c.json({
+      error: `لا يمكن الانتقال من "${existing.status}" إلى "${body.status}"`,
+    }, 422);
   }
 
-  insertAuditLog({ orgId, userId, action: "update", resource: "work_order", resourceId: id, metadata: { status: body.status } });
-  return c.json({ data: updated });
+  // ── Build timestamps for each phase ───────────────────────────
+  const timestamps: Partial<typeof workOrders.$inferInsert> = { updatedAt: new Date() };
+  if (body.status === "diagnosing")    timestamps.diagnosingAt   = new Date();
+  if (body.status === "waiting_parts") timestamps.waitingPartsAt = new Date();
+  if (body.status === "in_progress")   timestamps.inProgressAt   = new Date();
+  if (body.status === "ready")         timestamps.readyAt        = new Date();
+  if (body.status === "delivered")     timestamps.deliveredAt    = new Date();
+  if (body.status === "cancelled") {
+    timestamps.cancelledAt       = new Date();
+    timestamps.cancellationReason = body.cancellationReason ?? null;
+    timestamps.cancelledBy        = userId ?? null;
+  }
+
+  // ── Atomic: status change + version bump + financial posting ──
+  // Use raw pool for transaction because Drizzle + financial posting spans multiple queries
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
+
+    // Optimistic lock: version check
+    const currentVersion = existing.version;
+    const tsEntries = Object.entries(timestamps)
+      .map(([k, _v]) => {
+        const col = k.replace(/([A-Z])/g, "_$1").toLowerCase(); // camelCase → snake_case
+        return col;
+      });
+
+    // Build SET clause dynamically
+    const setFields: string[] = [`status = $3`, `updated_at = NOW()`, `version = version + 1`];
+    const queryParams: any[] = [id, orgId, body.status];
+
+    if (body.status === "diagnosing")    { queryParams.push(new Date()); setFields.push(`diagnosing_at = $${queryParams.length}`); }
+    if (body.status === "waiting_parts") { queryParams.push(new Date()); setFields.push(`waiting_parts_at = $${queryParams.length}`); }
+    if (body.status === "in_progress")   { queryParams.push(new Date()); setFields.push(`in_progress_at = $${queryParams.length}`); }
+    if (body.status === "ready")         { queryParams.push(new Date()); setFields.push(`ready_at = $${queryParams.length}`); }
+    if (body.status === "delivered")     { queryParams.push(new Date()); setFields.push(`delivered_at = $${queryParams.length}`); }
+    if (body.status === "cancelled") {
+      queryParams.push(new Date()); setFields.push(`cancelled_at = $${queryParams.length}`);
+      queryParams.push(body.cancellationReason || null); setFields.push(`cancellation_reason = $${queryParams.length}`);
+      queryParams.push(userId || null); setFields.push(`cancelled_by = $${queryParams.length}`);
+    }
+
+    queryParams.push(currentVersion);
+    const versionCheck = `AND version = $${queryParams.length}`;
+
+    const { rows: [updated] } = await client.query(
+      `UPDATE work_orders SET ${setFields.join(", ")}
+       WHERE id = $1 AND org_id = $2 ${versionCheck}
+       RETURNING *`,
+      queryParams
+    );
+
+    if (!updated) {
+      await client.query("ROLLBACK");
+      return c.json({ error: "أمر العمل تم تعديله بواسطة مستخدم آخر — أعد التحميل" }, 409);
+    }
+
+    // ── Financial posting when delivered (with duplicate protection) ──
+    if (body.status === "delivered" && !existing.journalEntryId && updated.final_cost && Number(updated.final_cost) > 0) {
+      try {
+        const accounts = await getAccountsByKeys(orgId, ["AR", "SERVICE_REVENUE"]);
+        if (accounts.AR && accounts.SERVICE_REVENUE) {
+          const postResult = await createJournalEntry({
+            orgId,
+            date: new Date(),
+            description: `إيراد أمر عمل — ${updated.customer_name} (${updated.item_name})`,
+            sourceType: "invoice",
+            sourceId: updated.id,
+            createdBy: userId ?? undefined,
+            lines: [
+              { accountId: accounts.AR, debit: Number(updated.final_cost) },
+              { accountId: accounts.SERVICE_REVENUE, credit: Number(updated.final_cost) },
+            ],
+          });
+          if (postResult?.entryId) {
+            await client.query(
+              `UPDATE work_orders SET journal_entry_id = $1, payment_status = 'paid' WHERE id = $2`,
+              [postResult.entryId, id]
+            );
+          }
+        }
+      } catch { /* accounting not configured — skip silently */ }
+    }
+
+    // ── Reverse financial entry on cancellation ─────────────────
+    if (body.status === "cancelled" && existing.journalEntryId) {
+      try {
+        await reverseJournalEntry(
+          existing.journalEntryId,
+          userId ?? "system",
+          `إلغاء أمر عمل #${existing.orderNumber}`
+        );
+        await client.query(
+          `UPDATE work_orders SET payment_status = 'refunded' WHERE id = $1`,
+          [id]
+        );
+      } catch { /* تجاهل أخطاء المحاسبة */ }
+    }
+
+    await client.query("COMMIT");
+
+    // ── Audit with old/new status ───────────────────────────────
+    insertAuditLog({
+      orgId,
+      userId,
+      action: "update",
+      resource: "work_order",
+      resourceId: id,
+      oldValue: { status: existing.status },
+      newValue: { status: body.status },
+      metadata: { status: body.status, cancellationReason: body.cancellationReason },
+    });
+
+    return c.json({ data: updated });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 });
 
 // ── DELETE /work-orders/:id — soft delete ──────────────────────────────────

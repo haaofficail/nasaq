@@ -3,6 +3,30 @@ import { z } from "zod";
 import { pool } from "@nasaq/db/client";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
+import { requirePermission } from "../middleware/auth";
+
+// ── Status enum & state machine ──────────────────────────────────────────────
+const ONLINE_ORDER_STATUSES = [
+  "pending", "confirmed", "preparing", "ready",
+  "delivered", "cancelled",
+  "delivery_failed", "returned",
+] as const;
+
+const onlineOrderStatusEnum = z.enum(ONLINE_ORDER_STATUSES);
+
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  pending:          ["confirmed", "preparing", "cancelled"],
+  confirmed:        ["preparing", "cancelled"],
+  preparing:        ["ready", "cancelled"],
+  ready:            ["delivered", "cancelled"],
+  delivered:        [],                                   // terminal
+  cancelled:        [],                                   // terminal
+  delivery_failed:  ["ready", "returned", "cancelled"],
+  returned:         [],                                   // terminal
+};
+
+// Terminal statuses — no edits allowed
+const TERMINAL_STATUSES = new Set(["delivered", "cancelled", "returned"]);
 
 const createOrderSchema = z.object({
   orderType: z.enum(["delivery", "pickup", "dine_in"]).default("delivery"),
@@ -99,25 +123,130 @@ onlineOrdersRouter.post("/", async (c) => {
 
 // PATCH /online-orders/:id/status
 onlineOrdersRouter.patch("/:id/status", async (c) => {
-  const orgId = getOrgId(c);
-  const id = c.req.param("id");
-  const { status } = await c.req.json();
-  const result = await pool.query(
-    `UPDATE online_orders SET status = $1, updated_at = NOW() WHERE id = $2 AND org_id = $3 RETURNING *`,
-    [status, id, orgId]
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const id     = c.req.param("id");
+
+  // ── Strict Zod validation ─────────────────────────────────────
+  const body = z.object({
+    status: onlineOrderStatusEnum,
+    cancellationReason: z.string().optional(),
+  }).safeParse(await c.req.json());
+
+  if (!body.success) {
+    return c.json({ error: "حالة غير صالحة", details: body.error.errors }, 400);
+  }
+  const { status, cancellationReason } = body.data;
+
+  // ── Fetch current order ───────────────────────────────────────
+  const { rows: [current] } = await pool.query(
+    `SELECT id, status, version, order_number FROM online_orders WHERE id = $1 AND org_id = $2`,
+    [id, orgId]
   );
-  if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
-  insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "online_order", resourceId: id, metadata: { status } });
-  return c.json({ data: result.rows[0] });
+  if (!current) return c.json({ error: "الطلب غير موجود" }, 404);
+
+  // ── State machine validation ──────────────────────────────────
+  const allowed = VALID_TRANSITIONS[current.status] ?? [];
+  if (!allowed.includes(status)) {
+    return c.json({
+      error: `لا يمكن الانتقال من "${current.status}" إلى "${status}"`,
+    }, 422);
+  }
+
+  // ── Build timestamp field ─────────────────────────────────────
+  const tsField: Record<string, string> = {
+    confirmed: "confirmed_at",
+    preparing: "preparing_at",
+    ready: "ready_at",
+    delivered: "delivered_at",
+    cancelled: "cancelled_at",
+  };
+  const tsCol = tsField[status];
+
+  const setClauses = [`status = $3`, `updated_at = NOW()`, `version = version + 1`];
+  const params: any[] = [id, orgId, status];
+
+  if (tsCol) {
+    params.push(new Date());
+    setClauses.push(`${tsCol} = $${params.length}`);
+  }
+
+  if (status === "cancelled") {
+    params.push(cancellationReason || null);
+    setClauses.push(`cancellation_reason = $${params.length}`);
+    params.push(userId || null);
+    setClauses.push(`cancelled_by = $${params.length}`);
+  }
+
+  // Optimistic lock
+  params.push(current.version);
+  const versionCheck = `AND version = $${params.length}`;
+
+  const { rows: [updated] } = await pool.query(
+    `UPDATE online_orders SET ${setClauses.join(", ")}
+     WHERE id = $1 AND org_id = $2 ${versionCheck}
+     RETURNING *`,
+    params
+  );
+
+  if (!updated) {
+    return c.json({ error: "الطلب تم تعديله بواسطة مستخدم آخر — أعد التحميل" }, 409);
+  }
+
+  // ── Audit with old/new status ─────────────────────────────────
+  insertAuditLog({
+    orgId,
+    userId,
+    action: "updated",
+    resource: "online_order",
+    resourceId: id,
+    oldValue: { status: current.status },
+    newValue: { status },
+    metadata: { status, cancellationReason },
+  });
+
+  return c.json({ data: updated });
 });
 
-// DELETE /online-orders/:id
+// DELETE /online-orders/:id — cancel order (uses state machine)
 onlineOrdersRouter.delete("/:id", async (c) => {
-  const orgId = getOrgId(c);
-  const result = await pool.query(
-    `UPDATE online_orders SET status = 'cancelled', updated_at = NOW() WHERE id = $1 AND org_id = $2 RETURNING id`,
-    [c.req.param("id"), orgId]
+  const orgId  = getOrgId(c);
+  const userId = getUserId(c);
+  const id     = c.req.param("id");
+
+  // Fetch current status
+  const { rows: [current] } = await pool.query(
+    `SELECT id, status FROM online_orders WHERE id = $1 AND org_id = $2`,
+    [id, orgId]
   );
-  if (!result.rows[0]) return c.json({ error: "Not found" }, 404);
+  if (!current) return c.json({ error: "الطلب غير موجود" }, 404);
+
+  // State machine: check if cancellation is allowed
+  const allowed = VALID_TRANSITIONS[current.status] ?? [];
+  if (!allowed.includes("cancelled")) {
+    return c.json({
+      error: `لا يمكن إلغاء طلب في حالة "${current.status}"`,
+    }, 422);
+  }
+
+  const result = await pool.query(
+    `UPDATE online_orders SET status = 'cancelled', cancelled_at = NOW(), cancelled_by = $3,
+            updated_at = NOW(), version = version + 1
+     WHERE id = $1 AND org_id = $2 RETURNING id`,
+    [id, orgId, userId || null]
+  );
+  if (!result.rows[0]) return c.json({ error: "الطلب غير موجود" }, 404);
+
+  insertAuditLog({
+    orgId,
+    userId,
+    action: "updated",
+    resource: "online_order",
+    resourceId: id,
+    oldValue: { status: current.status },
+    newValue: { status: "cancelled" },
+    metadata: { reason: "DELETE endpoint" },
+  });
+
   return c.json({ success: true });
 });
