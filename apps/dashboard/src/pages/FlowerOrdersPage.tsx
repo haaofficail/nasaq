@@ -343,18 +343,30 @@ function ServiceOrderRow({ order }: { order: any }) {
 }
 
 // ─── Main Page ───────────────────────────────────────────────────────────────
+const PAGE_SIZE = 30;
+
 export function FlowerOrdersPage() {
   const [orderCat, setOrderCat] = useState<OrderCat>("all");
   const [saleStatus, setSaleStatus] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [salePage, setSalePage] = useState(1);
 
-  // Server-side status filter (API supports it) + client-side search for instant UX
+  // Server-side status filter + pagination (API supports status/page/limit)
   const { data: saleStatsRes } = useApi(() => flowerBuilderApi.orderStats(), []);
   const { data: serviceStatsRes } = useApi(() => serviceOrdersApi.stats(), []);
 
+  const saleParams = useMemo(() => {
+    const p: { status?: string; page?: string; limit?: string } = {
+      page: String(salePage),
+      limit: String(PAGE_SIZE),
+    };
+    if (saleStatus) p.status = saleStatus;
+    return p;
+  }, [saleStatus, salePage]);
+
   const { data: saleRes, loading: saleLoading, error: saleError, refetch: refetchSale } = useApi(
-    () => flowerBuilderApi.orders(saleStatus ? { status: saleStatus } : undefined),
-    [saleStatus]
+    () => flowerBuilderApi.orders(saleParams),
+    [saleStatus, salePage]
   );
   const { data: serviceRes, loading: serviceLoading, refetch: refetchService } = useApi(
     () => serviceOrdersApi.list({}),
@@ -399,14 +411,21 @@ export function FlowerOrdersPage() {
   const showSale    = orderCat === "all" || orderCat === "sale";
   const showService = orderCat === "all" || orderCat === "service";
 
-  // Count badges for sale status tabs (computed from unfiltered sale orders)
+  // Compute whether more pages may exist
+  const hasMoreSalePages = allSaleOrders.length === PAGE_SIZE;
+
+  // Count badges for sale status tabs (use stats from API — not client-side counts)
   const saleStatusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
+    // Use stats from backend when available
+    if (saleStats.by_status && typeof saleStats.by_status === "object") {
+      return saleStats.by_status as Record<string, number>;
+    }
     for (const o of allSaleOrders) {
       counts[o.status] = (counts[o.status] ?? 0) + 1;
     }
     return counts;
-  }, [allSaleOrders]);
+  }, [allSaleOrders, saleStats]);
 
   const CAT_TABS: { value: OrderCat; label: string; count: number }[] = [
     { value: "all",     label: "كل الطلبات", count: allSaleOrders.length + allServiceOrders.length },
@@ -456,7 +475,7 @@ export function FlowerOrdersPage() {
           {CAT_TABS.map(t => (
             <button
               key={t.value}
-              onClick={() => { setOrderCat(t.value); setSaleStatus(""); }}
+              onClick={() => { setOrderCat(t.value); setSaleStatus(""); setSalePage(1); }}
               className={clsx(
                 "flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-t-lg border-b-2 transition-colors whitespace-nowrap",
                 orderCat === t.value ? "border-brand-500 text-brand-600 bg-brand-50/30" : "border-transparent text-gray-500 hover:text-gray-700"
@@ -479,7 +498,7 @@ export function FlowerOrdersPage() {
                 return (
                   <button
                     key={t.value}
-                    onClick={() => setSaleStatus(t.value)}
+                    onClick={() => { setSaleStatus(t.value); setSalePage(1); }}
                     className={clsx(
                       "px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors whitespace-nowrap flex items-center gap-1",
                       saleStatus === t.value ? "bg-brand-500 text-white border-brand-500" : "border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700"
@@ -542,6 +561,26 @@ export function FlowerOrdersPage() {
                   </div>
                 ) : (
                   saleOrders.map(o => <SaleOrderRow key={o.id} order={o} onStatusUpdate={refetchSale} />)
+                )}
+                {/* Pagination controls for sale orders */}
+                {saleOrders.length > 0 && (
+                  <div className="flex items-center justify-center gap-3 py-3 border-t border-gray-100">
+                    <button
+                      disabled={salePage <= 1}
+                      onClick={() => setSalePage(p => Math.max(1, p - 1))}
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-500 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      السابق
+                    </button>
+                    <span className="text-xs text-gray-400 tabular-nums">صفحة {salePage}</span>
+                    <button
+                      disabled={!hasMoreSalePages}
+                      onClick={() => setSalePage(p => p + 1)}
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-500 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                      التالي
+                    </button>
+                  </div>
                 )}
               </>
             )}
