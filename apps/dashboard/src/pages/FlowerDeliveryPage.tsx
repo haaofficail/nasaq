@@ -24,6 +24,7 @@ interface FlowerOrder {
   subtotal: string | number;
   total: string | number;
   status: string;
+  version?: number;
   delivery_type?: string;
   delivery_address?: any;
   delivery_date?: string;
