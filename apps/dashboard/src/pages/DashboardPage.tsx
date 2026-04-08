@@ -114,6 +114,7 @@ function FlowerOpsPanel() {
     },
     {
       label: "خدمات تحت التنفيذ",
+      // serviceOrdersApi.stats() may return in_progress or active depending on version
       value: Number(serviceStats.in_progress ?? serviceStats.active ?? 0),
       href: "/dashboard/flower-service-orders",
       color: "text-violet-600",

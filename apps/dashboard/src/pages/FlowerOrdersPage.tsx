@@ -417,10 +417,16 @@ export function FlowerOrdersPage() {
   // Count badges for sale status tabs (use stats from API — not client-side counts)
   const saleStatusCounts = useMemo(() => {
     const counts: Record<string, number> = {};
-    // Use stats from backend when available
-    if (saleStats.by_status && typeof saleStats.by_status === "object") {
-      return saleStats.by_status as Record<string, number>;
+    // Use stats from backend when available, with value validation
+    if (saleStats.by_status && typeof saleStats.by_status === "object" && !Array.isArray(saleStats.by_status)) {
+      const byStatus = saleStats.by_status as Record<string, unknown>;
+      for (const [key, val] of Object.entries(byStatus)) {
+        const n = Number(val);
+        if (!isNaN(n)) counts[key] = n;
+      }
+      if (Object.keys(counts).length > 0) return counts;
     }
+    // Fallback: compute from loaded orders
     for (const o of allSaleOrders) {
       counts[o.status] = (counts[o.status] ?? 0) + 1;
     }

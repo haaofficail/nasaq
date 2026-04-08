@@ -56,14 +56,14 @@ interface PickupDetails {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-// Categories are derived from catalog data — see useMemo below
-const DEFAULT_CATEGORIES = [
-  { id: "الكل", label: "الكل", icon: null as React.ElementType | null },
-  { id: "ورد مفرد", label: "ورد مفرد", icon: Flower2 as React.ElementType | null },
-  { id: "باقات", label: "باقات", icon: Gift as React.ElementType | null },
-  { id: "تنسيقات", label: "تنسيقات", icon: Layers as React.ElementType | null },
-  { id: "هدايا وإكسسوارات", label: "هدايا وإكسسوارات", icon: ShoppingBag as React.ElementType | null },
-  { id: "توصيل وخدمات", label: "توصيل وخدمات", icon: Truck as React.ElementType | null },
+// Categories for POS catalog filtering
+const DEFAULT_CATEGORIES: { id: string; label: string; icon: React.ElementType | null }[] = [
+  { id: "الكل", label: "الكل", icon: null },
+  { id: "ورد مفرد", label: "ورد مفرد", icon: Flower2 },
+  { id: "باقات", label: "باقات", icon: Gift },
+  { id: "تنسيقات", label: "تنسيقات", icon: Layers },
+  { id: "هدايا وإكسسوارات", label: "هدايا وإكسسوارات", icon: ShoppingBag },
+  { id: "توصيل وخدمات", label: "توصيل وخدمات", icon: Truck },
 ];
 
 const SALE_TYPES: { value: SaleType; label: string }[] = [
@@ -243,9 +243,6 @@ export function FlowerPOSPage() {
   }, [settingsData]);
 
   const vatPercent = Math.round(vatRate * 100);
-
-  // Categories — use defaults, fallback to derive from catalog items
-  const CATEGORIES = DEFAULT_CATEGORIES;
 
   // ─── Fetch catalog ──────────────────────────────────────────────────────────
 
@@ -553,7 +550,7 @@ export function FlowerPOSPage() {
 
           {/* Category tabs */}
           <div className="bg-white border-b border-gray-100 px-4 py-2 flex gap-2 overflow-x-auto shrink-0 scrollbar-hide">
-            {CATEGORIES.map((cat) => {
+            {DEFAULT_CATEGORIES.map((cat) => {
               const Icon = cat.icon;
               const active = activeCategory === cat.id;
               return (
