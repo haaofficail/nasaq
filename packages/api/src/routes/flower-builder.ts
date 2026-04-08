@@ -505,8 +505,8 @@ flowerBuilderRouter.patch("/orders/:id/status", async (c) => {
   const updated = result.rows[0];
   insertAuditLog({ orgId, userId: getUserId(c), action: "updated", resource: "flower_order", resourceId: id, metadata: { status: body.status } });
 
-  // ── Financial posting on delivery (idempotent — only if no journal_entry_id yet) ──
-  if (body.status === "delivered" && !order.journal_entry_id) {
+  // ── Financial posting on delivery (idempotent — use updated row to check journal_entry_id) ──
+  if (body.status === "delivered" && !updated.journal_entry_id) {
     const amount = Number(updated.total ?? updated.subtotal ?? 0);
     if (amount > 0) {
       try {
@@ -522,8 +522,9 @@ flowerBuilderRouter.patch("/orders/:id/status", async (c) => {
         });
         if (je) {
           await pool.query(
-            `UPDATE flower_orders SET journal_entry_id = $1, payment_status = 'paid', paid_amount = $2 WHERE id = $3`,
-            [je.entryId, amount, id],
+            `UPDATE flower_orders SET journal_entry_id = $1, payment_status = 'paid', paid_amount = $2
+             WHERE id = $3 AND version = $4`,
+            [je.entryId, amount, id, updated.version],
           );
         }
       } catch {
@@ -534,12 +535,12 @@ flowerBuilderRouter.patch("/orders/:id/status", async (c) => {
 
   // ── Cancellation: reverse journal entry + restore inventory ──
   if (body.status === "cancelled") {
-    // Reverse financial entry
-    if (order.journal_entry_id) {
+    // Reverse financial entry (use updated row which has the latest journal_entry_id)
+    if (updated.journal_entry_id) {
       try {
         const userId = getUserId(c);
         if (userId) {
-          await reverseJournalEntry(order.journal_entry_id, userId, body.reason || "إلغاء طلب ورود");
+          await reverseJournalEntry(updated.journal_entry_id, userId, body.reason || "إلغاء طلب ورود");
         }
       } catch {
         // Reversal is optional

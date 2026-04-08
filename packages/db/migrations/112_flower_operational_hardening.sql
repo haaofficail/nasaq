@@ -31,4 +31,3 @@ ALTER TABLE flower_orders ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT '
 -- 8) Indexes for performance
 CREATE INDEX IF NOT EXISTS idx_flower_orders_customer_id ON flower_orders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_flower_orders_invoice_id ON flower_orders(invoice_id);
-CREATE INDEX IF NOT EXISTS idx_flower_orders_version ON flower_orders(id, version);
