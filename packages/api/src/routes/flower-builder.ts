@@ -338,6 +338,8 @@ flowerBuilderRouter.patch("/orders/:id/status", async (c) => {
             createdBy: userId ?? undefined,
           });
           if (postResult?.entryId) {
+            // Cash sale → money received immediately → payment_status = 'paid'
+            // (Unlike work orders which post to AR and remain 'unpaid' until payment)
             await client.query(
               `UPDATE flower_orders SET journal_entry_id = $1, payment_status = 'paid' WHERE id = $2`,
               [postResult.entryId, id]

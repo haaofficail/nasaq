@@ -369,8 +369,10 @@ workOrdersRouter.patch("/:id/status", async (c) => {
             ],
           });
           if (postResult?.entryId) {
+            // AR (Accounts Receivable) posting = invoiced but not yet paid
+            // payment_status stays 'unpaid' until actual payment is received
             await client.query(
-              `UPDATE work_orders SET journal_entry_id = $1, payment_status = 'paid' WHERE id = $2`,
+              `UPDATE work_orders SET journal_entry_id = $1 WHERE id = $2`,
               [postResult.entryId, id]
             );
           }

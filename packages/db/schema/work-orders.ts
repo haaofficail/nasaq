@@ -52,7 +52,7 @@ export const workOrders = pgTable("work_orders", {
 
   // Financial integration
   journalEntryId: uuid("journal_entry_id"),
-  paymentStatus:  text("payment_status").notNull().default("unpaid"), // unpaid | paid | refunded
+  paymentStatus:  text("payment_status").notNull().default("unpaid"), // unpaid | paid | partially_paid | refunded
 
   // Key dates
   estimatedReadyAt: timestamp("estimated_ready_at", { withTimezone: true }),
