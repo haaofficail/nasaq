@@ -612,7 +612,7 @@ flowerBuilderRouter.patch("/orders/:id/status", async (c) => {
 flowerBuilderRouter.patch("/orders/:id/driver", async (c) => {
   const orgId = getOrgId(c);
   const id = c.req.param("id");
-  const { driverName, driverPhone, notes, version } = await c.req.json();
+  const { driverName, driverPhone, version } = await c.req.json();
 
   if (typeof version !== "number") {
     return c.json({ error: "version مطلوب" }, 400);
