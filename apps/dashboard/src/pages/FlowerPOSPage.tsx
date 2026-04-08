@@ -227,6 +227,7 @@ export function FlowerPOSPage() {
   // UI state
   const [showSuccess, setShowSuccess] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [lastOrderData, setLastOrderData] = useState<any>(null);
 
   // ─── Fetch settings (dynamic delivery fees / VAT) ──────────────────────────
 
@@ -445,25 +446,50 @@ export function FlowerPOSPage() {
 
     setProcessing(true);
     try {
-      const orderPayload = {
+      const mappedPayment = paymentMethod === "cash" ? "cash" : "card";
+      const orderPayload: any = {
+        customerName: customerName.trim() || "زائر",
+        customerPhone: "",
         items: cart.map((item) => ({
           product_id: item.id,
+          id: item.id,
           name: item.name,
           qty: item.qty,
+          quantity: item.qty,
+          price: item.price,
           unit_price: item.price,
         })),
         subtotal,
-        vat,
         total,
-        payment_method: paymentMethod,
-        sale_type: saleType,
-        ...(customerName.trim() && { customer_name: customerName.trim() }),
-        ...(saleType === "gift" && { gift_details: giftDetails }),
-        ...(saleType === "delivery" && { delivery_details: deliveryDetails }),
-        ...(saleType === "pickup" && { pickup_details: pickupDetails }),
+        totalPrice: total,
+        paymentMethod: mappedPayment,
+        paidAmount: total,
+        orderType: saleType,
       };
 
-      await flowerBuilderApi.createOrder(orderPayload);
+      if (saleType === "gift") {
+        orderPayload.recipientName = giftDetails.recipientName;
+        orderPayload.recipientPhone = giftDetails.recipientPhone;
+        orderPayload.giftMessage = giftDetails.message;
+        orderPayload.isSurprise = giftDetails.isSurprise;
+        orderPayload.customerPhone = giftDetails.recipientPhone;
+      }
+      if (saleType === "delivery") {
+        orderPayload.recipientName = deliveryDetails.recipientName;
+        orderPayload.recipientPhone = deliveryDetails.recipientPhone;
+        orderPayload.deliveryAddress = { street: deliveryDetails.address };
+        orderPayload.deliveryTime = deliveryDetails.deliveryTime;
+        orderPayload.deliveryFee = deliveryDetails.deliveryFee;
+        orderPayload.giftMessage = deliveryDetails.message;
+        orderPayload.customerPhone = deliveryDetails.recipientPhone;
+      }
+      if (saleType === "pickup") {
+        orderPayload.deliveryTime = pickupDetails.pickupTime;
+        if (pickupDetails.recipientName) orderPayload.recipientName = pickupDetails.recipientName;
+      }
+
+      const res = await flowerBuilderApi.createOrder(orderPayload);
+      setLastOrderData(res?.data ?? orderPayload);
       setShowSuccess(true);
       toast.success("تم إتمام البيع بنجاح");
     } catch {
@@ -503,7 +529,50 @@ export function FlowerPOSPage() {
           </div>
           <div className="flex gap-3 w-full">
             <button
-              onClick={() => toast.info("جاري الطباعة...")}
+              onClick={() => {
+                const orderNo = lastOrderData?.order_number ?? `FLW-${Date.now().toString(36).toUpperCase()}`;
+                const receiptItems = cart.length > 0 ? cart : [];
+                const receiptHtml = `
+                  <html dir="rtl"><head><meta charset="utf-8">
+                  <style>
+                    body { font-family: 'IBM Plex Sans Arabic', sans-serif; width: 280px; margin: 0 auto; padding: 12px; font-size: 12px; color: #222; }
+                    .center { text-align: center; }
+                    .bold { font-weight: bold; }
+                    .line { border-top: 1px dashed #999; margin: 8px 0; }
+                    .row { display: flex; justify-content: space-between; padding: 2px 0; }
+                    .total-row { font-weight: bold; font-size: 14px; }
+                    h2 { margin: 4px 0; font-size: 16px; }
+                    p { margin: 2px 0; }
+                  </style></head><body>
+                  <div class="center">
+                    <h2>ترميز OS</h2>
+                    <p>فاتورة مبسّطة</p>
+                    <p>${orderNo}</p>
+                    <p>${new Date().toLocaleDateString("ar-SA")} ${new Date().toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}</p>
+                    ${customerName.trim() ? `<p>العميل: ${customerName.trim()}</p>` : ""}
+                  </div>
+                  <div class="line"></div>
+                  ${receiptItems.map(ci => `<div class="row"><span>${ci.name} × ${ci.qty}</span><span>${(ci.price * ci.qty).toFixed(2)}</span></div>`).join("")}
+                  <div class="line"></div>
+                  <div class="row"><span>المجموع الفرعي</span><span>${subtotal.toFixed(2)} ر.س</span></div>
+                  <div class="row"><span>ضريبة القيمة المضافة</span><span>${vat.toFixed(2)} ر.س</span></div>
+                  <div class="line"></div>
+                  <div class="row total-row"><span>الإجمالي</span><span>${total.toFixed(2)} ر.س</span></div>
+                  <div class="line"></div>
+                  <div class="row"><span>طريقة الدفع</span><span>${PAYMENT_METHODS.find(p => p.value === paymentMethod)?.label ?? paymentMethod}</span></div>
+                  <div class="center" style="margin-top:12px">
+                    <p>شكراً لزيارتكم</p>
+                    <p style="font-size:10px;color:#999">ترميز OS — نظام نقاط البيع</p>
+                  </div>
+                  </body></html>`;
+                const printWin = window.open("", "_blank", "width=320,height=600");
+                if (printWin) {
+                  printWin.document.write(receiptHtml);
+                  printWin.document.close();
+                  printWin.focus();
+                  printWin.print();
+                }
+              }}
               className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
             >
               <Printer size={16} />

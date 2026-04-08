@@ -309,11 +309,12 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
 
   const isPickup = order.delivery_type === "pickup" || order.delivery_type === "store";
 
+  const orderVersion = order.version ?? 1;
   const updateMut = useMutation((payload: { status: string; driver_name?: string; driver_phone?: string; notes?: string }) =>
-    flowerBuilderApi.updateOrderStatus(order.id, payload.status)
+    flowerBuilderApi.updateOrderStatus(order.id, payload.status, orderVersion)
   );
   const assignStaffMut = useMutation((data: { staffId: string; staffName: string }) =>
-    flowerBuilderApi.assignStaff(order.id, data)
+    flowerBuilderApi.assignStaff(order.id, { ...data, version: orderVersion })
   );
 
   const items = parseItems(order.items);
@@ -337,11 +338,15 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
   };
 
   const handleAssignDriver = async (driverName: string, driverPhone: string, _notes: string) => {
-    const res = await updateMut.mutate({ status: "out_for_delivery", driver_name: driverName, driver_phone: driverPhone });
-    if (res) {
-      toast.success("تم تعيين المندوب وتحديث الحالة إلى: في الطريق");
-      setShowDriver(false);
-      onRefresh();
+    try {
+      const res = await flowerBuilderApi.assignDriver(order.id, { driverName, driverPhone, version: orderVersion });
+      if (res) {
+        toast.success("تم تعيين المندوب وتحديث الحالة إلى: في الطريق");
+        setShowDriver(false);
+        onRefresh();
+      }
+    } catch {
+      toast.error("فشل تعيين المندوب");
     }
   };
 
