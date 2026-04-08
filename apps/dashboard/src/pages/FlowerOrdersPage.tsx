@@ -10,7 +10,7 @@ import { flowerBuilderApi, serviceOrdersApi } from "@/lib/api";
 import {
   Package, Phone, ChevronDown, ChevronRight, RefreshCw, AlertTriangle,
   MapPin, MessageSquare, Clock, Loader2, Calendar, Briefcase,
-  ArrowLeft, ShoppingBag, Search, ClipboardList,
+  ArrowLeft, ShoppingBag, Search, ClipboardList, Plus,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { fmtDate } from "@/lib/utils";
@@ -447,9 +447,18 @@ export function FlowerOrdersPage() {
             <p className="text-xs text-gray-400">إدارة طلبات البيع والخدمات</p>
           </div>
         </div>
-        <button onClick={refetchAll} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-100 hover:bg-gray-50 text-gray-400 transition-colors">
-          <RefreshCw className="w-4 h-4" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={refetchAll} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-100 hover:bg-gray-50 text-gray-400 transition-colors">
+            <RefreshCw className="w-4 h-4" />
+          </button>
+          <Link
+            to="/dashboard/flower-pos"
+            className="flex items-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-xl px-4 py-2 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            طلب جديد
+          </Link>
+        </div>
       </div>
 
       {/* Stats */}
