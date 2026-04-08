@@ -25,7 +25,7 @@ function CatalogIcon({ name, className }: { name?: string | null; className?: st
 }
 import { arrangementsApi, flowerBuilderApi, settingsApi, flowerMasterApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Modal, Button, Input, Toggle, ImageUpload } from "@/components/ui";
+import { Modal, Button, Input, Toggle, ImageUpload, confirmDialog } from "@/components/ui";
 import { fmtDate } from "@/lib/utils";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -412,7 +412,12 @@ function PackagesTab() {
   ];
 
   async function handleImportStarter() {
-    if (!confirm(`سيتم إضافة ${STARTER_PACKAGES.length} باقة جاهزة إلى قائمتك — هل تريد المتابعة؟`)) return;
+    const ok = await confirmDialog({
+      title: "إضافة باقات جاهزة",
+      message: `سيتم إضافة ${STARTER_PACKAGES.length} باقة جاهزة إلى قائمتك`,
+      confirmLabel: "إضافة",
+    });
+    if (!ok) return;
     setImporting(true);
     let added = 0;
     for (const pkg of STARTER_PACKAGES) {
@@ -453,7 +458,8 @@ function PackagesTab() {
     try { await toggle(item.id); refetch(); } catch { toast.error("فشل التحديث"); }
   };
   const handleDelete = async (item: any) => {
-    if (!confirm(`حذف "${item.name}"؟`)) return;
+    const ok = await confirmDialog({ title: `حذف "${item.name}"؟`, danger: true, confirmLabel: "حذف" });
+    if (!ok) return;
     try { await remove(item.id); toast.success("تم الحذف"); refetch(); }
     catch { toast.error("فشل الحذف"); }
   };
@@ -678,7 +684,8 @@ function BuilderConfigTab() {
     } catch { toast.error("فشل الحفظ"); }
   };
   const handleDelete = async (id: string) => {
-    if (!confirm("حذف هذا العنصر؟")) return;
+    const ok = await confirmDialog({ title: "حذف هذا العنصر؟", danger: true, confirmLabel: "حذف" });
+    if (!ok) return;
     try { await deleteItem(id); toast.success("تم الحذف"); refetch(); }
     catch { toast.error("فشل الحذف"); }
   };
@@ -694,7 +701,8 @@ function BuilderConfigTab() {
     } catch { toast.error("فشل الحفظ"); }
   };
   const handleFlowerDelete = async (id: string) => {
-    if (!confirm("حذف هذه الوردة من القائمة؟")) return;
+    const ok = await confirmDialog({ title: "حذف هذه الوردة من القائمة؟", danger: true, confirmLabel: "حذف" });
+    if (!ok) return;
     try { await deleteFlower(id); toast.success("تم الحذف"); refetchInv(); }
     catch { toast.error("فشل الحذف"); }
   };

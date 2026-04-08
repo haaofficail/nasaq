@@ -1,7 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { flowerMasterApi, flowerBuilderApi, arrangementsApi } from "@/lib/api";
+import { flowerMasterApi, flowerBuilderApi, arrangementsApi, settingsApi } from "@/lib/api";
 import { toast } from "@/hooks/useToast";
+import { VAT_RATE } from "@/lib/constants";
+import { confirmDialog } from "@/components/ui";
 import {
   Flower2, Gift, Layers, ShoppingBag, Truck,
   Banknote, CreditCard, Clock, Plus, Minus, Trash2,
@@ -54,7 +56,8 @@ interface PickupDetails {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CATEGORIES = [
+// Categories for POS catalog filtering
+const DEFAULT_CATEGORIES: { id: string; label: string; icon: React.ElementType | null }[] = [
   { id: "الكل", label: "الكل", icon: null },
   { id: "ورد مفرد", label: "ورد مفرد", icon: Flower2 },
   { id: "باقات", label: "باقات", icon: Gift },
@@ -77,9 +80,10 @@ const PAYMENT_METHODS: { value: PaymentMethod; label: string; icon: React.Elemen
   { value: "credit", label: "آجل", icon: Clock },
 ];
 
-const DELIVERY_FEES = [30, 50, 70];
+// Default delivery fees — overridden by settings when available
+const DEFAULT_DELIVERY_FEES = [30, 50, 70];
 
-const VAT_RATE = 0.15;
+// VAT_RATE is imported from @/lib/constants (single source of truth)
 
 // Map builder catalog English types → Arabic POS categories
 const CATALOG_TYPE_MAP: Record<string, string> = {
@@ -224,6 +228,22 @@ export function FlowerPOSPage() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [processing, setProcessing] = useState(false);
 
+  // ─── Fetch settings (dynamic delivery fees / VAT) ──────────────────────────
+
+  const { data: settingsData } = useApi(() => settingsApi.bookingSettings(), []);
+  const deliveryFees: number[] = useMemo(() => {
+    const fees = (settingsData?.data as any)?.delivery_fees ?? (settingsData?.data as any)?.deliveryFees;
+    if (Array.isArray(fees) && fees.length > 0) return fees.map(Number);
+    return DEFAULT_DELIVERY_FEES;
+  }, [settingsData]);
+
+  const vatRate: number = useMemo(() => {
+    const rate = (settingsData?.data as any)?.vat_rate ?? (settingsData?.data as any)?.vatRate;
+    return typeof rate === "number" && rate >= 0 ? rate : VAT_RATE;
+  }, [settingsData]);
+
+  const vatPercent = Math.round(vatRate * 100);
+
   // ─── Fetch catalog ──────────────────────────────────────────────────────────
 
   const { data: posCatalogData, loading: invLoading, error: invError, refetch: refetchPosCatalog } = useApi(
@@ -298,7 +318,7 @@ export function FlowerPOSPage() {
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
   const deliveryExtra = saleType === "delivery" ? deliveryDetails.deliveryFee : 0;
   const baseTotal = subtotal + deliveryExtra;
-  const vat = parseFloat((baseTotal * VAT_RATE).toFixed(2));
+  const vat = parseFloat((baseTotal * vatRate).toFixed(2));
   const total = parseFloat((baseTotal + vat).toFixed(2));
 
   const cartEmpty = cart.length === 0;
@@ -371,6 +391,16 @@ export function FlowerPOSPage() {
       return;
     }
 
+    // Pre-checkout stock validation — check items with finite stock
+    const outOfStock = cart.filter(ci => {
+      const catItem = catalogItems.find(c => c.id === ci.id);
+      return catItem && catItem.stock < 999 && ci.qty > catItem.stock;
+    });
+    if (outOfStock.length > 0) {
+      toast.error(`الكمية المطلوبة من "${outOfStock[0].name}" تتجاوز المخزون المتاح`);
+      return;
+    }
+
     // Validate required fields per sale type
     if (saleType === "delivery") {
       if (!deliveryDetails.recipientName.trim()) {
@@ -404,6 +434,14 @@ export function FlowerPOSPage() {
         return;
       }
     }
+
+    // Confirm checkout before processing
+    const ok = await confirmDialog({
+      title: "تأكيد عملية البيع",
+      message: `إجمالي ${fmtPrice(total)} — ${PAYMENT_METHODS.find(p => p.value === paymentMethod)?.label ?? paymentMethod}`,
+      confirmLabel: "تأكيد البيع",
+    });
+    if (!ok) return;
 
     setProcessing(true);
     try {
@@ -512,7 +550,7 @@ export function FlowerPOSPage() {
 
           {/* Category tabs */}
           <div className="bg-white border-b border-gray-100 px-4 py-2 flex gap-2 overflow-x-auto shrink-0 scrollbar-hide">
-            {CATEGORIES.map((cat) => {
+            {DEFAULT_CATEGORIES.map((cat) => {
               const Icon = cat.icon;
               const active = activeCategory === cat.id;
               return (
@@ -638,7 +676,7 @@ export function FlowerPOSPage() {
                   </div>
                 )}
                 <div className="flex justify-between text-gray-500">
-                  <span>ضريبة القيمة المضافة 15%</span>
+                  <span>ضريبة القيمة المضافة {vatPercent}%</span>
                   <span>{fmtPrice(vat)}</span>
                 </div>
                 <div className="flex justify-between font-bold text-gray-800 text-base border-t border-gray-200 pt-1.5 mt-0.5">
@@ -757,7 +795,7 @@ export function FlowerPOSPage() {
                     onChange={(e) => setDeliveryDetails((d) => ({ ...d, deliveryFee: Number(e.target.value) }))}
                     className="w-full rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-brand-500"
                   >
-                    {DELIVERY_FEES.map((fee) => (
+                    {deliveryFees.map((fee) => (
                       <option key={fee} value={fee}>{fee} ر.س</option>
                     ))}
                   </select>
