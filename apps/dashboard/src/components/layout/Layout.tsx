@@ -6,8 +6,9 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { authApi, orgSubscriptionApi } from "@/lib/api";
-import { usePlatformConfig, PLATFORM_LOGO } from "@/hooks/usePlatformConfig";
-import { BRAND, handleLogoError } from "@/lib/branding";
+import { usePlatformConfig } from "@/hooks/usePlatformConfig";
+import { BRAND } from "@/lib/branding";
+import { PlatformLogoDynamic } from "@/components/branding/PlatformLogo";
 import { useOrgContext, invalidateOrgContextCache } from "@/hooks/useOrgContext";
 import { buildVisibleNav, BOTTOM_NAV, SUPER_ADMIN_NAV, type SubscriptionPlan } from "@/lib/navigationRegistry";
 import { Toaster } from "@/components/ui/Toaster";
@@ -161,12 +162,7 @@ export function Layout() {
                 className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm overflow-hidden shrink-0"
                 style={{ backgroundColor: platformConfig.primaryColor }}
               >
-                <img
-                  src={platformConfig.logoUrl || PLATFORM_LOGO}
-                  alt={platformConfig.platformName}
-                  className="w-full h-full object-contain"
-                  onError={handleLogoError(14)}
-                />
+                <PlatformLogoDynamic size={32} className="w-full h-full object-contain" />
               </div>
               <span className="text-lg font-bold tracking-tight" style={{ color: platformConfig.primaryColor }}>{platformConfig.platformName}</span>
             </div>
@@ -176,12 +172,7 @@ export function Layout() {
               className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm overflow-hidden"
               style={{ backgroundColor: platformConfig.primaryColor }}
             >
-              <img
-                src={platformConfig.logoUrl || PLATFORM_LOGO}
-                alt={platformConfig.platformName}
-                className="w-full h-full object-contain"
-                onError={handleLogoError(14)}
-              />
+              <PlatformLogoDynamic size={32} className="w-full h-full object-contain" />
             </div>
           )}
           <button

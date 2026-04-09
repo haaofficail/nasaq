@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Phone, Shield, ArrowLeft, Loader2, Mail, Eye, EyeOff } from "lucide-react";
 import { authApi } from "@/lib/api";
 import { clsx } from "clsx";
-import { PLATFORM_LOGO } from "@/hooks/usePlatformConfig";
-import { BRAND, handleLogoError } from "@/lib/branding";
+import { BRAND } from "@/lib/branding";
+import { PlatformLogoStatic } from "@/components/branding/PlatformLogo";
 
 type Method = "phone" | "email";
 type Step   = "input" | "otp";
@@ -113,12 +113,7 @@ export function LoginPage() {
         {/* Logo */}
         <div className="text-center mb-8">
           <div className="w-14 h-14 rounded-2xl bg-brand-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-500/20 overflow-hidden">
-            <img
-              src={PLATFORM_LOGO}
-              alt={BRAND.nameAr}
-              className="w-full h-full object-contain"
-              onError={handleLogoError(24)}
-            />
+            <PlatformLogoStatic size={56} className="w-full h-full object-contain" />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">{BRAND.nameAr}</h1>
           <p className="text-sm text-gray-500 mt-1">نظام تشغيل أعمالك من مكان واحد</p>

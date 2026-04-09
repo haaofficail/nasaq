@@ -2849,15 +2849,12 @@ export function LandingPage() {
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
                 <div style={{ width: 38, height: 38, borderRadius: 10,
-                  background: platform.logoUrl ? "transparent" : "#5b9bd5",
+                  background: "#5b9bd5",
                   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                   overflow: "hidden" }}>
-                  {platform.logoUrl
-                    ? <img src={platform.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                        onError={handleLogoError(14, true)}
-                      />
-                    : <span style={{ color: "white", fontWeight: 800, fontSize: 14 }}>{BRAND.logoLetter}</span>
-                  }
+                  <img src={platform.logoUrl || PLATFORM_LOGO} alt={platform.platformName}
+                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                    onError={handleLogoError(14, true)} />
                 </div>
                 <span style={{ fontWeight: 800, fontSize: 17, color: "#0f172a" }}>{platform.platformName || "ترميز OS"}</span>
               </div>
