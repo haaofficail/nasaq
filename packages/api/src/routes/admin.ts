@@ -1916,12 +1916,14 @@ adminRouter.get("/online-orders", async (c) => {
   const status = c.req.query("status");
   const q      = c.req.query("q");
 
-  const conds: string[] = [];
-  if (orgId)  conds.push(`oo.org_id = '${orgId.replace(/'/g, "''")}'`);
-  if (status) conds.push(`oo.status = '${status.replace(/'/g, "''")}'`);
-  if (q)      conds.push(`oo.customer_name ILIKE '%${q.replace(/'/g, "''")}%'`);
+  const conds: ReturnType<typeof sql>[] = [];
+  if (orgId)  conds.push(sql`oo.org_id = ${orgId}`);
+  if (status) conds.push(sql`oo.status = ${status}`);
+  if (q)      conds.push(sql`oo.customer_name ILIKE ${"%" + q + "%"}`);
 
-  const whereClause = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
+  const whereClause = conds.length
+    ? sql`WHERE ${conds.reduce((a, b) => sql`${a} AND ${b}`)}`
+    : sql``;
 
   const [dataResult, countResult] = await Promise.all([
     db.execute(sql`
@@ -1931,12 +1933,12 @@ adminRouter.get("/online-orders", async (c) => {
              oo.created_at AS "createdAt"
       FROM online_orders oo
       LEFT JOIN organizations o ON o.id = oo.org_id
-      ${sql.raw(whereClause)}
+      ${whereClause}
       ORDER BY oo.created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `),
     db.execute(sql`
-      SELECT COUNT(*) AS total FROM online_orders oo ${sql.raw(whereClause)}
+      SELECT COUNT(*) AS total FROM online_orders oo ${whereClause}
     `),
   ]);
 
@@ -1957,12 +1959,14 @@ adminRouter.get("/service-orders", async (c) => {
   const status = c.req.query("status");
   const q      = c.req.query("q");
 
-  const conds: string[] = [];
-  if (orgId)  conds.push(`so.org_id = '${orgId.replace(/'/g, "''")}'`);
-  if (status) conds.push(`so.status = '${status.replace(/'/g, "''")}'`);
-  if (q)      conds.push(`so.customer_name ILIKE '%${q.replace(/'/g, "''")}%'`);
+  const conds: ReturnType<typeof sql>[] = [];
+  if (orgId)  conds.push(sql`so.org_id = ${orgId}`);
+  if (status) conds.push(sql`so.status = ${status}`);
+  if (q)      conds.push(sql`so.customer_name ILIKE ${"%" + q + "%"}`);
 
-  const whereClause = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
+  const whereClause = conds.length
+    ? sql`WHERE ${conds.reduce((a, b) => sql`${a} AND ${b}`)}`
+    : sql``;
 
   const [dataResult, countResult] = await Promise.all([
     db.execute(sql`
@@ -1972,12 +1976,12 @@ adminRouter.get("/service-orders", async (c) => {
              so.created_at AS "createdAt"
       FROM service_orders so
       LEFT JOIN organizations o ON o.id = so.org_id
-      ${sql.raw(whereClause)}
+      ${whereClause}
       ORDER BY so.created_at DESC
       LIMIT ${limit} OFFSET ${offset}
     `),
     db.execute(sql`
-      SELECT COUNT(*) AS total FROM service_orders so ${sql.raw(whereClause)}
+      SELECT COUNT(*) AS total FROM service_orders so ${whereClause}
     `),
   ]);
 
