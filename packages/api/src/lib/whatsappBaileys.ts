@@ -85,6 +85,7 @@ export async function initBaileys(orgId: string): Promise<void> {
 
     // Fetch latest WA Web version — fallback to a known-good version if
     // the network call to web.whatsapp.com fails (common in production).
+    // Fallback: WA Web v2.3000.x — update periodically from fetchLatestBaileysVersion() output.
     let version: [number, number, number] = [2, 3000, 1015901307];
     try {
       const fetched = await fetchLatestBaileysVersion();
@@ -93,8 +94,9 @@ export async function initBaileys(orgId: string): Promise<void> {
       log.warn({ orgId }, "[wa-baileys] fetchLatestBaileysVersion failed — using fallback version");
     }
 
+    // Resolve Browsers helper with CJS/ESM interop fallback
     const _Browsers = typeof Browsers === "object" && Browsers ? Browsers : (baileysMod as any).Browsers;
-    const browserConfig = _Browsers?.ubuntu?.("Chrome") ?? ["Ubuntu", "Chrome", "22.04.4"];
+    const browserConfig: [string, string, string] = _Browsers?.ubuntu?.("Chrome") ?? ["Ubuntu", "Chrome", "22.04.4"];
 
     const sock = makeWASocket({
       version,

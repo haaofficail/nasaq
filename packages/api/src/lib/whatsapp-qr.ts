@@ -85,7 +85,8 @@ export async function startQrSession(orgId: string): Promise<void> {
     const authDir = path.join(SESSIONS_DIR, orgId);
     const { state: authState, saveCreds } = await useMultiFileAuthState(authDir);
 
-    // Fetch latest WA Web version with fallback
+    // Fetch latest WA Web version with fallback.
+    // Fallback: WA Web v2.3000.x — update periodically from fetchLatestBaileysVersion() output.
     let version: [number, number, number] = [2, 3000, 1015901307];
     try {
       const fetched = await fetchLatestBaileysVersion();
@@ -94,7 +95,9 @@ export async function startQrSession(orgId: string): Promise<void> {
       console.warn("[WhatsApp QR] fetchLatestBaileysVersion failed — using fallback");
     }
 
-    const browserConfig = Browsers?.ubuntu?.("Chrome") ?? ["Ubuntu", "Chrome", "22.04.4"];
+    // Resolve Browsers helper with CJS/ESM interop fallback
+    const _Browsers = typeof Browsers === "object" && Browsers ? Browsers : (baileysMod as any)?.Browsers;
+    const browserConfig: [string, string, string] = _Browsers?.ubuntu?.("Chrome") ?? ["Ubuntu", "Chrome", "22.04.4"];
 
     const sock = makeWASocket({
       version,
