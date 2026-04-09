@@ -1,7 +1,19 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { pool } from "@nasaq/db/client";
 import { getOrgId, getUserId } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
+
+const supplierSchema = z.object({
+  name: z.string().min(1).max(200),
+  phone: z.string().max(20).optional().nullable(),
+  email: z.string().email().optional().nullable(),
+  contactPerson: z.string().max(200).optional().nullable(),
+  notes: z.string().max(1000).optional().nullable(),
+  flowerSpecialty: z.string().max(200).optional().nullable(),
+  flowerOrigin: z.string().max(200).optional().nullable(),
+  qualityScore: z.number().min(0).max(10).optional().nullable(),
+});
 
 export const flowerSuppliersRouter = new Hono();
 
@@ -68,7 +80,7 @@ flowerSuppliersRouter.get("/:id", async (c) => {
 // POST /flower-suppliers
 flowerSuppliersRouter.post("/", async (c) => {
   const orgId = getOrgId(c);
-  const body = await c.req.json();
+  const body = supplierSchema.parse(await c.req.json());
 
   const { rows } = await pool.query(
     `INSERT INTO suppliers
@@ -89,7 +101,7 @@ flowerSuppliersRouter.post("/", async (c) => {
 flowerSuppliersRouter.put("/:id", async (c) => {
   const orgId = getOrgId(c);
   const id = c.req.param("id");
-  const body = await c.req.json();
+  const body = supplierSchema.parse(await c.req.json());
 
   const { rows } = await pool.query(
     `UPDATE suppliers

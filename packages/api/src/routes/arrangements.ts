@@ -28,7 +28,7 @@ arrangementsRouter.get("/", async (c) => {
 
   const where = `WHERE ${conditions.join(" AND ")}`;
   const result = await pool.query(
-    `SELECT * FROM flower_packages ${where} ORDER BY category_tag ASC, name ASC`,
+    `SELECT * FROM flower_packages ${where} ORDER BY category_tag ASC, name ASC LIMIT 200`,
     params
   );
   return c.json({ data: result.rows });

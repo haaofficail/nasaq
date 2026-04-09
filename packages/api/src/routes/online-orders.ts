@@ -3,6 +3,7 @@ import { z } from "zod";
 import { pool } from "@nasaq/db/client";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
+import { postCashSale, reverseJournalEntry } from "../lib/posting-engine";
 
 // ── Status enum & state machine ──────────────────────────────────────────────
 const ONLINE_ORDER_STATUSES = [
@@ -204,6 +205,42 @@ onlineOrdersRouter.patch("/:id/status", async (c) => {
     metadata: { status, cancellationReason },
   });
 
+  // ── Financial posting on delivery (idempotent) ────────────────
+  if (status === "delivered" && !updated.journal_entry_id) {
+    const amount = Number(updated.total_amount ?? 0);
+    if (amount > 0) {
+      try {
+        const postResult = await postCashSale({
+          orgId,
+          date: new Date(),
+          amount,
+          vatAmount: Number(updated.tax_amount ?? 0),
+          description: `طلب إلكتروني #${updated.order_number}`,
+          sourceType: "pos",
+          sourceId: updated.id,
+          createdBy: userId ?? undefined,
+        });
+        if (postResult?.entryId) {
+          await pool.query(
+            `UPDATE online_orders SET journal_entry_id = $1 WHERE id = $2`,
+            [postResult.entryId, id]
+          );
+        }
+      } catch {
+        // المحاسبة غير مُفعّلة — نكمل بدون قيد
+      }
+    }
+  }
+
+  // ── Reverse financial posting on cancellation ─────────────────
+  if (status === "cancelled" && updated.journal_entry_id) {
+    try {
+      await reverseJournalEntry(updated.journal_entry_id, userId ?? "system", "إلغاء طلب إلكتروني");
+    } catch {
+      // تجاهل أخطاء العكس
+    }
+  }
+
   return c.json({ data: updated });
 });
 
@@ -215,7 +252,7 @@ onlineOrdersRouter.delete("/:id", async (c) => {
 
   // Fetch current status + version for optimistic lock
   const { rows: [current] } = await pool.query(
-    `SELECT id, status, version FROM online_orders WHERE id = $1 AND org_id = $2`,
+    `SELECT id, status, version, journal_entry_id FROM online_orders WHERE id = $1 AND org_id = $2`,
     [id, orgId]
   );
   if (!current) return c.json({ error: "الطلب غير موجود" }, 404);
@@ -249,6 +286,15 @@ onlineOrdersRouter.delete("/:id", async (c) => {
     newValue: { status: "cancelled" },
     metadata: { reason: "DELETE endpoint" },
   });
+
+  // ── Reverse financial posting if journal exists ───────────────
+  if (current.journal_entry_id) {
+    try {
+      await reverseJournalEntry(current.journal_entry_id, userId ?? "system", "إلغاء طلب إلكتروني");
+    } catch {
+      // تجاهل أخطاء العكس
+    }
+  }
 
   return c.json({ success: true });
 });
