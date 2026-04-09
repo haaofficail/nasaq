@@ -24,15 +24,12 @@ const _resolved =
     : makeWASocketNamed
       ?? (baileysMod as any).makeWASocket
       ?? (baileysMod as any).default;
-if (typeof _resolved !== "function") {
-  throw new Error("[wa-baileys] Could not resolve makeWASocket — check @whiskeysockets/baileys version");
-}
-const makeWASocket = _resolved as typeof makeWASocketNamed;
+const makeWASocket = (typeof _resolved === "function" ? _resolved : null) as typeof makeWASocketNamed | null;
 
 export type WaStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 
 interface Session {
-  socket:    ReturnType<typeof makeWASocket> | null;
+  socket:    any | null;
   status:    WaStatus;
   qrBase64:  string | null;   // data:image/png;base64,…
   phone:     string | null;   // e.g. "966501234567"
@@ -81,6 +78,9 @@ export async function initBaileys(orgId: string): Promise<void> {
   touch(sess, { status: "connecting", qrBase64: null, lastError: null });
 
   try {
+    if (typeof makeWASocket !== "function") {
+      throw new Error("[wa-baileys] Could not resolve makeWASocket — check @whiskeysockets/baileys version");
+    }
     const dir = ensureDir(orgId);
     const { state, saveCreds } = await useMultiFileAuthState(dir);
     let version: [number, number, number] = [2, 3000, 1015901307];
