@@ -3,7 +3,8 @@
 // Uses @whiskeysockets/baileys (multi-device, no browser)
 // ============================================================
 
-import makeWASocket, {
+import baileysMod, {
+  makeWASocket as makeWASocketNamed,
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
@@ -13,6 +14,19 @@ import QRCode from "qrcode";
 import fs from "fs";
 import path from "path";
 import { log } from "./logger";
+
+// Handle CJS/ESM interop — tsx dynamic-import resolves `default` as the
+// whole CJS `module.exports` object instead of `exports.default`.
+const _resolved =
+  typeof baileysMod === "function"
+    ? baileysMod
+    : makeWASocketNamed
+      ?? (baileysMod as any).makeWASocket
+      ?? (baileysMod as any).default;
+if (typeof _resolved !== "function") {
+  throw new Error("[wa-baileys] Could not resolve makeWASocket — check @whiskeysockets/baileys version");
+}
+const makeWASocket = _resolved as typeof makeWASocketNamed;
 
 export type WaStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 

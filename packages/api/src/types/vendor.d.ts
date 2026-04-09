@@ -26,7 +26,9 @@ declare module "@whiskeysockets/baileys" {
   const useMultiFileAuthState: (dir: string) => Promise<{ state: any; saveCreds: () => Promise<void> }>;
   const Browsers: Record<string, (...args: any[]) => any[]>;
   export { makeWASocket, DisconnectReason, fetchLatestBaileysVersion, useMultiFileAuthState, Browsers };
-  export default makeWASocket;
+  // CJS default: may resolve as the function or the full module exports depending on runtime
+  const _default: ((...args: any[]) => any) | { makeWASocket: (...args: any[]) => any; default: (...args: any[]) => any; [key: string]: any };
+  export default _default;
 }
 
 declare module "qrcode" {
