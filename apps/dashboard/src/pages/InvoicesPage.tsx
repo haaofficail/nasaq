@@ -91,7 +91,7 @@ export function InvoicesPage() {
 
   const [sendingId, setSendingId] = useState<string | null>(null);
   const sendInvoice = async (id: string) => {
-    if (!(await confirmDialog({ title: "إرسال الفاتورة للعميل؟", confirmLabel: "إرسال", cancelLabel: "إلغاء" }))) return;
+    if (!(await confirmDialog({ title: "إرسال الفاتورة للعميل؟", message: "سيتم إرسال الفاتورة إلى بيانات التواصل المسجلة للعميل", confirmLabel: "إرسال", cancelLabel: "إلغاء" }))) return;
     setSendingId(id);
     try {
       await financeApi.sendInvoice(id);

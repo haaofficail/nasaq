@@ -55,7 +55,7 @@ export function BookingsPage() {
 
   const quickConfirm = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!(await confirmDialog({ title: "تأكيد هذا الحجز؟", confirmLabel: "تأكيد", cancelLabel: "إلغاء" }))) return;
+    if (!(await confirmDialog({ title: "تأكيد هذا الحجز؟", message: "سيتم تأكيد الحجز وإشعار العميل", confirmLabel: "تأكيد", cancelLabel: "إلغاء" }))) return;
     setActionLoading(id + "_confirm");
     try {
       await bookingsApi.updateStatus(id, "confirmed");

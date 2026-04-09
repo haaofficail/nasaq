@@ -46,7 +46,7 @@ export function OnlineOrdersPage() {
   };
 
   const handleCancel = async (id: string) => {
-    if (!(await confirmDialog({ title: "إلغاء هذا الطلب؟", confirmLabel: "إلغاء الطلب", cancelLabel: "تراجع", danger: true }))) return;
+    if (!(await confirmDialog({ title: "إلغاء هذا الطلب؟", message: "سيتم إلغاء الطلب ولا يمكن التراجع", confirmLabel: "إلغاء الطلب", cancelLabel: "تراجع", danger: true }))) return;
     await onlineOrdersApi.cancel(id);
     refetch();
   };

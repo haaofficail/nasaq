@@ -121,7 +121,7 @@ export function ServiceDetailPage() {
   };
 
   const handleDeleteReq = async (reqId: string) => {
-    if (!(await confirmDialog({ title: "حذف هذا المتطلب؟", confirmLabel: "حذف", danger: true }))) return;
+    if (!(await confirmDialog({ title: "حذف هذا المتطلب؟", message: "سيتم حذف المتطلب نهائياً", confirmLabel: "حذف", danger: true }))) return;
     await servicesApi.deleteRequirement(id!, reqId);
     refetchReq();
     toast.success("تم الحذف");
@@ -175,7 +175,7 @@ export function ServiceDetailPage() {
   };
 
   const handleDeleteComp = async (compId: string) => {
-    if (!(await confirmDialog({ title: "حذف هذا المكوّن؟", confirmLabel: "حذف", danger: true }))) return;
+    if (!(await confirmDialog({ title: "حذف هذا المكوّن؟", message: "سيتم حذف المكوّن نهائياً", confirmLabel: "حذف", danger: true }))) return;
     await servicesApi.deleteComponent(id!, compId);
     refetchComp();
     toast.success("تم الحذف");
@@ -235,7 +235,7 @@ export function ServiceDetailPage() {
   };
 
   const handleDeleteQ = async (qId: string) => {
-    if (!(await confirmDialog({ title: "حذف هذا السؤال؟", confirmLabel: "حذف", danger: true }))) return;
+    if (!(await confirmDialog({ title: "حذف هذا السؤال؟", message: "سيتم حذف السؤال نهائياً", confirmLabel: "حذف", danger: true }))) return;
     await questionsApi.delete(qId);
     refetchQ();
     toast.success("تم الحذف");
