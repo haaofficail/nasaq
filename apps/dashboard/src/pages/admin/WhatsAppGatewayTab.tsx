@@ -343,7 +343,7 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
                   alt="QR Code"
                   className="w-64 h-64 object-contain"
                 />
-                <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+                <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse motion-reduce:animate-none">
                   امسح الآن
                 </div>
               </div>
@@ -747,6 +747,15 @@ function BulkSendModal({ templates, onClose }: { templates: any[]; onClose: () =
     if (!message || selectedIds.size === 0) return;
     setSending(true);
     const selected = orgs.filter((o: any) => selectedIds.has(o.id) && o.phone);
+    const skippedCount = selectedIds.size - selected.length;
+    if (skippedCount > 0) {
+      toast.error(`تم تخطي ${skippedCount} منشأة بدون رقم جوال`);
+    }
+    if (selected.length === 0) {
+      toast.error("لا توجد منشآت لديها رقم جوال");
+      setSending(false);
+      return;
+    }
     setProgress({ total: selected.length, sent: 0, failed: 0 });
 
     let sentCount = 0;
