@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { LucideIcon } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Plus, Search, Grid3X3, List, Eye, EyeOff, Copy, Trash2, Pencil, Star, Package, Globe, Loader2, AlertCircle, X, Download, ChevronDown, ChevronUp, Calendar, Wrench, MapPin, Home, Truck, UtensilsCrossed, Gift, ClipboardList } from "lucide-react";
+import { Plus, Search, Grid3X3, List, Eye, EyeOff, Copy, Trash2, Pencil, Star, Package, Globe, Loader2, AlertCircle, X, Download, ChevronDown, ChevronUp, Calendar, Wrench, MapPin, Home, Truck, UtensilsCrossed, Gift, ClipboardList, MoreHorizontal, SlidersHorizontal, Clock } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi, templatesApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { PageHeader, Button } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { useBusiness } from "@/hooks/useBusiness";
 import { useOrgContext } from "@/hooks/useOrgContext";
@@ -125,13 +125,65 @@ function TypePickerOverlay({ onSelect, onClose, businessType }: {
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; class: string }> = {
-    active: { label: "نشطة", class: "bg-green-50 text-green-600" },
-    draft: { label: "مسودة", class: "bg-gray-100 text-gray-500" },
-    paused: { label: "معلقة", class: "bg-amber-50 text-amber-600" },
-    archived: { label: "مؤرشفة", class: "bg-red-50 text-red-500" },
+    active: { label: "منشور", class: "bg-emerald-50 text-emerald-600 border-emerald-100" },
+    draft: { label: "مسودة", class: "bg-gray-50 text-gray-500 border-gray-100" },
+    paused: { label: "معلقة", class: "bg-amber-50 text-amber-600 border-amber-100" },
+    archived: { label: "مؤرشفة", class: "bg-red-50 text-red-500 border-red-100" },
   };
   const c = config[status] || config.draft;
-  return <span className={clsx("px-2 py-0.5 rounded-full text-[10px] font-medium", c.class)}>{c.label}</span>;
+  return <span className={clsx("px-2.5 py-1 rounded-lg text-xs font-medium border", c.class)}>{c.label}</span>;
+}
+
+/** Dropdown menu for row actions — matches ركاز-style three-dot menu */
+function RowActionMenu({ service, onEdit, onDuplicate, onToggle, onDelete }: {
+  service: any;
+  onEdit: () => void;
+  onDuplicate: () => void;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        onClick={(e) => { e.stopPropagation(); setOpen(o => !o); }}
+        className="p-2 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+      >
+        <MoreHorizontal className="w-4 h-4" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 w-40 text-sm">
+          <button onClick={() => { onEdit(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-right text-gray-700 hover:bg-gray-50 transition-colors">
+            <Pencil className="w-3.5 h-3.5 text-gray-400" /> تعديل
+          </button>
+          <button onClick={() => { onDuplicate(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-right text-gray-700 hover:bg-gray-50 transition-colors">
+            <Copy className="w-3.5 h-3.5 text-gray-400" /> تكرار
+          </button>
+          <button onClick={() => { onToggle(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-right text-gray-700 hover:bg-gray-50 transition-colors">
+            {service.status === "active"
+              ? <><EyeOff className="w-3.5 h-3.5 text-gray-400" /> إخفاء</>
+              : <><Eye className="w-3.5 h-3.5 text-gray-400" /> نشر</>
+            }
+          </button>
+          <div className="h-px bg-gray-100 my-1" />
+          <button onClick={() => { onDelete(); setOpen(false); }} className="flex items-center gap-2 w-full px-3 py-2 text-right text-red-500 hover:bg-red-50 transition-colors">
+            <Trash2 className="w-3.5 h-3.5" /> حذف
+          </button>
+        </div>
+      )}
+    </div>
+  );
 }
 
 const TYPE_META: Record<string, string> = {
@@ -311,6 +363,7 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
   const [view, setView] = useState<"grid" | "list">("list");
   const [showTypePicker, setShowTypePicker] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   // Auto-open type picker if ?new=1
@@ -388,63 +441,92 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
   return (
     <div className="space-y-5">
       {!embedded && (
-        <PageHeader
-          title={biz.terminology.catalog}
-          description={`${services.length} ${biz.terminology.item}`}
-          actions={
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowImportModal(true)}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium hover:bg-gray-50 transition-colors"
-              >
-                <Download className="w-4 h-4" />
-                استيراد قالب
-              </button>
-              <Button icon={Plus} onClick={() => setShowTypePicker(true)}>{biz.terminology.newItem}</Button>
-            </div>
-          }
-        />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-xl font-bold text-gray-900">قائمة الخدمات</h1>
+            <p className="text-sm text-gray-400 mt-0.5">يمكنك إنشاء خدماتك وإدارتها من هذه الصفحة</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowImportModal(true)}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              استيراد قالب
+            </button>
+            <Button icon={Plus} onClick={() => setShowTypePicker(true)}>{biz.terminology.newItem}</Button>
+          </div>
+        </div>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+      {/* Search + Filter bar */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="relative flex-1 max-w-md">
           <Search className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالاسم..."
-            className="w-full bg-white border border-gray-100 rounded-xl pr-10 pl-4 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all" />
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث عن خدمة"
+            className="w-full bg-white border border-gray-200 rounded-xl pr-10 pl-4 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all placeholder-gray-400" />
         </div>
-        <div className="flex gap-1.5 overflow-x-auto">
-          {categories.map(cat => (
-            <button key={cat} onClick={() => setCategoryFilter(cat)}
-              className={clsx(
-                "px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors",
-                categoryFilter === cat ? "bg-brand-500 text-white shadow-sm" : "bg-white border border-gray-100 text-gray-600 hover:bg-gray-50"
-              )}>{cat}</button>
-          ))}
-        </div>
-        {presentTypes.length > 2 && (
-          <div className="flex gap-1.5 overflow-x-auto">
-            {presentTypes.map(t => {
-              const label = t === "الكل" ? "الكل" : (TYPE_META[t] || t);
-              return (
-                <button key={t} onClick={() => setTypeFilter(t)}
-                  className={clsx(
-                    "flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors",
-                    typeFilter === t ? "bg-gray-800 text-white shadow-sm" : "bg-white border border-gray-100 text-gray-600 hover:bg-gray-50"
-                  )}>
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-        )}
-        <div className="flex gap-1 bg-white border border-gray-100 rounded-xl p-1">
-          <button onClick={() => setView("grid")} className={clsx("p-2 rounded-lg transition-colors", view === "grid" ? "bg-brand-500 text-white" : "text-gray-400 hover:bg-gray-50")}><Grid3X3 className="w-4 h-4" /></button>
-          <button onClick={() => setView("list")} className={clsx("p-2 rounded-lg transition-colors", view === "list" ? "bg-brand-500 text-white" : "text-gray-400 hover:bg-gray-50")}><List className="w-4 h-4" /></button>
-        </div>
+        <button
+          onClick={() => setShowFilterMenu(p => !p)}
+          className={clsx(
+            "flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors border",
+            (categoryFilter !== "الكل" || typeFilter !== "الكل")
+              ? "border-brand-200 bg-brand-50 text-brand-600"
+              : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+          )}
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          تصفية
+          {(categoryFilter !== "الكل" || typeFilter !== "الكل") && (
+            <span className="bg-brand-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+              {(categoryFilter !== "الكل" ? 1 : 0) + (typeFilter !== "الكل" ? 1 : 0)}
+            </span>
+          )}
+        </button>
         {embedded && (
           <Button icon={Plus} onClick={() => setShowTypePicker(true)}>{biz.terminology.newItem}</Button>
         )}
       </div>
+
+      {/* Inline filter panel */}
+      {showFilterMenu && (
+        <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-gray-500 mb-2">التصنيف</p>
+            <div className="flex gap-1.5 flex-wrap">
+              {categories.map(cat => (
+                <button key={cat} onClick={() => setCategoryFilter(cat)}
+                  className={clsx(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors",
+                    categoryFilter === cat ? "bg-brand-500 text-white shadow-sm" : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                  )}>{cat}</button>
+              ))}
+            </div>
+          </div>
+          {presentTypes.length > 2 && (
+            <div className="flex-1">
+              <p className="text-xs font-semibold text-gray-500 mb-2">النوع</p>
+              <div className="flex gap-1.5 flex-wrap">
+                {presentTypes.map(t => {
+                  const label = t === "الكل" ? "الكل" : (TYPE_META[t] || t);
+                  return (
+                    <button key={t} onClick={() => setTypeFilter(t)}
+                      className={clsx(
+                        "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors",
+                        typeFilter === t ? "bg-gray-800 text-white shadow-sm" : "bg-gray-50 text-gray-600 hover:bg-gray-100"
+                      )}>{label}</button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+          {(categoryFilter !== "الكل" || typeFilter !== "الكل") && (
+            <button onClick={() => { setCategoryFilter("الكل"); setTypeFilter("الكل"); }} className="text-xs text-red-500 hover:underline self-end whitespace-nowrap">
+              مسح الفلاتر
+            </button>
+          )}
+        </div>
+      )}
 
       {selected.size > 0 && (
         <div className="flex items-center gap-3 bg-brand-50 border border-brand-200 rounded-xl px-4 py-2.5">
@@ -480,13 +562,9 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filtered.map((service: any) => (
             <div key={service.id} className="relative bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md hover:border-gray-200 transition-all group flex flex-col">
-              {/* Checkbox overlay */}
-              <div className="absolute top-2 left-2 z-10">
-                <input type="checkbox" checked={selected.has(service.id)} onChange={() => toggleOne(service.id)} onClick={e => e.stopPropagation()} className="rounded" />
-              </div>
               {/* Clickable image area */}
               <div
-                className="h-36 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center relative overflow-hidden cursor-pointer"
+                className="h-40 bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center relative overflow-hidden cursor-pointer"
                 onClick={() => navigate(`/dashboard/services/${service.id}/edit`)}
               >
                 {service.coverImage
@@ -494,13 +572,6 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
                   : <Package className="w-9 h-9 text-gray-300 group-hover:scale-110 transition-transform duration-300" />
                 }
                 <div className="absolute top-3 right-3"><StatusBadge status={service.status} /></div>
-                {service.status === "active" && (
-                  <div className="absolute top-3 left-3">
-                    <span className="flex items-center gap-1 bg-emerald-500 text-white text-[10px] font-medium px-1.5 py-0.5 rounded-full">
-                      <Globe className="w-2.5 h-2.5" /> موقع
-                    </span>
-                  </div>
-                )}
               </div>
 
               {/* Info area */}
@@ -509,65 +580,33 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
                 onClick={() => navigate(`/dashboard/services/${service.id}/edit`)}
               >
                 <h3 className="text-sm font-semibold text-gray-900 mb-0.5 group-hover:text-brand-600 line-clamp-1 transition-colors">{service.name}</h3>
+                <p className="text-xs text-gray-400 line-clamp-1 mb-2">{service.description || service.categoryName || "بدون وصف"}</p>
                 <div className="flex items-center gap-1.5 mb-2">
-                  <p className="text-xs text-gray-400">{service.categoryName || "بدون تصنيف"}</p>
                   {service.serviceType && <TypeBadge type={service.serviceType} />}
+                  {service.duration && (
+                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <Clock className="w-3 h-3" />
+                      {service.duration >= 60 ? `${Math.floor(service.duration / 60)} ساعات` : `${service.duration} دقيقة`}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-base font-bold text-brand-600 tabular-nums">
-                    {Number(service.basePrice || 0).toLocaleString()}
-                    <span className="text-xs font-normal text-gray-400"> ر.س</span>
+                  <span className="text-base font-bold text-gray-900 tabular-nums">
+                    {Number(service.basePrice || 0).toLocaleString("ar-SA")}
+                    <span className="text-xs font-normal text-gray-400 mr-1">ر.س</span>
                   </span>
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    {service.avgRating && (
-                      <span className="flex items-center gap-0.5">
-                        <Star className="w-3 h-3 text-amber-400" fill="currentColor" />
-                        {Number(service.avgRating).toFixed(1)}
-                      </span>
-                    )}
-                    <span className="tabular-nums">{service.totalBookings || 0} حجز</span>
-                  </div>
                 </div>
               </div>
 
               {/* Action bar */}
-              <div className="border-t border-gray-50 px-3 py-2 flex items-center justify-between gap-1">
-                <button
-                  onClick={() => navigate(`/dashboard/services/${service.id}/edit`)}
-                  title="تعديل"
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-brand-50 hover:text-brand-600 transition-colors"
-                >
-                  <Pencil className="w-3.5 h-3.5" /> تعديل
-                </button>
-                <button
-                  onClick={() => handleDuplicate(service.id)}
-                  title="تكرار"
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-600 hover:bg-gray-100 transition-colors"
-                >
-                  <Copy className="w-3.5 h-3.5" /> تكرار
-                </button>
-                <button
-                  onClick={() => handleToggleWebsite(service)}
-                  title={service.status === "active" ? "إخفاء من الموقع" : "إظهار في الموقع"}
-                  className={clsx(
-                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors",
-                    service.status === "active"
-                      ? "text-emerald-600 hover:bg-emerald-50"
-                      : "text-gray-400 hover:bg-gray-100"
-                  )}
-                >
-                  {service.status === "active"
-                    ? <><Eye className="w-3.5 h-3.5" /> ظاهر</>
-                    : <><EyeOff className="w-3.5 h-3.5" /> مخفي</>
-                  }
-                </button>
-                <button
-                  onClick={() => handleDelete(service.id, service.name)}
-                  title="حذف"
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-gray-400 hover:bg-red-50 hover:text-red-500 transition-colors"
-                >
-                  <Trash2 className="w-3.5 h-3.5" />
-                </button>
+              <div className="border-t border-gray-50 px-3 py-2 flex items-center justify-end">
+                <RowActionMenu
+                  service={service}
+                  onEdit={() => navigate(`/dashboard/services/${service.id}/edit`)}
+                  onDuplicate={() => handleDuplicate(service.id)}
+                  onToggle={() => handleToggleWebsite(service)}
+                  onDelete={() => handleDelete(service.id, service.name)}
+                />
               </div>
             </div>
           ))}
@@ -576,68 +615,71 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
 
       {view === "list" && filtered.length > 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
-                <th className="py-3 px-4 w-10">
-                  <input type="checkbox" checked={allSelected} onChange={toggleAll} className="rounded" />
-                </th>
-                <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold uppercase tracking-wide">الخدمة</th>
-                <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">التصنيف</th>
-                <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">السعر</th>
-                <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">الحالة</th>
-                <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">حجوزات</th>
-                <th className="py-3 px-4 w-20"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((service: any) => (
-                <tr
-                  key={service.id}
-                  className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 cursor-pointer transition-colors"
-                  onClick={() => navigate(`/dashboard/services/${service.id}/edit`)}
-                >
-                  <td className="py-3.5 px-4" onClick={e => e.stopPropagation()}>
-                    <input type="checkbox" checked={selected.has(service.id)} onChange={() => toggleOne(service.id)} onClick={e => e.stopPropagation()} className="rounded" />
-                  </td>
-                  <td className="py-3.5 px-5">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-                        <Package className="w-4 h-4 text-gray-400" />
-                      </div>
-                      <span className="font-medium text-gray-900 line-clamp-1">{service.name}</span>
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 text-gray-500 text-xs">
-                    <div className="flex items-center gap-1.5">
-                      <span>{service.categoryName || "—"}</span>
-                      {service.serviceType && <TypeBadge type={service.serviceType} />}
-                    </div>
-                  </td>
-                  <td className="py-3.5 px-4 font-semibold text-gray-900 tabular-nums">{Number(service.basePrice || 0).toLocaleString()} ر.س</td>
-                  <td className="py-3.5 px-4"><StatusBadge status={service.status} /></td>
-                  <td className="py-3.5 px-4 text-gray-500 tabular-nums">{service.totalBookings || 0}</td>
-                  <td className="py-3.5 px-4">
-                    <div className="flex gap-1" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => navigate(`/dashboard/services/${service.id}/edit`)} title="تعديل" className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors"><Pencil className="w-3.5 h-3.5 text-brand-500" /></button>
-                      <button onClick={() => handleDuplicate(service.id)} title="تكرار" className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"><Copy className="w-3.5 h-3.5 text-gray-400" /></button>
-                      <button
-                        onClick={() => handleToggleWebsite(service)}
-                        title={service.status === "active" ? "إخفاء من الموقع" : "إظهار في الموقع"}
-                        className="p-1.5 rounded-lg hover:bg-emerald-50 transition-colors"
-                      >
-                        {service.status === "active"
-                          ? <Eye className="w-3.5 h-3.5 text-emerald-500" />
-                          : <EyeOff className="w-3.5 h-3.5 text-gray-400" />
-                        }
-                      </button>
-                      <button onClick={() => handleDelete(service.id, service.name)} title="حذف" className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {/* Table header */}
+          <div className="grid grid-cols-[1fr_140px_120px_100px_80px] gap-4 items-center border-b border-gray-100 bg-gray-50/50 px-5 py-3 text-xs font-semibold text-gray-400">
+            <span>الخدمة</span>
+            <span>نوع الخدمة</span>
+            <span>السعر</span>
+            <span>الحالة</span>
+            <span className="text-center">إجراءات</span>
+          </div>
+          {/* Table body */}
+          <div className="divide-y divide-gray-50">
+            {filtered.map((service: any) => (
+              <div
+                key={service.id}
+                className="grid grid-cols-[1fr_140px_120px_100px_80px] gap-4 items-center px-5 py-3.5 hover:bg-gray-50/60 cursor-pointer transition-colors"
+                onClick={() => navigate(`/dashboard/services/${service.id}/edit`)}
+              >
+                {/* Service: image + name + description */}
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-14 h-14 rounded-xl bg-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
+                    {service.coverImage
+                      ? <img src={service.coverImage} alt={service.name} className="w-full h-full object-cover" />
+                      : <Package className="w-6 h-6 text-gray-300" />
+                    }
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-semibold text-gray-900 truncate">{service.name}</h4>
+                    <p className="text-xs text-gray-400 truncate mt-0.5">{service.description || service.categoryName || "بدون وصف"}</p>
+                  </div>
+                </div>
+                {/* Type */}
+                <div className="flex items-center gap-2">
+                  {service.serviceType && <TypeBadge type={service.serviceType} />}
+                  {service.duration && (
+                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <Clock className="w-3 h-3" />
+                      {service.duration >= 60 ? `${Math.floor(service.duration / 60)} ساعات` : `${service.duration} دقيقة`}
+                    </span>
+                  )}
+                </div>
+                {/* Price */}
+                <div className="tabular-nums">
+                  <span className="font-semibold text-gray-900 text-sm">
+                    {Number(service.basePrice || 0).toLocaleString("ar-SA")}
+                  </span>
+                  <span className="text-xs text-gray-400 mr-1">ر.س</span>
+                </div>
+                {/* Status */}
+                <StatusBadge status={service.status} />
+                {/* Actions */}
+                <div className="flex items-center justify-center" onClick={e => e.stopPropagation()}>
+                  <RowActionMenu
+                    service={service}
+                    onEdit={() => navigate(`/dashboard/services/${service.id}/edit`)}
+                    onDuplicate={() => handleDuplicate(service.id)}
+                    onToggle={() => handleToggleWebsite(service)}
+                    onDelete={() => handleDelete(service.id, service.name)}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Footer: total count */}
+          <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 bg-gray-50/30">
+            <span className="text-xs text-gray-400">إجمالي الخدمات: {filtered.length}</span>
+          </div>
         </div>
       )}
 
