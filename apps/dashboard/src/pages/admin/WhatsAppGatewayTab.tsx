@@ -79,7 +79,7 @@ export default function WhatsAppGatewayTab() {
                 <p className="text-xs text-gray-400 mb-1">المزود</p>
                 <p className="text-sm font-semibold text-gray-700">
                   {status.baileysConnected
-                    ? `باركود QR${status.baileysPhone ? ` (${status.baileysPhone})` : ""}`
+                    ? `${PROVIDER_LABELS["baileys-qr"]}${status.baileysPhone ? ` (${status.baileysPhone})` : ""}`
                     : PROVIDER_LABELS[status.provider] ?? "—"}
                 </p>
               </div>
