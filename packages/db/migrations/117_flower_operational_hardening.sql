@@ -1,6 +1,7 @@
 -- ============================================================
--- Migration 112: Flower Operational Hardening
+-- Migration 117: Flower Operational Hardening
 -- يضيف: optimistic locking, ربط العميل/الفاتورة/القيد، state machine
+-- (Renumbered from 112 to resolve duplicate migration ID conflict)
 -- ============================================================
 
 -- 1) version column for optimistic locking
