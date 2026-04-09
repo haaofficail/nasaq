@@ -380,21 +380,25 @@ export function ServiceFormPage() {
   // ── Load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
     const loads = [
-      categoriesApi.list(true).then(r => setCategories(r.data || [])).catch(() => { toast.error("تعذّر تحميل الأقسام"); }),
-      membersApi.list().then(r => setStaffMembers(
+      categoriesApi.list(true).then(r => { setCategories(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل الأقسام"); return false; }),
+      membersApi.list().then(r => { setStaffMembers(
         (r.data || []).map((m: any) => ({
           id:   m.user?.id   ?? m.id,
           name: m.user?.name ?? m.name ?? "موظف",
           jobTitle: m.jobTitle,
         }))
-      )).catch(() => { toast.error("تعذّر تحميل الموظفين"); }),
-      inventoryApi.products().then(r => setProducts(r.data || [])).catch(() => { toast.error("تعذّر تحميل المنتجات"); }),
-      settingsApi.branches().then(r => setBranches(r.data || [])).catch(() => { toast.error("تعذّر تحميل الفروع"); }),
-      eventPackagesApi.list().then(r => setTemplates(r.data || [])).catch(() => { toast.error("تعذّر تحميل القوالب"); }),
+      ); return true; }).catch(() => { toast.error("تعذّر تحميل الموظفين"); return false; }),
+      inventoryApi.products().then(r => { setProducts(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل المنتجات"); return false; }),
+      settingsApi.branches().then(r => { setBranches(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل الفروع"); return false; }),
+      eventPackagesApi.list().then(r => { setTemplates(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل القوالب"); return false; }),
     ];
 
     if (!isEdit) {
-      Promise.allSettled(loads).finally(() => setRefDataLoading(false));
+      Promise.all(loads).then(results => {
+        if (results.every(ok => !ok)) {
+          setErrors(prev => ({ ...prev, _refData: "تعذّر تحميل البيانات المرجعية — تحقق من اتصالك بالإنترنت" }));
+        }
+      }).finally(() => setRefDataLoading(false));
     }
 
     // Pre-select type passed from the type picker
@@ -772,6 +776,14 @@ export function ServiceFormPage() {
               <div className="flex items-start gap-2.5 px-4 py-3 bg-brand-50 border border-brand-100 rounded-xl text-sm text-brand-700">
                 <span className="shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5" />
                 {typeConfig.hint}
+              </div>
+            )}
+
+            {/* Ref data load failure banner */}
+            {errors._refData && (
+              <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                {errors._refData}
               </div>
             )}
 

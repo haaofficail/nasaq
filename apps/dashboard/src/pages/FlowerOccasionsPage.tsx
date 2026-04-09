@@ -285,7 +285,7 @@ export function FlowerOccasionsPage() {
     ? systemList
     : systemList.filter((o: any) => o.category === catFilter);
 
-  const isLoading = upcomingApi.loading && allApi.loading;
+  const isLoading = upcomingApi.loading || allApi.loading;
   const totalOccasions = systemList.length + customList.length;
   const nearestOcc = upcomingList[0];
 
