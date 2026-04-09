@@ -382,6 +382,27 @@ adminRouter.post("/users/:id/revoke-super-admin", async (c) => {
   return c.json({ data: updated });
 });
 
+// ── Admin: Reset any user password ─────────────────────────
+adminRouter.patch("/users/:id/reset-password", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  const userId = c.req.param("id");
+  const body = await c.req.json();
+  const password = body.password?.trim();
+  if (!password || password.length < 6) return apiErr(c, "PASSWORD_TOO_SHORT", 400);
+
+  const [user] = await db.select({ id: users.id, name: users.name })
+    .from(users).where(eq(users.id, userId));
+  if (!user) return apiErr(c, "USR_NOT_FOUND", 404);
+
+  await db.update(users)
+    .set({ passwordHash: hashPassword(password) })
+    .where(eq(users.id, userId));
+
+  logAdminAction(adminId, "reset_user_password", "user", userId, { userName: user.name }, c.req.header("X-Forwarded-For"));
+  return c.json({ ok: true });
+});
+
 // ──────────────────────────────────────────────────────────
 // IMPERSONATE
 // ──────────────────────────────────────────────────────────
