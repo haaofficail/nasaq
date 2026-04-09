@@ -9,6 +9,7 @@ import path from "path";
 import { pool } from "@nasaq/db/client";
 
 const SESSIONS_DIR = process.env.WHATSAPP_SESSIONS_DIR ?? "/var/www/nasaq/whatsapp-sessions";
+const DEFAULT_BROWSER: [string, string, string] = ["Ubuntu", "Chrome", "22.04.4"];
 
 // In-memory state per orgId
 interface SessionState {
@@ -89,11 +90,11 @@ export async function startQrSession(orgId: string): Promise<void> {
     } catch {
       console.warn("[WhatsApp QR] fetchLatestBaileysVersion failed — using fallback");
     }
-    const browserModule = typeof baileysMod.Browsers === "object" && baileysMod.Browsers
-      ? baileysMod.Browsers
-      : (baileysMod.default as any)?.Browsers;
+    const browserModule =
+      (typeof baileysMod.Browsers === "object" && baileysMod.Browsers ? baileysMod.Browsers : undefined)
+      ?? (baileysMod.default as any)?.Browsers;
     const browserConfig: [string, string, string] =
-      browserModule?.ubuntu?.("Chrome") ?? ["Ubuntu", "Chrome", "22.04.4"];
+      browserModule?.ubuntu?.("Chrome") ?? DEFAULT_BROWSER;
     console.info("[WhatsApp QR] socket init config", { orgId, browserConfig, version });
 
     const sock = makeWASocket({

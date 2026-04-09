@@ -45,6 +45,7 @@ const sessions = new Map<string, Session>();
 
 const SESSIONS_DIR =
   process.env.WA_SESSIONS_DIR ?? "/var/www/nasaq/whatsapp-sessions";
+const DEFAULT_BROWSER: [string, string, string] = ["Ubuntu", "Chrome", "22.04.4"];
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -89,9 +90,11 @@ export async function initBaileys(orgId: string): Promise<void> {
     } catch {
       log.warn({ orgId }, "[wa-baileys] fetchLatestBaileysVersion failed — using fallback version");
     }
-    const browserModule = typeof Browsers === "object" && Browsers ? Browsers : (baileysMod as any).Browsers;
+    const browserModule =
+      (typeof Browsers === "object" && Browsers ? Browsers : undefined)
+      ?? (baileysMod as any)?.Browsers;
     const browserConfig: [string, string, string] =
-      browserModule?.ubuntu?.("Chrome") ?? ["Ubuntu", "Chrome", "22.04.4"];
+      browserModule?.ubuntu?.("Chrome") ?? DEFAULT_BROWSER;
     log.info({ orgId, browserConfig, version }, "[wa-baileys] socket init config");
 
     const sock = makeWASocket({
