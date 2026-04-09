@@ -5,7 +5,7 @@ import { Plus, Search, Grid3X3, List, Eye, EyeOff, Copy, Trash2, Pencil, Star, P
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi, templatesApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Button, confirmDialog } from "@/components/ui";
+import { Button, Modal } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { useBusiness } from "@/hooks/useBusiness";
 import { useOrgContext } from "@/hooks/useOrgContext";
@@ -365,6 +365,9 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
   const [showImportModal, setShowImportModal] = useState(false);
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [showBulkArchiveConfirm, setShowBulkArchiveConfirm] = useState(false);
 
   // Auto-open type picker if ?new=1
   useEffect(() => {
@@ -395,8 +398,13 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
   const presentTypes: string[] = ["الكل", ...Array.from(new Set(services.map((s: any) => s.serviceType).filter(Boolean) as string[]))];
 
   const handleDelete = async (id: string, name: string) => {
-    if (!(await confirmDialog({ title: `حذف "${name}"؟`, message: "سيتم حذف الخدمة نهائياً", confirmLabel: "حذف", danger: true }))) return;
-    await deleteService(id);
+    setDeleteTarget({ id, name });
+  };
+
+  const doDelete = async () => {
+    if (!deleteTarget) return;
+    await deleteService(deleteTarget.id);
+    setDeleteTarget(null);
     refetch();
   };
 
@@ -413,19 +421,29 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
   const toggleAll = () => setSelected(allSelected ? new Set() : new Set(allIds));
 
   const handleBulkDelete = async () => {
-    if (!confirm(`حذف ${selected.size} خدمة؟ لا يمكن التراجع.`)) return;
+    setShowBulkDeleteConfirm(true);
+  };
+
+  const doBulkDelete = async () => {
+    setShowBulkDeleteConfirm(false);
+    const count = selected.size;
     for (const id of selected) await deleteService(id);
     setSelected(new Set());
     refetch();
-    toast.success(`تم حذف ${selected.size} خدمة`);
+    toast.success(`تم حذف ${count} خدمة`);
   };
 
   const handleBulkArchive = async () => {
-    if (!confirm(`أرشفة ${selected.size} خدمة؟`)) return;
+    setShowBulkArchiveConfirm(true);
+  };
+
+  const doBulkArchive = async () => {
+    setShowBulkArchiveConfirm(false);
+    const count = selected.size;
     for (const id of selected) await updateService({ id, data: { status: "archived" } });
     setSelected(new Set());
     refetch();
-    toast.success(`تم أرشفة ${selected.size} خدمة`);
+    toast.success(`تم أرشفة ${count} خدمة`);
   };
 
   if (loading) return <PageSkeleton />;
@@ -698,6 +716,26 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
           onImported={refetch}
         />
       )}
+
+      {/* Delete Single Service */}
+      {deleteTarget && (
+        <Modal open={true} onClose={() => setDeleteTarget(null)} title="حذف الخدمة" size="sm"
+          footer={<><Button variant="secondary" onClick={() => setDeleteTarget(null)}>تراجع</Button><Button variant="danger" onClick={doDelete}>نعم، احذف</Button></>}>
+          <p className="text-sm text-gray-600">سيتم حذف <strong>{deleteTarget.name}</strong> نهائياً. هل أنت متأكد؟</p>
+        </Modal>
+      )}
+
+      {/* Bulk Delete */}
+      <Modal open={showBulkDeleteConfirm} onClose={() => setShowBulkDeleteConfirm(false)} title="حذف الخدمات المحددة" size="sm"
+        footer={<><Button variant="secondary" onClick={() => setShowBulkDeleteConfirm(false)}>تراجع</Button><Button variant="danger" onClick={doBulkDelete}>نعم، احذف {selected.size} خدمة</Button></>}>
+        <p className="text-sm text-gray-600">سيتم حذف {selected.size} خدمة نهائياً ولا يمكن التراجع عن ذلك.</p>
+      </Modal>
+
+      {/* Bulk Archive */}
+      <Modal open={showBulkArchiveConfirm} onClose={() => setShowBulkArchiveConfirm(false)} title="أرشفة الخدمات المحددة" size="sm"
+        footer={<><Button variant="secondary" onClick={() => setShowBulkArchiveConfirm(false)}>تراجع</Button><Button onClick={doBulkArchive}>نعم، أرشف {selected.size} خدمة</Button></>}>
+        <p className="text-sm text-gray-600">سيتم أرشفة {selected.size} خدمة. يمكنك إعادة تفعيلها لاحقاً.</p>
+      </Modal>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { clsx } from "clsx";
 import { publicApi } from "@/lib/api";
 import { usePublicTheme } from "@/context/ThemeProvider";
 import { fmtDate } from "@/lib/utils";
+import { toast } from "@/hooks/useToast";
 
 export function PublicTrackingPage() {
   const { token } = useParams<{ token: string }>();
@@ -152,7 +153,7 @@ export function PublicTrackingPage() {
                     if (res?.data?.transactionUrl) {
                       window.location.href = res.data.transactionUrl;
                     } else {
-                      alert(res?.error || "تعذر إنشاء رابط الدفع");
+                      toast.error("فشل إنشاء رابط الدفع. حاول مرة أخرى.");
                     }
                   } finally {
                     setPaying(false);

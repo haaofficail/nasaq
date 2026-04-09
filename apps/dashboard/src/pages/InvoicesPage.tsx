@@ -51,6 +51,8 @@ export function InvoicesPage() {
   const [showPayment, setShowPayment] = useState(false);
   const [paymentForm, setPaymentForm] = useState({ amount: "", paymentMethod: "cash", reference: "", notes: "" });
   const [savingPayment, setSavingPayment] = useState(false);
+  const [cancelInvoiceId, setCancelInvoiceId] = useState<string | null>(null);
+  const [sendConfirmId, setSendConfirmId] = useState<string | null>(null);
 
   const { context: orgCtx } = useOrgContext();
 
@@ -80,25 +82,34 @@ export function InvoicesPage() {
   };
 
   const markCancelled = async (id: string) => {
-    if (!(await confirmDialog({ title: "إلغاء هذه الفاتورة؟", message: "لا يمكن التراجع عن هذا الإجراء", confirmLabel: "إلغاء الفاتورة", cancelLabel: "تراجع", danger: true }))) return;
+    setCancelInvoiceId(id);
+  };
+
+  const doCancelInvoice = async () => {
+    if (!cancelInvoiceId) return;
     try {
-      await updateStatus({ id, s: "cancelled" });
-      toast.success("تم الإلغاء");
+      await updateStatus({ id: cancelInvoiceId, s: "cancelled" });
+      toast.success("تم إلغاء الفاتورة");
       refetch();
       setViewInvoice(null);
     } catch { toast.error("فشل التحديث"); }
+    finally { setCancelInvoiceId(null); }
   };
 
   const [sendingId, setSendingId] = useState<string | null>(null);
   const sendInvoice = async (id: string) => {
-    if (!(await confirmDialog({ title: "إرسال الفاتورة للعميل؟", message: "سيتم إرسال الفاتورة إلى بيانات التواصل المسجلة للعميل", confirmLabel: "إرسال", cancelLabel: "إلغاء" }))) return;
-    setSendingId(id);
+    setSendConfirmId(id);
+  };
+
+  const doSendInvoice = async () => {
+    if (!sendConfirmId) return;
+    setSendingId(sendConfirmId);
     try {
-      await financeApi.sendInvoice(id);
-      toast.success("تم إرسال الفاتورة بنجاح");
+      await financeApi.sendInvoice(sendConfirmId);
+      toast.success("تم إرسال الفاتورة للعميل بنجاح");
       refetch();
     } catch { toast.error("فشل إرسال الفاتورة"); }
-    finally { setSendingId(null); }
+    finally { setSendingId(null); setSendConfirmId(null); }
   };
 
   const handleAddPayment = async () => {
@@ -126,7 +137,7 @@ export function InvoicesPage() {
           <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <FileText className="w-5 h-5 text-brand-500" /> الفواتير
           </h1>
-          <p className="text-sm text-gray-400 mt-0.5">فواتير ضريبية متوافقة مع متطلبات زاتكا</p>
+          <p className="text-sm text-gray-400 mt-0.5">فواتير رسمية معتمدة ومتوافقة مع هيئة الزكاة والدخل</p>
         </div>
         <div className="flex gap-2">
           <button onClick={refetch} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
@@ -142,14 +153,14 @@ export function InvoicesPage() {
           { label: "إجمالي الفواتير",  value: stats ? `${stats.total} فاتورة` : `${invoiceList.length} فاتورة`, color: "text-brand-600",   bg: "bg-brand-50" },
           { label: "إجمالي المبالغ",   value: `${fmt(stats?.totalAmount)} ر.س`,                                  color: "text-gray-700",    bg: "bg-gray-100" },
           { label: "مدفوعة",           value: `${fmt(stats?.paidAmount)} ر.س`,                                   color: "text-emerald-600", bg: "bg-emerald-50" },
-          { label: "مستحقة",           value: `${fmt(stats?.unpaidAmount)} ر.س`,                                 color: "text-red-500",     bg: "bg-red-50" },
+          { label: "بانتظار الدفع من العملاء", value: `${fmt(stats?.unpaidAmount)} ر.س`,                                 color: "text-red-500",     bg: "bg-red-50" },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4">
             <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-2", s.bg)}>
               <FileText className={clsx("w-4 h-4", s.color)} />
             </div>
             <p className={clsx("text-lg font-bold tabular-nums", s.color)}>{s.value}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
+            <p className="text-sm text-gray-400 mt-0.5">{s.label}</p>
           </div>
         ))}
       </div>
@@ -160,7 +171,7 @@ export function InvoicesPage() {
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             className="w-full pr-9 pl-4 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-brand-400 bg-white"
-            placeholder="بحث باسم العميل..."
+            placeholder="بحث باسم العميل أو رقم الفاتورة..."
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
@@ -470,6 +481,44 @@ export function InvoicesPage() {
           ))}
         </div>
       </div>
+
+      {/* Cancel Invoice Confirmation Modal */}
+      {cancelInvoiceId && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" dir="rtl">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+                <XCircle className="w-6 h-6 text-red-500" />
+              </div>
+              <h3 className="text-base font-bold text-gray-900 mb-1">إلغاء الفاتورة</h3>
+              <p className="text-sm text-gray-500">سيتم إلغاء الفاتورة وتسجيل قيد عكسي تلقائياً. لا يمكن التراجع عن هذا الإجراء.</p>
+            </div>
+            <div className="px-6 pb-6 flex gap-2">
+              <button onClick={() => setCancelInvoiceId(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">تراجع</button>
+              <button onClick={doCancelInvoice} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors">نعم، ألغِ الفاتورة</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Send Invoice Confirmation Modal */}
+      {sendConfirmId && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" dir="rtl">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center mx-auto mb-4">
+                <Send className="w-6 h-6 text-brand-500" />
+              </div>
+              <h3 className="text-base font-bold text-gray-900 mb-1">إرسال الفاتورة</h3>
+              <p className="text-sm text-gray-500">سيتم إرسال الفاتورة للعميل عبر واتساب أو البريد الإلكتروني.</p>
+            </div>
+            <div className="px-6 pb-6 flex gap-2">
+              <button onClick={() => setSendConfirmId(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">تراجع</button>
+              <button onClick={doSendInvoice} disabled={!!sendingId} className="flex-1 py-2.5 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors">نعم، أرسل الفاتورة</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

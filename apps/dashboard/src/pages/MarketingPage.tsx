@@ -43,6 +43,8 @@ export function MarketingPage() {
   const [replyText,    setReplyText]    = useState("");
   const [reviewPhone,  setReviewPhone]  = useState("");
   const [reviewName,   setReviewName]   = useState("");
+  const [deleteCampaignId, setDeleteCampaignId] = useState<string | null>(null);
+  const [deleteReviewId, setDeleteReviewId]     = useState<string | null>(null);
 
   // Forms
   const [campForm, setCampForm] = useState({ ...EMPTY_CAMPAIGN });
@@ -100,8 +102,13 @@ export function MarketingPage() {
   };
 
   const handleDeleteCampaign = async (id: string) => {
-    if (!confirm("حذف الحملة؟")) return;
-    await deleteCampaign(id);
+    setDeleteCampaignId(id);
+  };
+
+  const doDeleteCampaign = async () => {
+    if (!deleteCampaignId) return;
+    await deleteCampaign(deleteCampaignId);
+    setDeleteCampaignId(null);
     refetchCampaigns();
   };
 
@@ -358,7 +365,7 @@ export function MarketingPage() {
                     <button onClick={() => setReplyId(replyId === r.id ? null : r.id)} className="p-1.5 text-gray-300 hover:text-brand-500 transition-colors rounded-lg hover:bg-blue-50" title="رد">
                       <MessageCircle className="w-4 h-4" />
                     </button>
-                    <button onClick={async () => { if (confirm("حذف التقييم؟")) { await deleteReview(r.id); refetchReviews(); } }} className="p-1.5 text-gray-300 hover:text-red-400 transition-colors rounded-lg hover:bg-red-50">
+                    <button onClick={() => setDeleteReviewId(r.id)} className="p-1.5 text-gray-300 hover:text-red-400 transition-colors rounded-lg hover:bg-red-50">
                       <Trash2 className="w-4 h-4" />
                     </button>
                     <span className={clsx("px-2 py-0.5 rounded-full text-[10px] font-semibold",
@@ -547,6 +554,18 @@ export function MarketingPage() {
           <Input label="اسم العميل (اختياري)" name="name" value={reviewName}
             onChange={e => setReviewName(e.target.value)} placeholder="محمد أحمد" />
         </div>
+      </Modal>
+
+      {/* Delete Campaign Confirmation */}
+      <Modal open={!!deleteCampaignId} onClose={() => setDeleteCampaignId(null)} title="حذف الحملة" size="sm"
+        footer={<><Button variant="secondary" onClick={() => setDeleteCampaignId(null)}>تراجع</Button><Button variant="danger" onClick={doDeleteCampaign}>نعم، احذف</Button></>}>
+        <p className="text-sm text-gray-600">سيتم حذف هذه الحملة نهائياً. هل أنت متأكد؟</p>
+      </Modal>
+
+      {/* Delete Review Confirmation */}
+      <Modal open={!!deleteReviewId} onClose={() => setDeleteReviewId(null)} title="حذف التقييم" size="sm"
+        footer={<><Button variant="secondary" onClick={() => setDeleteReviewId(null)}>تراجع</Button><Button variant="danger" onClick={async () => { if (deleteReviewId) { await deleteReview(deleteReviewId); setDeleteReviewId(null); refetchReviews(); } }}>نعم، احذف</Button></>}>
+        <p className="text-sm text-gray-600">سيتم حذف هذا التقييم نهائياً. هل أنت متأكد؟</p>
       </Modal>
     </div>
   );

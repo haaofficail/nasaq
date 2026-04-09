@@ -9,6 +9,7 @@ import { success as hapticSuccess } from "@/lib/haptics";
 import { Button, Modal, Input, Select, confirmDialog } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { fmtDate } from "@/lib/utils";
+import { toast } from "@/hooks/useToast";
 
 const statusConfig: Record<string, { label: string; cls: string }> = {
   pending: { label: "بانتظار التأكيد", cls: "bg-amber-50 text-amber-600" },
@@ -52,11 +53,19 @@ export function BookingDetailPage() {
   const { data: existingNoteRes } = useApi(() => salonApi.visitNotes(id!), [id]);
 
   const booking = res?.data;
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
 
   const handleStatusChange = async (status: string) => {
-    if (status === "cancelled" && !(await confirmDialog({ title: "إلغاء هذا الحجز؟", message: "سيتم إلغاء الحجز وإشعار العميل", confirmLabel: "إلغاء الحجز", cancelLabel: "تراجع", danger: true }))) return;
+    if (status === "cancelled") { setShowCancelConfirm(true); return; }
     await updateStatus({ status });
     if (status === "confirmed" || status === "completed") hapticSuccess();
+    refetch();
+    refetchEvents();
+  };
+
+  const doCancelBooking = async () => {
+    setShowCancelConfirm(false);
+    await updateStatus({ status: "cancelled" });
     refetch();
     refetchEvents();
   };
@@ -181,9 +190,9 @@ export function BookingDetailPage() {
                         const res: any = await bookingsApi.createPaymentLink(id);
                         if (res?.data?.transactionUrl) {
                           await navigator.clipboard.writeText(res.data.transactionUrl);
-                          alert("تم نسخ رابط الدفع — أرسله للعميل عبر واتساب");
+                          toast.success("تم نسخ رابط الدفع — أرسله للعميل عبر واتساب");
                         } else {
-                          alert(res?.error || "تعذر إنشاء رابط الدفع. تأكد من إعداد بوابة الدفع في الإعدادات.");
+                          toast.error("فشل إنشاء رابط الدفع. تأكد من إعداد بوابة الدفع في صفحة الإعدادات.");
                         }
                       } finally {
                         setGeneratingLink(false);
@@ -421,6 +430,12 @@ export function BookingDetailPage() {
             { value: "cash", label: "نقداً" }, { value: "bank_transfer", label: "تحويل بنكي" }, { value: "mada", label: "مدى" }, { value: "credit_card", label: "بطاقة ائتمان" },
           ]} />
         </div>
+      </Modal>
+
+      {/* Cancel Confirmation */}
+      <Modal open={showCancelConfirm} onClose={() => setShowCancelConfirm(false)} title="إلغاء الحجز" size="sm"
+        footer={<><Button variant="secondary" onClick={() => setShowCancelConfirm(false)}>تراجع</Button><Button variant="danger" onClick={doCancelBooking}>نعم، ألغِ الحجز</Button></>}>
+        <p className="text-sm text-gray-600">سيتم إلغاء الحجز ولا يمكن التراجع عن ذلك. هل أنت متأكد؟</p>
       </Modal>
     </div>
   );

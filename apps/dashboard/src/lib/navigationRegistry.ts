@@ -124,10 +124,10 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     ],
   },
 
-  // ── النظام ──────────────────────────────────────────────────
+  // ── أدوات إضافية ──────────────────────────────────────────
   {
     id: "system",
-    label: "النظام",
+    label: "أدوات إضافية",
     requiredCapabilities: [],
     anyCapability: [],
     allowedBusinessTypes: [],
@@ -274,7 +274,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedOperatingProfiles: [],
     items: [
       { name: "المشاريع الميدانية", href: "/dashboard/flower-service-orders", icon: Briefcase, requiredCapabilities: ["floral"] },
-      { name: "الأصول الصناعية",   href: "/dashboard/flower-assets",         icon: Archive,   requiredCapabilities: ["floral"] },
+      { name: "المعدات والأدوات",  href: "/dashboard/flower-assets",         icon: Archive,   requiredCapabilities: ["floral"] },
       { name: "الموردون",           href: "/dashboard/flower-suppliers",      icon: Truck,     requiredCapabilities: ["floral"] },
     ],
   },
@@ -355,10 +355,10 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     ],
   },
 
-  // 10. النظام — أدوات تشغيلية
+  // 10. أدوات إضافية — أدوات تشغيلية
   {
     id: "specialty_flower_system",
-    label: "النظام",
+    label: "أدوات إضافية",
     requiredCapabilities: [],
     anyCapability: [],
     allowedBusinessTypes: ["flower_shop"],

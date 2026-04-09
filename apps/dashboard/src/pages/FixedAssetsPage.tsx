@@ -209,7 +209,7 @@ export function FixedAssetsPage() {
       loadAssets();
       loadSummary();
     } catch (e: any) {
-      alert(e.message || "حدث خطأ أثناء الحذف");
+      showToast("فشل حذف الأصل. قد يكون مرتبطاً بقيود محاسبية.");
     }
   };
 

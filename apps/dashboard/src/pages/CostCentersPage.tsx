@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { accountingApi } from "../lib/api";
+import { toast } from "@/hooks/useToast";
 
 const TYPE_LABELS: Record<string, string> = {
   branch: "فرع",
@@ -114,7 +115,7 @@ export function CostCentersPage() {
       setDeleteConfirm(null);
       load();
     } catch (e: any) {
-      alert(e.message || "حدث خطأ أثناء الحذف");
+      toast.error("فشل حذف مركز التكلفة. قد يكون مرتبطاً بقيود محاسبية.");
     }
   };
 

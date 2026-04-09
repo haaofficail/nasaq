@@ -46,7 +46,7 @@ function TemplateScreen({ industry, onDone }: { industry: string; onDone: () => 
       setDone(true);
     } catch {
       setDone(true);
-      setResult({ created: 0, message: "حدث خطأ أثناء الاستيراد" });
+      setResult({ created: 0, message: "لم نتمكن من استيراد الخدمات. حاول مرة أخرى" });
     } finally {
       setImporting(false);
     }
@@ -93,9 +93,10 @@ function TemplateScreen({ industry, onDone }: { industry: string; onDone: () => 
             </div>
           ) : !template ? (
             <div className="text-center py-8">
-              <p className="text-sm text-gray-500 mb-4">لا توجد قوالب جاهزة لهذا النشاط</p>
+              <p className="text-sm text-gray-500 mb-2">لا توجد قوالب جاهزة لهذا النشاط</p>
+              <p className="text-xs text-gray-400 mb-4">يمكنك إضافة خدماتك يدوياً من لوحة التحكم</p>
               <button onClick={onDone} className="bg-brand-500 text-white rounded-xl px-6 py-2.5 text-sm font-semibold hover:bg-brand-600">
-                تخطي
+                تخطي وأضف خدماتك يدوياً
               </button>
             </div>
           ) : (

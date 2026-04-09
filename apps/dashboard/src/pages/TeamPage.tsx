@@ -288,6 +288,7 @@ function MembersTab() {
   const [statusFilter, setStatusFilter] = useState("");
   const [editTarget, setEditTarget] = useState<any>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const { data: res, loading, error, refetch } = useApi(
     () => membersApi.list({ ...(search ? { search } : {}), ...(statusFilter ? { status: statusFilter } : {}) }),
@@ -305,13 +306,19 @@ function MembersTab() {
   };
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`هل تريد إزالة "${name}" من الفريق؟`)) return;
+    setDeleteTarget({ id, name });
+  };
+
+  const doDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await membersApi.delete(id);
+      await membersApi.delete(deleteTarget.id);
       toast.success("تمت الإزالة");
       refetch();
     } catch {
       toast.error("فشل الحذف");
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
@@ -471,6 +478,14 @@ function MembersTab() {
       )}
       {showCreate && (
         <CreateMemberModal onClose={() => setShowCreate(false)} onSaved={refetch} />
+      )}
+
+      {/* Delete Confirmation */}
+      {deleteTarget && (
+        <Modal open={true} onClose={() => setDeleteTarget(null)} title="إزالة عضو الفريق" size="sm"
+          footer={<><Button variant="secondary" onClick={() => setDeleteTarget(null)}>تراجع</Button><Button variant="danger" onClick={doDelete}>نعم، أزل العضو</Button></>}>
+          <p className="text-sm text-gray-600">سيتم إزالة <strong>{deleteTarget.name}</strong> من الفريق. هل أنت متأكد؟</p>
+        </Modal>
       )}
     </div>
   );
