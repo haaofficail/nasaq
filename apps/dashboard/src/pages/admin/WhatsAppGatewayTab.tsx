@@ -25,6 +25,13 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
   pending: { label: "قيد الإرسال", color: "bg-amber-50 text-amber-700" },
 };
 
+const PROVIDER_LABELS: Record<string, string> = {
+  "baileys-qr": "باركود QR",
+  meta: "Meta Cloud API",
+  unifonic: "Unifonic",
+  twilio: "Twilio",
+};
+
 export default function WhatsAppGatewayTab() {
   const [tab, setTab] = useState<"qr" | "credentials" | "send" | "templates" | "log">("qr");
 
@@ -50,28 +57,62 @@ export default function WhatsAppGatewayTab() {
           </button>
         </div>
         {statusLoading ? <Spinner /> : status ? (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-400 mb-1">حالة الواتساب</p>
-              <span className={clsx("inline-flex px-2.5 py-1 rounded-full text-xs font-semibold",
-                status.whatsappConfigured ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
-              )}>
-                {status.whatsappConfigured ? "متصل (API)" : "غير متصل"}
-              </span>
+          <>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-gray-50 rounded-xl p-3 text-center">
+                <p className="text-xs text-gray-400 mb-1">حالة الواتساب</p>
+                <span className={clsx("inline-flex px-2.5 py-1 rounded-full text-xs font-semibold",
+                  status.baileysConnected
+                    ? "bg-emerald-50 text-emerald-700"
+                    : status.whatsappConfigured
+                      ? "bg-blue-50 text-blue-700"
+                      : "bg-amber-50 text-amber-700"
+                )}>
+                  {status.baileysConnected
+                    ? "متصل (QR)"
+                    : status.whatsappConfigured
+                      ? "متصل (API)"
+                      : "غير متصل"}
+                </span>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3 text-center">
+                <p className="text-xs text-gray-400 mb-1">المزود</p>
+                <p className="text-sm font-semibold text-gray-700">
+                  {status.baileysConnected
+                    ? `${PROVIDER_LABELS["baileys-qr"]}${status.baileysPhone ? ` (${status.baileysPhone})` : ""}`
+                    : PROVIDER_LABELS[status.provider] ?? "—"}
+                </p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3 text-center">
+                <p className="text-xs text-gray-400 mb-1">رسائل مرسلة</p>
+                <p className="text-sm font-bold text-emerald-600">{status.stats?.sent ?? 0}</p>
+              </div>
+              <div className="bg-gray-50 rounded-xl p-3 text-center">
+                <p className="text-xs text-gray-400 mb-1">فشل</p>
+                <p className="text-sm font-bold text-red-500">{status.stats?.failed ?? 0}</p>
+              </div>
             </div>
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-400 mb-1">المزود</p>
-              <p className="text-sm font-semibold text-gray-700">{status.provider || "—"}</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-400 mb-1">رسائل مرسلة</p>
-              <p className="text-sm font-bold text-emerald-600">{status.stats?.sent ?? 0}</p>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3 text-center">
-              <p className="text-xs text-gray-400 mb-1">فشل</p>
-              <p className="text-sm font-bold text-red-500">{status.stats?.failed ?? 0}</p>
-            </div>
-          </div>
+
+            {/* Not connected — prompt to connect via QR */}
+            {!status.whatsappConfigured && !status.baileysConnected && (
+              <div className="mt-4 bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-start gap-3">
+                <QrCode className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-amber-800">الواتساب غير مربوط</p>
+                  <p className="text-xs text-amber-600 mt-1 leading-relaxed">
+                    اربط واتساب المنصة عبر مسح باركود QR مباشرة من هاتفك — لا يتطلب أي إعداد تقني أو مفاتيح API.
+                  </p>
+                  <button
+                    onClick={() => setTab("qr")}
+                    className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-xl text-xs font-semibold hover:bg-brand-600 transition-colors"
+                  >
+                    <QrCode className="w-4 h-4" />
+                    ربط واتساب بباركود QR
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           <p className="text-xs text-gray-400">لا يمكن تحميل حالة الاتصال</p>
         )}
