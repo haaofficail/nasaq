@@ -754,7 +754,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                   refetchDetail();
                   setTimeout(() => setEditOrgOpen(false), 800);
                 } catch (err: any) {
-                  const msg = err?.message?.includes("SLUG_TAKEN") ? "هذا الـ Slug مستخدم من منشأة أخرى" : "فشل حفظ التعديلات";
+                  const msg = err?.message?.includes("SLUG_TAKEN") || err?.message?.includes("ORG_SLUG_TAKEN") ? "هذا الـ Slug مستخدم من منشأة أخرى" : "فشل حفظ التعديلات";
                   setEditOrgMsg({ type: "err", text: msg });
                 } finally {
                   setEditOrgSaving(false);

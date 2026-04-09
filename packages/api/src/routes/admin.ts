@@ -305,7 +305,7 @@ adminRouter.patch("/orgs/:id", async (c) => {
     const [existing] = await db.select({ id: organizations.id })
       .from(organizations)
       .where(and(eq(organizations.slug, body.slug), sql`${organizations.id} != ${orgId}`));
-    if (existing) return apiErr(c, "SLUG_TAKEN", 409);
+    if (existing) return apiErr(c, "ORG_SLUG_TAKEN", 409);
   }
 
   const updates: Record<string, unknown> = { updatedAt: new Date() };
