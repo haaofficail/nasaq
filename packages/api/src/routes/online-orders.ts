@@ -250,6 +250,42 @@ onlineOrdersRouter.patch("/:id/status", async (c) => {
     metadata: { status, cancellationReason },
   });
 
+  // ── Financial posting on delivery (idempotent) ────────────────
+  if (status === "delivered" && !updated.journal_entry_id) {
+    const amount = Number(updated.total_amount ?? 0);
+    if (amount > 0) {
+      try {
+        const postResult = await postCashSale({
+          orgId,
+          date: new Date(),
+          amount,
+          vatAmount: Number(updated.tax_amount ?? 0),
+          description: `طلب إلكتروني #${updated.order_number}`,
+          sourceType: "pos",
+          sourceId: updated.id,
+          createdBy: userId ?? undefined,
+        });
+        if (postResult?.entryId) {
+          await pool.query(
+            `UPDATE online_orders SET journal_entry_id = $1 WHERE id = $2`,
+            [postResult.entryId, id]
+          );
+        }
+      } catch {
+        // المحاسبة غير مُفعّلة — نكمل بدون قيد
+      }
+    }
+  }
+
+  // ── Reverse financial posting on cancellation ─────────────────
+  if (status === "cancelled" && updated.journal_entry_id) {
+    try {
+      await reverseJournalEntry(updated.journal_entry_id, userId ?? "system", "إلغاء طلب إلكتروني");
+    } catch {
+      // تجاهل أخطاء العكس
+    }
+  }
+
   return c.json({ data: updated });
 });
 
@@ -313,6 +349,15 @@ onlineOrdersRouter.delete("/:id", async (c) => {
     newValue: { status: "cancelled" },
     metadata: { reason: "DELETE endpoint" },
   });
+
+  // ── Reverse financial posting if journal exists ───────────────
+  if (current.journal_entry_id) {
+    try {
+      await reverseJournalEntry(current.journal_entry_id, userId ?? "system", "إلغاء طلب إلكتروني");
+    } catch {
+      // تجاهل أخطاء العكس
+    }
+  }
 
   return c.json({ success: true });
 });

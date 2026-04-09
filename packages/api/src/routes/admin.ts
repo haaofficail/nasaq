@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { eq, and, desc, asc, count, sql, ilike, or, gt, gte, lte } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { syncOrgEntitlements } from "../lib/entitlements-sync";
@@ -28,7 +29,6 @@ import {
 import { _activateOrder } from "./subscription";
 import { getPagination, generateSlug } from "../lib/helpers";
 import { superAdminMiddleware } from "../middleware/auth";
-import { z } from "zod";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { nanoid } from "nanoid";
@@ -265,11 +265,22 @@ adminRouter.post("/orgs/:id/logo", async (c) => {
 adminRouter.patch("/orgs/:id", async (c) => {
   if (!isSuperAdmin(c)) return superAdminOnly(c);
   const adminId = c.get("adminId") as string;
-  const body = await c.req.json();
-  const allowed = ["plan", "subscriptionStatus", "adminNotes", "isActive", "enabledCapabilities", "dashboardProfile", "logo", "name", "phone", "email", "city"];
+  const body = z.object({
+    plan: z.string().optional(),
+    subscriptionStatus: z.string().optional(),
+    adminNotes: z.string().optional().nullable(),
+    isActive: z.boolean().optional(),
+    enabledCapabilities: z.array(z.string()).optional(),
+    dashboardProfile: z.string().optional(),
+    logo: z.string().optional().nullable(),
+    name: z.string().min(1).max(200).optional(),
+    phone: z.string().max(20).optional().nullable(),
+    email: z.string().email().optional().nullable(),
+    city: z.string().max(100).optional().nullable(),
+  }).parse(await c.req.json());
   const updates: Record<string, unknown> = { updatedAt: new Date() };
-  for (const key of allowed) {
-    if (body[key] !== undefined) updates[key] = body[key];
+  for (const [key, value] of Object.entries(body)) {
+    if (value !== undefined) updates[key] = value;
   }
 
   const [updated] = await db.update(organizations).set(updates)
@@ -300,7 +311,7 @@ adminRouter.post("/orgs/:id/verify", async (c) => {
 adminRouter.post("/orgs/:id/suspend", async (c) => {
   if (!isSuperAdmin(c)) return superAdminOnly(c);
   const adminId = c.get("adminId") as string;
-  const { reason } = await c.req.json();
+  const { reason } = z.object({ reason: z.string().max(500).optional().default("") }).parse(await c.req.json());
   const [updated] = await db.update(organizations)
     .set({ suspendedAt: new Date(), suspendReason: reason || null, updatedAt: new Date() })
     .where(eq(organizations.id, c.req.param("id"))).returning({ id: organizations.id, name: organizations.name });
