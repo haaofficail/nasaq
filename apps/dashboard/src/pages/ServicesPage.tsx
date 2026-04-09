@@ -454,7 +454,7 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
               <Download className="w-4 h-4" />
               استيراد قالب
             </button>
-            <Button icon={Plus} onClick={() => setShowTypePicker(true)}>خدمة جديدة</Button>
+            <Button icon={Plus} onClick={() => setShowTypePicker(true)}>{biz.terminology.newItem}</Button>
           </div>
         </div>
       )}
@@ -484,7 +484,7 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
           )}
         </button>
         {embedded && (
-          <Button icon={Plus} onClick={() => setShowTypePicker(true)}>خدمة جديدة</Button>
+          <Button icon={Plus} onClick={() => setShowTypePicker(true)}>{biz.terminology.newItem}</Button>
         )}
       </div>
 

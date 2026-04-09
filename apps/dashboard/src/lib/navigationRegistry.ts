@@ -604,13 +604,16 @@ export function buildVisibleNav(ctx: OrgNavContext): NavGroupEntry[] {
 
     const cafeGrowth = growGroup ? {
       ...growGroup,
-      items: growGroup.items.filter((i) => i.href === "/dashboard/reports"),
+      items: growGroup.items,
     } : null;
+
+    const analysisGroup = universal.find((g) => g.id === "analysis");
 
     return [
       ...(homeGroup ? [homeGroup] : []),
       ...(foodGroup ? [foodGroup] : []),
       ...(cafeOps && cafeOps.items.length > 0 ? [cafeOps] : []),
+      ...(analysisGroup && analysisGroup.items.length > 0 ? [analysisGroup] : []),
       ...(cafeGrowth && cafeGrowth.items.length > 0 ? [cafeGrowth] : []),
     ];
   }
