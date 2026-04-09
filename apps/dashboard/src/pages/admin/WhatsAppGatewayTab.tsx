@@ -155,6 +155,7 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
   // Auto-poll when waiting for QR or scan
   useEffect(() => {
     if (qrState?.status === "qr_ready" || qrState?.status === "connecting" || starting) {
+      if (pollRef.current) clearInterval(pollRef.current);
       pollRef.current = setInterval(() => refetch(), 2000);
     }
     return () => {
