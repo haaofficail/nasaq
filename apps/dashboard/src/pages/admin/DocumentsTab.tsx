@@ -61,10 +61,10 @@ function DocumentsTab() {
   };
   // counts are approximate from current page; good enough for tab badges
   if (!loading) {
-    docs.forEach((d: any) => {
-      if (d.status === "pending") counts.pending++;
-      else if (d.status === "approved") counts.approved++;
-      else if (d.status === "rejected") counts.rejected++;
+    docs.forEach((doc: any) => {
+      if (doc.status === "pending") counts.pending++;
+      else if (doc.status === "approved") counts.approved++;
+      else if (doc.status === "rejected") counts.rejected++;
     });
     counts.all = docs.length;
   }
