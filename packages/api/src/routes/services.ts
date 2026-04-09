@@ -722,9 +722,10 @@ servicesRouter.post("/:id/duplicate", async (c) => {
 // ============================================================
 
 const createComponentSchema = z.object({
-  sourceType: z.enum(["inventory", "manual", "flower"]).default("manual"),
+  sourceType: z.enum(["inventory", "manual", "flower", "asset"]).default("manual"),
   inventoryItemId: z.string().uuid().optional().nullable(),
   flowerInventoryId: z.string().uuid().optional().nullable(),
+  assetId: z.string().uuid().optional().nullable(),
   name: z.string().min(1),
   description: z.string().optional().nullable(),
   quantity: z.number().min(0).default(1),
@@ -764,9 +765,45 @@ servicesRouter.get("/:id/components", async (c) => {
     assetTypeMap = new Map(types.map(t => [t.id, t.name]));
   }
 
+  // Enrich with asset data for asset components
+  const assetIds = components
+    .filter(c => c.sourceType === "asset" && c.assetId)
+    .map(c => c.assetId!);
+
+  let assetMap = new Map<string, { name: string | null; status: string; category: string | null; condition: string | null }>();
+  if (assetIds.length > 0) {
+    const assetRows = await db.select({
+      id: assets.id,
+      name: assets.name,
+      status: assets.status,
+      condition: assets.condition,
+      assetTypeId: assets.assetTypeId,
+    }).from(assets).where(inArray(assets.id, assetIds));
+
+    // Get asset type categories for these assets
+    const typeIds = assetRows.map(a => a.assetTypeId).filter(Boolean);
+    let typeMap = new Map<string, string | null>();
+    if (typeIds.length > 0) {
+      const atRows = await db.select({ id: assetTypes.id, category: assetTypes.category, name: assetTypes.name })
+        .from(assetTypes)
+        .where(inArray(assetTypes.id, typeIds));
+      typeMap = new Map(atRows.map(t => [t.id, t.category || t.name]));
+    }
+
+    for (const a of assetRows) {
+      assetMap.set(a.id, {
+        name: a.name,
+        status: a.status,
+        category: typeMap.get(a.assetTypeId) ?? null,
+        condition: a.condition,
+      });
+    }
+  }
+
   const enriched = components.map(comp => ({
     ...comp,
     assetTypeName: comp.inventoryItemId ? (assetTypeMap.get(comp.inventoryItemId) ?? null) : null,
+    assetInfo: comp.assetId ? (assetMap.get(comp.assetId) ?? null) : null,
     totalCost: Number(comp.quantity ?? 1) * Number(comp.unitCost ?? 0),
   }));
 
@@ -787,8 +824,9 @@ servicesRouter.post("/:id/components", async (c) => {
   const [comp] = await db.insert(serviceComponents).values({
     orgId, serviceId,
     sourceType: body.sourceType,
-    inventoryItemId: body.inventoryItemId ?? null,
-    flowerInventoryId: body.flowerInventoryId ?? null,
+    inventoryItemId: body.sourceType === "inventory" ? (body.inventoryItemId ?? null) : null,
+    flowerInventoryId: body.sourceType === "flower" ? (body.flowerInventoryId ?? null) : null,
+    assetId: body.sourceType === "asset" ? (body.assetId ?? null) : null,
     name: body.name,
     description: body.description ?? null,
     quantity: String(body.quantity),
@@ -822,7 +860,25 @@ servicesRouter.put("/:id/components/:compId", async (c) => {
   if (body.customerLabel !== undefined) updates.customerLabel = body.customerLabel;
   if (body.sortOrder !== undefined) updates.sortOrder = body.sortOrder;
   if (body.inventoryItemId !== undefined) updates.inventoryItemId = body.inventoryItemId;
-  if (body.sourceType !== undefined) updates.sourceType = body.sourceType;
+  if (body.assetId !== undefined) updates.assetId = body.assetId;
+  if (body.sourceType !== undefined) {
+    updates.sourceType = body.sourceType;
+    // Clear unrelated IDs when source type changes
+    if (body.sourceType === "manual") {
+      updates.inventoryItemId = null;
+      updates.assetId = null;
+      updates.flowerInventoryId = null;
+    } else if (body.sourceType === "inventory") {
+      updates.assetId = null;
+      updates.flowerInventoryId = null;
+    } else if (body.sourceType === "asset") {
+      updates.inventoryItemId = null;
+      updates.flowerInventoryId = null;
+    } else if (body.sourceType === "flower") {
+      updates.inventoryItemId = null;
+      updates.assetId = null;
+    }
+  }
 
   const [updated] = await db.update(serviceComponents).set(updates)
     .where(and(eq(serviceComponents.id, compId), eq(serviceComponents.serviceId, serviceId), eq(serviceComponents.orgId, orgId)))
