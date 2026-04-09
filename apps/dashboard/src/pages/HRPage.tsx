@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { hrApi } from "@/lib/api";
-import { Modal, Input, PageHeader } from "@/components/ui";
+import { Modal, Input, PageHeader, Button } from "@/components/ui";
 import { SkeletonRows } from "@/components/ui/Skeleton";
 import { toast } from "@/hooks/useToast";
 import { PayslipModal } from "@/components/hr/PayslipModal";
@@ -831,6 +831,12 @@ function LeavesTab() {
   const [showModal, setShowModal] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkProcessing, setBulkProcessing] = useState(false);
+  const [approveTarget, setApproveTarget] = useState<string | null>(null);
+  const [rejectTarget, setRejectTarget] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [bulkApproveConfirm, setBulkApproveConfirm] = useState(false);
+  const [bulkRejectConfirm, setBulkRejectConfirm] = useState(false);
+  const [bulkRejectReason, setBulkRejectReason] = useState("");
 
   const { data: empRes } = useApi(() => hrApi.employees({ status: "active" }), []);
   const employees: any[] = empRes?.data ?? [];
@@ -858,19 +864,30 @@ function LeavesTab() {
   }
 
   async function handleApprove(id: string) {
-    if (!confirm("هل تريد الموافقة على هذه الإجازة؟")) return;
-    try { await hrApi.approveLeave(id); toast.success("تمت الموافقة على الإجازة"); refetch(); }
-    catch { toast.error("حدث خطأ"); }
+    setApproveTarget(id);
+  }
+  async function doApprove() {
+    if (!approveTarget) return;
+    try { await hrApi.approveLeave(approveTarget); toast.success("تمت الموافقة على الإجازة"); refetch(); }
+    catch { toast.error("فشل الموافقة على الإجازة"); }
+    finally { setApproveTarget(null); }
   }
   async function handleReject(id: string) {
-    const reason = prompt("سبب الرفض:");
-    if (reason === null) return;
-    try { await hrApi.rejectLeave(id, { reason }); toast.success("تم رفض الطلب"); refetch(); }
-    catch { toast.error("حدث خطأ"); }
+    setRejectTarget(id);
+    setRejectReason("");
+  }
+  async function doReject() {
+    if (!rejectTarget) return;
+    try { await hrApi.rejectLeave(rejectTarget, { reason: rejectReason }); toast.success("تم رفض الطلب"); refetch(); }
+    catch { toast.error("فشل رفض الطلب"); }
+    finally { setRejectTarget(null); setRejectReason(""); }
   }
 
   async function handleBulkApprove() {
-    if (!confirm(`هل تريد الموافقة على ${selectedIds.size} طلبات إجازة؟`)) return;
+    setBulkApproveConfirm(true);
+  }
+  async function doBulkApprove() {
+    setBulkApproveConfirm(false);
     setBulkProcessing(true);
     let successCount = 0;
     let failCount = 0;
@@ -886,13 +903,16 @@ function LeavesTab() {
   }
 
   async function handleBulkReject() {
-    const reason = prompt("سبب الرفض (سيُطبق على جميع الطلبات المحددة):");
-    if (reason === null) return;
+    setBulkRejectConfirm(true);
+    setBulkRejectReason("");
+  }
+  async function doBulkReject() {
+    setBulkRejectConfirm(false);
     setBulkProcessing(true);
     let successCount = 0;
     let failCount = 0;
     for (const id of Array.from(selectedIds)) {
-      try { await hrApi.rejectLeave(id, { reason }); successCount++; }
+      try { await hrApi.rejectLeave(id, { reason: bulkRejectReason }); successCount++; }
       catch { failCount++; }
     }
     setBulkProcessing(false);
@@ -1020,6 +1040,36 @@ function LeavesTab() {
         </div>
       )}
       {showModal && <LeaveModal employees={employees} onClose={() => setShowModal(false)} onSaved={() => { setShowModal(false); refetch(); }} />}
+
+      {/* Approve single leave */}
+      <Modal open={!!approveTarget} onClose={() => setApproveTarget(null)} title="الموافقة على الإجازة" size="sm"
+        footer={<><Button variant="secondary" onClick={() => setApproveTarget(null)}>تراجع</Button><Button onClick={doApprove}>نعم، وافق</Button></>}>
+        <p className="text-sm text-gray-600">سيتم الموافقة على طلب الإجازة. هل أنت متأكد؟</p>
+      </Modal>
+
+      {/* Reject single leave */}
+      <Modal open={!!rejectTarget} onClose={() => { setRejectTarget(null); setRejectReason(""); }} title="رفض طلب الإجازة" size="sm"
+        footer={<><Button variant="secondary" onClick={() => { setRejectTarget(null); setRejectReason(""); }}>تراجع</Button><Button variant="danger" onClick={doReject}>رفض الطلب</Button></>}>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">أدخل سبب الرفض (اختياري):</p>
+          <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="مثال: لا يتوفر بديل في هذه الفترة" rows={2} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all resize-none" />
+        </div>
+      </Modal>
+
+      {/* Bulk approve */}
+      <Modal open={bulkApproveConfirm} onClose={() => setBulkApproveConfirm(false)} title="الموافقة على طلبات متعددة" size="sm"
+        footer={<><Button variant="secondary" onClick={() => setBulkApproveConfirm(false)}>تراجع</Button><Button onClick={doBulkApprove}>نعم، وافق على {selectedIds.size} طلب</Button></>}>
+        <p className="text-sm text-gray-600">سيتم الموافقة على {selectedIds.size} طلب إجازة. هل أنت متأكد؟</p>
+      </Modal>
+
+      {/* Bulk reject */}
+      <Modal open={bulkRejectConfirm} onClose={() => { setBulkRejectConfirm(false); setBulkRejectReason(""); }} title="رفض طلبات متعددة" size="sm"
+        footer={<><Button variant="secondary" onClick={() => { setBulkRejectConfirm(false); setBulkRejectReason(""); }}>تراجع</Button><Button variant="danger" onClick={doBulkReject}>رفض {selectedIds.size} طلب</Button></>}>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">أدخل سبب الرفض (سيُطبق على جميع الطلبات المحددة):</p>
+          <textarea value={bulkRejectReason} onChange={e => setBulkRejectReason(e.target.value)} placeholder="سبب الرفض..." rows={2} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all resize-none" />
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -1031,18 +1081,23 @@ function LeavesTab() {
 function PayrollTab() {
   const [showGenModal, setShowGenModal] = useState(false);
   const [payslipTarget, setPayslipTarget] = useState<{ payrollId: string; empId: string } | null>(null);
+  const [markPaidTarget, setMarkPaidTarget] = useState<string | null>(null);
 
   const { data, loading, error, refetch } = useApi(() => hrApi.payrolls(), []);
   const payrolls: any[] = data?.data ?? [];
 
   async function handleApprove(id: string) {
     try { await hrApi.approvePayroll(id); toast.success("تم اعتماد كشف الرواتب"); refetch(); }
-    catch { toast.error("حدث خطأ"); }
+    catch { toast.error("فشل اعتماد كشف الرواتب"); }
   }
   async function handleMarkPaid(id: string) {
-    if (!confirm("تأكيد صرف الرواتب؟")) return;
-    try { await hrApi.markPayrollPaid(id); toast.success("تم تسجيل صرف الرواتب"); refetch(); }
-    catch { toast.error("حدث خطأ"); }
+    setMarkPaidTarget(id);
+  }
+  async function doMarkPaid() {
+    if (!markPaidTarget) return;
+    try { await hrApi.markPayrollPaid(markPaidTarget); toast.success("تم تسجيل صرف الرواتب"); refetch(); }
+    catch { toast.error("فشل تسجيل صرف الرواتب"); }
+    finally { setMarkPaidTarget(null); }
   }
 
   return (
@@ -1096,6 +1151,12 @@ function PayrollTab() {
       {payslipTarget && (
         <PayslipModal payrollId={payslipTarget.payrollId} employeeId={payslipTarget.empId} onClose={() => setPayslipTarget(null)} />
       )}
+
+      {/* Mark Paid Confirmation */}
+      <Modal open={!!markPaidTarget} onClose={() => setMarkPaidTarget(null)} title="تأكيد صرف الرواتب" size="sm"
+        footer={<><Button variant="secondary" onClick={() => setMarkPaidTarget(null)}>تراجع</Button><Button onClick={doMarkPaid}>نعم، سُجّل الصرف</Button></>}>
+        <p className="text-sm text-gray-600">سيتم تسجيل صرف الرواتب لهذا الشهر. تأكد من تحويل المبالغ فعلياً قبل التأكيد.</p>
+      </Modal>
     </div>
   );
 }
@@ -1107,6 +1168,8 @@ function PayrollTab() {
 function LoansTab() {
   const [showModal, setShowModal] = useState(false);
   const [statusFilter, setStatusFilter] = useState("pending");
+  const [loanRejectTarget, setLoanRejectTarget] = useState<string | null>(null);
+  const [loanRejectReason, setLoanRejectReason] = useState("");
 
   const { data: empRes } = useApi(() => hrApi.employees({ status: "active" }), []);
   const employees: any[] = empRes?.data ?? [];
@@ -1116,12 +1179,17 @@ function LoansTab() {
 
   async function handleApprove(id: string) {
     try { await hrApi.approveLoan(id); toast.success("تمت الموافقة على السلفة"); refetch(); }
-    catch { toast.error("حدث خطأ"); }
+    catch { toast.error("فشل الموافقة على السلفة"); }
   }
   async function handleReject(id: string) {
-    const reason = prompt("سبب الرفض:") ?? "";
-    try { await hrApi.rejectLoan(id, { reason }); toast.success("تم رفض الطلب"); refetch(); }
-    catch { toast.error("حدث خطأ"); }
+    setLoanRejectTarget(id);
+    setLoanRejectReason("");
+  }
+  async function doRejectLoan() {
+    if (!loanRejectTarget) return;
+    try { await hrApi.rejectLoan(loanRejectTarget, { reason: loanRejectReason }); toast.success("تم رفض الطلب"); refetch(); }
+    catch { toast.error("فشل رفض الطلب"); }
+    finally { setLoanRejectTarget(null); setLoanRejectReason(""); }
   }
 
   function addMonths(ym: string, n: number): string {
@@ -1198,6 +1266,15 @@ function LoansTab() {
         </div>
       )}
       {showModal && <LoanModal employees={employees} onClose={() => setShowModal(false)} onSaved={() => { setShowModal(false); refetch(); }} />}
+
+      {/* Reject Loan */}
+      <Modal open={!!loanRejectTarget} onClose={() => { setLoanRejectTarget(null); setLoanRejectReason(""); }} title="رفض طلب السلفة" size="sm"
+        footer={<><Button variant="secondary" onClick={() => { setLoanRejectTarget(null); setLoanRejectReason(""); }}>تراجع</Button><Button variant="danger" onClick={doRejectLoan}>رفض الطلب</Button></>}>
+        <div className="space-y-3">
+          <p className="text-sm text-gray-600">أدخل سبب الرفض (اختياري):</p>
+          <textarea value={loanRejectReason} onChange={e => setLoanRejectReason(e.target.value)} placeholder="سبب الرفض..." rows={2} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all resize-none" />
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -1285,6 +1362,7 @@ function ComplianceTab() {
 
   const [submittingWPS, setSubmittingWPS] = useState(false);
   const [syncingGOSI, setSyncingGOSI]     = useState(false);
+  const [showWPSConfirm, setShowWPSConfirm] = useState(false);
 
   const nitaqatColor = (cat: string) => {
     if (cat === "platinum") return "text-purple-700 bg-purple-50";
@@ -1294,7 +1372,10 @@ function ComplianceTab() {
   };
 
   const submitWPS = async () => {
-    if (!confirm("هل تريد رفع بيانات رواتب هذا الشهر إلى WPS؟")) return;
+    setShowWPSConfirm(true);
+  };
+  const doSubmitWPS = async () => {
+    setShowWPSConfirm(false);
     setSubmittingWPS(true);
     try {
       // hrApi.submitWPS not available — WPS integration requires official MoL API credentials
@@ -1459,6 +1540,12 @@ function ComplianceTab() {
           </>
         )}
       </div>
+
+      {/* WPS Confirm */}
+      <Modal open={showWPSConfirm} onClose={() => setShowWPSConfirm(false)} title="رفع بيانات الرواتب إلى WPS" size="sm"
+        footer={<><Button variant="secondary" onClick={() => setShowWPSConfirm(false)}>تراجع</Button><Button onClick={doSubmitWPS}>نعم، ارفع البيانات</Button></>}>
+        <p className="text-sm text-gray-600">سيتم رفع بيانات رواتب شهر {month} إلى نظام حماية الأجور (WPS). هل أنت متأكد؟</p>
+      </Modal>
     </div>
   );
 }
