@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Plus, Megaphone, Trash2, Loader2 } from "lucide-react";
+import { Plus, Megaphone, Trash2, Loader2, CheckCircle2 } from "lucide-react";
 import { clsx } from "clsx";
 import { adminApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
+import { toast } from "@/hooks/useToast";
 import { SectionHeader, Spinner, Empty } from "./shared";
 
 function AnnouncementsTab() {
@@ -18,6 +19,26 @@ function AnnouncementsTab() {
     maintenance: "bg-orange-50 text-orange-700", feature: "bg-emerald-50 text-emerald-700",
   };
   const TYPE_LABELS: Record<string, string> = { info: "معلومات", warning: "تحذير", maintenance: "صيانة", feature: "ميزة جديدة" };
+
+  const handleCreate = async () => {
+    if (!form.title.trim()) return;
+    const result = await create(form);
+    if (result) {
+      toast.success("تم نشر الإعلان بنجاح");
+      setForm({ title: "", body: "", type: "info" });
+      setShowForm(false);
+      refetch();
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("حذف هذا الإعلان؟")) return;
+    const result = await del(id);
+    if (result) {
+      toast.success("تم حذف الإعلان");
+      refetch();
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -47,9 +68,8 @@ function AnnouncementsTab() {
           </div>
           <div className="flex gap-3">
             <button onClick={() => setShowForm(false)} className="flex-1 py-2 border border-gray-200 rounded-xl text-sm text-gray-600">إلغاء</button>
-            <button disabled={creating || !form.title} onClick={async () => {
-              await create(form); setForm({ title: "", body: "", type: "info" }); setShowForm(false); refetch();
-            }} className="flex-1 py-2 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50">
+            <button disabled={creating || !form.title.trim()} onClick={handleCreate}
+              className="flex-1 py-2 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50">
               {creating ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "نشر الإعلان"}
             </button>
           </div>
@@ -67,7 +87,7 @@ function AnnouncementsTab() {
                 <p className="text-xs text-gray-400 mt-0.5 line-clamp-2">{a.body}</p>
                 <p className="text-[10px] text-gray-300 mt-1">{a.createdAt ? new Date(a.createdAt).toLocaleDateString("ar") : ""}</p>
               </div>
-              <button onClick={async () => { if (!confirm("حذف هذا الإعلان؟")) return; await del(a.id); refetch(); }}
+              <button onClick={() => handleDelete(a.id)}
                 className="p-1.5 rounded-lg hover:bg-red-50 text-gray-300 hover:text-red-500 transition-colors shrink-0">
                 <Trash2 className="w-4 h-4" />
               </button>

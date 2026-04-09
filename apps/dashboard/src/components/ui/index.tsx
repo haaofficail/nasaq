@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useRef, useState, useCallback } from "react";
 import { X, Loader2, AlertCircle, Inbox, Trash2, AlertTriangle } from "lucide-react";
 import { clsx } from "clsx";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-lock";
 
 // ── New design system components ──────────────────────────────
 export { TimePicker }     from "./TimePicker";
@@ -31,11 +32,20 @@ export function Modal({
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
+  // Body scroll lock — ref-counted so nested/parallel modals don't interfere
   useEffect(() => {
-    if (open) document.body.style.overflow = "hidden";
-    else document.body.style.overflow = "";
-    return () => { document.body.style.overflow = ""; };
+    if (!open) return;
+    lockBodyScroll();
+    return () => { unlockBodyScroll(); };
   }, [open]);
+
+  // Escape key to close
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => { document.removeEventListener("keydown", handler); };
+  }, [open, onClose]);
 
   if (!open) return null;
 
@@ -396,6 +406,13 @@ export function ConfirmDialogHost() {
       if (idx !== -1) _listeners.splice(idx, 1);
     };
   }, []);
+
+  // Body scroll lock
+  useEffect(() => {
+    if (!opts) return;
+    lockBodyScroll();
+    return () => { unlockBodyScroll(); };
+  }, [opts]);
 
   const resolve = useCallback((result: boolean) => {
     setOpts(null);

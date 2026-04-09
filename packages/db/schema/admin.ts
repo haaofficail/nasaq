@@ -57,11 +57,16 @@ export const orgDocuments = pgTable("org_documents", {
   type: text("type").notNull(),           // commercial_register, vat_certificate, id_copy, other
   label: text("label"),
   fileUrl: text("file_url").notNull(),
+  documentNumber: text("document_number"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
 
   status: text("status").default("pending").notNull(), // pending, approved, rejected
   reviewedBy: uuid("reviewed_by").references(() => users.id, { onDelete: "set null" }),
   reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
   notes: text("notes"),
+  rejectionReason: text("rejection_reason"),
+  isVerified: boolean("is_verified").default(false),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),

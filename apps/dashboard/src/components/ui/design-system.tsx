@@ -1,5 +1,6 @@
 import { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, forwardRef, useEffect, useRef } from "react";
 import { X } from "lucide-react";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-lock";
 
 // ─── Button ─────────────────────────────────────────────────────────────────
 
@@ -229,15 +230,19 @@ const modalMaxWidths = {
 export function Modal({ open, onClose, title, children, footer, maxWidth = "md" }: ModalProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
+  // Body scroll lock — ref-counted
   useEffect(() => {
     if (!open) return;
-    const handler = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    lockBodyScroll();
+    return () => { unlockBodyScroll(); };
+  }, [open]);
+
+  // Escape key to close
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", handler);
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", handler);
-      document.body.style.overflow = "";
-    };
+    return () => { document.removeEventListener("keydown", handler); };
   }, [open, onClose]);
 
   if (!open) return null;
