@@ -33,6 +33,7 @@ export const E = {
   ORG_INVALID_CAPS:   { code: "ORG_INVALID_CAPS",   msg: "capabilities يجب أن تكون مصفوفة" },
   ORG_NAME_REQUIRED:  { code: "ORG_NAME_REQUIRED",  msg: "الاسم مطلوب" },
   ORG_PLAN_REQUIRED:  { code: "ORG_PLAN_REQUIRED",  msg: "الباقة مطلوبة" },
+  ORG_SLUG_TAKEN:     { code: "ORG_SLUG_TAKEN",     msg: "هذا الـ Slug مستخدم من منشأة أخرى" },
   ORG_SUSPENDED:      { code: "ORG_SUSPENDED",       msg: "اشتراككم موقوف — يرجى تجديد الاشتراك للاستمرار" },
 
   // ── Plans ────────────────────────────────────────────────

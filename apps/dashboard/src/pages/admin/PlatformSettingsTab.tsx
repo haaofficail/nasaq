@@ -4,7 +4,7 @@ import { adminApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { toast } from "@/hooks/useToast";
 import { invalidatePlatformConfig } from "@/hooks/usePlatformConfig";
-import { Spinner } from "./shared";
+import { Spinner, SectionHeader } from "./shared";
 
 // ── UploadZone ─────────────────────────────────────────────────────────────────
 function UploadZone({
@@ -111,15 +111,9 @@ export default function PlatformSettingsTab() {
 
   return (
     <div className="space-y-8 max-w-2xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-base font-bold text-gray-900">إعدادات المنصة</h2>
-          <p className="text-xs text-gray-400 mt-0.5">هوية ترميز OS — الشعار والاسم والألوان</p>
-        </div>
-        <button onClick={refetch} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
-          <RefreshCw className="w-3.5 h-3.5" /> تحديث
-        </button>
-      </div>
+      <SectionHeader title="إعدادات المنصة" sub="هوية ترميز OS — الشعار والاسم والألوان وبيانات الدعم"
+        action={<button onClick={refetch} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"><RefreshCw className="w-3.5 h-3.5" /> تحديث</button>}
+      />
 
       {/* Logo */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
