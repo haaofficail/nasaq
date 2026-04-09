@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { FileText, CheckCircle, XCircle, ExternalLink, AlertTriangle, Calendar } from "lucide-react";
+import { FileText, CheckCircle, XCircle, ExternalLink, AlertTriangle, Calendar, MessageCircle } from "lucide-react";
 import { clsx } from "clsx";
 import { adminApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
@@ -70,9 +70,16 @@ function DocumentsTab() {
   }
 
   const handleApprove = async (id: string) => {
-    await updateDoc({ id, payload: { status: "approved" } });
-    toast.success("تمت الموافقة على الوثيقة");
-    refetch();
+    const result = await updateDoc({ id, payload: { status: "approved" } });
+    if (result) {
+      toast.success("تمت الموافقة على الوثيقة");
+      // Try sending WhatsApp notification
+      const doc = docs.find((d: any) => d.id === id);
+      if (doc?.orgId) {
+        sendDocNotification(doc, "approved");
+      }
+      refetch();
+    }
   };
 
   const openRejectModal = (id: string) => {
@@ -85,13 +92,39 @@ function DocumentsTab() {
       toast.error("يرجى كتابة سبب الرفض");
       return;
     }
-    await updateDoc({
+    const result = await updateDoc({
       id: rejectModal.docId,
       payload: { status: "rejected", rejectionReason: rejectionReason.trim() },
     });
-    toast.success("تم رفض الوثيقة");
-    setRejectModal({ open: false, docId: "" });
-    refetch();
+    if (result) {
+      toast.success("تم رفض الوثيقة");
+      // Try sending WhatsApp notification
+      const doc = docs.find((d: any) => d.id === rejectModal.docId);
+      if (doc?.orgId) {
+        sendDocNotification(doc, "rejected", rejectionReason.trim());
+      }
+      setRejectModal({ open: false, docId: "" });
+      refetch();
+    }
+  };
+
+  // Send WhatsApp notification for document status change
+  const sendDocNotification = async (doc: any, action: string, reason?: string) => {
+    try {
+      // Fetch org phone from docs data (orgName is joined)
+      // We can only send if we have org phone - send silently without blocking
+      await adminApi.sendDocNotification({
+        phone: doc.orgPhone || "",
+        orgName: doc.orgName || "المنشأة",
+        documentType: DOC_TYPES[doc.type] || doc.type,
+        action,
+        rejectionReason: reason,
+        expiresAt: doc.expiresAt,
+        orgId: doc.orgId,
+      });
+    } catch {
+      // Silent — notification is best-effort
+    }
   };
 
   const tabs: [string, string][] = [

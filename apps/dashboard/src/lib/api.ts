@@ -1981,6 +1981,15 @@ export const adminApi = {
     if (params?.page)   qs.set("page", String(params.page));
     return api.get<{ data: any[]; pagination: any }>(`/admin/wa/messages?${qs}`);
   },
+
+  // ── WhatsApp QR Session ──────────────────────────────────
+  waQrStatus:         () => api.get<{ data: any }>("/admin/wa/qr/status"),
+  waQrStart:          () => api.post<{ data: any }>("/admin/wa/qr/start", {}),
+  waQrLogout:         () => api.post<{ data: any }>("/admin/wa/qr/logout", {}),
+
+  // ── Credentials & Document Notifications ─────────────────
+  sendCredentials:    (d: any) => api.post<{ data: any }>("/admin/wa/send-credentials", d),
+  sendDocNotification:(d: any) => api.post<{ data: any }>("/admin/wa/send-doc-notification", d),
 };
 
 // --- Commercial Engine (admin only) ---

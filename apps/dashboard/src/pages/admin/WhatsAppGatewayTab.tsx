@@ -1,12 +1,14 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   MessageCircle, Send, FileText, Plus, Pencil, Trash2,
   Loader2, CheckCircle2, XCircle, RefreshCw,
-  Signal, AlertTriangle,
+  Signal, AlertTriangle, QrCode, Smartphone,
+  Key, Unplug, Link2,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { adminApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
+import { toast } from "@/hooks/useToast";
 import { SectionHeader, Modal, Empty, Spinner, TabPill } from "./shared";
 
 const TEMPLATE_CATEGORIES: Record<string, string> = {
@@ -24,7 +26,7 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
 };
 
 export default function WhatsAppGatewayTab() {
-  const [tab, setTab] = useState<"send" | "templates" | "log">("send");
+  const [tab, setTab] = useState<"qr" | "credentials" | "send" | "templates" | "log">("qr");
 
   const { data: statusData, loading: statusLoading, refetch: refetchStatus } = useApi(() => adminApi.waStatus(), []);
   const status = statusData?.data;
@@ -33,7 +35,7 @@ export default function WhatsAppGatewayTab() {
     <div className="space-y-6">
       <SectionHeader
         title="بوابة واتساب"
-        sub="أرسل رسائل واتساب للمنشآت — بيانات الدخول، العروض، الملاحظات، والإشعارات"
+        sub="ربط واتساب بباركود QR، إرسال بيانات الدخول، إشعارات الوثائق، والرسائل"
       />
 
       {/* Connection Status */}
@@ -54,7 +56,7 @@ export default function WhatsAppGatewayTab() {
               <span className={clsx("inline-flex px-2.5 py-1 rounded-full text-xs font-semibold",
                 status.whatsappConfigured ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
               )}>
-                {status.whatsappConfigured ? "متصل" : "غير متصل"}
+                {status.whatsappConfigured ? "متصل (API)" : "غير متصل"}
               </span>
             </div>
             <div className="bg-gray-50 rounded-xl p-3 text-center">
@@ -73,31 +75,290 @@ export default function WhatsAppGatewayTab() {
         ) : (
           <p className="text-xs text-gray-400">لا يمكن تحميل حالة الاتصال</p>
         )}
-        {status && !status.whatsappConfigured && (
-          <div className="mt-3 bg-amber-50 border border-amber-100 rounded-xl p-3 flex items-start gap-2">
-            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
-            <div className="text-xs text-amber-700">
-              <p className="font-medium mb-1">الواتساب غير مُعد</p>
-              <p>لإرسال الرسائل، يجب تعيين متغيرات البيئة: <code className="bg-amber-100 px-1 rounded">META_WA_TOKEN</code> و <code className="bg-amber-100 px-1 rounded">META_WA_PHONE_ID</code> أو أحد المزودين الآخرين (Unifonic / Twilio).</p>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Tabs */}
       <TabPill
         tabs={[
+          { id: "qr", label: "ربط بـ QR" },
+          { id: "credentials", label: "بيانات الدخول" },
           { id: "send", label: "إرسال رسالة" },
           { id: "templates", label: "القوالب" },
           { id: "log", label: "سجل الرسائل" },
         ]}
         active={tab}
-        onChange={(id) => setTab(id as "send" | "templates" | "log")}
+        onChange={(id) => setTab(id as typeof tab)}
       />
 
+      {tab === "qr" && <QrConnectionSection />}
+      {tab === "credentials" && <CredentialsSendSection />}
       {tab === "send" && <SendMessageSection />}
       {tab === "templates" && <TemplatesSection />}
       {tab === "log" && <MessageLogSection />}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// QR CONNECTION SECTION
+// ══════════════════════════════════════════════════════════════
+
+function QrConnectionSection() {
+  const { data: qrData, loading, refetch } = useApi(() => adminApi.waQrStatus(), []);
+  const qrState = qrData?.data;
+  const [starting, setStarting] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Auto-poll when waiting for QR or scan
+  useEffect(() => {
+    if (qrState?.status === "qr_ready" || qrState?.status === "connecting" || starting) {
+      pollRef.current = setInterval(() => refetch(), 2000);
+    }
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [qrState?.status, starting, refetch]);
+
+  // Stop polling once connected
+  useEffect(() => {
+    if (qrState?.status === "connected" && pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+      setStarting(false);
+    }
+  }, [qrState?.status]);
+
+  const handleStart = async () => {
+    setStarting(true);
+    try {
+      await adminApi.waQrStart();
+      toast.success("جارٍ بدء جلسة QR...");
+      // Start polling
+      setTimeout(() => refetch(), 1500);
+    } catch {
+      toast.error("فشل بدء الجلسة");
+      setStarting(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await adminApi.waQrLogout();
+      toast.success("تم فصل الاتصال");
+      refetch();
+    } catch {
+      toast.error("فشل فصل الاتصال");
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-5">
+      <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+        <QrCode className="w-4 h-4 text-brand-500" />
+        ربط واتساب بباركود QR
+      </h3>
+
+      <p className="text-xs text-gray-500">
+        اربط رقم واتساب المنصة عبر مسح باركود QR مباشرة — بديل عن إعداد API.
+        بعد المسح، يمكنك إرسال بيانات الدخول وإشعارات الوثائق مباشرة من هنا.
+      </p>
+
+      {loading ? <Spinner /> : (
+        <>
+          {/* Status Display */}
+          <div className="flex items-center gap-3">
+            <div className={clsx(
+              "w-3 h-3 rounded-full shrink-0",
+              qrState?.status === "connected" ? "bg-emerald-500" :
+              qrState?.status === "qr_ready" ? "bg-amber-500 animate-pulse" :
+              "bg-gray-300"
+            )} />
+            <span className="text-sm font-medium text-gray-700">
+              {qrState?.status === "connected" ? `متصل — ${qrState.phone || ""}` :
+               qrState?.status === "qr_ready" ? "في انتظار مسح الباركود..." :
+               qrState?.status === "connecting" ? "جارٍ الاتصال..." :
+               "غير متصل"}
+            </span>
+          </div>
+
+          {/* QR Code Display */}
+          {qrState?.status === "qr_ready" && qrState.qrBase64 && (
+            <div className="flex flex-col items-center gap-3 py-4">
+              <div className="bg-white p-4 rounded-2xl border-2 border-brand-200 shadow-lg">
+                <img
+                  src={qrState.qrBase64.startsWith("data:") ? qrState.qrBase64 : `data:image/png;base64,${qrState.qrBase64}`}
+                  alt="QR Code"
+                  className="w-64 h-64 object-contain"
+                />
+              </div>
+              <p className="text-xs text-gray-500">
+                افتح واتساب على هاتفك &gt; الأجهزة المرتبطة &gt; ربط جهاز &gt; امسح الباركود
+              </p>
+            </div>
+          )}
+
+          {/* Connected State */}
+          {qrState?.status === "connected" && (
+            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-3">
+              <Smartphone className="w-5 h-5 text-emerald-600 shrink-0" />
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-emerald-800">متصل بنجاح</p>
+                {qrState.phone && <p className="text-xs text-emerald-600 mt-0.5">الرقم: {qrState.phone}</p>}
+              </div>
+            </div>
+          )}
+
+          {/* Actions */}
+          <div className="flex gap-3">
+            {qrState?.status !== "connected" && (
+              <button
+                onClick={handleStart}
+                disabled={starting || qrState?.status === "qr_ready"}
+                className="flex items-center gap-2 px-4 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 transition-colors"
+              >
+                {starting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
+                {starting ? "جارٍ البدء..." : "بدء جلسة QR"}
+              </button>
+            )}
+            {qrState?.status === "connected" && (
+              <button
+                onClick={handleLogout}
+                disabled={loggingOut}
+                className="flex items-center gap-2 px-4 py-2.5 bg-red-50 text-red-600 rounded-xl text-sm font-medium hover:bg-red-100 disabled:opacity-50 transition-colors"
+              >
+                {loggingOut ? <Loader2 className="w-4 h-4 animate-spin" /> : <Unplug className="w-4 h-4" />}
+                فصل الاتصال
+              </button>
+            )}
+            <button
+              onClick={() => refetch()}
+              className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              <RefreshCw className="w-3.5 h-3.5" /> تحديث الحالة
+            </button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// CREDENTIALS SEND SECTION
+// ══════════════════════════════════════════════════════════════
+
+function CredentialsSendSection() {
+  const [form, setForm] = useState({
+    phone: "", orgName: "", email: "", password: "",
+    loginUrl: "", channel: "whatsapp", orgId: "",
+  });
+  const [sending, setSending] = useState(false);
+  const [result, setResult] = useState<{ sent: boolean; error?: string } | null>(null);
+
+  const handleSend = async () => {
+    if (!form.phone || !form.orgName || !form.password) return;
+    setSending(true);
+    setResult(null);
+    try {
+      const res = await adminApi.sendCredentials({
+        phone: form.phone,
+        orgName: form.orgName,
+        email: form.email || undefined,
+        password: form.password,
+        loginUrl: form.loginUrl || undefined,
+        channel: form.channel,
+        orgId: form.orgId || undefined,
+      });
+      setResult({ sent: res.data?.sent, error: res.data?.error });
+      if (res.data?.sent) {
+        toast.success("تم إرسال بيانات الدخول بنجاح");
+        setForm(f => ({ ...f, phone: "", orgName: "", email: "", password: "", orgId: "" }));
+      }
+    } catch (err: any) {
+      setResult({ sent: false, error: err?.message || "خطأ في الإرسال" });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+      <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+        <Key className="w-4 h-4 text-brand-500" />
+        إرسال بيانات الدخول للمنشأة
+      </h3>
+      <p className="text-xs text-gray-500">
+        أرسل بيانات الدخول (البريد/الجوال + كلمة المرور + رابط الدخول) مباشرة عبر واتساب أو SMS.
+      </p>
+
+      {result && (
+        <div className={clsx("rounded-xl p-3 text-xs font-medium flex items-center gap-2",
+          result.sent ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-700 border border-red-100"
+        )}>
+          {result.sent ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+          {result.sent ? "تم إرسال بيانات الدخول بنجاح" : `فشل الإرسال: ${result.error}`}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">اسم المنشأة *</label>
+          <input value={form.orgName} onChange={e => setForm(f => ({ ...f, orgName: e.target.value }))}
+            placeholder="مثال: شركة النور"
+            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">رقم الجوال *</label>
+          <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+            placeholder="05XXXXXXXX"
+            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">البريد الإلكتروني</label>
+          <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+            placeholder="email@example.com"
+            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">كلمة المرور *</label>
+          <input value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+            placeholder="كلمة المرور المؤقتة"
+            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 font-mono" dir="ltr" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">رابط الدخول</label>
+          <input value={form.loginUrl} onChange={e => setForm(f => ({ ...f, loginUrl: e.target.value }))}
+            placeholder="https://app.tarmiz.os/login (افتراضي)"
+            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" dir="ltr" />
+        </div>
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">قناة الإرسال</label>
+          <select value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))}
+            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+            <option value="whatsapp">واتساب</option>
+            <option value="sms">رسالة نصية SMS</option>
+          </select>
+        </div>
+      </div>
+
+      <button
+        disabled={!form.phone || !form.orgName || !form.password || sending}
+        onClick={handleSend}
+        className="w-full py-3 bg-brand-500 text-white rounded-xl text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+      >
+        {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
+        إرسال بيانات الدخول
+      </button>
     </div>
   );
 }

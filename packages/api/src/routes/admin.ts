@@ -533,6 +533,7 @@ adminRouter.get("/documents", async (c) => {
       id: orgDocuments.id,
       orgId: orgDocuments.orgId,
       orgName: organizations.name,
+      orgPhone: organizations.phone,
       type: orgDocuments.type,
       label: orgDocuments.label,
       fileUrl: orgDocuments.fileUrl,
@@ -2166,6 +2167,16 @@ adminRouter.get("/wa/status", async (c) => {
   const { isWhatsAppConfigured, whatsAppProvider } = await import("../lib/whatsapp");
   const { isSmsConfigured } = await import("../lib/whatsapp");
 
+  // Check Baileys platform session
+  let baileysConnected = false;
+  let baileysPhone: string | null = null;
+  try {
+    const { getBaileysState } = await import("../lib/whatsappBaileys");
+    const state = getBaileysState("platform");
+    baileysConnected = state.status === "connected";
+    baileysPhone = state.phone ?? null;
+  } catch { /* baileys not installed */ }
+
   const [sentCount] = await db.select({ total: count() })
     .from(adminWaMessages).where(eq(adminWaMessages.status, "sent"));
   const [failedCount] = await db.select({ total: count() })
@@ -2174,9 +2185,11 @@ adminRouter.get("/wa/status", async (c) => {
 
   return c.json({
     data: {
-      whatsappConfigured: isWhatsAppConfigured(),
+      whatsappConfigured: isWhatsAppConfigured() || baileysConnected,
       smsConfigured: isSmsConfigured(),
-      provider: whatsAppProvider(),
+      provider: baileysConnected ? "baileys-qr" : whatsAppProvider(),
+      baileysConnected,
+      baileysPhone,
       stats: {
         total: Number(totalCount?.total ?? 0),
         sent: Number(sentCount?.total ?? 0),
@@ -2282,8 +2295,13 @@ adminRouter.post("/wa/send", async (c) => {
   let errorMessage = "";
   try {
     if (body.channel === "whatsapp") {
-      const { sendWhatsApp } = await import("../lib/whatsapp");
-      sent = await sendWhatsApp(phone, body.message);
+      // Try Baileys platform session first, then fallback to configured providers
+      const { sendViaBaileys } = await import("../lib/whatsappBaileys");
+      sent = await sendViaBaileys("platform", phone, body.message).catch(() => false);
+      if (!sent) {
+        const { sendWhatsApp } = await import("../lib/whatsapp");
+        sent = await sendWhatsApp(phone, body.message);
+      }
     } else {
       const { sendSms } = await import("../lib/sms");
       sent = await sendSms(phone, body.message);
@@ -2325,4 +2343,203 @@ adminRouter.get("/wa/messages", async (c) => {
   ]);
 
   return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+});
+
+// ── WhatsApp QR Session (Platform-level Baileys) ───────────
+adminRouter.get("/wa/qr/status", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  try {
+    const { getBaileysState } = await import("../lib/whatsappBaileys");
+    const state = getBaileysState("platform");
+    return c.json({ data: state });
+  } catch {
+    return c.json({ data: { status: "disconnected", qrBase64: null, phone: null, updatedAt: new Date() } });
+  }
+});
+
+adminRouter.post("/wa/qr/start", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  try {
+    const { initBaileys } = await import("../lib/whatsappBaileys");
+    initBaileys("platform").catch(() => {});
+    logAdminAction(adminId, "start_wa_qr", "whatsapp", "platform", {}, c.req.header("X-Forwarded-For"));
+    return c.json({ data: { ok: true, message: "جارٍ بدء جلسة QR..." } });
+  } catch (err: any) {
+    return c.json({ data: { ok: false, error: err?.message || "فشل بدء الجلسة" } }, 500);
+  }
+});
+
+adminRouter.post("/wa/qr/logout", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  try {
+    const { logoutBaileys } = await import("../lib/whatsappBaileys");
+    await logoutBaileys("platform");
+    logAdminAction(adminId, "logout_wa_qr", "whatsapp", "platform", {}, c.req.header("X-Forwarded-For"));
+    return c.json({ data: { ok: true } });
+  } catch {
+    return c.json({ data: { ok: true } });
+  }
+});
+
+// ── Send Org Credentials via WhatsApp ──────────────────────
+adminRouter.post("/wa/send-credentials", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+
+  const body = z.object({
+    phone: z.string().min(5),
+    orgName: z.string().min(1),
+    email: z.string().optional(),
+    password: z.string().min(1),
+    loginUrl: z.string().optional(),
+    channel: z.enum(["whatsapp", "sms"]).default("whatsapp"),
+    orgId: z.string().uuid().optional(),
+  }).parse(await c.req.json());
+
+  const phone = normalizePhoneAdmin(body.phone) || body.phone;
+  const loginUrl = body.loginUrl || "https://app.tarmiz.os/login";
+
+  const message = [
+    `مرحباً ${body.orgName}`,
+    ``,
+    `تم إنشاء حسابكم في منصة ترميز OS`,
+    ``,
+    `بيانات الدخول:`,
+    body.email ? `البريد: ${body.email}` : `الجوال: ${body.phone}`,
+    `كلمة المرور: ${body.password}`,
+    ``,
+    `رابط الدخول: ${loginUrl}`,
+    ``,
+    `يرجى تغيير كلمة المرور بعد أول تسجيل دخول.`,
+  ].join("\n");
+
+  const [msg] = await db.insert(adminWaMessages).values({
+    adminId,
+    orgId: body.orgId || null,
+    recipientPhone: phone,
+    recipientName: body.orgName,
+    messageText: message,
+    channel: body.channel,
+    status: "pending",
+  }).returning();
+
+  let sent = false;
+  let errorMessage = "";
+  try {
+    if (body.channel === "whatsapp") {
+      const { sendViaBaileys } = await import("../lib/whatsappBaileys");
+      sent = await sendViaBaileys("platform", phone, message).catch(() => false);
+      if (!sent) {
+        const { sendWhatsApp } = await import("../lib/whatsapp");
+        sent = await sendWhatsApp(phone, message);
+      }
+    } else {
+      const { sendSms } = await import("../lib/sms");
+      sent = await sendSms(phone, message);
+    }
+  } catch (err: any) {
+    errorMessage = err?.message || "خطأ غير معروف";
+  }
+
+  await db.update(adminWaMessages).set({
+    status: sent ? "sent" : "failed",
+    errorMessage: sent ? null : (errorMessage || "فشل الإرسال"),
+    sentAt: sent ? new Date() : null,
+  }).where(eq(adminWaMessages.id, msg.id));
+
+  logAdminAction(adminId, "send_credentials", "wa_message", msg.id, {
+    phone, orgName: body.orgName, sent,
+  }, c.req.header("X-Forwarded-For"));
+
+  return c.json({ data: { id: msg.id, sent, error: sent ? null : (errorMessage || "فشل الإرسال") } });
+});
+
+// ── Send Document Notification via WhatsApp ────────────────
+adminRouter.post("/wa/send-doc-notification", async (c) => {
+  if (!hasRole(c, ["super_admin", "account_manager"])) return roleNotAllowed(c);
+  const adminId = c.get("adminId") as string;
+
+  const body = z.object({
+    phone: z.string().min(5),
+    orgName: z.string().min(1),
+    documentType: z.string().min(1),
+    action: z.enum(["approved", "rejected", "expiry_reminder"]),
+    rejectionReason: z.string().optional(),
+    expiresAt: z.string().optional(),
+    channel: z.enum(["whatsapp", "sms"]).default("whatsapp"),
+    orgId: z.string().uuid().optional(),
+  }).parse(await c.req.json());
+
+  const phone = normalizePhoneAdmin(body.phone) || body.phone;
+
+  let message = "";
+  if (body.action === "approved") {
+    message = [
+      `مرحباً ${body.orgName}`,
+      ``,
+      `تم قبول الوثيقة: ${body.documentType}`,
+      ``,
+      `وثائقكم مكتملة. شكراً لتعاونكم.`,
+    ].join("\n");
+  } else if (body.action === "rejected") {
+    message = [
+      `مرحباً ${body.orgName}`,
+      ``,
+      `تم رفض الوثيقة: ${body.documentType}`,
+      body.rejectionReason ? `السبب: ${body.rejectionReason}` : "",
+      ``,
+      `يرجى إعادة رفع الوثيقة بعد تصحيح الملاحظات.`,
+    ].filter(Boolean).join("\n");
+  } else if (body.action === "expiry_reminder") {
+    message = [
+      `مرحباً ${body.orgName}`,
+      ``,
+      `تنبيه: وثيقة "${body.documentType}" قاربت على الانتهاء`,
+      body.expiresAt ? `تاريخ الانتهاء: ${new Date(body.expiresAt).toLocaleDateString("ar")}` : "",
+      ``,
+      `يرجى تجديد الوثيقة في أقرب وقت لتجنب تعليق الحساب.`,
+    ].filter(Boolean).join("\n");
+  }
+
+  const [msg] = await db.insert(adminWaMessages).values({
+    adminId,
+    orgId: body.orgId || null,
+    recipientPhone: phone,
+    recipientName: body.orgName,
+    messageText: message,
+    channel: body.channel,
+    status: "pending",
+  }).returning();
+
+  let sent = false;
+  let errorMessage = "";
+  try {
+    if (body.channel === "whatsapp") {
+      const { sendViaBaileys } = await import("../lib/whatsappBaileys");
+      sent = await sendViaBaileys("platform", phone, message).catch(() => false);
+      if (!sent) {
+        const { sendWhatsApp } = await import("../lib/whatsapp");
+        sent = await sendWhatsApp(phone, message);
+      }
+    } else {
+      const { sendSms } = await import("../lib/sms");
+      sent = await sendSms(phone, message);
+    }
+  } catch (err: any) {
+    errorMessage = err?.message || "خطأ غير معروف";
+  }
+
+  await db.update(adminWaMessages).set({
+    status: sent ? "sent" : "failed",
+    errorMessage: sent ? null : (errorMessage || "فشل الإرسال"),
+    sentAt: sent ? new Date() : null,
+  }).where(eq(adminWaMessages.id, msg.id));
+
+  logAdminAction(adminId, "send_doc_notification", "wa_message", msg.id, {
+    phone, action: body.action, documentType: body.documentType, sent,
+  }, c.req.header("X-Forwarded-For"));
+
+  return c.json({ data: { id: msg.id, sent, error: sent ? null : (errorMessage || "فشل الإرسال") } });
 });
