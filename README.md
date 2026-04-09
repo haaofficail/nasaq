@@ -167,31 +167,58 @@ All requests require header: `X-Org-Id: <uuid>`
 
 ---
 
-## ⚠️ Production Migration Strategy
-
-> **Production uses a legacy migrations table called `_migrations` — NOT Drizzle's default `__drizzle_migrations`.**
-
-### Rules
-
-1. **DO NOT** run `pnpm db:migrate` against production. The script is disabled and will exit with an error.
-2. Migrations must be applied **manually via SQL** on the production database.
-3. After applying a migration, insert a corresponding record into the `_migrations` table:
-   ```sql
-   INSERT INTO _migrations (name, applied_at)
-   VALUES ('NNN_migration_name.sql', NOW());
-   ```
-4. Running Drizzle's automated migrations will cause conflicts (e.g., `enum already exists`) because the production database was not bootstrapped with `__drizzle_migrations`.
+## ⚠️ Production Deployment & Migration Policy
 
 ### Deployment
 
-Production deployment is handled by GitHub Actions (`.github/workflows/deploy.yml`).  
-The workflow connects to the VPS via SSH and runs:
+Production deployment is handled **exclusively** by GitHub Actions (`.github/workflows/deploy.yml`).
 
-```
-git pull origin main
-pnpm install --frozen-lockfile
-pnpm build
-pm2 restart all
+- **Trigger:** push to `main`
+- **Target:** VPS at `/var/www/nasaq` via SSH
+- **Steps executed on the server:**
+  ```
+  cd /var/www/nasaq
+  git pull origin main
+  pnpm install --frozen-lockfile
+  pnpm build
+  pm2 restart all
+  pm2 status
+  ```
+- **Fail-fast:** deployment aborts immediately on the first command error (`set -e` + `script_stop`).
+- **No migration commands are executed during deployment.**
+
+### Server Policy
+
+- The VPS is **execution-only** — do not develop, edit code, or run ad-hoc scripts directly on the server.
+- Production secrets (`.env`) live **only on the VPS** and are never committed to the repository.
+- GitHub is the **single source of truth** for all application code.
+
+### Database Migration Policy
+
+> **Production uses a legacy migrations table called `_migrations` — NOT Drizzle's default `__drizzle_migrations`.**
+
+1. **DO NOT** run `pnpm db:migrate` against production. The script is disabled and will exit with an error.
+2. Running Drizzle's automated migrations will cause conflicts (e.g., `enum already exists`) because the production database was not bootstrapped with `__drizzle_migrations`.
+3. New migrations **must be applied manually** using the procedure below.
+
+### Manual Production Migration Procedure
+
+```bash
+# 1. SSH into the VPS and cd to the repo directory
+cd /var/www/nasaq
+
+# 2. Connect to the production database
+psql "$DATABASE_URL"
+
+# 3. Apply the migration SQL file (path relative to repo root)
+\i packages/db/migrations/NNN_migration_name.sql
+
+# 4. Register the migration in the legacy tracking table
+INSERT INTO _migrations (name, applied_at)
+VALUES ('NNN_migration_name.sql', NOW());
+
+# 5. Verify
+SELECT * FROM _migrations ORDER BY applied_at DESC LIMIT 5;
 ```
 
-**No migration commands are executed during deployment.**
+> Always test migrations against a staging or local database before applying to production.
