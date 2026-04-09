@@ -2230,10 +2230,7 @@ adminRouter.post("/wa/send", async (c) => {
   }).parse(await c.req.json());
 
   // Normalize phone
-  let phone = body.phone.replace(/[\s-]/g, "");
-  if (phone.startsWith("05")) phone = "+966" + phone.substring(1);
-  else if (phone.startsWith("966")) phone = "+" + phone;
-  else if (!phone.startsWith("+")) phone = "+" + phone;
+  const phone = normalizePhoneAdmin(body.phone) || body.phone;
 
   // Log message first
   const [msg] = await db.insert(adminWaMessages).values({

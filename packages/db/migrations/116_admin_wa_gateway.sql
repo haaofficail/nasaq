@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS admin_wa_messages (
 
 CREATE INDEX IF NOT EXISTS idx_admin_wa_messages_admin ON admin_wa_messages(admin_id);
 CREATE INDEX IF NOT EXISTS idx_admin_wa_messages_org ON admin_wa_messages(org_id);
-CREATE INDEX IF NOT EXISTS idx_admin_wa_messages_created ON admin_wa_messages(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_wa_messages_created ON admin_wa_messages(created_at);
 
 -- قوالب افتراضية
 INSERT INTO admin_wa_templates (name, slug, category, body, variables, sort_order) VALUES

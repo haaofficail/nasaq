@@ -864,7 +864,7 @@ function OrgsTab() {
     name: "", nameEn: "", businessType: "general", plan: "basic",
     phone: "", email: "", city: "", ownerName: "", ownerPhone: "", ownerEmail: "", ownerPassword: "",
   });
-  const [resetPwModal, setResetPwModal] = useState<{ orgId: string; orgName: string } | null>(null);
+  const [resetPwModal, setResetPwModal] = useState<{ orgId: string; orgName: string; ownerPhone?: string } | null>(null);
   const [resetPw, setResetPw] = useState("");
   const [resetPwVisible, setResetPwVisible] = useState(false);
   const [resetPwCopied, setResetPwCopied] = useState(false);
@@ -1021,7 +1021,7 @@ function OrgsTab() {
                         <CreditCard className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => { setResetPwModal({ orgId: org.id, orgName: org.name }); setResetPw(""); setResetPwVisible(false); setResetPwCopied(false); setResetPwDone(false); }}
+                        onClick={() => { setResetPwModal({ orgId: org.id, orgName: org.name, ownerPhone: org.phone || org.ownerPhone }); setResetPw(""); setResetPwVisible(false); setResetPwCopied(false); setResetPwDone(false); }}
                         className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600 transition-colors"
                         title="إعادة تعيين كلمة المرور"
                       >
@@ -1083,8 +1083,9 @@ function OrgsTab() {
                   </button>
                   <button
                     onClick={() => {
+                      const ownerPhone = (resetPwModal.ownerPhone || "").replace(/\+/g, "");
                       const text = encodeURIComponent(`مرحباً، تم تحديث بيانات دخولك لمنصة ترميز OS:\n\nرابط الدخول: ${window.location.origin}/login\nكلمة المرور الجديدة: ${resetPw}\n\nيرجى تغيير كلمة المرور بعد أول تسجيل دخول.`);
-                      window.open(`https://wa.me/?text=${text}`, "_blank");
+                      window.open(`https://wa.me/${ownerPhone}?text=${text}`, "_blank");
                     }}
                     className="py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 flex items-center justify-center gap-2"
                   >
