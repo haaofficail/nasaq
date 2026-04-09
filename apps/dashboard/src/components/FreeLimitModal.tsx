@@ -51,18 +51,18 @@ export function FreeLimitModal({ orgId, freeState, bookingUsed, bookingLimit }: 
             <div>
               {isHardStop ? (
                 <>
-                  <p className="text-sm font-semibold text-emerald-600 mb-1">استخدمت {bookingUsed} حجزاً بنجاح</p>
-                  <h2 className="text-xl font-bold text-gray-900">انتهت الحجوزات المجانية</h2>
+                  <p className="text-sm font-semibold text-red-600 mb-1">وصلت لحد التجربة المجانية</p>
+                  <h2 className="text-xl font-bold text-gray-900">اختر باقة للاستمرار</h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    للمتابعة في استقبال الحجوزات، اختر باقة مناسبة
+                    استخدمت كل الحجوزات المجانية ({bookingUsed} من {bookingLimit}). اختر باقة مناسبة لمتابعة استقبال الحجوزات.
                   </p>
                 </>
               ) : (
                 <>
-                  <p className="text-sm font-semibold text-amber-600 mb-1">باقي {remaining} حجوزات فقط</p>
+                  <p className="text-sm font-semibold text-amber-600 mb-1">لديك {remaining} حجوزات متبقية</p>
                   <h2 className="text-xl font-bold text-gray-900">اقتربت من نهاية التجربة</h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    استخدمت {bookingUsed} من {bookingLimit} حجوزات مجانية — جهّز حسابك قبل الوصول للحد
+                    استخدمت {bookingUsed} من {bookingLimit} حجز مجاني — ترقّ الآن لتجنب أي توقف
                   </p>
                 </>
               )}
@@ -107,8 +107,8 @@ export function FreeLimitModal({ orgId, freeState, bookingUsed, bookingLimit }: 
             onClick={() => { setOpen(false); navigate("/dashboard/subscription"); }}
             className="w-full bg-brand-500 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand-600 transition-colors flex items-center justify-center gap-2"
           >
-            ابدأ الآن
-            <ArrowLeft className="w-4 h-4" />
+            اختر الباقة المناسبة
+            <ArrowLeft className="w-4 h-4 rotate-180" />
           </button>
           {!isHardStop && (
             <button

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { clsx } from "clsx";
-import { Plus, CalendarCheck, Clock, CheckCircle, XCircle, Banknote, Phone, MapPin, Search } from "lucide-react";
+import { Plus, CalendarCheck, Clock, CheckCircle, XCircle, Banknote, Phone, MapPin, Search, AlertTriangle, X } from "lucide-react";
 import { bookingsApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { toast } from "@/hooks/useToast";
@@ -46,6 +46,9 @@ export function BookingsPage() {
   const [search, setSearch]       = useState("");
   const [showCreate, setShowCreate] = useState(() => location.pathname.endsWith("/new"));
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal]   = useState<string | null>(null);
+  const [cancelModal, setCancelModal]     = useState<string | null>(null);
+  const [cancelReason, setCancelReason]   = useState("");
 
   const params: Record<string, string> = {};
   if (activeTab !== "all") params.status = activeTab;
@@ -55,27 +58,35 @@ export function BookingsPage() {
 
   const quickConfirm = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm("تأكيد هذا الحجز؟")) return;
-    setActionLoading(id + "_confirm");
+    setConfirmModal(id);
+  };
+
+  const doConfirm = async () => {
+    if (!confirmModal) return;
+    setActionLoading(confirmModal + "_confirm");
     try {
-      await bookingsApi.updateStatus(id, "confirmed");
-      toast.success("تم تأكيد الحجز");
+      await bookingsApi.updateStatus(confirmModal, "confirmed");
+      toast.success("تم تأكيد الحجز — سيتم إبلاغ العميل");
       refetch();
     } catch { toast.error("فشل التأكيد"); }
-    finally { setActionLoading(null); }
+    finally { setActionLoading(null); setConfirmModal(null); }
   };
 
   const quickCancel = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    const reason = prompt("سبب الإلغاء (اختياري):");
-    if (reason === null) return;
-    setActionLoading(id + "_cancel");
+    setCancelModal(id);
+    setCancelReason("");
+  };
+
+  const doCancel = async () => {
+    if (!cancelModal) return;
+    setActionLoading(cancelModal + "_cancel");
     try {
-      await bookingsApi.updateStatus(id, "cancelled", reason || undefined);
+      await bookingsApi.updateStatus(cancelModal, "cancelled", cancelReason || undefined);
       toast.success("تم إلغاء الحجز");
       refetch();
     } catch { toast.error("فشل الإلغاء"); }
-    finally { setActionLoading(null); }
+    finally { setActionLoading(null); setCancelModal(null); setCancelReason(""); }
   };
 
   const bookings: any[] = bookingsRes?.data || [];
@@ -103,8 +114,8 @@ export function BookingsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { icon: CalendarCheck, label: firstCardLabel,       value: computedTotal,                                          color: "text-brand-600",   bg: "bg-brand-50" },
-          { icon: Banknote,      label: "الإيرادات",          value: `${computedRevenue.toLocaleString()} ر.س`,              color: "text-emerald-600", bg: "bg-emerald-50" },
-          { icon: Clock,         label: "بانتظار التأكيد",    value: computedPending,                                        color: "text-amber-600",   bg: "bg-amber-50" },
+          { icon: Banknote,      label: "إجمالي المبيعات",    value: `${computedRevenue.toLocaleString()} ر.س`,              color: "text-emerald-600", bg: "bg-emerald-50" },
+          { icon: Clock,         label: "بانتظار تأكيدك",     value: computedPending,                                        color: "text-amber-600",   bg: "bg-amber-50" },
           { icon: XCircle,       label: "معدل الإلغاء",       value: `${computedCancellationRate}%`,                         color: "text-red-500",     bg: "bg-red-50" },
         ].map((s, i) => (
           <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
@@ -249,6 +260,63 @@ export function BookingsPage() {
       )}
 
       {showCreate && <CreateBookingForm open={true} onClose={() => setShowCreate(false)} onSuccess={() => { setShowCreate(false); refetch(); toast.success("تم إنشاء الحجز"); }} />}
+
+      {/* Confirm Modal */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" dir="rtl">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-6 h-6 text-brand-500" />
+              </div>
+              <h3 className="text-base font-bold text-gray-900 mb-1">تأكيد الحجز</h3>
+              <p className="text-sm text-gray-500">سيتم تأكيد هذا الحجز وإبلاغ العميل تلقائياً إذا كانت الرسائل مفعّلة.</p>
+            </div>
+            <div className="px-6 pb-6 flex gap-2">
+              <button onClick={() => setConfirmModal(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">تراجع</button>
+              <button onClick={doConfirm} disabled={!!actionLoading} className="flex-1 py-2.5 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors">نعم، أكّد الحجز</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Modal */}
+      {cancelModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4" dir="rtl">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+            <div className="p-6">
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
+                    <AlertTriangle className="w-5 h-5 text-red-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-gray-900">إلغاء الحجز</h3>
+                    <p className="text-sm text-gray-500 mt-0.5">لا يمكن التراجع عن هذا الإجراء</p>
+                  </div>
+                </div>
+                <button onClick={() => setCancelModal(null)} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">سبب الإلغاء (اختياري)</label>
+                <textarea
+                  value={cancelReason}
+                  onChange={e => setCancelReason(e.target.value)}
+                  placeholder="مثال: طلب العميل إلغاء الحجز"
+                  rows={2}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-red-300 focus:ring-2 focus:ring-red-50 transition-all resize-none"
+                />
+              </div>
+            </div>
+            <div className="px-6 pb-6 flex gap-2">
+              <button onClick={() => setCancelModal(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">تراجع</button>
+              <button onClick={doCancel} disabled={!!actionLoading} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 disabled:opacity-50 transition-colors">نعم، ألغِ الحجز</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FAQ */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5">

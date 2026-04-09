@@ -24,21 +24,21 @@ export function FreePlanBanner({ bookingUsed, bookingLimit, freeState }: Props) 
       bg: "bg-amber-50 border-amber-100",
       text: "text-amber-700",
       bar: "bg-amber-400",
-      msg: `باقي ${remaining} حجوزات — جرّب كل شيء قبل الترقية`,
+      msg: `لديك ${remaining} حجوزات مجانية متبقية — ترقّ متى شئت`,
       show: true,
     },
     last_warning: {
       bg: "bg-orange-50 border-orange-100",
       text: "text-orange-700",
       bar: "bg-orange-400",
-      msg: `باقي ${remaining} ${remaining === 1 ? "حجز" : "حجوزات"} فقط — جهّز حسابك للترقية`,
+      msg: `باقي ${remaining} ${remaining === 1 ? "حجز" : "حجوزات"} فقط — ترقّ الآن لتجنب توقف الخدمة`,
       show: true,
     },
     reached: {
       bg: "bg-red-50 border-red-100",
       text: "text-red-700",
       bar: "bg-red-400",
-      msg: "انتهت حجوزاتك المجانية — لا يمكن إضافة حجوزات جديدة",
+      msg: "اكتملت الحجوزات المجانية — اختر باقة مناسبة للاستمرار",
       show: true,
     },
   }[freeState];
@@ -73,7 +73,7 @@ export function FreePlanBanner({ bookingUsed, bookingLimit, freeState }: Props) 
         )}
       >
         عرض الباقات
-        <ArrowLeft className="w-3 h-3" />
+        <ArrowLeft className="w-3 h-3 rotate-180" />
       </button>
     </div>
   );

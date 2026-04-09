@@ -27,8 +27,8 @@ function getSegment(c: any): "active" | "due" | "dormant" | "new" {
 
 const SEGMENT_META: Record<string, { label: string; class: string }> = {
   active:  { label: "نشط",              class: "bg-emerald-50 text-emerald-600" },
-  due:     { label: "مرشح للعودة",       class: "bg-amber-50 text-amber-600" },
-  dormant: { label: "خامل",             class: "bg-red-50 text-red-400" },
+  due:     { label: "لم يحجز مؤخراً",   class: "bg-amber-50 text-amber-600" },
+  dormant: { label: "غير نشط",          class: "bg-red-50 text-red-400" },
   new:     { label: "جديد",             class: "bg-blue-50 text-blue-500" },
 };
 
@@ -114,16 +114,16 @@ export function CustomersPage() {
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
-          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالاسم أو الجوال..."
+          <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالاسم أو الجوال أو اسم الشركة..."
             className="w-full bg-white border border-gray-100 rounded-xl pr-10 pl-4 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all" />
         </div>
         <div className="flex gap-1.5 flex-wrap">
           {([
             { value: "all",     label: "الكل",          count: null },
-            { value: "due",     label: "مرشح للعودة",   count: segmentCounts.due },
+            { value: "due",     label: "لم يحجز مؤخراً",  count: segmentCounts.due },
             { value: "vip",     label: "VIP",            count: segmentCounts.vip },
             { value: "active",  label: "نشط",            count: segmentCounts.active },
-            { value: "dormant", label: "خامل",           count: segmentCounts.dormant },
+            { value: "dormant", label: "غير نشط",         count: segmentCounts.dormant },
           ] as const).map(f => (
             <button
               key={f.value}
@@ -237,10 +237,10 @@ export function CustomersPage() {
         <div className="space-y-3">
           {[
             { q: "هل يُضاف العميل تلقائياً؟", a: "نعم. عند أي حجز إلكتروني أو حجز جديد تُدخل فيه رقم الجوال، يُنشأ للعميل ملف تلقائياً ويُربط بكل حجوزاته." },
-            { q: "ما الفرق بين عميل «فرد» وعميل «مؤسسة»؟", a: "الفرد حجوزاته شخصية. المؤسسة (Corporate) لها اسم شركة ورقم سجل تجاري وتُفوتر بشكل مختلف." },
+            { q: "ما الفرق بين عميل «فرد» وعميل «مؤسسة»؟", a: "الفرد حجوزاته شخصية. المؤسسة لها اسم شركة ورقم سجل تجاري وتُفوتر بشكل مختلف." },
             { q: "ما معنى «VIP»؟", a: "تصنيف تضعه يدوياً على عميل مميز للتمييز السريع. لا يمنح امتيازات تلقائية إلا إذا ربطته بقواعد خصم." },
             { q: "كيف أرى تاريخ عميل بالكامل؟", a: "افتح ملف العميل بالضغط على اسمه. ستجد كل حجوزاته ومدفوعاته وتقييماته في مكان واحد." },
-            { q: "كيف أرسل رسالة تسويقية لمجموعة عملاء؟", a: "استخدم «الشرائح» من قسم النمو. صنّف عملاءك ثم أرسل لهم عرضاً مخصصاً أو رسالة متابعة." },
+            { q: "كيف أرسل رسالة تسويقية لمجموعة عملاء؟", a: "استخدم «مجموعات العملاء» من قسم التسويق والنمو. صنّف عملاءك ثم أرسل لهم عرضاً مخصصاً أو رسالة متابعة." },
           ].map(faq => (
             <details key={faq.q} className="border border-gray-100 rounded-xl">
               <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>

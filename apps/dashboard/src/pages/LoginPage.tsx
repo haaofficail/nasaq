@@ -46,7 +46,7 @@ export function LoginPage() {
 
   // ─── Phone: request OTP ───────────────────────────────────
   const requestOtp = async () => {
-    if (!phone || phone.length < 10) { setError("أدخل رقم جوال صحيح"); return; }
+    if (!phone || phone.length < 10) { setError("رقم الجوال يجب أن يبدأ بـ 05 ويتكون من 10 أرقام"); return; }
     setLoading(true); setError("");
     try {
       const res: any = await authApi.requestOtp(phone);
@@ -59,7 +59,7 @@ export function LoginPage() {
   // ─── Phone: verify OTP ────────────────────────────────────
   const verifyOtp = async () => {
     const code = otp.join("");
-    if (code.length !== 6) { setError("أدخل الرمز كاملاً"); return; }
+    if (code.length !== 6) { setError("أدخل رمز التحقق المكون من 6 أرقام"); return; }
     setLoading(true); setError("");
     try {
       const res = await authApi.verifyOtp(phone, code);
@@ -71,7 +71,7 @@ export function LoginPage() {
 
   // ─── Email: login ─────────────────────────────────────────
   const loginWithEmail = async () => {
-    if (!email || !password) { setError("أدخل الإيميل وكلمة المرور"); return; }
+    if (!email || !password) { setError("أدخل البريد الإلكتروني وكلمة المرور للمتابعة"); return; }
     setLoading(true); setError("");
     try {
       const res = await authApi.loginWithEmail(email, password);
@@ -147,7 +147,7 @@ export function LoginPage() {
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)}
                       className="w-4 h-4 rounded accent-brand-500 cursor-pointer" />
-                    <span className="text-sm text-gray-500">البقاء متصلاً</span>
+                    <span className="text-sm text-gray-500">تذكرني على هذا الجهاز</span>
                   </label>
                   {error && <p className="text-sm text-red-500 text-center">{error}</p>}
                   <button onClick={requestOtp} disabled={loading || !phone} className="w-full bg-brand-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
@@ -167,7 +167,7 @@ export function LoginPage() {
                   </div>
                   <h2 className="text-base font-bold text-gray-900">رمز التحقق</h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    أُرسل إلى <span className="font-mono text-gray-700" dir="ltr">{phone}</span>
+                    أدخل الرمز المكون من 6 أرقام المُرسل إلى <span className="font-mono text-gray-700" dir="ltr">{phone}</span>
                   </p>
                 </div>
                 <div className="space-y-4">
@@ -192,7 +192,7 @@ export function LoginPage() {
                   {error && <p className="text-sm text-red-500 text-center">{error}</p>}
                   <button onClick={verifyOtp} disabled={loading || otp.join("").length !== 6} className="w-full bg-brand-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
                     {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                    تأكيد
+                    تأكيد الرمز
                   </button>
                   <div className="flex items-center justify-between text-sm">
                     <button onClick={() => { setStep("input"); setOtp(["","","","","",""]); setError(""); }} className="text-gray-500 hover:text-gray-700 flex items-center gap-1">
@@ -248,7 +248,7 @@ export function LoginPage() {
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)}
                       className="w-4 h-4 rounded accent-brand-500 cursor-pointer" />
-                    <span className="text-sm text-gray-500">البقاء متصلاً</span>
+                    <span className="text-sm text-gray-500">تذكرني على هذا الجهاز</span>
                   </label>
                   {error && <p className="text-sm text-red-500 text-center">{error}</p>}
                   <button onClick={loginWithEmail} disabled={loading || !email || !password} className="w-full bg-brand-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
