@@ -925,6 +925,11 @@ const port = parseInt(process.env.PORT || "3000");
 
 log.info({ port, url: `http://localhost:${port}/api/v1` }, "nasaq-api started");
 
+// Restore WhatsApp Baileys sessions that had saved credentials
+import("./lib/whatsappBaileys").then(({ restoreAllBaileys }) =>
+  restoreAllBaileys().catch((err) => log.error({ err }, "[startup] restoreAllBaileys failed"))
+).catch(() => { /* baileys not installed — skip */ });
+
 const server = serve({ fetch: app.fetch, port });
 
 // Graceful shutdown — stop pg-boss, drain connections, close pools
