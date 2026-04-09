@@ -131,7 +131,7 @@ export default function WhatsAppGatewayTab() {
         onChange={(id) => setTab(id as typeof tab)}
       />
 
-      {tab === "qr" && <QrConnectionSection />}
+      {tab === "qr" && <QrConnectionSection onStatusChange={refetchStatus} />}
       {tab === "credentials" && <CredentialsSendSection />}
       {tab === "send" && <SendMessageSection />}
       {tab === "templates" && <TemplatesSection />}
@@ -144,7 +144,7 @@ export default function WhatsAppGatewayTab() {
 // QR CONNECTION SECTION
 // ══════════════════════════════════════════════════════════════
 
-function QrConnectionSection() {
+function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }) {
   const { data: qrData, loading, refetch } = useApi(() => adminApi.waQrStatus(), []);
   const qrState = qrData?.data;
   const [starting, setStarting] = useState(false);
@@ -161,14 +161,22 @@ function QrConnectionSection() {
     };
   }, [qrState?.status, starting, refetch]);
 
-  // Stop polling once connected
+  // Stop polling and reset "starting" when lifecycle reaches terminal UI states
   useEffect(() => {
-    if (qrState?.status === "connected" && pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-      setStarting(false);
+    if (!qrState?.status) return;
+
+    if (qrState.status === "connected" || qrState.status === "qr_ready" || qrState.status === "disconnected") {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+      if (starting) setStarting(false);
     }
-  }, [qrState?.status]);
+
+    if (qrState.status === "connected") {
+      onStatusChange?.();
+    }
+  }, [qrState?.status, onStatusChange, starting]);
 
   const handleStart = async () => {
     setStarting(true);
@@ -176,7 +184,10 @@ function QrConnectionSection() {
       await adminApi.waQrStart();
       toast.success("جارٍ بدء جلسة QR...");
       // Start polling
-      setTimeout(() => refetch(), 1500);
+      setTimeout(() => {
+        refetch();
+        onStatusChange?.();
+      }, 1500);
     } catch {
       toast.error("فشل بدء الجلسة");
       setStarting(false);
@@ -189,6 +200,7 @@ function QrConnectionSection() {
       await adminApi.waQrLogout();
       toast.success("تم فصل الاتصال");
       refetch();
+      onStatusChange?.();
     } catch {
       toast.error("فشل فصل الاتصال");
     } finally {
@@ -225,6 +237,13 @@ function QrConnectionSection() {
                "غير متصل"}
             </span>
           </div>
+
+          {qrState?.status === "disconnected" && qrState?.lastError && (
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+              <p className="text-xs text-red-700 leading-relaxed">{qrState.lastError}</p>
+            </div>
+          )}
 
           {/* QR Code Display */}
           {qrState?.status === "qr_ready" && qrState.qrBase64 && (
