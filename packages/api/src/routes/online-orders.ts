@@ -3,6 +3,7 @@ import { z } from "zod";
 import { pool } from "@nasaq/db/client";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
+import { postCashSale, reverseJournalEntry } from "../lib/posting-engine";
 
 // ── Status enum & state machine ──────────────────────────────────────────────
 const ONLINE_ORDER_STATUSES = [
@@ -139,7 +140,8 @@ onlineOrdersRouter.patch("/:id/status", async (c) => {
 
   // ── Fetch current order ───────────────────────────────────────
   const { rows: [current] } = await pool.query(
-    `SELECT id, status, version, order_number FROM online_orders WHERE id = $1 AND org_id = $2`,
+    `SELECT id, status, version, order_number, journal_entry_id, total_amount
+     FROM online_orders WHERE id = $1 AND org_id = $2`,
     [id, orgId]
   );
   if (!current) return c.json({ error: "الطلب غير موجود" }, 404);
@@ -192,6 +194,50 @@ onlineOrdersRouter.patch("/:id/status", async (c) => {
     return c.json({ error: "الطلب تم تعديله بواسطة مستخدم آخر — أعد التحميل" }, 409);
   }
 
+  // ── Financial posting on delivery (idempotent — checks journal_entry_id) ──
+  if (status === "delivered" && !updated.journal_entry_id) {
+    const amount = Number(updated.total_amount ?? 0);
+    if (amount > 0) {
+      try {
+        const postResult = await postCashSale({
+          orgId,
+          date: new Date(),
+          amount,
+          vatAmount: Number(updated.tax_amount ?? 0),
+          description: `طلب أونلاين #${current.order_number}`,
+          sourceType: "pos",
+          sourceId: updated.id,
+          createdBy: userId ?? undefined,
+        });
+        if (postResult?.entryId) {
+          await pool.query(
+            `UPDATE online_orders SET journal_entry_id = $1, payment_status = 'paid' WHERE id = $2`,
+            [postResult.entryId, id]
+          );
+        }
+      } catch {
+        // المحاسبة غير مُفعّلة — نكمل بدون قيد
+      }
+    }
+  }
+
+  // ── Reverse financial entry on cancellation ─────────────────────
+  if (status === "cancelled" && updated.journal_entry_id) {
+    try {
+      await reverseJournalEntry(
+        updated.journal_entry_id,
+        userId ?? "system",
+        cancellationReason || `إلغاء طلب أونلاين #${current.order_number}`
+      );
+      await pool.query(
+        `UPDATE online_orders SET payment_status = 'refunded' WHERE id = $1`,
+        [id]
+      );
+    } catch {
+      // تجاهل أخطاء المحاسبة
+    }
+  }
+
   // ── Audit with old/new status ─────────────────────────────────
   insertAuditLog({
     orgId,
@@ -213,9 +259,10 @@ onlineOrdersRouter.delete("/:id", async (c) => {
   const userId = getUserId(c);
   const id     = c.req.param("id");
 
-  // Fetch current status + version for optimistic lock
+  // Fetch current status + version + journal for optimistic lock
   const { rows: [current] } = await pool.query(
-    `SELECT id, status, version FROM online_orders WHERE id = $1 AND org_id = $2`,
+    `SELECT id, status, version, order_number, journal_entry_id
+     FROM online_orders WHERE id = $1 AND org_id = $2`,
     [id, orgId]
   );
   if (!current) return c.json({ error: "الطلب غير موجود" }, 404);
@@ -237,6 +284,23 @@ onlineOrdersRouter.delete("/:id", async (c) => {
   );
   if (!updated) {
     return c.json({ error: "الطلب تم تعديله بواسطة مستخدم آخر — أعد التحميل" }, 409);
+  }
+
+  // ── Reverse financial entry on cancellation ─────────────────────
+  if (current.journal_entry_id) {
+    try {
+      await reverseJournalEntry(
+        current.journal_entry_id,
+        userId ?? "system",
+        `إلغاء طلب أونلاين #${current.order_number}`
+      );
+      await pool.query(
+        `UPDATE online_orders SET payment_status = 'refunded' WHERE id = $1`,
+        [id]
+      );
+    } catch {
+      // تجاهل أخطاء المحاسبة
+    }
   }
 
   insertAuditLog({
