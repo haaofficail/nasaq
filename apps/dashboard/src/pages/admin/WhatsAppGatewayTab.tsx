@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   MessageCircle, Send, FileText, Plus, Pencil, Trash2,
   Loader2, CheckCircle2, XCircle, RefreshCw,
   Signal, AlertTriangle, QrCode, Smartphone,
-  Key, Unplug, Link2,
+  Key, Unplug, Link2, Search, Building2, Users,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { adminApi } from "@/lib/api";
@@ -32,17 +32,110 @@ const PROVIDER_LABELS: Record<string, string> = {
   twilio: "Twilio",
 };
 
+// ══════════════════════════════════════════════════════════════
+// ORG SEARCH PICKER — searchable org selector with auto-fill
+// ══════════════════════════════════════════════════════════════
+
+function OrgSearchPicker({ onSelect, className }: {
+  onSelect: (org: { id: string; name: string; phone: string; email?: string; ownerName?: string }) => void;
+  className?: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const doSearch = useCallback(async (q: string) => {
+    if (!q || q.length < 2) { setResults([]); return; }
+    setLoading(true);
+    try {
+      const res = await adminApi.orgs({ q, limit: 8 });
+      setResults(res.data ?? []);
+    } catch { setResults([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  const handleChange = (val: string) => {
+    setQuery(val);
+    setOpen(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => doSearch(val), 300);
+  };
+
+  const handleSelect = (org: any) => {
+    setQuery(org.name || "");
+    setOpen(false);
+    onSelect({
+      id: org.id,
+      name: org.name,
+      phone: org.phone || "",
+      email: org.email || "",
+      ownerName: org.ownerName || org.name,
+    });
+  };
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={containerRef} className={clsx("relative", className)}>
+      <label className="text-xs text-gray-500 block mb-1">
+        <Search className="w-3 h-3 inline-block ml-1" />
+        بحث عن منشأة
+      </label>
+      <input
+        value={query}
+        onChange={e => handleChange(e.target.value)}
+        onFocus={() => query.length >= 2 && setOpen(true)}
+        placeholder="ابحث بالاسم أو رقم الجوال..."
+        className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400"
+      />
+      {open && (query.length >= 2) && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 max-h-52 overflow-y-auto">
+          {loading ? (
+            <div className="p-3 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto text-gray-400" /></div>
+          ) : results.length === 0 ? (
+            <div className="p-3 text-xs text-gray-400 text-center">لا توجد نتائج</div>
+          ) : results.map((org: any) => (
+            <button
+              key={org.id}
+              onClick={() => handleSelect(org)}
+              className="w-full text-right px-3 py-2.5 hover:bg-brand-50 flex items-center gap-2 border-b border-gray-50 last:border-0 transition-colors"
+            >
+              <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 truncate">{org.name}</p>
+                <p className="text-[11px] text-gray-400" dir="ltr">{org.phone || "—"}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function WhatsAppGatewayTab() {
   const [tab, setTab] = useState<"qr" | "credentials" | "send" | "templates" | "log">("qr");
 
   const { data: statusData, loading: statusLoading, refetch: refetchStatus } = useApi(() => adminApi.waStatus(), []);
   const status = statusData?.data;
 
+  const isNotConfigured = status && !status.whatsappConfigured && !status.baileysConnected;
+
   return (
     <div className="space-y-6">
       <SectionHeader
         title="بوابة واتساب"
-        sub="ربط واتساب بباركود QR، إرسال بيانات الدخول، إشعارات الوثائق، والرسائل"
+        sub="أرسل رسائل واتساب للمنشآت — بيانات الدخول، العروض، الملاحظات، والإشعارات"
       />
 
       {/* Connection Status */}
@@ -118,6 +211,33 @@ export default function WhatsAppGatewayTab() {
         )}
       </div>
 
+      {/* Not Configured Banner */}
+      {isNotConfigured && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-2">
+              <h4 className="text-sm font-semibold text-amber-800">الواتساب غير مُعد</h4>
+              <p className="text-xs text-amber-700 leading-relaxed">
+                لإرسال الرسائل، اربط رقم واتساب المنصة عبر مسح باركود QR من تبويب
+                {" "}<strong>&quot;ربط بـ QR&quot;</strong> أدناه.
+                أو يمكنك تعيين متغيرات البيئة:
+                {" "}<code className="bg-amber-100 px-1 py-0.5 rounded text-[11px] font-mono">META_WA_TOKEN</code> و
+                {" "}<code className="bg-amber-100 px-1 py-0.5 rounded text-[11px] font-mono">META_WA_PHONE_ID</code> أو
+                أحد المزودين الآخرين (Unifonic / Twilio).
+              </p>
+              <button
+                onClick={() => setTab("qr")}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-xl text-xs font-medium hover:bg-brand-600 transition-colors"
+              >
+                <QrCode className="w-4 h-4" />
+                ربط واتساب بباركود QR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <TabPill
         tabs={[
@@ -150,6 +270,7 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
   const [starting, setStarting] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevStatusRef = useRef<string | null>(null);
 
   // Auto-poll when waiting for QR or scan
   useEffect(() => {
@@ -174,8 +295,12 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
     }
 
     if (qrState.status === "connected") {
+      if (prevStatusRef.current !== null && prevStatusRef.current !== "connected") {
+        toast.success("تم ربط واتساب بنجاح");
+      }
       onStatusChange?.();
     }
+    prevStatusRef.current = qrState?.status ?? null;
   }, [qrState?.status, onStatusChange, starting]);
 
   const handleStart = async () => {
@@ -215,7 +340,7 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
         ربط واتساب بباركود QR
       </h3>
 
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-gray-500 leading-relaxed">
         اربط رقم واتساب المنصة عبر مسح باركود QR مباشرة — بديل عن إعداد API.
         بعد المسح، يمكنك إرسال بيانات الدخول وإشعارات الوثائق مباشرة من هنا.
       </p>
@@ -228,6 +353,7 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
               "w-3 h-3 rounded-full shrink-0",
               qrState?.status === "connected" ? "bg-emerald-500" :
               qrState?.status === "qr_ready" ? "bg-amber-500 animate-pulse" :
+              qrState?.status === "connecting" ? "bg-blue-400 animate-pulse" :
               "bg-gray-300"
             )} />
             <span className="text-sm font-medium text-gray-700">
@@ -238,6 +364,24 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
             </span>
           </div>
 
+          {/* Disconnected — Guide to start */}
+          {(!qrState?.status || qrState?.status === "disconnected") && (
+            <div className="flex flex-col items-center gap-4 py-6">
+              <div className="w-48 h-48 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-3">
+                <QrCode className="w-12 h-12 text-gray-300" />
+                <p className="text-xs text-gray-400 text-center px-4">
+                  اضغط على &quot;بدء جلسة QR&quot; لإنشاء باركود
+                </p>
+              </div>
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 max-w-sm">
+                <p className="text-xs text-blue-700 leading-relaxed text-center">
+                  <Smartphone className="w-3.5 h-3.5 inline-block ml-1 -mt-0.5" />
+                  افتح واتساب على هاتفك &gt; <strong>الأجهزة المرتبطة</strong> &gt; <strong>ربط جهاز</strong> &gt; امسح الباركود
+                </p>
+              </div>
+            </div>
+          )}
+
           {qrState?.status === "disconnected" && qrState?.lastError && (
             <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-start gap-2">
               <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
@@ -247,17 +391,31 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
 
           {/* QR Code Display */}
           {qrState?.status === "qr_ready" && qrState.qrBase64 && (
-            <div className="flex flex-col items-center gap-3 py-4">
-              <div className="bg-white p-4 rounded-2xl border-2 border-brand-200 shadow-lg">
+            <div className="flex flex-col items-center gap-4 py-4">
+              <div className="bg-white p-4 rounded-2xl border-2 border-brand-200 shadow-lg relative">
                 <img
                   src={qrState.qrBase64.startsWith("data:") ? qrState.qrBase64 : `data:image/png;base64,${qrState.qrBase64}`}
                   alt="QR Code"
                   className="w-64 h-64 object-contain"
                 />
+                <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse motion-reduce:animate-none">
+                  امسح الآن
+                </div>
               </div>
-              <p className="text-xs text-gray-500">
-                افتح واتساب على هاتفك &gt; الأجهزة المرتبطة &gt; ربط جهاز &gt; امسح الباركود
-              </p>
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 max-w-sm">
+                <p className="text-xs text-blue-700 leading-relaxed text-center">
+                  <Smartphone className="w-3.5 h-3.5 inline-block ml-1 -mt-0.5" />
+                  افتح واتساب على هاتفك &gt; <strong>الأجهزة المرتبطة</strong> &gt; <strong>ربط جهاز</strong> &gt; امسح الباركود بالكاميرا
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Connecting state */}
+          {qrState?.status === "connecting" && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <Loader2 className="w-10 h-10 text-brand-500 animate-spin" />
+              <p className="text-xs text-gray-500">جارٍ إنشاء باركود QR...</p>
             </div>
           )}
 
@@ -268,7 +426,9 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
               <div className="flex-1">
                 <p className="text-sm font-semibold text-emerald-800">متصل بنجاح</p>
                 {qrState.phone && <p className="text-xs text-emerald-600 mt-0.5">الرقم: {qrState.phone}</p>}
+                <p className="text-xs text-emerald-500 mt-1">يمكنك الآن إرسال الرسائل عبر واتساب مباشرة</p>
               </div>
+              <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
             </div>
           )}
 
@@ -277,11 +437,12 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
             {qrState?.status !== "connected" && (
               <button
                 onClick={handleStart}
-                disabled={starting || qrState?.status === "qr_ready"}
-                className="flex items-center gap-2 px-4 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 transition-colors"
+                disabled={starting || qrState?.status === "qr_ready" || qrState?.status === "connecting"}
+                className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors shadow-sm"
               >
-                {starting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-                {starting ? "جارٍ البدء..." : "بدء جلسة QR"}
+                {starting || qrState?.status === "connecting" ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+                {starting || qrState?.status === "connecting" ? "جارٍ البدء..." :
+                 qrState?.status === "qr_ready" ? "في انتظار المسح..." : "بدء جلسة QR"}
               </button>
             )}
             {qrState?.status === "connected" && (
@@ -319,6 +480,16 @@ function CredentialsSendSection() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ sent: boolean; error?: string } | null>(null);
 
+  const handleOrgSelect = (org: { id: string; name: string; phone: string; email?: string }) => {
+    setForm(f => ({
+      ...f,
+      orgId: org.id,
+      orgName: org.name,
+      phone: org.phone || f.phone,
+      email: org.email || f.email,
+    }));
+  };
+
   const handleSend = async () => {
     if (!form.phone || !form.orgName || !form.password) return;
     setSending(true);
@@ -337,9 +508,12 @@ function CredentialsSendSection() {
       if (res.data?.sent) {
         toast.success("تم إرسال بيانات الدخول بنجاح");
         setForm(f => ({ ...f, phone: "", orgName: "", email: "", password: "", orgId: "" }));
+      } else {
+        toast.error(res.data?.error || "فشل الإرسال");
       }
     } catch (err: any) {
       setResult({ sent: false, error: err?.message || "خطأ في الإرسال" });
+      toast.error(err?.message || "خطأ في الإرسال");
     } finally {
       setSending(false);
     }
@@ -353,6 +527,7 @@ function CredentialsSendSection() {
       </h3>
       <p className="text-xs text-gray-500">
         أرسل بيانات الدخول (البريد/الجوال + كلمة المرور + رابط الدخول) مباشرة عبر واتساب أو SMS.
+        يمكنك البحث عن المنشأة لتعبئة البيانات تلقائياً.
       </p>
 
       {result && (
@@ -363,6 +538,9 @@ function CredentialsSendSection() {
           {result.sent ? "تم إرسال بيانات الدخول بنجاح" : `فشل الإرسال: ${result.error}`}
         </div>
       )}
+
+      {/* Org Search */}
+      <OrgSearchPicker onSelect={handleOrgSelect} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
@@ -434,8 +612,22 @@ function SendMessageSection() {
   const [form, setForm] = useState({ phone: "", recipientName: "", message: "", channel: "whatsapp", templateId: "", orgId: "" });
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ sent: boolean; error?: string } | null>(null);
+  const [showBulk, setShowBulk] = useState(false);
+
+  const handleOrgSelect = (org: { id: string; name: string; phone: string }) => {
+    setForm(f => ({
+      ...f,
+      orgId: org.id,
+      recipientName: org.name,
+      phone: org.phone || f.phone,
+    }));
+  };
 
   const applyTemplate = (tplId: string) => {
+    if (!tplId) {
+      setForm(f => ({ ...f, templateId: "", message: "" }));
+      return;
+    }
     const tpl = templates.find((t: any) => t.id === tplId);
     if (tpl) {
       setForm(f => ({ ...f, templateId: tplId, message: tpl.body }));
@@ -457,84 +649,312 @@ function SendMessageSection() {
       });
       setResult({ sent: res.data?.sent, error: res.data?.error });
       if (res.data?.sent) {
-        setForm(f => ({ ...f, phone: "", recipientName: "", message: "", templateId: "" }));
+        toast.success("تم إرسال الرسالة بنجاح");
+        setForm(f => ({ ...f, phone: "", recipientName: "", message: "", templateId: "", orgId: "" }));
+      } else {
+        toast.error(res.data?.error || "فشل الإرسال");
       }
     } catch (err: any) {
       setResult({ sent: false, error: err?.message || "خطأ في الإرسال" });
+      toast.error(err?.message || "خطأ في الإرسال");
     } finally {
       setSending(false);
     }
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-      <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-        <Send className="w-4 h-4 text-brand-500" />
-        إرسال رسالة جديدة
-      </h3>
-
-      {result && (
-        <div className={clsx("rounded-xl p-3 text-xs font-medium flex items-center gap-2",
-          result.sent ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-700 border border-red-100"
-        )}>
-          {result.sent ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-          {result.sent ? "تم إرسال الرسالة بنجاح" : `فشل الإرسال: ${result.error}`}
+    <div className="space-y-4">
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+            <Send className="w-4 h-4 text-brand-500" />
+            إرسال رسالة جديدة
+          </h3>
+          <button
+            onClick={() => setShowBulk(true)}
+            className="flex items-center gap-1.5 text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 font-medium transition-colors"
+          >
+            <Users className="w-3.5 h-3.5" />
+            إرسال جماعي
+          </button>
         </div>
+
+        {result && (
+          <div className={clsx("rounded-xl p-3 text-xs font-medium flex items-center gap-2",
+            result.sent ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-700 border border-red-100"
+          )}>
+            {result.sent ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+            {result.sent ? "تم إرسال الرسالة بنجاح" : `فشل الإرسال: ${result.error}`}
+          </div>
+        )}
+
+        {/* Org search */}
+        <OrgSearchPicker onSelect={handleOrgSelect} />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">رقم الجوال *</label>
+            <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+              placeholder="05XXXXXXXX أو +966XXXXXXXXX"
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">اسم المستلم</label>
+            <input value={form.recipientName} onChange={e => setForm(f => ({ ...f, recipientName: e.target.value }))}
+              placeholder="اختياري"
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">القالب</label>
+            <select value={form.templateId} onChange={e => applyTemplate(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+              <option value="">— بدون قالب (رسالة حرة) —</option>
+              {templates.map((t: any) => (
+                <option key={t.id} value={t.id}>{t.name} — {TEMPLATE_CATEGORIES[t.category] || t.category}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">قناة الإرسال</label>
+            <select value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))}
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+              <option value="whatsapp">واتساب</option>
+              <option value="sms">رسالة نصية SMS</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">نص الرسالة *</label>
+          <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+            rows={6} placeholder="اكتب نص الرسالة هنا... يمكنك استخدام المتغيرات مثل {{owner_name}} و {{org_name}}"
+            className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 resize-none leading-relaxed" />
+          <p className="text-[10px] text-gray-400 mt-1">المتغيرات المتاحة: {"{{owner_name}}"} {"{{org_name}}"} {"{{login_url}}"} {"{{username}}"} {"{{password}}"} {"{{plan_name}}"} {"{{expiry_date}}"} {"{{message}}"}</p>
+        </div>
+
+        <button
+          disabled={!form.phone || !form.message || sending}
+          onClick={handleSend}
+          className="w-full py-3 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+        >
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          {form.channel === "whatsapp" ? "إرسال عبر واتساب" : "إرسال SMS"}
+        </button>
+      </div>
+
+      {/* Bulk Send Modal */}
+      {showBulk && (
+        <BulkSendModal
+          templates={templates}
+          onClose={() => setShowBulk(false)}
+        />
       )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">رقم الجوال *</label>
-          <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-            placeholder="05XXXXXXXX أو +966XXXXXXXXX"
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">اسم المستلم</label>
-          <input value={form.recipientName} onChange={e => setForm(f => ({ ...f, recipientName: e.target.value }))}
-            placeholder="اختياري"
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">القالب</label>
-          <select value={form.templateId} onChange={e => applyTemplate(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
-            <option value="">— بدون قالب (رسالة حرة) —</option>
-            {templates.map((t: any) => (
-              <option key={t.id} value={t.id}>{t.name} — {TEMPLATE_CATEGORIES[t.category] || t.category}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">قناة الإرسال</label>
-          <select value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))}
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
-            <option value="whatsapp">واتساب</option>
-            <option value="sms">رسالة نصية SMS</option>
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label className="text-xs text-gray-500 block mb-1">نص الرسالة *</label>
-        <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-          rows={6} placeholder="اكتب نص الرسالة هنا... يمكنك استخدام المتغيرات مثل {{owner_name}} و {{org_name}}"
-          className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 resize-none leading-relaxed" />
-        <p className="text-[10px] text-gray-400 mt-1">المتغيرات المتاحة: {"{{owner_name}}"} {"{{org_name}}"} {"{{login_url}}"} {"{{username}}"} {"{{password}}"} {"{{plan_name}}"} {"{{expiry_date}}"} {"{{message}}"}</p>
-      </div>
-
-      <button
-        disabled={!form.phone || !form.message || sending}
-        onClick={handleSend}
-        className="w-full py-3 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
-      >
-        {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-        {form.channel === "whatsapp" ? "إرسال عبر واتساب" : "إرسال SMS"}
-      </button>
     </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// BULK SEND MODAL — send to multiple orgs at once
+// ══════════════════════════════════════════════════════════════
+
+function BulkSendModal({ templates, onClose }: { templates: any[]; onClose: () => void }) {
+  const [message, setMessage] = useState("");
+  const [templateId, setTemplateId] = useState("");
+  const [channel, setChannel] = useState("whatsapp");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sending, setSending] = useState(false);
+  const [progress, setProgress] = useState<{ total: number; sent: number; failed: number } | null>(null);
+
+  const { data: orgsData, loading: orgsLoading } = useApi(
+    () => adminApi.orgs({ status: statusFilter || undefined, limit: 100 }),
+    [statusFilter]
+  );
+  const orgs = orgsData?.data ?? [];
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleAll = () => {
+    if (selectedIds.size === orgs.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(orgs.map((o: any) => o.id)));
+    }
+  };
+
+  const toggleOne = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const applyTemplate = (tplId: string) => {
+    if (!tplId) { setTemplateId(""); return; }
+    const tpl = templates.find((t: any) => t.id === tplId);
+    if (tpl) { setTemplateId(tplId); setMessage(tpl.body); }
+  };
+
+  const handleBulkSend = async () => {
+    if (!message || selectedIds.size === 0) return;
+    setSending(true);
+    const selected = orgs.filter((o: any) => selectedIds.has(o.id) && o.phone);
+    const skippedCount = selectedIds.size - selected.length;
+    if (skippedCount > 0) {
+      toast.error(`تم تخطي ${skippedCount} منشأة بدون رقم جوال`);
+    }
+    if (selected.length === 0) {
+      toast.error("لا توجد منشآت لديها رقم جوال");
+      setSending(false);
+      return;
+    }
+    setProgress({ total: selected.length, sent: 0, failed: 0 });
+
+    let sentCount = 0;
+    let failedCount = 0;
+
+    for (const org of selected) {
+      try {
+        const res = await adminApi.sendWaMessage({
+          phone: org.phone,
+          message,
+          recipientName: org.name,
+          orgId: org.id,
+          templateId: templateId || undefined,
+          channel,
+        });
+        if (res.data?.sent) sentCount++; else failedCount++;
+      } catch {
+        failedCount++;
+      }
+      setProgress({ total: selected.length, sent: sentCount, failed: failedCount });
+    }
+
+    toast.success(`تم الإرسال: ${sentCount} نجح، ${failedCount} فشل`);
+    setSending(false);
+  };
+
+  return (
+    <Modal open onClose={onClose} title="إرسال جماعي للمنشآت" width="max-w-2xl">
+      <div className="space-y-4">
+        {/* Message */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">القالب</label>
+            <select value={templateId} onChange={e => applyTemplate(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+              <option value="">— رسالة حرة —</option>
+              {templates.map((t: any) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">قناة الإرسال</label>
+            <select value={channel} onChange={e => setChannel(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+              <option value="whatsapp">واتساب</option>
+              <option value="sms">SMS</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">نص الرسالة *</label>
+          <textarea value={message} onChange={e => setMessage(e.target.value)}
+            rows={4} placeholder="اكتب الرسالة... المتغيرات: {{org_name}}"
+            className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 resize-none leading-relaxed" />
+        </div>
+
+        {/* Org selection */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs text-gray-500 flex items-center gap-1">
+              <Building2 className="w-3 h-3" />
+              اختر المنشآت ({selectedIds.size} من {orgs.length})
+            </label>
+            <div className="flex items-center gap-2">
+              <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setSelectedIds(new Set()); }}
+                className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white">
+                <option value="">كل المنشآت</option>
+                <option value="active">نشطة</option>
+                <option value="trial">تجريبية</option>
+                <option value="suspended">موقوفة</option>
+              </select>
+              <button onClick={toggleAll} className="text-xs text-brand-500 hover:text-brand-600 font-medium">
+                {selectedIds.size === orgs.length ? "إلغاء الكل" : "تحديد الكل"}
+              </button>
+            </div>
+          </div>
+
+          {orgsLoading ? <Spinner /> : (
+            <div className="max-h-48 overflow-y-auto border border-gray-100 rounded-xl divide-y divide-gray-50">
+              {orgs.length === 0 ? (
+                <div className="p-3 text-xs text-gray-400 text-center">لا توجد منشآت</div>
+              ) : orgs.map((org: any) => (
+                <label
+                  key={org.id}
+                  className={clsx(
+                    "flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors",
+                    !org.phone && "opacity-40"
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(org.id)}
+                    onChange={() => toggleOne(org.id)}
+                    disabled={!org.phone}
+                    className="rounded border-gray-300 text-brand-500 focus:ring-brand-400"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-800 truncate">{org.name}</p>
+                    <p className="text-[11px] text-gray-400" dir="ltr">{org.phone || "بدون رقم"}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Progress */}
+        {progress && (
+          <div className="bg-gray-50 rounded-xl p-3">
+            <div className="flex items-center justify-between text-xs mb-2">
+              <span className="text-gray-600">تقدم الإرسال</span>
+              <span className="font-medium text-gray-800">{progress.sent + progress.failed} / {progress.total}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div
+                className="bg-brand-500 rounded-full h-1.5 transition-all duration-300"
+                style={{ width: `${((progress.sent + progress.failed) / progress.total) * 100}%` }}
+              />
+            </div>
+            <div className="flex gap-3 mt-2 text-[11px]">
+              <span className="text-emerald-600">نجح: {progress.sent}</span>
+              <span className="text-red-500">فشل: {progress.failed}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-2">
+          <button onClick={onClose} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+            إغلاق
+          </button>
+          <button
+            disabled={!message || selectedIds.size === 0 || sending}
+            onClick={handleBulkSend}
+            className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {sending ? `جارٍ الإرسال...` : `إرسال لـ ${selectedIds.size} منشأة`}
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -588,9 +1008,10 @@ function TemplatesSection() {
         await adminApi.createWaTemplate(payload);
       }
       setShowForm(false);
+      toast.success(editId ? "تم تعديل القالب" : "تم إنشاء القالب");
       refetch();
     } catch {
-      alert("فشل حفظ القالب");
+      toast.error("فشل حفظ القالب");
     } finally {
       setSaving(false);
     }
@@ -601,9 +1022,10 @@ function TemplatesSection() {
     setDeleting(id);
     try {
       await adminApi.deleteWaTemplate(id);
+      toast.success("تم حذف القالب");
       refetch();
     } catch {
-      alert("فشل الحذف");
+      toast.error("فشل الحذف");
     } finally {
       setDeleting(null);
     }
