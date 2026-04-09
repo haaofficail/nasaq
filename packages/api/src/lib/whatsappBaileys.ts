@@ -17,12 +17,16 @@ import { log } from "./logger";
 
 // Handle CJS/ESM interop — tsx dynamic-import resolves `default` as the
 // whole CJS `module.exports` object instead of `exports.default`.
-const makeWASocket: typeof makeWASocketNamed =
+const _resolved =
   typeof baileysMod === "function"
-    ? (baileysMod as any)
+    ? baileysMod
     : makeWASocketNamed
       ?? (baileysMod as any).makeWASocket
       ?? (baileysMod as any).default;
+if (typeof _resolved !== "function") {
+  throw new Error("[wa-baileys] Could not resolve makeWASocket — check @whiskeysockets/baileys version");
+}
+const makeWASocket = _resolved as typeof makeWASocketNamed;
 
 export type WaStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 

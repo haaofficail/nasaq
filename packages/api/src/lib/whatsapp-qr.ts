@@ -63,12 +63,14 @@ export async function startQrSession(orgId: string): Promise<void> {
     // Dynamic import — only installed on server
     const baileysMod = await import("@whiskeysockets/baileys");
     // Handle CJS/ESM interop — `default` may be the whole CJS exports object
-    const makeWASocket: (...args: any[]) => any =
-      typeof baileysMod.default === "function"
-        ? (baileysMod.default as any)
-        : (baileysMod.makeWASocket
-          ?? (baileysMod.default as any)?.makeWASocket
-          ?? (baileysMod.default as any)?.default);
+    const makeWASocket =
+      (typeof baileysMod.default === "function"
+        ? baileysMod.default
+        : baileysMod.makeWASocket
+          ?? (baileysMod.default as any)?.makeWASocket) as (...args: any[]) => any;
+    if (typeof makeWASocket !== "function") {
+      throw new Error("[WhatsApp QR] Could not resolve makeWASocket — check @whiskeysockets/baileys version");
+    }
     const useMultiFileAuthState = baileysMod.useMultiFileAuthState
       ?? (baileysMod.default as any)?.useMultiFileAuthState;
     const DisconnectReason = baileysMod.DisconnectReason
