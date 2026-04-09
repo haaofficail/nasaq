@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ShieldCheck, Mail, Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import { authApi } from "@/lib/api";
 import { BRAND } from "@/lib/branding";
-import { PlatformLogoStatic } from "@/components/branding/PlatformLogo";
+import { PlatformBrandStatic } from "@/components/branding/PlatformLogo";
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
@@ -41,8 +41,8 @@ export function AdminLoginPage() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="flex flex-col items-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-brand-500 flex items-center justify-center shadow-lg shadow-brand-500/30 mb-4 overflow-hidden">
-            <PlatformLogoStatic size={56} className="w-full h-full object-contain" />
+          <div className="mb-4">
+            <PlatformBrandStatic logoSize={56} showText={false} />
           </div>
           <h1 className="text-xl font-bold text-white">لوحة إدارة {BRAND.nameAr}</h1>
           <p className="text-sm text-gray-400 mt-1">للمسؤولين فقط</p>

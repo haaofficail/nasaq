@@ -8,7 +8,7 @@ import { clsx } from "clsx";
 import { authApi, orgSubscriptionApi } from "@/lib/api";
 import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { BRAND } from "@/lib/branding";
-import { PlatformLogoDynamic } from "@/components/branding/PlatformLogo";
+import { PlatformLogoDynamic, PlatformBrandDynamic } from "@/components/branding/PlatformLogo";
 import { useOrgContext, invalidateOrgContextCache } from "@/hooks/useOrgContext";
 import { buildVisibleNav, BOTTOM_NAV, SUPER_ADMIN_NAV, type SubscriptionPlan } from "@/lib/navigationRegistry";
 import { Toaster } from "@/components/ui/Toaster";
@@ -157,23 +157,10 @@ export function Layout() {
           collapsed ? "justify-center" : "justify-between"
         )}>
           {!collapsed && (
-            <div className="flex items-center gap-2.5">
-              <div
-                className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm overflow-hidden shrink-0"
-                style={{ backgroundColor: platformConfig.primaryColor }}
-              >
-                <PlatformLogoDynamic size={32} className="w-full h-full object-contain" />
-              </div>
-              <span className="text-lg font-bold tracking-tight" style={{ color: platformConfig.primaryColor }}>{platformConfig.platformName}</span>
-            </div>
+            <PlatformBrandDynamic logoSize={32} textSize="lg" variant="default" />
           )}
           {collapsed && (
-            <div
-              className="w-8 h-8 rounded-xl flex items-center justify-center shadow-sm overflow-hidden"
-              style={{ backgroundColor: platformConfig.primaryColor }}
-            >
-              <PlatformLogoDynamic size={32} className="w-full h-full object-contain" />
-            </div>
+            <PlatformLogoDynamic size={32} />
           )}
           <button
             onClick={toggleCollapsed}
