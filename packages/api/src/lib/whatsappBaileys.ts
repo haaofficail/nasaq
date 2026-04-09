@@ -89,9 +89,9 @@ export async function initBaileys(orgId: string): Promise<void> {
     } catch {
       log.warn({ orgId }, "[wa-baileys] fetchLatestBaileysVersion failed — using fallback version");
     }
-    const _Browsers = typeof Browsers === "object" && Browsers ? Browsers : (baileysMod as any).Browsers;
+    const browserModule = typeof Browsers === "object" && Browsers ? Browsers : (baileysMod as any).Browsers;
     const browserConfig: [string, string, string] =
-      _Browsers?.ubuntu?.("Chrome") ?? ["Ubuntu", "Chrome", "22.04.4"];
+      browserModule?.ubuntu?.("Chrome") ?? ["Ubuntu", "Chrome", "22.04.4"];
     log.info({ orgId, browserConfig, version }, "[wa-baileys] socket init config");
 
     const sock = makeWASocket({
@@ -153,7 +153,7 @@ export async function initBaileys(orgId: string): Promise<void> {
           });
         } else {
           // Transient error — reset to disconnected so user can re-init
-          touch(sess, { status: "disconnected", phone: null, lastError: "انقطع اتصال واتساب قبل ظهور QR. أعد بدء الجلسة." });
+          touch(sess, { status: "disconnected", lastError: "انقطع اتصال واتساب قبل ظهور QR. أعد بدء الجلسة." });
         }
       }
     });

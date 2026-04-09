@@ -89,11 +89,11 @@ export async function startQrSession(orgId: string): Promise<void> {
     } catch {
       console.warn("[WhatsApp QR] fetchLatestBaileysVersion failed — using fallback");
     }
-    const _Browsers = typeof baileysMod.Browsers === "object" && baileysMod.Browsers
+    const browserModule = typeof baileysMod.Browsers === "object" && baileysMod.Browsers
       ? baileysMod.Browsers
       : (baileysMod.default as any)?.Browsers;
     const browserConfig: [string, string, string] =
-      _Browsers?.ubuntu?.("Chrome") ?? ["Ubuntu", "Chrome", "22.04.4"];
+      browserModule?.ubuntu?.("Chrome") ?? ["Ubuntu", "Chrome", "22.04.4"];
     console.info("[WhatsApp QR] socket init config", { orgId, browserConfig, version });
 
     const sock = makeWASocket({
