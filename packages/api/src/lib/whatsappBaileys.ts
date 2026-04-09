@@ -21,6 +21,7 @@ interface Session {
   status:    WaStatus;
   qrBase64:  string | null;   // data:image/png;base64,…
   phone:     string | null;   // e.g. "966501234567"
+  lastError: string | null;
   updatedAt: Date;
 }
 
@@ -42,7 +43,7 @@ function get(orgId: string): Session {
   if (!sessions.has(orgId)) {
     sessions.set(orgId, {
       socket: null, status: "disconnected",
-      qrBase64: null, phone: null, updatedAt: new Date(),
+      qrBase64: null, phone: null, lastError: null, updatedAt: new Date(),
     });
   }
   return sessions.get(orgId)!;
@@ -61,61 +62,69 @@ export async function initBaileys(orgId: string): Promise<void> {
   // Already in-flight or connected — do nothing
   if (sess.status === "connected" || sess.status === "connecting" || sess.status === "qr_ready") return;
 
-  touch(sess, { status: "connecting", qrBase64: null });
+  touch(sess, { status: "connecting", qrBase64: null, lastError: null });
 
-  const dir = ensureDir(orgId);
-  const { state, saveCreds } = await useMultiFileAuthState(dir);
-  const { version }          = await fetchLatestBaileysVersion();
+  try {
+    const dir = ensureDir(orgId);
+    const { state, saveCreds } = await useMultiFileAuthState(dir);
+    const { version }          = await fetchLatestBaileysVersion();
 
-  const sock = makeWASocket({
-    version,
-    auth:               state,
-    printQRInTerminal:  false,
-    // suppress Baileys internal logger
-    logger: { level: "silent", trace(){}, debug(){}, info(){}, warn(){}, error(){}, fatal(){}, child(){ return this; } } as any,
-  });
+    const sock = makeWASocket({
+      version,
+      auth:               state,
+      printQRInTerminal:  false,
+      // suppress Baileys internal logger
+      logger: { level: "silent", trace(){}, debug(){}, info(){}, warn(){}, error(){}, fatal(){}, child(){ return this; } } as any,
+    });
 
-  touch(sess, { socket: sock });
+    touch(sess, { socket: sock });
 
-  sock.ev.on("creds.update", saveCreds);
+    sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("connection.update", async (update: { connection?: string; lastDisconnect?: { error?: unknown }; qr?: string }) => {
-    const { connection, lastDisconnect, qr } = update;
+    sock.ev.on("connection.update", async (update: { connection?: string; lastDisconnect?: { error?: unknown }; qr?: string }) => {
+      const { connection, lastDisconnect, qr } = update;
 
-    // New QR received — convert to base64 PNG
-    if (qr) {
-      try {
-        const png = await QRCode.toDataURL(qr, { width: 320, margin: 2, color: { dark: "#111827", light: "#ffffff" } });
-        touch(sess, { status: "qr_ready", qrBase64: png });
-        log.info({ orgId }, "[wa-baileys] QR ready");
-      } catch (err) {
-        log.error({ err, orgId }, "[wa-baileys] QR generation failed");
+      // New QR received — convert to base64 PNG
+      if (qr) {
+        try {
+          const png = await QRCode.toDataURL(qr, { width: 320, margin: 2, color: { dark: "#111827", light: "#ffffff" } });
+          touch(sess, { status: "qr_ready", qrBase64: png, lastError: null });
+          log.info({ orgId }, "[wa-baileys] QR ready");
+        } catch (err) {
+          touch(sess, { lastError: "تعذّر توليد باركود QR. راجع إعدادات الخادم." });
+          log.error({ err, orgId }, "[wa-baileys] QR generation failed");
+        }
       }
-    }
 
-    if (connection === "open") {
-      const phoneRaw = sock.user?.id?.split(":")[0] ?? null;
-      touch(sess, { status: "connected", qrBase64: null, phone: phoneRaw });
-      log.info({ orgId, phone: phoneRaw }, "[wa-baileys] connected");
-    }
-
-    if (connection === "close") {
-      const reason = (lastDisconnect?.error as Boom)?.output?.statusCode;
-      log.info({ orgId, reason }, "[wa-baileys] closed");
-
-      touch(sess, { socket: null, qrBase64: null });
-
-      if (reason === DisconnectReason.loggedOut) {
-        // Permanent logout — clear files
-        const dir = path.join(SESSIONS_DIR, orgId);
-        fs.rmSync(dir, { recursive: true, force: true });
-        touch(sess, { status: "disconnected", phone: null });
-      } else {
-        // Transient error — reset to disconnected so user can re-init
-        touch(sess, { status: "disconnected" });
+      if (connection === "open") {
+        const phoneRaw = sock.user?.id?.split(":")[0] ?? null;
+        touch(sess, { status: "connected", qrBase64: null, phone: phoneRaw, lastError: null });
+        log.info({ orgId, phone: phoneRaw }, "[wa-baileys] connected");
       }
-    }
-  });
+
+      if (connection === "close") {
+        const reason = (lastDisconnect?.error as Boom)?.output?.statusCode;
+        log.info({ orgId, reason }, "[wa-baileys] closed");
+
+        touch(sess, { socket: null, qrBase64: null });
+
+        if (reason === DisconnectReason.loggedOut) {
+          // Permanent logout — clear files
+          const dir = path.join(SESSIONS_DIR, orgId);
+          fs.rmSync(dir, { recursive: true, force: true });
+          touch(sess, { status: "disconnected", phone: null, lastError: "تم تسجيل الخروج من واتساب. ابدأ جلسة QR جديدة." });
+        } else {
+          // Transient error — reset to disconnected so user can re-init
+          touch(sess, { status: "disconnected", lastError: "انقطع اتصال واتساب قبل ظهور QR. أعد بدء الجلسة." });
+        }
+      }
+    });
+  } catch (err: any) {
+    const msg = err?.message || "فشل تهيئة جلسة واتساب";
+    touch(sess, { status: "disconnected", socket: null, qrBase64: null, lastError: msg });
+    log.error({ err, orgId }, "[wa-baileys] init failed");
+    throw err;
+  }
 }
 
 /** Get current session state for an org */
@@ -123,6 +132,7 @@ export function getBaileysState(orgId: string): {
   status:    WaStatus;
   qrBase64:  string | null;
   phone:     string | null;
+  lastError: string | null;
   updatedAt: Date;
 } {
   const sess = get(orgId);
@@ -130,6 +140,7 @@ export function getBaileysState(orgId: string): {
     status:    sess.status,
     qrBase64:  sess.qrBase64,
     phone:     sess.phone,
+    lastError: sess.lastError,
     updatedAt: sess.updatedAt,
   };
 }
@@ -162,7 +173,7 @@ export async function logoutBaileys(orgId: string): Promise<void> {
   const dir = path.join(SESSIONS_DIR, orgId);
   fs.rmSync(dir, { recursive: true, force: true });
 
-  touch(sess, { status: "disconnected", qrBase64: null, phone: null });
+  touch(sess, { status: "disconnected", qrBase64: null, phone: null, lastError: null });
   log.info({ orgId }, "[wa-baileys] logged out");
 }
 
