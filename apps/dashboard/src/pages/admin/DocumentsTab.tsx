@@ -110,11 +110,12 @@ function DocumentsTab() {
 
   // Send WhatsApp notification for document status change
   const sendDocNotification = async (doc: any, action: string, reason?: string) => {
+    // Only send if org has a valid phone number
+    const phone = doc.orgPhone;
+    if (!phone || phone.length < 5) return;
     try {
-      // Fetch org phone from docs data (orgName is joined)
-      // We can only send if we have org phone - send silently without blocking
       await adminApi.sendDocNotification({
-        phone: doc.orgPhone || "",
+        phone,
         orgName: doc.orgName || "المنشأة",
         documentType: DOC_TYPES[doc.type] || doc.type,
         action,
@@ -315,7 +316,7 @@ function DocumentsTab() {
               onClick={() => setRejectModal({ open: false, docId: "" })}
               className="px-4 py-2 rounded-xl text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 transition-colors"
             >
-              الغاء
+              إلغاء
             </button>
             <button
               onClick={handleReject}

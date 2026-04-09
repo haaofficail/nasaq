@@ -7,6 +7,7 @@ import { invalidateOrgContext } from "../lib/org-context";
 import { createAlert } from "./alerts";
 import { apiErr } from "../lib/errors";
 import { runDiagnostics } from "../lib/diagnostics";
+import { log } from "../lib/logger";
 import type { Context, Next } from "hono";
 
 type AdminVariables = {
@@ -53,6 +54,9 @@ function hashPassword(password: string): string {
   const hash = scryptSync(password, salt, 64).toString("hex");
   return `${salt}:${hash}`;
 }
+
+// ── Default login URL constant ─────────────────────────────
+const DEFAULT_LOGIN_URL = process.env.APP_LOGIN_URL || "https://app.tarmiz.os/login";
 
 // ============================================================
 // NASAQ STAFF MIDDLEWARE — يتحقق من التوكن ويسمح لـ isSuperAdmin أو أي nasaqRole
@@ -2297,7 +2301,7 @@ adminRouter.post("/wa/send", async (c) => {
     if (body.channel === "whatsapp") {
       // Try Baileys platform session first, then fallback to configured providers
       const { sendViaBaileys } = await import("../lib/whatsappBaileys");
-      sent = await sendViaBaileys("platform", phone, body.message).catch(() => false);
+      sent = await sendViaBaileys("platform", phone, body.message).catch((e) => { log.warn({ err: e, phone }, "[admin-wa] baileys failed"); return false; });
       if (!sent) {
         const { sendWhatsApp } = await import("../lib/whatsapp");
         sent = await sendWhatsApp(phone, body.message);
@@ -2399,7 +2403,7 @@ adminRouter.post("/wa/send-credentials", async (c) => {
   }).parse(await c.req.json());
 
   const phone = normalizePhoneAdmin(body.phone) || body.phone;
-  const loginUrl = body.loginUrl || "https://app.tarmiz.os/login";
+  const loginUrl = body.loginUrl || DEFAULT_LOGIN_URL;
 
   const message = [
     `مرحباً ${body.orgName}`,
@@ -2430,7 +2434,7 @@ adminRouter.post("/wa/send-credentials", async (c) => {
   try {
     if (body.channel === "whatsapp") {
       const { sendViaBaileys } = await import("../lib/whatsappBaileys");
-      sent = await sendViaBaileys("platform", phone, message).catch(() => false);
+      sent = await sendViaBaileys("platform", phone, message).catch((e) => { log.warn({ err: e, phone }, "[admin-wa] baileys failed"); return false; });
       if (!sent) {
         const { sendWhatsApp } = await import("../lib/whatsapp");
         sent = await sendWhatsApp(phone, message);
@@ -2518,7 +2522,7 @@ adminRouter.post("/wa/send-doc-notification", async (c) => {
   try {
     if (body.channel === "whatsapp") {
       const { sendViaBaileys } = await import("../lib/whatsappBaileys");
-      sent = await sendViaBaileys("platform", phone, message).catch(() => false);
+      sent = await sendViaBaileys("platform", phone, message).catch((e) => { log.warn({ err: e, phone }, "[admin-wa] baileys failed"); return false; });
       if (!sent) {
         const { sendWhatsApp } = await import("../lib/whatsapp");
         sent = await sendWhatsApp(phone, message);
