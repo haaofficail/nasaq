@@ -417,59 +417,74 @@ export function ServiceCreateWizard() {
 
       const res = await servicesApi.create(baseInfo);
       const svcId = res.data.id;
+      const warnings: string[] = [];
 
       // Save media
       for (let i = 0; i < mediaItems.length; i++) {
         const m = mediaItems[i];
         if (m.url) {
-          await servicesApi.addMedia(svcId, { url: m.url, type: "image", isCover: m.isCover }).catch(() => {});
+          try { await servicesApi.addMedia(svcId, { url: m.url, type: "image", isCover: m.isCover }); }
+          catch { warnings.push("فشل رفع بعض الصور"); }
         }
       }
 
       // Save addons
       for (const a of addonDrafts.filter(a => a.name.trim() && a.price)) {
-        const addon = await addonsApi.create({
-          name: a.name.trim(), nameEn: a.nameEn || undefined,
-          description: a.description || undefined, image: a.imageUrl || undefined,
-          price: a.price, type: a.type,
-        });
-        await servicesApi.linkAddon(svcId, { addonId: addon.data.id }).catch(() => {});
+        try {
+          const addon = await addonsApi.create({
+            name: a.name.trim(), nameEn: a.nameEn || undefined,
+            description: a.description || undefined, image: a.imageUrl || undefined,
+            price: a.price, type: a.type,
+          });
+          await servicesApi.linkAddon(svcId, { addonId: addon.data.id });
+        } catch { warnings.push("فشل إضافة بعض الإضافات"); }
       }
 
       // Save questions
       for (let i = 0; i < questionDrafts.length; i++) {
         const q = questionDrafts[i];
         if (!q.question.trim()) continue;
-        await questionsApi.create(svcId, {
-          question: q.question.trim(), type: q.type,
-          isRequired: q.isRequired, isPaid: q.isPaid,
-          price: q.isPaid ? (q.price || "0") : "0",
-          options: ["select", "multi", "checkbox"].includes(q.type) ? q.options.filter(Boolean) : [],
-          sortOrder: i,
-        }).catch(() => {});
+        try {
+          await questionsApi.create(svcId, {
+            question: q.question.trim(), type: q.type,
+            isRequired: q.isRequired, isPaid: q.isPaid,
+            price: q.isPaid ? (q.price || "0") : "0",
+            options: ["select", "multi", "checkbox"].includes(q.type) ? q.options.filter(Boolean) : [],
+            sortOrder: i,
+          });
+        } catch { warnings.push("فشل إضافة بعض الأسئلة"); }
       }
 
       // Save components
       for (let i = 0; i < componentDrafts.length; i++) {
         const c = componentDrafts[i];
         if (!c.name.trim() && !c.inventoryItemId) continue;
-        await servicesApi.addComponent(svcId, {
-          sourceType: c.sourceType,
-          inventoryItemId: c.inventoryItemId || undefined,
-          name: c.name.trim() || undefined,
-          quantity: parseFloat(c.quantity) || 1,
-          unit: c.unit || "قطعة",
-          unitCost: parseFloat(c.unitCost) || 0,
-          sortOrder: i,
-        }).catch(() => {});
+        try {
+          await servicesApi.addComponent(svcId, {
+            sourceType: c.sourceType,
+            inventoryItemId: c.inventoryItemId || undefined,
+            name: c.name.trim() || undefined,
+            quantity: parseFloat(c.quantity) || 1,
+            unit: c.unit || "قطعة",
+            unitCost: parseFloat(c.unitCost) || 0,
+            sortOrder: i,
+          });
+        } catch { warnings.push("فشل إضافة بعض المكونات"); }
       }
 
       // Save staff
       for (const userId of pendingStaffIds) {
-        await servicesApi.addStaff(svcId, { userId }).catch(() => {});
+        try { await servicesApi.addStaff(svcId, { userId }); }
+        catch { warnings.push("فشل تعيين بعض الموظفين"); }
       }
 
-      toast.success("تم إنشاء الخدمة بنجاح");
+      // Show result
+      const uniqueWarnings = [...new Set(warnings)];
+      if (uniqueWarnings.length > 0) {
+        toast.success("تم إنشاء الخدمة — " + uniqueWarnings.join("، "));
+      } else {
+        toast.success("تم إنشاء الخدمة بنجاح");
+      }
       navigate(`/dashboard/services/${svcId}`);
     } catch (e: any) {
       setErrors({ _submit: e.message || "حدث خطأ أثناء الحفظ" });
