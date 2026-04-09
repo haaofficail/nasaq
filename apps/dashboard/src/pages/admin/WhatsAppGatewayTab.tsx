@@ -129,8 +129,6 @@ export default function WhatsAppGatewayTab() {
   const { data: statusData, loading: statusLoading, refetch: refetchStatus } = useApi(() => adminApi.waStatus(), []);
   const status = statusData?.data;
 
-  const isNotConfigured = status && !status.whatsappConfigured && !status.baileysConnected;
-
   return (
     <div className="space-y-6">
       <SectionHeader
@@ -210,33 +208,6 @@ export default function WhatsAppGatewayTab() {
           <p className="text-xs text-gray-400">لا يمكن تحميل حالة الاتصال</p>
         )}
       </div>
-
-      {/* Not Configured Banner */}
-      {isNotConfigured && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-            <div className="flex-1 space-y-2">
-              <h4 className="text-sm font-semibold text-amber-800">الواتساب غير مُعد</h4>
-              <p className="text-xs text-amber-700 leading-relaxed">
-                لإرسال الرسائل، اربط رقم واتساب المنصة عبر مسح باركود QR من تبويب
-                {" "}<strong>&quot;ربط بـ QR&quot;</strong> أدناه.
-                أو يمكنك تعيين متغيرات البيئة:
-                {" "}<code className="bg-amber-100 px-1 py-0.5 rounded text-[11px] font-mono">META_WA_TOKEN</code> و
-                {" "}<code className="bg-amber-100 px-1 py-0.5 rounded text-[11px] font-mono">META_WA_PHONE_ID</code> أو
-                أحد المزودين الآخرين (Unifonic / Twilio).
-              </p>
-              <button
-                onClick={() => setTab("qr")}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-xl text-xs font-medium hover:bg-brand-600 transition-colors"
-              >
-                <QrCode className="w-4 h-4" />
-                ربط واتساب بباركود QR
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Tabs */}
       <TabPill

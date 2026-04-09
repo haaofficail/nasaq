@@ -61,7 +61,20 @@ export async function startQrSession(orgId: string): Promise<void> {
 
   try {
     // Dynamic import — only installed on server
-    const { default: makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion } = await import("@whiskeysockets/baileys");
+    const baileysMod = await import("@whiskeysockets/baileys");
+    // Handle CJS/ESM interop — `default` may be the whole CJS exports object
+    const makeWASocket: (...args: any[]) => any =
+      typeof baileysMod.default === "function"
+        ? (baileysMod.default as any)
+        : (baileysMod.makeWASocket
+          ?? (baileysMod.default as any)?.makeWASocket
+          ?? (baileysMod.default as any)?.default);
+    const useMultiFileAuthState = baileysMod.useMultiFileAuthState
+      ?? (baileysMod.default as any)?.useMultiFileAuthState;
+    const DisconnectReason = baileysMod.DisconnectReason
+      ?? (baileysMod.default as any)?.DisconnectReason;
+    const fetchLatestBaileysVersion = baileysMod.fetchLatestBaileysVersion
+      ?? (baileysMod.default as any)?.fetchLatestBaileysVersion;
     const { Boom } = await import("@hapi/boom");
     const QRCode = await import("qrcode");
 
