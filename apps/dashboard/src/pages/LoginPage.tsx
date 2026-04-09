@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Layers, Phone, Shield, ArrowLeft, Loader2, Mail, Eye, EyeOff } from "lucide-react";
+import { Phone, Shield, ArrowLeft, Loader2, Mail, Eye, EyeOff } from "lucide-react";
 import { authApi } from "@/lib/api";
 import { clsx } from "clsx";
+import { PLATFORM_LOGO } from "@/hooks/usePlatformConfig";
+import { BRAND } from "@/lib/branding";
 
 type Method = "phone" | "email";
 type Step   = "input" | "otp";
@@ -110,10 +112,24 @@ export function LoginPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-brand-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-500/20">
-            <Layers className="w-8 h-8 text-white" />
+          <div className="w-14 h-14 rounded-2xl bg-brand-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-500/20 overflow-hidden">
+            <img
+              src={PLATFORM_LOGO}
+              alt={BRAND.nameAr}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+                const parent = (e.currentTarget as HTMLImageElement).parentElement;
+                if (parent && !parent.querySelector("span")) {
+                  const span = document.createElement("span");
+                  span.textContent = BRAND.logoLetter;
+                  span.style.cssText = "color:#fff;font-weight:800;font-size:24px";
+                  parent.appendChild(span);
+                }
+              }}
+            />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">ترميز OS</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{BRAND.nameAr}</h1>
           <p className="text-sm text-gray-500 mt-1">نظام تشغيل أعمالك من مكان واحد</p>
         </div>
 

@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Layers, Building2, User, Settings, ArrowLeft, Check, Loader2, Zap, Package, ChevronDown, ChevronUp } from "lucide-react";
+import { Building2, User, Settings, ArrowLeft, Check, Loader2, Zap, Package, ChevronDown, ChevronUp } from "lucide-react";
 import { clsx } from "clsx";
 import { api, templatesApi } from "@/lib/api";
 import { SAUDI_CITIES } from "@/lib/constants";
+import { PLATFORM_LOGO } from "@/hooks/usePlatformConfig";
+import { BRAND } from "@/lib/branding";
 
 const steps = ["معلومات الشركة", "بيانات المالك", "الإعداد"];
 
@@ -217,10 +219,24 @@ export function OnboardingPage() {
       <div className="w-full max-w-lg">
         {/* Logo */}
         <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-brand-500 flex items-center justify-center mx-auto mb-3">
-            <Layers className="w-7 h-7 text-white" />
+          <div className="w-12 h-12 rounded-2xl bg-brand-500 flex items-center justify-center mx-auto mb-3 overflow-hidden">
+            <img
+              src={PLATFORM_LOGO}
+              alt={BRAND.nameAr}
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                (e.currentTarget as HTMLImageElement).style.display = "none";
+                const parent = (e.currentTarget as HTMLImageElement).parentElement;
+                if (parent && !parent.querySelector("span")) {
+                  const span = document.createElement("span");
+                  span.textContent = BRAND.logoLetter;
+                  span.style.cssText = "color:#fff;font-weight:800;font-size:20px";
+                  parent.appendChild(span);
+                }
+              }}
+            />
           </div>
-          <h1 className="text-xl font-bold text-gray-900">إنشاء حساب في ترميز OS</h1>
+          <h1 className="text-xl font-bold text-gray-900">إنشاء حساب في {BRAND.nameAr}</h1>
           <p className="text-sm text-gray-500 mt-1">14 يوم تجربة مجانية — لا يحتاج بطاقة</p>
         </div>
 

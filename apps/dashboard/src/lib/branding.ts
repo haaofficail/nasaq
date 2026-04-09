@@ -12,4 +12,6 @@ export const BRAND = {
   taglineLong: "منصة متكاملة لإدارة وتشغيل وبيع الأعمال",
   welcomeAr: "مرحبًا بك في ترميز OS",
   copyright: `© ${new Date().getFullYear()} ترميز OS. جميع الحقوق محفوظة.`,
+  /** الحرف المستخدم كـ fallback عند عدم وجود شعار */
+  logoLetter: "ت",
 } as const;

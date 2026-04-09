@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { usePlatformConfig } from "@/hooks/usePlatformConfig";
+import { usePlatformConfig, PLATFORM_LOGO } from "@/hooks/usePlatformConfig";
+import { BRAND } from "@/lib/branding";
 
 export function PublicLayout({ children }: { children: ReactNode }) {
   const platform = usePlatformConfig();
@@ -24,10 +25,24 @@ export function PublicLayout({ children }: { children: ReactNode }) {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-[#5b9bd5] flex items-center justify-center">
-              <span className="text-white font-black text-sm">ن</span>
+            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center" style={{ backgroundColor: platform.primaryColor || "#5b9bd5" }}>
+              <img
+                src={platform.logoUrl || PLATFORM_LOGO}
+                alt={platform.platformName || BRAND.nameAr}
+                className="w-full h-full object-contain"
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                  const parent = (e.currentTarget as HTMLImageElement).parentElement;
+                  if (parent && !parent.querySelector("span")) {
+                    const span = document.createElement("span");
+                    span.textContent = BRAND.logoLetter;
+                    span.style.cssText = "color:#fff;font-weight:900;font-size:14px";
+                    parent.appendChild(span);
+                  }
+                }}
+              />
             </div>
-            <span className="text-xl font-black text-gray-900">ترميز OS</span>
+            <span className="text-xl font-black text-gray-900">{platform.platformName || BRAND.nameAr}</span>
           </Link>
 
           {/* Desktop Nav */}
@@ -86,10 +101,24 @@ export function PublicLayout({ children }: { children: ReactNode }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg bg-[#5b9bd5] flex items-center justify-center">
-                  <span className="text-white font-black text-sm">ت</span>
+                <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center" style={{ backgroundColor: platform.primaryColor || "#5b9bd5" }}>
+                  <img
+                    src={platform.logoUrl || PLATFORM_LOGO}
+                    alt={platform.platformName || BRAND.nameAr}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = "none";
+                      const parent = (e.currentTarget as HTMLImageElement).parentElement;
+                      if (parent && !parent.querySelector("span")) {
+                        const span = document.createElement("span");
+                        span.textContent = BRAND.logoLetter;
+                        span.style.cssText = "color:#fff;font-weight:900;font-size:14px";
+                        parent.appendChild(span);
+                      }
+                    }}
+                  />
                 </div>
-                <span className="text-xl font-black text-white">ترميز OS</span>
+                <span className="text-xl font-black text-white">{platform.platformName || BRAND.nameAr}</span>
               </div>
               <p className="text-sm leading-relaxed">منصة متكاملة لإدارة حجوزاتك وفعالياتك</p>
             </div>
