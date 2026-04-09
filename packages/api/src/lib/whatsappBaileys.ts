@@ -45,6 +45,7 @@ const sessions = new Map<string, Session>();
 
 const SESSIONS_DIR =
   process.env.WA_SESSIONS_DIR ?? "/var/www/nasaq/whatsapp-sessions";
+const DEFAULT_BROWSER: [string, string, string] = ["Ubuntu", "Chrome", "22.04.4"];
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -82,7 +83,6 @@ export async function initBaileys(orgId: string): Promise<void> {
   try {
     const dir = ensureDir(orgId);
     const { state, saveCreds } = await useMultiFileAuthState(dir);
-
     // Fetch latest WA Web version — fallback to a known-good version if
     // the network call to web.whatsapp.com fails (common in production).
     // Fallback: WA Web v2.3000.x — update periodically from fetchLatestBaileysVersion() output.
@@ -94,9 +94,12 @@ export async function initBaileys(orgId: string): Promise<void> {
       log.warn({ orgId }, "[wa-baileys] fetchLatestBaileysVersion failed — using fallback version");
     }
 
-    // Resolve Browsers helper with CJS/ESM interop fallback
-    const _Browsers = typeof Browsers === "object" && Browsers ? Browsers : (baileysMod as any).Browsers;
-    const browserConfig: [string, string, string] = _Browsers?.ubuntu?.("Chrome") ?? ["Ubuntu", "Chrome", "22.04.4"];
+    const browserModule =
+      (typeof Browsers === "object" && Browsers ? Browsers : undefined)
+      ?? (baileysMod as any)?.Browsers;
+    const browserConfig: [string, string, string] =
+      browserModule?.ubuntu?.("Chrome") ?? DEFAULT_BROWSER;
+    log.info({ orgId, browserConfig, version }, "[wa-baileys] socket init config");
 
     const sock = makeWASocket({
       version,
@@ -144,13 +147,17 @@ export async function initBaileys(orgId: string): Promise<void> {
         touch(sess, { socket: null, qrBase64: null });
 
         if (reason === DisconnectReason.loggedOut || reason === DisconnectReason.multideviceMismatch) {
-          // Permanent logout or multi-device mismatch — clear session files
+          // Permanent logout or protocol mismatch — clear files
           const dir = path.join(SESSIONS_DIR, orgId);
           fs.rmSync(dir, { recursive: true, force: true });
-          const msg = reason === DisconnectReason.multideviceMismatch
-            ? "عدم توافق بروتوكول واتساب. أعد بدء جلسة QR جديدة."
-            : "تم تسجيل الخروج من واتساب. ابدأ جلسة QR جديدة.";
-          touch(sess, { status: "disconnected", phone: null, lastError: msg });
+          touch(sess, {
+            status: "disconnected",
+            phone: null,
+            lastError:
+              reason === DisconnectReason.multideviceMismatch
+                ? "عدم توافق بروتوكول واتساب. أعد بدء جلسة QR جديدة."
+                : "تم تسجيل الخروج من واتساب. ابدأ جلسة QR جديدة.",
+          });
         } else {
           // Transient error — reset to disconnected so user can re-init
           touch(sess, { status: "disconnected", lastError: "انقطع اتصال واتساب. أعد بدء الجلسة." });

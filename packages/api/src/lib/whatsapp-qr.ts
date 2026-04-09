@@ -9,6 +9,7 @@ import path from "path";
 import { pool } from "@nasaq/db/client";
 
 const SESSIONS_DIR = process.env.WHATSAPP_SESSIONS_DIR ?? "/var/www/nasaq/whatsapp-sessions";
+const DEFAULT_BROWSER: [string, string, string] = ["Ubuntu", "Chrome", "22.04.4"];
 
 // In-memory state per orgId
 interface SessionState {
@@ -84,7 +85,6 @@ export async function startQrSession(orgId: string): Promise<void> {
 
     const authDir = path.join(SESSIONS_DIR, orgId);
     const { state: authState, saveCreds } = await useMultiFileAuthState(authDir);
-
     // Fetch latest WA Web version with fallback.
     // Fallback: WA Web v2.3000.x — update periodically from fetchLatestBaileysVersion() output.
     let version: [number, number, number] = [2, 3000, 1015901307];
@@ -95,9 +95,12 @@ export async function startQrSession(orgId: string): Promise<void> {
       console.warn("[WhatsApp QR] fetchLatestBaileysVersion failed — using fallback");
     }
 
-    // Resolve Browsers helper with CJS/ESM interop fallback
-    const _Browsers = typeof Browsers === "object" && Browsers ? Browsers : (baileysMod as any)?.Browsers;
-    const browserConfig: [string, string, string] = _Browsers?.ubuntu?.("Chrome") ?? ["Ubuntu", "Chrome", "22.04.4"];
+    const browserModule =
+      (typeof baileysMod.Browsers === "object" && baileysMod.Browsers ? baileysMod.Browsers : undefined)
+      ?? (baileysMod.default as any)?.Browsers;
+    const browserConfig: [string, string, string] =
+      browserModule?.ubuntu?.("Chrome") ?? DEFAULT_BROWSER;
+    console.info("[WhatsApp QR] socket init config", { orgId, browserConfig, version });
 
     const sock = makeWASocket({
       version,
