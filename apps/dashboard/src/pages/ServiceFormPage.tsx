@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams, Link } from "react-router-dom";
 import { ArrowRight, Loader2, AlertCircle, Upload, X, Plus, Trash2, Save, AlignLeft, AlignJustify, Hash, Calendar, ChevronDown, LayoutList, MapPin, Paperclip, Image, Wrench, Home, Package, Truck, Gift, FileText, Star, ShoppingBag, CalendarCheck, CheckSquare, Barcode, RefreshCw, DollarSign, Clock, MessageSquare, Settings, Layers, AlertTriangle } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi, mediaApi, addonsApi, questionsApi, membersApi, inventoryApi, settingsApi, eventPackagesApi } from "@/lib/api";
@@ -325,6 +325,7 @@ export function ServiceFormPage() {
   const [pendingStaffIds,setPendingStaffIds]= useState<string[]>([]);  // to be added on save (create)
   const [loadedStaff,    setLoadedStaff]    = useState<any[]>([]);    // already assigned (edit)
   const [products,       setProducts]       = useState<any[]>([]);    // inventory products
+  const [refDataLoading, setRefDataLoading] = useState(!isEdit);      // true until reference data loads (create mode)
 
   // ── Media (multiple images) ───────────────────────────────────────────────
   type MediaItem = { preview: string; url: string | null; mediaId: string | null; isCover: boolean; uploading: boolean };
@@ -378,17 +379,27 @@ export function ServiceFormPage() {
 
   // ── Load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
-    categoriesApi.list(true).then(r => setCategories(r.data || [])).catch(() => {});
-    membersApi.list().then(r => setStaffMembers(
-      (r.data || []).map((m: any) => ({
-        id:   m.user?.id   ?? m.id,
-        name: m.user?.name ?? m.name ?? "موظف",
-        jobTitle: m.jobTitle,
-      }))
-    )).catch(() => {});
-    inventoryApi.products().then(r => setProducts(r.data || [])).catch(() => {});
-    settingsApi.branches().then(r => setBranches(r.data || [])).catch(() => {});
-    eventPackagesApi.list().then(r => setTemplates(r.data || [])).catch(() => {});
+    const loads = [
+      categoriesApi.list(true).then(r => { setCategories(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل الأقسام"); return false; }),
+      membersApi.list().then(r => { setStaffMembers(
+        (r.data || []).map((m: any) => ({
+          id:   m.user?.id   ?? m.id,
+          name: m.user?.name ?? m.name ?? "موظف",
+          jobTitle: m.jobTitle,
+        }))
+      ); return true; }).catch(() => { toast.error("تعذّر تحميل الموظفين"); return false; }),
+      inventoryApi.products().then(r => { setProducts(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل المنتجات"); return false; }),
+      settingsApi.branches().then(r => { setBranches(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل الفروع"); return false; }),
+      eventPackagesApi.list().then(r => { setTemplates(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل القوالب"); return false; }),
+    ];
+
+    if (!isEdit) {
+      Promise.all(loads).then(results => {
+        if (results.every(ok => !ok)) {
+          setErrors(prev => ({ ...prev, _refData: "تعذّر تحميل البيانات المرجعية — تحقق من اتصالك بالإنترنت" }));
+        }
+      }).finally(() => setRefDataLoading(false));
+    }
 
     // Pre-select type passed from the type picker
     if (!isEdit && typeFromUrl) {
@@ -660,7 +671,7 @@ export function ServiceFormPage() {
   };
 
   // ── States ────────────────────────────────────────────────────────────────
-  if (loading) return (
+  if (loading || refDataLoading) return (
     <div className="flex justify-center py-20">
       <Loader2 className="w-6 h-6 animate-spin text-brand-500" />
     </div>
@@ -765,6 +776,14 @@ export function ServiceFormPage() {
               <div className="flex items-start gap-2.5 px-4 py-3 bg-brand-50 border border-brand-100 rounded-xl text-sm text-brand-700">
                 <span className="shrink-0 mt-0.5 w-1.5 h-1.5 rounded-full bg-brand-500 mt-1.5" />
                 {typeConfig.hint}
+              </div>
+            )}
+
+            {/* Ref data load failure banner */}
+            {errors._refData && (
+              <div className="flex items-center gap-2 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                {errors._refData}
               </div>
             )}
 
@@ -1191,7 +1210,14 @@ export function ServiceFormPage() {
                     الفروع <span className="text-gray-400 font-normal normal-case">— اتركها فارغة لتظهر في كل الفروع</span>
                   </label>
                   {branches.length === 0 ? (
-                    <p className="text-xs text-gray-400">لا توجد فروع مضافة</p>
+                    <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                      <MapPin className="w-3.5 h-3.5 shrink-0" />
+                      <span>لا توجد فروع مضافة —{" "}
+                        <Link to="/dashboard/settings" className="text-brand-500 hover:text-brand-700 font-medium underline underline-offset-2 transition-colors">
+                          أضف فروعك من الإعدادات
+                        </Link>
+                      </span>
+                    </div>
                   ) : (
                     <div className="flex flex-wrap gap-2">
                       {branches.map((b: any) => {
@@ -1225,10 +1251,21 @@ export function ServiceFormPage() {
                 {/* Category — move it here from info card */}
                 <div>
                   <label className="text-xs font-medium text-gray-700 block mb-1.5">القسم</label>
-                  <select value={form.categoryId} onChange={upd("categoryId")} className={clsx(iCls, "max-w-xs")}>
-                    <option value="">بدون قسم</option>
-                    {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                  {categories.length === 0 ? (
+                    <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                      <Layers className="w-3.5 h-3.5 shrink-0" />
+                      <span>لا توجد أقسام —{" "}
+                        <Link to="/dashboard/catalog?tab=categories" className="text-brand-500 hover:text-brand-700 font-medium underline underline-offset-2 transition-colors">
+                          أنشئ أقسامك من الكتالوج
+                        </Link>
+                      </span>
+                    </div>
+                  ) : (
+                    <select value={form.categoryId} onChange={upd("categoryId")} className={clsx(iCls, "max-w-xs")}>
+                      <option value="">بدون قسم</option>
+                      {categories.map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  )}
                 </div>
               </div>
             </FormSection>
@@ -1237,16 +1274,27 @@ export function ServiceFormPage() {
             {isExecutionMode && (
               <FormSection title="قالب التنفيذ الافتراضي" icon={Package} defaultOpen={false}>
                 <p className="text-xs text-gray-400 -mt-2 mb-3">خطة داخلية لتجهيز الخدمة (العناصر، الكميات، العمال) — تُطبَّق تلقائياً عند إنشاء الطلب</p>
-                <select
-                  value={form.templateId}
-                  onChange={upd("templateId")}
-                  className={clsx(iCls, "max-w-sm")}
-                >
-                  <option value="">بدون خطة تجهيز</option>
-                  {templates.map((t: any) => (
-                    <option key={t.id} value={t.id}>{t.name}</option>
-                  ))}
-                </select>
+                {templates.length === 0 ? (
+                  <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    <Package className="w-3.5 h-3.5 shrink-0" />
+                    <span>لا توجد قوالب تنفيذ —{" "}
+                      <Link to="/dashboard/event-packages" className="text-brand-500 hover:text-brand-700 font-medium underline underline-offset-2 transition-colors">
+                        أنشئ قالبك الأول
+                      </Link>
+                    </span>
+                  </div>
+                ) : (
+                  <select
+                    value={form.templateId}
+                    onChange={upd("templateId")}
+                    className={clsx(iCls, "max-w-sm")}
+                  >
+                    <option value="">بدون خطة تجهيز</option>
+                    {templates.map((t: any) => (
+                      <option key={t.id} value={t.id}>{t.name}</option>
+                    ))}
+                  </select>
+                )}
               </FormSection>
             )}
 
@@ -1323,7 +1371,14 @@ export function ServiceFormPage() {
                 </select>
               )}
               {staffMembers.length === 0 && loadedStaff.length === 0 && pendingStaffIds.length === 0 && (
-                <p className="text-xs text-gray-400 py-1">لا يوجد موظفون — أضفهم أولاً من صفحة الفريق</p>
+                <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                  <span>لا يوجد موظفون —{" "}
+                    <Link to="/dashboard/team" className="text-brand-500 hover:text-brand-700 font-medium underline underline-offset-2 transition-colors">
+                      أضف موظفيك من صفحة الفريق
+                    </Link>
+                  </span>
+                </div>
               )}
             </FormSection>}
 
@@ -1428,19 +1483,30 @@ export function ServiceFormPage() {
                           {c.sourceType === "inventory" ? "المنتج من المخزون" : "اسم المكون"} <span className="text-red-400">*</span>
                         </label>
                         {c.sourceType === "inventory" ? (
-                          <select value={c.inventoryItemId}
-                            onChange={e => {
-                              const p = products.find((x: any) => x.id === e.target.value);
-                              setComponentDrafts(d => d.map((x, j) => j === i
-                                ? { ...x, inventoryItemId: e.target.value, name: p?.name || "", unit: p?.unit || "قطعة", unitCost: p?.unitCost ? String(p.unitCost) : x.unitCost }
-                                : x));
-                            }}
-                            className={iCls}>
-                            <option value="">اختر منتجاً...</option>
-                            {products.map((p: any) => (
-                              <option key={p.id} value={p.id}>{p.name}</option>
-                            ))}
-                          </select>
+                          products.length === 0 ? (
+                            <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                              <Package className="w-3.5 h-3.5 shrink-0" />
+                              <span>لا توجد منتجات في المخزون —{" "}
+                                <Link to="/dashboard/inventory" className="text-brand-500 hover:text-brand-700 font-medium underline underline-offset-2 transition-colors">
+                                  أضف منتجاتك من المخزون
+                                </Link>
+                              </span>
+                            </div>
+                          ) : (
+                            <select value={c.inventoryItemId}
+                              onChange={e => {
+                                const p = products.find((x: any) => x.id === e.target.value);
+                                setComponentDrafts(d => d.map((x, j) => j === i
+                                  ? { ...x, inventoryItemId: e.target.value, name: p?.name || "", unit: p?.unit || "قطعة", unitCost: p?.unitCost ? String(p.unitCost) : x.unitCost }
+                                  : x));
+                              }}
+                              className={iCls}>
+                              <option value="">اختر منتجاً...</option>
+                              {products.map((p: any) => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                              ))}
+                            </select>
+                          )
                         ) : (
                           <input value={c.name} placeholder="مثال: ورد أحمر"
                             onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
