@@ -77,19 +77,31 @@ export async function startQrSession(orgId: string): Promise<void> {
       ?? (baileysMod.default as any)?.DisconnectReason;
     const fetchLatestBaileysVersion = baileysMod.fetchLatestBaileysVersion
       ?? (baileysMod.default as any)?.fetchLatestBaileysVersion;
+    const Browsers = baileysMod.Browsers
+      ?? (baileysMod.default as any)?.Browsers;
     const { Boom } = await import("@hapi/boom");
     const QRCode = await import("qrcode");
 
     const authDir = path.join(SESSIONS_DIR, orgId);
     const { state: authState, saveCreds } = await useMultiFileAuthState(authDir);
-    const { version } = await fetchLatestBaileysVersion();
+
+    // Fetch latest WA Web version with fallback
+    let version: [number, number, number] = [2, 3000, 1015901307];
+    try {
+      const fetched = await fetchLatestBaileysVersion();
+      version = fetched.version as [number, number, number];
+    } catch {
+      console.warn("[WhatsApp QR] fetchLatestBaileysVersion failed — using fallback");
+    }
+
+    const browserConfig = Browsers?.ubuntu?.("Chrome") ?? ["Ubuntu", "Chrome", "22.04.4"];
 
     const sock = makeWASocket({
       version,
       auth: authState,
       printQRInTerminal: false,
       logger: { level: "silent" } as any,
-      browser: ["نسق", "Chrome", "1.0"],
+      browser: browserConfig,
     });
 
     state.sock = sock;
@@ -103,7 +115,12 @@ export async function startQrSession(orgId: string): Promise<void> {
 
       if (qr) {
         try {
-          const qrImage = await QRCode.default.toDataURL(qr);
+          const qrImage = await QRCode.default.toDataURL(qr, {
+            width: 512,
+            margin: 4,
+            errorCorrectionLevel: "M",
+            color: { dark: "#000000", light: "#ffffff" },
+          });
           current.qrCode = qrImage;
           current.status = "pending_qr";
           await persistState(orgId, { status: "pending_qr", qrCode: qrImage });

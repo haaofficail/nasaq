@@ -8,6 +8,7 @@ import baileysMod, {
   useMultiFileAuthState,
   DisconnectReason,
   fetchLatestBaileysVersion,
+  Browsers,
 } from "@whiskeysockets/baileys";
 import { Boom } from "@hapi/boom";
 import QRCode from "qrcode";
@@ -81,11 +82,24 @@ export async function initBaileys(orgId: string): Promise<void> {
   try {
     const dir = ensureDir(orgId);
     const { state, saveCreds } = await useMultiFileAuthState(dir);
-    const { version }          = await fetchLatestBaileysVersion();
+
+    // Fetch latest WA Web version — fallback to a known-good version if
+    // the network call to web.whatsapp.com fails (common in production).
+    let version: [number, number, number] = [2, 3000, 1015901307];
+    try {
+      const fetched = await fetchLatestBaileysVersion();
+      version = fetched.version as [number, number, number];
+    } catch {
+      log.warn({ orgId }, "[wa-baileys] fetchLatestBaileysVersion failed — using fallback version");
+    }
+
+    const _Browsers = typeof Browsers === "object" && Browsers ? Browsers : (baileysMod as any).Browsers;
+    const browserConfig = _Browsers?.ubuntu?.("Chrome") ?? ["Ubuntu", "Chrome", "22.04.4"];
 
     const sock = makeWASocket({
       version,
       auth:               state,
+      browser:            browserConfig,
       printQRInTerminal:  false,
       // suppress Baileys internal logger
       logger: { level: "silent", trace(){}, debug(){}, info(){}, warn(){}, error(){}, fatal(){}, child(){ return this; } } as any,
@@ -101,7 +115,12 @@ export async function initBaileys(orgId: string): Promise<void> {
       // New QR received — convert to base64 PNG
       if (qr) {
         try {
-          const png = await QRCode.toDataURL(qr, { width: 320, margin: 2, color: { dark: "#111827", light: "#ffffff" } });
+          const png = await QRCode.toDataURL(qr, {
+            width: 512,
+            margin: 4,
+            errorCorrectionLevel: "M",
+            color: { dark: "#000000", light: "#ffffff" },
+          });
           touch(sess, { status: "qr_ready", qrBase64: png, lastError: null });
           log.info({ orgId }, "[wa-baileys] QR ready");
         } catch (err) {
@@ -122,14 +141,17 @@ export async function initBaileys(orgId: string): Promise<void> {
 
         touch(sess, { socket: null, qrBase64: null });
 
-        if (reason === DisconnectReason.loggedOut) {
-          // Permanent logout — clear files
+        if (reason === DisconnectReason.loggedOut || reason === DisconnectReason.multideviceMismatch) {
+          // Permanent logout or multi-device mismatch — clear session files
           const dir = path.join(SESSIONS_DIR, orgId);
           fs.rmSync(dir, { recursive: true, force: true });
-          touch(sess, { status: "disconnected", phone: null, lastError: "تم تسجيل الخروج من واتساب. ابدأ جلسة QR جديدة." });
+          const msg = reason === DisconnectReason.multideviceMismatch
+            ? "عدم توافق بروتوكول واتساب. أعد بدء جلسة QR جديدة."
+            : "تم تسجيل الخروج من واتساب. ابدأ جلسة QR جديدة.";
+          touch(sess, { status: "disconnected", phone: null, lastError: msg });
         } else {
           // Transient error — reset to disconnected so user can re-init
-          touch(sess, { status: "disconnected", lastError: "انقطع اتصال واتساب قبل ظهور QR. أعد بدء الجلسة." });
+          touch(sess, { status: "disconnected", lastError: "انقطع اتصال واتساب. أعد بدء الجلسة." });
         }
       }
     });
