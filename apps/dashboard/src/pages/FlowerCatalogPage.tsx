@@ -357,7 +357,7 @@ export function FlowerCatalogPage() {
         </div>
         <div className="flex items-center gap-2">
           {tab === "services" && (
-            <Button icon={Plus} onClick={() => navigate("/dashboard/services/new?type=field_service")}>
+            <Button icon={Plus} onClick={() => navigate("/dashboard/services/wizard?type=field_service")}>
               خدمة جديدة
             </Button>
           )}
@@ -506,7 +506,7 @@ export function FlowerCatalogPage() {
                 <>
                   <p className="text-sm font-semibold text-gray-700 mb-1">لا توجد خدمات ميدانية بعد</p>
                   <p className="text-xs text-gray-400 mb-3">أضف خدمتك الأولى</p>
-                  <Button icon={Plus} onClick={() => navigate("/dashboard/services/new?type=field_service")}>
+                  <Button icon={Plus} onClick={() => navigate("/dashboard/services/wizard?type=field_service")}>
                     إضافة خدمة
                   </Button>
                 </>
