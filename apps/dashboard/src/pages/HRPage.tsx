@@ -291,7 +291,7 @@ function LeaveModal({ onClose, onSaved, employees }: { onClose: () => void; onSa
       await hrApi.createLeave(form);
       toast.success("تم إضافة طلب الإجازة");
       onSaved();
-    } catch { toast.error("حدث خطأ"); } finally { setSaving(false); }
+    } catch { toast.error("تعذّر حفظ طلب الإجازة — تحقق من البيانات وحاول مجدداً"); } finally { setSaving(false); }
   }
 
   return (
@@ -366,7 +366,7 @@ function LoanModal({ onClose, onSaved, employees }: { onClose: () => void; onSav
       await hrApi.createLoan(form);
       toast.success("تم تسجيل طلب السلفة");
       onSaved();
-    } catch { toast.error("حدث خطأ"); } finally { setSaving(false); }
+    } catch { toast.error("تعذّر حفظ طلب السلفة — تحقق من البيانات وحاول مجدداً"); } finally { setSaving(false); }
   }
 
   return (
@@ -860,13 +860,13 @@ function LeavesTab() {
   async function handleApprove(id: string) {
     if (!confirm("هل تريد الموافقة على هذه الإجازة؟")) return;
     try { await hrApi.approveLeave(id); toast.success("تمت الموافقة على الإجازة"); refetch(); }
-    catch { toast.error("حدث خطأ"); }
+    catch { toast.error("تعذّرت الموافقة على الإجازة"); }
   }
   async function handleReject(id: string) {
     const reason = prompt("سبب الرفض:");
     if (reason === null) return;
     try { await hrApi.rejectLeave(id, { reason }); toast.success("تم رفض الطلب"); refetch(); }
-    catch { toast.error("حدث خطأ"); }
+    catch { toast.error("تعذّر رفض طلب الإجازة"); }
   }
 
   async function handleBulkApprove() {
@@ -1037,12 +1037,12 @@ function PayrollTab() {
 
   async function handleApprove(id: string) {
     try { await hrApi.approvePayroll(id); toast.success("تم اعتماد كشف الرواتب"); refetch(); }
-    catch { toast.error("حدث خطأ"); }
+    catch { toast.error("تعذّر اعتماد كشف الرواتب"); }
   }
   async function handleMarkPaid(id: string) {
     if (!confirm("تأكيد صرف الرواتب؟")) return;
     try { await hrApi.markPayrollPaid(id); toast.success("تم تسجيل صرف الرواتب"); refetch(); }
-    catch { toast.error("حدث خطأ"); }
+    catch { toast.error("تعذّر تسجيل صرف الرواتب"); }
   }
 
   return (
@@ -1116,12 +1116,12 @@ function LoansTab() {
 
   async function handleApprove(id: string) {
     try { await hrApi.approveLoan(id); toast.success("تمت الموافقة على السلفة"); refetch(); }
-    catch { toast.error("حدث خطأ"); }
+    catch { toast.error("تعذّرت الموافقة على السلفة"); }
   }
   async function handleReject(id: string) {
     const reason = prompt("سبب الرفض:") ?? "";
     try { await hrApi.rejectLoan(id, { reason }); toast.success("تم رفض الطلب"); refetch(); }
-    catch { toast.error("حدث خطأ"); }
+    catch { toast.error("تعذّر رفض طلب السلفة"); }
   }
 
   function addMonths(ym: string, n: number): string {

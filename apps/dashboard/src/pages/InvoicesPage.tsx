@@ -6,7 +6,7 @@ import { clsx } from "clsx";
 import { financeApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { useOrgContext } from "@/hooks/useOrgContext";
-import { Button, Modal, Input, Select } from "@/components/ui";
+import { Button, Modal, Input, Select, confirmDialog } from "@/components/ui";
 import { CreateInvoiceModal } from "@/components/invoices/CreateInvoiceModal";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
@@ -80,7 +80,7 @@ export function InvoicesPage() {
   };
 
   const markCancelled = async (id: string) => {
-    if (!confirm("إلغاء هذه الفاتورة؟")) return;
+    if (!(await confirmDialog({ title: "إلغاء هذه الفاتورة؟", message: "لا يمكن التراجع عن هذا الإجراء", confirmLabel: "إلغاء الفاتورة", cancelLabel: "تراجع", danger: true }))) return;
     try {
       await updateStatus({ id, s: "cancelled" });
       toast.success("تم الإلغاء");
@@ -91,7 +91,7 @@ export function InvoicesPage() {
 
   const [sendingId, setSendingId] = useState<string | null>(null);
   const sendInvoice = async (id: string) => {
-    if (!confirm("هل تريد إرسال هذه الفاتورة للعميل؟")) return;
+    if (!(await confirmDialog({ title: "إرسال الفاتورة للعميل؟", confirmLabel: "إرسال", cancelLabel: "إلغاء" }))) return;
     setSendingId(id);
     try {
       await financeApi.sendInvoice(id);

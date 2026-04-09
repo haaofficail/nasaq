@@ -5,7 +5,7 @@ import { Plus, Search, Grid3X3, List, Eye, EyeOff, Copy, Trash2, Pencil, Star, P
 import { clsx } from "clsx";
 import { servicesApi, categoriesApi, templatesApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Button } from "@/components/ui";
+import { Button, confirmDialog } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { useBusiness } from "@/hooks/useBusiness";
 import { useOrgContext } from "@/hooks/useOrgContext";
@@ -395,7 +395,7 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
   const presentTypes: string[] = ["الكل", ...Array.from(new Set(services.map((s: any) => s.serviceType).filter(Boolean) as string[]))];
 
   const handleDelete = async (id: string, name: string) => {
-    if (!confirm("حذف \"" + name + "\"؟")) return;
+    if (!(await confirmDialog({ title: `حذف "${name}"؟`, message: "سيتم حذف الخدمة نهائياً", confirmLabel: "حذف", danger: true }))) return;
     await deleteService(id);
     refetch();
   };

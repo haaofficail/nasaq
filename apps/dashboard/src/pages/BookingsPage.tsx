@@ -6,7 +6,7 @@ import { bookingsApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { toast } from "@/hooks/useToast";
 import { CreateBookingForm } from "@/components/bookings/CreateBookingForm";
-import { StatusBadge, ModernInput, PageHeader, Button } from "@/components/ui";
+import { StatusBadge, ModernInput, PageHeader, Button, confirmDialog } from "@/components/ui";
 import { fmtDate } from "@/lib/utils";
 import { useBusiness } from "@/hooks/useBusiness";
 
@@ -55,7 +55,7 @@ export function BookingsPage() {
 
   const quickConfirm = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (!confirm("تأكيد هذا الحجز؟")) return;
+    if (!(await confirmDialog({ title: "تأكيد هذا الحجز؟", confirmLabel: "تأكيد", cancelLabel: "إلغاء" }))) return;
     setActionLoading(id + "_confirm");
     try {
       await bookingsApi.updateStatus(id, "confirmed");

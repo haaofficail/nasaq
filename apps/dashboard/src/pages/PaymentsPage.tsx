@@ -9,6 +9,7 @@ import { useApi } from "@/hooks/useApi";
 import { useOrgContext } from "@/hooks/useOrgContext";
 import { paymentsApi } from "@/lib/api";
 import { usePlatformConfig } from "@/hooks/usePlatformConfig";
+import { confirmDialog } from "@/components/ui";
 
 const STATUS_LABELS: Record<string, string> = {
   pending:   "معلقة",
@@ -214,7 +215,7 @@ function NasaqGatewaySection({
   const [refundMsg, setRefundMsg]     = useState<Record<string, string>>({});
 
   async function handleRefund(txId: string) {
-    if (!confirm("هل أنت متأكد من استرداد هذه الدفعة؟")) return;
+    if (!(await confirmDialog({ title: "استرداد هذه الدفعة؟", message: "سيتم إرجاع المبلغ للعميل", confirmLabel: "استرداد", cancelLabel: "إلغاء", danger: true }))) return;
     setRefundingId(txId);
     try {
       await paymentsApi.refund(txId);

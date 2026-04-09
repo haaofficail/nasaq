@@ -4,6 +4,7 @@ import { onlineOrdersApi } from "@/lib/api";
 import { ShoppingCart, Clock, CheckCircle2, XCircle, Search, ChevronDown, ChevronRight, Package } from "lucide-react";
 import { clsx } from "clsx";
 import { SkeletonRows } from "@/components/ui/Skeleton";
+import { confirmDialog } from "@/components/ui";
 
 const STATUS_LABELS: Record<string, string> = { pending: "جديد", confirmed: "مؤكد", in_progress: "قيد التحضير", ready: "جاهز", delivered: "تم التسليم", completed: "مكتمل", cancelled: "ملغي" };
 const STATUS_COLORS: Record<string, string> = { pending: "bg-yellow-50 text-yellow-700 border-yellow-200", confirmed: "bg-blue-50 text-blue-700 border-blue-200", in_progress: "bg-purple-50 text-purple-700 border-purple-200", ready: "bg-green-50 text-green-700 border-green-200", delivered: "bg-teal-50 text-teal-700 border-teal-200", completed: "bg-gray-100 text-gray-500 border-gray-200", cancelled: "bg-red-50 text-red-600 border-red-200" };
@@ -45,7 +46,7 @@ export function OnlineOrdersPage() {
   };
 
   const handleCancel = async (id: string) => {
-    if (!confirm("إلغاء هذا الطلب؟")) return;
+    if (!(await confirmDialog({ title: "إلغاء هذا الطلب؟", confirmLabel: "إلغاء الطلب", cancelLabel: "تراجع", danger: true }))) return;
     await onlineOrdersApi.cancel(id);
     refetch();
   };

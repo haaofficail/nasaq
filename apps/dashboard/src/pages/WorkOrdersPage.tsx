@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { SkeletonRows } from "@/components/ui/Skeleton";
+import { confirmDialog } from "@/components/ui";
 import { WORK_ORDER_STATUSES, WORK_ORDER_CATEGORIES } from "@/lib/constants";
 import { fmtDate } from "@/lib/utils";
 
@@ -200,7 +201,7 @@ export function WorkOrdersPage() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("هل تريد حذف هذا الأمر؟")) return;
+    if (!(await confirmDialog({ title: "حذف أمر العمل؟", message: "لا يمكن التراجع عن هذا الإجراء", confirmLabel: "حذف", danger: true }))) return;
     setDeleting(id);
     try { await workOrdersApi.delete(id); refetch(); refetchStats(); }
     catch {}

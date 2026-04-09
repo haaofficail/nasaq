@@ -1,5 +1,5 @@
 import { Component, ReactNode } from "react";
-import { AlertTriangle, RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 
 interface Props {
   children: ReactNode;
@@ -35,19 +35,29 @@ export class ErrorBoundary extends Component<Props, State> {
           <div>
             <h2 className="text-lg font-semibold text-gray-900">حدث خطأ غير متوقع</h2>
             <p className="text-sm text-gray-500 mt-1">يرجى تحديث الصفحة أو المحاولة لاحقاً</p>
+            <p className="text-xs text-gray-400 mt-2">إذا استمرت المشكلة، تواصل مع الدعم الفني من خلال قائمة «الدعم الفني» في الشريط الجانبي</p>
             {this.state.message && (
               <p className="mt-3 text-xs text-gray-400 bg-gray-50 rounded-lg p-3 text-start font-mono break-all">
                 {this.state.message}
               </p>
             )}
           </div>
-          <button
-            onClick={this.reset}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-[#5b9bd5] text-white text-sm rounded-xl hover:bg-[#4a8bc4] transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            إعادة المحاولة
-          </button>
+          <div className="flex items-center justify-center gap-3">
+            <button
+              onClick={this.reset}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#5b9bd5] text-white text-sm rounded-xl hover:bg-[#4a8bc4] transition-colors"
+            >
+              <RefreshCw className="w-4 h-4" />
+              إعادة المحاولة
+            </button>
+            <a
+              href="/dashboard"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-xl hover:bg-gray-200 transition-colors"
+            >
+              <Home className="w-4 h-4" />
+              الرئيسية
+            </a>
+          </div>
         </div>
       </div>
     );

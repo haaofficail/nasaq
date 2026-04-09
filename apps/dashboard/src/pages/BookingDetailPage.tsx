@@ -6,7 +6,7 @@ import { bookingsApi, salonApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { useBusiness } from "@/hooks/useBusiness";
 import { success as hapticSuccess } from "@/lib/haptics";
-import { Button, Modal, Input, Select } from "@/components/ui";
+import { Button, Modal, Input, Select, confirmDialog } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { fmtDate } from "@/lib/utils";
 
@@ -54,7 +54,7 @@ export function BookingDetailPage() {
   const booking = res?.data;
 
   const handleStatusChange = async (status: string) => {
-    if (status === "cancelled" && !confirm("هل أنت متأكد من إلغاء الحجز؟")) return;
+    if (status === "cancelled" && !(await confirmDialog({ title: "إلغاء هذا الحجز؟", message: "سيتم إلغاء الحجز وإشعار العميل", confirmLabel: "إلغاء الحجز", cancelLabel: "تراجع", danger: true }))) return;
     await updateStatus({ status });
     if (status === "confirmed" || status === "completed") hapticSuccess();
     refetch();
