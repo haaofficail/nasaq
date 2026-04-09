@@ -184,25 +184,6 @@ export default function WhatsAppGatewayTab() {
               </div>
             </div>
 
-            {/* Not connected — prompt to connect via QR */}
-            {!status.whatsappConfigured && !status.baileysConnected && (
-              <div className="mt-4 bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-start gap-3">
-                <QrCode className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-amber-800">الواتساب غير مربوط</p>
-                  <p className="text-xs text-amber-600 mt-1 leading-relaxed">
-                    اربط واتساب المنصة عبر مسح باركود QR مباشرة من هاتفك — لا يتطلب أي إعداد تقني أو مفاتيح API.
-                  </p>
-                  <button
-                    onClick={() => setTab("qr")}
-                    className="mt-3 inline-flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-xl text-xs font-semibold hover:bg-brand-600 transition-colors"
-                  >
-                    <QrCode className="w-4 h-4" />
-                    ربط واتساب بباركود QR
-                  </button>
-                </div>
-              </div>
-            )}
           </>
         ) : (
           <p className="text-xs text-gray-400">لا يمكن تحميل حالة الاتصال</p>
@@ -245,6 +226,10 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
 
   // Auto-poll when waiting for QR or scan
   useEffect(() => {
+    if (pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
     if (qrState?.status === "qr_ready" || qrState?.status === "connecting" || starting) {
       pollRef.current = setInterval(() => refetch(), 2000);
     }
@@ -254,10 +239,11 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
   }, [qrState?.status, starting, refetch]);
 
   // Stop polling and reset "starting" when lifecycle reaches terminal UI states
+  // IMPORTANT: do NOT stop on "qr_ready" because user may scan after QR appears.
   useEffect(() => {
     if (!qrState?.status) return;
 
-    if (qrState.status === "connected" || qrState.status === "qr_ready" || qrState.status === "disconnected") {
+    if (qrState.status === "connected" || qrState.status === "disconnected") {
       if (pollRef.current) {
         clearInterval(pollRef.current);
         pollRef.current = null;

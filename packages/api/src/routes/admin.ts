@@ -866,11 +866,15 @@ adminRouter.patch("/announcements/:id", async (c) => {
   const body = await c.req.json();
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   if (body.title !== undefined) updates.title = body.title;
-  if (body.content !== undefined) updates.content = body.content;
+  if (body.content !== undefined) updates.body = body.content;
+  if (body.body !== undefined) updates.body = body.body;
   if (body.type !== undefined) updates.type = body.type;
-  if (body.targetPlans !== undefined) updates.targetPlans = body.targetPlans;
-  if (body.publishedAt !== undefined) updates.publishedAt = body.publishedAt ? new Date(body.publishedAt) : null;
-  if (body.expiresAt !== undefined) updates.expiresAt = body.expiresAt ? new Date(body.expiresAt) : null;
+  if (body.targetPlans !== undefined) updates.targetPlan = body.targetPlans;
+  if (body.targetPlan !== undefined) updates.targetPlan = body.targetPlan;
+  if (body.publishedAt !== undefined) updates.startsAt = body.publishedAt ? new Date(body.publishedAt) : null;
+  if (body.startsAt !== undefined) updates.startsAt = body.startsAt ? new Date(body.startsAt) : null;
+  if (body.expiresAt !== undefined) updates.endsAt = body.expiresAt ? new Date(body.expiresAt) : null;
+  if (body.endsAt !== undefined) updates.endsAt = body.endsAt ? new Date(body.endsAt) : null;
 
   const [updated] = await db.update(platformAnnouncements)
     .set(updates)
