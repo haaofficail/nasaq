@@ -894,7 +894,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
         orgId,
         bookingId: id,
         bookingNumber: updated.bookingNumber,
-        amount: parseFloat(updated.totalAmount),
+        amount: Number(updated.totalAmount),
       });
     } catch {}
   } else if (newStatus === "cancelled") {
@@ -903,7 +903,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
         orgId,
         bookingId: id,
         bookingNumber: updated.bookingNumber,
-        amount: parseFloat(updated.totalAmount),
+        amount: Number(updated.totalAmount),
       });
     } catch {}
   }
@@ -1186,7 +1186,7 @@ bookingsRouter.post("/:id/payments", async (c) => {
     newValue: { bookingId, amount: body.amount, method: body.method, status: body.status },
   });
 
-  // ترحيل محاسبي (متزامن — يجب أن يكتمل قبل الرد)
+  // ترحيل محاسبي — يُنتظر (لا fire-and-forget) لضمان تسجيل القيد
   if (payment.status === "completed") {
     try {
       const [org] = await db.select({ settings: organizations.settings }).from(organizations).where(eq(organizations.id, orgId));
@@ -1202,7 +1202,9 @@ bookingsRouter.post("/:id/payments", async (c) => {
           await postCashSale({ orgId, date: new Date(), amount, vatAmount, description: `تحصيل دفعة حجز ${bookingId}`, sourceType: "booking", sourceId: payment.id, createdBy: userId ?? undefined });
         }
       }
-    } catch { /* المحاسبة غير مُفعّلة — نكمل بدون قيد */ }
+    } catch {
+      // فشل الترحيل لا يُوقف العملية — المحاسبة قد تكون غير مُفعّلة
+    }
   }
 
   return c.json({ data: payment }, 201);
