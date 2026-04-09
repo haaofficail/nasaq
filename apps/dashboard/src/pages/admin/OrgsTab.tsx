@@ -3,13 +3,14 @@ import {
   CheckCheck, AlertTriangle, ChevronRight, RefreshCw, Plus, Search,
   Loader2, Save, LogIn, ToggleLeft, ToggleRight, Users, MapPin,
   Phone, Mail, UserCheck, Package, CreditCard, KeyRound, Trash2, Building2, ImagePlus,
+  Eye, EyeOff, Copy, Check,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { adminApi } from "@/lib/api";
 import { SAUDI_CITIES, ADDONS, PLANS, ADDON_MAP, PLAN_MAP } from "@/lib/constants";
 import { useApi, useMutation } from "@/hooks/useApi";
 import {
-  BUSINESS_TYPES, ALL_CAPABILITIES,
+  BUSINESS_TYPES, ALL_CAPABILITIES, generateSecurePassword,
   StatusBadge, PlanBadge, RoleBadge, Spinner, Empty, SectionHeader, Modal, InfoRow, TabPill,
 } from "./shared";
 
@@ -42,6 +43,11 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoDragging, setLogoDragging] = useState(false);
   const logoFileRef = useRef<HTMLInputElement>(null);
+  const [userPwModal, setUserPwModal] = useState<{ userId: string; userName: string } | null>(null);
+  const [userPw, setUserPw] = useState("");
+  const [userPwVisible, setUserPwVisible] = useState(false);
+  const [userPwSaving, setUserPwSaving] = useState(false);
+  const [userPwCopied, setUserPwCopied] = useState(false);
 
   const { mutate: changePlan, loading: changingPlan } = useMutation((d: any) => adminApi.changePlan(org.id, d));
   const { mutate: setCaps, loading: settingCaps } = useMutation((cs: string[]) => adminApi.setOrgCapabilities(org.id, cs));
@@ -355,19 +361,70 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
             )}
 
             {tab === "users" && (
-              <div className="space-y-2">
-                {orgUsers.length === 0 ? <Empty icon={Users} text="لا يوجد مستخدمون" /> : orgUsers.map((u: any) => (
-                  <div key={u.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50">
-                    <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-sm shrink-0">
-                      {u.name?.[0] || "م"}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800">{u.name}</p>
-                      <p className="text-xs text-gray-400 truncate">{u.phone || u.email || "—"}</p>
-                    </div>
-                    <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{u.type}</span>
+              <div className="space-y-3">
+                {orgUsers.length === 0 ? <Empty icon={Users} text="لا يوجد مستخدمون" /> : (
+                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
+                          <th className="text-right px-4 py-3 font-semibold">المستخدم</th>
+                          <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">الدور</th>
+                          <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">المسمى</th>
+                          <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">الحالة</th>
+                          <th className="text-right px-4 py-3 font-semibold hidden lg:table-cell">تاريخ الإنشاء</th>
+                          <th className="px-4 py-3"></th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {orgUsers.map((u: any) => (
+                          <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
+                            <td className="px-4 py-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-sm shrink-0">
+                                  {u.name?.[0] || "م"}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium text-gray-900">{u.name}</p>
+                                  <p className="text-xs text-gray-400 truncate font-mono">{u.phone || u.email || "—"}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 hidden sm:table-cell">
+                              <span className={clsx(
+                                "inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold",
+                                u.type === "owner" ? "bg-amber-50 text-amber-700" : u.type === "manager" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-500"
+                              )}>
+                                {u.type === "owner" ? "مالك" : u.type === "manager" ? "مدير" : u.type === "staff" ? "موظف" : u.type}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">{u.jobTitle || "—"}</td>
+                            <td className="px-4 py-3 hidden md:table-cell">
+                              <span className={clsx(
+                                "inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold",
+                                u.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
+                              )}>
+                                {u.status === "active" ? "نشط" : u.status || "—"}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">
+                              {u.createdAt ? new Date(u.createdAt).toLocaleDateString("ar") : "—"}
+                            </td>
+                            <td className="px-4 py-3">
+                              <button
+                                onClick={() => { setUserPwModal({ userId: u.id, userName: u.name }); setUserPw(""); setUserPwVisible(false); setUserPwCopied(false); }}
+                                className="flex items-center gap-1.5 text-xs text-amber-600 border border-amber-200 px-2.5 py-1.5 rounded-lg hover:bg-amber-50 transition-colors font-medium"
+                                title="إعادة تعيين كلمة المرور"
+                              >
+                                <KeyRound className="w-3 h-3" />
+                                <span className="hidden sm:inline">كلمة المرور</span>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
                   </div>
-                ))}
+                )}
               </div>
             )}
 
@@ -477,13 +534,78 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
           </div>
         </div>
       </Modal>
+
+      {/* User password reset modal */}
+      {userPwModal && (
+        <Modal open onClose={() => setUserPwModal(null)} title={`إعادة تعيين كلمة المرور — ${userPwModal.userName}`} width="max-w-sm">
+          <div className="space-y-4">
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+              <p className="text-xs text-amber-700">سيتم تغيير كلمة مرور المستخدم فوراً. تأكد من إبلاغه بكلمة المرور الجديدة.</p>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">كلمة المرور الجديدة</label>
+              <div className="relative">
+                <input
+                  type={userPwVisible ? "text" : "password"}
+                  value={userPw}
+                  onChange={(e) => setUserPw(e.target.value)}
+                  placeholder="أدخل كلمة المرور (6 أحرف على الأقل)"
+                  dir="ltr"
+                  className="w-full border border-gray-200 rounded-xl p-3 pe-20 text-sm outline-none focus:border-brand-400 font-mono"
+                />
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <button type="button" onClick={() => setUserPwVisible(!userPwVisible)}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" title={userPwVisible ? "إخفاء" : "إظهار"}>
+                    {userPwVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                  {userPw && (
+                    <button type="button" onClick={() => { navigator.clipboard.writeText(userPw); setUserPwCopied(true); setTimeout(() => setUserPwCopied(false), 2000); }}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" title="نسخ">
+                      {userPwCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setUserPw(generateSecurePassword());
+                setUserPwVisible(true);
+              }}
+              className="w-full py-2.5 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              توليد كلمة مرور عشوائية
+            </button>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setUserPwModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button
+                disabled={!userPw || userPw.length < 6 || userPwSaving}
+                onClick={async () => {
+                  setUserPwSaving(true);
+                  try {
+                    await adminApi.resetUserPassword(userPwModal.userId, { password: userPw });
+                    setUserPwModal(null);
+                    setUserPw("");
+                  } catch {
+                    alert("فشل إعادة تعيين كلمة المرور");
+                  } finally {
+                    setUserPwSaving(false);
+                  }
+                }}
+                className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {userPwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                حفظ
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
-
-// ────────────────────────────────────────────────────────────
-// OrgsTab
-// ────────────────────────────────────────────────────────────
 
 function OrgsTab() {
   const [search, setSearch] = useState("");
@@ -499,6 +621,9 @@ function OrgsTab() {
   });
   const [resetPwModal, setResetPwModal] = useState<{ orgId: string; orgName: string } | null>(null);
   const [resetPw, setResetPw] = useState("");
+  const [resetPwVisible, setResetPwVisible] = useState(false);
+  const [resetPwCopied, setResetPwCopied] = useState(false);
+  const [resetPwSaving, setResetPwSaving] = useState(false);
   const [credentialsModal, setCredentialsModal] = useState<{ phone: string | null; email: string | null; password: string } | null>(null);
   const [planModal, setPlanModal] = useState<{ orgId: string; orgName: string; currentPlan: string; currentStatus: string } | null>(null);
   const [planForm, setPlanForm] = useState({ plan: "", subscriptionStatus: "", subscriptionEndsAt: "" });
@@ -650,7 +775,7 @@ function OrgsTab() {
                         <CreditCard className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => { setResetPwModal({ orgId: org.id, orgName: org.name }); setResetPw(""); }}
+                        onClick={() => { setResetPwModal({ orgId: org.id, orgName: org.name }); setResetPw(""); setResetPwVisible(false); setResetPwCopied(false); }}
                         className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600 transition-colors"
                         title="إعادة تعيين كلمة المرور"
                       >
@@ -683,44 +808,66 @@ function OrgsTab() {
       )}
 
       {resetPwModal && (
-        <Modal open onClose={() => setResetPwModal(null)} title={`إعادة تعيين كلمة المرور — ${resetPwModal.orgName}`} width="max-w-sm">
+        <Modal open onClose={() => setResetPwModal(null)} title={`إعادة تعيين كلمة مرور المالك — ${resetPwModal.orgName}`} width="max-w-sm">
           <div className="space-y-4">
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+              <p className="text-xs text-amber-700">سيتم تغيير كلمة مرور مالك المنشأة فوراً. تأكد من إبلاغه بكلمة المرور الجديدة.</p>
+            </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">كلمة المرور الجديدة</label>
-              <input
-                type="text"
-                value={resetPw}
-                onChange={(e) => setResetPw(e.target.value)}
-                placeholder="أدخل كلمة المرور"
-                dir="ltr"
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 font-mono"
-              />
+              <div className="relative">
+                <input
+                  type={resetPwVisible ? "text" : "password"}
+                  value={resetPw}
+                  onChange={(e) => setResetPw(e.target.value)}
+                  placeholder="أدخل كلمة المرور (6 أحرف على الأقل)"
+                  dir="ltr"
+                  className="w-full border border-gray-200 rounded-xl p-3 pe-20 text-sm outline-none focus:border-brand-400 font-mono"
+                />
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <button type="button" onClick={() => setResetPwVisible(!resetPwVisible)}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" title={resetPwVisible ? "إخفاء" : "إظهار"}>
+                    {resetPwVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                  {resetPw && (
+                    <button type="button" onClick={() => { navigator.clipboard.writeText(resetPw); setResetPwCopied(true); setTimeout(() => setResetPwCopied(false), 2000); }}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" title="نسخ">
+                      {resetPwCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
             <button
               type="button"
               onClick={() => {
-                const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-                setResetPw(Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join(""));
+                setResetPw(generateSecurePassword());
+                setResetPwVisible(true);
               }}
-              className="w-full py-2 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors"
+              className="w-full py-2.5 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
             >
+              <RefreshCw className="w-3.5 h-3.5" />
               توليد كلمة مرور عشوائية
             </button>
             <div className="flex gap-3 pt-1">
               <button onClick={() => setResetPwModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
               <button
-                disabled={!resetPw || resetPw.length < 6}
+                disabled={!resetPw || resetPw.length < 6 || resetPwSaving}
                 onClick={async () => {
+                  setResetPwSaving(true);
                   try {
                     await adminApi.resetOrgPassword(resetPwModal.orgId, { password: resetPw });
                     setResetPwModal(null);
                     setResetPw("");
                   } catch {
                     alert("فشل إعادة تعيين كلمة المرور");
+                  } finally {
+                    setResetPwSaving(false);
                   }
                 }}
-                className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50"
+                className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2"
               >
+                {resetPwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
                 حفظ
               </button>
             </div>

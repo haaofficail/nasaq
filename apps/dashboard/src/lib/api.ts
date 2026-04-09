@@ -1698,6 +1698,8 @@ export const adminApi = {
   },
   makeSuperAdmin: (id: string) => api.post<{ data: any }>(`/admin/users/${id}/make-super-admin`),
   revokeSuperAdmin: (id: string) => api.post<{ data: any }>(`/admin/users/${id}/revoke-super-admin`),
+  resetUserPassword: (id: string, data: { password: string }) =>
+    api.patch<{ ok: boolean }>(`/admin/users/${id}/reset-password`, data),
 
   impersonate: (orgId: string) => api.post<{ data: any }>(`/admin/impersonate/${orgId}`),
 
@@ -1865,6 +1867,98 @@ export const adminApi = {
     return fetch("/api/v1/admin/platform-config/favicon", {
       method: "POST", headers: { Authorization: `Bearer ${token}` }, body: formData,
     }).then(r => r.json());
+  },
+
+  // Cross-org data views (super_admin)
+  invoices: (params?: { orgId?: string; status?: string; q?: string; fromDate?: string; toDate?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)    qs.set("orgId", params.orgId);
+    if (params?.status)   qs.set("status", params.status);
+    if (params?.q)        qs.set("q", params.q);
+    if (params?.fromDate) qs.set("fromDate", params.fromDate);
+    if (params?.toDate)   qs.set("toDate", params.toDate);
+    if (params?.page)     qs.set("page", String(params.page));
+    if (params?.limit)    qs.set("limit", String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/invoices?${qs}`);
+  },
+  bookings: (params?: { orgId?: string; status?: string; q?: string; fromDate?: string; toDate?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)    qs.set("orgId", params.orgId);
+    if (params?.status)   qs.set("status", params.status);
+    if (params?.q)        qs.set("q", params.q);
+    if (params?.fromDate) qs.set("fromDate", params.fromDate);
+    if (params?.toDate)   qs.set("toDate", params.toDate);
+    if (params?.page)     qs.set("page", String(params.page));
+    if (params?.limit)    qs.set("limit", String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/bookings?${qs}`);
+  },
+  customers: (params?: { orgId?: string; q?: string; tier?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)  qs.set("orgId", params.orgId);
+    if (params?.q)      qs.set("q", params.q);
+    if (params?.tier)   qs.set("tier", params.tier);
+    if (params?.page)   qs.set("page", String(params.page));
+    if (params?.limit)  qs.set("limit", String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/customers?${qs}`);
+  },
+  payments: (params?: { orgId?: string; status?: string; method?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)   qs.set("orgId", params.orgId);
+    if (params?.status)  qs.set("status", params.status);
+    if (params?.method)  qs.set("method", params.method);
+    if (params?.page)    qs.set("page", String(params.page));
+    if (params?.limit)   qs.set("limit", String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/payments?${qs}`);
+  },
+  journalEntries: (params?: { orgId?: string; status?: string; sourceType?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)      qs.set("orgId", params.orgId);
+    if (params?.status)     qs.set("status", params.status);
+    if (params?.sourceType) qs.set("sourceType", params.sourceType);
+    if (params?.page)       qs.set("page", String(params.page));
+    if (params?.limit)      qs.set("limit", String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/journal-entries?${qs}`);
+  },
+  expenses: (params?: { orgId?: string; category?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)     qs.set("orgId", params.orgId);
+    if (params?.category)  qs.set("category", params.category);
+    if (params?.page)      qs.set("page", String(params.page));
+    if (params?.limit)     qs.set("limit", String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/expenses?${qs}`);
+  },
+  campaigns: (params?: { orgId?: string; status?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)   qs.set("orgId", params.orgId);
+    if (params?.status)  qs.set("status", params.status);
+    if (params?.page)    qs.set("page", String(params.page));
+    if (params?.limit)   qs.set("limit", String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/campaigns?${qs}`);
+  },
+  onlineOrders: (params?: { orgId?: string; status?: string; q?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)  qs.set("orgId", params.orgId);
+    if (params?.status) qs.set("status", params.status);
+    if (params?.q)      qs.set("q", params.q);
+    if (params?.page)   qs.set("page", String(params.page));
+    if (params?.limit)  qs.set("limit", String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/online-orders?${qs}`);
+  },
+  serviceOrders: (params?: { orgId?: string; status?: string; q?: string; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)  qs.set("orgId", params.orgId);
+    if (params?.status) qs.set("status", params.status);
+    if (params?.q)      qs.set("q", params.q);
+    if (params?.page)   qs.set("page", String(params.page));
+    if (params?.limit)  qs.set("limit", String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/service-orders?${qs}`);
+  },
+  revenueAnalytics: (params?: { orgId?: string; fromDate?: string; toDate?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)    qs.set("orgId", params.orgId);
+    if (params?.fromDate) qs.set("fromDate", params.fromDate);
+    if (params?.toDate)   qs.set("toDate", params.toDate);
+    return api.get<{ data: any }>(`/admin/analytics/revenue?${qs}`);
   },
 };
 

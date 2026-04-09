@@ -25,6 +25,9 @@ import {
   subscriptionAddons, subscriptionOrders, subscriptions,
   workOrders, accessLogs, mediaGalleries,
   quotaUsage,
+  // Cross-org data views
+  invoices, customers, bookings, payments,
+  journalEntries, expenses, campaigns,
 } from "@nasaq/db/schema";
 import { _activateOrder } from "./subscription";
 import { getPagination, generateSlug } from "../lib/helpers";
@@ -103,12 +106,19 @@ export const adminRouter = new Hono<{ Variables: AdminVariables }>();
 
 adminRouter.use("*", nasaqStaffMiddleware);
 
-// ── Guard helper: يُستدعى في بداية كل مسار حساس ──
+// ── Guard helpers: يُستدعى في بداية كل مسار حساس ──
 function isSuperAdmin(c: Context<{ Variables: AdminVariables }>): boolean {
   return c.get("adminRole") === "super_admin";
 }
 function superAdminOnly(c: any) {
   return apiErr(c, "AUTH_SUPER_ONLY", 403);
+}
+/** Check if user has one of the allowed roles */
+function hasRole(c: Context<{ Variables: AdminVariables }>, allowedRoles: string[]): boolean {
+  return allowedRoles.includes(c.get("adminRole") as string);
+}
+function roleNotAllowed(c: any) {
+  return apiErr(c, "AUTH_ROLE_NOT_ALLOWED", 403);
 }
 
 // ──────────────────────────────────────────────────────────
@@ -382,6 +392,27 @@ adminRouter.post("/users/:id/revoke-super-admin", async (c) => {
   return c.json({ data: updated });
 });
 
+// ── Admin: Reset any user password ─────────────────────────
+adminRouter.patch("/users/:id/reset-password", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  const userId = c.req.param("id");
+  const body = await c.req.json();
+  const password = body.password?.trim();
+  if (!password || password.length < 6) return apiErr(c, "PASSWORD_TOO_SHORT", 400);
+
+  const [user] = await db.select({ id: users.id, name: users.name })
+    .from(users).where(eq(users.id, userId));
+  if (!user) return apiErr(c, "USR_NOT_FOUND", 404);
+
+  await db.update(users)
+    .set({ passwordHash: hashPassword(password) })
+    .where(eq(users.id, userId));
+
+  logAdminAction(adminId, "reset_user_password", "user", userId, { userName: user.name }, c.req.header("X-Forwarded-For"));
+  return c.json({ ok: true });
+});
+
 // ──────────────────────────────────────────────────────────
 // IMPERSONATE
 // ──────────────────────────────────────────────────────────
@@ -447,6 +478,7 @@ adminRouter.get("/documents", async (c) => {
 });
 
 adminRouter.post("/documents", async (c) => {
+  if (!hasRole(c, ["super_admin", "account_manager"])) return roleNotAllowed(c);
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const [doc] = await db.insert(orgDocuments).values({
@@ -462,6 +494,7 @@ adminRouter.post("/documents", async (c) => {
 });
 
 adminRouter.patch("/documents/:id", async (c) => {
+  if (!hasRole(c, ["super_admin", "account_manager"])) return roleNotAllowed(c);
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -541,6 +574,7 @@ adminRouter.get("/tickets/:id", async (c) => {
 });
 
 adminRouter.post("/tickets", async (c) => {
+  if (!hasRole(c, ["super_admin", "account_manager", "support_agent"])) return roleNotAllowed(c);
   const body = await c.req.json();
   const [ticket] = await db.insert(supportTickets).values({
     orgId: body.orgId,
@@ -556,6 +590,7 @@ adminRouter.post("/tickets", async (c) => {
 });
 
 adminRouter.post("/tickets/:id/reply", async (c) => {
+  if (!hasRole(c, ["super_admin", "account_manager", "support_agent"])) return roleNotAllowed(c);
   const adminId   = c.get("adminId") as string;
   const adminName = c.get("adminName") as string;
   const body      = await c.req.json();
@@ -595,6 +630,7 @@ adminRouter.post("/tickets/:id/reply", async (c) => {
 });
 
 adminRouter.patch("/tickets/:id", async (c) => {
+  if (!hasRole(c, ["super_admin", "account_manager", "support_agent"])) return roleNotAllowed(c);
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -711,6 +747,7 @@ adminRouter.get("/announcements", async (c) => {
 });
 
 adminRouter.post("/announcements", async (c) => {
+  if (!hasRole(c, ["super_admin", "content_manager"])) return roleNotAllowed(c);
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const [row] = await db.insert(platformAnnouncements).values({
@@ -727,6 +764,7 @@ adminRouter.post("/announcements", async (c) => {
 });
 
 adminRouter.patch("/announcements/:id", async (c) => {
+  if (!hasRole(c, ["super_admin", "content_manager"])) return roleNotAllowed(c);
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -746,6 +784,7 @@ adminRouter.patch("/announcements/:id", async (c) => {
 });
 
 adminRouter.delete("/announcements/:id", async (c) => {
+  if (!hasRole(c, ["super_admin", "content_manager"])) return roleNotAllowed(c);
   const adminId = c.get("adminId") as string;
   const [deleted] = await db.delete(platformAnnouncements)
     .where(eq(platformAnnouncements.id, c.req.param("id"))).returning({ id: platformAnnouncements.id });
@@ -1016,6 +1055,7 @@ adminRouter.get("/orgs/:id/users", async (c) => {
 // ──────────────────────────────────────────────────────────
 
 adminRouter.put("/orgs/:id/manager", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
   const adminId = c.get("adminId") as string;
   const { managerId } = await c.req.json();
 
@@ -1348,8 +1388,11 @@ adminRouter.get("/reminder-categories", async (c) => {
   return c.json({ data: rows });
 });
 adminRouter.post("/reminder-categories", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const [row] = await db.insert(reminderCategories).values({ name: body.name, icon: body.icon || null, color: body.color || null, orgId: null }).returning();
+  logAdminAction(adminId, "create_reminder_category", "reminder_category", row.id, { name: body.name }, c.req.header("X-Forwarded-For"));
   return c.json({ data: row }, 201);
 });
 
@@ -1359,19 +1402,28 @@ adminRouter.get("/reminder-templates", async (c) => {
   return c.json({ data: rows });
 });
 adminRouter.post("/reminder-templates", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const [row] = await db.insert(reminderTemplates).values({ name: body.name, description: body.description || null, categoryId: body.categoryId || null, isSystem: true, orgId: null }).returning();
+  logAdminAction(adminId, "create_reminder_template", "reminder_template", row.id, { name: body.name }, c.req.header("X-Forwarded-For"));
   return c.json({ data: row }, 201);
 });
 adminRouter.patch("/reminder-templates/:id", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
   const id = c.req.param("id");
   const body = await c.req.json();
   const [row] = await db.update(reminderTemplates).set({ name: body.name, description: body.description }).where(eq(reminderTemplates.id, id)).returning();
+  logAdminAction(adminId, "update_reminder_template", "reminder_template", id, { name: body.name }, c.req.header("X-Forwarded-For"));
   return c.json({ data: row });
 });
 adminRouter.delete("/reminder-templates/:id", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
   const id = c.req.param("id");
   await db.delete(reminderTemplates).where(eq(reminderTemplates.id, id));
+  logAdminAction(adminId, "delete_reminder_template", "reminder_template", id, {}, c.req.header("X-Forwarded-For"));
   return c.json({ success: true });
 });
 
@@ -1452,6 +1504,9 @@ adminRouter.post("/subscription-orders/:id/cancel", async (c) => {
   await db.update(subscriptionOrders)
     .set({ status: "cancelled", updatedAt: new Date() })
     .where(eq(subscriptionOrders.id, orderId));
+
+  const adminId = c.get("adminId") as string;
+  logAdminAction(adminId, "cancel_subscription_order", "subscription_order", orderId, {}, c.req.header("X-Forwarded-For"));
 
   return c.json({ data: { success: true } });
 });
@@ -1581,4 +1636,429 @@ adminRouter.get("/quota-usage", async (c) => {
   ]);
 
   return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+});
+
+// ============================================================
+// INVOICES — cross-org view for super_admin
+// ============================================================
+
+adminRouter.get("/invoices", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const { page, limit, offset } = getPagination(c);
+  const orgId    = c.req.query("orgId");
+  const status   = c.req.query("status");
+  const q        = c.req.query("q");
+  const fromDate = c.req.query("fromDate");
+  const toDate   = c.req.query("toDate");
+
+  const conds: any[] = [];
+  if (orgId)    conds.push(eq(invoices.orgId, orgId));
+  if (status)   conds.push(eq(invoices.status, status as any));
+  if (q)        conds.push(or(ilike(invoices.invoiceNumber, `%${q}%`), ilike(invoices.buyerName, `%${q}%`)));
+  if (fromDate) conds.push(gte(invoices.issueDate, new Date(fromDate)));
+  if (toDate)   conds.push(lte(invoices.issueDate, new Date(toDate)));
+
+  const where = conds.length ? and(...conds) : undefined;
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select({
+      id: invoices.id, orgId: invoices.orgId, orgName: organizations.name,
+      invoiceNumber: invoices.invoiceNumber, status: invoices.status,
+      buyerName: invoices.buyerName, totalAmount: invoices.totalAmount,
+      paidAmount: invoices.paidAmount, vatAmount: invoices.vatAmount,
+      sourceType: invoices.sourceType,
+      issueDate: invoices.issueDate, createdAt: invoices.createdAt,
+    })
+    .from(invoices)
+    .leftJoin(organizations, eq(organizations.id, invoices.orgId))
+    .where(where)
+    .orderBy(desc(invoices.createdAt))
+    .limit(limit).offset(offset),
+    db.select({ total: count() }).from(invoices).where(where),
+  ]);
+
+  return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+});
+
+// ============================================================
+// BOOKINGS — cross-org view for super_admin
+// ============================================================
+
+adminRouter.get("/bookings", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const { page, limit, offset } = getPagination(c);
+  const orgId    = c.req.query("orgId");
+  const status   = c.req.query("status");
+  const q        = c.req.query("q");
+  const fromDate = c.req.query("fromDate");
+  const toDate   = c.req.query("toDate");
+
+  const conds: any[] = [];
+  if (orgId)    conds.push(eq(bookings.orgId, orgId));
+  if (status)   conds.push(eq(bookings.status, status as any));
+  if (q)        conds.push(ilike(bookings.bookingNumber, `%${q}%`));
+  if (fromDate) conds.push(gte(bookings.eventDate, new Date(fromDate)));
+  if (toDate)   conds.push(lte(bookings.eventDate, new Date(toDate)));
+
+  const where = conds.length ? and(...conds) : undefined;
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select({
+      id: bookings.id, orgId: bookings.orgId, orgName: organizations.name,
+      bookingNumber: bookings.bookingNumber, status: bookings.status,
+      paymentStatus: bookings.paymentStatus,
+      totalAmount: bookings.totalAmount, paidAmount: bookings.paidAmount,
+      eventDate: bookings.eventDate, source: bookings.source,
+      createdAt: bookings.createdAt,
+    })
+    .from(bookings)
+    .leftJoin(organizations, eq(organizations.id, bookings.orgId))
+    .where(where)
+    .orderBy(desc(bookings.createdAt))
+    .limit(limit).offset(offset),
+    db.select({ total: count() }).from(bookings).where(where),
+  ]);
+
+  return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+});
+
+// ============================================================
+// CUSTOMERS — cross-org view for super_admin
+// ============================================================
+
+adminRouter.get("/customers", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const { page, limit, offset } = getPagination(c);
+  const orgId = c.req.query("orgId");
+  const q     = c.req.query("q");
+  const tier  = c.req.query("tier");
+
+  const conds: any[] = [eq(customers.isActive, true)];
+  if (orgId) conds.push(eq(customers.orgId, orgId));
+  if (q)     conds.push(or(ilike(customers.name, `%${q}%`), ilike(customers.phone, `%${q}%`)));
+  if (tier)  conds.push(eq(customers.tier, tier as any));
+
+  const where = and(...conds);
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select({
+      id: customers.id, orgId: customers.orgId, orgName: organizations.name,
+      name: customers.name, phone: customers.phone, email: customers.email,
+      type: customers.type, tier: customers.tier,
+      totalSpent: customers.totalSpent, totalBookings: customers.totalBookings,
+      loyaltyPoints: customers.loyaltyPoints,
+      createdAt: customers.createdAt,
+    })
+    .from(customers)
+    .leftJoin(organizations, eq(organizations.id, customers.orgId))
+    .where(where)
+    .orderBy(desc(customers.createdAt))
+    .limit(limit).offset(offset),
+    db.select({ total: count() }).from(customers).where(where),
+  ]);
+
+  return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+});
+
+// ============================================================
+// PAYMENTS — cross-org view for super_admin
+// ============================================================
+
+adminRouter.get("/payments", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const { page, limit, offset } = getPagination(c);
+  const orgId  = c.req.query("orgId");
+  const status = c.req.query("status");
+  const method = c.req.query("method");
+
+  const conds: any[] = [];
+  if (orgId)  conds.push(eq(payments.orgId, orgId));
+  if (status) conds.push(eq(payments.status, status));
+  if (method) conds.push(eq(payments.method, method as any));
+
+  const where = conds.length ? and(...conds) : undefined;
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select({
+      id: payments.id, orgId: payments.orgId, orgName: organizations.name,
+      amount: payments.amount, currency: payments.currency,
+      method: payments.method, status: payments.status,
+      type: payments.type, gatewayProvider: payments.gatewayProvider,
+      receiptNumber: payments.receiptNumber,
+      paidAt: payments.paidAt, createdAt: payments.createdAt,
+    })
+    .from(payments)
+    .leftJoin(organizations, eq(organizations.id, payments.orgId))
+    .where(where)
+    .orderBy(desc(payments.createdAt))
+    .limit(limit).offset(offset),
+    db.select({ total: count() }).from(payments).where(where),
+  ]);
+
+  return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+});
+
+// ============================================================
+// JOURNAL ENTRIES — cross-org view for super_admin
+// ============================================================
+
+adminRouter.get("/journal-entries", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const { page, limit, offset } = getPagination(c);
+  const orgId      = c.req.query("orgId");
+  const status     = c.req.query("status");
+  const sourceType = c.req.query("sourceType");
+
+  const conds: any[] = [];
+  if (orgId)      conds.push(eq(journalEntries.orgId, orgId));
+  if (status)     conds.push(eq(journalEntries.status, status as any));
+  if (sourceType) conds.push(eq(journalEntries.sourceType, sourceType as any));
+
+  const where = conds.length ? and(...conds) : undefined;
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select({
+      id: journalEntries.id, orgId: journalEntries.orgId, orgName: organizations.name,
+      entryNumber: journalEntries.entryNumber, description: journalEntries.description,
+      status: journalEntries.status, sourceType: journalEntries.sourceType,
+      date: journalEntries.date, createdAt: journalEntries.createdAt,
+    })
+    .from(journalEntries)
+    .leftJoin(organizations, eq(organizations.id, journalEntries.orgId))
+    .where(where)
+    .orderBy(desc(journalEntries.date))
+    .limit(limit).offset(offset),
+    db.select({ total: count() }).from(journalEntries).where(where),
+  ]);
+
+  return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+});
+
+// ============================================================
+// EXPENSES — cross-org view for super_admin
+// ============================================================
+
+adminRouter.get("/expenses", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const { page, limit, offset } = getPagination(c);
+  const orgId    = c.req.query("orgId");
+  const category = c.req.query("category");
+
+  const conds: any[] = [];
+  if (orgId)    conds.push(eq(expenses.orgId, orgId));
+  if (category) conds.push(eq(expenses.category, category as any));
+
+  const where = conds.length ? and(...conds) : undefined;
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select({
+      id: expenses.id, orgId: expenses.orgId, orgName: organizations.name,
+      category: expenses.category, description: expenses.description,
+      amount: expenses.amount, currency: expenses.currency,
+      receiptNumber: expenses.receiptNumber,
+      expenseDate: expenses.expenseDate, createdAt: expenses.createdAt,
+    })
+    .from(expenses)
+    .leftJoin(organizations, eq(organizations.id, expenses.orgId))
+    .where(where)
+    .orderBy(desc(expenses.createdAt))
+    .limit(limit).offset(offset),
+    db.select({ total: count() }).from(expenses).where(where),
+  ]);
+
+  return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+});
+
+// ============================================================
+// CAMPAIGNS — cross-org marketing campaigns view for super_admin
+// ============================================================
+
+adminRouter.get("/campaigns", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const { page, limit, offset } = getPagination(c);
+  const orgId  = c.req.query("orgId");
+  const status = c.req.query("status");
+
+  const conds: any[] = [];
+  if (orgId)  conds.push(eq(campaigns.orgId, orgId));
+  if (status) conds.push(eq(campaigns.status, status as any));
+
+  const where = conds.length ? and(...conds) : undefined;
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select({
+      id: campaigns.id, orgId: campaigns.orgId, orgName: organizations.name,
+      name: campaigns.name, status: campaigns.status,
+      channel: campaigns.channel, cost: campaigns.cost,
+      scheduledAt: campaigns.scheduledAt, sentAt: campaigns.sentAt,
+      totalSent: campaigns.totalSent, totalConverted: campaigns.totalConverted,
+      createdAt: campaigns.createdAt,
+    })
+    .from(campaigns)
+    .leftJoin(organizations, eq(organizations.id, campaigns.orgId))
+    .where(where)
+    .orderBy(desc(campaigns.createdAt))
+    .limit(limit).offset(offset),
+    db.select({ total: count() }).from(campaigns).where(where),
+  ]);
+
+  return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
+});
+
+// ============================================================
+// ONLINE ORDERS — cross-org view for super_admin (raw SQL)
+// ============================================================
+
+adminRouter.get("/online-orders", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const { page, limit, offset } = getPagination(c);
+  const orgId  = c.req.query("orgId");
+  const status = c.req.query("status");
+  const q      = c.req.query("q");
+
+  const conds: ReturnType<typeof sql>[] = [];
+  if (orgId)  conds.push(sql`oo.org_id = ${orgId}`);
+  if (status) conds.push(sql`oo.status = ${status}`);
+  if (q)      conds.push(sql`oo.customer_name ILIKE ${"%" + q + "%"}`);
+
+  const whereClause = conds.length
+    ? sql`WHERE ${conds.reduce((a, b) => sql`${a} AND ${b}`)}`
+    : sql``;
+
+  const [dataResult, countResult] = await Promise.all([
+    db.execute(sql`
+      SELECT oo.id, oo.org_id AS "orgId", o.name AS "orgName",
+             oo.order_number AS "orderNumber", oo.status, oo.customer_name AS "customerName",
+             oo.total_amount AS "totalAmount", oo.delivery_method AS "deliveryMethod",
+             oo.created_at AS "createdAt"
+      FROM online_orders oo
+      LEFT JOIN organizations o ON o.id = oo.org_id
+      ${whereClause}
+      ORDER BY oo.created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `),
+    db.execute(sql`
+      SELECT COUNT(*) AS total FROM online_orders oo ${whereClause}
+    `),
+  ]);
+
+  const rows = (dataResult as any).rows ?? dataResult;
+  const total = Number((countResult as any).rows?.[0]?.total ?? (countResult as any)[0]?.total ?? 0);
+
+  return c.json({ data: rows, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
+});
+
+// ============================================================
+// SERVICE ORDERS — cross-org view for super_admin (raw SQL)
+// ============================================================
+
+adminRouter.get("/service-orders", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const { page, limit, offset } = getPagination(c);
+  const orgId  = c.req.query("orgId");
+  const status = c.req.query("status");
+  const q      = c.req.query("q");
+
+  const conds: ReturnType<typeof sql>[] = [];
+  if (orgId)  conds.push(sql`so.org_id = ${orgId}`);
+  if (status) conds.push(sql`so.status = ${status}`);
+  if (q)      conds.push(sql`so.customer_name ILIKE ${"%" + q + "%"}`);
+
+  const whereClause = conds.length
+    ? sql`WHERE ${conds.reduce((a, b) => sql`${a} AND ${b}`)}`
+    : sql``;
+
+  const [dataResult, countResult] = await Promise.all([
+    db.execute(sql`
+      SELECT so.id, so.org_id AS "orgId", o.name AS "orgName",
+             so.order_number AS "orderNumber", so.status, so.customer_name AS "customerName",
+             so.total_amount AS "totalAmount", so.service_name AS "serviceName",
+             so.created_at AS "createdAt"
+      FROM service_orders so
+      LEFT JOIN organizations o ON o.id = so.org_id
+      ${whereClause}
+      ORDER BY so.created_at DESC
+      LIMIT ${limit} OFFSET ${offset}
+    `),
+    db.execute(sql`
+      SELECT COUNT(*) AS total FROM service_orders so ${whereClause}
+    `),
+  ]);
+
+  const rows = (dataResult as any).rows ?? dataResult;
+  const total = Number((countResult as any).rows?.[0]?.total ?? (countResult as any)[0]?.total ?? 0);
+
+  return c.json({ data: rows, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } });
+});
+
+// ============================================================
+// REVENUE ANALYTICS — cross-org financial summary for super_admin
+// ============================================================
+
+adminRouter.get("/analytics/revenue", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const fromDate = c.req.query("fromDate");
+  const toDate   = c.req.query("toDate");
+  const orgId    = c.req.query("orgId");
+
+  // Invoice revenue summary
+  const invConds: any[] = [];
+  if (orgId)    invConds.push(eq(invoices.orgId, orgId));
+  if (fromDate) invConds.push(gte(invoices.issueDate, new Date(fromDate)));
+  if (toDate)   invConds.push(lte(invoices.issueDate, new Date(toDate)));
+  const invWhere = invConds.length ? and(...invConds) : undefined;
+
+  const [invoiceSummary] = await db.select({
+    totalInvoices: count(),
+    totalAmount: sql<string>`COALESCE(SUM(CAST(${invoices.totalAmount} AS numeric)), 0)`,
+    totalPaid: sql<string>`COALESCE(SUM(CAST(${invoices.paidAmount} AS numeric)), 0)`,
+    totalVat: sql<string>`COALESCE(SUM(CAST(${invoices.vatAmount} AS numeric)), 0)`,
+  }).from(invoices).where(invWhere);
+
+  // Booking revenue summary
+  const bkConds: any[] = [];
+  if (orgId)    bkConds.push(eq(bookings.orgId, orgId));
+  if (fromDate) bkConds.push(gte(bookings.createdAt, new Date(fromDate)));
+  if (toDate)   bkConds.push(lte(bookings.createdAt, new Date(toDate)));
+  const bkWhere = bkConds.length ? and(...bkConds) : undefined;
+
+  const [bookingSummary] = await db.select({
+    totalBookings: count(),
+    totalAmount: sql<string>`COALESCE(SUM(CAST(${bookings.totalAmount} AS numeric)), 0)`,
+    totalPaid: sql<string>`COALESCE(SUM(CAST(${bookings.paidAmount} AS numeric)), 0)`,
+  }).from(bookings).where(bkWhere);
+
+  // Payment method breakdown
+  const pmConds: any[] = [];
+  if (orgId)    pmConds.push(eq(payments.orgId, orgId));
+  if (fromDate) pmConds.push(gte(payments.createdAt, new Date(fromDate)));
+  if (toDate)   pmConds.push(lte(payments.createdAt, new Date(toDate)));
+  const pmWhere = pmConds.length ? and(...pmConds) : undefined;
+
+  const paymentBreakdown = await db.select({
+    method: payments.method,
+    totalCount: count(),
+    totalAmount: sql<string>`COALESCE(SUM(CAST(${payments.amount} AS numeric)), 0)`,
+  }).from(payments).where(pmWhere).groupBy(payments.method);
+
+  // Expense summary
+  const exConds: any[] = [];
+  if (orgId)    exConds.push(eq(expenses.orgId, orgId));
+  if (fromDate) exConds.push(gte(expenses.expenseDate, new Date(fromDate)));
+  if (toDate)   exConds.push(lte(expenses.expenseDate, new Date(toDate)));
+  const exWhere = exConds.length ? and(...exConds) : undefined;
+
+  const [expenseSummary] = await db.select({
+    totalExpenses: count(),
+    totalAmount: sql<string>`COALESCE(SUM(CAST(${expenses.amount} AS numeric)), 0)`,
+  }).from(expenses).where(exWhere);
+
+  return c.json({
+    data: {
+      invoices: invoiceSummary,
+      bookings: bookingSummary,
+      paymentBreakdown,
+      expenses: expenseSummary,
+    },
+  });
 });

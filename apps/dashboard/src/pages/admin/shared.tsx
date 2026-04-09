@@ -131,3 +131,14 @@ export function TabPill({ tabs, active, onChange }: { tabs: { id: string; label:
     </div>
   );
 }
+
+const PW_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%&*_+-=";
+export function generateSecurePassword(length = 12): string {
+  const arr = new Uint32Array(length);
+  crypto.getRandomValues(arr);
+  const max = Math.floor(0xFFFFFFFF / PW_CHARS.length) * PW_CHARS.length;
+  return Array.from(arr, (v) => {
+    while (v >= max) { const buf = new Uint32Array(1); crypto.getRandomValues(buf); v = buf[0]; }
+    return PW_CHARS[v % PW_CHARS.length];
+  }).join("");
+}

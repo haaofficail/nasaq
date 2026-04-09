@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { Users2, Plus, Search, Loader2 } from "lucide-react";
+import { Users2, Plus, Search, Loader2, KeyRound, Eye, EyeOff, Copy, Check, RefreshCw } from "lucide-react";
 import { clsx } from "clsx";
 import { adminApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { RoleBadge, SectionHeader, Spinner, Empty, Modal } from "./shared";
+import { RoleBadge, SectionHeader, Spinner, Empty, Modal, generateSecurePassword } from "./shared";
 
 const ROLES_CONFIG = [
   { value: "account_manager", label: "مدير حساب",   desc: "متابعة ودعم عملاء محددين" },
@@ -20,6 +20,11 @@ function TeamTab() {
   const [newForm, setNewForm] = useState({ name: "", email: "", phone: "", password: "", role: "account_manager" });
   const [formErr, setFormErr] = useState("");
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [pwModal, setPwModal] = useState<{ userId: string; userName: string } | null>(null);
+  const [pw, setPw] = useState("");
+  const [pwVisible, setPwVisible] = useState(false);
+  const [pwSaving, setPwSaving] = useState(false);
+  const [pwCopied, setPwCopied] = useState(false);
 
   const { mutate: setRole, loading: settingRole } = useMutation(({ userId, role }: any) => adminApi.setStaffRole(userId, role));
   const { mutate: createStaff, loading: creating } = useMutation((d: any) => adminApi.createStaff(d));
@@ -91,18 +96,24 @@ function TeamTab() {
                       {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleDateString("ar") : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      {!u.isSuperAdmin && (
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => setEditRole({ userId: u.id, current: currentRole })}
-                            className="text-xs text-brand-500 border border-brand-200 px-2.5 py-1 rounded-lg hover:bg-brand-50">
-                            تعديل الدور
-                          </button>
-                          <button onClick={() => setDeleteId(u.id)}
-                            className="text-xs text-red-400 border border-red-100 px-2.5 py-1 rounded-lg hover:bg-red-50">
-                            حذف
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2">
+                        <button onClick={() => { setPwModal({ userId: u.id, userName: u.name }); setPw(""); setPwVisible(false); setPwCopied(false); }}
+                          className="text-xs text-amber-600 border border-amber-200 px-2.5 py-1 rounded-lg hover:bg-amber-50 flex items-center gap-1">
+                          <KeyRound className="w-3 h-3" /> كلمة المرور
+                        </button>
+                        {!u.isSuperAdmin && (
+                          <>
+                            <button onClick={() => setEditRole({ userId: u.id, current: currentRole })}
+                              className="text-xs text-brand-500 border border-brand-200 px-2.5 py-1 rounded-lg hover:bg-brand-50">
+                              تعديل الدور
+                            </button>
+                            <button onClick={() => setDeleteId(u.id)}
+                              className="text-xs text-red-400 border border-red-100 px-2.5 py-1 rounded-lg hover:bg-red-50">
+                              حذف
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
@@ -208,6 +219,75 @@ function TeamTab() {
           </div>
         </div>
       </Modal>
+
+      {/* Staff password reset modal */}
+      {pwModal && (
+        <Modal open onClose={() => setPwModal(null)} title={`إعادة تعيين كلمة المرور — ${pwModal.userName}`} width="max-w-sm">
+          <div className="space-y-4">
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+              <p className="text-xs text-amber-700">سيتم تغيير كلمة مرور الموظف فوراً. تأكد من إبلاغه بكلمة المرور الجديدة.</p>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">كلمة المرور الجديدة</label>
+              <div className="relative">
+                <input
+                  type={pwVisible ? "text" : "password"}
+                  value={pw}
+                  onChange={(e) => setPw(e.target.value)}
+                  placeholder="أدخل كلمة المرور (6 أحرف على الأقل)"
+                  dir="ltr"
+                  className="w-full border border-gray-200 rounded-xl p-3 pe-20 text-sm outline-none focus:border-brand-400 font-mono"
+                />
+                <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <button type="button" onClick={() => setPwVisible(!pwVisible)}
+                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" title={pwVisible ? "إخفاء" : "إظهار"}>
+                    {pwVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                  </button>
+                  {pw && (
+                    <button type="button" onClick={() => { navigator.clipboard.writeText(pw); setPwCopied(true); setTimeout(() => setPwCopied(false), 2000); }}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" title="نسخ">
+                      {pwCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setPw(generateSecurePassword());
+                setPwVisible(true);
+              }}
+              className="w-full py-2.5 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              توليد كلمة مرور عشوائية
+            </button>
+            <div className="flex gap-3 pt-1">
+              <button onClick={() => setPwModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button
+                disabled={!pw || pw.length < 6 || pwSaving}
+                onClick={async () => {
+                  setPwSaving(true);
+                  try {
+                    await adminApi.resetUserPassword(pwModal.userId, { password: pw });
+                    setPwModal(null);
+                    setPw("");
+                  } catch {
+                    alert("فشل إعادة تعيين كلمة المرور");
+                  } finally {
+                    setPwSaving(false);
+                  }
+                }}
+                className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {pwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                حفظ
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
