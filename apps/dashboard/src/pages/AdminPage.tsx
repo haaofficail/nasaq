@@ -4,7 +4,7 @@ import {
   LayoutDashboard, Building2, Users2, Briefcase, CreditCard, Package,
   Bell, Headphones, FileText, Megaphone, ClipboardList, Server, ShieldAlert, ShieldCheck, LogOut,
   Wrench, Images, ToggleLeft, BarChart3, Bot, Settings2,
-  Receipt, CalendarCheck, Users, ShoppingCart, Wallet,
+  Receipt, CalendarCheck, Users, ShoppingCart, Wallet, MessageCircle,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -38,6 +38,7 @@ const CustomersAdminTab      = lazy(() => import("./admin/CustomersAdminTab"));
 const OnlineOrdersAdminTab   = lazy(() => import("./admin/OnlineOrdersAdminTab"));
 const ServiceOrdersAdminTab  = lazy(() => import("./admin/ServiceOrdersAdminTab"));
 const FinanceAdminTab        = lazy(() => import("./admin/FinanceAdminTab"));
+const WhatsAppGatewayTab     = lazy(() => import("./admin/WhatsAppGatewayTab"));
 
 // ════════════════════════════════════════════════════════════
 // Constants
@@ -63,6 +64,7 @@ const SECTIONS = [
   { id: "online-orders", icon: ShoppingCart,   label: "الطلبات الإلكترونية",  roles: ["super_admin"] },
   { id: "service-orders", icon: ClipboardList, label: "أوامر الخدمة",        roles: ["super_admin"] },
   { id: "finance-admin",  icon: Wallet,        label: "المالية والمحاسبة",    roles: ["super_admin"] },
+  { id: "whatsapp",       icon: MessageCircle, label: "بوابة واتساب",         roles: ["super_admin"] },
   { id: "access-logs",  icon: ShieldCheck,   label: "التحكم في الدخول",    roles: ["super_admin"] },
   { id: "galleries",      icon: Images,       label: "معارض الصور",        roles: ["super_admin"] },
   { id: "kill-switches",  icon: ToggleLeft,  label: "مفاتيح الإيقاف",     roles: ["super_admin"] },
@@ -168,6 +170,7 @@ export function AdminPage() {
     "online-orders":   <OnlineOrdersAdminTab />,
     "service-orders":  <ServiceOrdersAdminTab />,
     "finance-admin":   <FinanceAdminTab />,
+    whatsapp:          <WhatsAppGatewayTab />,
     "access-logs":   <AccessLogsAdminTab />,
     galleries:       <GalleriesAdminTab />,
     "kill-switches": <KillSwitchesTab />,

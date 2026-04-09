@@ -5,7 +5,7 @@ import { adminApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { toast } from "@/hooks/useToast";
 import { fmtDate } from "@/lib/utils";
-import { PlanBadge } from "./shared";
+import { PlanBadge, SectionHeader } from "./shared";
 
 function SubscriptionOrdersTab() {
   const [statusFilter, setStatusFilter] = useState("pending_payment");
@@ -77,10 +77,7 @@ function SubscriptionOrdersTab() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h2 className="text-lg font-bold text-gray-900">طلبات الشراء</h2>
-        <p className="text-sm text-gray-400">تأكيد الدفع اليدوي للطلبات المعلّقة</p>
-      </div>
+      <SectionHeader title="طلبات الشراء" sub="تأكيد الدفع اليدوي للطلبات المعلّقة وتتبع حالة الطلبات" />
 
       {/* Status filter */}
       <div className="flex gap-1 bg-gray-100 p-1 rounded-xl w-fit">

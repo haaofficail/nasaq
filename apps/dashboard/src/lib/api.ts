@@ -1700,6 +1700,8 @@ export const adminApi = {
   revokeSuperAdmin: (id: string) => api.post<{ data: any }>(`/admin/users/${id}/revoke-super-admin`),
   resetUserPassword: (id: string, data: { password: string }) =>
     api.patch<{ ok: boolean }>(`/admin/users/${id}/reset-password`, data),
+  updateUser: (id: string, data: any) =>
+    api.patch<{ data: any }>(`/admin/users/${id}`, data),
 
   impersonate: (orgId: string) => api.post<{ data: any }>(`/admin/impersonate/${orgId}`),
 
@@ -1959,6 +1961,21 @@ export const adminApi = {
     if (params?.fromDate) qs.set("fromDate", params.fromDate);
     if (params?.toDate)   qs.set("toDate", params.toDate);
     return api.get<{ data: any }>(`/admin/analytics/revenue?${qs}`);
+  },
+
+  // ── WhatsApp Gateway ──────────────────────────────────────
+  waStatus: () => api.get<{ data: any }>("/admin/wa/status"),
+  waTemplates: () => api.get<{ data: any[] }>("/admin/wa/templates"),
+  createWaTemplate: (d: any) => api.post<{ data: any }>("/admin/wa/templates", d),
+  updateWaTemplate: (id: string, d: any) => api.patch<{ data: any }>(`/admin/wa/templates/${id}`, d),
+  deleteWaTemplate: (id: string) => api.delete<{ ok: boolean }>(`/admin/wa/templates/${id}`),
+  sendWaMessage: (d: any) => api.post<{ data: any }>("/admin/wa/send", d),
+  waMessages: (params?: { orgId?: string; status?: string; page?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)  qs.set("orgId", params.orgId);
+    if (params?.status) qs.set("status", params.status);
+    if (params?.page)   qs.set("page", String(params.page));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/wa/messages?${qs}`);
   },
 };
 
