@@ -3,7 +3,7 @@ import {
   CheckCheck, AlertTriangle, ChevronRight, RefreshCw, Plus, Search,
   Loader2, Save, LogIn, ToggleLeft, ToggleRight, Users, MapPin,
   Phone, Mail, UserCheck, Package, CreditCard, KeyRound, Trash2, Building2, ImagePlus,
-  Eye, EyeOff, Copy, Check,
+  Eye, EyeOff, Copy, Check, Pencil, ShieldAlert, Globe, FileText, Hash,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { adminApi } from "@/lib/api";
@@ -48,6 +48,18 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
   const [userPwVisible, setUserPwVisible] = useState(false);
   const [userPwSaving, setUserPwSaving] = useState(false);
   const [userPwCopied, setUserPwCopied] = useState(false);
+
+  // ── Edit org state ──
+  const [editOrgOpen, setEditOrgOpen] = useState(false);
+  const [editOrgForm, setEditOrgForm] = useState<Record<string, any>>({});
+  const [editOrgSaving, setEditOrgSaving] = useState(false);
+  const [editOrgMsg, setEditOrgMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
+
+  // ── Edit user state ──
+  const [editUserModal, setEditUserModal] = useState<{ userId: string; userName: string; email: string | null; phone: string | null; status: string; jobTitle: string | null } | null>(null);
+  const [editUserForm, setEditUserForm] = useState<Record<string, any>>({});
+  const [editUserSaving, setEditUserSaving] = useState(false);
+  const [editUserMsg, setEditUserMsg] = useState<{ type: "ok" | "err"; text: string } | null>(null);
 
   const { mutate: changePlan, loading: changingPlan } = useMutation((d: any) => adminApi.changePlan(org.id, d));
   const { mutate: setCaps, loading: settingCaps } = useMutation((cs: string[]) => adminApi.setOrgCapabilities(org.id, cs));
@@ -194,8 +206,44 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
 
             {tab === "summary" && (
               <div>
+                {/* Edit org button */}
+                <div className="flex justify-end mb-3">
+                  <button
+                    onClick={() => {
+                      setEditOrgForm({
+                        name: detail.name || "",
+                        nameEn: detail.nameEn || "",
+                        slug: detail.slug || "",
+                        businessType: detail.businessType || "general",
+                        operatingProfile: detail.operatingProfile || "general",
+                        phone: detail.phone || "",
+                        email: detail.email || "",
+                        city: detail.city || "",
+                        address: detail.address || "",
+                        website: detail.website || "",
+                        commercialRegister: detail.commercialRegister || "",
+                        vatNumber: detail.vatNumber || "",
+                      });
+                      setEditOrgOpen(true);
+                      setEditOrgMsg(null);
+                    }}
+                    className="flex items-center gap-1.5 text-xs text-brand-500 border border-brand-200 rounded-lg px-3 py-1.5 hover:bg-brand-50 transition-colors font-medium"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> تعديل بيانات المنشأة
+                  </button>
+                </div>
+
+                <InfoRow label="اسم المنشأة" value={detail.name} />
+                <InfoRow label="الاسم بالإنجليزية" value={detail.nameEn || "—"} />
                 <InfoRow label="نوع النشاط" value={BUSINESS_TYPES[detail.businessType] || detail.businessType} />
                 <InfoRow label="الـ Slug" value={<span className="font-mono text-xs">{detail.slug}</span>} />
+                <InfoRow label="الهاتف" value={detail.phone || "—"} />
+                <InfoRow label="البريد" value={detail.email || "—"} />
+                <InfoRow label="المدينة" value={detail.city || "—"} />
+                <InfoRow label="العنوان" value={detail.address || "—"} />
+                <InfoRow label="الموقع الإلكتروني" value={detail.website || "—"} />
+                <InfoRow label="السجل التجاري" value={detail.commercialRegister || "—"} />
+                <InfoRow label="الرقم الضريبي" value={detail.vatNumber || "—"} />
                 <InfoRow label="تاريخ الإنشاء" value={detail.createdAt ? new Date(detail.createdAt).toLocaleDateString("ar") : "—"} />
                 <InfoRow label="نهاية التجربة" value={detail.trialEndsAt ? new Date(detail.trialEndsAt).toLocaleDateString("ar") : "—"} />
                 <InfoRow label="نهاية الاشتراك" value={detail.subscriptionEndsAt ? new Date(detail.subscriptionEndsAt).toLocaleDateString("ar") : "—"} />
@@ -372,7 +420,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                           <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">المسمى</th>
                           <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">الحالة</th>
                           <th className="text-right px-4 py-3 font-semibold hidden lg:table-cell">تاريخ الإنشاء</th>
-                          <th className="px-4 py-3"></th>
+                          <th className="px-4 py-3 font-semibold text-right">الإجراءات</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -401,23 +449,37 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                             <td className="px-4 py-3 hidden md:table-cell">
                               <span className={clsx(
                                 "inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold",
-                                u.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
+                                u.status === "active" ? "bg-emerald-50 text-emerald-700" : u.status === "suspended" ? "bg-red-50 text-red-600" : "bg-gray-100 text-gray-500"
                               )}>
-                                {u.status === "active" ? "نشط" : u.status || "—"}
+                                {u.status === "active" ? "نشط" : u.status === "suspended" ? "موقوف" : u.status === "inactive" ? "غير نشط" : u.status || "—"}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">
                               {u.createdAt ? new Date(u.createdAt).toLocaleDateString("ar") : "—"}
                             </td>
                             <td className="px-4 py-3">
-                              <button
-                                onClick={() => { setUserPwModal({ userId: u.id, userName: u.name }); setUserPw(""); setUserPwVisible(false); setUserPwCopied(false); }}
-                                className="flex items-center gap-1.5 text-xs text-amber-600 border border-amber-200 px-2.5 py-1.5 rounded-lg hover:bg-amber-50 transition-colors font-medium"
-                                title="إعادة تعيين كلمة المرور"
-                              >
-                                <KeyRound className="w-3 h-3" />
-                                <span className="hidden sm:inline">كلمة المرور</span>
-                              </button>
+                              <div className="flex items-center gap-1.5">
+                                <button
+                                  onClick={() => {
+                                    setEditUserModal({ userId: u.id, userName: u.name, email: u.email, phone: u.phone, status: u.status, jobTitle: u.jobTitle });
+                                    setEditUserForm({ name: u.name || "", email: u.email || "", phone: u.phone || "", status: u.status || "active", jobTitle: u.jobTitle || "" });
+                                    setEditUserMsg(null);
+                                  }}
+                                  className="flex items-center gap-1.5 text-xs text-brand-600 border border-brand-200 px-2.5 py-1.5 rounded-lg hover:bg-brand-50 transition-colors font-medium"
+                                  title="تعديل بيانات المستخدم"
+                                >
+                                  <Pencil className="w-3 h-3" />
+                                  <span className="hidden sm:inline">تعديل</span>
+                                </button>
+                                <button
+                                  onClick={() => { setUserPwModal({ userId: u.id, userName: u.name }); setUserPw(""); setUserPwVisible(false); setUserPwCopied(false); }}
+                                  className="flex items-center gap-1.5 text-xs text-amber-600 border border-amber-200 px-2.5 py-1.5 rounded-lg hover:bg-amber-50 transition-colors font-medium"
+                                  title="إعادة تعيين كلمة المرور"
+                                >
+                                  <KeyRound className="w-3 h-3" />
+                                  <span className="hidden sm:inline">كلمة المرور</span>
+                                </button>
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -603,6 +665,189 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
           </div>
         </Modal>
       )}
+
+      {/* ── Edit Organization Modal ── */}
+      <Modal open={editOrgOpen} onClose={() => setEditOrgOpen(false)} title={`تعديل بيانات المنشأة — ${org.name}`} width="max-w-xl">
+        <div className="space-y-3">
+          {editOrgMsg && (
+            <div className={clsx("rounded-xl p-3 text-xs font-medium", editOrgMsg.type === "ok" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-700 border border-red-100")}>
+              {editOrgMsg.text}
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">اسم المنشأة *</label>
+              <input value={editOrgForm.name || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, name: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">الاسم بالإنجليزية</label>
+              <input value={editOrgForm.nameEn || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, nameEn: e.target.value })}
+                dir="ltr" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">الـ Slug</label>
+              <input value={editOrgForm.slug || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
+                dir="ltr" placeholder="company-slug" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 font-mono" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">نوع النشاط</label>
+              <select value={editOrgForm.businessType || "general"} onChange={(e) => setEditOrgForm({ ...editOrgForm, businessType: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+                {Object.entries(BUSINESS_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">الهاتف</label>
+              <input value={editOrgForm.phone || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, phone: e.target.value })}
+                placeholder="05XXXXXXXX" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">البريد الإلكتروني</label>
+              <input value={editOrgForm.email || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, email: e.target.value })}
+                dir="ltr" placeholder="info@company.com" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">المدينة</label>
+              <select value={editOrgForm.city || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, city: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+                <option value="">— اختر المدينة —</option>
+                {SAUDI_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">الموقع الإلكتروني</label>
+              <input value={editOrgForm.website || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, website: e.target.value })}
+                dir="ltr" placeholder="https://example.com" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+            </div>
+            <div className="col-span-2">
+              <label className="text-xs text-gray-500 block mb-1">العنوان</label>
+              <input value={editOrgForm.address || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, address: e.target.value })}
+                placeholder="العنوان الكامل" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">السجل التجاري</label>
+              <input value={editOrgForm.commercialRegister || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, commercialRegister: e.target.value })}
+                dir="ltr" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">الرقم الضريبي</label>
+              <input value={editOrgForm.vatNumber || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, vatNumber: e.target.value })}
+                dir="ltr" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+            </div>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button onClick={() => setEditOrgOpen(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+            <button
+              disabled={editOrgSaving || !editOrgForm.name}
+              onClick={async () => {
+                setEditOrgSaving(true);
+                setEditOrgMsg(null);
+                try {
+                  const payload: Record<string, any> = {};
+                  for (const [k, v] of Object.entries(editOrgForm)) {
+                    if (v !== undefined && v !== "") payload[k] = v;
+                    else if (v === "" && k !== "name") payload[k] = null;
+                  }
+                  await adminApi.updateOrg(org.id, payload);
+                  setEditOrgMsg({ type: "ok", text: "تم حفظ التعديلات بنجاح" });
+                  refetchDetail();
+                  setTimeout(() => setEditOrgOpen(false), 800);
+                } catch (err: any) {
+                  const msg = err?.message?.includes("SLUG_TAKEN") ? "هذا الـ Slug مستخدم من منشأة أخرى" : "فشل حفظ التعديلات";
+                  setEditOrgMsg({ type: "err", text: msg });
+                } finally {
+                  setEditOrgSaving(false);
+                }
+              }}
+              className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {editOrgSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              حفظ التعديلات
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Edit User Modal ── */}
+      {editUserModal && (
+        <Modal open onClose={() => setEditUserModal(null)} title={`تعديل بيانات المستخدم — ${editUserModal.userName}`} width="max-w-md">
+          <div className="space-y-3">
+            {editUserMsg && (
+              <div className={clsx("rounded-xl p-3 text-xs font-medium", editUserMsg.type === "ok" ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-700 border border-red-100")}>
+                {editUserMsg.text}
+              </div>
+            )}
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">الاسم *</label>
+              <input value={editUserForm.name || ""} onChange={(e) => setEditUserForm({ ...editUserForm, name: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">البريد الإلكتروني</label>
+              <input value={editUserForm.email || ""} onChange={(e) => setEditUserForm({ ...editUserForm, email: e.target.value })}
+                dir="ltr" placeholder="user@example.com" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">الجوال</label>
+              <input value={editUserForm.phone || ""} onChange={(e) => setEditUserForm({ ...editUserForm, phone: e.target.value })}
+                placeholder="05XXXXXXXX" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">المسمى الوظيفي</label>
+              <input value={editUserForm.jobTitle || ""} onChange={(e) => setEditUserForm({ ...editUserForm, jobTitle: e.target.value })}
+                placeholder="مثال: مدير العمليات" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">حالة الحساب</label>
+              <select value={editUserForm.status || "active"} onChange={(e) => setEditUserForm({ ...editUserForm, status: e.target.value })}
+                className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+                <option value="active">نشط</option>
+                <option value="inactive">غير نشط</option>
+                <option value="suspended">موقوف</option>
+              </select>
+            </div>
+            {editUserForm.status === "suspended" && (
+              <div className="bg-red-50 border border-red-100 rounded-xl p-3">
+                <p className="text-xs text-red-700"><ShieldAlert className="w-3.5 h-3.5 inline ml-1" />إيقاف الحساب سيمنع المستخدم من تسجيل الدخول فوراً.</p>
+              </div>
+            )}
+            <div className="flex gap-3 pt-2">
+              <button onClick={() => setEditUserModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button
+                disabled={editUserSaving || !editUserForm.name}
+                onClick={async () => {
+                  setEditUserSaving(true);
+                  setEditUserMsg(null);
+                  try {
+                    const payload: Record<string, any> = {};
+                    if (editUserForm.name) payload.name = editUserForm.name;
+                    if (editUserForm.email) payload.email = editUserForm.email;
+                    else payload.email = null;
+                    if (editUserForm.phone) payload.phone = editUserForm.phone;
+                    else payload.phone = null;
+                    if (editUserForm.jobTitle) payload.jobTitle = editUserForm.jobTitle;
+                    else payload.jobTitle = null;
+                    if (editUserForm.status) payload.status = editUserForm.status;
+                    await adminApi.updateUser(editUserModal.userId, payload);
+                    setEditUserMsg({ type: "ok", text: "تم حفظ التعديلات بنجاح" });
+                    refetchDetail();
+                    setTimeout(() => setEditUserModal(null), 800);
+                  } catch {
+                    setEditUserMsg({ type: "err", text: "فشل حفظ التعديلات" });
+                  } finally {
+                    setEditUserSaving(false);
+                  }
+                }}
+                className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {editUserSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                حفظ التعديلات
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
@@ -624,6 +869,7 @@ function OrgsTab() {
   const [resetPwVisible, setResetPwVisible] = useState(false);
   const [resetPwCopied, setResetPwCopied] = useState(false);
   const [resetPwSaving, setResetPwSaving] = useState(false);
+  const [resetPwDone, setResetPwDone] = useState(false);
   const [credentialsModal, setCredentialsModal] = useState<{ phone: string | null; email: string | null; password: string } | null>(null);
   const [planModal, setPlanModal] = useState<{ orgId: string; orgName: string; currentPlan: string; currentStatus: string } | null>(null);
   const [planForm, setPlanForm] = useState({ plan: "", subscriptionStatus: "", subscriptionEndsAt: "" });
@@ -775,7 +1021,7 @@ function OrgsTab() {
                         <CreditCard className="w-3.5 h-3.5" />
                       </button>
                       <button
-                        onClick={() => { setResetPwModal({ orgId: org.id, orgName: org.name }); setResetPw(""); setResetPwVisible(false); setResetPwCopied(false); }}
+                        onClick={() => { setResetPwModal({ orgId: org.id, orgName: org.name }); setResetPw(""); setResetPwVisible(false); setResetPwCopied(false); setResetPwDone(false); }}
                         className="p-1.5 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-600 transition-colors"
                         title="إعادة تعيين كلمة المرور"
                       >
@@ -808,69 +1054,112 @@ function OrgsTab() {
       )}
 
       {resetPwModal && (
-        <Modal open onClose={() => setResetPwModal(null)} title={`إعادة تعيين كلمة مرور المالك — ${resetPwModal.orgName}`} width="max-w-sm">
+        <Modal open onClose={() => { setResetPwModal(null); setResetPwDone(false); }} title={`إعادة تعيين كلمة مرور المالك — ${resetPwModal.orgName}`} width="max-w-md">
           <div className="space-y-4">
-            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
-              <p className="text-xs text-amber-700">سيتم تغيير كلمة مرور مالك المنشأة فوراً. تأكد من إبلاغه بكلمة المرور الجديدة.</p>
-            </div>
-            <div>
-              <label className="text-xs text-gray-500 block mb-1">كلمة المرور الجديدة</label>
-              <div className="relative">
-                <input
-                  type={resetPwVisible ? "text" : "password"}
-                  value={resetPw}
-                  onChange={(e) => setResetPw(e.target.value)}
-                  placeholder="أدخل كلمة المرور (6 أحرف على الأقل)"
-                  dir="ltr"
-                  className="w-full border border-gray-200 rounded-xl p-3 pe-20 text-sm outline-none focus:border-brand-400 font-mono"
-                />
-                <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
-                  <button type="button" onClick={() => setResetPwVisible(!resetPwVisible)}
-                    className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" title={resetPwVisible ? "إخفاء" : "إظهار"}>
-                    {resetPwVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                  </button>
-                  {resetPw && (
-                    <button type="button" onClick={() => { navigator.clipboard.writeText(resetPw); setResetPwCopied(true); setTimeout(() => setResetPwCopied(false), 2000); }}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" title="نسخ">
-                      {resetPwCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
-                    </button>
-                  )}
+            {resetPwDone ? (
+              <>
+                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+                  <p className="text-xs text-emerald-700 font-medium">تم تغيير كلمة المرور بنجاح. أرسل البيانات الجديدة للمالك.</p>
                 </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => {
-                setResetPw(generateSecurePassword());
-                setResetPwVisible(true);
-              }}
-              className="w-full py-2.5 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
-              توليد كلمة مرور عشوائية
-            </button>
-            <div className="flex gap-3 pt-1">
-              <button onClick={() => setResetPwModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
-              <button
-                disabled={!resetPw || resetPw.length < 6 || resetPwSaving}
-                onClick={async () => {
-                  setResetPwSaving(true);
-                  try {
-                    await adminApi.resetOrgPassword(resetPwModal.orgId, { password: resetPw });
-                    setResetPwModal(null);
-                    setResetPw("");
-                  } catch {
-                    alert("فشل إعادة تعيين كلمة المرور");
-                  } finally {
-                    setResetPwSaving(false);
-                  }
-                }}
-                className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {resetPwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
-                حفظ
-              </button>
-            </div>
+                <div className="bg-gray-50 rounded-xl p-4 space-y-2 font-mono text-sm">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-400 font-sans text-xs">رابط الدخول</span>
+                    <span className="text-gray-900 select-all text-xs" dir="ltr">{window.location.origin}/login</span>
+                  </div>
+                  <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-2">
+                    <span className="text-gray-400 font-sans text-xs">كلمة المرور الجديدة</span>
+                    <span className="text-brand-600 font-bold select-all" dir="ltr">{resetPw}</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      const text = `بيانات الدخول الجديدة لمنصة ترميز OS:\n\nرابط الدخول: ${window.location.origin}/login\nكلمة المرور الجديدة: ${resetPw}\n\nيرجى تغيير كلمة المرور بعد تسجيل الدخول.`;
+                      navigator.clipboard.writeText(text);
+                    }}
+                    className="py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2 font-medium"
+                  >
+                    <Copy className="w-4 h-4" /> نسخ الكل
+                  </button>
+                  <button
+                    onClick={() => {
+                      const text = encodeURIComponent(`مرحباً، تم تحديث بيانات دخولك لمنصة ترميز OS:\n\nرابط الدخول: ${window.location.origin}/login\nكلمة المرور الجديدة: ${resetPw}\n\nيرجى تغيير كلمة المرور بعد أول تسجيل دخول.`);
+                      window.open(`https://wa.me/?text=${text}`, "_blank");
+                    }}
+                    className="py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 flex items-center justify-center gap-2"
+                  >
+                    <Globe className="w-4 h-4" /> إرسال واتساب
+                  </button>
+                </div>
+                <button onClick={() => { setResetPwModal(null); setResetPwDone(false); setResetPw(""); }}
+                  className="w-full py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+                  إغلاق
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+                  <p className="text-xs text-amber-700">سيتم تغيير كلمة مرور مالك المنشأة فوراً. تأكد من إبلاغه بكلمة المرور الجديدة.</p>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500 block mb-1">كلمة المرور الجديدة</label>
+                  <div className="relative">
+                    <input
+                      type={resetPwVisible ? "text" : "password"}
+                      value={resetPw}
+                      onChange={(e) => setResetPw(e.target.value)}
+                      placeholder="أدخل كلمة المرور (6 أحرف على الأقل)"
+                      dir="ltr"
+                      className="w-full border border-gray-200 rounded-xl p-3 pe-20 text-sm outline-none focus:border-brand-400 font-mono"
+                    />
+                    <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                      <button type="button" onClick={() => setResetPwVisible(!resetPwVisible)}
+                        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" title={resetPwVisible ? "إخفاء" : "إظهار"}>
+                        {resetPwVisible ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                      {resetPw && (
+                        <button type="button" onClick={() => { navigator.clipboard.writeText(resetPw); setResetPwCopied(true); setTimeout(() => setResetPwCopied(false), 2000); }}
+                          className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors" title="نسخ">
+                          {resetPwCopied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setResetPw(generateSecurePassword());
+                    setResetPwVisible(true);
+                  }}
+                  className="w-full py-2.5 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  توليد كلمة مرور عشوائية
+                </button>
+                <div className="flex gap-3 pt-1">
+                  <button onClick={() => { setResetPwModal(null); setResetPwDone(false); }} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+                  <button
+                    disabled={!resetPw || resetPw.length < 6 || resetPwSaving}
+                    onClick={async () => {
+                      setResetPwSaving(true);
+                      try {
+                        await adminApi.resetOrgPassword(resetPwModal.orgId, { password: resetPw });
+                        setResetPwDone(true);
+                      } catch {
+                        alert("فشل إعادة تعيين كلمة المرور");
+                      } finally {
+                        setResetPwSaving(false);
+                      }
+                    }}
+                    className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {resetPwSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <KeyRound className="w-4 h-4" />}
+                    حفظ
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </Modal>
       )}
@@ -918,10 +1207,16 @@ function OrgsTab() {
       )}
 
       {credentialsModal && (
-        <Modal open onClose={() => setCredentialsModal(null)} title="تم إنشاء المنشأة — بيانات دخول المالك" width="max-w-sm">
+        <Modal open onClose={() => setCredentialsModal(null)} title="تم إنشاء المنشأة — بيانات دخول المالك" width="max-w-md">
           <div className="space-y-3">
-            <p className="text-xs text-gray-500">احتفظ بهذه البيانات — لن تظهر مجدداً</p>
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
+              <p className="text-xs text-amber-700">احتفظ بهذه البيانات — لن تظهر مجدداً. يمكنك نسخها أو إرسالها للمالك عبر واتساب.</p>
+            </div>
             <div className="bg-gray-50 rounded-xl p-4 space-y-2 font-mono text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-400 font-sans text-xs">رابط الدخول</span>
+                <span className="text-gray-900 select-all text-xs" dir="ltr">{window.location.origin}/login</span>
+              </div>
               {credentialsModal.email && (
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 font-sans text-xs">الإيميل</span>
@@ -939,9 +1234,30 @@ function OrgsTab() {
                 <span className="text-brand-600 font-bold select-all" dir="ltr">{credentialsModal.password}</span>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  const text = `بيانات الدخول لمنصة ترميز OS:\n\nرابط الدخول: ${window.location.origin}/login\n${credentialsModal.email ? `الإيميل: ${credentialsModal.email}\n` : ""}${credentialsModal.phone ? `الجوال: ${credentialsModal.phone}\n` : ""}كلمة المرور: ${credentialsModal.password}`;
+                  navigator.clipboard.writeText(text);
+                }}
+                className="py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2 font-medium"
+              >
+                <Copy className="w-4 h-4" /> نسخ الكل
+              </button>
+              <button
+                onClick={() => {
+                  const phone = credentialsModal.phone?.replace(/\+/g, "") || "";
+                  const text = encodeURIComponent(`مرحباً، هذه بيانات دخولك لمنصة ترميز OS:\n\nرابط الدخول: ${window.location.origin}/login\n${credentialsModal.email ? `الإيميل: ${credentialsModal.email}\n` : ""}${credentialsModal.phone ? `الجوال: ${credentialsModal.phone}\n` : ""}كلمة المرور: ${credentialsModal.password}\n\nيرجى تغيير كلمة المرور بعد أول تسجيل دخول.`);
+                  window.open(`https://wa.me/${phone}?text=${text}`, "_blank");
+                }}
+                className="py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 flex items-center justify-center gap-2"
+              >
+                <Globe className="w-4 h-4" /> إرسال واتساب
+              </button>
+            </div>
             <button onClick={() => setCredentialsModal(null)}
-              className="w-full py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600">
-              فهمت — إغلاق
+              className="w-full py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+              إغلاق
             </button>
           </div>
         </Modal>

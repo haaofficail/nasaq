@@ -1700,6 +1700,8 @@ export const adminApi = {
   revokeSuperAdmin: (id: string) => api.post<{ data: any }>(`/admin/users/${id}/revoke-super-admin`),
   resetUserPassword: (id: string, data: { password: string }) =>
     api.patch<{ ok: boolean }>(`/admin/users/${id}/reset-password`, data),
+  updateUser: (id: string, data: any) =>
+    api.patch<{ data: any }>(`/admin/users/${id}`, data),
 
   impersonate: (orgId: string) => api.post<{ data: any }>(`/admin/impersonate/${orgId}`),
 

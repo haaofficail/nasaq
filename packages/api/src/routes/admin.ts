@@ -210,7 +210,9 @@ adminRouter.get("/orgs/:id", async (c) => {
     phone: organizations.phone,
     email: organizations.email,
     city: organizations.city,
+    address: organizations.address,
     businessType: organizations.businessType,
+    operatingProfile: organizations.operatingProfile,
     plan: organizations.plan,
     subscriptionStatus: organizations.subscriptionStatus,
     trialEndsAt: organizations.trialEndsAt,
@@ -284,10 +286,28 @@ adminRouter.patch("/orgs/:id", async (c) => {
     dashboardProfile: z.string().optional(),
     logo: z.string().optional().nullable(),
     name: z.string().min(1).max(200).optional(),
+    nameEn: z.string().max(200).optional().nullable(),
+    slug: z.string().min(2).max(100).regex(/^[a-z0-9-]+$/).optional(),
     phone: z.string().max(20).optional().nullable(),
     email: z.string().email().optional().nullable(),
     city: z.string().max(100).optional().nullable(),
+    address: z.string().max(500).optional().nullable(),
+    website: z.string().max(200).optional().nullable(),
+    businessType: z.string().max(50).optional(),
+    operatingProfile: z.string().max(50).optional(),
+    commercialRegister: z.string().max(50).optional().nullable(),
+    vatNumber: z.string().max(50).optional().nullable(),
   }).parse(await c.req.json());
+
+  // Validate slug uniqueness if changing
+  if (body.slug) {
+    const orgId = c.req.param("id");
+    const [existing] = await db.select({ id: organizations.id })
+      .from(organizations)
+      .where(and(eq(organizations.slug, body.slug), sql`${organizations.id} != ${orgId}`));
+    if (existing) return apiErr(c, "SLUG_TAKEN", 409);
+  }
+
   const updates: Record<string, unknown> = { updatedAt: new Date() };
   for (const [key, value] of Object.entries(body)) {
     if (value !== undefined) updates[key] = value;
@@ -411,6 +431,44 @@ adminRouter.patch("/users/:id/reset-password", async (c) => {
 
   logAdminAction(adminId, "reset_user_password", "user", userId, { userName: user.name }, c.req.header("X-Forwarded-For"));
   return c.json({ ok: true });
+});
+
+// ── Admin: Update user details ─────────────────────────────
+adminRouter.patch("/users/:id", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  const userId = c.req.param("id");
+
+  const body = z.object({
+    name: z.string().min(1).max(200).optional(),
+    email: z.string().email().optional().nullable(),
+    phone: z.string().max(20).optional().nullable(),
+    status: z.enum(["active", "inactive", "suspended"]).optional(),
+    jobTitle: z.string().max(100).optional().nullable(),
+  }).parse(await c.req.json());
+
+  const [user] = await db.select({ id: users.id, name: users.name })
+    .from(users).where(eq(users.id, userId));
+  if (!user) return apiErr(c, "USR_NOT_FOUND", 404);
+
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  for (const [key, value] of Object.entries(body)) {
+    if (value !== undefined) {
+      if (key === "phone" && value) {
+        const normalized = normalizePhoneAdmin(value as string);
+        updates[key] = normalized || value;
+      } else {
+        updates[key] = value;
+      }
+    }
+  }
+
+  const [updated] = await db.update(users).set(updates)
+    .where(eq(users.id, userId)).returning({ id: users.id, name: users.name, status: users.status });
+  if (!updated) return apiErr(c, "USR_NOT_FOUND", 404);
+
+  logAdminAction(adminId, "update_user", "user", userId, { fields: Object.keys(updates), userName: user.name }, c.req.header("X-Forwarded-For"));
+  return c.json({ data: updated });
 });
 
 // ──────────────────────────────────────────────────────────
