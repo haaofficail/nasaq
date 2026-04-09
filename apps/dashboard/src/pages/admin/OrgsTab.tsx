@@ -10,7 +10,7 @@ import { adminApi } from "@/lib/api";
 import { SAUDI_CITIES, ADDONS, PLANS, ADDON_MAP, PLAN_MAP } from "@/lib/constants";
 import { useApi, useMutation } from "@/hooks/useApi";
 import {
-  BUSINESS_TYPES, ALL_CAPABILITIES,
+  BUSINESS_TYPES, ALL_CAPABILITIES, generateSecurePassword,
   StatusBadge, PlanBadge, RoleBadge, Spinner, Empty, SectionHeader, Modal, InfoRow, TabPill,
 } from "./shared";
 
@@ -570,8 +570,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
             <button
               type="button"
               onClick={() => {
-                const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-                setUserPw(Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join(""));
+                setUserPw(generateSecurePassword());
                 setUserPwVisible(true);
               }}
               className="w-full py-2.5 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
@@ -842,8 +841,7 @@ function OrgsTab() {
             <button
               type="button"
               onClick={() => {
-                const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-                setResetPw(Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join(""));
+                setResetPw(generateSecurePassword());
                 setResetPwVisible(true);
               }}
               className="w-full py-2.5 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"

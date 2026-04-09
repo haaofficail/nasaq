@@ -3,7 +3,7 @@ import { Users2, Plus, Search, Loader2, KeyRound, Eye, EyeOff, Copy, Check, Refr
 import { clsx } from "clsx";
 import { adminApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { RoleBadge, SectionHeader, Spinner, Empty, Modal } from "./shared";
+import { RoleBadge, SectionHeader, Spinner, Empty, Modal, generateSecurePassword } from "./shared";
 
 const ROLES_CONFIG = [
   { value: "account_manager", label: "مدير حساب",   desc: "متابعة ودعم عملاء محددين" },
@@ -255,8 +255,7 @@ function TeamTab() {
             <button
               type="button"
               onClick={() => {
-                const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-                setPw(Array.from({ length: 10 }, () => chars[Math.floor(Math.random() * chars.length)]).join(""));
+                setPw(generateSecurePassword());
                 setPwVisible(true);
               }}
               className="w-full py-2.5 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
