@@ -13,6 +13,8 @@ export { BookingCard }    from "./BookingCard";
 export { DataTable }      from "./DataTable";
 export { PageSkeleton, SkeletonRows, SkeletonCards } from "./Skeleton";
 export { Pagination }     from "./Pagination";
+export { SearchInput }    from "./SearchInput";
+export { FilterBar }      from "./FilterBar";
 export { Toaster }        from "./Toaster";
 export { RichTextEditor } from "./RichTextEditor";
 export { ImageUpload }   from "./ImageUpload";

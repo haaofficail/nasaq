@@ -3,6 +3,7 @@ import { Layout } from "./components/layout/Layout";
 import { SchoolLayout } from "./components/layout/SchoolLayout";
 import { ReactNode, lazy, Suspense } from "react";
 import { NasaqThemeGuard } from "./context/NasaqThemeGuard";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 // ── Eager imports (needed immediately on load) ─────────────────────
 import { LoginPage } from "./pages/LoginPage";
@@ -326,13 +327,13 @@ export default function App() {
           <Route path="customers" element={<CustomersPage />} />
           <Route path="customers/:id" element={<CustomerDetailPage />} />
 
-          <Route path="pos" element={<POSPage />} />
+          <Route path="pos" element={<ProtectedRoute permission="pos.sell"><POSPage /></ProtectedRoute>} />
 
-          <Route path="finance" element={<FinancePage />} />
-          <Route path="invoices" element={<InvoicesPage />} />
-          <Route path="invoices/:id" element={<InvoiceDetailPage />} />
-          <Route path="expenses" element={<ExpensesPage />} />
-          <Route path="reports" element={<ReportsPage />} />
+          <Route path="finance" element={<ProtectedRoute anyPermission={["finance.invoices", "finance.reports"]}><FinancePage /></ProtectedRoute>} />
+          <Route path="invoices" element={<ProtectedRoute permission="finance.invoices"><InvoicesPage /></ProtectedRoute>} />
+          <Route path="invoices/:id" element={<ProtectedRoute permission="finance.invoices"><InvoiceDetailPage /></ProtectedRoute>} />
+          <Route path="expenses" element={<ProtectedRoute permission="finance.expenses"><ExpensesPage /></ProtectedRoute>} />
+          <Route path="reports" element={<ProtectedRoute anyPermission={["reports.sales", "reports.performance"]}><ReportsPage /></ProtectedRoute>} />
           <Route path="reports/sales" element={<SalesReportPage />} />
           <Route path="reports/payments" element={<PaymentsReportPage />} />
           <Route path="reports/collection" element={<CollectionReportPage />} />
@@ -361,11 +362,11 @@ export default function App() {
           <Route path="suppliers" element={<Navigate to="/dashboard/inventory?tab=suppliers" replace />} />
           <Route path="providers" element={<ProvidersPage />} />
           <Route path="staff" element={<StaffPage />} />
-          <Route path="permissions" element={<RolesPage />} />
+          <Route path="permissions" element={<ProtectedRoute permission="team.permissions"><RolesPage /></ProtectedRoute>} />
           <Route path="attendance" element={<AttendancePage />} />
-          <Route path="team" element={<TeamPage />} />
-          <Route path="hr" element={<HRPage />} />
-          <Route path="hr/employees/:id" element={<HREmployeePage />} />
+          <Route path="team" element={<ProtectedRoute permission="team.view"><TeamPage /></ProtectedRoute>} />
+          <Route path="hr" element={<ProtectedRoute permission="team.view"><HRPage /></ProtectedRoute>} />
+          <Route path="hr/employees/:id" element={<ProtectedRoute permission="team.view"><HREmployeePage /></ProtectedRoute>} />
           <Route path="delivery" element={<DeliveryPage />} />
 
           <Route path="storefront" element={<StorefrontPage />} />
@@ -385,7 +386,7 @@ export default function App() {
           <Route path="integrations" element={<IntegrationsPage />} />
           <Route path="integrations/:id/logs" element={<IntegrationLogsPage />} />
 
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="settings" element={<ProtectedRoute permission="settings.org"><SettingsPage /></ProtectedRoute>} />
           <Route path="settings/booking" element={<BookingSettingsPage />} />
           <Route path="settings/profile" element={<ProfileSettingsPage />} />
           <Route path="account" element={<AccountPage />} />
