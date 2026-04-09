@@ -231,14 +231,15 @@ const QUESTION_TYPES: { value: QuestionType; label: string; icon: React.ElementT
   { value: "image",    label: "صورة",            icon: Image,        desc: "رفع صورة" },
 ];
 type ComponentDraft = {
-  sourceType: "manual" | "inventory";
+  sourceType: "manual" | "inventory" | "asset";
   inventoryItemId: string;
+  assetId: string;
   name: string; quantity: string; unit: string; unitCost: string;
 };
 
 const INIT_ADDON: AddonDraft = { name: "", nameEn: "", description: "", price: "", type: "optional", imageUrl: "" };
 const INIT_Q: QuestionDraft  = { question: "", type: "text", isRequired: false, isPaid: false, price: "", options: [] };
-const INIT_COMP: ComponentDraft = { sourceType: "manual", inventoryItemId: "", name: "", quantity: "1", unit: "قطعة", unitCost: "0" };
+const INIT_COMP: ComponentDraft = { sourceType: "manual", inventoryItemId: "", assetId: "", name: "", quantity: "1", unit: "قطعة", unitCost: "0" };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -328,6 +329,7 @@ export function ServiceFormPage() {
   const [pendingStaffIds,setPendingStaffIds]= useState<string[]>([]);  // to be added on save (create)
   const [loadedStaff,    setLoadedStaff]    = useState<any[]>([]);    // already assigned (edit)
   const [products,       setProducts]       = useState<any[]>([]);    // inventory products
+  const [assetsList,     setAssetsList]     = useState<any[]>([]);    // assets (equipment, furniture, etc.)
   const [refDataLoading, setRefDataLoading] = useState(!isEdit);      // true until reference data loads (create mode)
 
   // ── Media (multiple images) ───────────────────────────────────────────────
@@ -394,6 +396,7 @@ export function ServiceFormPage() {
         }))
       ); return true; }).catch(() => { toast.error("تعذّر تحميل الموظفين"); return false; }),
       inventoryApi.products().then(r => { setProducts(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل المنتجات"); return false; }),
+      inventoryApi.assets().then(r => { setAssetsList(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل الأصول"); return false; }),
       settingsApi.branches().then(r => { setBranches(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل الفروع"); return false; }),
       eventPackagesApi.list().then(r => { setTemplates(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل القوالب"); return false; }),
     ];
@@ -617,12 +620,13 @@ export function ServiceFormPage() {
       };
 
       const saveComponents = async (svcId: string) => {
-        const valid = componentDrafts.filter(c => c.name.trim() || c.inventoryItemId);
+        const valid = componentDrafts.filter(c => c.name.trim() || c.inventoryItemId || c.assetId);
         for (let i = 0; i < valid.length; i++) {
           const c = valid[i];
           await servicesApi.addComponent(svcId, {
             sourceType: c.sourceType,
-            inventoryItemId: c.inventoryItemId || undefined,
+            inventoryItemId: c.sourceType === "inventory" ? (c.inventoryItemId || undefined) : undefined,
+            assetId: c.sourceType === "asset" ? (c.assetId || undefined) : undefined,
             name: c.name.trim() || undefined,
             quantity: parseFloat(c.quantity) || 1,
             unit: c.unit || "قطعة",
@@ -1462,10 +1466,27 @@ export function ServiceFormPage() {
                   {loadedComponents.map((c: any) => (
                     <div key={c.id} className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-xl text-sm">
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-800">{c.customerLabel || c.name}</p>
-                        <p className="text-xs text-gray-400">{c.quantity} {c.unit}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium text-gray-800">{c.customerLabel || c.name}</p>
+                          <span className={clsx("text-[10px] px-1.5 py-0.5 rounded-md font-medium",
+                            c.sourceType === "asset" ? "bg-blue-50 text-blue-600" :
+                            c.sourceType === "inventory" ? "bg-emerald-50 text-emerald-600" :
+                            "bg-gray-100 text-gray-500"
+                          )}>
+                            {c.sourceType === "asset" ? "أصل" : c.sourceType === "inventory" ? "مخزون" : "يدوي"}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400">
+                          {c.quantity} {c.unit}
+                          {c.assetInfo?.category && <span className="mr-1">— {c.assetInfo.category}</span>}
+                          {c.assetInfo?.status && c.assetInfo.status !== "available" && (
+                            <span className="mr-1 text-amber-500">({c.assetInfo.status})</span>
+                          )}
+                        </p>
                       </div>
-                      <span className="text-gray-500 tabular-nums">{Number(c.unitCost || 0).toLocaleString()} ر.س</span>
+                      {c.sourceType !== "asset" && (
+                        <span className="text-gray-500 tabular-nums">{Number(c.unitCost || 0).toLocaleString()} ر.س</span>
+                      )}
                       <button type="button"
                         onClick={() => servicesApi.deleteComponent(id!, c.id).then(() => setLoadedComponents(p => p.filter((x: any) => x.id !== c.id))).catch(() => {})}
                         className="p-1 text-gray-300 hover:text-red-500 transition-colors shrink-0">
@@ -1477,7 +1498,7 @@ export function ServiceFormPage() {
               )}
 
               {componentDrafts.length === 0 && loadedComponents.length === 0 && (
-                <p className="text-xs text-gray-400 py-1">لا توجد مكونات — اضغط "إضافة" لربط مواد من المخزون</p>
+                <p className="text-xs text-gray-400 py-1">لا توجد مكونات — اضغط "إضافة" لربط مواد من المخزون أو أصول أو إدخال يدوي</p>
               )}
 
               {/* Cost summary — execution mode */}
@@ -1526,13 +1547,13 @@ export function ServiceFormPage() {
                       {/* Source type + delete */}
                       <div className="flex items-center justify-between">
                         <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
-                          {(["manual", "inventory"] as const).map(t => (
+                          {(["manual", "inventory", "asset"] as const).map(t => (
                             <button key={t} type="button"
-                              onClick={() => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, sourceType: t, inventoryItemId: "", name: "" } : x))}
+                              onClick={() => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, sourceType: t, inventoryItemId: "", assetId: "", name: "", unitCost: t === "asset" ? "0" : x.unitCost } : x))}
                               className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
                                 c.sourceType === t ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
                               )}>
-                              {t === "manual" ? "يدوي" : "من المخزون"}
+                              {t === "manual" ? "يدوي" : t === "inventory" ? "من المخزون" : "من الأصول"}
                             </button>
                           ))}
                         </div>
@@ -1541,13 +1562,22 @@ export function ServiceFormPage() {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                      {/* Name / inventory select */}
-                      <div>
-                        <label className="text-xs font-medium text-gray-700 block mb-1.5">
-                          {c.sourceType === "inventory" ? "المنتج من المخزون" : "اسم المكون"} <span className="text-red-400">*</span>
-                        </label>
-                        {c.sourceType === "inventory" ? (
-                          products.length === 0 ? (
+
+                      {/* ── Manual: name input ── */}
+                      {c.sourceType === "manual" && (
+                        <div>
+                          <label className="text-xs font-medium text-gray-700 block mb-1.5">اسم المكون <span className="text-red-400">*</span></label>
+                          <input value={c.name} placeholder="مثال: ورد أحمر"
+                            onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
+                            className={iCls} />
+                        </div>
+                      )}
+
+                      {/* ── Inventory: product selector ── */}
+                      {c.sourceType === "inventory" && (
+                        <div>
+                          <label className="text-xs font-medium text-gray-700 block mb-1.5">المنتج من المخزون <span className="text-red-400">*</span></label>
+                          {products.length === 0 ? (
                             <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                               <Package className="w-3.5 h-3.5 shrink-0" />
                               <span>لا توجد منتجات في المخزون —{" "}
@@ -1561,42 +1591,111 @@ export function ServiceFormPage() {
                               onChange={e => {
                                 const p = products.find((x: any) => x.id === e.target.value);
                                 setComponentDrafts(d => d.map((x, j) => j === i
-                                  ? { ...x, inventoryItemId: e.target.value, name: p?.name || "", unit: p?.unit || "قطعة", unitCost: p?.unitCost ? String(p.unitCost) : x.unitCost }
+                                  ? { ...x, inventoryItemId: e.target.value, assetId: "", name: p?.name || "", unit: p?.unit || "قطعة", unitCost: p?.unitCost ? String(p.unitCost) : x.unitCost }
                                   : x));
                               }}
                               className={iCls}>
                               <option value="">اختر منتجاً...</option>
                               {products.map((p: any) => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
+                                <option key={p.id} value={p.id}>{p.name}{p.unitCost ? ` — ${Number(p.unitCost).toLocaleString()} ر.س` : ""}</option>
                               ))}
                             </select>
-                          )
-                        ) : (
-                          <input value={c.name} placeholder="مثال: ورد أحمر"
-                            onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, name: e.target.value } : x))}
-                            className={iCls} />
-                        )}
-                      </div>
+                          )}
+                          {c.inventoryItemId && (() => {
+                            const p = products.find((x: any) => x.id === c.inventoryItemId);
+                            return p ? (
+                              <p className="text-[11px] text-gray-400 mt-1">
+                                الوحدة: {p.unit || "قطعة"} — التكلفة: {Number(p.unitCost || 0).toLocaleString()} ر.س
+                              </p>
+                            ) : null;
+                          })()}
+                        </div>
+                      )}
+
+                      {/* ── Asset: asset selector ── */}
+                      {c.sourceType === "asset" && (
+                        <div>
+                          <label className="text-xs font-medium text-gray-700 block mb-1.5">الأصل / المعدة <span className="text-red-400">*</span></label>
+                          {assetsList.length === 0 ? (
+                            <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                              <Wrench className="w-3.5 h-3.5 shrink-0" />
+                              <span>لا توجد أصول مسجلة —{" "}
+                                <Link to="/dashboard/inventory?tab=assets" className="text-brand-500 hover:text-brand-700 font-medium underline underline-offset-2 transition-colors">
+                                  أضف أصولك من المخزون
+                                </Link>
+                              </span>
+                            </div>
+                          ) : (
+                            <select value={c.assetId}
+                              onChange={e => {
+                                const a = assetsList.find((x: any) => x.id === e.target.value);
+                                setComponentDrafts(d => d.map((x, j) => j === i
+                                  ? { ...x, assetId: e.target.value, inventoryItemId: "", name: a?.name || a?.typeName || "", unit: "قطعة", unitCost: "0" }
+                                  : x));
+                              }}
+                              className={iCls}>
+                              <option value="">اختر أصلاً...</option>
+                              {assetsList.map((a: any) => (
+                                <option key={a.id} value={a.id}>
+                                  {a.name || a.typeName || "أصل"}{a.serialNumber ? ` (${a.serialNumber})` : ""}{a.status !== "available" ? ` — ${a.status}` : ""}
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                          {c.assetId && (() => {
+                            const a = assetsList.find((x: any) => x.id === c.assetId);
+                            return a ? (
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <span className={clsx("text-[10px] px-1.5 py-0.5 rounded-md font-medium",
+                                  a.status === "available" ? "bg-emerald-50 text-emerald-600" :
+                                  a.status === "in_use" ? "bg-amber-50 text-amber-600" :
+                                  "bg-gray-100 text-gray-500"
+                                )}>
+                                  {a.status === "available" ? "متاح" : a.status === "in_use" ? "قيد الاستخدام" : a.status === "maintenance" ? "صيانة" : a.status}
+                                </span>
+                                {a.condition && (
+                                  <span className="text-[10px] text-gray-400">الحالة: {a.condition}</span>
+                                )}
+                                {a.categoryName && (
+                                  <span className="text-[10px] text-gray-400">التصنيف: {a.categoryName}</span>
+                                )}
+                              </div>
+                            ) : null;
+                          })()}
+                        </div>
+                      )}
+
                       {/* Quantity + unit + cost */}
-                      <div className="grid grid-cols-3 gap-3">
+                      <div className={clsx("grid gap-3", c.sourceType === "asset" ? "grid-cols-2" : "grid-cols-3")}>
                         <div>
                           <label className="text-xs font-medium text-gray-700 block mb-1.5">الكمية</label>
                           <input type="number" min={0} step="0.1" value={c.quantity} dir="ltr"
                             onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, quantity: e.target.value } : x))}
                             className={iCls} />
                         </div>
-                        <div>
-                          <label className="text-xs font-medium text-gray-700 block mb-1.5">الوحدة</label>
-                          <input value={c.unit} placeholder="قطعة"
-                            onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, unit: e.target.value } : x))}
-                            className={iCls} />
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-gray-700 block mb-1.5">التكلفة (ر.س)</label>
-                          <input type="number" min={0} value={c.unitCost} dir="ltr"
-                            onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, unitCost: e.target.value } : x))}
-                            className={iCls} />
-                        </div>
+                        {c.sourceType !== "asset" && (
+                          <div>
+                            <label className="text-xs font-medium text-gray-700 block mb-1.5">الوحدة</label>
+                            <input value={c.unit} placeholder="قطعة"
+                              onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, unit: e.target.value } : x))}
+                              className={iCls} />
+                          </div>
+                        )}
+                        {c.sourceType === "manual" && (
+                          <div>
+                            <label className="text-xs font-medium text-gray-700 block mb-1.5">التكلفة (ر.س)</label>
+                            <input type="number" min={0} value={c.unitCost} dir="ltr"
+                              onChange={e => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, unitCost: e.target.value } : x))}
+                              className={iCls} />
+                          </div>
+                        )}
+                        {c.sourceType === "inventory" && (
+                          <div>
+                            <label className="text-xs font-medium text-gray-700 block mb-1.5">التكلفة (ر.س) <span className="text-gray-400 font-normal text-[10px]">تلقائي</span></label>
+                            <input type="number" min={0} value={c.unitCost} dir="ltr" disabled
+                              className={clsx(iCls, "bg-gray-50 text-gray-400 cursor-not-allowed")} />
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

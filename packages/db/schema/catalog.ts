@@ -1,5 +1,6 @@
 import { pgTable, text, timestamp, boolean, pgEnum, jsonb, uuid, integer, numeric, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { organizations, locations } from "./organizations";
+import { assets } from "./inventory";
 
 // ============================================================
 // ENUMS
@@ -397,12 +398,14 @@ export const serviceComponents = pgTable("service_components", {
   orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   serviceId: uuid("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
 
-  // Source type: 'inventory' = أصل من المخزون | 'manual' = عنصر يدوي
-  sourceType: text("source_type").notNull().default("manual"), // 'inventory' | 'manual' | 'flower'
+  // Source type: 'inventory' = مادة استهلاكية من المخزون | 'manual' = عنصر يدوي | 'asset' = أصل/معدة
+  sourceType: text("source_type").notNull().default("manual"), // 'inventory' | 'manual' | 'flower' | 'asset'
 
-  // For inventory type — points to asset_types.id
+  // For inventory type — points to inventory product
   inventoryItemId: uuid("inventory_item_id"),
   flowerInventoryId: uuid("flower_inventory_id"),
+  // For asset type — points to assets.id (طاولة، ستاند، فازة، خشب...)
+  assetId: uuid("asset_id").references(() => assets.id, { onDelete: "set null" }),
 
   name: text("name").notNull(),
   description: text("description"),
