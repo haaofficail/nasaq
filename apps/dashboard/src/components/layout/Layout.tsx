@@ -7,7 +7,7 @@ import {
 import { clsx } from "clsx";
 import { authApi, orgSubscriptionApi } from "@/lib/api";
 import { usePlatformConfig, PLATFORM_LOGO } from "@/hooks/usePlatformConfig";
-import { BRAND } from "@/lib/branding";
+import { BRAND, handleLogoError } from "@/lib/branding";
 import { useOrgContext, invalidateOrgContextCache } from "@/hooks/useOrgContext";
 import { buildVisibleNav, BOTTOM_NAV, SUPER_ADMIN_NAV, type SubscriptionPlan } from "@/lib/navigationRegistry";
 import { Toaster } from "@/components/ui/Toaster";
@@ -165,16 +165,7 @@ export function Layout() {
                   src={platformConfig.logoUrl || PLATFORM_LOGO}
                   alt={platformConfig.platformName}
                   className="w-full h-full object-contain"
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                    const parent = (e.currentTarget as HTMLImageElement).parentElement;
-                    if (parent && !parent.querySelector("span")) {
-                      const span = document.createElement("span");
-                      span.textContent = BRAND.logoLetter;
-                      span.style.cssText = "color:#fff;font-weight:800;font-size:14px";
-                      parent.appendChild(span);
-                    }
-                  }}
+                  onError={handleLogoError(14)}
                 />
               </div>
               <span className="text-lg font-bold tracking-tight" style={{ color: platformConfig.primaryColor }}>{platformConfig.platformName}</span>
@@ -189,16 +180,7 @@ export function Layout() {
                 src={platformConfig.logoUrl || PLATFORM_LOGO}
                 alt={platformConfig.platformName}
                 className="w-full h-full object-contain"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                  const parent = (e.currentTarget as HTMLImageElement).parentElement;
-                  if (parent && !parent.querySelector("span")) {
-                    const span = document.createElement("span");
-                    span.textContent = BRAND.logoLetter;
-                    span.style.cssText = "color:#fff;font-weight:800;font-size:14px";
-                    parent.appendChild(span);
-                  }
-                }}
+                onError={handleLogoError(14)}
               />
             </div>
           )}

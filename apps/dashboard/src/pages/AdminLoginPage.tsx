@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Eye, EyeOff, Loader2, Lock } from "lucide-react";
+import { ShieldCheck, Mail, Eye, EyeOff, Loader2, Lock } from "lucide-react";
 import { authApi } from "@/lib/api";
 import { PLATFORM_LOGO } from "@/hooks/usePlatformConfig";
-import { BRAND } from "@/lib/branding";
+import { BRAND, handleLogoError } from "@/lib/branding";
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
@@ -46,16 +46,7 @@ export function AdminLoginPage() {
               src={PLATFORM_LOGO}
               alt={BRAND.nameAr}
               className="w-full h-full object-contain"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-                const parent = (e.currentTarget as HTMLImageElement).parentElement;
-                if (parent && !parent.querySelector("span")) {
-                  const span = document.createElement("span");
-                  span.textContent = BRAND.logoLetter;
-                  span.style.cssText = "color:#fff;font-weight:800;font-size:24px";
-                  parent.appendChild(span);
-                }
-              }}
+              onError={handleLogoError(24)}
             />
           </div>
           <h1 className="text-xl font-bold text-white">لوحة إدارة {BRAND.nameAr}</h1>

@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { usePlatformConfig, PLATFORM_LOGO } from "@/hooks/usePlatformConfig";
-import { BRAND } from "@/lib/branding";
+import { BRAND, handleLogoError } from "@/lib/branding";
 
 export function PublicLayout({ children }: { children: ReactNode }) {
   const platform = usePlatformConfig();
@@ -30,16 +30,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                 src={platform.logoUrl || PLATFORM_LOGO}
                 alt={platform.platformName || BRAND.nameAr}
                 className="w-full h-full object-contain"
-                onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).style.display = "none";
-                  const parent = (e.currentTarget as HTMLImageElement).parentElement;
-                  if (parent && !parent.querySelector("span")) {
-                    const span = document.createElement("span");
-                    span.textContent = BRAND.logoLetter;
-                    span.style.cssText = "color:#fff;font-weight:900;font-size:14px";
-                    parent.appendChild(span);
-                  }
-                }}
+                onError={handleLogoError(14)}
               />
             </div>
             <span className="text-xl font-black text-gray-900">{platform.platformName || BRAND.nameAr}</span>
@@ -106,16 +97,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
                     src={platform.logoUrl || PLATFORM_LOGO}
                     alt={platform.platformName || BRAND.nameAr}
                     className="w-full h-full object-contain"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = "none";
-                      const parent = (e.currentTarget as HTMLImageElement).parentElement;
-                      if (parent && !parent.querySelector("span")) {
-                        const span = document.createElement("span");
-                        span.textContent = BRAND.logoLetter;
-                        span.style.cssText = "color:#fff;font-weight:900;font-size:14px";
-                        parent.appendChild(span);
-                      }
-                    }}
+                    onError={handleLogoError(14)}
                   />
                 </div>
                 <span className="text-xl font-black text-white">{platform.platformName || BRAND.nameAr}</span>

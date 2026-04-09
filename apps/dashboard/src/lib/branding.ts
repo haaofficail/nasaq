@@ -15,3 +15,26 @@ export const BRAND = {
   /** الحرف المستخدم كـ fallback عند عدم وجود شعار */
   logoLetter: "ت",
 } as const;
+
+/**
+ * معالج خطأ تحميل الشعار — يُخفي الصورة ويعرض حرف fallback بدلاً منها.
+ * يُستخدم في كل أماكن عرض الشعار لضمان عدم ظهور صورة مكسورة.
+ *
+ * @param fontSize حجم الخط (بالبكسل) للحرف البديل — يعتمد على حجم الحاوية
+ * @param applyBg إذا true يضع خلفية brand على الحاوية (للحالات بدون خلفية)
+ */
+export function handleLogoError(fontSize = 14, applyBg = false) {
+  return (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const img = e.currentTarget;
+    img.style.display = "none";
+    const parent = img.parentElement;
+    if (parent && !parent.querySelector("[data-logo-fallback]")) {
+      if (applyBg) parent.style.background = "#5b9bd5";
+      const span = document.createElement("span");
+      span.setAttribute("data-logo-fallback", "true");
+      span.textContent = BRAND.logoLetter;
+      span.style.cssText = `color:#fff;font-weight:800;font-size:${fontSize}px`;
+      parent.appendChild(span);
+    }
+  };
+}

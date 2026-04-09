@@ -4,7 +4,7 @@ import { Phone, Shield, ArrowLeft, Loader2, Mail, Eye, EyeOff } from "lucide-rea
 import { authApi } from "@/lib/api";
 import { clsx } from "clsx";
 import { PLATFORM_LOGO } from "@/hooks/usePlatformConfig";
-import { BRAND } from "@/lib/branding";
+import { BRAND, handleLogoError } from "@/lib/branding";
 
 type Method = "phone" | "email";
 type Step   = "input" | "otp";
@@ -117,16 +117,7 @@ export function LoginPage() {
               src={PLATFORM_LOGO}
               alt={BRAND.nameAr}
               className="w-full h-full object-contain"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-                const parent = (e.currentTarget as HTMLImageElement).parentElement;
-                if (parent && !parent.querySelector("span")) {
-                  const span = document.createElement("span");
-                  span.textContent = BRAND.logoLetter;
-                  span.style.cssText = "color:#fff;font-weight:800;font-size:24px";
-                  parent.appendChild(span);
-                }
-              }}
+              onError={handleLogoError(24)}
             />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">{BRAND.nameAr}</h1>

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { usePlatformConfig, PLATFORM_LOGO } from "@/hooks/usePlatformConfig";
-import { BRAND } from "@/lib/branding";
+import { BRAND, handleLogoError } from "@/lib/branding";
 import {
   Scissors, Flower2, Utensils, Car, Camera,
   Building2, ShoppingBag, Star, Check, Menu, X,
@@ -770,17 +770,7 @@ function PublicHeader() {
           }}>
             <img src={platform.logoUrl || PLATFORM_LOGO} alt={platform.platformName}
               style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "contain" }}
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).style.display = "none";
-                const parent = (e.currentTarget as HTMLImageElement).parentElement;
-                if (parent && !parent.querySelector("span")) {
-                  parent.style.background = "#5b9bd5";
-                  const span = document.createElement("span");
-                  span.textContent = BRAND.logoLetter;
-                  span.style.cssText = "color:white;font-weight:800;font-size:14px";
-                  parent.appendChild(span);
-                }
-              }} />
+              onError={handleLogoError(14, true)} />
           </div>
           <span className="lp-header-name" style={{ fontWeight: 800, fontSize: 16, color: textColor, transition: "color 0.35s ease" }}>
             {platform.platformName}
@@ -1458,20 +1448,7 @@ export function LandingPage() {
         <div className="lp-brand-logo-wrap">
           <img src={platform.logoUrl || PLATFORM_LOGO} alt={platform.platformName}
             style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }}
-            onError={(e) => {
-              (e.currentTarget as HTMLImageElement).style.display = "none";
-              const parent = (e.currentTarget as HTMLImageElement).parentElement;
-              if (parent && !parent.querySelector("span")) {
-                parent.style.background = "#5b9bd5";
-                parent.style.display = "flex";
-                parent.style.alignItems = "center";
-                parent.style.justifyContent = "center";
-                const span = document.createElement("span");
-                span.textContent = BRAND.logoLetter;
-                span.style.cssText = "color:white;font-weight:800;font-size:24px";
-                parent.appendChild(span);
-              }
-            }} />
+            onError={handleLogoError(24, true)} />
         </div>
         <div className="lp-brand-divider" />
         <div className="lp-brand-name">{platform.platformName}</div>
@@ -2877,17 +2854,7 @@ export function LandingPage() {
                   overflow: "hidden" }}>
                   {platform.logoUrl
                     ? <img src={platform.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                        onError={(e) => {
-                          (e.currentTarget as HTMLImageElement).style.display = "none";
-                          const parent = (e.currentTarget as HTMLImageElement).parentElement;
-                          if (parent) { parent.style.background = "#5b9bd5"; }
-                          if (parent && !parent.querySelector("span")) {
-                            const span = document.createElement("span");
-                            span.textContent = BRAND.logoLetter;
-                            span.style.cssText = "color:white;font-weight:800;font-size:14px";
-                            parent.appendChild(span);
-                          }
-                        }}
+                        onError={handleLogoError(14, true)}
                       />
                     : <span style={{ color: "white", fontWeight: 800, fontSize: 14 }}>{BRAND.logoLetter}</span>
                   }
