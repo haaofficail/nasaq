@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   MessageCircle, Send, FileText, Plus, Pencil, Trash2,
   Loader2, CheckCircle2, XCircle, RefreshCw,
   Signal, AlertTriangle, QrCode, Smartphone,
-  Key, Unplug, Link2,
+  Key, Unplug, Link2, Search, Building2, Users,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { adminApi } from "@/lib/api";
@@ -24,6 +24,97 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
   failed:  { label: "فشل", color: "bg-red-50 text-red-700" },
   pending: { label: "قيد الإرسال", color: "bg-amber-50 text-amber-700" },
 };
+
+// ══════════════════════════════════════════════════════════════
+// ORG SEARCH PICKER — searchable org selector with auto-fill
+// ══════════════════════════════════════════════════════════════
+
+function OrgSearchPicker({ onSelect, className }: {
+  onSelect: (org: { id: string; name: string; phone: string; email?: string; ownerName?: string }) => void;
+  className?: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const doSearch = useCallback(async (q: string) => {
+    if (!q || q.length < 2) { setResults([]); return; }
+    setLoading(true);
+    try {
+      const res = await adminApi.orgs({ q, limit: 8 });
+      setResults(res.data ?? []);
+    } catch { setResults([]); }
+    finally { setLoading(false); }
+  }, []);
+
+  const handleChange = (val: string) => {
+    setQuery(val);
+    setOpen(true);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => doSearch(val), 300);
+  };
+
+  const handleSelect = (org: any) => {
+    setQuery(org.name || "");
+    setOpen(false);
+    onSelect({
+      id: org.id,
+      name: org.name,
+      phone: org.phone || "",
+      email: org.email || "",
+      ownerName: org.ownerName || org.name,
+    });
+  };
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={containerRef} className={clsx("relative", className)}>
+      <label className="text-xs text-gray-500 block mb-1">
+        <Search className="w-3 h-3 inline-block ml-1" />
+        بحث عن منشأة
+      </label>
+      <input
+        value={query}
+        onChange={e => handleChange(e.target.value)}
+        onFocus={() => query.length >= 2 && setOpen(true)}
+        placeholder="ابحث بالاسم أو رقم الجوال..."
+        className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400"
+      />
+      {open && (query.length >= 2) && (
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 max-h-52 overflow-y-auto">
+          {loading ? (
+            <div className="p-3 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto text-gray-400" /></div>
+          ) : results.length === 0 ? (
+            <div className="p-3 text-xs text-gray-400 text-center">لا توجد نتائج</div>
+          ) : results.map((org: any) => (
+            <button
+              key={org.id}
+              onClick={() => handleSelect(org)}
+              className="w-full text-right px-3 py-2.5 hover:bg-brand-50 flex items-center gap-2 border-b border-gray-50 last:border-0 transition-colors"
+            >
+              <Building2 className="w-4 h-4 text-gray-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-gray-800 truncate">{org.name}</p>
+                <p className="text-[11px] text-gray-400" dir="ltr">{org.phone || "—"}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function WhatsAppGatewayTab() {
   const [tab, setTab] = useState<"qr" | "credentials" | "send" | "templates" | "log">("qr");
@@ -334,6 +425,16 @@ function CredentialsSendSection() {
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ sent: boolean; error?: string } | null>(null);
 
+  const handleOrgSelect = (org: { id: string; name: string; phone: string; email?: string }) => {
+    setForm(f => ({
+      ...f,
+      orgId: org.id,
+      orgName: org.name,
+      phone: org.phone || f.phone,
+      email: org.email || f.email,
+    }));
+  };
+
   const handleSend = async () => {
     if (!form.phone || !form.orgName || !form.password) return;
     setSending(true);
@@ -352,9 +453,12 @@ function CredentialsSendSection() {
       if (res.data?.sent) {
         toast.success("تم إرسال بيانات الدخول بنجاح");
         setForm(f => ({ ...f, phone: "", orgName: "", email: "", password: "", orgId: "" }));
+      } else {
+        toast.error(res.data?.error || "فشل الإرسال");
       }
     } catch (err: any) {
       setResult({ sent: false, error: err?.message || "خطأ في الإرسال" });
+      toast.error(err?.message || "خطأ في الإرسال");
     } finally {
       setSending(false);
     }
@@ -368,6 +472,7 @@ function CredentialsSendSection() {
       </h3>
       <p className="text-xs text-gray-500">
         أرسل بيانات الدخول (البريد/الجوال + كلمة المرور + رابط الدخول) مباشرة عبر واتساب أو SMS.
+        يمكنك البحث عن المنشأة لتعبئة البيانات تلقائياً.
       </p>
 
       {result && (
@@ -378,6 +483,9 @@ function CredentialsSendSection() {
           {result.sent ? "تم إرسال بيانات الدخول بنجاح" : `فشل الإرسال: ${result.error}`}
         </div>
       )}
+
+      {/* Org Search */}
+      <OrgSearchPicker onSelect={handleOrgSelect} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
@@ -449,8 +557,22 @@ function SendMessageSection() {
   const [form, setForm] = useState({ phone: "", recipientName: "", message: "", channel: "whatsapp", templateId: "", orgId: "" });
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ sent: boolean; error?: string } | null>(null);
+  const [showBulk, setShowBulk] = useState(false);
+
+  const handleOrgSelect = (org: { id: string; name: string; phone: string }) => {
+    setForm(f => ({
+      ...f,
+      orgId: org.id,
+      recipientName: org.name,
+      phone: org.phone || f.phone,
+    }));
+  };
 
   const applyTemplate = (tplId: string) => {
+    if (!tplId) {
+      setForm(f => ({ ...f, templateId: "", message: "" }));
+      return;
+    }
     const tpl = templates.find((t: any) => t.id === tplId);
     if (tpl) {
       setForm(f => ({ ...f, templateId: tplId, message: tpl.body }));
@@ -472,84 +594,303 @@ function SendMessageSection() {
       });
       setResult({ sent: res.data?.sent, error: res.data?.error });
       if (res.data?.sent) {
-        setForm(f => ({ ...f, phone: "", recipientName: "", message: "", templateId: "" }));
+        toast.success("تم إرسال الرسالة بنجاح");
+        setForm(f => ({ ...f, phone: "", recipientName: "", message: "", templateId: "", orgId: "" }));
+      } else {
+        toast.error(res.data?.error || "فشل الإرسال");
       }
     } catch (err: any) {
       setResult({ sent: false, error: err?.message || "خطأ في الإرسال" });
+      toast.error(err?.message || "خطأ في الإرسال");
     } finally {
       setSending(false);
     }
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
-      <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-        <Send className="w-4 h-4 text-brand-500" />
-        إرسال رسالة جديدة
-      </h3>
-
-      {result && (
-        <div className={clsx("rounded-xl p-3 text-xs font-medium flex items-center gap-2",
-          result.sent ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-700 border border-red-100"
-        )}>
-          {result.sent ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-          {result.sent ? "تم إرسال الرسالة بنجاح" : `فشل الإرسال: ${result.error}`}
+    <div className="space-y-4">
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+            <Send className="w-4 h-4 text-brand-500" />
+            إرسال رسالة جديدة
+          </h3>
+          <button
+            onClick={() => setShowBulk(true)}
+            className="flex items-center gap-1.5 text-xs bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-100 font-medium transition-colors"
+          >
+            <Users className="w-3.5 h-3.5" />
+            إرسال جماعي
+          </button>
         </div>
+
+        {result && (
+          <div className={clsx("rounded-xl p-3 text-xs font-medium flex items-center gap-2",
+            result.sent ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-700 border border-red-100"
+          )}>
+            {result.sent ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+            {result.sent ? "تم إرسال الرسالة بنجاح" : `فشل الإرسال: ${result.error}`}
+          </div>
+        )}
+
+        {/* Org search */}
+        <OrgSearchPicker onSelect={handleOrgSelect} />
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">رقم الجوال *</label>
+            <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+              placeholder="05XXXXXXXX أو +966XXXXXXXXX"
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">اسم المستلم</label>
+            <input value={form.recipientName} onChange={e => setForm(f => ({ ...f, recipientName: e.target.value }))}
+              placeholder="اختياري"
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">القالب</label>
+            <select value={form.templateId} onChange={e => applyTemplate(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+              <option value="">— بدون قالب (رسالة حرة) —</option>
+              {templates.map((t: any) => (
+                <option key={t.id} value={t.id}>{t.name} — {TEMPLATE_CATEGORIES[t.category] || t.category}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">قناة الإرسال</label>
+            <select value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))}
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+              <option value="whatsapp">واتساب</option>
+              <option value="sms">رسالة نصية SMS</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">نص الرسالة *</label>
+          <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+            rows={6} placeholder="اكتب نص الرسالة هنا... يمكنك استخدام المتغيرات مثل {{owner_name}} و {{org_name}}"
+            className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 resize-none leading-relaxed" />
+          <p className="text-[10px] text-gray-400 mt-1">المتغيرات المتاحة: {"{{owner_name}}"} {"{{org_name}}"} {"{{login_url}}"} {"{{username}}"} {"{{password}}"} {"{{plan_name}}"} {"{{expiry_date}}"} {"{{message}}"}</p>
+        </div>
+
+        <button
+          disabled={!form.phone || !form.message || sending}
+          onClick={handleSend}
+          className="w-full py-3 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+        >
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          {form.channel === "whatsapp" ? "إرسال عبر واتساب" : "إرسال SMS"}
+        </button>
+      </div>
+
+      {/* Bulk Send Modal */}
+      {showBulk && (
+        <BulkSendModal
+          templates={templates}
+          onClose={() => setShowBulk(false)}
+        />
       )}
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">رقم الجوال *</label>
-          <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-            placeholder="05XXXXXXXX أو +966XXXXXXXXX"
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">اسم المستلم</label>
-          <input value={form.recipientName} onChange={e => setForm(f => ({ ...f, recipientName: e.target.value }))}
-            placeholder="اختياري"
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">القالب</label>
-          <select value={form.templateId} onChange={e => applyTemplate(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
-            <option value="">— بدون قالب (رسالة حرة) —</option>
-            {templates.map((t: any) => (
-              <option key={t.id} value={t.id}>{t.name} — {TEMPLATE_CATEGORIES[t.category] || t.category}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">قناة الإرسال</label>
-          <select value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))}
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
-            <option value="whatsapp">واتساب</option>
-            <option value="sms">رسالة نصية SMS</option>
-          </select>
-        </div>
-      </div>
-
-      <div>
-        <label className="text-xs text-gray-500 block mb-1">نص الرسالة *</label>
-        <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
-          rows={6} placeholder="اكتب نص الرسالة هنا... يمكنك استخدام المتغيرات مثل {{owner_name}} و {{org_name}}"
-          className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 resize-none leading-relaxed" />
-        <p className="text-[10px] text-gray-400 mt-1">المتغيرات المتاحة: {"{{owner_name}}"} {"{{org_name}}"} {"{{login_url}}"} {"{{username}}"} {"{{password}}"} {"{{plan_name}}"} {"{{expiry_date}}"} {"{{message}}"}</p>
-      </div>
-
-      <button
-        disabled={!form.phone || !form.message || sending}
-        onClick={handleSend}
-        className="w-full py-3 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
-      >
-        {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-        {form.channel === "whatsapp" ? "إرسال عبر واتساب" : "إرسال SMS"}
-      </button>
     </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// BULK SEND MODAL — send to multiple orgs at once
+// ══════════════════════════════════════════════════════════════
+
+function BulkSendModal({ templates, onClose }: { templates: any[]; onClose: () => void }) {
+  const [message, setMessage] = useState("");
+  const [templateId, setTemplateId] = useState("");
+  const [channel, setChannel] = useState("whatsapp");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sending, setSending] = useState(false);
+  const [progress, setProgress] = useState<{ total: number; sent: number; failed: number } | null>(null);
+
+  const { data: orgsData, loading: orgsLoading } = useApi(
+    () => adminApi.orgs({ status: statusFilter || undefined, limit: 100 }),
+    [statusFilter]
+  );
+  const orgs = orgsData?.data ?? [];
+
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  const toggleAll = () => {
+    if (selectedIds.size === orgs.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(orgs.map((o: any) => o.id)));
+    }
+  };
+
+  const toggleOne = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const applyTemplate = (tplId: string) => {
+    if (!tplId) { setTemplateId(""); return; }
+    const tpl = templates.find((t: any) => t.id === tplId);
+    if (tpl) { setTemplateId(tplId); setMessage(tpl.body); }
+  };
+
+  const handleBulkSend = async () => {
+    if (!message || selectedIds.size === 0) return;
+    setSending(true);
+    const selected = orgs.filter((o: any) => selectedIds.has(o.id) && o.phone);
+    setProgress({ total: selected.length, sent: 0, failed: 0 });
+
+    let sentCount = 0;
+    let failedCount = 0;
+
+    for (const org of selected) {
+      try {
+        const res = await adminApi.sendWaMessage({
+          phone: org.phone,
+          message,
+          recipientName: org.name,
+          orgId: org.id,
+          templateId: templateId || undefined,
+          channel,
+        });
+        if (res.data?.sent) sentCount++; else failedCount++;
+      } catch {
+        failedCount++;
+      }
+      setProgress({ total: selected.length, sent: sentCount, failed: failedCount });
+    }
+
+    toast.success(`تم الإرسال: ${sentCount} نجح، ${failedCount} فشل`);
+    setSending(false);
+  };
+
+  return (
+    <Modal open onClose={onClose} title="إرسال جماعي للمنشآت" width="max-w-2xl">
+      <div className="space-y-4">
+        {/* Message */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">القالب</label>
+            <select value={templateId} onChange={e => applyTemplate(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+              <option value="">— رسالة حرة —</option>
+              {templates.map((t: any) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">قناة الإرسال</label>
+            <select value={channel} onChange={e => setChannel(e.target.value)}
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+              <option value="whatsapp">واتساب</option>
+              <option value="sms">SMS</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">نص الرسالة *</label>
+          <textarea value={message} onChange={e => setMessage(e.target.value)}
+            rows={4} placeholder="اكتب الرسالة... المتغيرات: {{org_name}}"
+            className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 resize-none leading-relaxed" />
+        </div>
+
+        {/* Org selection */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs text-gray-500 flex items-center gap-1">
+              <Building2 className="w-3 h-3" />
+              اختر المنشآت ({selectedIds.size} من {orgs.length})
+            </label>
+            <div className="flex items-center gap-2">
+              <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setSelectedIds(new Set()); }}
+                className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white">
+                <option value="">كل المنشآت</option>
+                <option value="active">نشطة</option>
+                <option value="trial">تجريبية</option>
+                <option value="suspended">موقوفة</option>
+              </select>
+              <button onClick={toggleAll} className="text-xs text-brand-500 hover:text-brand-600 font-medium">
+                {selectedIds.size === orgs.length ? "إلغاء الكل" : "تحديد الكل"}
+              </button>
+            </div>
+          </div>
+
+          {orgsLoading ? <Spinner /> : (
+            <div className="max-h-48 overflow-y-auto border border-gray-100 rounded-xl divide-y divide-gray-50">
+              {orgs.length === 0 ? (
+                <div className="p-3 text-xs text-gray-400 text-center">لا توجد منشآت</div>
+              ) : orgs.map((org: any) => (
+                <label
+                  key={org.id}
+                  className={clsx(
+                    "flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors",
+                    !org.phone && "opacity-40"
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(org.id)}
+                    onChange={() => toggleOne(org.id)}
+                    disabled={!org.phone}
+                    className="rounded border-gray-300 text-brand-500 focus:ring-brand-400"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-800 truncate">{org.name}</p>
+                    <p className="text-[11px] text-gray-400" dir="ltr">{org.phone || "بدون رقم"}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Progress */}
+        {progress && (
+          <div className="bg-gray-50 rounded-xl p-3">
+            <div className="flex items-center justify-between text-xs mb-2">
+              <span className="text-gray-600">تقدم الإرسال</span>
+              <span className="font-medium text-gray-800">{progress.sent + progress.failed} / {progress.total}</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-1.5">
+              <div
+                className="bg-brand-500 rounded-full h-1.5 transition-all duration-300"
+                style={{ width: `${((progress.sent + progress.failed) / progress.total) * 100}%` }}
+              />
+            </div>
+            <div className="flex gap-3 mt-2 text-[11px]">
+              <span className="text-emerald-600">نجح: {progress.sent}</span>
+              <span className="text-red-500">فشل: {progress.failed}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-2">
+          <button onClick={onClose} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+            إغلاق
+          </button>
+          <button
+            disabled={!message || selectedIds.size === 0 || sending}
+            onClick={handleBulkSend}
+            className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            {sending ? `جارٍ الإرسال...` : `إرسال لـ ${selectedIds.size} منشأة`}
+          </button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -603,9 +944,10 @@ function TemplatesSection() {
         await adminApi.createWaTemplate(payload);
       }
       setShowForm(false);
+      toast.success(editId ? "تم تعديل القالب" : "تم إنشاء القالب");
       refetch();
     } catch {
-      alert("فشل حفظ القالب");
+      toast.error("فشل حفظ القالب");
     } finally {
       setSaving(false);
     }
@@ -616,9 +958,10 @@ function TemplatesSection() {
     setDeleting(id);
     try {
       await adminApi.deleteWaTemplate(id);
+      toast.success("تم حذف القالب");
       refetch();
     } catch {
-      alert("فشل الحذف");
+      toast.error("فشل الحذف");
     } finally {
       setDeleting(null);
     }
