@@ -31,11 +31,13 @@ export default function WhatsAppGatewayTab() {
   const { data: statusData, loading: statusLoading, refetch: refetchStatus } = useApi(() => adminApi.waStatus(), []);
   const status = statusData?.data;
 
+  const isNotConfigured = status && !status.whatsappConfigured && !status.baileysConnected;
+
   return (
     <div className="space-y-6">
       <SectionHeader
         title="بوابة واتساب"
-        sub="ربط واتساب بباركود QR، إرسال بيانات الدخول، إشعارات الوثائق، والرسائل"
+        sub="أرسل رسائل واتساب للمنشآت — بيانات الدخول، العروض، الملاحظات، والإشعارات"
       />
 
       {/* Connection Status */}
@@ -54,9 +56,11 @@ export default function WhatsAppGatewayTab() {
             <div className="bg-gray-50 rounded-xl p-3 text-center">
               <p className="text-xs text-gray-400 mb-1">حالة الواتساب</p>
               <span className={clsx("inline-flex px-2.5 py-1 rounded-full text-xs font-semibold",
-                status.whatsappConfigured ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
+                status.whatsappConfigured ? "bg-emerald-50 text-emerald-700" :
+                status.baileysConnected ? "bg-emerald-50 text-emerald-700" :
+                "bg-red-50 text-red-600"
               )}>
-                {status.whatsappConfigured ? "متصل (API)" : "غير متصل"}
+                {status.baileysConnected ? "متصل (QR)" : status.whatsappConfigured ? "متصل (API)" : "غير متصل"}
               </span>
             </div>
             <div className="bg-gray-50 rounded-xl p-3 text-center">
@@ -77,6 +81,33 @@ export default function WhatsAppGatewayTab() {
         )}
       </div>
 
+      {/* Not Configured Banner */}
+      {isNotConfigured && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <div className="flex-1 space-y-2">
+              <h4 className="text-sm font-semibold text-amber-800">الواتساب غير مُعد</h4>
+              <p className="text-xs text-amber-700 leading-relaxed">
+                لإرسال الرسائل، اربط رقم واتساب المنصة عبر مسح باركود QR من تبويب
+                {" "}<strong>&quot;ربط بـ QR&quot;</strong> أدناه.
+                أو يمكنك تعيين متغيرات البيئة:
+                {" "}<code className="bg-amber-100 px-1 py-0.5 rounded text-[11px] font-mono">META_WA_TOKEN</code> و
+                {" "}<code className="bg-amber-100 px-1 py-0.5 rounded text-[11px] font-mono">META_WA_PHONE_ID</code> أو
+                أحد المزودين الآخرين (Unifonic / Twilio).
+              </p>
+              <button
+                onClick={() => setTab("qr")}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-brand-500 text-white rounded-xl text-xs font-medium hover:bg-brand-600 transition-colors"
+              >
+                <QrCode className="w-4 h-4" />
+                ربط واتساب بباركود QR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Tabs */}
       <TabPill
         tabs={[
@@ -90,7 +121,7 @@ export default function WhatsAppGatewayTab() {
         onChange={(id) => setTab(id as typeof tab)}
       />
 
-      {tab === "qr" && <QrConnectionSection />}
+      {tab === "qr" && <QrConnectionSection onConnected={() => refetchStatus()} />}
       {tab === "credentials" && <CredentialsSendSection />}
       {tab === "send" && <SendMessageSection />}
       {tab === "templates" && <TemplatesSection />}
@@ -103,12 +134,13 @@ export default function WhatsAppGatewayTab() {
 // QR CONNECTION SECTION
 // ══════════════════════════════════════════════════════════════
 
-function QrConnectionSection() {
+function QrConnectionSection({ onConnected }: { onConnected?: () => void }) {
   const { data: qrData, loading, refetch } = useApi(() => adminApi.waQrStatus(), []);
   const qrState = qrData?.data;
   const [starting, setStarting] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevStatusRef = useRef<string | null>(null);
 
   // Auto-poll when waiting for QR or scan
   useEffect(() => {
@@ -120,21 +152,27 @@ function QrConnectionSection() {
     };
   }, [qrState?.status, starting, refetch]);
 
-  // Stop polling once connected
+  // Stop polling once connected + notify parent
   useEffect(() => {
-    if (qrState?.status === "connected" && pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
+    if (qrState?.status === "connected") {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
       setStarting(false);
+      if (prevStatusRef.current && prevStatusRef.current !== "connected") {
+        toast.success("تم ربط واتساب بنجاح");
+        onConnected?.();
+      }
     }
-  }, [qrState?.status]);
+    prevStatusRef.current = qrState?.status ?? null;
+  }, [qrState?.status, onConnected]);
 
   const handleStart = async () => {
     setStarting(true);
     try {
       await adminApi.waQrStart();
       toast.success("جارٍ بدء جلسة QR...");
-      // Start polling
       setTimeout(() => refetch(), 1500);
     } catch {
       toast.error("فشل بدء الجلسة");
@@ -148,6 +186,7 @@ function QrConnectionSection() {
       await adminApi.waQrLogout();
       toast.success("تم فصل الاتصال");
       refetch();
+      onConnected?.();
     } catch {
       toast.error("فشل فصل الاتصال");
     } finally {
@@ -162,7 +201,7 @@ function QrConnectionSection() {
         ربط واتساب بباركود QR
       </h3>
 
-      <p className="text-xs text-gray-500">
+      <p className="text-xs text-gray-500 leading-relaxed">
         اربط رقم واتساب المنصة عبر مسح باركود QR مباشرة — بديل عن إعداد API.
         بعد المسح، يمكنك إرسال بيانات الدخول وإشعارات الوثائق مباشرة من هنا.
       </p>
@@ -175,6 +214,7 @@ function QrConnectionSection() {
               "w-3 h-3 rounded-full shrink-0",
               qrState?.status === "connected" ? "bg-emerald-500" :
               qrState?.status === "qr_ready" ? "bg-amber-500 animate-pulse" :
+              qrState?.status === "connecting" ? "bg-blue-400 animate-pulse" :
               "bg-gray-300"
             )} />
             <span className="text-sm font-medium text-gray-700">
@@ -185,19 +225,51 @@ function QrConnectionSection() {
             </span>
           </div>
 
+          {/* Disconnected — Guide to start */}
+          {(!qrState?.status || qrState?.status === "disconnected") && (
+            <div className="flex flex-col items-center gap-4 py-6">
+              <div className="w-48 h-48 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-3">
+                <QrCode className="w-12 h-12 text-gray-300" />
+                <p className="text-xs text-gray-400 text-center px-4">
+                  اضغط على &quot;بدء جلسة QR&quot; لإنشاء باركود
+                </p>
+              </div>
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 max-w-sm">
+                <p className="text-xs text-blue-700 leading-relaxed text-center">
+                  <Smartphone className="w-3.5 h-3.5 inline-block ml-1 -mt-0.5" />
+                  افتح واتساب على هاتفك &gt; <strong>الأجهزة المرتبطة</strong> &gt; <strong>ربط جهاز</strong> &gt; امسح الباركود
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* QR Code Display */}
           {qrState?.status === "qr_ready" && qrState.qrBase64 && (
-            <div className="flex flex-col items-center gap-3 py-4">
-              <div className="bg-white p-4 rounded-2xl border-2 border-brand-200 shadow-lg">
+            <div className="flex flex-col items-center gap-4 py-4">
+              <div className="bg-white p-4 rounded-2xl border-2 border-brand-200 shadow-lg relative">
                 <img
                   src={qrState.qrBase64.startsWith("data:") ? qrState.qrBase64 : `data:image/png;base64,${qrState.qrBase64}`}
                   alt="QR Code"
                   className="w-64 h-64 object-contain"
                 />
+                <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+                  امسح الآن
+                </div>
               </div>
-              <p className="text-xs text-gray-500">
-                افتح واتساب على هاتفك &gt; الأجهزة المرتبطة &gt; ربط جهاز &gt; امسح الباركود
-              </p>
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 max-w-sm">
+                <p className="text-xs text-blue-700 leading-relaxed text-center">
+                  <Smartphone className="w-3.5 h-3.5 inline-block ml-1 -mt-0.5" />
+                  افتح واتساب على هاتفك &gt; <strong>الأجهزة المرتبطة</strong> &gt; <strong>ربط جهاز</strong> &gt; امسح الباركود بالكاميرا
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Connecting state */}
+          {qrState?.status === "connecting" && (
+            <div className="flex flex-col items-center gap-3 py-6">
+              <Loader2 className="w-10 h-10 text-brand-500 animate-spin" />
+              <p className="text-xs text-gray-500">جارٍ إنشاء باركود QR...</p>
             </div>
           )}
 
@@ -208,7 +280,9 @@ function QrConnectionSection() {
               <div className="flex-1">
                 <p className="text-sm font-semibold text-emerald-800">متصل بنجاح</p>
                 {qrState.phone && <p className="text-xs text-emerald-600 mt-0.5">الرقم: {qrState.phone}</p>}
+                <p className="text-xs text-emerald-500 mt-1">يمكنك الآن إرسال الرسائل عبر واتساب مباشرة</p>
               </div>
+              <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
             </div>
           )}
 
@@ -217,11 +291,12 @@ function QrConnectionSection() {
             {qrState?.status !== "connected" && (
               <button
                 onClick={handleStart}
-                disabled={starting || qrState?.status === "qr_ready"}
-                className="flex items-center gap-2 px-4 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 transition-colors"
+                disabled={starting || qrState?.status === "qr_ready" || qrState?.status === "connecting"}
+                className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors shadow-sm"
               >
-                {starting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-                {starting ? "جارٍ البدء..." : "بدء جلسة QR"}
+                {starting || qrState?.status === "connecting" ? <Loader2 className="w-4 h-4 animate-spin" /> : <QrCode className="w-4 h-4" />}
+                {starting || qrState?.status === "connecting" ? "جارٍ البدء..." :
+                 qrState?.status === "qr_ready" ? "في انتظار المسح..." : "بدء جلسة QR"}
               </button>
             )}
             {qrState?.status === "connected" && (
