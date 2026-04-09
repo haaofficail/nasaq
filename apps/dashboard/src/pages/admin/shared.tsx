@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Crown, Loader2, X } from "lucide-react";
 import { clsx } from "clsx";
 import { BUSINESS_TYPE_MAP, PLANS } from "@/lib/constants";
+import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-lock";
 
 // ── Shared constants ───────────────────────────────────────
 export const BUSINESS_TYPES = BUSINESS_TYPE_MAP;
@@ -97,6 +98,21 @@ export function SectionHeader({ title, sub, action }: { title: string; sub?: str
   );
 }
 export function Modal({ open, onClose, title, children, width = "max-w-lg" }: { open: boolean; onClose: () => void; title: string; children: React.ReactNode; width?: string }) {
+  // Body scroll lock — ref-counted
+  useEffect(() => {
+    if (!open) return;
+    lockBodyScroll();
+    return () => { unlockBodyScroll(); };
+  }, [open]);
+
+  // Escape key to close
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => { document.removeEventListener("keydown", handler); };
+  }, [open, onClose]);
+
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
