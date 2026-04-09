@@ -529,7 +529,27 @@ adminRouter.get("/documents", async (c) => {
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [rows, [{ total }]] = await Promise.all([
-    db.select().from(orgDocuments).where(where).orderBy(desc(orgDocuments.createdAt)).limit(limit).offset(offset),
+    db.select({
+      id: orgDocuments.id,
+      orgId: orgDocuments.orgId,
+      orgName: organizations.name,
+      type: orgDocuments.type,
+      label: orgDocuments.label,
+      fileUrl: orgDocuments.fileUrl,
+      documentNumber: orgDocuments.documentNumber,
+      expiresAt: orgDocuments.expiresAt,
+      status: orgDocuments.status,
+      rejectionReason: orgDocuments.rejectionReason,
+      isVerified: orgDocuments.isVerified,
+      reviewedBy: orgDocuments.reviewedBy,
+      reviewedAt: orgDocuments.reviewedAt,
+      notes: orgDocuments.notes,
+      createdAt: orgDocuments.createdAt,
+    }).from(orgDocuments)
+      .leftJoin(organizations, eq(orgDocuments.orgId, organizations.id))
+      .where(where)
+      .orderBy(desc(orgDocuments.createdAt))
+      .limit(limit).offset(offset),
     db.select({ total: count() }).from(orgDocuments).where(where),
   ]);
 
@@ -557,8 +577,21 @@ adminRouter.patch("/documents/:id", async (c) => {
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const updates: Record<string, unknown> = { updatedAt: new Date() };
-  if (body.status !== undefined) { updates.status = body.status; updates.reviewedBy = adminId; updates.reviewedAt = new Date(); }
+  if (body.status !== undefined) {
+    updates.status = body.status;
+    updates.reviewedBy = adminId;
+    updates.reviewedAt = new Date();
+    if (body.status === "approved") {
+      updates.isVerified = true;
+      updates.verifiedAt = new Date();
+    }
+    if (body.status === "rejected") {
+      updates.isVerified = false;
+      updates.verifiedAt = null;
+    }
+  }
   if (body.notes !== undefined) updates.notes = body.notes;
+  if (body.rejectionReason !== undefined) updates.rejectionReason = body.rejectionReason;
 
   const [updated] = await db.update(orgDocuments).set(updates)
     .where(eq(orgDocuments.id, c.req.param("id"))).returning();

@@ -848,6 +848,10 @@ export const settingsApi = {
   seedDemo: () => api.post<{ data: any }>("/settings/seed-demo"),
   clearDemo: () => api.delete("/settings/demo-data"),
   setupStatus: () => api.get<{ data: { hasServices: boolean; hasMenuItems: boolean; hasCustomers: boolean; hasBookings: boolean; hasOrders: boolean; hasTeam: boolean; hasBranch: boolean; hasSlug: boolean; businessType: string; counts: Record<string, number> } }>("/settings/setup-status"),
+  // Org Documents (KYC / Verification)
+  orgDocuments:       () => api.get<{ data: any[] }>("/settings/documents"),
+  uploadOrgDocument:  (data: any) => api.post<{ data: any }>("/settings/documents", data),
+  deleteOrgDocument:  (id: string) => api.delete<{ data: any }>(`/settings/documents/${id}`),
 };
 
 // --- Organization Subscription & Stats ---

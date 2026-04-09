@@ -1,8 +1,8 @@
 import { Hono } from "hono";
-import { eq, and, asc, count } from "drizzle-orm";
+import { eq, and, asc, desc, count } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db, pool } from "@nasaq/db/client";
-import { organizations, locations, organizationCapabilityOverrides, services, customers, bookings, users, siteConfig } from "@nasaq/db/schema";
+import { organizations, locations, organizationCapabilityOverrides, services, customers, bookings, users, siteConfig, orgDocuments } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getBusinessDefaults } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { invalidateOrgContext } from "../lib/org-context";
@@ -542,3 +542,44 @@ function getDemoContent(businessType: string): {
     customers: [{ name: "عميل تجريبي ١" }, { name: "عميل تجريبي ٢" }],
   };
 }
+
+// ── Org Documents (KYC / Verification) ─────────────────────
+settingsRouter.get("/documents", async (c) => {
+  const orgId = getOrgId(c);
+  const rows = await db.select().from(orgDocuments).where(eq(orgDocuments.orgId, orgId)).orderBy(desc(orgDocuments.createdAt));
+  return c.json({ data: rows });
+});
+
+settingsRouter.post("/documents", async (c) => {
+  const orgId = getOrgId(c);
+  const body = await c.req.json();
+  const parsed = z.object({
+    type: z.string().min(1).max(100),
+    label: z.string().max(200).optional(),
+    fileUrl: z.string().min(1),
+    documentNumber: z.string().max(100).optional(),
+    expiresAt: z.string().optional(),
+  }).parse(body);
+
+  const [doc] = await db.insert(orgDocuments).values({
+    orgId,
+    type: parsed.type,
+    label: parsed.label || null,
+    fileUrl: parsed.fileUrl,
+    documentNumber: parsed.documentNumber || null,
+    expiresAt: parsed.expiresAt ? new Date(parsed.expiresAt) : null,
+    status: "pending",
+  }).returning();
+
+  return c.json({ data: doc }, 201);
+});
+
+settingsRouter.delete("/documents/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+  const [deleted] = await db.delete(orgDocuments).where(
+    and(eq(orgDocuments.id, id), eq(orgDocuments.orgId, orgId))
+  ).returning({ id: orgDocuments.id });
+  if (!deleted) return c.json({ error: "لم يتم العثور على الوثيقة" }, 404);
+  return c.json({ data: deleted });
+});
