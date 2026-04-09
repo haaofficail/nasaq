@@ -14,9 +14,11 @@
  *
  * المصدر الوحيد المعتمد: usePlatformConfig → platformConfig.logoUrl
  * Fallback: /favicon.svg (شعار المنصة الافتراضي)
+ * إذا فشل التحميل: يعرض حرف "ت" كـ placeholder
  */
 
 import { usePlatformConfig, PLATFORM_NAME, PLATFORM_LOGO } from "@/hooks/usePlatformConfig";
+import { handleLogoError } from "@/lib/branding";
 
 interface PlatformLogoProps {
   size?: number;
@@ -36,6 +38,7 @@ export function PlatformLogoStatic({ size = 24, className = "", style }: Omit<Pl
       height={size}
       className={className}
       style={{ borderRadius: 6, objectFit: "contain", ...style }}
+      onError={handleLogoError(Math.round(size * 0.5))}
     />
   );
 }
@@ -52,6 +55,7 @@ export function PlatformLogoDynamic({ size = 32, className = "", style }: Omit<P
       height={size}
       className={className}
       style={{ borderRadius: 6, objectFit: "contain", ...style }}
+      onError={handleLogoError(Math.round(size * 0.5))}
     />
   );
 }

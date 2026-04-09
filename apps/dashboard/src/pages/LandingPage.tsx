@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { usePlatformConfig } from "@/hooks/usePlatformConfig";
+import { usePlatformConfig, PLATFORM_LOGO } from "@/hooks/usePlatformConfig";
+import { BRAND, handleLogoError } from "@/lib/branding";
 import {
   Scissors, Flower2, Utensils, Car, Camera,
   Building2, ShoppingBag, Star, Check, Menu, X,
@@ -767,8 +768,9 @@ function PublicHeader() {
             display: "flex", alignItems: "center", justifyContent: "center",
             overflow: "hidden",
           }}>
-            <img src={platform.logoUrl || "/favicon.svg"} alt={platform.platformName}
-              style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "contain" }} />
+            <img src={platform.logoUrl || PLATFORM_LOGO} alt={platform.platformName}
+              style={{ width: "100%", height: "100%", borderRadius: 8, objectFit: "contain" }}
+              onError={handleLogoError(14, true)} />
           </div>
           <span className="lp-header-name" style={{ fontWeight: 800, fontSize: 16, color: textColor, transition: "color 0.35s ease" }}>
             {platform.platformName}
@@ -1444,8 +1446,9 @@ export function LandingPage() {
       <div className="lp-brand-moment">
         <div className="lp-brand-halo" />
         <div className="lp-brand-logo-wrap">
-          <img src={platform.logoUrl || "/favicon.svg"} alt={platform.platformName}
-            style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }} />
+          <img src={platform.logoUrl || PLATFORM_LOGO} alt={platform.platformName}
+            style={{ width: "100%", height: "100%", display: "block", objectFit: "contain" }}
+            onError={handleLogoError(24, true)} />
         </div>
         <div className="lp-brand-divider" />
         <div className="lp-brand-name">{platform.platformName}</div>
@@ -2850,8 +2853,10 @@ export function LandingPage() {
                   display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
                   overflow: "hidden" }}>
                   {platform.logoUrl
-                    ? <img src={platform.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
-                    : <span style={{ color: "white", fontWeight: 800, fontSize: 14 }}>ن</span>
+                    ? <img src={platform.logoUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                        onError={handleLogoError(14, true)}
+                      />
+                    : <span style={{ color: "white", fontWeight: 800, fontSize: 14 }}>{BRAND.logoLetter}</span>
                   }
                 </div>
                 <span style={{ fontWeight: 800, fontSize: 17, color: "#0f172a" }}>{platform.platformName || "ترميز OS"}</span>
