@@ -41,7 +41,7 @@ export function SearchInput({
   // Emit debounced value
   useEffect(() => {
     onSearch(debouncedValue);
-  }, [debouncedValue]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [debouncedValue, onSearch]);
 
   const clear = useCallback(() => {
     setLocalValue("");
