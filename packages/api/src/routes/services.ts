@@ -870,9 +870,13 @@ servicesRouter.put("/:id/components/:compId", async (c) => {
       updates.flowerInventoryId = null;
     } else if (body.sourceType === "inventory") {
       updates.assetId = null;
+      updates.flowerInventoryId = null;
     } else if (body.sourceType === "asset") {
       updates.inventoryItemId = null;
       updates.flowerInventoryId = null;
+    } else if (body.sourceType === "flower") {
+      updates.inventoryItemId = null;
+      updates.assetId = null;
     }
   }
 

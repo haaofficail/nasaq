@@ -456,7 +456,10 @@ export function ServiceFormPage() {
           amenities:             Array.isArray(s.amenities) ? s.amenities : [],
           templateId:            s.templateId       || "",
           serviceMode:           deriveServiceMode(s.serviceType || "appointment"),
-          rentalDurationMode:    (["rental","event_rental"].includes(s.serviceType || "") && !s.durationMinutes) ? "on_order" : (["rental","event_rental"].includes(s.serviceType || "") ? "fixed" : "on_order"),
+          rentalDurationMode:    (() => {
+            const isRental = ["rental","event_rental"].includes(s.serviceType || "");
+            return isRental ? (s.durationMinutes ? "fixed" : "on_order") : "on_order";
+          })() as "fixed" | "on_order",
         });
         setLoadedAddons(s.addons || []);
         setQuestionDrafts((qRes.data || []).map((q: any) => ({
@@ -525,11 +528,8 @@ export function ServiceFormPage() {
     if (!form.serviceType) e.serviceType = "اختر نوع الخدمة";
     if (!form.name.trim()) e.name = "اسم الخدمة مطلوب";
     if (!form.basePrice || parseFloat(form.basePrice) <= 0) e.basePrice = "أدخل السعر";
-    // Duration required for timed services
-    if (needsTiming && (!form.durationValue || parseFloat(form.durationValue) <= 0))
-      e.durationValue = "المدة مطلوبة";
-    // Duration required for rental with fixed mode
-    if (rentalFixedDuration && (!form.durationValue || parseFloat(form.durationValue) <= 0))
+    // Duration required for timed services or rental with fixed mode
+    if ((needsTiming || rentalFixedDuration) && (!form.durationValue || parseFloat(form.durationValue) <= 0))
       e.durationValue = "المدة مطلوبة";
     return e;
   };

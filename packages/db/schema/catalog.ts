@@ -398,7 +398,7 @@ export const serviceComponents = pgTable("service_components", {
   orgId: uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   serviceId: uuid("service_id").notNull().references(() => services.id, { onDelete: "cascade" }),
 
-  // Source type: 'inventory' = مادة استهلاكية من المخزون | 'manual' = عنصر يدوي | 'asset' = أصل/معدة
+  // Source type: 'inventory' = مادة استهلاكية من المخزون | 'manual' = عنصر يدوي | 'asset' = أصل/معدة | 'flower' = مخزون ورد
   sourceType: text("source_type").notNull().default("manual"), // 'inventory' | 'manual' | 'flower' | 'asset'
 
   // For inventory type — points to inventory product
