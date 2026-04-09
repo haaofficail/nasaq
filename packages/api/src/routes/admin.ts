@@ -32,8 +32,8 @@ import {
 import { _activateOrder } from "./subscription";
 import { getPagination, generateSlug } from "../lib/helpers";
 import { superAdminMiddleware } from "../middleware/auth";
-import { writeFile, mkdir, readFile, access } from "fs/promises";
-import { join, basename, extname } from "path";
+import { writeFile, mkdir } from "fs/promises";
+import { join } from "path";
 import { nanoid } from "nanoid";
 import { scryptSync, randomBytes } from "crypto";
 

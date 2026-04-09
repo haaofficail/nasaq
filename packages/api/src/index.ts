@@ -13,6 +13,8 @@ import { platformAuditLog, platformConfig } from "@nasaq/db/schema";
 import { eq } from "drizzle-orm";
 import { log } from "./lib/logger";
 import { startScheduler } from "./jobs/scheduler";
+import { readFile, access } from "fs/promises";
+import { join as pathJoin } from "path";
 
 // Middleware
 import { authMiddleware, requirePermission, requireCapability, locationFilter, superAdminMiddleware } from "./middleware/auth";
@@ -230,16 +232,12 @@ app.route("/auth", authRouter);
 // regardless of nginx static-file configuration
 app.get("/platform-assets/:filename", async (c) => {
   const filename = c.req.param("filename");
-  // Sanitize: only allow safe filenames (alphanumeric, dashes, dots)
+  // Strict validation: only allow safe filenames (alphanumeric, dashes, dots — no path traversal possible)
   if (!/^[a-zA-Z0-9._-]+$/.test(filename)) {
     return c.json({ error: "اسم ملف غير صالح" }, 400);
   }
-  // Prevent path traversal
-  const safeName = filename.replace(/\.\./g, "");
   const UPLOAD_DIR = process.env.UPLOAD_DIR || "/var/www/nasaq/uploads";
-  const { join } = await import("path");
-  const { readFile, access } = await import("fs/promises");
-  const filePath = join(UPLOAD_DIR, "platform", safeName);
+  const filePath = pathJoin(UPLOAD_DIR, "platform", filename);
   try {
     await access(filePath);
   } catch {
@@ -251,7 +249,7 @@ app.get("/platform-assets/:filename", async (c) => {
     ".webp": "image/webp", ".svg": "image/svg+xml", ".gif": "image/gif",
     ".ico": "image/x-icon",
   };
-  const ext = "." + (safeName.split(".").pop()?.toLowerCase() || "png");
+  const ext = "." + (filename.split(".").pop()?.toLowerCase() || "png");
   const contentType = extMap[ext] || "application/octet-stream";
   return new Response(data, {
     status: 200,
