@@ -4,6 +4,7 @@ import {
   LayoutDashboard, Building2, Users2, Briefcase, CreditCard, Package,
   Bell, Headphones, FileText, Megaphone, ClipboardList, Server, ShieldAlert, ShieldCheck, LogOut,
   Wrench, Images, ToggleLeft, BarChart3, Bot, Settings2,
+  Receipt, CalendarCheck, Users, ShoppingCart, Wallet,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -31,6 +32,12 @@ const KillSwitchesTab        = lazy(() => import("./admin/KillSwitchesTab"));
 const QuotaUsageTab          = lazy(() => import("./admin/QuotaUsageTab"));
 const GuardianTab            = lazy(() => import("./admin/GuardianTab"));
 const PlatformSettingsTab    = lazy(() => import("./admin/PlatformSettingsTab"));
+const InvoicesAdminTab       = lazy(() => import("./admin/InvoicesAdminTab"));
+const BookingsAdminTab       = lazy(() => import("./admin/BookingsAdminTab"));
+const CustomersAdminTab      = lazy(() => import("./admin/CustomersAdminTab"));
+const OnlineOrdersAdminTab   = lazy(() => import("./admin/OnlineOrdersAdminTab"));
+const ServiceOrdersAdminTab  = lazy(() => import("./admin/ServiceOrdersAdminTab"));
+const FinanceAdminTab        = lazy(() => import("./admin/FinanceAdminTab"));
 
 // ════════════════════════════════════════════════════════════
 // Constants
@@ -50,6 +57,12 @@ const SECTIONS = [
   { id: "announce",   icon: Megaphone,       label: "الإعلانات",        roles: ["super_admin", "content_manager"] },
   { id: "audit",        icon: ClipboardList, label: "سجل المراجعة",        roles: ["super_admin"] },
   { id: "work-orders",  icon: Wrench,        label: "أوامر العمل",          roles: ["super_admin"] },
+  { id: "invoices",      icon: Receipt,       label: "الفواتير",             roles: ["super_admin"] },
+  { id: "bookings-admin", icon: CalendarCheck, label: "الحجوزات",            roles: ["super_admin"] },
+  { id: "customers-admin", icon: Users,        label: "العملاء",             roles: ["super_admin"] },
+  { id: "online-orders", icon: ShoppingCart,   label: "الطلبات الإلكترونية",  roles: ["super_admin"] },
+  { id: "service-orders", icon: ClipboardList, label: "أوامر الخدمة",        roles: ["super_admin"] },
+  { id: "finance-admin",  icon: Wallet,        label: "المالية والمحاسبة",    roles: ["super_admin"] },
   { id: "access-logs",  icon: ShieldCheck,   label: "التحكم في الدخول",    roles: ["super_admin"] },
   { id: "galleries",      icon: Images,       label: "معارض الصور",        roles: ["super_admin"] },
   { id: "kill-switches",  icon: ToggleLeft,  label: "مفاتيح الإيقاف",     roles: ["super_admin"] },
@@ -149,6 +162,12 @@ export function AdminPage() {
     announce:   <AnnouncementsTab />,
     audit:        <AuditTab />,
     "work-orders": <WorkOrdersAdminTab />,
+    invoices:          <InvoicesAdminTab />,
+    "bookings-admin":  <BookingsAdminTab />,
+    "customers-admin": <CustomersAdminTab />,
+    "online-orders":   <OnlineOrdersAdminTab />,
+    "service-orders":  <ServiceOrdersAdminTab />,
+    "finance-admin":   <FinanceAdminTab />,
     "access-logs":   <AccessLogsAdminTab />,
     galleries:       <GalleriesAdminTab />,
     "kill-switches": <KillSwitchesTab />,
