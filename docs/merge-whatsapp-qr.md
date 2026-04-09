@@ -40,3 +40,13 @@ git push --force-with-lease
 - احذف علامات التعارض.
 - احتفظ بالنسخة التي تحتوي منطق `prevStatusRef` ومعالجة `starting` الانتقالية.
 - اضغط `Mark as resolved` ثم `Commit merge`.
+
+## إذا أردت Copilot يحاول الإصلاح تلقائياً
+
+داخل نفس PR أضف تعليقًا بهذا النص:
+
+```text
+@copilot please resolve merge conflicts in apps/dashboard/src/pages/admin/WhatsAppGatewayTab.tsx
+```
+
+ثم راجع التغييرات المقترحة قبل الدمج النهائي.
