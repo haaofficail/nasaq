@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Zap } from "lucide-react";
+import { ArrowRight, Zap } from "lucide-react";
 import { clsx } from "clsx";
 
 interface Props {
@@ -73,7 +73,7 @@ export function FreePlanBanner({ bookingUsed, bookingLimit, freeState }: Props) 
         )}
       >
         عرض الباقات
-        <ArrowLeft className="w-3 h-3 rotate-180" />
+        <ArrowRight className="w-3 h-3" />
       </button>
     </div>
   );

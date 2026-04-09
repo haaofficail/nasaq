@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { X, CheckCircle2, ArrowLeft } from "lucide-react";
+import { X, CheckCircle2, ArrowRight } from "lucide-react";
 
 const SOFT_MODAL_KEY = "nasaq_free_soft_modal_shown";
 
@@ -108,7 +108,7 @@ export function FreeLimitModal({ orgId, freeState, bookingUsed, bookingLimit }: 
             className="w-full bg-brand-500 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand-600 transition-colors flex items-center justify-center gap-2"
           >
             اختر الباقة المناسبة
-            <ArrowLeft className="w-4 h-4 rotate-180" />
+            <ArrowRight className="w-4 h-4" />
           </button>
           {!isHardStop && (
             <button
