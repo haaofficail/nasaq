@@ -83,6 +83,9 @@ export async function initBaileys(orgId: string): Promise<void> {
     }
     const dir = ensureDir(orgId);
     const { state, saveCreds } = await useMultiFileAuthState(dir);
+    // Fetch latest WA Web version — fallback to a known-good version if
+    // the network call to web.whatsapp.com fails (common in production).
+    // Fallback: WA Web v2.3000.x — update periodically from fetchLatestBaileysVersion() output.
     let version: [number, number, number] = [2, 3000, 1015901307];
     try {
       const fetched = await fetchLatestBaileysVersion();
@@ -90,6 +93,7 @@ export async function initBaileys(orgId: string): Promise<void> {
     } catch {
       log.warn({ orgId }, "[wa-baileys] fetchLatestBaileysVersion failed — using fallback version");
     }
+
     const browserModule =
       (typeof Browsers === "object" && Browsers ? Browsers : undefined)
       ?? (baileysMod as any)?.Browsers;
@@ -100,8 +104,8 @@ export async function initBaileys(orgId: string): Promise<void> {
     const sock = makeWASocket({
       version,
       auth:               state,
-      printQRInTerminal:  false,
       browser:            browserConfig,
+      printQRInTerminal:  false,
       // suppress Baileys internal logger
       logger: { level: "silent", trace(){}, debug(){}, info(){}, warn(){}, error(){}, fatal(){}, child(){ return this; } } as any,
     });
@@ -156,7 +160,7 @@ export async function initBaileys(orgId: string): Promise<void> {
           });
         } else {
           // Transient error — reset to disconnected so user can re-init
-          touch(sess, { status: "disconnected", lastError: "انقطع اتصال واتساب قبل ظهور QR. أعد بدء الجلسة." });
+          touch(sess, { status: "disconnected", lastError: "انقطع اتصال واتساب. أعد بدء الجلسة." });
         }
       }
     });

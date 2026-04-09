@@ -78,11 +78,15 @@ export async function startQrSession(orgId: string): Promise<void> {
       ?? (baileysMod.default as any)?.DisconnectReason;
     const fetchLatestBaileysVersion = baileysMod.fetchLatestBaileysVersion
       ?? (baileysMod.default as any)?.fetchLatestBaileysVersion;
+    const Browsers = baileysMod.Browsers
+      ?? (baileysMod.default as any)?.Browsers;
     const { Boom } = await import("@hapi/boom");
     const QRCode = await import("qrcode");
 
     const authDir = path.join(SESSIONS_DIR, orgId);
     const { state: authState, saveCreds } = await useMultiFileAuthState(authDir);
+    // Fetch latest WA Web version with fallback.
+    // Fallback: WA Web v2.3000.x — update periodically from fetchLatestBaileysVersion() output.
     let version: [number, number, number] = [2, 3000, 1015901307];
     try {
       const fetched = await fetchLatestBaileysVersion();
@@ -90,6 +94,7 @@ export async function startQrSession(orgId: string): Promise<void> {
     } catch {
       console.warn("[WhatsApp QR] fetchLatestBaileysVersion failed — using fallback");
     }
+
     const browserModule =
       (typeof baileysMod.Browsers === "object" && baileysMod.Browsers ? baileysMod.Browsers : undefined)
       ?? (baileysMod.default as any)?.Browsers;
