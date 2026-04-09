@@ -1,7 +1,8 @@
 import { ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { usePlatformConfig, PLATFORM_LOGO } from "@/hooks/usePlatformConfig";
-import { BRAND, handleLogoError } from "@/lib/branding";
+import { usePlatformConfig } from "@/hooks/usePlatformConfig";
+import { BRAND } from "@/lib/branding";
+import { PlatformLogoDynamic } from "@/components/branding/PlatformLogo";
 
 export function PublicLayout({ children }: { children: ReactNode }) {
   const platform = usePlatformConfig();
@@ -26,12 +27,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center" style={{ backgroundColor: platform.primaryColor || "#5b9bd5" }}>
-              <img
-                src={platform.logoUrl || PLATFORM_LOGO}
-                alt={platform.platformName || BRAND.nameAr}
-                className="w-full h-full object-contain"
-                onError={handleLogoError(14)}
-              />
+              <PlatformLogoDynamic size={32} className="w-full h-full object-contain" />
             </div>
             <span className="text-xl font-black text-gray-900">{platform.platformName || BRAND.nameAr}</span>
           </Link>
@@ -93,12 +89,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center" style={{ backgroundColor: platform.primaryColor || "#5b9bd5" }}>
-                  <img
-                    src={platform.logoUrl || PLATFORM_LOGO}
-                    alt={platform.platformName || BRAND.nameAr}
-                    className="w-full h-full object-contain"
-                    onError={handleLogoError(14)}
-                  />
+                  <PlatformLogoDynamic size={32} className="w-full h-full object-contain" />
                 </div>
                 <span className="text-xl font-black text-white">{platform.platformName || BRAND.nameAr}</span>
               </div>

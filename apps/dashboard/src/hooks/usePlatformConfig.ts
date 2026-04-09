@@ -7,6 +7,7 @@
  * - _subscribers: كل المكونات المحملة حالياً — تُبلَّغ عند أي تغيير
  */
 import { useEffect, useState } from "react";
+import { DEFAULT_PLATFORM_LOGO } from "@/lib/branding";
 
 export interface PlatformConfig {
   platformName: string;
@@ -21,7 +22,7 @@ export interface PlatformConfig {
 const STORAGE_KEY = "nasaq_platform_config_v2";
 
 export const PLATFORM_NAME = "ترميز OS";
-export const PLATFORM_LOGO = "/favicon.svg";
+export const PLATFORM_LOGO = DEFAULT_PLATFORM_LOGO;
 
 const DEFAULT_CONFIG: PlatformConfig = {
   platformName: PLATFORM_NAME,

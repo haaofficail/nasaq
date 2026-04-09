@@ -687,13 +687,13 @@ adminRouter.post("/platform-config/logo", async (c) => {
   if (file.size > 5 * 1024 * 1024) return c.json({ error: "الحجم يجب ألا يتجاوز 5MB" }, 400);
 
   const UPLOAD_DIR = process.env.UPLOAD_DIR || "/var/www/nasaq/uploads";
-  const PUBLIC_BASE = process.env.PUBLIC_BASE_URL || "https://nasaqpro.tech";
   const ext = file.name.split(".").pop()?.toLowerCase() || "png";
   const filename = `platform-logo-${nanoid(8)}.${ext}`;
   const platformDir = join(UPLOAD_DIR, "platform");
   await mkdir(platformDir, { recursive: true });
   await writeFile(join(platformDir, filename), Buffer.from(await file.arrayBuffer()));
-  const logoUrl = `${PUBLIC_BASE}/uploads/platform/${filename}`;
+  // Use API-relative URL so it works in any deployment without nginx static-file config
+  const logoUrl = `/api/v1/platform-assets/${filename}`;
 
   await db.insert(platformConfig).values({ id: "default", logoUrl, updatedAt: new Date(), updatedBy: adminId })
     .onConflictDoUpdate({ target: platformConfig.id, set: { logoUrl, updatedAt: new Date(), updatedBy: adminId } });
@@ -713,13 +713,13 @@ adminRouter.post("/platform-config/favicon", async (c) => {
   if (file.size > 1 * 1024 * 1024) return c.json({ error: "الحجم يجب ألا يتجاوز 1MB" }, 400);
 
   const UPLOAD_DIR = process.env.UPLOAD_DIR || "/var/www/nasaq/uploads";
-  const PUBLIC_BASE = process.env.PUBLIC_BASE_URL || "https://nasaqpro.tech";
   const ext = file.name.split(".").pop()?.toLowerCase() || "png";
   const filename = `platform-favicon-${nanoid(8)}.${ext}`;
   const platformDir = join(UPLOAD_DIR, "platform");
   await mkdir(platformDir, { recursive: true });
   await writeFile(join(platformDir, filename), Buffer.from(await file.arrayBuffer()));
-  const faviconUrl = `${PUBLIC_BASE}/uploads/platform/${filename}`;
+  // Use API-relative URL so it works in any deployment without nginx static-file config
+  const faviconUrl = `/api/v1/platform-assets/${filename}`;
 
   await db.insert(platformConfig).values({ id: "default", faviconUrl, updatedAt: new Date(), updatedBy: adminId })
     .onConflictDoUpdate({ target: platformConfig.id, set: { faviconUrl, updatedAt: new Date(), updatedBy: adminId } });

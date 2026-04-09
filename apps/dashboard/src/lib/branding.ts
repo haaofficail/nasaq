@@ -4,6 +4,8 @@
  * Never change internal identifiers, API endpoints, or DB keys.
  */
 
+import platformLogoSvg from "@/assets/platform-logo.svg";
+
 export const BRAND = {
   nameAr:  "ترميز OS",
   nameEn:  "Nasaq",
@@ -15,6 +17,12 @@ export const BRAND = {
   /** الحرف المستخدم كـ fallback عند عدم وجود شعار */
   logoLetter: "ت",
 } as const;
+
+/**
+ * شعار المنصة الافتراضي — مُعالج عبر Vite asset pipeline.
+ * يعمل في dev و production بغض النظر عن base path أو إعدادات السيرفر.
+ */
+export const DEFAULT_PLATFORM_LOGO: string = platformLogoSvg;
 
 /**
  * معالج خطأ تحميل الشعار — يُخفي الصورة ويعرض حرف fallback بدلاً منها.

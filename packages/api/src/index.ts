@@ -13,6 +13,8 @@ import { platformAuditLog, platformConfig } from "@nasaq/db/schema";
 import { eq } from "drizzle-orm";
 import { log } from "./lib/logger";
 import { startScheduler } from "./jobs/scheduler";
+import { readFile, access } from "fs/promises";
+import { join as pathJoin } from "path";
 
 // Middleware
 import { authMiddleware, requirePermission, requireCapability, locationFilter, superAdminMiddleware } from "./middleware/auth";
@@ -224,6 +226,40 @@ app.get("/health", async (c) => {
 
 // Auth (login/logout)
 app.route("/auth", authRouter);
+
+// Platform assets (logo, favicon) — public, no auth
+// Serves uploaded branding files from UPLOAD_DIR/platform/ so they work
+// regardless of nginx static-file configuration
+app.get("/platform-assets/:filename", async (c) => {
+  const filename = c.req.param("filename");
+  // Strict validation: only allow safe filenames (alphanumeric, dashes, dots — no path traversal possible)
+  if (!/^[a-zA-Z0-9._-]+$/.test(filename)) {
+    return c.json({ error: "اسم ملف غير صالح" }, 400);
+  }
+  const UPLOAD_DIR = process.env.UPLOAD_DIR || "/var/www/nasaq/uploads";
+  const filePath = pathJoin(UPLOAD_DIR, "platform", filename);
+  try {
+    await access(filePath);
+  } catch {
+    return c.json({ error: "الملف غير موجود" }, 404);
+  }
+  const data = await readFile(filePath);
+  const extMap: Record<string, string> = {
+    ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+    ".webp": "image/webp", ".svg": "image/svg+xml", ".gif": "image/gif",
+    ".ico": "image/x-icon",
+  };
+  const ext = "." + (filename.split(".").pop()?.toLowerCase() || "png");
+  const contentType = extMap[ext] || "application/octet-stream";
+  return new Response(data, {
+    status: 200,
+    headers: {
+      "Content-Type": contentType,
+      "Cache-Control": "public, max-age=86400, immutable",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+});
 
 // ============================================================
 // PROTECTED ROUTES (auth required)
@@ -626,7 +662,21 @@ app.get("/platform-config/public", async (c) => {
     faviconUrl: platformConfig.faviconUrl,
     primaryColor: platformConfig.primaryColor,
   }).from(platformConfig).where(eq(platformConfig.id, "default"));
-  return c.json({ data: row ?? { platformName: "ترميز OS", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5" } });
+  const data = row ?? { platformName: "ترميز OS", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5" };
+
+  // Normalize old absolute URLs (e.g. https://nasaqpro.tech/uploads/platform/...)
+  // to API-relative URLs (/api/v1/platform-assets/...) for backward compatibility
+  const normalizeUrl = (url: string | null): string | null => {
+    if (!url) return null;
+    if (url.startsWith("/api/v1/platform-assets/")) return url;
+    const match = url.match(/\/uploads\/platform\/([a-zA-Z0-9._-]+)$/);
+    if (match) return `/api/v1/platform-assets/${match[1]}`;
+    return url;
+  };
+  data.logoUrl = normalizeUrl(data.logoUrl);
+  data.faviconUrl = normalizeUrl(data.faviconUrl);
+
+  return c.json({ data });
 });
 
 // --- Super Admin Panel ---
