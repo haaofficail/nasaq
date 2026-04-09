@@ -131,7 +131,7 @@ export default function WhatsAppGatewayTab() {
         onChange={(id) => setTab(id as typeof tab)}
       />
 
-      {tab === "qr" && <QrConnectionSection />}
+      {tab === "qr" && <QrConnectionSection onStatusChange={refetchStatus} />}
       {tab === "credentials" && <CredentialsSendSection />}
       {tab === "send" && <SendMessageSection />}
       {tab === "templates" && <TemplatesSection />}
@@ -144,12 +144,13 @@ export default function WhatsAppGatewayTab() {
 // QR CONNECTION SECTION
 // ══════════════════════════════════════════════════════════════
 
-function QrConnectionSection() {
+function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }) {
   const { data: qrData, loading, refetch } = useApi(() => adminApi.waQrStatus(), []);
   const qrState = qrData?.data;
   const [starting, setStarting] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const prevStatusRef = useRef<string | null>(null);
 
   // Auto-poll when waiting for QR or scan
   useEffect(() => {
@@ -161,14 +162,37 @@ function QrConnectionSection() {
     };
   }, [qrState?.status, starting, refetch]);
 
-  // Stop polling once connected
+  // Reset UI state based on status transitions (without killing polling too early)
   useEffect(() => {
-    if (qrState?.status === "connected" && pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
+    if (!qrState?.status) return;
+    const prev = prevStatusRef.current;
+    prevStatusRef.current = qrState.status;
+
+    if (qrState.status === "connected") {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+      if (starting) setStarting(false);
+      onStatusChange?.();
+      return;
+    }
+
+    if (qrState.status === "qr_ready" && starting) {
+      // QR ظهر فعليًا، لا نريد بقاء زر البدء بحالة تحميل
+      setStarting(false);
+      return;
+    }
+
+    // only reset failed-start UI if we transitioned away from a non-disconnected state
+    if (qrState.status === "disconnected" && starting && prev && prev !== "disconnected") {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
       setStarting(false);
     }
-  }, [qrState?.status]);
+  }, [qrState?.status, onStatusChange, starting]);
 
   const handleStart = async () => {
     setStarting(true);
@@ -176,7 +200,10 @@ function QrConnectionSection() {
       await adminApi.waQrStart();
       toast.success("جارٍ بدء جلسة QR...");
       // Start polling
-      setTimeout(() => refetch(), 1500);
+      setTimeout(() => {
+        refetch();
+        onStatusChange?.();
+      }, 1500);
     } catch {
       toast.error("فشل بدء الجلسة");
       setStarting(false);
@@ -189,6 +216,7 @@ function QrConnectionSection() {
       await adminApi.waQrLogout();
       toast.success("تم فصل الاتصال");
       refetch();
+      onStatusChange?.();
     } catch {
       toast.error("فشل فصل الاتصال");
     } finally {
@@ -225,6 +253,13 @@ function QrConnectionSection() {
                "غير متصل"}
             </span>
           </div>
+
+          {qrState?.status === "disconnected" && qrState?.lastError && (
+            <div className="bg-red-50 border border-red-100 rounded-xl p-3 flex items-start gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+              <p className="text-xs text-red-700 leading-relaxed">{qrState.lastError}</p>
+            </div>
+          )}
 
           {/* QR Code Display */}
           {qrState?.status === "qr_ready" && qrState.qrBase64 && (
