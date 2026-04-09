@@ -92,15 +92,33 @@ function ConnectionTab() {
   );
   const sseRef = useRef<AbortController | null>(null);
 
+  const normalizeQrImage = (qr: unknown): string => {
+    if (typeof qr !== "string") return "";
+    const value = qr.trim();
+    if (!value) return "";
+    if (value.startsWith("data:image/")) return value;
+    if (value.startsWith("http://") || value.startsWith("https://")) return value;
+    const maybeBase64 = /^[A-Za-z0-9+/=\n\r]+$/.test(value);
+    return maybeBase64 ? `data:image/png;base64,${value.replace(/\s/g, "")}` : value;
+  };
+
   const handleConnect = async () => {
+    sseRef.current?.abort();
+    const controller = new AbortController();
+    sseRef.current = controller;
+
     setShowQR(true);
     setConnecting(true);
     setQrData("");
     setConnectMsg("جارٍ الاتصال...");
 
-    sseRef.current = new AbortController();
     try {
-      const res = await messagingApi.connect();
+      const res = await messagingApi.connect(controller.signal);
+      if (!res.ok) {
+        setConnectMsg("فشل بدء جلسة الربط. تأكد من تسجيل الدخول ثم أعد المحاولة.");
+        setConnecting(false);
+        return;
+      }
       if (!res.body) { setConnectMsg("فشل الاتصال"); setConnecting(false); return; }
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
@@ -116,8 +134,13 @@ function ConnectionTab() {
           try {
             const payload = JSON.parse(line.slice(5).trim());
             if (payload.type === "qr") {
-              setQrData(payload.qr);
-              setConnectMsg("امسح الرمز بواتساب");
+              const nextQr = normalizeQrImage(payload.qr ?? payload.qrData ?? payload.qrCode);
+              if (nextQr) {
+                setQrData(nextQr);
+                setConnectMsg("امسح الرمز بواتساب");
+              } else {
+                setConnectMsg("تم استلام جلسة الربط لكن صورة QR غير صالحة. أعد المحاولة.");
+              }
               setConnecting(false);
             } else if (payload.type === "connected") {
               setQrData("");

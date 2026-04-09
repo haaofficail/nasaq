@@ -946,10 +946,15 @@ export const platformApi = {
 // --- Messaging (WhatsApp) ---
 export const messagingApi = {
   status: () => api.get<{ data: any }>("/messaging/status"),
-  connect: () => fetch(`${(api as any).baseUrl || "/api/v1"}/messaging/connect`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${getStore("nasaq_token")}` },
-  }),
+  connect: (signal?: AbortSignal) =>
+    fetch(`${(api as any).baseUrl || "/api/v1"}/messaging/connect`, {
+      method: "POST",
+      headers: {
+        ...getHeaders(),
+        Accept: "text/event-stream",
+      },
+      signal,
+    }),
   disconnect: () => api.post("/messaging/disconnect"),
   test: (phone: string, message: string) => api.post<{ success: boolean }>("/messaging/test", { phone, message }),
   templates: () => api.get<{ data: Record<string, any[]>; total: number }>("/messaging/templates"),
