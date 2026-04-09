@@ -80,6 +80,7 @@ serviceOrdersRouter.post("/", async (c) => {
 
   const {
     service_id, customer_name, customer_phone, event_date, event_time,
+    event_end_date, event_end_time,
     event_location, description, notes, deposit_amount, total_amount,
     team_size, template_id: overrideTemplateId,
     order_kind, type: orderType,
@@ -98,14 +99,17 @@ serviceOrdersRouter.post("/", async (c) => {
     const { rows } = await pool.query(
       `INSERT INTO service_orders
          (org_id, order_number, type, customer_name, customer_phone,
-          event_date, event_time, event_location, description, notes,
+          event_date, event_time, event_end_date, event_end_time,
+          event_location, description, notes,
           deposit_amount, total_amount, team_size, order_kind)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
        RETURNING *`,
       [
         orgId, orderNumber, orderType ?? "custom_arrangement",
         customer_name, customer_phone ?? null,
-        event_date ?? null, event_time ?? null, event_location ?? null,
+        event_date ?? null, event_time ?? null,
+        event_end_date ?? null, event_end_time ?? null,
+        event_location ?? null,
         description ?? null, notes ?? null,
         deposit_amount ?? null, total_amount ?? null,
         team_size ?? 1, order_kind ?? "booking",
@@ -224,6 +228,7 @@ serviceOrdersRouter.put("/:id", async (c) => {
 
   const {
     customer_name, customer_phone, event_date, event_time,
+    event_end_date, event_end_time,
     event_location, description, notes, deposit_amount,
     total_amount, team_size, internal_notes,
   } = body;
@@ -234,17 +239,20 @@ serviceOrdersRouter.put("/:id", async (c) => {
        customer_phone  = COALESCE($4, customer_phone),
        event_date      = COALESCE($5, event_date),
        event_time      = COALESCE($6, event_time),
-       event_location  = COALESCE($7, event_location),
-       description     = COALESCE($8, description),
-       notes           = COALESCE($9, notes),
-       deposit_amount  = COALESCE($10, deposit_amount),
-       total_amount    = COALESCE($11, total_amount),
-       team_size       = COALESCE($12, team_size),
-       internal_notes  = COALESCE($13, internal_notes),
+       event_end_date  = COALESCE($7, event_end_date),
+       event_end_time  = COALESCE($8, event_end_time),
+       event_location  = COALESCE($9, event_location),
+       description     = COALESCE($10, description),
+       notes           = COALESCE($11, notes),
+       deposit_amount  = COALESCE($12, deposit_amount),
+       total_amount    = COALESCE($13, total_amount),
+       team_size       = COALESCE($14, team_size),
+       internal_notes  = COALESCE($15, internal_notes),
        updated_at      = NOW()
      WHERE id=$1 AND org_id=$2
      RETURNING *`,
     [id, orgId, customer_name, customer_phone, event_date, event_time,
+     event_end_date, event_end_time,
      event_location, description, notes, deposit_amount, total_amount,
      team_size, internal_notes]
   );

@@ -34,7 +34,8 @@ const SERVICE_TYPES: { value: string; label: string; icon: React.ElementType }[]
   { value: "project",          label: "مشروع",          icon: FileText },
 ];
 
-const NEEDS_TIMING   = new Set(["appointment","execution","field_service","rental","event_rental","project","food_order"]);
+const NEEDS_TIMING   = new Set(["appointment","execution","field_service","project","food_order"]);
+const RENTAL_TYPES   = new Set(["rental","event_rental"]);
 const NEEDS_CAPACITY = new Set(["event_rental","package","food_order","rental"]);
 
 // ── نوع الخدمة الافتراضي حسب نوع البيزنس ──────────────────────────────────
@@ -99,18 +100,18 @@ const TYPE_CONFIG: Record<string, TypeConfig> = {
     defaults: { durationValue: "2", durationUnit: "hour", depositPercent: "30", servicePricingMode: "fixed" },
   },
   rental: {
-    hint: "العميل يستأجر أصلاً لفترة محددة — الأنسب لتأجير السيارات والمعدات.",
-    durationLabel: "وحدة الإيجار الافتراضية",
+    hint: "العميل يستأجر أصلاً لفترة محددة — الأنسب لتأجير السيارات والمعدات والتجهيزات.",
+    durationLabel: "مدة التأجير الافتراضية",
     componentTitle: "تجهيزات مشمولة", componentDesc: "ما يشمله عقد الإيجار من ملحقات",
     showBookingRules: false, showComponents: true, showStaff: false, showAddons: true,
-    defaults: { durationValue: "1", durationUnit: "day", servicePricingMode: "fixed", depositPercent: "50", cancellationFreeHours: "48" },
+    defaults: { durationValue: "1", durationUnit: "day", servicePricingMode: "fixed", depositPercent: "50", cancellationFreeHours: "48", rentalDurationMode: "on_order" },
   },
   event_rental: {
-    hint: "تأجير قاعة أو مكان لحدث — حدد السعة القصوى والعربون المطلوب.",
-    durationLabel: "مدة الفعالية",
+    hint: "تأجير وتجهيز لفعاليات ومناسبات — حدد السعة القصوى ومدة التأجير.",
+    durationLabel: "مدة التأجير",
     componentTitle: "ما يشمله التأجير", componentDesc: "التجهيزات والخدمات المشمولة",
     showBookingRules: false, showComponents: true, showStaff: false, showAddons: true,
-    defaults: { durationValue: "4", durationUnit: "hour", depositPercent: "50", servicePricingMode: "fixed" },
+    defaults: { durationValue: "4", durationUnit: "hour", depositPercent: "50", servicePricingMode: "fixed", rentalDurationMode: "on_order" },
   },
   product: {
     hint: "منتج يُباع مباشرة — يظهر في الكاشير والمتجر دون حجز مسبق.",
@@ -187,6 +188,7 @@ type Form = {
   amenities: string[];
   templateId: string;
   serviceMode: ServiceMode;
+  rentalDurationMode: "fixed" | "on_order";
 };
 
 const INIT: Form = {
@@ -201,6 +203,7 @@ const INIT: Form = {
   amenities: [],
   templateId: "",
   serviceMode: "booking",
+  rentalDurationMode: "on_order",
 };
 
 type AddonDraft = {
@@ -339,6 +342,8 @@ export function ServiceFormPage() {
   const [uploadErr,    setUploadErr]        = useState<string | null>(null);
 
   const needsTiming       = NEEDS_TIMING.has(form.serviceType);
+  const isRentalType      = RENTAL_TYPES.has(form.serviceType);
+  const rentalFixedDuration = isRentalType && form.rentalDurationMode === "fixed";
   const typeConfig        = TYPE_CONFIG[form.serviceType] || DEFAULT_TYPE_CONFIG;
   const isExecutionMode   = form.serviceMode === "execution";
   const canToggleMode     = EXECUTION_TYPES.has(form.serviceType) || ["appointment","execution","field_service","project"].includes(form.serviceType);
@@ -448,6 +453,7 @@ export function ServiceFormPage() {
           amenities:             Array.isArray(s.amenities) ? s.amenities : [],
           templateId:            s.templateId       || "",
           serviceMode:           deriveServiceMode(s.serviceType || "appointment"),
+          rentalDurationMode:    (["rental","event_rental"].includes(s.serviceType || "") && !s.durationMinutes) ? "on_order" : (["rental","event_rental"].includes(s.serviceType || "") ? "fixed" : "on_order"),
         });
         setLoadedAddons(s.addons || []);
         setQuestionDrafts((qRes.data || []).map((q: any) => ({
@@ -516,7 +522,11 @@ export function ServiceFormPage() {
     if (!form.serviceType) e.serviceType = "اختر نوع الخدمة";
     if (!form.name.trim()) e.name = "اسم الخدمة مطلوب";
     if (!form.basePrice || parseFloat(form.basePrice) <= 0) e.basePrice = "أدخل السعر";
+    // Duration required for timed services
     if (needsTiming && (!form.durationValue || parseFloat(form.durationValue) <= 0))
+      e.durationValue = "المدة مطلوبة";
+    // Duration required for rental with fixed mode
+    if (rentalFixedDuration && (!form.durationValue || parseFloat(form.durationValue) <= 0))
       e.durationValue = "المدة مطلوبة";
     return e;
   };
@@ -530,7 +540,9 @@ export function ServiceFormPage() {
     try {
       const durationMinutes = needsTiming
         ? Math.round((parseFloat(form.durationValue) || 60) * UNIT_MINS[form.durationUnit])
-        : undefined;
+        : rentalFixedDuration
+          ? Math.round((parseFloat(form.durationValue) || 60) * UNIT_MINS[form.durationUnit])
+          : undefined;
 
       const bookingPayload = {
         vatInclusive:        form.vatInclusive,
@@ -935,6 +947,8 @@ export function ServiceFormPage() {
                       className={clsx(iCls, errors.basePrice && "border-red-300")} />
                     <Err msg={errors.basePrice} />
                   </div>
+
+                  {/* Duration for timed (non-rental) services: appointment, execution, field_service, project, food_order */}
                   {needsTiming && (
                     <div>
                       <label className="text-xs font-medium text-gray-700 block mb-1.5">{typeConfig.durationLabel || "المدة"} <span className="text-red-400">*</span></label>
@@ -953,6 +967,7 @@ export function ServiceFormPage() {
                       <Err msg={errors.durationValue} />
                     </div>
                   )}
+
                   {NEEDS_CAPACITY.has(form.serviceType) && (
                     <div className="w-36">
                       <label className="text-xs font-medium text-gray-700 block mb-1.5">
@@ -970,6 +985,55 @@ export function ServiceFormPage() {
                       placeholder="30" dir="ltr" className={iCls} />
                   </div>
                 </div>
+
+                {/* ── Rental duration mode: fixed vs on_order ── */}
+                {isRentalType && (
+                  <div className="space-y-3 pt-2 border-t border-gray-50">
+                    <div>
+                      <label className="text-xs font-medium text-gray-700 block mb-1.5">{typeConfig.durationLabel || "مدة التأجير"}</label>
+                      <p className="text-[11px] text-gray-400 mb-2">حدد كيف تُحسب مدة التأجير — ثابتة لكل طلب أو يحددها العميل عند الطلب</p>
+                      <div className="flex gap-0.5 bg-gray-100 rounded-xl p-0.5 w-fit">
+                        {([
+                          { v: "fixed",    l: "مدة ثابتة" },
+                          { v: "on_order", l: "يُحدد عند الطلب (من → إلى)" },
+                        ] as const).map(m => (
+                          <button key={m.v} type="button"
+                            onClick={() => setForm(f => ({ ...f, rentalDurationMode: m.v }))}
+                            className={clsx("px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all",
+                              form.rentalDurationMode === m.v
+                                ? "bg-white text-gray-900 shadow-sm"
+                                : "text-gray-500 hover:text-gray-700"
+                            )}>{m.l}</button>
+                        ))}
+                      </div>
+                    </div>
+                    {form.rentalDurationMode === "fixed" && (
+                      <div>
+                        <label className="text-xs font-medium text-gray-700 block mb-1.5">{typeConfig.durationLabel || "مدة التأجير"} <span className="text-red-400">*</span></label>
+                        <DurationInput
+                          valueMinutes={(parseFloat(form.durationValue) || 0) * UNIT_MINS[form.durationUnit]}
+                          onChange={mins => {
+                            const { v, u } = (() => {
+                              if (mins >= 1440 && mins % 1440 === 0) return { v: String(mins / 1440), u: "day" as DurationUnit };
+                              if (mins >= 60   && mins % 60   === 0) return { v: String(mins / 60),   u: "hour" as DurationUnit };
+                              return { v: String(mins), u: "minute" as DurationUnit };
+                            })();
+                            setForm(f => ({ ...f, durationValue: v, durationUnit: u }));
+                            setErrors(p => ({ ...p, durationValue: "" }));
+                          }}
+                          units={["hour", "day"]}
+                        />
+                        <Err msg={errors.durationValue} />
+                      </div>
+                    )}
+                    {form.rentalDurationMode === "on_order" && (
+                      <div className="flex items-start gap-2.5 px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-500">
+                        <Clock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-gray-400" />
+                        <span>العميل يحدد تاريخ البداية والنهاية عند إنشاء الطلب — لا توجد مدة ثابتة مسبقة</span>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none w-fit">
                   <div className={clsx(
                     "w-4 h-4 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
