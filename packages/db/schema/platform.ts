@@ -69,3 +69,44 @@ export const platformPlans = pgTable("platform_plans", {
   sortOrder: integer("sort_order").default(0),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+// ============================================================
+// ADMIN WA TEMPLATES — قوالب واتساب السوبر أدمن
+// ============================================================
+
+export const adminWaTemplates = pgTable("admin_wa_templates", {
+  id:         uuid("id").defaultRandom().primaryKey(),
+  name:       text("name").notNull(),
+  slug:       text("slug").notNull().unique(),
+  category:   text("category").default("general").notNull(), // general | credentials | offer | notice | renewal
+  body:       text("body").notNull(),
+  variables:  jsonb("variables").default([]),
+  isActive:   boolean("is_active").default(true).notNull(),
+  sortOrder:  integer("sort_order").default(0),
+  createdBy:  uuid("created_by"),
+  createdAt:  timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt:  timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ============================================================
+// ADMIN WA MESSAGES — سجل رسائل واتساب الأدمن
+// ============================================================
+
+export const adminWaMessages = pgTable("admin_wa_messages", {
+  id:             uuid("id").defaultRandom().primaryKey(),
+  adminId:        uuid("admin_id").notNull(),
+  orgId:          uuid("org_id"),
+  recipientPhone: text("recipient_phone").notNull(),
+  recipientName:  text("recipient_name"),
+  templateId:     uuid("template_id"),
+  messageText:    text("message_text").notNull(),
+  channel:        text("channel").default("whatsapp").notNull(),
+  status:         text("status").default("pending").notNull(), // pending | sent | failed
+  errorMessage:   text("error_message"),
+  sentAt:         timestamp("sent_at", { withTimezone: true }),
+  createdAt:      timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => [
+  index("idx_admin_wa_messages_admin").on(table.adminId),
+  index("idx_admin_wa_messages_org").on(table.orgId),
+  index("idx_admin_wa_messages_created").on(table.createdAt),
+]);

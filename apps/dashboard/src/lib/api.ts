@@ -1962,6 +1962,21 @@ export const adminApi = {
     if (params?.toDate)   qs.set("toDate", params.toDate);
     return api.get<{ data: any }>(`/admin/analytics/revenue?${qs}`);
   },
+
+  // ── WhatsApp Gateway ──────────────────────────────────────
+  waStatus: () => api.get<{ data: any }>("/admin/wa/status"),
+  waTemplates: () => api.get<{ data: any[] }>("/admin/wa/templates"),
+  createWaTemplate: (d: any) => api.post<{ data: any }>("/admin/wa/templates", d),
+  updateWaTemplate: (id: string, d: any) => api.patch<{ data: any }>(`/admin/wa/templates/${id}`, d),
+  deleteWaTemplate: (id: string) => api.delete<{ ok: boolean }>(`/admin/wa/templates/${id}`),
+  sendWaMessage: (d: any) => api.post<{ data: any }>("/admin/wa/send", d),
+  waMessages: (params?: { orgId?: string; status?: string; page?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.orgId)  qs.set("orgId", params.orgId);
+    if (params?.status) qs.set("status", params.status);
+    if (params?.page)   qs.set("page", String(params.page));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/wa/messages?${qs}`);
+  },
 };
 
 // --- Commercial Engine (admin only) ---

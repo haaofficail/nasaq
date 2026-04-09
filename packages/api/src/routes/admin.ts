@@ -25,6 +25,7 @@ import {
   subscriptionAddons, subscriptionOrders, subscriptions,
   workOrders, accessLogs, mediaGalleries,
   quotaUsage,
+  adminWaTemplates, adminWaMessages,
   // Cross-org data views
   invoices, customers, bookings, payments,
   journalEntries, expenses, campaigns,
@@ -2119,4 +2120,179 @@ adminRouter.get("/analytics/revenue", async (c) => {
       expenses: expenseSummary,
     },
   });
+});
+
+// ══════════════════════════════════════════════════════════════
+// ADMIN WHATSAPP GATEWAY — بوابة واتساب السوبر أدمن
+// ══════════════════════════════════════════════════════════════
+
+// ── WhatsApp Status ────────────────────────────────────────
+adminRouter.get("/wa/status", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+
+  const { isWhatsAppConfigured, whatsAppProvider } = await import("../lib/whatsapp");
+  const { isSmsConfigured } = await import("../lib/whatsapp");
+
+  const [sentCount] = await db.select({ total: count() })
+    .from(adminWaMessages).where(eq(adminWaMessages.status, "sent"));
+  const [failedCount] = await db.select({ total: count() })
+    .from(adminWaMessages).where(eq(adminWaMessages.status, "failed"));
+  const [totalCount] = await db.select({ total: count() }).from(adminWaMessages);
+
+  return c.json({
+    data: {
+      whatsappConfigured: isWhatsAppConfigured(),
+      smsConfigured: isSmsConfigured(),
+      provider: whatsAppProvider(),
+      stats: {
+        total: Number(totalCount?.total ?? 0),
+        sent: Number(sentCount?.total ?? 0),
+        failed: Number(failedCount?.total ?? 0),
+      },
+    },
+  });
+});
+
+// ── WhatsApp Templates CRUD ────────────────────────────────
+adminRouter.get("/wa/templates", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const rows = await db.select().from(adminWaTemplates)
+    .orderBy(asc(adminWaTemplates.sortOrder), asc(adminWaTemplates.createdAt));
+  return c.json({ data: rows });
+});
+
+adminRouter.post("/wa/templates", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  const body = z.object({
+    name: z.string().min(1).max(200),
+    slug: z.string().min(2).max(100).regex(/^[a-z0-9_]+$/),
+    category: z.enum(["general", "credentials", "offer", "notice", "renewal"]).default("general"),
+    body: z.string().min(1),
+    variables: z.array(z.string()).default([]),
+    sortOrder: z.number().default(0),
+  }).parse(await c.req.json());
+
+  const [row] = await db.insert(adminWaTemplates).values({
+    ...body,
+    createdBy: adminId,
+  }).returning();
+  logAdminAction(adminId, "create_wa_template", "wa_template", row.id, { name: body.name }, c.req.header("X-Forwarded-For"));
+  return c.json({ data: row }, 201);
+});
+
+adminRouter.patch("/wa/templates/:id", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  const body = z.object({
+    name: z.string().min(1).max(200).optional(),
+    category: z.enum(["general", "credentials", "offer", "notice", "renewal"]).optional(),
+    body: z.string().min(1).optional(),
+    variables: z.array(z.string()).optional(),
+    isActive: z.boolean().optional(),
+    sortOrder: z.number().optional(),
+  }).parse(await c.req.json());
+
+  const updates: Record<string, unknown> = { updatedAt: new Date() };
+  for (const [k, v] of Object.entries(body)) {
+    if (v !== undefined) updates[k] = v;
+  }
+
+  const [row] = await db.update(adminWaTemplates).set(updates)
+    .where(eq(adminWaTemplates.id, c.req.param("id"))).returning();
+  if (!row) return apiErr(c, "SRV_VALIDATION", 404);
+
+  logAdminAction(adminId, "update_wa_template", "wa_template", row.id, { fields: Object.keys(updates) }, c.req.header("X-Forwarded-For"));
+  return c.json({ data: row });
+});
+
+adminRouter.delete("/wa/templates/:id", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  const id = c.req.param("id");
+  await db.delete(adminWaTemplates).where(eq(adminWaTemplates.id, id));
+  logAdminAction(adminId, "delete_wa_template", "wa_template", id, {}, c.req.header("X-Forwarded-For"));
+  return c.json({ ok: true });
+});
+
+// ── Send WhatsApp Message ──────────────────────────────────
+adminRouter.post("/wa/send", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+
+  const body = z.object({
+    phone: z.string().min(5),
+    message: z.string().min(1),
+    recipientName: z.string().optional(),
+    orgId: z.string().uuid().optional(),
+    templateId: z.string().uuid().optional(),
+    channel: z.enum(["whatsapp", "sms"]).default("whatsapp"),
+  }).parse(await c.req.json());
+
+  // Normalize phone
+  let phone = body.phone.replace(/[\s-]/g, "");
+  if (phone.startsWith("05")) phone = "+966" + phone.substring(1);
+  else if (phone.startsWith("966")) phone = "+" + phone;
+  else if (!phone.startsWith("+")) phone = "+" + phone;
+
+  // Log message first
+  const [msg] = await db.insert(adminWaMessages).values({
+    adminId,
+    orgId: body.orgId || null,
+    recipientPhone: phone,
+    recipientName: body.recipientName || null,
+    templateId: body.templateId || null,
+    messageText: body.message,
+    channel: body.channel,
+    status: "pending",
+  }).returning();
+
+  // Try to send
+  let sent = false;
+  let errorMessage = "";
+  try {
+    if (body.channel === "whatsapp") {
+      const { sendWhatsApp } = await import("../lib/whatsapp");
+      sent = await sendWhatsApp(phone, body.message);
+    } else {
+      const { sendSms } = await import("../lib/sms");
+      sent = await sendSms(phone, body.message);
+    }
+  } catch (err: any) {
+    errorMessage = err?.message || "خطأ غير معروف";
+  }
+
+  // Update status
+  await db.update(adminWaMessages).set({
+    status: sent ? "sent" : "failed",
+    errorMessage: sent ? null : (errorMessage || "فشل الإرسال"),
+    sentAt: sent ? new Date() : null,
+  }).where(eq(adminWaMessages.id, msg.id));
+
+  logAdminAction(adminId, "send_wa_message", "wa_message", msg.id, {
+    phone, channel: body.channel, orgId: body.orgId, sent,
+  }, c.req.header("X-Forwarded-For"));
+
+  return c.json({ data: { id: msg.id, sent, error: sent ? null : (errorMessage || "فشل الإرسال") } });
+});
+
+// ── Message Log ────────────────────────────────────────────
+adminRouter.get("/wa/messages", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const { page, limit, offset } = getPagination(c);
+  const orgId = c.req.query("orgId");
+  const status = c.req.query("status");
+
+  const conds: any[] = [];
+  if (orgId) conds.push(eq(adminWaMessages.orgId, orgId));
+  if (status) conds.push(eq(adminWaMessages.status, status));
+  const where = conds.length ? and(...conds) : undefined;
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select().from(adminWaMessages).where(where)
+      .orderBy(desc(adminWaMessages.createdAt)).limit(limit).offset(offset),
+    db.select({ total: count() }).from(adminWaMessages).where(where),
+  ]);
+
+  return c.json({ data: rows, pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) } });
 });
