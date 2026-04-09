@@ -2,7 +2,7 @@ import { ReactNode, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { usePlatformConfig } from "@/hooks/usePlatformConfig";
 import { BRAND } from "@/lib/branding";
-import { PlatformLogoDynamic } from "@/components/branding/PlatformLogo";
+import { PlatformBrandDynamic } from "@/components/branding/PlatformLogo";
 
 export function PublicLayout({ children }: { children: ReactNode }) {
   const platform = usePlatformConfig();
@@ -26,10 +26,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center" style={{ backgroundColor: platform.primaryColor || "#5b9bd5" }}>
-              <PlatformLogoDynamic size={32} className="w-full h-full object-contain" />
-            </div>
-            <span className="text-xl font-black text-gray-900">{platform.platformName || BRAND.nameAr}</span>
+            <PlatformBrandDynamic logoSize={32} textSize="xl" variant="default" />
           </Link>
 
           {/* Desktop Nav */}
@@ -88,10 +85,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-12">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center" style={{ backgroundColor: platform.primaryColor || "#5b9bd5" }}>
-                  <PlatformLogoDynamic size={32} className="w-full h-full object-contain" />
-                </div>
-                <span className="text-xl font-black text-white">{platform.platformName || BRAND.nameAr}</span>
+                <PlatformBrandDynamic logoSize={32} textSize="xl" variant="dark" />
               </div>
               <p className="text-sm leading-relaxed">منصة متكاملة لإدارة حجوزاتك وفعالياتك</p>
             </div>

@@ -291,7 +291,7 @@ function LeaveModal({ onClose, onSaved, employees }: { onClose: () => void; onSa
       await hrApi.createLeave(form);
       toast.success("تم إضافة طلب الإجازة");
       onSaved();
-    } catch { toast.error("حدث خطأ"); } finally { setSaving(false); }
+    } catch { toast.error("تعذّر حفظ طلب الإجازة — تحقق من البيانات وحاول مجدداً"); } finally { setSaving(false); }
   }
 
   return (
@@ -366,7 +366,7 @@ function LoanModal({ onClose, onSaved, employees }: { onClose: () => void; onSav
       await hrApi.createLoan(form);
       toast.success("تم تسجيل طلب السلفة");
       onSaved();
-    } catch { toast.error("حدث خطأ"); } finally { setSaving(false); }
+    } catch { toast.error("تعذّر حفظ طلب السلفة — تحقق من البيانات وحاول مجدداً"); } finally { setSaving(false); }
   }
 
   return (

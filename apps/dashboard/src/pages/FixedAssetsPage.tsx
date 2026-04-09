@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { accountingApi } from "../lib/api";
-import { toast } from "@/hooks/useToast";
 
 const CATEGORY_LABELS: Record<string, string> = {
   land: "أراضي",
@@ -210,7 +209,7 @@ export function FixedAssetsPage() {
       loadAssets();
       loadSummary();
     } catch (e: any) {
-      toast.error("فشل حذف الأصل. قد يكون مرتبطاً بقيود محاسبية.");
+      showToast("فشل حذف الأصل. قد يكون مرتبطاً بقيود محاسبية.");
     }
   };
 

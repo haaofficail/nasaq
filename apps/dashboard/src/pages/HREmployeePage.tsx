@@ -77,7 +77,7 @@ function DocModal({ employeeId, onClose, onSaved }: { employeeId: string; onClos
       await hrApi.createDocument(employeeId, { ...form, ...(fileUrl ? { fileUrl } : {}) });
       toast.success("تمت إضافة الوثيقة");
       onSaved();
-    } catch { toast.error("حدث خطأ"); } finally { setSaving(false); }
+    } catch { toast.error("تعذّر إضافة الوثيقة — تحقق من البيانات وحاول مجدداً"); } finally { setSaving(false); }
   }
 
   return (
@@ -591,7 +591,7 @@ function DocumentsTab({ employeeId }: { employeeId: string }) {
   async function handleDelete(id: string) {
     if (!confirm("حذف هذه الوثيقة؟")) return;
     try { await deleteDoc(id); toast.success("تم الحذف"); refetch(); }
-    catch { toast.error("حدث خطأ"); }
+    catch { toast.error("تعذّر حذف الوثيقة"); }
   }
 
   function daysLeft(expiry?: string | null) {
@@ -709,7 +709,7 @@ function GratuityTab({ employeeId }: { employeeId: string }) {
       toast.success("تم تسجيل إنهاء الخدمة ومكافأة نهاية الخدمة");
       setShowSettle(false);
       refetch();
-    } catch { toast.error("حدث خطأ"); } finally { setSettling(false); }
+    } catch { toast.error("تعذّر تسجيل إنهاء الخدمة — تحقق من البيانات وحاول مجدداً"); } finally { setSettling(false); }
   }
 
   return (

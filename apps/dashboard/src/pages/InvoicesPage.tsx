@@ -6,7 +6,7 @@ import { clsx } from "clsx";
 import { financeApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { useOrgContext } from "@/hooks/useOrgContext";
-import { Button, Modal, Input, Select } from "@/components/ui";
+import { Button, Modal, Input, Select, confirmDialog } from "@/components/ui";
 import { CreateInvoiceModal } from "@/components/invoices/CreateInvoiceModal";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {

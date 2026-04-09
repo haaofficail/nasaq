@@ -4,7 +4,7 @@ import { Phone, Shield, ArrowLeft, Loader2, Mail, Eye, EyeOff } from "lucide-rea
 import { authApi } from "@/lib/api";
 import { clsx } from "clsx";
 import { BRAND } from "@/lib/branding";
-import { PlatformLogoStatic } from "@/components/branding/PlatformLogo";
+import { PlatformBrandStatic } from "@/components/branding/PlatformLogo";
 
 type Method = "phone" | "email";
 type Step   = "input" | "otp";
@@ -112,8 +112,8 @@ export function LoginPage() {
 
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="w-14 h-14 rounded-2xl bg-brand-500 flex items-center justify-center mx-auto mb-4 shadow-lg shadow-brand-500/20 overflow-hidden">
-            <PlatformLogoStatic size={56} className="w-full h-full object-contain" />
+          <div className="flex justify-center mb-4">
+            <PlatformBrandStatic logoSize={56} textSize="2xl" variant="default" showText={false} />
           </div>
           <h1 className="text-2xl font-bold text-gray-900">{BRAND.nameAr}</h1>
           <p className="text-sm text-gray-500 mt-1">نظام تشغيل أعمالك من مكان واحد</p>

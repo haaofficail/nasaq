@@ -6,7 +6,7 @@ import { bookingsApi, salonApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { useBusiness } from "@/hooks/useBusiness";
 import { success as hapticSuccess } from "@/lib/haptics";
-import { Button, Modal, Input, Select } from "@/components/ui";
+import { Button, Modal, Input, Select, confirmDialog } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { fmtDate } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";

@@ -11,7 +11,7 @@ import { clsx } from "clsx";
 import { servicesApi, questionsApi, inventoryApi, teamApi, salonApi } from "@/lib/api";
 import { CreateBookingForm } from "@/components/bookings/CreateBookingForm";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Modal, Input, TextArea, Select, Button, Toggle } from "@/components/ui";
+import { Modal, Input, TextArea, Select, Button, Toggle, confirmDialog } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { fmtDate } from "@/lib/utils";
 
@@ -121,7 +121,7 @@ export function ServiceDetailPage() {
   };
 
   const handleDeleteReq = async (reqId: string) => {
-    if (!confirm("حذف هذا المتطلب؟")) return;
+    if (!(await confirmDialog({ title: "حذف هذا المتطلب؟", message: "سيتم حذف المتطلب نهائياً", confirmLabel: "حذف", danger: true }))) return;
     await servicesApi.deleteRequirement(id!, reqId);
     refetchReq();
     toast.success("تم الحذف");
@@ -175,7 +175,7 @@ export function ServiceDetailPage() {
   };
 
   const handleDeleteComp = async (compId: string) => {
-    if (!confirm("حذف هذا المكوّن؟")) return;
+    if (!(await confirmDialog({ title: "حذف هذا المكوّن؟", message: "سيتم حذف المكوّن نهائياً", confirmLabel: "حذف", danger: true }))) return;
     await servicesApi.deleteComponent(id!, compId);
     refetchComp();
     toast.success("تم الحذف");
@@ -235,7 +235,7 @@ export function ServiceDetailPage() {
   };
 
   const handleDeleteQ = async (qId: string) => {
-    if (!confirm("حذف هذا السؤال؟")) return;
+    if (!(await confirmDialog({ title: "حذف هذا السؤال؟", message: "سيتم حذف السؤال نهائياً", confirmLabel: "حذف", danger: true }))) return;
     await questionsApi.delete(qId);
     refetchQ();
     toast.success("تم الحذف");
@@ -287,7 +287,7 @@ export function ServiceDetailPage() {
   };
 
   const handleDelete = async () => {
-    if (!confirm("حذف هذه الخدمة؟")) return;
+    if (!(await confirmDialog({ title: "حذف هذه الخدمة؟", message: "سيتم حذف الخدمة وجميع بياناتها نهائياً", confirmLabel: "حذف", danger: true }))) return;
     await deleteService(id!);
     navigate("/services");
   };

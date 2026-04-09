@@ -101,7 +101,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     items: [
       { name: "الخدمات",          href: "/dashboard/catalog",        icon: Layers,        requiredCapabilities: ["catalog"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental"] },
       { name: "الحجوزات",        href: "/dashboard/bookings",     icon: CalendarCheck, requiredCapabilities: ["bookings"] },
-      { name: "الكاشير",          href: "/dashboard/pos",          icon: ShoppingBag,   requiredCapabilities: ["pos"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental", "restaurant", "bakery", "catering", "flower_shop"] },
+      { name: "نقطة البيع",        href: "/dashboard/pos",          icon: ShoppingBag,   requiredCapabilities: ["pos"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental", "restaurant", "bakery", "catering", "flower_shop"] },
       { name: "الطلبات",         href: "/dashboard/orders",       icon: Package,       requiredCapabilities: ["online_orders"] },
       { name: "التوصيل",          href: "/dashboard/delivery",     icon: Truck,         requiredCapabilities: [], requiredPlan: "basic" },
       { name: "أوامر العمل",     href: "/dashboard/work-orders",  icon: ClipboardCheck, requiredCapabilities: [], allowedBusinessTypes: ["workshop", "maintenance", "logistics", "construction", "laundry", "photography"] },
@@ -134,7 +134,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedOperatingProfiles: [],
     items: [
       { name: "ملصقات المنتجات",  href: "/dashboard/barcode-labels", icon: ScanBarcode,   requiredCapabilities: [] },
-      { name: "ربط التطبيقات",     href: "/dashboard/integrations", icon: Plug,       requiredCapabilities: [], requiredPlan: "pro" },
+      { name: "ربط التطبيقات",    href: "/dashboard/integrations", icon: Plug,       requiredCapabilities: [], requiredPlan: "pro" },
     ],
   },
 
@@ -174,12 +174,12 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "صفحة البيع السريع",   href: "/dashboard/storefront",      icon: Globe,        requiredCapabilities: [] },
+      { name: "المتجر الإلكتروني",   href: "/dashboard/storefront",      icon: Globe,        requiredCapabilities: [] },
       { name: "الموقع الإلكتروني",  href: "/dashboard/website",         icon: Monitor,      requiredCapabilities: [], requiredPlan: "basic" },
       { name: "التسويق",           href: "/dashboard/marketing", icon: Send,           requiredCapabilities: [], requiredPlan: "advanced" },
       { name: "التقييمات",         href: "/dashboard/reviews",              icon: Star,          requiredCapabilities: [], requiredPlan: "basic" },
-      { name: "مجموعات العملاء",    href: "/dashboard/segments",             icon: Tag,           requiredCapabilities: [], requiredPlan: "advanced" },
-      { name: "السلات المتروكة",    href: "/dashboard/abandoned-carts",      icon: ShoppingCart,  requiredCapabilities: [], allowedBusinessTypes: ["flower_shop", "retail", "restaurant", "cafe", "bakery", "catering"], requiredPlan: "advanced" },
+      { name: "مجموعات العملاء",   href: "/dashboard/segments",             icon: Tag,           requiredCapabilities: [], requiredPlan: "advanced" },
+      { name: "طلبات غير مكتملة",  href: "/dashboard/abandoned-carts",      icon: ShoppingCart,  requiredCapabilities: [], allowedBusinessTypes: ["flower_shop", "retail", "restaurant", "cafe", "bakery", "catering"], requiredPlan: "advanced" },
       { name: "اشتراكات العملاء",   href: "/dashboard/customer-subscriptions", icon: CreditCard,   requiredCapabilities: [], allowedBusinessTypes: ["salon", "barber", "spa", "fitness"], requiredPlan: "pro" },
       { name: "واتساب",            href: "/dashboard/messaging",            icon: MessageCircle, requiredCapabilities: [], requiredPlan: "advanced" },
     ],
@@ -229,7 +229,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedOperatingProfiles: [],
     items: [
       { name: "الطلبات",  href: "/dashboard/flower-orders",   icon: Package,     requiredCapabilities: ["floral"] },
-      { name: "الكاشير",  href: "/dashboard/flower-pos",      icon: ScanBarcode, requiredCapabilities: ["floral"] },
+      { name: "نقطة البيع",  href: "/dashboard/flower-pos",      icon: ScanBarcode, requiredCapabilities: ["floral"] },
       { name: "التوصيل",  href: "/dashboard/flower-delivery", icon: Truck,       requiredCapabilities: ["floral"] },
     ],
   },
@@ -244,7 +244,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedOperatingProfiles: [],
     items: [
       { name: "الباقات والتنسيقات", href: "/dashboard/arrangements",    icon: ShoppingBag,  requiredCapabilities: ["floral"] },
-      { name: "الخدمات الميدانية",   href: "/dashboard/flower-catalog",  icon: PartyPopper,  requiredCapabilities: ["floral"] },
+      { name: "خدمات التنسيق والكوش",   href: "/dashboard/flower-catalog",  icon: PartyPopper,  requiredCapabilities: ["floral"] },
       { name: "تخفيضات الطازج",    href: "/dashboard/flower-disposal", icon: TrendingDown, requiredCapabilities: ["floral"] },
     ],
   },
@@ -304,7 +304,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     items: [
       { name: "التحليلات",   href: "/dashboard/flower-analytics", icon: TrendingUp, requiredCapabilities: ["floral"] },
       { name: "التقارير",    href: "/dashboard/flower-reports",   icon: BarChart3,  requiredCapabilities: ["floral"] },
-      { name: "هوامش الربح", href: "/dashboard/flower-margins",  icon: DollarSign, requiredCapabilities: ["floral"] },
+      { name: "أرباح المنتجات", href: "/dashboard/flower-margins",  icon: DollarSign, requiredCapabilities: ["floral"] },
     ],
   },
 
@@ -317,12 +317,12 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: ["flower_shop"],
     allowedOperatingProfiles: [],
     items: [
-      { name: "صفحة البيع السريع",   href: "/dashboard/storefront",      icon: Globe,        requiredCapabilities: [] },
+      { name: "المتجر الإلكتروني",   href: "/dashboard/storefront",      icon: Globe,        requiredCapabilities: [] },
       { name: "الموقع الإلكتروني",  href: "/dashboard/website",         icon: Monitor,      requiredCapabilities: [], requiredPlan: "basic" as const },
       { name: "التسويق",           href: "/dashboard/marketing",       icon: Send,         requiredCapabilities: [], requiredPlan: "advanced" as const },
       { name: "التقييمات",         href: "/dashboard/reviews",         icon: Star,         requiredCapabilities: [], requiredPlan: "basic" as const },
-      { name: "مجموعات العملاء", href: "/dashboard/segments",        icon: Tag,          requiredCapabilities: [], requiredPlan: "advanced" as const },
-      { name: "السلات المتروكة",   href: "/dashboard/abandoned-carts", icon: ShoppingCart, requiredCapabilities: [], requiredPlan: "advanced" as const },
+      { name: "مجموعات العملاء",   href: "/dashboard/segments",        icon: Tag,          requiredCapabilities: [], requiredPlan: "advanced" as const },
+      { name: "طلبات غير مكتملة",  href: "/dashboard/abandoned-carts", icon: ShoppingCart, requiredCapabilities: [], requiredPlan: "advanced" as const },
       { name: "واتساب",            href: "/dashboard/messaging",       icon: MessageCircle,requiredCapabilities: [], requiredPlan: "advanced" as const },
     ],
   },
@@ -528,13 +528,13 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
 // ============================================================
 
 export const BOTTOM_NAV: NavItemEntry[] = [
-  { name: "الفوترة والخطة", href: "/dashboard/billing",            icon: CreditCard,    exact: true,  requiredCapabilities: [] },
-  { name: "سجل الأحداث",  href: "/dashboard/settings/audit-log", icon: ClipboardList, exact: false, requiredCapabilities: [] },
+  { name: "الاشتراك والفوترة", href: "/dashboard/billing",            icon: CreditCard,    exact: true,  requiredCapabilities: [] },
+  { name: "سجل العمليات",  href: "/dashboard/settings/audit-log", icon: ClipboardList, exact: false, requiredCapabilities: [] },
   { name: "التذكيرات",    href: "/dashboard/reminders",          icon: Bell,          exact: false, requiredCapabilities: [] },
   { name: "الدليل الشامل", href: "/dashboard/guide",             icon: BookOpen,      exact: false, requiredCapabilities: [] },
   { name: "الدعم الفني",  href: "/dashboard/support",            icon: MessageCircle, exact: false, requiredCapabilities: [] },
   { name: "الإعدادات",    href: "/dashboard/settings",           icon: Settings,      exact: false, requiredCapabilities: [] },
-  { name: "الاحترافي",    href: "/dashboard/subscription",       icon: Zap,           exact: true,  requiredCapabilities: [] },
+  { name: "ترقية الباقة", href: "/dashboard/subscription",       icon: Zap,           exact: true,  requiredCapabilities: [] },
 ];
 
 export const SUPER_ADMIN_NAV: NavItemEntry = {
