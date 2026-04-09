@@ -40,6 +40,7 @@ const PublicPrintPage        = lz(() => import("./pages/PublicPrintPage"), "Publ
 // Core dashboard
 const DashboardPage          = lz(() => import("./pages/DashboardPage"), "DashboardPage");
 const ServiceFormPage        = lz(() => import("./pages/ServiceFormPage"), "ServiceFormPage");
+const ServiceCreateWizard    = lz(() => import("./pages/ServiceCreateWizard"), "ServiceCreateWizard");
 const ServiceDetailPage      = lz(() => import("./pages/ServiceDetailPage"), "ServiceDetailPage");
 const CategoriesPage         = lz(() => import("./pages/CategoriesPage"), "CategoriesPage");
 const AddonsPage             = lz(() => import("./pages/AddonsPage"), "AddonsPage");
@@ -314,6 +315,7 @@ export default function App() {
           <Route index element={<DashboardPage />} />
 
           <Route path="services/new" element={<ServiceFormPage />} />
+          <Route path="services/wizard" element={<ServiceCreateWizard />} />
           <Route path="services/:id/edit" element={<ServiceFormPage />} />
           <Route path="services/:id" element={<ServiceDetailPage />} />
           <Route path="categories" element={<CategoriesPage />} />
