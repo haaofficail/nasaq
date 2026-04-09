@@ -9,3 +9,8 @@ dist/
 .turbo
 *.pem
 *.key
+
+.env.*
+!.env.example
+uploads/
+static/uploads/
