@@ -121,7 +121,7 @@ export default function WhatsAppGatewayTab() {
         onChange={(id) => setTab(id as typeof tab)}
       />
 
-      {tab === "qr" && <QrConnectionSection onConnected={() => refetchStatus()} />}
+      {tab === "qr" && <QrConnectionSection onStatusChange={() => refetchStatus()} />}
       {tab === "credentials" && <CredentialsSendSection />}
       {tab === "send" && <SendMessageSection />}
       {tab === "templates" && <TemplatesSection />}
@@ -134,7 +134,7 @@ export default function WhatsAppGatewayTab() {
 // QR CONNECTION SECTION
 // ══════════════════════════════════════════════════════════════
 
-function QrConnectionSection({ onConnected }: { onConnected?: () => void }) {
+function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }) {
   const { data: qrData, loading, refetch } = useApi(() => adminApi.waQrStatus(), []);
   const qrState = qrData?.data;
   const [starting, setStarting] = useState(false);
@@ -160,13 +160,13 @@ function QrConnectionSection({ onConnected }: { onConnected?: () => void }) {
         pollRef.current = null;
       }
       setStarting(false);
-      if (prevStatusRef.current && prevStatusRef.current !== "connected") {
+      if (prevStatusRef.current !== null && prevStatusRef.current !== "connected") {
         toast.success("تم ربط واتساب بنجاح");
-        onConnected?.();
+        onStatusChange?.();
       }
     }
     prevStatusRef.current = qrState?.status ?? null;
-  }, [qrState?.status, onConnected]);
+  }, [qrState?.status, onStatusChange]);
 
   const handleStart = async () => {
     setStarting(true);
@@ -186,7 +186,7 @@ function QrConnectionSection({ onConnected }: { onConnected?: () => void }) {
       await adminApi.waQrLogout();
       toast.success("تم فصل الاتصال");
       refetch();
-      onConnected?.();
+      onStatusChange?.();
     } catch {
       toast.error("فشل فصل الاتصال");
     } finally {
