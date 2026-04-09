@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useApi } from "@/hooks/useApi";
 import { adminApi } from "@/lib/api";
 import { BarChart3, Loader2 } from "lucide-react";
+import { SectionHeader } from "./shared";
 
 interface QuotaRow {
   id: string;
@@ -36,10 +37,7 @@ export default function QuotaUsageTab() {
 
   return (
     <div className="space-y-4">
-      <div>
-        <h3 className="font-semibold text-gray-900">استخدام الحصص</h3>
-        <p className="text-sm text-gray-500 mt-0.5">مراقبة الاستخدام الفعلي لكل منشأة</p>
-      </div>
+      <SectionHeader title="استخدام الحصص" sub="مراقبة الاستخدام الفعلي لكل منشأة مقارنة بحدود الباقة" />
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">

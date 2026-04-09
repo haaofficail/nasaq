@@ -3,6 +3,7 @@ import { useApi } from "@/hooks/useApi";
 import { adminApi } from "@/lib/api";
 import { ToggleLeft, AlertTriangle, Plus, Trash2, Loader2 } from "lucide-react";
 import { clsx } from "clsx";
+import { SectionHeader } from "./shared";
 
 interface KillSwitch {
   id: string;
@@ -68,11 +69,9 @@ export default function KillSwitchesTab() {
 
   return (
     <div className="space-y-4">
+      <SectionHeader title="مفاتيح الإيقاف الفوري" sub="إيقاف أي ميزة لجميع المنشآت فوراً — يُستخدم في الطوارئ والصيانة" />
       <div className="flex items-center justify-between">
-        <div>
-          <h3 className="font-semibold text-gray-900">مفاتيح الإيقاف الفوري</h3>
-          <p className="text-sm text-gray-500 mt-0.5">إيقاف أي ميزة لجميع المنشآت فوراً</p>
-        </div>
+        <div></div>
         <button
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 bg-brand-500 text-white rounded-xl px-4 py-2 text-sm font-medium hover:bg-brand-600 transition-colors"
