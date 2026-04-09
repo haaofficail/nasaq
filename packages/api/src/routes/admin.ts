@@ -103,12 +103,19 @@ export const adminRouter = new Hono<{ Variables: AdminVariables }>();
 
 adminRouter.use("*", nasaqStaffMiddleware);
 
-// ── Guard helper: يُستدعى في بداية كل مسار حساس ──
+// ── Guard helpers: يُستدعى في بداية كل مسار حساس ──
 function isSuperAdmin(c: Context<{ Variables: AdminVariables }>): boolean {
   return c.get("adminRole") === "super_admin";
 }
 function superAdminOnly(c: any) {
   return apiErr(c, "AUTH_SUPER_ONLY", 403);
+}
+/** Check if user has one of the allowed roles */
+function hasRole(c: Context<{ Variables: AdminVariables }>, allowedRoles: string[]): boolean {
+  return allowedRoles.includes(c.get("adminRole") as string);
+}
+function roleNotAllowed(c: any) {
+  return apiErr(c, "AUTH_ROLE_NOT_ALLOWED", 403);
 }
 
 // ──────────────────────────────────────────────────────────
@@ -468,6 +475,7 @@ adminRouter.get("/documents", async (c) => {
 });
 
 adminRouter.post("/documents", async (c) => {
+  if (!hasRole(c, ["super_admin", "account_manager"])) return roleNotAllowed(c);
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const [doc] = await db.insert(orgDocuments).values({
@@ -483,6 +491,7 @@ adminRouter.post("/documents", async (c) => {
 });
 
 adminRouter.patch("/documents/:id", async (c) => {
+  if (!hasRole(c, ["super_admin", "account_manager"])) return roleNotAllowed(c);
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -562,6 +571,7 @@ adminRouter.get("/tickets/:id", async (c) => {
 });
 
 adminRouter.post("/tickets", async (c) => {
+  if (!hasRole(c, ["super_admin", "account_manager", "support_agent"])) return roleNotAllowed(c);
   const body = await c.req.json();
   const [ticket] = await db.insert(supportTickets).values({
     orgId: body.orgId,
@@ -577,6 +587,7 @@ adminRouter.post("/tickets", async (c) => {
 });
 
 adminRouter.post("/tickets/:id/reply", async (c) => {
+  if (!hasRole(c, ["super_admin", "account_manager", "support_agent"])) return roleNotAllowed(c);
   const adminId   = c.get("adminId") as string;
   const adminName = c.get("adminName") as string;
   const body      = await c.req.json();
@@ -616,6 +627,7 @@ adminRouter.post("/tickets/:id/reply", async (c) => {
 });
 
 adminRouter.patch("/tickets/:id", async (c) => {
+  if (!hasRole(c, ["super_admin", "account_manager", "support_agent"])) return roleNotAllowed(c);
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -732,6 +744,7 @@ adminRouter.get("/announcements", async (c) => {
 });
 
 adminRouter.post("/announcements", async (c) => {
+  if (!hasRole(c, ["super_admin", "content_manager"])) return roleNotAllowed(c);
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const [row] = await db.insert(platformAnnouncements).values({
@@ -748,6 +761,7 @@ adminRouter.post("/announcements", async (c) => {
 });
 
 adminRouter.patch("/announcements/:id", async (c) => {
+  if (!hasRole(c, ["super_admin", "content_manager"])) return roleNotAllowed(c);
   const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const updates: Record<string, unknown> = { updatedAt: new Date() };
@@ -767,6 +781,7 @@ adminRouter.patch("/announcements/:id", async (c) => {
 });
 
 adminRouter.delete("/announcements/:id", async (c) => {
+  if (!hasRole(c, ["super_admin", "content_manager"])) return roleNotAllowed(c);
   const adminId = c.get("adminId") as string;
   const [deleted] = await db.delete(platformAnnouncements)
     .where(eq(platformAnnouncements.id, c.req.param("id"))).returning({ id: platformAnnouncements.id });
@@ -1037,6 +1052,7 @@ adminRouter.get("/orgs/:id/users", async (c) => {
 // ──────────────────────────────────────────────────────────
 
 adminRouter.put("/orgs/:id/manager", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
   const adminId = c.get("adminId") as string;
   const { managerId } = await c.req.json();
 
@@ -1369,8 +1385,11 @@ adminRouter.get("/reminder-categories", async (c) => {
   return c.json({ data: rows });
 });
 adminRouter.post("/reminder-categories", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const [row] = await db.insert(reminderCategories).values({ name: body.name, icon: body.icon || null, color: body.color || null, orgId: null }).returning();
+  logAdminAction(adminId, "create_reminder_category", "reminder_category", row.id, { name: body.name }, c.req.header("X-Forwarded-For"));
   return c.json({ data: row }, 201);
 });
 
@@ -1380,19 +1399,28 @@ adminRouter.get("/reminder-templates", async (c) => {
   return c.json({ data: rows });
 });
 adminRouter.post("/reminder-templates", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
   const body = await c.req.json();
   const [row] = await db.insert(reminderTemplates).values({ name: body.name, description: body.description || null, categoryId: body.categoryId || null, isSystem: true, orgId: null }).returning();
+  logAdminAction(adminId, "create_reminder_template", "reminder_template", row.id, { name: body.name }, c.req.header("X-Forwarded-For"));
   return c.json({ data: row }, 201);
 });
 adminRouter.patch("/reminder-templates/:id", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
   const id = c.req.param("id");
   const body = await c.req.json();
   const [row] = await db.update(reminderTemplates).set({ name: body.name, description: body.description }).where(eq(reminderTemplates.id, id)).returning();
+  logAdminAction(adminId, "update_reminder_template", "reminder_template", id, { name: body.name }, c.req.header("X-Forwarded-For"));
   return c.json({ data: row });
 });
 adminRouter.delete("/reminder-templates/:id", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
   const id = c.req.param("id");
   await db.delete(reminderTemplates).where(eq(reminderTemplates.id, id));
+  logAdminAction(adminId, "delete_reminder_template", "reminder_template", id, {}, c.req.header("X-Forwarded-For"));
   return c.json({ success: true });
 });
 
@@ -1473,6 +1501,9 @@ adminRouter.post("/subscription-orders/:id/cancel", async (c) => {
   await db.update(subscriptionOrders)
     .set({ status: "cancelled", updatedAt: new Date() })
     .where(eq(subscriptionOrders.id, orderId));
+
+  const adminId = c.get("adminId") as string;
+  logAdminAction(adminId, "cancel_subscription_order", "subscription_order", orderId, {}, c.req.header("X-Forwarded-For"));
 
   return c.json({ data: { success: true } });
 });
