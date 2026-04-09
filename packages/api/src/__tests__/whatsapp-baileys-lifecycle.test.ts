@@ -10,6 +10,10 @@
 import { test, describe, beforeEach, mock } from "node:test";
 import assert from "node:assert/strict";
 
+// ── Test constants ───────────────────────────────────────────
+/** Arbitrary long timeout for test timers — never actually fires */
+const TEST_TIMER_DELAY = 60_000;
+
 // ── Minimal mock types ──────────────────────────────────────
 interface MockSession {
   socket: any | null;
@@ -166,7 +170,7 @@ describe("Session lifecycle — stale detection", () => {
     const sess = mgr.get("platform");
 
     // Simulate: reconnecting with timer pending
-    const timer = setTimeout(() => {}, 60000);
+    const timer = setTimeout(() => {}, TEST_TIMER_DELAY);
     mgr.touch(sess, { status: "connecting", socket: null, reconnectTimer: timer });
 
     const state = mgr.getState("platform");
@@ -249,7 +253,7 @@ describe("Session lifecycle — reconnect logic", () => {
   test("cancelReconnect clears timer", () => {
     const mgr = createSessionManager();
     const sess = mgr.get("platform");
-    sess.reconnectTimer = setTimeout(() => {}, 60000);
+    sess.reconnectTimer = setTimeout(() => {}, TEST_TIMER_DELAY);
     assert.ok(sess.reconnectTimer !== null);
     mgr.cancelReconnect(sess);
     assert.equal(sess.reconnectTimer, null);

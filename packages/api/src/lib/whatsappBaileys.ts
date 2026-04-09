@@ -59,6 +59,8 @@ const DEFAULT_BROWSER: [string, string, string] = ["Ubuntu", "Chrome", "22.04.4"
 const MAX_RECONNECT_ATTEMPTS = 5;
 /** Base delay for exponential backoff (ms) */
 const RECONNECT_BASE_DELAY = 3_000;
+/** Maximum reconnect delay cap (ms) */
+const MAX_RECONNECT_DELAY = 60_000;
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -240,7 +242,7 @@ export async function initBaileys(orgId: string, force = false): Promise<void> {
           // Transient error — attempt auto-reconnect with exponential backoff
           const attempts = sess.reconnectAttempts + 1;
           if (attempts <= MAX_RECONNECT_ATTEMPTS && hasSavedSession(orgId)) {
-            const delay = Math.min(RECONNECT_BASE_DELAY * Math.pow(2, attempts - 1), 60_000);
+            const delay = Math.min(RECONNECT_BASE_DELAY * Math.pow(2, attempts - 1), MAX_RECONNECT_DELAY);
             touch(sess, {
               status: "connecting",
               reconnectAttempts: attempts,
