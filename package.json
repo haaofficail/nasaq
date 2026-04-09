@@ -8,7 +8,7 @@
     "dev:api": "pnpm --filter @nasaq/api dev",
     "dev:dashboard": "pnpm --filter @nasaq/dashboard dev",
     "db:generate": "pnpm --filter @nasaq/db generate",
-    "db:migrate": "pnpm --filter @nasaq/db migrate",
+    "db:migrate": "echo '❌ DO NOT RUN IN PRODUCTION — see README.md for migration strategy' && exit 1",
     "db:push": "pnpm --filter @nasaq/db push",
     "db:studio": "pnpm --filter @nasaq/db studio",
     "db:seed": "pnpm --filter @nasaq/db seed",

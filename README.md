@@ -164,3 +164,34 @@ All requests require header: `X-Org-Id: <uuid>`
 - `booking_item_addons` — إضافات البنود
 - `payments` — المدفوعات
 - `booking_pipeline_stages` — مراحل مسار الحجز
+
+---
+
+## ⚠️ Production Migration Strategy
+
+> **Production uses a legacy migrations table called `_migrations` — NOT Drizzle's default `__drizzle_migrations`.**
+
+### Rules
+
+1. **DO NOT** run `pnpm db:migrate` against production. The script is disabled and will exit with an error.
+2. Migrations must be applied **manually via SQL** on the production database.
+3. After applying a migration, insert a corresponding record into the `_migrations` table:
+   ```sql
+   INSERT INTO _migrations (name, applied_at)
+   VALUES ('NNN_migration_name.sql', NOW());
+   ```
+4. Running Drizzle's automated migrations will cause conflicts (e.g., `enum already exists`) because the production database was not bootstrapped with `__drizzle_migrations`.
+
+### Deployment
+
+Production deployment is handled by GitHub Actions (`.github/workflows/deploy.yml`).  
+The workflow connects to the VPS via SSH and runs:
+
+```
+git pull origin main
+pnpm install --frozen-lockfile
+pnpm build
+pm2 restart all
+```
+
+**No migration commands are executed during deployment.**
