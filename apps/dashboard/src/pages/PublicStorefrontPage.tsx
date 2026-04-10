@@ -112,20 +112,20 @@ const Icon = {
   ),
 };
 
-// ── Design tokens ────────────────────────────────────────────────────
+// ── Design tokens — true cool blue-gray palette ──────────────────────
+// Every color has a deliberate blue undertone, creating a cold, refined feel.
 const T = {
-  bg:      "#F8FAFC",  // Slate 50 — cool off-white
-  surface: "#FFFFFF",  // pure white cards
-  surfaceSubtle: "#F1F5F9",  // Slate 100
-  border:  "#E2E8F0",  // Slate 200
-  borderFaint: "#F1F5F9",
-  t1:  "#0F172A",  // Slate 900 — primary text
-  t2:  "#475569",  // Slate 600 — secondary
-  t3:  "#94A3B8",  // Slate 400 — muted/caption
-  wa:  "#25D366",
-  waDeep: "#1aab52",
-  shadow: "0 1px 3px rgba(15,23,42,0.07), 0 1px 2px -1px rgba(15,23,42,0.05)",
-  shadowMd: "0 4px 12px rgba(15,23,42,0.09), 0 2px 4px -2px rgba(15,23,42,0.06)",
+  bg:           "#EEF4FB",  // cool blue-white — page canvas
+  surface:      "#FFFFFF",  // pure white cards
+  surfaceSubtle:"#E8F0FA",  // tinted cool surface for inputs/tags
+  border:       "#D0DFF0",  // blue-cool border
+  borderFaint:  "#E2EDF8",  // very soft card border
+  t1:           "#162337",  // deep cool navy — NOT harsh black
+  t2:           "#4A6480",  // blue-gray secondary
+  t3:           "#7C99BB",  // cool muted blue-gray
+  wa:           "#25D366",
+  shadow:       "0 1px 4px rgba(14,50,100,0.09), 0 1px 2px -1px rgba(14,50,100,0.06)",
+  shadowMd:     "0 4px 14px rgba(14,50,100,0.11), 0 2px 4px -2px rgba(14,50,100,0.07)",
 };
 
 // ── Booking Sheet ────────────────────────────────────────────────────
@@ -447,7 +447,7 @@ export function PublicStorefrontPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily)}:wght@400;500;600;700;800;900&display=swap');
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-        body{margin:0;background:${T.bg};}
+        body{margin:0;background:#EEF4FB;}
         @keyframes sheetIn{from{transform:translateY(100%)}to{transform:translateY(0)}}
         @keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
         .chip-bar::-webkit-scrollbar{display:none}
@@ -659,7 +659,7 @@ export function PublicStorefrontPage() {
           position: "fixed", bottom: 0,
           left: "50%", transform: "translateX(-50%)",
           width: "100%", maxWidth: 440, zIndex: 20,
-          background: "rgba(248,250,252,0.96)",
+          background: "rgba(238,244,251,0.97)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           borderTop: `1px solid ${T.borderFaint}`,
