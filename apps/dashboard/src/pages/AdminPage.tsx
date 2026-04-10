@@ -1,5 +1,5 @@
-import React, { Suspense, useState, lazy, useLayoutEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { Suspense, useState, lazy, useLayoutEffect, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   LayoutDashboard, Building2, Users2, Briefcase, CreditCard, Package,
   Bell, Headphones, FileText, Megaphone, ClipboardList, Server, ShieldAlert, ShieldCheck, LogOut,
@@ -39,7 +39,6 @@ const OnlineOrdersAdminTab   = lazy(() => import("./admin/OnlineOrdersAdminTab")
 const ServiceOrdersAdminTab  = lazy(() => import("./admin/ServiceOrdersAdminTab"));
 const FinanceAdminTab        = lazy(() => import("./admin/FinanceAdminTab"));
 const WhatsAppGatewayTab     = lazy(() => import("./admin/WhatsAppGatewayTab"));
-const WhatsappAdminTab       = lazy(() => import("./admin/WhatsappAdminTab"));
 
 // ════════════════════════════════════════════════════════════
 // Constants
@@ -65,14 +64,13 @@ const SECTIONS = [
   { id: "online-orders", icon: ShoppingCart,   label: "الطلبات الإلكترونية",  roles: ["super_admin"] },
   { id: "service-orders", icon: ClipboardList, label: "أوامر الخدمة",        roles: ["super_admin"] },
   { id: "finance-admin",  icon: Wallet,        label: "المالية والمحاسبة",    roles: ["super_admin"] },
-  { id: "whatsapp",       icon: MessageCircle, label: "بوابة واتساب",         roles: ["super_admin"] },
+  { id: "whatsapp",       icon: MessageCircle, label: "واتساب",                roles: ["super_admin"] },
   { id: "access-logs",  icon: ShieldCheck,   label: "التحكم في الدخول",    roles: ["super_admin"] },
   { id: "galleries",      icon: Images,       label: "معارض الصور",        roles: ["super_admin"] },
   { id: "kill-switches",  icon: ToggleLeft,  label: "مفاتيح الإيقاف",     roles: ["super_admin"] },
   { id: "quota-usage",    icon: BarChart3,   label: "استخدام الحصص",      roles: ["super_admin"] },
   { id: "guardian",          icon: Bot,        label: "الحارس الذكي",       roles: ["super_admin"] },
   { id: "platform-settings", icon: Settings2,      label: "إعدادات المنصة",     roles: ["super_admin"] },
-  { id: "whatsapp-admin",    icon: MessageCircle, label: "واتساب الأدمن",       roles: ["super_admin"] },
   { id: "system",            icon: Server,        label: "النظام",              roles: ["super_admin"] },
 ];
 
@@ -118,9 +116,20 @@ const BRAND_VARS = [
 ];
 
 export function AdminPage() {
-  const [section, setSection] = useState("overview");
+  const { section: sectionParam } = useParams<{ section?: string }>();
+  const [section, setSection] = useState(sectionParam || "overview");
   const user = useCurrentAdmin();
   const navigate = useNavigate();
+
+  // Sync section state with URL param
+  useEffect(() => {
+    if (sectionParam && sectionParam !== section) setSection(sectionParam);
+  }, [sectionParam]);
+
+  const handleSetSection = (id: string) => {
+    setSection(id);
+    navigate(`/admin/${id}`, { replace: true });
+  };
 
   // مسح ثيم أي منشأة قد يكون مُطبَّقاً — الأدمن يرى ألوان المنصة دائماً
   useLayoutEffect(() => {
@@ -153,7 +162,7 @@ export function AdminPage() {
   );
 
   const sectionEl: Record<string, React.ReactElement> = {
-    overview:   <OverviewTab onNav={setSection} />,
+    overview:   <OverviewTab onNav={handleSetSection} />,
     orgs:       <OrgsTab />,
     team:       <TeamTab />,
     clients:    <ClientsTab />,
@@ -179,7 +188,6 @@ export function AdminPage() {
     "quota-usage":   <QuotaUsageTab />,
     guardian:            <GuardianTab />,
     "platform-settings": <PlatformSettingsTab />,
-    "whatsapp-admin":    <WhatsappAdminTab />,
     system:              <SystemTab />,
   };
 
@@ -201,7 +209,7 @@ export function AdminPage() {
 
         <nav className="flex-1 py-3 px-2 space-y-0.5">
           {visibleSections.map((s) => (
-            <button key={s.id} onClick={() => setSection(s.id)}
+            <button key={s.id} onClick={() => handleSetSection(s.id)}
               className={clsx(
                 "w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-right",
                 section === s.id

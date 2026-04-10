@@ -295,6 +295,7 @@ export default function App() {
 
         {/* Super Admin Panel */}
         <Route path="/admin" element={<RequireAdminAuth><AdminPage /></RequireAdminAuth>} />
+        <Route path="/admin/:section" element={<RequireAdminAuth><AdminPage /></RequireAdminAuth>} />
         <Route path="/admin/payments" element={<RequireAdminAuth><AdminPaymentsPage /></RequireAdminAuth>} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />
