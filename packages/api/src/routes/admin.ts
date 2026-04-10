@@ -177,7 +177,7 @@ adminRouter.get("/orgs", async (c) => {
   const businessType = c.req.query("businessType");
 
   const conditions: any[] = [];
-  if (q) conditions.push(or(ilike(organizations.name, `%${q}%`), ilike(organizations.slug, `%${q}%`)));
+  if (q) conditions.push(or(ilike(organizations.name, `%${q}%`), ilike(organizations.slug, `%${q}%`), ilike(organizations.phone, `%${q}%`)));
   if (plan) conditions.push(eq(organizations.plan, plan as any));
   if (businessType) conditions.push(eq(organizations.businessType, businessType));
   if (status === "suspended") conditions.push(sql`${organizations.suspendedAt} IS NOT NULL`);
@@ -192,6 +192,8 @@ adminRouter.get("/orgs", async (c) => {
       id: organizations.id,
       name: organizations.name,
       slug: organizations.slug,
+      phone: organizations.phone,
+      email: organizations.email,
       plan: organizations.plan,
       subscriptionStatus: organizations.subscriptionStatus,
       businessType: organizations.businessType,
