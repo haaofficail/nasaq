@@ -169,22 +169,20 @@ export async function sendViaBaileys(orgId: string, phone: string, message: stri
   const sess = get(orgId);
   if (sess.status !== "connected" || !sess.socket) return false;
 
-  // Liveness check — WebSocket must be OPEN (readyState === 1)
-  const ws = (sess.socket as any).ws;
-  if (ws && ws.readyState !== 1) {
-    log.warn({ orgId }, "[wa-baileys] socket not open — triggering reconnect");
-    touch(sess, { status: "disconnected", socket: null });
-    if (hasSavedSession(orgId)) initBaileys(orgId).catch(() => {});
-    return false;
-  }
-
   try {
     const jid = phone.replace(/\+/g, "").replace(/\s/g, "") + "@s.whatsapp.net";
     await sess.socket.sendMessage(jid, { text: message });
     log.info({ orgId, phone }, "[wa-baileys] message sent");
     return true;
-  } catch (err) {
+  } catch (err: any) {
     log.error({ err, orgId, phone }, "[wa-baileys] send failed");
+    // If the error is a genuine connection failure, reset state and reconnect
+    const msg = String(err?.message ?? err?.output?.payload?.message ?? "");
+    if (msg.includes("Connection Closed") || msg.includes("not open") || err?.output?.statusCode === 428) {
+      log.warn({ orgId }, "[wa-baileys] connection lost on send — resetting and reconnecting");
+      touch(sess, { status: "disconnected", socket: null, qrBase64: null });
+      if (hasSavedSession(orgId)) initBaileys(orgId).catch(() => {});
+    }
     return false;
   }
 }
