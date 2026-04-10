@@ -21,7 +21,9 @@ jobs:
           script: |
             set -e
             cd /var/www/nasaq
-            git pull origin main
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
             pnpm install --frozen-lockfile
             pnpm build
             pm2 restart all
