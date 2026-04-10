@@ -13,6 +13,13 @@ import { sendViaBaileys } from "./whatsappBaileys";
 //   TWILIO_WHATSAPP_FROM  — Twilio WhatsApp sender (e.g. "whatsapp:+14155238886")
 // ============================================================
 
+/** Fetch with a hard timeout (default 15s) */
+function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 15_000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 /**
  * Send WhatsApp message.
  * Priority: Baileys QR session (per-org) → Meta Cloud → Unifonic → Twilio
@@ -32,7 +39,7 @@ export async function sendWhatsApp(phone: string, message: string, orgId?: strin
 
   if (metaToken && metaPhoneId) {
     try {
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `https://graph.facebook.com/v19.0/${metaPhoneId}/messages`,
         {
           method: "POST",
@@ -65,7 +72,7 @@ export async function sendWhatsApp(phone: string, message: string, orgId?: strin
 
   if (unifonicSid && unifonicSender) {
     try {
-      const res = await fetch("https://el.cloud.unifonic.com/rest/WhatsApp/messages", {
+      const res = await fetchWithTimeout("https://el.cloud.unifonic.com/rest/WhatsApp/messages", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -94,7 +101,7 @@ export async function sendWhatsApp(phone: string, message: string, orgId?: strin
 
   if (twilioSid && twilioToken && twilioFrom) {
     try {
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
         {
           method: "POST",

@@ -10,6 +10,12 @@ import { log } from "./logger";
 //   TWILIO_FROM        — Twilio phone number
 // ============================================================
 
+function fetchWithTimeout(url: string, options: RequestInit, timeoutMs = 15_000): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 export async function sendSms(phone: string, message: string): Promise<boolean> {
   const normalised = phone.startsWith("+") ? phone : `+${phone}`;
 
@@ -19,7 +25,7 @@ export async function sendSms(phone: string, message: string): Promise<boolean> 
 
   if (unifonicSid) {
     try {
-      const res = await fetch("https://el.cloud.unifonic.com/rest/SMS/messages", {
+      const res = await fetchWithTimeout("https://el.cloud.unifonic.com/rest/SMS/messages", {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: new URLSearchParams({
@@ -48,7 +54,7 @@ export async function sendSms(phone: string, message: string): Promise<boolean> 
 
   if (twilioSid && twilioToken && twilioFrom) {
     try {
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `https://api.twilio.com/2010-04-01/Accounts/${twilioSid}/Messages.json`,
         {
           method: "POST",

@@ -42,7 +42,9 @@ import { initBaileys, getBaileysState, logoutBaileys, hasSavedSession } from "..
 
 function normalizePhoneAdmin(phone: string): string | null {
   if (!phone) return null;
-  let p = phone.replace(/[\s-]/g, "");
+  // Convert Arabic-Indic numerals to ASCII
+  let p = phone.replace(/[\u0660-\u0669]/g, (c) => String(c.charCodeAt(0) - 0x0660));
+  p = p.replace(/[\s-]/g, "");
   if (p.startsWith("05")) p = "+966" + p.substring(1);
   else if (p.startsWith("966")) p = "+" + p;
   else if (p.startsWith("+966")) { /* already normalized */ }
