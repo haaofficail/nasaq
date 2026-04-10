@@ -957,15 +957,20 @@ export function POSPage() {
     <div className="flex flex-col h-[calc(100dvh-4rem)] overflow-hidden -m-4 md:-m-6">
 
       {/* Top bar */}
-      <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-100 shrink-0">
+      <div className="flex items-center justify-between px-5 py-2.5 bg-white border-b border-gray-100 shrink-0 shadow-[0_1px_0_0_#f3f4f6]">
         <div className="flex items-center gap-3">
-          <h1 className="text-base font-bold text-gray-900">نقطة البيع</h1>
-          <div className="flex gap-1 bg-gray-100 p-0.5 rounded-xl">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-xl bg-brand-500 flex items-center justify-center shadow-sm shadow-brand-500/30">
+              <Receipt className="w-3.5 h-3.5 text-white" />
+            </div>
+            <h1 className="text-sm font-bold text-gray-900">نقطة البيع</h1>
+          </div>
+          <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-xl">
             {([["pos", "الكاشير"], ["log", "سجل اليوم"]] as const).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
-                className={clsx("px-4 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                className={clsx("px-4 py-1.5 rounded-[10px] text-xs font-semibold transition-all",
                   activeTab === key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700")}
               >
                 {label}
@@ -974,18 +979,16 @@ export function POSPage() {
           </div>
         </div>
 
-        {/* Barcode input — visible, receives scanner or manual input */}
+        {/* Barcode input */}
         <div className="relative flex items-center">
-          <ScanBarcode className={`absolute right-3 w-4 h-4 ${barcodeLoading ? "text-brand-500 animate-pulse" : "text-gray-400"}`} />
+          <ScanBarcode className={`absolute right-3 w-4 h-4 ${barcodeLoading ? "text-brand-500 animate-pulse" : "text-gray-300"}`} />
           <input
             ref={barcodeRef}
             value={barcodeInput}
             onChange={e => setBarcodeInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === "Enter") handleBarcodeInput(barcodeInput);
-            }}
+            onKeyDown={e => { if (e.key === "Enter") handleBarcodeInput(barcodeInput); }}
             placeholder="امسح الباركود..."
-            className="pr-9 pl-3 py-1.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 w-44 bg-gray-50"
+            className="pr-9 pl-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 w-48 bg-gray-50 placeholder:text-gray-300"
             dir="ltr"
           />
         </div>
@@ -1000,14 +1003,18 @@ export function POSPage() {
         <div className="flex flex-1 overflow-hidden">
 
           {/* ── LEFT: Catalog ── */}
-          <div className={clsx("flex-1 flex-col border-l border-gray-100 min-w-0", mobileView === "catalog" ? "flex" : "hidden md:flex")}>
+          <div className={clsx("flex-1 flex-col border-l border-gray-100 min-w-0 bg-gray-50/50", mobileView === "catalog" ? "flex" : "hidden md:flex")}>
 
             {/* Category tabs */}
-            <div className="flex gap-2 px-4 py-2.5 bg-white border-b border-gray-100 overflow-x-auto shrink-0 scrollbar-hide">
+            <div className="flex gap-1.5 px-4 py-3 bg-white border-b border-gray-100 overflow-x-auto shrink-0 scrollbar-hide">
               <button
                 onClick={() => setActiveCat("all")}
-                className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0",
-                  activeCat === "all" ? "bg-brand-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200")}
+                className={clsx(
+                  "px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0",
+                  activeCat === "all"
+                    ? "bg-brand-500 text-white shadow-sm shadow-brand-500/30"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                )}
               >
                 الكل
               </button>
@@ -1015,8 +1022,12 @@ export function POSPage() {
                 <button
                   key={cat.id}
                   onClick={() => setActiveCat(cat.id)}
-                  className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0",
-                    activeCat === cat.id ? "bg-brand-500 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200")}
+                  className={clsx(
+                    "px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0",
+                    activeCat === cat.id
+                      ? "bg-brand-500 text-white shadow-sm shadow-brand-500/30"
+                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                  )}
                 >
                   {cat.name}
                 </button>
@@ -1024,12 +1035,12 @@ export function POSPage() {
             </div>
 
             {/* Search */}
-            <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100 shrink-0">
+            <div className="px-4 py-3 bg-white border-b border-gray-100 shrink-0">
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
                 <input
-                  className="w-full bg-white border border-gray-200 rounded-xl pr-9 pl-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
-                  placeholder="بحث سريع عن خدمة أو منتج..."
+                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl pr-9 pl-3 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
+                  placeholder="بحث سريع..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                 />
@@ -1041,7 +1052,7 @@ export function POSPage() {
               {effectiveLoading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {[...Array(12)].map((_, i) => (
-                    <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
+                    <div key={i} className="h-32 bg-gray-100 rounded-2xl animate-pulse" />
                   ))}
                 </div>
               ) : filteredServices.length === 0 ? (
@@ -1053,31 +1064,56 @@ export function POSPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {filteredServices.map(svc => {
                     const inCart = cart.find(c => c.id === svc.id);
+                    const initial = (svc.name || "خ").charAt(0);
                     return (
                       <button
                         key={svc.id}
                         onClick={() => addToCart(svc)}
                         className={clsx(
-                          "relative text-right p-4 rounded-2xl border transition-all active:scale-95 select-none",
+                          "relative text-right rounded-2xl border transition-all active:scale-[0.97] select-none overflow-hidden",
                           inCart
-                            ? "border-brand-300 bg-brand-50 shadow-sm"
-                            : "border-gray-100 bg-white hover:border-brand-200 hover:shadow-sm"
+                            ? "border-brand-300 bg-white shadow-md shadow-brand-500/10"
+                            : "border-gray-100 bg-white hover:border-brand-200 hover:shadow-md hover:shadow-gray-200/80"
                         )}
                       >
-                        {inCart && (
-                          <span className="absolute top-2 left-2 w-6 h-6 bg-brand-500 text-white rounded-full text-xs font-bold flex items-center justify-center tabular-nums">
-                            {inCart.qty}
-                          </span>
-                        )}
-                        <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center mb-2.5">
-                          <Package className="w-4.5 h-4.5 text-gray-400" />
+                        {/* Colored header band */}
+                        <div className={clsx(
+                          "h-1.5 w-full",
+                          inCart ? "bg-brand-500" : "bg-gradient-to-r from-gray-200 to-gray-100"
+                        )} />
+
+                        <div className="p-4">
+                          {/* Cart qty badge */}
+                          {inCart && (
+                            <span className="absolute top-3 left-3 min-w-[22px] h-[22px] bg-brand-500 text-white rounded-full text-xs font-bold flex items-center justify-center tabular-nums px-1 shadow-sm">
+                              {inCart.qty}
+                            </span>
+                          )}
+
+                          {/* Icon */}
+                          <div className={clsx(
+                            "w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-sm font-bold",
+                            inCart
+                              ? "bg-brand-50 text-brand-600"
+                              : "bg-gray-100 text-gray-500"
+                          )}>
+                            {initial}
+                          </div>
+
+                          {/* Name */}
+                          <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight mb-2">
+                            {svc.name}
+                          </p>
+
+                          {/* Price */}
+                          <p className={clsx(
+                            "text-base font-black tabular-nums",
+                            inCart ? "text-brand-600" : "text-gray-800"
+                          )}>
+                            {Number(svc.basePrice || svc.price || 0).toLocaleString("en-US", { minimumFractionDigits: 0 })}
+                            <span className="text-xs font-medium text-gray-400 mr-0.5">ر.س</span>
+                          </p>
                         </div>
-                        <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight mb-1">
-                          {svc.name}
-                        </p>
-                        <p className="text-sm font-bold text-brand-600 tabular-nums">
-                          {Number(svc.basePrice || 0).toLocaleString("en-US")} ر.س
-                        </p>
                       </button>
                     );
                   })}
@@ -1106,12 +1142,11 @@ export function POSPage() {
           )}
 
           {/* ── RIGHT: Cart + Payment ── */}
-          <div className={clsx("shrink-0 flex flex-col bg-white border-r border-gray-100 w-full md:w-80 lg:w-96", mobileView === "cart" ? "flex" : "hidden md:flex")}>
+          <div className={clsx("shrink-0 flex flex-col bg-white border-r border-gray-100 w-full md:w-80 lg:w-[360px] shadow-[-4px_0_24px_0_rgba(0,0,0,0.04)]", mobileView === "cart" ? "flex" : "hidden md:flex")}>
 
             {/* Cart header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
-              <div className="flex items-center gap-2">
-                {/* Back to catalog on mobile */}
+            <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 shrink-0 bg-white">
+              <div className="flex items-center gap-2.5">
                 <button
                   onClick={() => setMobileView("catalog")}
                   className="md:hidden p-1 -mr-1 text-gray-400 hover:text-gray-600"
@@ -1119,51 +1154,56 @@ export function POSPage() {
                 >
                   <X className="w-4 h-4" />
                 </button>
-                <ShoppingCart className="w-4 h-4 text-brand-500" />
-                <span className="font-semibold text-gray-900 text-sm">السلة</span>
-                {cart.length > 0 && (
-                  <span className="w-5 h-5 bg-brand-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center tabular-nums">
-                    {cart.reduce((s, c) => s + c.qty, 0)}
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-brand-500" />
+                  <span className="font-bold text-gray-900 text-sm">السلة</span>
+                  {cart.length > 0 && (
+                    <span className="min-w-[20px] h-5 bg-brand-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center tabular-nums px-1">
+                      {cart.reduce((s, c) => s + c.qty, 0)}
+                    </span>
+                  )}
+                </div>
               </div>
               {cart.length > 0 && (
-                <button onClick={clearAll} className="flex items-center gap-1 text-xs text-red-400 hover:text-red-600">
-                  <X className="w-3 h-3" /> مسح الكل
+                <button onClick={clearAll} className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-red-500 transition-colors bg-gray-50 hover:bg-red-50 px-2 py-1 rounded-lg">
+                  <Trash2 className="w-3 h-3" /> مسح
                 </button>
               )}
             </div>
 
             {/* Customer picker */}
-            <div className="px-4 py-2.5 border-b border-gray-100 shrink-0">
+            <div className="px-3 py-2.5 border-b border-gray-100 shrink-0 relative">
               <div className="relative">
                 <Users className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 pointer-events-none" />
                 <input
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl pr-8 pl-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
-                  placeholder="اختر عميل أو اتركه زائراً..."
+                  className={clsx(
+                    "w-full bg-gray-50 border rounded-xl pr-8 pl-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300 transition-all",
+                    customer ? "border-brand-300 bg-brand-50/30 focus:border-brand-400" : "border-gray-200 focus:border-brand-400"
+                  )}
+                  placeholder="عميل (اختياري)..."
                   value={customerSearch}
                   onChange={e => { setCustomerSearch(e.target.value); setShowCustomerList(true); setCustomer(null); }}
                   onFocus={() => setShowCustomerList(true)}
                 />
                 {customer && (
-                  <button onClick={() => { setCustomer(null); setCustomerSearch(""); }} className="absolute left-2 top-1/2 -translate-y-1/2 p-1 text-gray-300 hover:text-red-400">
-                    <X className="w-3 h-3" />
+                  <button onClick={() => { setCustomer(null); setCustomerSearch(""); }} className="absolute left-2 top-1/2 -translate-y-1/2 p-1 text-gray-300 hover:text-red-400 rounded">
+                    <X className="w-3.5 h-3.5" />
                   </button>
                 )}
               </div>
               {showCustomerList && customerList.length > 0 && (
-                <div className="absolute z-20 bg-white border border-gray-200 rounded-xl shadow-lg mt-1 max-h-40 overflow-y-auto" style={{ width: "calc(var(--radix-select-trigger-width, 100%))" }}>
+                <div className="absolute left-3 right-3 z-20 bg-white border border-gray-200 rounded-2xl shadow-xl mt-1 max-h-44 overflow-y-auto">
                   {customerList.slice(0, 6).map((c: any) => (
                     <button
                       key={c.id}
-                      className="w-full text-right px-3 py-2 hover:bg-brand-50 text-sm border-b border-gray-50 last:border-0"
+                      className="w-full text-right px-4 py-2.5 hover:bg-brand-50 text-sm border-b border-gray-50 last:border-0 first:rounded-t-2xl last:rounded-b-2xl transition-colors"
                       onMouseDown={() => {
                         setCustomer({ id: c.id, name: c.name, phone: c.phone });
                         setCustomerSearch(c.name);
                         setShowCustomerList(false);
                       }}
                     >
-                      <p className="font-medium text-gray-800">{c.name}</p>
+                      <p className="font-semibold text-gray-800 text-sm">{c.name}</p>
                       <p className="text-xs text-gray-400">{c.phone}</p>
                     </button>
                   ))}
@@ -1174,34 +1214,36 @@ export function POSPage() {
             {/* Cart items */}
             <div className="flex-1 overflow-y-auto">
               {cart.length === 0 ? (
-                <div className="h-32 flex flex-col items-center justify-center text-center p-4">
-                  <ShoppingCart className="w-8 h-8 text-gray-200 mb-2" />
-                  <p className="text-xs text-gray-400">اضغط على الخدمة لإضافتها</p>
+                <div className="h-40 flex flex-col items-center justify-center text-center p-4 gap-2">
+                  <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center">
+                    <ShoppingCart className="w-6 h-6 text-gray-300" />
+                  </div>
+                  <p className="text-xs text-gray-400 font-medium">اضغط على أي منتج لإضافته</p>
                 </div>
               ) : (
                 <div className="p-3 space-y-2">
                   {cart.map(item => (
-                    <div key={item.id} className="bg-gray-50 rounded-xl p-3">
-                      <div className="flex items-start gap-2 mb-2">
-                        <p className="text-xs font-medium text-gray-900 flex-1 leading-tight">{item.name}</p>
-                        <button onClick={() => removeItem(item.id)} className="text-gray-300 hover:text-red-400 transition-colors shrink-0 mt-0.5">
+                    <div key={item.id} className="bg-gray-50 rounded-2xl p-3 border border-gray-100 hover:border-gray-200 transition-colors">
+                      <div className="flex items-start gap-2 mb-2.5">
+                        <p className="text-sm font-semibold text-gray-900 flex-1 leading-tight">{item.name}</p>
+                        <button onClick={() => removeItem(item.id)} className="text-gray-300 hover:text-red-400 transition-colors shrink-0 mt-0.5 p-0.5 rounded">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1">
                           <button
                             onClick={() => changeQty(item.id, -1)}
-                            className="w-7 h-7 rounded-lg bg-white border border-gray-200 flex items-center justify-center hover:bg-gray-100 active:scale-95 transition-all"
+                            className="w-7 h-7 rounded-xl bg-white border border-gray-200 flex items-center justify-center hover:border-gray-300 active:scale-90 transition-all shadow-sm"
                           >
-                            <Minus className="w-3 h-3 text-gray-600" />
+                            <Minus className="w-3 h-3 text-gray-500" />
                           </button>
                           {editingQty === item.id ? (
                             <input
                               type="text"
                               inputMode="numeric"
                               defaultValue={item.qty}
-                              className="w-12 text-center text-sm border border-brand-300 rounded-lg px-1 py-0.5 focus:outline-none"
+                              className="w-11 text-center text-sm font-bold border border-brand-300 rounded-xl px-1 py-0.5 focus:outline-none bg-white"
                               autoFocus
                               onBlur={e => { updateQty(item.id, parseInt(normalizeNumeric(e.target.value)) || 1); setEditingQty(null); }}
                               onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditingQty(null); }}
@@ -1209,25 +1251,24 @@ export function POSPage() {
                           ) : (
                             <button
                               onClick={() => setEditingQty(item.id)}
-                              className="w-6 text-center text-sm font-bold text-gray-800 hover:text-brand-600 transition-colors"
+                              className="w-9 text-center text-sm font-bold text-gray-800 hover:text-brand-600 transition-colors tabular-nums"
                             >
                               {item.qty}
                             </button>
                           )}
                           <button
                             onClick={() => changeQty(item.id, 1)}
-                            className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center hover:bg-brand-600 active:scale-95 transition-all"
+                            className="w-7 h-7 rounded-xl bg-brand-500 flex items-center justify-center hover:bg-brand-600 active:scale-90 transition-all shadow-sm shadow-brand-500/20"
                           >
                             <Plus className="w-3 h-3 text-white" />
                           </button>
                         </div>
-                        <span className="text-sm font-bold text-gray-900 tabular-nums">{fmt(item.price * item.qty)} ر.س</span>
+                        <span className="text-sm font-black text-gray-900 tabular-nums">{fmt(item.price * item.qty)} <span className="text-xs font-medium text-gray-400">ر.س</span></span>
                       </div>
-                      {/* Staff selector */}
                       {item.staffName && (
-                        <div className="flex items-center gap-1 mt-1.5">
+                        <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-200">
                           <Scissors className="w-3 h-3 text-gray-300" />
-                          <span className="text-xs text-gray-400">{item.staffName}</span>
+                          <span className="text-[11px] text-gray-400">{item.staffName}</span>
                         </div>
                       )}
                     </div>
@@ -1237,29 +1278,34 @@ export function POSPage() {
             </div>
 
             {/* Discount + Notes */}
-            <div className="px-3 pb-2 space-y-2 border-t border-gray-100 pt-2 shrink-0">
-              <div className="flex gap-2">
+            <div className="px-3 pb-2 space-y-2 border-t border-gray-100 pt-2.5 shrink-0">
+              <div className="flex gap-1.5">
                 <button
                   onClick={() => setDiscType(t => t === "fixed" ? "percent" : "fixed")}
-                  className="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors shrink-0"
+                  className={clsx(
+                    "w-9 h-9 rounded-xl border flex items-center justify-center transition-all shrink-0",
+                    discType === "percent"
+                      ? "border-brand-400 bg-brand-50 text-brand-500"
+                      : "border-gray-200 text-gray-400 hover:bg-gray-50"
+                  )}
                   title={discType === "fixed" ? "مبلغ ثابت" : "نسبة مئوية"}
                 >
-                  {discType === "fixed" ? <Tag className="w-4 h-4 text-gray-400" /> : <Percent className="w-4 h-4 text-brand-500" />}
+                  {discType === "fixed" ? <Tag className="w-3.5 h-3.5" /> : <Percent className="w-3.5 h-3.5" />}
                 </button>
                 <input
                   type="text"
                   inputMode="decimal"
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 placeholder:text-gray-300 tabular-nums"
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300 tabular-nums"
                   placeholder={discType === "fixed" ? "خصم ثابت (ر.س)" : "خصم % (0-100)"}
                   value={discValue}
                   onChange={e => setDiscValue(normalizeNumeric(e.target.value))}
                   dir="ltr"
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <StickyNote className="w-3.5 h-3.5 text-gray-300 shrink-0" />
                 <input
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-300 placeholder:text-gray-300"
+                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
                   placeholder="ملاحظة (اختياري)"
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
@@ -1268,29 +1314,31 @@ export function POSPage() {
             </div>
 
             {/* Totals */}
-            <div className="px-4 pt-2 pb-2 border-t border-gray-100 space-y-1.5 text-sm shrink-0">
-              <div className="flex justify-between text-gray-500">
-                <span>المجموع</span>
-                <span className="tabular-nums">{fmt(subtotal)} ر.س</span>
-              </div>
-              {discountAmount > 0 && (
-                <div className="flex justify-between text-red-500">
-                  <span>الخصم</span>
-                  <span className="tabular-nums">- {fmt(discountAmount)} ر.س</span>
+            <div className="mx-3 mb-3 rounded-2xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
+              <div className="px-4 py-3 space-y-1.5 text-sm">
+                <div className="flex justify-between text-gray-500">
+                  <span>المجموع</span>
+                  <span className="tabular-nums font-medium">{fmt(subtotal)} ر.س</span>
                 </div>
-              )}
-              <div className="flex justify-between text-gray-500">
-                <span>ضريبة {VAT_RATE}%</span>
-                <span className="tabular-nums">{fmt(vatAmount)} ر.س</span>
+                {discountAmount > 0 && (
+                  <div className="flex justify-between text-red-500">
+                    <span>الخصم</span>
+                    <span className="tabular-nums font-medium">- {fmt(discountAmount)} ر.س</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-gray-500">
+                  <span>ضريبة {VAT_RATE}%</span>
+                  <span className="tabular-nums font-medium">{fmt(vatAmount)} ر.س</span>
+                </div>
               </div>
-              <div className="flex justify-between font-bold text-base border-t border-gray-100 pt-1.5">
-                <span className="text-gray-900">الإجمالي</span>
-                <span className="tabular-nums text-brand-600">{fmt(total)} ر.س</span>
+              <div className="flex justify-between items-center px-4 py-3 bg-brand-500 border-t border-brand-400">
+                <span className="text-sm font-semibold text-white/80">الإجمالي</span>
+                <span className="tabular-nums text-xl font-black text-white tracking-tight">{fmt(total)} <span className="text-sm font-medium opacity-80">ر.س</span></span>
               </div>
             </div>
 
             {/* Payment section */}
-            <div className="px-3 pt-2 border-t border-gray-100 shrink-0">
+            <div className="px-3 pt-3 border-t border-gray-100 shrink-0">
               {/* Method buttons */}
               <div className="grid grid-cols-4 gap-1.5 mb-3">
                 {(["cash", "card", "bank_transfer", "mixed"] as const).map(method => {
@@ -1302,10 +1350,10 @@ export function POSPage() {
                       key={method}
                       onClick={() => setPayMode(method)}
                       className={clsx(
-                        "flex flex-col items-center gap-1 py-2.5 rounded-xl border text-[11px] font-semibold transition-all",
+                        "flex flex-col items-center gap-1.5 py-3 rounded-2xl border text-[11px] font-bold transition-all",
                         payMode === method
-                          ? "border-brand-400 bg-brand-50 text-brand-600 shadow-sm"
-                          : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                          ? "border-brand-400 bg-brand-500 text-white shadow-md shadow-brand-500/25"
+                          : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100 hover:border-gray-300"
                       )}
                     >
                       <Icon className="w-4 h-4" />
@@ -1321,19 +1369,19 @@ export function POSPage() {
                   <input
                     type="text"
                     inputMode="decimal"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-300 tabular-nums text-left"
-                    placeholder="المبلغ المستلم..."
+                    className="w-full bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-base outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 tabular-nums text-left font-semibold placeholder:text-gray-300 placeholder:font-normal"
+                    placeholder="0.00"
                     value={cashReceived}
                     onChange={e => setCashReceived(normalizeNumeric(e.target.value))}
                     dir="ltr"
                   />
                   {parseFloat(cashReceived || "0") > 0 && (
                     <div className={clsx(
-                      "flex justify-between items-center px-3 py-2 rounded-xl text-sm font-medium",
-                      cashChange >= 0 ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
+                      "flex justify-between items-center px-4 py-2.5 rounded-2xl text-sm font-semibold",
+                      cashChange >= 0 ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-600 border border-red-100"
                     )}>
                       <span>{cashChange >= 0 ? "الباقي للعميل" : "مبلغ ناقص"}</span>
-                      <span className="tabular-nums font-bold">{fmt(Math.abs(cashChange))} ر.س</span>
+                      <span className="tabular-nums font-black text-base">{fmt(Math.abs(cashChange))} ر.س</span>
                     </div>
                   )}
                 </div>
@@ -1341,7 +1389,7 @@ export function POSPage() {
 
               {payMode === "card" && (
                 <input
-                  className="w-full mb-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-300"
+                  className="w-full mb-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
                   placeholder="رقم مرجع العملية (اختياري)"
                   value={cardRef}
                   onChange={e => setCardRef(e.target.value)}
@@ -1351,7 +1399,7 @@ export function POSPage() {
 
               {payMode === "bank_transfer" && (
                 <input
-                  className="w-full mb-3 bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-300"
+                  className="w-full mb-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
                   placeholder="رقم مرجع التحويل (اختياري)"
                   value={bankRef}
                   onChange={e => setBankRef(e.target.value)}
@@ -1408,31 +1456,31 @@ export function POSPage() {
             </div>
 
             {/* Action buttons */}
-            <div className="p-3 grid grid-cols-3 gap-2 border-t border-gray-100 shrink-0">
+            <div className="p-3 space-y-2 border-t border-gray-100 shrink-0">
+              {/* Complete sale — primary CTA */}
+              <button
+                onClick={handleCompleteSale}
+                disabled={!canComplete() || completing}
+                className="w-full flex items-center justify-center gap-2.5 py-4 rounded-2xl bg-brand-500 text-white font-bold text-sm hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-brand-500/30 active:scale-[0.98]"
+              >
+                {completing ? (
+                  <span className="text-sm">جاري المعالجة...</span>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-5 h-5 shrink-0" />
+                    <span>{cart.length > 0 ? `إتمام البيع — ${fmt(total)} ر.س` : "إتمام البيع"}</span>
+                  </>
+                )}
+              </button>
+
               {/* Split bill */}
               <button
                 onClick={() => setShowSplit(true)}
                 disabled={cart.length === 0}
-                className="flex flex-col items-center gap-1 py-3 rounded-xl border border-gray-200 text-gray-600 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-xs font-medium"
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-2xl border border-gray-200 text-gray-500 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-xs font-semibold"
               >
-                <SplitSquareHorizontal className="w-4 h-4" />
-                تقسيم
-              </button>
-
-              {/* Complete sale */}
-              <button
-                onClick={handleCompleteSale}
-                disabled={!canComplete() || completing}
-                className="col-span-2 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-brand-500 text-white font-bold text-sm hover:bg-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm shadow-brand-500/20 active:scale-95"
-              >
-                {completing ? (
-                  <span className="text-xs">جاري المعالجة...</span>
-                ) : (
-                  <>
-                    <Receipt className="w-4 h-4 shrink-0" />
-                    {cart.length > 0 ? `إتمام · ${fmt(total)} ر.س` : "إتمام البيع"}
-                  </>
-                )}
+                <SplitSquareHorizontal className="w-3.5 h-3.5" />
+                تقسيم الفاتورة
               </button>
             </div>
 
