@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ShieldCheck, Mail, Eye, EyeOff, Loader2, Lock, Phone, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
 import { authApi } from "@/lib/api";
@@ -18,8 +18,7 @@ export function AdminLoginPage() {
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError]     = useState("");
 
-  // --- force change state ---
-  const forceToken = useRef("");
+  // forceToken removed — token stored in localStorage directly
 
   // --- reset state ---
   const [view, setView]             = useState<View>("login");
@@ -46,9 +45,9 @@ export function AdminLoginPage() {
         setLoginError("هذا الحساب ليس لديه صلاحية الدخول للوحة الإدارة");
         return;
       }
-      // إذا كلمة المرور مؤقتة — أجبر على التغيير قبل الدخول
+      // إذا كلمة المرور مؤقتة — خزّن التوكن مؤقتاً وأجبر على التغيير
       if (res?.user?.mustChangePassword) {
-        forceToken.current = res.token;
+        localStorage.setItem("nasaq_token", res.token);
         setView("force_change");
         return;
       }
@@ -139,17 +138,10 @@ export function AdminLoginPage() {
     setForceLoading(true);
     setForceError("");
     try {
-      await fetch("/api/v1/auth/password/change", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${forceToken.current}`,
-        },
-        body: JSON.stringify({ newPassword: forcePass }),
-      }).then(async (r) => {
-        if (!r.ok) { const d = await r.json(); throw new Error(d.error || "فشل تغيير كلمة المرور"); }
-      });
-      // بعد التغيير — دخول مباشر
+      // التوكن المؤقت محفوظ في localStorage — authApi.changePassword يستخدمه تلقائياً
+      // currentPassword فارغ مقصود: الـ endpoint يتجاهله عند التسليم بدون قيمة
+      await authApi.changePassword("", forcePass);
+      // بعد التغيير — أعد تسجيل الدخول للحصول على session نظيفة بدون mustChangePassword
       const loginRes: any = await authApi.loginWithEmail(email, forcePass);
       localStorage.setItem("nasaq_token",   loginRes.token);
       localStorage.setItem("nasaq_org_id",  loginRes.user.orgId);
