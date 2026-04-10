@@ -10,7 +10,7 @@ export const BRAND = {
   nameAr:  "ترميز OS",
   nameEn:  "Nasaq",
   product: "ترميز OS",
-  tagline: "تشغيل أعمالك بالكامل",
+  tagline: "لخدمات الأعمال",
   taglineLong: "منصة متكاملة لإدارة وتشغيل وبيع الأعمال",
   welcomeAr: "مرحبًا بك في ترميز OS",
   copyright: `© ${new Date().getFullYear()} ترميز OS. جميع الحقوق محفوظة.`,

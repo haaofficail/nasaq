@@ -30,7 +30,7 @@ const DEFAULT_CONFIG: PlatformConfig = {
   faviconUrl: null,
   primaryColor: "#5b9bd5",
   supportEmail: "info@tarmizos.com",
-  supportPhone: "0532064321",
+  supportPhone: "+966532064321",
 };
 
 // قراءة الكاش من localStorage عند أول تحميل
