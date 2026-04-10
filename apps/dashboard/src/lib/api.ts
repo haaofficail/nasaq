@@ -1683,6 +1683,7 @@ export const adminApi = {
     return api.get<{ data: any[]; pagination: any }>(`/admin/orgs?${q}`);
   },
   getOrg: (id: string) => api.get<{ data: any }>(`/admin/orgs/${id}`),
+  getOrgOwner: (id: string) => api.get<{ data: { id: string; name: string; email: string | null; phone: string } }>(`/admin/orgs/${id}/owner`),
   updateOrg: (id: string, data: any) => api.patch<{ data: any }>(`/admin/orgs/${id}`, data),
   uploadOrgLogo: (orgId: string, file: File): Promise<{ data: { url: string } }> => {
     const formData = new FormData();

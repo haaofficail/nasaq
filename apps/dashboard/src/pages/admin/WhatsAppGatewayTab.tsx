@@ -716,22 +716,42 @@ function TestTemplateSection({ connected }: { connected: boolean }) {
 // CREDENTIALS SEND SECTION
 // ══════════════════════════════════════════════════════════════
 
+const DEFAULT_LOGIN_URL = "https://nasaqpro.tech/login";
+
 function CredentialsSendSection() {
   const [form, setForm] = useState({
     phone: "", orgName: "", email: "", password: "",
-    loginUrl: "", channel: "whatsapp", orgId: "",
+    loginUrl: DEFAULT_LOGIN_URL, channel: "whatsapp", orgId: "",
   });
+  const [resetPassword, setResetPassword] = useState(true); // تغيير كلمة المرور في DB افتراضياً
+  const [fetchingOwner, setFetchingOwner] = useState(false);
   const [sending, setSending] = useState(false);
-  const [result, setResult] = useState<{ sent: boolean; error?: string } | null>(null);
+  const [result, setResult] = useState<{ sent: boolean; passwordChanged?: boolean; error?: string } | null>(null);
 
-  const handleOrgSelect = (org: { id: string; name: string; phone: string; email?: string }) => {
-    setForm(f => ({
-      ...f,
-      orgId: org.id,
-      orgName: org.name,
-      phone: org.phone || f.phone,
-      email: org.email || f.email,
-    }));
+  // عند اختيار المنشأة: جلب بيانات المالك الفعلية من DB
+  const handleOrgSelect = async (org: { id: string; name: string; phone: string; email?: string }) => {
+    setForm(f => ({ ...f, orgId: org.id, orgName: org.name }));
+    setFetchingOwner(true);
+    try {
+      const res = await adminApi.getOrgOwner(org.id);
+      const owner = res.data;
+      setForm(f => ({
+        ...f,
+        orgId: org.id,
+        orgName: org.name,
+        phone: owner.phone || org.phone || f.phone,
+        email: owner.email || org.email || f.email,
+      }));
+    } catch {
+      // fallback to org-level data
+      setForm(f => ({
+        ...f,
+        phone: org.phone || f.phone,
+        email: org.email || f.email,
+      }));
+    } finally {
+      setFetchingOwner(false);
+    }
   };
 
   const handleSend = async () => {
@@ -740,17 +760,19 @@ function CredentialsSendSection() {
     setResult(null);
     try {
       const res = await adminApi.sendCredentials({
-        phone: form.phone,
-        orgName: form.orgName,
-        email: form.email || undefined,
-        password: form.password,
-        loginUrl: form.loginUrl || undefined,
-        channel: form.channel,
-        orgId: form.orgId || undefined,
+        phone:         form.phone,
+        orgName:       form.orgName,
+        email:         form.email || undefined,
+        password:      form.password,
+        loginUrl:      form.loginUrl || DEFAULT_LOGIN_URL,
+        channel:       form.channel,
+        orgId:         form.orgId || undefined,
+        resetPassword: resetPassword && !!form.orgId,
       });
-      setResult({ sent: res.data?.sent, error: res.data?.error });
+      const didReset = resetPassword && !!form.orgId;
+      setResult({ sent: res.data?.sent, passwordChanged: didReset, error: res.data?.error });
       if (res.data?.sent) {
-        toast.success("تم إرسال بيانات الدخول بنجاح");
+        toast.success(didReset ? "تم تغيير كلمة المرور وإرسال بيانات الدخول" : "تم إرسال بيانات الدخول");
         setForm(f => ({ ...f, phone: "", orgName: "", email: "", password: "", orgId: "" }));
       } else {
         toast.error(res.data?.error || "فشل الإرسال");
@@ -769,68 +791,122 @@ function CredentialsSendSection() {
         <Key className="w-4 h-4 text-brand-500" />
         إرسال بيانات الدخول للمنشأة
       </h3>
-      <p className="text-xs text-gray-500">
-        أرسل بيانات الدخول (البريد/الجوال + كلمة المرور + رابط الدخول) مباشرة عبر واتساب أو SMS.
-        يمكنك البحث عن المنشأة لتعبئة البيانات تلقائياً.
-      </p>
 
       {result && (
-        <div className={clsx("rounded-xl p-3 text-xs font-medium flex items-center gap-2",
+        <div className={clsx("rounded-xl p-3 text-xs font-medium flex items-start gap-2",
           result.sent ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-700 border border-red-100"
         )}>
-          {result.sent ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-          {result.sent ? "تم إرسال بيانات الدخول بنجاح" : `فشل الإرسال: ${result.error}`}
+          {result.sent ? <CheckCircle2 className="w-4 h-4 shrink-0 mt-px" /> : <XCircle className="w-4 h-4 shrink-0 mt-px" />}
+          <div>
+            {result.sent ? "تم إرسال بيانات الدخول بنجاح" : `فشل الإرسال: ${result.error}`}
+            {result.sent && result.passwordChanged && (
+              <p className="mt-0.5 text-emerald-600">تم تحديث كلمة المرور في قاعدة البيانات</p>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Org Search */}
-      <OrgSearchPicker onSelect={handleOrgSelect} />
+      {/* الخطوة 1 — اختيار المنشأة */}
+      <div>
+        <p className="text-xs font-medium text-gray-500 mb-2">الخطوة 1 — اختر المنشأة</p>
+        <OrgSearchPicker onSelect={handleOrgSelect} />
+        {fetchingOwner && (
+          <p className="text-xs text-brand-500 flex items-center gap-1 mt-1.5">
+            <Loader2 className="w-3 h-3 animate-spin" /> جارٍ جلب بيانات المالك...
+          </p>
+        )}
+      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">اسم المنشأة *</label>
-          <input value={form.orgName} onChange={e => setForm(f => ({ ...f, orgName: e.target.value }))}
-            placeholder="مثال: شركة النور"
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">رقم الجوال *</label>
-          <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-            placeholder="05XXXXXXXX"
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+      {/* الخطوة 2 — بيانات الحساب (تعبأ تلقائياً) */}
+      <div>
+        <p className="text-xs font-medium text-gray-500 mb-2">الخطوة 2 — بيانات الحساب</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">اسم المنشأة *</label>
+            <input value={form.orgName} onChange={e => setForm(f => ({ ...f, orgName: e.target.value }))}
+              placeholder="مثال: شركة النور"
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">رقم جوال المالك *</label>
+            <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+              placeholder="05XXXXXXXX"
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" dir="ltr" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">البريد الإلكتروني</label>
+            <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
+              placeholder="email@example.com"
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" dir="ltr" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">رابط الدخول</label>
+            <input value={form.loginUrl} onChange={e => setForm(f => ({ ...f, loginUrl: e.target.value }))}
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-gray-50 text-gray-600" dir="ltr" />
+          </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">البريد الإلكتروني</label>
-          <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-            placeholder="email@example.com"
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+      {/* الخطوة 3 — كلمة المرور */}
+      <div>
+        <p className="text-xs font-medium text-gray-500 mb-2">الخطوة 3 — كلمة المرور</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">كلمة المرور الجديدة *</label>
+            <input value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
+              placeholder="أدخل كلمة مرور قوية"
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 font-mono" dir="ltr" />
+          </div>
+          <div>
+            <label className="flex items-start gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={resetPassword}
+                onChange={e => setResetPassword(e.target.checked)}
+                className="mt-0.5 rounded border-gray-300 text-brand-500 focus:ring-brand-400"
+              />
+              <span className="text-xs text-gray-600 leading-relaxed">
+                تغيير كلمة المرور في قاعدة البيانات فعلياً
+                <span className="block text-gray-400">يمكّن المالك من الدخول بهذه الكلمة</span>
+              </span>
+            </label>
+            {resetPassword && !form.orgId && (
+              <p className="text-[10px] text-amber-600 mt-1">يتطلب اختيار منشأة أولاً</p>
+            )}
+          </div>
         </div>
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">كلمة المرور *</label>
-          <input value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
-            placeholder="كلمة المرور المؤقتة"
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 font-mono" dir="ltr" />
-        </div>
+
+        {/* معاينة الرسالة */}
+        {form.orgName && form.password && (
+          <div className="mt-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+            <p className="text-[10px] text-gray-400 mb-1.5 font-medium">معاينة الرسالة</p>
+            <pre className="text-xs text-gray-600 whitespace-pre-wrap leading-relaxed font-sans">
+{`مرحباً ${form.orgName}،
+
+تم إنشاء حسابكم في منصة ترميز OS بنجاح.
+
+بيانات الدخول:
+${form.email ? `البريد الإلكتروني: ${form.email}` : `رقم الجوال: ${form.phone}`}
+كلمة المرور: ${form.password}
+
+رابط الدخول: ${form.loginUrl || DEFAULT_LOGIN_URL}
+
+يُرجى تغيير كلمة المرور فور تسجيل الدخول لأول مرة.
+
+منصة ترميز OS`}
+            </pre>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">رابط الدخول</label>
-          <input value={form.loginUrl} onChange={e => setForm(f => ({ ...f, loginUrl: e.target.value }))}
-            placeholder="https://app.tarmiz.os/login (افتراضي)"
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" dir="ltr" />
-        </div>
-        <div>
-          <label className="text-xs text-gray-500 block mb-1">قناة الإرسال</label>
-          <select value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))}
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
-            <option value="whatsapp">واتساب</option>
-            <option value="sms">رسالة نصية SMS</option>
-          </select>
-        </div>
+      {/* الخطوة 4 — قناة الإرسال */}
+      <div>
+        <p className="text-xs font-medium text-gray-500 mb-2">الخطوة 4 — قناة الإرسال</p>
+        <select value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))}
+          className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+          <option value="whatsapp">واتساب</option>
+          <option value="sms">رسالة نصية SMS</option>
+        </select>
       </div>
 
       <button
@@ -839,7 +915,8 @@ function CredentialsSendSection() {
         className="w-full py-3 bg-brand-500 text-white rounded-xl text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
       >
         {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Key className="w-4 h-4" />}
-        إرسال بيانات الدخول
+        {sending ? "جارٍ الإرسال..." :
+         (resetPassword && form.orgId) ? "تغيير كلمة المرور وإرسال بيانات الدخول" : "إرسال بيانات الدخول"}
       </button>
     </div>
   );

@@ -57,7 +57,7 @@ function hashPassword(password: string): string {
 }
 
 // ── Default login URL constant ─────────────────────────────
-const DEFAULT_LOGIN_URL = process.env.APP_LOGIN_URL || "https://app.tarmiz.os/login";
+const DEFAULT_LOGIN_URL = process.env.APP_LOGIN_URL || "https://nasaqpro.tech/login";
 
 // ============================================================
 // NASAQ STAFF MIDDLEWARE — يتحقق من التوكن ويسمح لـ isSuperAdmin أو أي nasaqRole
@@ -2482,36 +2482,74 @@ adminRouter.post("/wa/qr/logout", async (c) => {
   }
 });
 
+// ── Get org owner details for credentials form ─────────────
+adminRouter.get("/orgs/:id/owner", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const orgId = c.req.param("id");
+
+  const [owner] = await db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    phone: users.phone,
+  }).from(users).where(and(eq(users.orgId, orgId), eq(users.type, "owner")));
+
+  if (!owner) return apiErr(c, "OWNER_NOT_FOUND", 404);
+  return c.json({ data: owner });
+});
+
 // ── Send Org Credentials via WhatsApp ──────────────────────
 adminRouter.post("/wa/send-credentials", async (c) => {
   if (!isSuperAdmin(c)) return superAdminOnly(c);
   const adminId = c.get("adminId") as string;
 
   const body = z.object({
-    phone: z.string().min(5),
-    orgName: z.string().min(1),
-    email: z.string().optional(),
-    password: z.string().min(1),
-    loginUrl: z.string().optional(),
-    channel: z.enum(["whatsapp", "sms"]).default("whatsapp"),
-    orgId: z.string().uuid().optional(),
+    phone:         z.string().min(5),
+    orgName:       z.string().min(1),
+    email:         z.string().optional(),
+    password:      z.string().min(1),
+    loginUrl:      z.string().optional(),
+    channel:       z.enum(["whatsapp", "sms"]).default("whatsapp"),
+    orgId:         z.string().uuid().optional(),
+    resetPassword: z.boolean().default(false),  // إذا true: يغيّر كلمة المرور في DB فعلياً
   }).parse(await c.req.json());
 
   const phone = normalizePhoneAdmin(body.phone) || body.phone;
   const loginUrl = body.loginUrl || DEFAULT_LOGIN_URL;
 
+  // ── تغيير كلمة المرور في DB إذا طُلب ذلك ─────────────────
+  if (body.resetPassword && body.orgId) {
+    const [owner] = await db.select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.orgId, body.orgId), eq(users.type, "owner")));
+
+    if (owner) {
+      const salt = randomBytes(16).toString("hex");
+      const hash = scryptSync(body.password, salt, 64).toString("hex");
+      const passwordHash = `${salt}:${hash}`;
+      await db.update(users)
+        .set({ passwordHash })
+        .where(eq(users.id, owner.id));
+      logAdminAction(adminId, "reset_owner_password", "org", body.orgId, {}, c.req.header("X-Forwarded-For"));
+    }
+  }
+
+  // ── بناء نص الرسالة ────────────────────────────────────────
+  const loginIdentifier = body.email || body.phone;
   const message = [
-    `مرحباً ${body.orgName}`,
+    `مرحباً ${body.orgName}،`,
     ``,
-    `تم إنشاء حسابكم في منصة ترميز OS`,
+    `تم إنشاء حسابكم في منصة ترميز OS بنجاح.`,
     ``,
     `بيانات الدخول:`,
-    body.email ? `البريد: ${body.email}` : `الجوال: ${body.phone}`,
+    body.email ? `البريد الإلكتروني: ${body.email}` : `رقم الجوال: ${body.phone}`,
     `كلمة المرور: ${body.password}`,
     ``,
     `رابط الدخول: ${loginUrl}`,
     ``,
-    `يرجى تغيير كلمة المرور بعد أول تسجيل دخول.`,
+    `يُرجى تغيير كلمة المرور فور تسجيل الدخول لأول مرة.`,
+    ``,
+    `منصة ترميز OS`,
   ].join("\n");
 
   const [msg] = await db.insert(adminWaMessages).values({
@@ -2549,7 +2587,7 @@ adminRouter.post("/wa/send-credentials", async (c) => {
   }).where(eq(adminWaMessages.id, msg.id));
 
   logAdminAction(adminId, "send_credentials", "wa_message", msg.id, {
-    phone, orgName: body.orgName, sent,
+    phone, orgName: body.orgName, sent, passwordReset: body.resetPassword,
   }, c.req.header("X-Forwarded-For"));
 
   return c.json({ data: { id: msg.id, sent, error: sent ? null : (errorMessage || "فشل الإرسال") } });
