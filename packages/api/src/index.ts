@@ -921,6 +921,14 @@ try {
 // Start pg-boss scheduler (creates pgboss schema on first run, resumes on restart)
 const boss = await startScheduler();
 
+// Restore saved WhatsApp Baileys sessions (platform + org) on startup
+try {
+  const { restoreAllBaileys } = await import("./lib/whatsappBaileys");
+  await restoreAllBaileys();
+} catch (err) {
+  log.warn({ err }, "[startup] restoreAllBaileys failed — continuing");
+}
+
 const port = parseInt(process.env.PORT || "3000");
 
 log.info({ port, url: `http://localhost:${port}/api/v1` }, "nasaq-api started");
