@@ -7,7 +7,7 @@ import { nanoid } from "nanoid";
 import { SESSION_DURATION_MS, DEFAULT_TRIAL_DAYS, MAX_FAILED_LOGIN_ATTEMPTS } from "../lib/constants";
 import { authMiddleware, type AuthUser } from "../middleware/auth";
 import { getBusinessDefaults, getTrustedIp } from "../lib/helpers";
-import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
+import { scryptSync, randomBytes, timingSafeEqual, createHmac } from "crypto";
 import { sendSms } from "../lib/sms";
 import { sendEmail, buildOtpEmail } from "../lib/email";
 import { seedChartOfAccounts } from "../lib/seed-chart-of-accounts";
@@ -809,7 +809,6 @@ function isAdminUser(u: { isSuperAdmin: boolean | null; nasaqRole: string | null
 
 // HMAC-SHA256 — يُستخدم لتجزئة الأكواد والتوكنات قبل التخزين
 function hashAdminCode(value: string): string {
-  const { createHmac } = require("crypto") as typeof import("crypto");
   const secret = process.env.OTP_HASH_SECRET ?? "tarmiz-dev-otp-secret-change-in-prod";
   return createHmac("sha256", secret).update(value).digest("hex");
 }
