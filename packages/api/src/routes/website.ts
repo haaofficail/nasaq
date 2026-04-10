@@ -729,7 +729,7 @@ websiteRouter.get("/storefront-settings", async (c) => {
       city: org.city,
       address: org.address,
       storefrontEnabled: org.storefrontEnabled ?? true,
-      publicUrl: `https://nasaqpro.tech/s/${org.slug}`,
+      publicUrl: `https://tarmizos.com/s/${org.slug}`,
     },
   });
 });

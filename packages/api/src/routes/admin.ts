@@ -57,7 +57,7 @@ function hashPassword(password: string): string {
 }
 
 // ── Default login URL constant ─────────────────────────────
-const DEFAULT_LOGIN_URL = process.env.APP_LOGIN_URL || "https://nasaqpro.tech/login";
+const DEFAULT_LOGIN_URL = process.env.APP_LOGIN_URL || "https://tarmizos.com/login";
 
 // ============================================================
 // NASAQ STAFF MIDDLEWARE — يتحقق من التوكن ويسمح لـ isSuperAdmin أو أي nasaqRole
@@ -267,7 +267,7 @@ adminRouter.post("/orgs/:id/logo", async (c) => {
   if (file.size > 5 * 1024 * 1024) return c.json({ error: "الحجم يجب ألا يتجاوز 5MB" }, 400);
 
   const UPLOAD_DIR = process.env.UPLOAD_DIR || "/var/www/nasaq/uploads";
-  const PUBLIC_BASE = process.env.PUBLIC_BASE_URL || "https://nasaqpro.tech";
+  const PUBLIC_BASE = process.env.PUBLIC_BASE_URL || "https://tarmizos.com";
   const ext = file.name.split(".").pop()?.toLowerCase() || "png";
   const filename = `logo-${nanoid(10)}.${ext}`;
   const orgDir = join(UPLOAD_DIR, orgId);

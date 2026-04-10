@@ -716,7 +716,7 @@ function TestTemplateSection({ connected }: { connected: boolean }) {
 // CREDENTIALS SEND SECTION
 // ══════════════════════════════════════════════════════════════
 
-const DEFAULT_LOGIN_URL = "https://nasaqpro.tech/login";
+const DEFAULT_LOGIN_URL = "https://tarmizos.com/login";
 
 function CredentialsSendSection() {
   const [form, setForm] = useState({

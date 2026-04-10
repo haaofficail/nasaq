@@ -450,7 +450,7 @@ export function InvoicesPage() {
                 </div>
                 <div>
                   <p className="text-xs font-bold text-brand-700 leading-none">ترميز OS</p>
-                  <p className="text-[10px] text-gray-400 leading-none mt-0.5" dir="ltr">nasaqpro.tech</p>
+                  <p className="text-[10px] text-gray-400 leading-none mt-0.5" dir="ltr">tarmizos.com</p>
                 </div>
               </div>
               {orgCtx?.orgCode && (

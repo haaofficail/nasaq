@@ -11,7 +11,7 @@ import { join } from "path";
 export const fileUploadRouter = new Hono();
 
 const UPLOAD_DIR = process.env.UPLOAD_DIR || "/var/www/nasaq/uploads";
-const PUBLIC_BASE = process.env.PUBLIC_BASE_URL || "https://nasaqpro.tech";
+const PUBLIC_BASE = process.env.PUBLIC_BASE_URL || "https://tarmizos.com";
 
 fileUploadRouter.post("/", async (c) => {
   const orgId = getOrgId(c);

@@ -170,7 +170,7 @@ router.post("/teachers/:id/invite", requirePerm("school.students.write"), async 
     .set({ userId, inviteToken, inviteExpiresAt: inviteExpiry, invitedAt: new Date(), updatedAt: new Date() })
     .where(eq(teacherProfiles.id, id));
 
-  const APP_URL   = process.env.APP_URL ?? "https://nasaqpro.tech";
+  const APP_URL   = process.env.APP_URL ?? "https://tarmizos.com";
   const inviteLink = `${APP_URL}/school/invite/${inviteToken}`;
   const loginPhone = teacher.phone ?? null;
 

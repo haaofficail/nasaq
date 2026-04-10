@@ -184,7 +184,7 @@ const FEATURES = [
     color: "bg-sky-50 text-sky-600",
     href: "/dashboard/storefront",
     questions: [
-      { q: "ما الصفحة التعريفية العامة؟", a: "هي صفحة عامة على الإنترنت تعرض منشأتك وخدماتك للعملاء دون الحاجة لحساب. رابطها: nasaqpro.tech/store/[اسم-منشأتك]" },
+      { q: "ما الصفحة التعريفية العامة؟", a: "هي صفحة عامة على الإنترنت تعرض منشأتك وخدماتك للعملاء دون الحاجة لحساب. رابطها: tarmizos.com/store/[اسم-منشأتك]" },
       { q: "ما المعلومات التي تظهر فيها؟", a: "اسم المنشأة، الشعار، اللون، الخدمات والأسعار، التقييمات، وقسم الورد إن كان مفعّلاً. يمكن العميل الحجز مباشرة منها." },
       { q: "كيف يظهر قسم الورد في الصفحة؟", a: "تلقائياً حين تفعّل صفحة بناء الباقة من «الباقات والتنسيقات > الصفحة». يظهر قسم بالباقات الجاهزة وزر «ابني باقتك»." },
       { q: "هل يمكن العميل الحجز مباشرة من الصفحة؟", a: "نعم، يضغط «احجز» بجانب أي خدمة ويملأ بياناته وموعده مباشرة في نفس الصفحة بدون انتقال." },
@@ -522,9 +522,9 @@ export function GuidePage() {
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-500 text-white text-xs font-semibold hover:bg-emerald-600 transition-colors">
             واتساب الدعم
           </a>
-          <a href="mailto:info@nasaqpro.tech"
+          <a href="mailto:info@tarmizos.com"
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition-colors">
-            info@nasaqpro.tech
+            info@tarmizos.com
           </a>
         </div>
       </div>

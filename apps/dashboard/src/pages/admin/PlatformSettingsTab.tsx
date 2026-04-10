@@ -176,7 +176,7 @@ export default function PlatformSettingsTab() {
             <input
               value={f.supportEmail ?? ""}
               onChange={(e) => setForm((prev: any) => ({ ...(prev ?? config), supportEmail: e.target.value }))}
-              placeholder="support@nasaqpro.tech"
+              placeholder="support@tarmizos.com"
               className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-300"
               dir="ltr"
             />

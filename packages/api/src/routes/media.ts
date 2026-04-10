@@ -11,7 +11,7 @@ import { insertAuditLog } from "../lib/audit";
 import { ASSET_BASE_URL } from "../lib/storage";
 
 const UPLOAD_DIR     = process.env.UPLOAD_DIR     || "/var/www/nasaq/static/uploads";
-const STATIC_BASE_URL = process.env.STATIC_BASE_URL || "https://nasaqpro.tech/static/uploads";
+const STATIC_BASE_URL = process.env.STATIC_BASE_URL || "https://tarmizos.com/static/uploads";
 
 // ── Lazy R2 client — only created when env vars are present ─────────────────
 

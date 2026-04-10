@@ -469,7 +469,7 @@ subscriptionRouter.get("/payment-url", async (c) => {
   const publishableKey = process.env.MOYASAR_PUBLISHABLE_KEY;
   if (!publishableKey) return c.json({ error: "بوابة الدفع غير مهيأة" }, 500);
 
-  const base        = returnUrl ?? "https://app.nasaqpro.tech/dashboard/subscription";
+  const base        = returnUrl ?? "https://app.tarmizos.com/dashboard/subscription";
   const callbackUrl = `${base}?orderId=${orderId}`;
 
   const paymentUrl = buildMoyasarPaymentUrl({

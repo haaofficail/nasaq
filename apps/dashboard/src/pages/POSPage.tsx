@@ -523,7 +523,7 @@ function ReceiptModal({ result, orgName, onClose }: ReceiptModalProps) {
 
           {/* Footer */}
           <div className="text-center text-[10px] text-gray-300 border-t border-dashed border-gray-100 pt-3">
-            شكراً لزيارتكم · ترميز OS — nasaqpro.tech
+            شكراً لزيارتكم · ترميز OS — tarmizos.com
           </div>
         </div>
 

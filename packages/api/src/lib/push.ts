@@ -7,7 +7,7 @@ import { log } from "./logger";
 // ENV:
 //   VAPID_PUBLIC_KEY   — Generate with: web-push generate-vapid-keys
 //   VAPID_PRIVATE_KEY  — Generate with: web-push generate-vapid-keys
-//   VAPID_SUBJECT      — mailto:admin@nasaqpro.tech
+//   VAPID_SUBJECT      — mailto:admin@tarmizos.com
 // ============================================================
 
 let _vapidConfigured = false;
@@ -16,7 +16,7 @@ function ensureVapid() {
   if (_vapidConfigured) return true;
   const pub  = process.env.VAPID_PUBLIC_KEY;
   const priv = process.env.VAPID_PRIVATE_KEY;
-  const sub  = process.env.VAPID_SUBJECT ?? "mailto:admin@nasaqpro.tech";
+  const sub  = process.env.VAPID_SUBJECT ?? "mailto:admin@tarmizos.com";
   if (!pub || !priv) return false;
   webPush.setVapidDetails(sub, pub, priv);
   _vapidConfigured = true;

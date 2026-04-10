@@ -258,12 +258,12 @@ export function CompliancePage() {
                 لأي استفسار متعلق بالخصوصية أو الامتثال القانوني أو ممارسة حقوق البيانات
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 12, alignItems: "center" }}>
-                <a href="mailto:privacy@nasaqpro.tech" style={{
+                <a href="mailto:privacy@tarmizos.com" style={{
                   background: "#5b9bd5", color: "#ffffff",
                   padding: "10px 28px", borderRadius: 12, fontSize: 14, fontWeight: 600,
                   textDecoration: "none",
                 }}>
-                  privacy@nasaqpro.tech
+                  privacy@tarmizos.com
                 </a>
                 <p style={{ fontSize: 12, color: "#94a3b8" }}>
                   للشكاوى: يمكنك التواصل مع هيئة البيانات والذكاء الاصطناعي

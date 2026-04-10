@@ -2863,7 +2863,7 @@ export function LandingPage() {
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 {[
-                  { text: "info@nasaqpro.tech", icon: Globe },
+                  { text: "info@tarmizos.com", icon: Globe },
                   { text: "0522064321", icon: Smartphone },
                 ].map((c, i) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 6,

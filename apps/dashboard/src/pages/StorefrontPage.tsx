@@ -142,7 +142,7 @@ export function StorefrontPage() {
     const slug = storefrontData?.slug || profile?.slug;
     if (!slug) return;
     import("qrcode").then(QRCode => {
-      QRCode.default.toDataURL(`https://nasaqpro.tech/s/${slug}`, {
+      QRCode.default.toDataURL(`https://tarmizos.com/s/${slug}`, {
         width: 400, margin: 1,
         color: { dark: storefrontData?.primaryColor || "#5b9bd5", light: "#ffffff" },
         errorCorrectionLevel: "H",
@@ -550,7 +550,7 @@ export function StorefrontPage() {
               {sfSlugEditing ? (
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1 flex-1 border border-brand-300 rounded-xl px-3 py-2 bg-brand-50/30 text-sm">
-                    <span className="text-gray-400 text-xs">nasaqpro.tech/s/</span>
+                    <span className="text-gray-400 text-xs">tarmizos.com/s/</span>
                     <input value={sfSlugEdit} onChange={e => setSfSlugEdit(e.target.value)}
                       className="flex-1 bg-transparent outline-none text-gray-800 font-mono" dir="ltr" />
                   </div>
@@ -983,7 +983,7 @@ export function StorefrontPage() {
                 <input type="text" value={settingsForm.customDomain} onChange={e => s("customDomain", e.target.value)} placeholder="www.yoursite.com" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:border-brand-400" />
               </div>
               <div className="bg-amber-50 rounded-xl p-3 text-xs text-amber-700">
-                بعد إضافة الدومين، وجّه DNS Record من نوع CNAME إلى: <span className="font-mono font-bold">nasaqpro.tech</span>
+                بعد إضافة الدومين، وجّه DNS Record من نوع CNAME إلى: <span className="font-mono font-bold">tarmizos.com</span>
               </div>
             </div>
           </div>

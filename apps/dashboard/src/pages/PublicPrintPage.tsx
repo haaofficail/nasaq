@@ -206,7 +206,7 @@ function A4Page({ org, services, qrUrl }: { org: OrgData; services: ServiceItem[
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span style={{ fontSize: 10, color: muted }}>الحجز عبر:</span>
           <span style={{ fontSize: 10, fontWeight: 700, color: primary, direction: "ltr" }}>
-            nasaqpro.tech/s/{org.slug}
+            tarmizos.com/s/{org.slug}
           </span>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
@@ -302,7 +302,7 @@ function ShelfLabel({ org, qrUrl }: { org: OrgData; qrUrl: string }) {
           <div style={{ marginTop: 2, background: primary, color: "#fff", fontSize: 8, fontWeight: 700, padding: "2px 7px", borderRadius: 4, width: "fit-content" }}>
             احجز الآن
           </div>
-          <span style={{ fontSize: 7, color: "#cbd5e1", marginTop: 1, direction: "ltr" }}>nasaqpro.tech/s/{org.slug}</span>
+          <span style={{ fontSize: 7, color: "#cbd5e1", marginTop: 1, direction: "ltr" }}>tarmizos.com/s/{org.slug}</span>
         </div>
       </div>
     </div>
@@ -317,7 +317,7 @@ export function PublicPrintPage() {
   const [exporting, setExporting] = useState(false);
   const slug = orgSlug || "";
 
-  const publicUrl = `https://nasaqpro.tech/s/${slug}`;
+  const publicUrl = `https://tarmizos.com/s/${slug}`;
   const qrA4    = useQR(publicUrl, 400);
   const qrCard  = useQR(publicUrl, 200);
   const qrShelf = useQR(publicUrl, 200);

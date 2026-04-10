@@ -423,7 +423,7 @@ function OwnGatewaySection({ navigate }: { navigate: (path: string) => void }) {
 function LockedSection({ title, description }: { title: string; description: string }) {
   const platform = usePlatformConfig();
   const phone = platform.supportPhone?.replace(/^0/, "") ?? "532064321";
-  const email = platform.supportEmail ?? "info@nasaqpro.tech";
+  const email = platform.supportEmail ?? "info@tarmizos.com";
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
       <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">

@@ -49,7 +49,7 @@ export function ContactPage() {
               <h2 className="text-2xl font-black text-gray-900 mb-8">معلومات التواصل</h2>
               <div className="space-y-6">
                 {[
-                  { Icon: Mail,          title: "البريد الإلكتروني", val: platform.supportEmail ?? "info@nasaqpro.tech" },
+                  { Icon: Mail,          title: "البريد الإلكتروني", val: platform.supportEmail ?? "info@tarmizos.com" },
                   { Icon: MessageCircle, title: "الواتساب",          val: platform.supportPhone ?? "0532064321" },
                   { Icon: Clock,         title: "أوقات العمل",       val: "الأحد - الخميس، 9 ص - 6 م" },
                   { Icon: MapPin,        title: "الموقع",            val: "الرياض، المملكة العربية السعودية" },

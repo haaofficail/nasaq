@@ -379,7 +379,7 @@ export function DashboardPage() {
             </div>
             <div>
               <p className="text-sm font-semibold text-gray-900">صفحتك العامة</p>
-              <p className="text-xs text-gray-400 font-mono">nasaqpro.tech/s/{orgSlug}</p>
+              <p className="text-xs text-gray-400 font-mono">tarmizos.com/s/{orgSlug}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">

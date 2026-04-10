@@ -284,7 +284,7 @@ export function BillingPage() {
                         )}
                         {plan.code === "custom" && (
                           <a
-                            href="mailto:info@nasaqpro.tech"
+                            href="mailto:info@tarmizos.com"
                             className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-medium transition-colors"
                           >
                             تواصل معنا

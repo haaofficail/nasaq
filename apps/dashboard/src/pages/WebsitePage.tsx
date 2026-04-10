@@ -1835,7 +1835,7 @@ export function WebsitePage() {
               <p className="text-sm text-gray-700 font-medium">صفحات موقعك الإضافية</p>
               <p className="text-xs text-gray-400 mt-0.5">
                 كل صفحة تظهر على موقعك العام في رابط مثل:{" "}
-                {siteUrl ? <span className="font-mono bg-gray-100 px-1 rounded text-gray-500">{siteUrl}/p/about</span> : <span className="font-mono text-gray-400">nasaqpro.tech/s/slug/p/الرابط</span>}
+                {siteUrl ? <span className="font-mono bg-gray-100 px-1 rounded text-gray-500">{siteUrl}/p/about</span> : <span className="font-mono text-gray-400">tarmizos.com/s/slug/p/الرابط</span>}
                 {" "}— بعد النشر يظهر الرابط في قائمة الموقع
               </p>
             </div>
@@ -2196,11 +2196,11 @@ export function WebsitePage() {
             <div className="flex flex-col gap-3">
               <div className="bg-gray-50 rounded-xl px-3.5 py-2.5">
                 <p className="text-xs text-gray-400 mb-0.5">رابط ترميز OS المجاني</p>
-                <p className="text-[13px] font-semibold text-brand-400 font-mono">nasaqpro.tech/s/{orgSlug || "—"}</p>
+                <p className="text-[13px] font-semibold text-brand-400 font-mono">tarmizos.com/s/{orgSlug || "—"}</p>
               </div>
               <FieldInput label="نطاق مخصص (اختياري)" value={settings.customDomain} onChange={v => s("customDomain", v)} placeholder="www.yoursite.com" dir="ltr" />
               <div className="bg-amber-50 rounded-xl px-3.5 py-2.5 text-xs text-amber-700">
-                وجّه DNS Record من نوع CNAME إلى: <span className="font-mono font-bold">nasaqpro.tech</span>
+                وجّه DNS Record من نوع CNAME إلى: <span className="font-mono font-bold">tarmizos.com</span>
               </div>
             </div>
           </Card>

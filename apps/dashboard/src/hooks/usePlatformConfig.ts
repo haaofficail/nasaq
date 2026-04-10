@@ -29,7 +29,7 @@ const DEFAULT_CONFIG: PlatformConfig = {
   logoUrl: null,
   faviconUrl: null,
   primaryColor: "#5b9bd5",
-  supportEmail: "info@nasaqpro.tech",
+  supportEmail: "info@tarmizos.com",
   supportPhone: "0532064321",
 };
 

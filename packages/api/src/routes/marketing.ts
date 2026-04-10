@@ -429,7 +429,7 @@ marketingRouter.post("/reviews/request", async (c) => {
 
   // Build review link
   const [org] = await db.select({ slug: organizations.slug }).from(organizations).where(eq(organizations.id, orgId));
-  const reviewUrl = `${process.env.DASHBOARD_URL || "https://nasaqpro.tech"}/book/${org?.slug || ""}?review=1${bookingId ? `&bid=${bookingId}` : ""}`;
+  const reviewUrl = `${process.env.DASHBOARD_URL || "https://tarmizos.com"}/book/${org?.slug || ""}?review=1${bookingId ? `&bid=${bookingId}` : ""}`;
 
   const message = `أهلاً ${customerName || ""}!\nشكراً لاختيارك خدماتنا. نودّ معرفة رأيك.\nقيّمنا هنا:\n${reviewUrl}`;
 

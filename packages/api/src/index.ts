@@ -665,7 +665,7 @@ app.get("/platform-config/public", async (c) => {
   }).from(platformConfig).where(eq(platformConfig.id, "default"));
   const data = row ?? { platformName: "ترميز OS", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5" };
 
-  // Normalize old absolute URLs (e.g. https://nasaqpro.tech/uploads/platform/...)
+  // Normalize old absolute URLs (e.g. https://tarmizos.com/uploads/platform/...)
   // to API-relative URLs (/api/v1/platform-assets/...) for backward compatibility
   const normalizeUrl = (url: string | null): string | null => {
     if (!url) return null;

@@ -60,7 +60,7 @@ export function AdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-                placeholder="admin@nasaqpro.tech"
+                placeholder="admin@tarmizos.com"
                 className="flex-1 bg-transparent text-sm text-white outline-none placeholder-gray-600"
                 dir="ltr"
               />
