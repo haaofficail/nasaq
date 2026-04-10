@@ -2523,15 +2523,11 @@ adminRouter.post("/wa/send-credentials", async (c) => {
       .from(users)
       .where(and(eq(users.orgId, body.orgId), eq(users.type, "owner")));
 
-    if (owner) {
-      const salt = randomBytes(16).toString("hex");
-      const hash = scryptSync(body.password, salt, 64).toString("hex");
-      const passwordHash = `${salt}:${hash}`;
-      await db.update(users)
-        .set({ passwordHash })
-        .where(eq(users.id, owner.id));
-      logAdminAction(adminId, "reset_owner_password", "org", body.orgId, {}, c.req.header("X-Forwarded-For"));
-    }
+    if (!owner) return apiErr(c, "OWNER_NOT_FOUND", 404);
+    await db.update(users)
+      .set({ passwordHash: hashPassword(body.password) })
+      .where(eq(users.id, owner.id));
+    logAdminAction(adminId, "reset_owner_password", "org", body.orgId, {}, c.req.header("X-Forwarded-For"));
   }
 
   // ── بناء نص الرسالة ────────────────────────────────────────
