@@ -541,6 +541,7 @@ authRouter.post("/login", async (c) => {
       failedLoginAttempts: users.failedLoginAttempts,
       isSuperAdmin: users.isSuperAdmin,
       nasaqRole: users.nasaqRole,
+      mustChangePassword: users.mustChangePassword,
     })
     .from(users)
     .where(
@@ -620,6 +621,7 @@ authRouter.post("/login", async (c) => {
       businessType: org?.businessType || "general",
       isSuperAdmin: user.isSuperAdmin ?? false,
       nasaqRole: user.nasaqRole ?? null,
+      mustChangePassword: user.mustChangePassword ?? false,
     },
   });
 });
@@ -653,7 +655,7 @@ authRouter.post("/password/change", async (c) => {
   }
 
   await db.update(users)
-    .set({ passwordHash: hashPassword(newPassword), updatedAt: new Date() })
+    .set({ passwordHash: hashPassword(newPassword), mustChangePassword: false, updatedAt: new Date() })
     .where(eq(users.id, user.id));
 
   return c.json({ message: "تم تغيير كلمة المرور بنجاح" });

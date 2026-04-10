@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ShieldCheck, Mail, Eye, EyeOff, Loader2, Lock, Phone, ChevronRight, CheckCircle2 } from "lucide-react";
+import { ShieldCheck, Mail, Eye, EyeOff, Loader2, Lock, Phone, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
 import { authApi } from "@/lib/api";
 import { BRAND } from "@/lib/branding";
 import { PlatformBrandStatic } from "@/components/branding/PlatformLogo";
 import { normalizePhone } from "@/lib/normalize-input";
 
-type View = "login" | "reset_phone" | "reset_otp" | "reset_password" | "reset_done";
+type View = "login" | "force_change" | "reset_phone" | "reset_otp" | "reset_password" | "reset_done";
 
 export function AdminLoginPage() {
   const navigate = useNavigate();
@@ -17,6 +17,9 @@ export function AdminLoginPage() {
   const [showPass, setShowPass] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError]     = useState("");
+
+  // --- force change state ---
+  const forceToken = useRef("");
 
   // --- reset state ---
   const [view, setView]             = useState<View>("login");
@@ -41,6 +44,12 @@ export function AdminLoginPage() {
       const ALLOWED = ["account_manager", "support_agent", "content_manager", "viewer"];
       if (!res?.user?.isSuperAdmin && !ALLOWED.includes(res?.user?.nasaqRole)) {
         setLoginError("هذا الحساب ليس لديه صلاحية الدخول للوحة الإدارة");
+        return;
+      }
+      // إذا كلمة المرور مؤقتة — أجبر على التغيير قبل الدخول
+      if (res?.user?.mustChangePassword) {
+        forceToken.current = res.token;
+        setView("force_change");
         return;
       }
       localStorage.setItem("nasaq_token",   res.token);
@@ -114,6 +123,43 @@ export function AdminLoginPage() {
       setResetError(err.message || "فشل تغيير كلمة المرور — ابدأ من جديد");
     } finally {
       setResetLoading(false);
+    }
+  };
+
+  // ============================================================
+  // Force change password (mustChangePassword = true)
+  // ============================================================
+  const [forcePass, setForcePass]         = useState("");
+  const [showForcePass, setShowForcePass] = useState(false);
+  const [forceLoading, setForceLoading]   = useState(false);
+  const [forceError, setForceError]       = useState("");
+
+  const handleForceChange = async () => {
+    if (!forcePass || forcePass.length < 8) { setForceError("كلمة المرور يجب أن تكون 8 أحرف على الأقل"); return; }
+    setForceLoading(true);
+    setForceError("");
+    try {
+      await fetch("/api/v1/auth/password/change", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${forceToken.current}`,
+        },
+        body: JSON.stringify({ newPassword: forcePass }),
+      }).then(async (r) => {
+        if (!r.ok) { const d = await r.json(); throw new Error(d.error || "فشل تغيير كلمة المرور"); }
+      });
+      // بعد التغيير — دخول مباشر
+      const loginRes: any = await authApi.loginWithEmail(email, forcePass);
+      localStorage.setItem("nasaq_token",   loginRes.token);
+      localStorage.setItem("nasaq_org_id",  loginRes.user.orgId);
+      localStorage.setItem("nasaq_user_id", loginRes.user.id);
+      localStorage.setItem("nasaq_user",    JSON.stringify(loginRes.user));
+      navigate("/admin", { replace: true });
+    } catch (err: any) {
+      setForceError(err.message || "فشل تغيير كلمة المرور");
+    } finally {
+      setForceLoading(false);
     }
   };
 
@@ -199,6 +245,53 @@ export function AdminLoginPage() {
                 نسيت كلمة المرور؟
               </button>
             </div>
+          </div>
+        )}
+
+        {/* ==================== FORCE CHANGE PASSWORD ==================== */}
+        {view === "force_change" && (
+          <div className="bg-gray-900 rounded-2xl border border-amber-700/50 p-6 space-y-4">
+            <div className="flex items-start gap-3 p-3 bg-amber-900/20 border border-amber-700/40 rounded-xl">
+              <AlertTriangle className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+              <p className="text-xs text-amber-400 leading-relaxed">
+                هذه كلمة مرور مؤقتة — يجب تغييرها الآن للمتابعة.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-xs text-gray-400 block mb-1.5">كلمة المرور الجديدة</label>
+              <div className="flex items-center gap-2 bg-gray-800 border border-gray-700 rounded-xl px-3 py-2.5 focus-within:border-brand-500 transition-colors">
+                <Lock className="w-4 h-4 text-gray-500 shrink-0" />
+                <input
+                  type={showForcePass ? "text" : "password"}
+                  value={forcePass}
+                  onChange={(e) => { setForcePass(e.target.value); setForceError(""); }}
+                  onKeyDown={(e) => e.key === "Enter" && handleForceChange()}
+                  placeholder="••••••••"
+                  className="flex-1 bg-transparent text-sm text-white outline-none placeholder-gray-600"
+                  dir="ltr"
+                  autoFocus
+                />
+                <button onClick={() => setShowForcePass(!showForcePass)} className="text-gray-500 hover:text-gray-300">
+                  {showForcePass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            {forceError && (
+              <div className="bg-red-900/30 border border-red-800 rounded-xl p-3 text-sm text-red-400">
+                {forceError}
+              </div>
+            )}
+
+            <button
+              onClick={handleForceChange}
+              disabled={forceLoading}
+              className="w-full py-3 bg-brand-500 text-white rounded-xl text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors"
+            >
+              {forceLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShieldCheck className="w-4 h-4" />}
+              تغيير كلمة المرور والدخول
+            </button>
           </div>
         )}
 

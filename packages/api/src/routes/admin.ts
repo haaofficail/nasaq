@@ -2676,3 +2676,123 @@ adminRouter.post("/wa/send-doc-notification", async (c) => {
 
   return c.json({ data: { id: msg.id, sent, error: sent ? null : (errorMessage || "فشل الإرسال") } });
 });
+
+// ============================================================
+// POST /admin/users/:id/send-credentials
+// Super Admin only — ينشئ كلمة مرور مؤقتة ويرسلها للمستخدم
+// ============================================================
+
+// rate limit per admin user: 10 requests / hour
+const credSendHits = new Map<string, { count: number; resetAt: number }>();
+
+adminRouter.post("/users/:id/send-credentials", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  const userId  = c.req.param("id");
+
+  // rate limit per admin
+  const now = Date.now();
+  const rl = credSendHits.get(adminId);
+  if (rl && rl.resetAt > now) {
+    if (rl.count >= 10) return c.json({ error: "تجاوزت الحد المسموح — 10 إرسال / ساعة" }, 429);
+    rl.count++;
+  } else {
+    credSendHits.set(adminId, { count: 1, resetAt: now + 60 * 60 * 1000 });
+  }
+
+  // تحميل بيانات المستخدم
+  const [user] = await db
+    .select({ id: users.id, name: users.name, email: users.email, phone: users.phone, status: users.status })
+    .from(users)
+    .where(eq(users.id, userId));
+
+  if (!user) return apiErr(c, "USR_NOT_FOUND", 404);
+  if (user.status === "suspended") return c.json({ error: "الحساب موقوف — فعّله أولاً" }, 400);
+
+  // إنشاء كلمة مرور مؤقتة قوية (12 حرف: أحرف + أرقام بدون أحرف مربكة)
+  const ALPHABET = "abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  const tempPassword = Array.from({ length: 12 }, () =>
+    ALPHABET[Math.floor(Math.random() * ALPHABET.length)]
+  ).join("");
+
+  // hash وتحديث DB مع mustChangePassword = true
+  await db.update(users)
+    .set({
+      passwordHash: hashPassword(tempPassword),
+      mustChangePassword: true,
+      failedLoginAttempts: 0,
+      updatedAt: new Date(),
+    })
+    .where(eq(users.id, userId));
+
+  // بناء رسالة الإرسال
+  const email = user.email || "(غير مسجل)";
+  const waMessage =
+    `بيانات الدخول إلى ترميز\n\n` +
+    `البريد الإلكتروني: ${email}\n` +
+    `كلمة المرور المؤقتة: ${tempPassword}\n\n` +
+    `مهم:\n` +
+    `- كلمة المرور المؤقتة صالحة للدخول الأول فقط\n` +
+    `- سيُطلب منك تغييرها فور تسجيل الدخول\n` +
+    `- لا تشارك هذه البيانات مع أحد\n\n` +
+    `Tarmiz OS`;
+
+  let sent = false;
+  let channel = "none";
+
+  // واتساب أولاً
+  if (user.phone) {
+    try {
+      const { sendViaBaileys } = await import("../lib/whatsappBaileys");
+      sent = await sendViaBaileys("platform", user.phone, waMessage);
+      if (sent) channel = "whatsapp";
+    } catch { /* Baileys غير جاهز */ }
+  }
+
+  // إيميل إذا فشل واتساب
+  if (!sent && user.email) {
+    try {
+      const { sendEmail } = await import("../lib/email");
+      const subject = "بيانات الدخول إلى ترميز OS";
+      const html = `
+        <div dir="rtl" style="font-family:sans-serif;max-width:480px;margin:auto">
+          <h2 style="color:#1f2937">بيانات الدخول إلى ترميز OS</h2>
+          <p><strong>البريد الإلكتروني:</strong> ${email}</p>
+          <p><strong>كلمة المرور المؤقتة:</strong> <code style="background:#f3f4f6;padding:4px 8px;border-radius:4px">${tempPassword}</code></p>
+          <hr/>
+          <p style="color:#6b7280;font-size:13px">
+            كلمة المرور المؤقتة صالحة للدخول الأول فقط.<br/>
+            سيُطلب منك تغييرها فور تسجيل الدخول.<br/>
+            لا تشارك هذه البيانات مع أحد.
+          </p>
+        </div>`;
+      const text = waMessage;
+      sent = await sendEmail({ to: user.email, subject, html, text });
+      if (sent) channel = "email";
+    } catch { /* email not configured */ }
+  }
+
+  if (!sent) {
+    console.log(`\n[SEND-CREDENTIALS] userId=${userId} phone=${user.phone} tempPass=${tempPassword}\n`);
+  }
+
+  // audit log
+  logAdminAction(
+    adminId,
+    "send_credentials",
+    "user",
+    userId,
+    { channel, sent, userName: user.name, hasEmail: !!user.email, hasPhone: !!user.phone },
+    c.req.header("X-Forwarded-For")
+  );
+
+  // لا نُرجع كلمة المرور في الـ response أبداً
+  return c.json({
+    ok: true,
+    sent,
+    channel,
+    message: sent
+      ? `تم إرسال بيانات الدخول عبر ${channel === "whatsapp" ? "واتساب" : "البريد الإلكتروني"}`
+      : "فشل الإرسال — تحقق من إعدادات واتساب والبريد الإلكتروني",
+  });
+});

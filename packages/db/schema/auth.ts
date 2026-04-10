@@ -75,6 +75,7 @@ export const users = pgTable("users", {
   nasaqRole: text("nasaq_role"),   // 'account_manager' | 'support_agent' | 'content_manager' | 'viewer'
   lastLoginIp: text("last_login_ip"),
   loginCount: integer("login_count").default(0),
+  mustChangePassword: boolean("must_change_password").default(false).notNull(),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
