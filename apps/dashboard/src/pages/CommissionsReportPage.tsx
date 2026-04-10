@@ -18,15 +18,15 @@ export function CommissionsReportPage() {
   const params = { dateFrom, dateTo };
   const { data: res, loading, refetch } = useApi(() => financeApi.commissionsReport(params), [dateFrom, dateTo]);
   const report = res?.data;
-  const rows: any[] = report?.rows || [];
-  const totalCommissions = report?.totalCommissions || 0;
-  const memberCount = report?.memberCount || 0;
-  const avgRate = report?.avgRate || 0;
+  const rows: any[] = report?.byMember || [];
+  const totalCommissions = report?.summary?.totalCommissions || 0;
+  const memberCount = report?.summary?.memberCount || 0;
+  const avgRate = report?.summary?.avgRate || 0;
 
   const exportCsv = () => {
     const header = "الموظف,عدد الحجوزات,إجمالي المبيعات,نسبة العمولة%,مبلغ العمولة\n";
     const csvRows = rows.map((r: any) =>
-      [r.staffName, r.bookingCount, r.totalSales, r.commissionRate, r.commissionAmount].join(",")
+      [r.memberName, r.bookingCount, r.totalRevenue, r.commissionRate, r.commissionAmount].join(",")
     ).join("\n");
     const blob = new Blob(["\uFEFF" + header + csvRows], { type: "text/csv;charset=utf-8;" });
     const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
@@ -120,9 +120,9 @@ export function CommissionsReportPage() {
                   <tbody>
                     {rows.map((r: any, i: number) => (
                       <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                        <td className="px-4 py-3 font-medium text-gray-800">{r.staffName || "—"}</td>
+                        <td className="px-4 py-3 font-medium text-gray-800">{r.memberName || "—"}</td>
                         <td className="px-4 py-3 tabular-nums text-gray-600">{r.bookingCount || 0}</td>
-                        <td className="px-4 py-3 tabular-nums text-gray-700">{fmt(r.totalSales)} ر.س</td>
+                        <td className="px-4 py-3 tabular-nums text-gray-700">{fmt(r.totalRevenue)} ر.س</td>
                         <td className="px-4 py-3">
                           <span className="text-xs bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full tabular-nums">
                             {fmt(r.commissionRate)}%
@@ -139,7 +139,7 @@ export function CommissionsReportPage() {
                         {rows.reduce((s: number, r: any) => s + (Number(r.bookingCount) || 0), 0)}
                       </td>
                       <td className="px-4 py-3 tabular-nums text-gray-700">
-                        {fmt(rows.reduce((s: number, r: any) => s + (Number(r.totalSales) || 0), 0))} ر.س
+                        {fmt(rows.reduce((s: number, r: any) => s + (Number(r.totalRevenue) || 0), 0))} ر.س
                       </td>
                       <td className="px-4 py-3" />
                       <td className="px-4 py-3 tabular-nums text-emerald-700">{fmt(totalCommissions)} ر.س</td>

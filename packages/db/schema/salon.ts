@@ -1,6 +1,6 @@
 import {
   pgTable, text, timestamp, boolean,
-  uuid, numeric, integer, date, index, uniqueIndex,
+  uuid, numeric, integer, date, index, uniqueIndex, jsonb,
 } from "drizzle-orm/pg-core";
 import { organizations } from "./organizations";
 import { customers } from "./customers";
@@ -143,6 +143,29 @@ export const visitNotes = pgTable("visit_notes", {
   bookingIdx:  index("vn_booking_idx").on(t.bookingId),
   customerIdx: index("vn_customer_idx").on(t.orgId, t.customerId),
   staffIdx:    index("vn_staff_idx").on(t.orgId, t.staffId),
+}));
+
+// ============================================================
+// SERVICE SUPPLY RECIPES — وصفة استهلاك المستلزمات per خدمة
+// عند إتمام الحجز → خصم تلقائي من المخزون
+// ============================================================
+
+// ============================================================
+// SALON MONITORING EVENTS — أحداث المراقبة التشغيلية
+// يُخزّن الأحداث المهمة القابلة للاستعلام في ملخص المراقبة
+// ============================================================
+
+export const salonMonitoringEvents = pgTable("salon_monitoring_events", {
+  id:        uuid("id").defaultRandom().primaryKey(),
+  orgId:     uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
+  eventType: text("event_type").notNull(),
+  // booking_conflict_rejected | booking_failed | inventory_low_stock_warning | inventory_recipe_missing | db_error
+  bookingId: uuid("booking_id"),
+  metadata:  jsonb("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => ({
+  orgTypeIdx:      index("sme_org_type_idx").on(t.orgId, t.eventType),
+  orgCreatedIdx:   index("sme_org_created_idx").on(t.orgId, t.createdAt),
 }));
 
 // ============================================================

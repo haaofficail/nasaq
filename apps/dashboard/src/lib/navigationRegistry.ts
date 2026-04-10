@@ -211,6 +211,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
       { name: "العمولات",           href: "/dashboard/commissions",       icon: BarChart3,     requiredCapabilities: [], requiredPlan: "advanced" },
       { name: "الاستدعاء",          href: "/dashboard/recall",            icon: Users,         requiredCapabilities: [], requiredPlan: "advanced" },
       { name: "مستلزمات الصالون",   href: "/dashboard/salon-supplies",    icon: Box,           requiredCapabilities: ["inventory"] },
+      { name: "مراقبة التشغيل",     href: "/dashboard/salon-monitoring",  icon: BarChart2,     requiredCapabilities: [] },
       { name: "التحكم في الدخول",   href: "/dashboard/access-control",   icon: ShieldCheck,   requiredCapabilities: [], allowedBusinessTypes: ["fitness"], requiredPlan: "pro" },
     ],
   },

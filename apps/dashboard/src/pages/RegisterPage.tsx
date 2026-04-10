@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
 import { BUSINESS_TYPE_LIST } from "@/lib/constants";
+import { normalizePhone } from "@/lib/normalize-input";
 
 const businessTypes = BUSINESS_TYPE_LIST.map(b => ({ value: b.key, label: b.name }));
 
@@ -168,8 +169,9 @@ export function RegisterPage() {
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">رقم الجوال <span className="text-red-400">*</span></label>
                   <input
                     type="tel"
+                    inputMode="tel"
                     value={form.phone}
-                    onChange={(e) => update("phone", e.target.value)}
+                    onChange={(e) => update("phone", normalizePhone(e.target.value))}
                     className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors"
                     placeholder="05XXXXXXXX"
                     dir="ltr"

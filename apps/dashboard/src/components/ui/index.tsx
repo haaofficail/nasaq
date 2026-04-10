@@ -2,6 +2,7 @@ import { ReactNode, useEffect, useRef, useState, useCallback } from "react";
 import { X, Loader2, AlertCircle, Inbox, Trash2, AlertTriangle } from "lucide-react";
 import { clsx } from "clsx";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-lock";
+import { normalizeNumeric, normalizePhone } from "@/lib/normalize-input";
 
 // ── New design system components ──────────────────────────────
 export { TimePicker }     from "./TimePicker";
@@ -85,6 +86,16 @@ export function Input({
   prefix?: string; suffix?: string; disabled?: boolean; dir?: string;
   min?: number; max?: number; step?: number;
 }) {
+  const isNumeric = type === "number";
+  const isTel     = type === "tel";
+  const actualType = isNumeric ? "text" : type;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (isNumeric) e.target.value = normalizeNumeric(e.target.value);
+    else if (isTel) e.target.value = normalizePhone(e.target.value);
+    onChange(e);
+  };
+
   return (
     <div>
       {label && (
@@ -95,8 +106,15 @@ export function Input({
       <div className="relative">
         {prefix && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400">{prefix}</span>}
         <input
-          id={name} name={name} type={type} value={value} onChange={onChange}
-          placeholder={placeholder} disabled={disabled} dir={dir} min={min} max={max} step={step}
+          id={name} name={name}
+          type={actualType}
+          inputMode={isNumeric ? "decimal" : isTel ? "tel" : undefined}
+          value={value}
+          onChange={handleChange}
+          placeholder={placeholder} disabled={disabled} dir={dir}
+          min={isNumeric ? undefined : min}
+          max={isNumeric ? undefined : max}
+          step={isNumeric ? undefined : step}
           className={clsx(
             "w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors",
             error ? "border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-200" : "border-gray-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-100",

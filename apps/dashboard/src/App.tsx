@@ -139,6 +139,7 @@ const RentalAnalyticsPage    = lz(() => import("./pages/RentalAnalyticsPage"), "
 const SchedulePage           = lz(() => import("./pages/SchedulePage"), "SchedulePage");
 const CommissionsPage        = lz(() => import("./pages/CommissionsPage"), "CommissionsPage");
 const SalonSuppliesPage      = lz(() => import("./pages/SalonSuppliesPage"), "SalonSuppliesPage");
+const SalonMonitoringPage    = lz(() => import("./pages/SalonMonitoringPage"), "SalonMonitoringPage");
 const ClientBeautyCardPage   = lz(() => import("./pages/ClientBeautyCardPage"), "ClientBeautyCardPage");
 const StaffPerformancePage   = lz(() => import("./pages/StaffPerformancePage"), "StaffPerformancePage");
 const RecallPage             = lz(() => import("./pages/RecallPage"), "RecallPage");
@@ -413,6 +414,7 @@ export default function App() {
           <Route path="schedule" element={<SchedulePage />} />
           <Route path="commissions" element={<CommissionsPage />} />
           <Route path="salon-supplies" element={<SalonSuppliesPage />} />
+          <Route path="salon-monitoring" element={<SalonMonitoringPage />} />
           <Route path="staff-performance" element={<StaffPerformancePage />} />
           <Route path="customers/:id/beauty-card" element={<ClientBeautyCardPage />} />
           <Route path="recall" element={<RecallPage />} />

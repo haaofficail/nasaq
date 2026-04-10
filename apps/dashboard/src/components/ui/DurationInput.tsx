@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { clsx } from "clsx";
+import { normalizeNumeric } from "@/lib/normalize-input";
 
 type DurationUnit = "minute" | "hour" | "day";
 
@@ -55,13 +56,13 @@ export function DurationInput({
   return (
     <div className={clsx("flex gap-2 items-center", className)}>
       <input
-        type="number"
-        min={0}
+        type="text"
+        inputMode="numeric"
         value={displayValue}
         placeholder={placeholder}
         dir="ltr"
         disabled={disabled}
-        onChange={e => handleValue(e.target.value)}
+        onChange={e => handleValue(normalizeNumeric(e.target.value))}
         className={clsx(inputCls, "w-20")}
       />
       {units.length > 1 ? (

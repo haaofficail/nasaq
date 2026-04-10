@@ -71,9 +71,9 @@ const paymentRowSchema = z.object({
 const saleItemSchema = z.object({
   id: z.string(),
   name: z.string(),
-  quantity: z.number().int().min(1),
-  price: z.number().min(0),
-  staffId: z.string().uuid().optional().nullable(),
+  quantity: z.number().int().min(1, { message: "الكمية يجب أن تكون 1 على الأقل" }),
+  price: z.number().min(0, { message: "السعر يجب أن يكون 0 أو أكثر" }),
+  staffId: z.string().uuid({ message: "معرّف الموظف غير صحيح" }).optional().nullable(),
   staffName: z.string().optional().nullable(),
 });
 

@@ -176,6 +176,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
             <Input
               name="phone"
               label="رقم الجوال *"
+              type="tel"
               value={form.phone}
               onChange={set("phone")}
               placeholder="05XXXXXXXX"
@@ -208,6 +209,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
               <Input
                 name="whatsapp"
                 label="رقم واتساب"
+                type="tel"
                 value={form.whatsapp}
                 onChange={set("whatsapp")}
                 placeholder="05XXXXXXXX"

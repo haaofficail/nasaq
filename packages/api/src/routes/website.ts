@@ -7,6 +7,7 @@ import { getOrgId, getUserId, getPagination, generateSlug, generateBookingNumber
 import { insertAuditLog } from "../lib/audit";
 import { z } from "zod";
 import { DEFAULT_VAT_RATE, BOOKING_TRACKING_TOKEN_LENGTH } from "../lib/constants";
+import { salonLog } from "../lib/salon-logger";
 
 // ── In-memory rate limiters (resets on restart — lightweight) ──
 const _bookingRateMap = new Map<string, { count: number; resetAt: number }>();
@@ -530,6 +531,7 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
     id: services.id, name: services.name,
     basePrice: services.basePrice, serviceType: services.serviceType,
     depositPercent: services.depositPercent,
+    durationMinutes: services.durationMinutes,
   }).from(services).where(and(eq(services.id, serviceId), eq(services.orgId, orgId), eq(services.status, "active")));
   if (!service) return c.json({ error: "الخدمة غير متوفرة" }, 404);
 
@@ -560,7 +562,32 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
       sql`${bookings.eventDate} >= ${bookingDay} AND ${bookings.eventDate} < ${nextDay}`,
     ));
   if (duplicate) {
+    salonLog.bookingConflictRejected({
+      orgId, customerId: customer.id, serviceId,
+      metadata: { conflictType: "duplicate" },
+    });
     return c.json({ error: "يوجد حجز مسبق لك على هذه الخدمة في نفس اليوم" }, 409);
+  }
+
+  // 3c. Org-level time slot conflict (no assignedUserId at public booking time)
+  const serviceDuration = service.durationMinutes ?? 60;
+  const eventStart = new Date(eventDate);
+  const eventEnd = new Date(eventStart.getTime() + serviceDuration * 60_000);
+
+  const { rows: timeConflict } = await db.execute(sql`
+    SELECT id FROM bookings
+    WHERE org_id = ${orgId}
+      AND status NOT IN ('cancelled', 'no_show')
+      AND event_date < ${eventEnd}
+      AND COALESCE(event_end_date, event_date + make_interval(mins => ${serviceDuration})) > ${eventStart}
+    LIMIT 1
+  `);
+  if (timeConflict.length > 0) {
+    salonLog.bookingConflictRejected({
+      orgId, customerId: customer.id, serviceId,
+      metadata: { conflictType: "org_slot", eventDate: eventStart.toISOString() },
+    });
+    return c.json({ error: "هذا الوقت محجوز مسبقاً — اختر وقتاً آخر أو تواصل معنا", code: "TIME_SLOT_UNAVAILABLE" }, 409);
   }
 
   // 4. Resolve addon prices
@@ -648,6 +675,14 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
     }
 
     return b;
+  });
+
+  salonLog.bookingCreated({
+    orgId,
+    bookingId: booking.id,
+    customerId: customer.id,
+    serviceId,
+    metadata: { bookingNumber: booking.bookingNumber, channel: "public" },
   });
 
   return c.json({

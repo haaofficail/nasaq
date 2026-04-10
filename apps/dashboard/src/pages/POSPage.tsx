@@ -12,6 +12,7 @@ import { VAT_RATE as VAT_RATE_DECIMAL } from "@/lib/constants";
 import { useApi } from "@/hooks/useApi";
 import { toast } from "@/hooks/useToast";
 import { success as hapticSuccess } from "@/lib/haptics";
+import { normalizeNumeric } from "@/lib/normalize-input";
 
 // ============================================================
 // TYPES
@@ -337,11 +338,12 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
                   {/* Amount input for "amount" mode */}
                   {mode === "amount" && (
                     <input
-                      type="number"
+                      type="text"
+                      inputMode="decimal"
                       className="w-full bg-white/80 border border-white rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-200 tabular-nums"
                       placeholder="المبلغ ر.س"
                       value={part.amount}
-                      onChange={e => updatePart(pi, "amount", e.target.value)}
+                      onChange={e => updatePart(pi, "amount", normalizeNumeric(e.target.value))}
                       dir="ltr"
                     />
                   )}
@@ -361,11 +363,12 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
                           <option value="bank_transfer">تحويل</option>
                         </select>
                         <input
-                          type="number"
+                          type="text"
+                          inputMode="decimal"
                           className="flex-1 bg-white/80 border border-white rounded-lg px-3 py-1.5 text-sm outline-none tabular-nums"
                           placeholder="المبلغ"
                           value={pay.amount}
-                          onChange={e => updatePartPayment(pi, payi, "amount", e.target.value)}
+                          onChange={e => updatePartPayment(pi, payi, "amount", normalizeNumeric(e.target.value))}
                           dir="ltr"
                         />
                         {part.payments.length > 1 && (
@@ -741,6 +744,7 @@ export function POSPage() {
   const [saleResult, setSaleResult] = useState<SaleResult | null>(null);
   const [showSplit, setShowSplit] = useState(false);
   const [editingQty, setEditingQty] = useState<string | null>(null);
+  const [mobileView, setMobileView] = useState<"catalog" | "cart">("catalog");
 
   // Data
   const { data: categoriesRes } = useApi(() => categoriesApi.list(true), []);
@@ -856,7 +860,7 @@ export function POSPage() {
     setCompleting(true);
     try {
       const res = await posApi.sale({
-        items: cart.map(c => ({ id: c.id, name: c.name, quantity: c.qty, price: c.price, staffId: c.staffId, staffName: c.staffName })),
+        items: cart.map(c => ({ id: c.id, name: c.name, quantity: c.qty, price: c.price, staffId: c.staffId || undefined, staffName: c.staffName })),
         payments: buildPayments(),
         customerId: customer?.id,
         customerName: customer?.name || "زائر",
@@ -995,8 +999,8 @@ export function POSPage() {
       ) : (
         <div className="flex flex-1 overflow-hidden">
 
-          {/* ── LEFT: Catalog (70%) ── */}
-          <div className="flex-1 flex flex-col border-l border-gray-100 min-w-0">
+          {/* ── LEFT: Catalog ── */}
+          <div className={clsx("flex-1 flex-col border-l border-gray-100 min-w-0", mobileView === "catalog" ? "flex" : "hidden md:flex")}>
 
             {/* Category tabs */}
             <div className="flex gap-2 px-4 py-2.5 bg-white border-b border-gray-100 overflow-x-auto shrink-0 scrollbar-hide">
@@ -1082,12 +1086,39 @@ export function POSPage() {
             </div>
           </div>
 
-          {/* ── RIGHT: Cart + Payment (30%) ── */}
-          <div className="w-80 md:w-96 shrink-0 flex flex-col bg-white border-r border-gray-100">
+          {/* ── Floating cart button (mobile only, catalog view) ── */}
+          {mobileView === "catalog" && (
+            <button
+              onClick={() => setMobileView("cart")}
+              className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 px-5 py-3 bg-brand-500 text-white rounded-2xl shadow-lg shadow-brand-500/30 font-semibold text-sm active:scale-95 transition-all"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              <span>السلة</span>
+              {cart.length > 0 && (
+                <>
+                  <span className="w-5 h-5 bg-white text-brand-600 text-[10px] font-bold rounded-full flex items-center justify-center tabular-nums">
+                    {cart.reduce((s, c) => s + c.qty, 0)}
+                  </span>
+                  <span className="opacity-80 text-xs font-normal">{fmt(total)} ر.س</span>
+                </>
+              )}
+            </button>
+          )}
+
+          {/* ── RIGHT: Cart + Payment ── */}
+          <div className={clsx("shrink-0 flex flex-col bg-white border-r border-gray-100 w-full md:w-80 lg:w-96", mobileView === "cart" ? "flex" : "hidden md:flex")}>
 
             {/* Cart header */}
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
               <div className="flex items-center gap-2">
+                {/* Back to catalog on mobile */}
+                <button
+                  onClick={() => setMobileView("catalog")}
+                  className="md:hidden p-1 -mr-1 text-gray-400 hover:text-gray-600"
+                  aria-label="العودة للكتالوج"
+                >
+                  <X className="w-4 h-4" />
+                </button>
                 <ShoppingCart className="w-4 h-4 text-brand-500" />
                 <span className="font-semibold text-gray-900 text-sm">السلة</span>
                 {cart.length > 0 && (
@@ -1167,12 +1198,12 @@ export function POSPage() {
                           </button>
                           {editingQty === item.id ? (
                             <input
-                              type="number"
-                              min="1"
+                              type="text"
+                              inputMode="numeric"
                               defaultValue={item.qty}
                               className="w-12 text-center text-sm border border-brand-300 rounded-lg px-1 py-0.5 focus:outline-none"
                               autoFocus
-                              onBlur={e => { updateQty(item.id, parseInt(e.target.value) || 1); setEditingQty(null); }}
+                              onBlur={e => { updateQty(item.id, parseInt(normalizeNumeric(e.target.value)) || 1); setEditingQty(null); }}
                               onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditingQty(null); }}
                             />
                           ) : (
@@ -1216,10 +1247,12 @@ export function POSPage() {
                   {discType === "fixed" ? <Tag className="w-4 h-4 text-gray-400" /> : <Percent className="w-4 h-4 text-brand-500" />}
                 </button>
                 <input
+                  type="text"
+                  inputMode="decimal"
                   className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 placeholder:text-gray-300 tabular-nums"
                   placeholder={discType === "fixed" ? "خصم ثابت (ر.س)" : "خصم % (0-100)"}
                   value={discValue}
-                  onChange={e => setDiscValue(e.target.value)}
+                  onChange={e => setDiscValue(normalizeNumeric(e.target.value))}
                   dir="ltr"
                 />
               </div>
@@ -1286,11 +1319,12 @@ export function POSPage() {
               {payMode === "cash" && (
                 <div className="space-y-2 mb-3">
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-brand-300 tabular-nums text-left"
                     placeholder="المبلغ المستلم..."
                     value={cashReceived}
-                    onChange={e => setCashReceived(e.target.value)}
+                    onChange={e => setCashReceived(normalizeNumeric(e.target.value))}
                     dir="ltr"
                   />
                   {parseFloat(cashReceived || "0") > 0 && (
@@ -1339,11 +1373,12 @@ export function POSPage() {
                         <option value="bank_transfer">تحويل</option>
                       </select>
                       <input
-                        type="number"
+                        type="text"
+                        inputMode="decimal"
                         className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 tabular-nums"
                         placeholder="المبلغ"
                         value={pay.amount}
-                        onChange={e => setMixedPayments(prev => prev.map((p, idx) => idx === i ? { ...p, amount: e.target.value } : p))}
+                        onChange={e => setMixedPayments(prev => prev.map((p, idx) => idx === i ? { ...p, amount: normalizeNumeric(e.target.value) } : p))}
                         dir="ltr"
                       />
                       {mixedPayments.length > 2 && (

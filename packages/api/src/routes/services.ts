@@ -368,10 +368,18 @@ servicesRouter.get("/:id", async (c) => {
 // POST /services — Create
 // ============================================================
 
+// أنواع الخدمات التي تتطلب مدة زمنية محددة
+const TIMED_SERVICE_TYPES = new Set(["appointment", "execution", "field_service"]);
+
 servicesRouter.post("/", async (c) => {
   const orgId = getOrgId(c);
   const body = await validateBody(c, createServiceSchema);
   if (!body) return;
+
+  // مدة الخدمة إلزامية للخدمات المجدولة
+  if (TIMED_SERVICE_TYPES.has(body.serviceType ?? "appointment") && !body.durationMinutes) {
+    return c.json({ error: "مدة الخدمة (durationMinutes) مطلوبة للخدمات المجدولة — حددها بالدقائق", code: "DURATION_REQUIRED" }, 422);
+  }
 
   const slug = body.slug || `${generateSlug(body.name)}-${nanoid(6).toLowerCase()}`;
 
@@ -403,6 +411,11 @@ servicesRouter.put("/:id", async (c) => {
   const id = c.req.param("id");
   const body = await validateBody(c, updateServiceSchema);
   if (!body) return;
+
+  // إذا حاول المستخدم تصفير مدة خدمة مجدولة، ارفض التعديل
+  if (body.serviceType && TIMED_SERVICE_TYPES.has(body.serviceType) && body.durationMinutes !== undefined && !body.durationMinutes) {
+    return c.json({ error: "لا يمكن حذف مدة الخدمة المجدولة — حدّد قيمة بالدقائق", code: "DURATION_REQUIRED" }, 422);
+  }
 
   // Don't auto-regenerate slug on update — caller must provide explicit slug to change it
 

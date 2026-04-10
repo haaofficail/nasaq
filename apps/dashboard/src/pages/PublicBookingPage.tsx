@@ -6,7 +6,6 @@ import { websiteApi } from "@/lib/api";
 import { usePublicTheme } from "@/context/ThemeProvider";
 
 const VAT_RATE = 0.15;
-const DEPOSIT_RATIO = 0.30;
 
 export function PublicBookingPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -76,7 +75,9 @@ export function PublicBookingPage() {
   const subtotal = svcPrice + addonsTotal;
   const vat = subtotal * VAT_RATE;
   const total = subtotal + vat;
-  const deposit = total * DEPOSIT_RATIO;
+  // depositPercent مأخوذ من بيانات الخدمة (الـ API يُرجعه كرقم مثل 30 أو 50)
+  const depositRatio = parseFloat(selectedService?.depositPercent ?? "30") / 100;
+  const deposit = total * depositRatio;
 
   const serviceQuestions: any[] = siteData?.questionsByService?.[selectedService?.id] || [];
 
@@ -230,7 +231,7 @@ export function PublicBookingPage() {
               })}
               <div className="flex justify-between text-gray-500 pt-2 border-t border-gray-100"><span>ضريبة القيمة المضافة (15%)</span><span>{Math.round(vat).toLocaleString("en-US")} ر.س</span></div>
               <div className="flex justify-between font-bold text-base text-gray-900 pt-2 border-t border-gray-200"><span>الإجمالي</span><span>{Math.round(total).toLocaleString("en-US")} ر.س</span></div>
-              <div className="flex justify-between text-xs pt-1" style={{ color: primaryColor }}><span>العربون المطلوب (30%)</span><span>{Math.round(deposit).toLocaleString("en-US")} ر.س</span></div>
+              <div className="flex justify-between text-xs pt-1" style={{ color: primaryColor }}><span>العربون المطلوب ({Math.round(depositRatio * 100)}%)</span><span>{Math.round(deposit).toLocaleString("en-US")} ر.س</span></div>
             </div>
 
             <button disabled={!selectedDate} onClick={() => setStep(serviceQuestions.length > 0 ? "questions" : "contact")}
@@ -392,7 +393,11 @@ export function PublicBookingPage() {
                 <Check className="w-8 h-8 text-green-600" />
               </div>
               <h2 className="text-xl font-bold text-gray-900 mb-2">تم استلام طلبك!</h2>
-              <p className="text-sm text-gray-500 mb-5">سيتم التواصل معك قريباً لتأكيد الحجز</p>
+              <p className="text-sm text-gray-500 mb-4">سيتم التواصل معك قريباً لتأكيد الحجز</p>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-700 border border-yellow-200 mb-5">
+                <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 inline-block"></span>
+                بانتظار التأكيد
+              </div>
               <div className="bg-gray-50 rounded-xl p-4 text-right space-y-2 text-sm mb-5">
                 <div className="flex justify-between"><span className="text-gray-500">رقم الحجز</span><span className="font-bold font-mono">{bookingResult.bookingNumber}</span></div>
                 <div className="flex justify-between"><span className="text-gray-500">الإجمالي</span><span className="font-bold">{parseFloat(bookingResult.totalAmount || 0).toLocaleString("en-US")} ر.س</span></div>

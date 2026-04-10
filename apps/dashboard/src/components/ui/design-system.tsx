@@ -1,6 +1,7 @@
 import { ReactNode, ButtonHTMLAttributes, InputHTMLAttributes, forwardRef, useEffect, useRef } from "react";
 import { X } from "lucide-react";
 import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-lock";
+import { normalizeNumeric, normalizePhone } from "@/lib/normalize-input";
 
 // ─── Button ─────────────────────────────────────────────────────────────────
 
@@ -126,7 +127,17 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(
-  ({ label, hint, error, icon, className = "", ...props }, ref) => {
+  ({ label, hint, error, icon, className = "", type = "text", onChange, ...props }, ref) => {
+    const isNumeric = type === "number";
+    const isTel     = type === "tel";
+    const actualType = isNumeric ? "text" : type;
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (isNumeric) e.target.value = normalizeNumeric(e.target.value);
+      else if (isTel) e.target.value = normalizePhone(e.target.value);
+      onChange?.(e);
+    };
+
     return (
       <div className="flex flex-col gap-1.5">
         {label && (
@@ -140,6 +151,9 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
           )}
           <input
             ref={ref}
+            type={actualType}
+            inputMode={isNumeric ? "decimal" : isTel ? "tel" : props.inputMode}
+            onChange={handleChange}
             className={`
               w-full h-11 rounded-xl border px-4 text-sm bg-white
               transition-all duration-200 outline-none

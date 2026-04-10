@@ -50,12 +50,13 @@ function StaffColumnView({
   staffList.forEach((s) => { byStaff[s.id] = {}; });
 
   bookings.forEach((b) => {
-    if (!b.scheduledAt) return;
-    const dt  = new Date(b.scheduledAt);
+    const dateField = b.eventDate ?? b.scheduledAt;
+    if (!dateField) return;
+    const dt  = new Date(dateField);
     const h   = dt.getHours();
     const m   = dt.getMinutes() < 30 ? 0 : 30;
     const key = `${h}:${String(m).padStart(2, "0")}`;
-    const sid = b.staffId ?? b.providerId ?? "__unassigned__";
+    const sid = b.assignedUserId ?? b.staffId ?? b.providerId ?? "__unassigned__";
     if (!byStaff[sid]) byStaff[sid] = {};
     byStaff[sid][key] = b;
   });
@@ -155,26 +156,31 @@ export function SchedulePage() {
   const [viewMode, setViewMode] = useState<"list" | "columns">("list");
 
   const { data, loading, refetch } = useApi(
-    () => bookingsApi.list({ date: currentDate, limit: "100" }),
+    () => bookingsApi.list({ dateFrom: currentDate, dateTo: addDays(currentDate, 1), limit: "100" }),
     [currentDate]
   );
-  const { data: staffData } = useApi(() => staffApi.list ? staffApi.list() : Promise.resolve({ data: [] }));
+  const { data: staffData } = useApi(() => staffApi.list());
   const updateStatus = useMutation(({ id, status }: any) => bookingsApi.updateStatus(id, status));
 
   const allBookings: any[] = data?.data || [];
   const staffList: any[] = staffData?.data || [];
 
+  // Build staff name map for display
+  const staffMap: Record<string, string> = {};
+  staffList.forEach((s: any) => { staffMap[s.id] = s.name; });
+
   const bookings = allBookings.filter((b: any) => {
     if (selectedStaff === "all") return true;
-    return b.staffId === selectedStaff || b.providerId === selectedStaff;
+    return (b.assignedUserId ?? b.staffId) === selectedStaff;
   });
 
   // Group by hour
   const hours = Array.from({ length: 14 }, (_, i) => i + 8); // 8am to 9pm
   const bookingsByHour: Record<number, any[]> = {};
   bookings.forEach((b: any) => {
-    if (!b.scheduledAt) return;
-    const h = new Date(b.scheduledAt).getHours();
+    const dateField = b.eventDate ?? b.scheduledAt;
+    if (!dateField) return;
+    const h = new Date(dateField).getHours();
     if (!bookingsByHour[h]) bookingsByHour[h] = [];
     bookingsByHour[h].push(b);
   });
@@ -294,12 +300,12 @@ export function SchedulePage() {
                             <div className="flex items-center gap-2">
                               <p className="font-semibold text-gray-900 text-sm truncate">{b.customerName || b.customer?.name || "عميل"}</p>
                               <span className="text-xs text-gray-400 tabular-nums shrink-0">
-                                {new Date(b.scheduledAt).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}
+                                {new Date(b.eventDate ?? b.scheduledAt).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" })}
                               </span>
                             </div>
                             <div className="flex items-center gap-3 mt-1">
-                              {b.serviceName && <span className="text-xs text-gray-500">{b.serviceName}</span>}
-                              {b.staffName && <span className="text-xs text-brand-500">· {b.staffName}</span>}
+                              {b.serviceName && <span className="text-xs text-gray-500">{b.serviceName}{b.durationMinutes ? ` (${b.durationMinutes} د)` : ""}</span>}
+                              {staffMap[b.assignedUserId ?? b.staffId] && <span className="text-xs text-brand-500">· {staffMap[b.assignedUserId ?? b.staffId]}</span>}
                               <span className="text-xs text-gray-400">{STATUS_LABELS[b.status] || b.status}</span>
                             </div>
                           </div>

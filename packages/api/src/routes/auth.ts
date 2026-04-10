@@ -794,6 +794,287 @@ authRouter.delete("/sessions/:id", async (c) => {
 });
 
 // ============================================================
+// ADMIN PASSWORD RESET — عبر واتساب OTP
+// مسار منفصل تماماً عن reset العميل العادي
+// ============================================================
+
+const ADMIN_NASAQ_ROLES = ["account_manager", "support_agent", "content_manager", "viewer"] as const;
+
+function isAdminUser(u: { isSuperAdmin: boolean | null; nasaqRole: string | null }): boolean {
+  return (u.isSuperAdmin === true) || ADMIN_NASAQ_ROLES.includes(u.nasaqRole as any);
+}
+
+// POST /auth/admin/password/reset/request
+authRouter.post("/admin/password/reset/request", async (c) => {
+  const ip = getTrustedIp(c);
+  // rate limit صارم: 3 طلبات / 15 دقيقة لكل IP
+  if (!checkIpRateLimit(ip, 3, 15 * 60 * 1000)) {
+    return c.json({ message: "إذا كانت البيانات صحيحة سيتم إرسال رمز التحقق" });
+  }
+
+  const body = await c.req.json().catch(() => ({}));
+  const phone = normalizePhone(String(body.phone ?? ""));
+
+  if (!phone) {
+    return c.json({ message: "إذا كانت البيانات صحيحة سيتم إرسال رمز التحقق" });
+  }
+
+  // ابحث عن المستخدم
+  const [user] = await db
+    .select({ id: users.id, orgId: users.orgId, name: users.name, isSuperAdmin: users.isSuperAdmin, nasaqRole: users.nasaqRole, status: users.status })
+    .from(users)
+    .where(eq(users.phone, phone));
+
+  // لا تكشف هل الرقم يخص Admin أو لا
+  if (!user || user.status === "suspended" || !isAdminUser(user)) {
+    // سجّل المحاولة الفاشلة في audit log (بدون orgId)
+    await db.insert(auditLogs).values({
+      orgId: user?.orgId ?? null,
+      userId: user?.id ?? null,
+      action: "admin_reset_request_denied",
+      resource: "auth",
+      resourceId: user?.id ?? "unknown",
+      ip,
+      userAgent: c.req.header("User-Agent") || "unknown",
+    }).catch(() => {});
+    return c.json({ message: "إذا كانت البيانات صحيحة سيتم إرسال رمز التحقق" });
+  }
+
+  // rate limit لنفس الرقم: مرة واحدة / دقيقة
+  const [recentOtp] = await db
+    .select({ id: otpCodes.id })
+    .from(otpCodes)
+    .where(and(
+      eq(otpCodes.phone, phone),
+      eq(otpCodes.purpose, "admin_reset"),
+      gt(otpCodes.expiresAt, new Date()),
+      sql`${otpCodes.createdAt} > NOW() - INTERVAL '1 minute'`
+    ))
+    .limit(1);
+
+  if (recentOtp) {
+    return c.json({ message: "إذا كانت البيانات صحيحة سيتم إرسال رمز التحقق" });
+  }
+
+  // ألغِ الأكواد القديمة غير المستخدمة
+  await db.execute(sql`
+    UPDATE otp_codes SET used_at = NOW()
+    WHERE phone = ${phone} AND purpose = 'admin_reset' AND used_at IS NULL
+  `);
+
+  const code = generateOTP();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 دقائق
+
+  await db.insert(otpCodes).values({ phone, code, purpose: "admin_reset", expiresAt });
+
+  const message = `رمز استعادة كلمة مرور حساب الإدارة:\n\n${code}\n\nصالح لمدة 5 دقائق.\nلا تشاركه مع أحد.\n\nTarmiz OS`;
+
+  let sent = false;
+  let channel = "none";
+
+  try {
+    const { sendViaBaileys } = await import("../lib/whatsappBaileys");
+    sent = await sendViaBaileys("platform", phone, message);
+    if (sent) channel = "whatsapp";
+  } catch { /* Baileys غير جاهز */ }
+
+  if (!sent) {
+    sent = await sendSms(phone, `رمز استعادة كلمة مرور ترميز OS: ${code}\nصالح لمدة 5 دقائق. لا تشاركه.`);
+    if (sent) channel = "sms";
+  }
+
+  if (!sent) {
+    console.log(`\n[ADMIN-RESET OTP] ${phone}: ${code}\n`);
+  }
+
+  // audit log
+  await db.insert(auditLogs).values({
+    orgId: user.orgId,
+    userId: user.id,
+    action: "admin_reset_request",
+    resource: "auth",
+    resourceId: user.id,
+    ip,
+    userAgent: c.req.header("User-Agent") || "unknown",
+    metadata: { channel },
+  }).catch(() => {});
+
+  return c.json({
+    message: "إذا كانت البيانات صحيحة سيتم إرسال رمز التحقق",
+    channel,
+    expiresIn: 300,
+    ...(channel === "none" ? { _devCode: code } : {}),
+  });
+});
+
+// POST /auth/admin/password/reset/verify
+authRouter.post("/admin/password/reset/verify", async (c) => {
+  const ip = getTrustedIp(c);
+  // rate limit: 5 محاولات / 10 دقائق لكل IP
+  if (!checkIpRateLimit(ip, 5, 10 * 60 * 1000)) {
+    return c.json({ error: "تم تجاوز الحد المسموح — حاول بعد 10 دقائق", code: "RATE_LIMITED" }, 429);
+  }
+
+  const body = await c.req.json().catch(() => ({}));
+  const phone = normalizePhone(String(body.phone ?? ""));
+  const code  = String(body.code ?? "").trim();
+
+  if (!phone || !code) {
+    return c.json({ error: "رقم الجوال والرمز مطلوبان" }, 400);
+  }
+
+  // تحقق من OTP
+  const [otp] = await db
+    .select({ id: otpCodes.id, usedAt: otpCodes.usedAt, attempts: otpCodes.attempts })
+    .from(otpCodes)
+    .where(and(
+      eq(otpCodes.phone, phone),
+      eq(otpCodes.code, code),
+      eq(otpCodes.purpose, "admin_reset"),
+      gt(otpCodes.expiresAt, new Date())
+    ))
+    .orderBy(desc(otpCodes.createdAt))
+    .limit(1);
+
+  if (!otp) {
+    // زد المحاولات الفاشلة
+    await db.execute(sql`
+      UPDATE otp_codes SET attempts = COALESCE(attempts, 0) + 1
+      WHERE id = (
+        SELECT id FROM otp_codes
+        WHERE phone = ${phone} AND purpose = 'admin_reset'
+          AND expires_at > NOW() AND used_at IS NULL
+        ORDER BY created_at DESC LIMIT 1
+      )
+    `);
+    return c.json({ error: "رمز التحقق غير صحيح أو منتهي الصلاحية" }, 400);
+  }
+
+  if (otp.usedAt) return c.json({ error: "الرمز مستخدم مسبقاً" }, 400);
+  if ((otp.attempts || 0) >= 5) return c.json({ error: "تم تجاوز عدد المحاولات — اطلب رمزاً جديداً" }, 429);
+
+  // تأكد مجدداً أن المستخدم admin
+  const [user] = await db
+    .select({ id: users.id, orgId: users.orgId, isSuperAdmin: users.isSuperAdmin, nasaqRole: users.nasaqRole, status: users.status })
+    .from(users)
+    .where(eq(users.phone, phone));
+
+  if (!user || user.status === "suspended" || !isAdminUser(user)) {
+    return c.json({ error: "غير مصرح" }, 403);
+  }
+
+  // أنشئ resetToken صالح 10 دقائق
+  const resetToken = nanoid(48);
+  const tokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+  await db.execute(sql`
+    UPDATE otp_codes SET used_at = NOW() WHERE id = ${otp.id}
+  `);
+
+  // خزّن الـ resetToken في otpCodes بـ purpose = admin_reset_token
+  await db.execute(sql`
+    UPDATE otp_codes SET used_at = NOW()
+    WHERE phone = ${phone} AND purpose = 'admin_reset_token' AND used_at IS NULL
+  `);
+
+  await db.insert(otpCodes).values({
+    phone,
+    code: resetToken,
+    purpose: "admin_reset_token",
+    expiresAt: tokenExpiresAt,
+  });
+
+  // audit log
+  await db.insert(auditLogs).values({
+    orgId: user.orgId,
+    userId: user.id,
+    action: "admin_reset_verify",
+    resource: "auth",
+    resourceId: user.id,
+    ip,
+    userAgent: c.req.header("User-Agent") || "unknown",
+  }).catch(() => {});
+
+  return c.json({ resetToken, expiresIn: 600 });
+});
+
+// POST /auth/admin/password/reset/confirm
+authRouter.post("/admin/password/reset/confirm", async (c) => {
+  const ip = getTrustedIp(c);
+  if (!checkIpRateLimit(ip, 5, 10 * 60 * 1000)) {
+    return c.json({ error: "تم تجاوز الحد المسموح", code: "RATE_LIMITED" }, 429);
+  }
+
+  const body = await c.req.json().catch(() => ({}));
+  const phone       = normalizePhone(String(body.phone ?? ""));
+  const resetToken  = String(body.resetToken ?? "").trim();
+  const newPassword = String(body.newPassword ?? "").trim();
+
+  if (!phone || !resetToken || !newPassword) {
+    return c.json({ error: "جميع الحقول مطلوبة" }, 400);
+  }
+
+  if (newPassword.length < 8) {
+    return c.json({ error: "كلمة المرور يجب أن تكون 8 أحرف على الأقل" }, 400);
+  }
+
+  // تحقق من resetToken
+  const [tokenRow] = await db
+    .select({ id: otpCodes.id, usedAt: otpCodes.usedAt })
+    .from(otpCodes)
+    .where(and(
+      eq(otpCodes.phone, phone),
+      eq(otpCodes.code, resetToken),
+      eq(otpCodes.purpose, "admin_reset_token"),
+      gt(otpCodes.expiresAt, new Date())
+    ))
+    .orderBy(desc(otpCodes.createdAt))
+    .limit(1);
+
+  if (!tokenRow || tokenRow.usedAt) {
+    return c.json({ error: "رمز الاستعادة غير صالح أو منتهي الصلاحية — ابدأ من جديد" }, 400);
+  }
+
+  // تأكد من أن المستخدم لا يزال admin
+  const [user] = await db
+    .select({ id: users.id, orgId: users.orgId, isSuperAdmin: users.isSuperAdmin, nasaqRole: users.nasaqRole, status: users.status })
+    .from(users)
+    .where(eq(users.phone, phone));
+
+  if (!user || user.status === "suspended" || !isAdminUser(user)) {
+    return c.json({ error: "غير مصرح" }, 403);
+  }
+
+  // ألغِ الـ token + حدّث كلمة المرور في transaction
+  await db.transaction(async (tx) => {
+    await tx.execute(sql`
+      UPDATE otp_codes SET used_at = NOW() WHERE id = ${tokenRow.id}
+    `);
+    await tx.update(users)
+      .set({ passwordHash: hashPassword(newPassword), updatedAt: new Date(), failedLoginAttempts: 0 })
+      .where(eq(users.id, user.id));
+  });
+
+  // أنهِ جميع الجلسات النشطة لهذا المستخدم (أمان: اجباره على إعادة الدخول)
+  await db.execute(sql`
+    DELETE FROM sessions WHERE user_id = ${user.id}
+  `);
+
+  // audit log
+  await db.insert(auditLogs).values({
+    orgId: user.orgId,
+    userId: user.id,
+    action: "admin_reset_confirm",
+    resource: "auth",
+    resourceId: user.id,
+    ip,
+    userAgent: c.req.header("User-Agent") || "unknown",
+  }).catch(() => {});
+
+  return c.json({ message: "تم تغيير كلمة المرور — سجّل دخولك" });
+});
+
+// ============================================================
 // HELPERS
 // ============================================================
 

@@ -141,7 +141,12 @@ export function BookingDetailPage() {
               <div className="flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-gray-400" /><span className="text-gray-500">تاريخ الحدث</span><span className="font-medium mr-auto">{booking.eventDate ? fmtDate(booking.eventDate) : "—"}</span></div>
               <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-gray-400" /><span className="text-gray-500">المدة</span><span className="font-medium mr-auto">{booking.eventDuration || "—"} ساعة</span></div>
               <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" /><span className="text-gray-500">الفرع</span><span className="font-medium mr-auto">{booking.locationName || "—"}</span></div>
-              <div className="flex items-center gap-2"><User className="w-4 h-4 text-gray-400" /><span className="text-gray-500">عدد الضيوف</span><span className="font-medium mr-auto">{booking.guestCount || "—"}</span></div>
+              {booking.assignedUserName && (
+                <div className="flex items-center gap-2"><UserCheck className="w-4 h-4 text-gray-400" /><span className="text-gray-500">الموظف</span><span className="font-medium mr-auto">{booking.assignedUserName}</span></div>
+              )}
+              {!booking.assignedUserName && booking.guestCount > 0 && (
+                <div className="flex items-center gap-2"><User className="w-4 h-4 text-gray-400" /><span className="text-gray-500">عدد الأشخاص</span><span className="font-medium mr-auto">{booking.guestCount}</span></div>
+              )}
             </div>
             {booking.customerNotes && <div className="mt-4 pt-4 border-t border-gray-100"><p className="text-xs font-medium text-gray-400 mb-1">ملاحظات العميل</p><p className="text-sm text-gray-700">{booking.customerNotes}</p></div>}
             {booking.notes && !booking.customerNotes && <div className="mt-4 pt-4 border-t border-gray-100"><p className="text-sm text-gray-500">ملاحظات: {booking.notes}</p></div>}

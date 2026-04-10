@@ -170,10 +170,33 @@ app.onError((err, c) => {
   // ZodError from bare .parse() calls → 400 instead of 500
   if (err instanceof z.ZodError) {
     const first = err.errors[0];
-    const msg = first
-      ? `${first.path.length ? first.path.join(".") + ": " : ""}${first.message}`
-      : "بيانات غير صحيحة";
-    return c.json({ error: msg, code: "VALIDATION_ERROR", details: err.flatten() }, 400);
+
+    // Arabic field name labels
+    const FIELD_LABELS: Record<string, string> = {
+      staffId: "الموظف", customerId: "العميل", serviceId: "الخدمة",
+      phone: "رقم الجوال", name: "الاسم", items: "بنود البيع",
+      amount: "المبلغ", quantity: "الكمية", price: "السعر",
+      payments: "طريقة الدفع", eventDate: "تاريخ الموعد",
+      locationId: "الموقع", orgId: "المنشأة",
+    };
+    // Arabic Zod message translations
+    const MSG_MAP: Record<string, string> = {
+      "Invalid uuid": "معرّف غير صحيح",
+      "Required": "هذا الحقل مطلوب",
+      "String must contain at least 1 character(s)": "يجب ألا يكون الحقل فارغاً",
+      "Expected string, received null": "هذا الحقل مطلوب",
+      "Expected number, received string": "يجب أن يكون هذا الحقل رقماً",
+      "Array must contain at least 1 element(s)": "يجب أن يحتوي الحقل على عنصر واحد على الأقل",
+    };
+
+    if (first) {
+      const fieldKey = first.path[first.path.length - 1];
+      const fieldLabel = typeof fieldKey === "string" ? (FIELD_LABELS[fieldKey] ?? fieldKey) : fieldKey;
+      const msgText = MSG_MAP[first.message] ?? first.message;
+      const msg = fieldLabel ? `${fieldLabel}: ${msgText}` : msgText;
+      return c.json({ error: msg, code: "VALIDATION_ERROR", details: err.flatten() }, 400);
+    }
+    return c.json({ error: "بيانات غير صحيحة", code: "VALIDATION_ERROR", details: err.flatten() }, 400);
   }
 
   const requestId = (c.get("requestId") as string | undefined) ?? undefined;
@@ -208,17 +231,19 @@ app.onError((err, c) => {
 
 // Health check with DB probe (O5)
 app.get("/health", async (c) => {
-  try {
-    await pool.query("SELECT 1");
-    return c.json({
-      status: "ok",
-      version: process.env.APP_VERSION || "0.1.0",
-      name: "nasaq-api",
-      timestamp: new Date().toISOString(),
-    });
-  } catch {
-    return c.json({ status: "error", name: "nasaq-api", timestamp: new Date().toISOString() }, 503);
-  }
+  let dbOk = false;
+  try { await pool.query("SELECT 1"); dbOk = true; } catch {}
+
+  const status = dbOk ? "ok" : "error";
+  return c.json({
+    status,
+    version:   process.env.APP_VERSION || "0.1.0",
+    name:      "nasaq-api",
+    timestamp: new Date().toISOString(),
+    checks: {
+      db: dbOk ? "healthy" : "unhealthy",
+    },
+  }, dbOk ? 200 : 503);
 });
 
 // ============================================================

@@ -1,5 +1,6 @@
 import { useState, ReactNode } from "react";
 import { clsx } from "clsx";
+import { normalizeNumeric, normalizePhone } from "@/lib/normalize-input";
 
 interface ModernInputProps {
   label?: string;
@@ -25,6 +26,17 @@ export function ModernInput({
 }: ModernInputProps) {
   const [focused, setFocused] = useState(false);
 
+  const isNumeric = type === "number";
+  const isTel     = type === "tel";
+  const actualType = isNumeric ? "text" : type;
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    if (isNumeric) val = normalizeNumeric(val);
+    else if (isTel) val = normalizePhone(val);
+    onChange(val);
+  };
+
   return (
     <div>
       {label && (
@@ -43,15 +55,16 @@ export function ModernInput({
         )}
         <input
           name={name}
-          type={type}
+          type={actualType}
+          inputMode={isNumeric ? "decimal" : isTel ? "tel" : undefined}
           value={value}
           dir={dir}
-          min={min as any}
-          max={max as any}
+          min={isNumeric ? undefined : (min as any)}
+          max={isNumeric ? undefined : (max as any)}
           placeholder={placeholder}
           disabled={disabled}
           required={required}
-          onChange={e => onChange(e.target.value)}
+          onChange={handleChange}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           className={clsx(

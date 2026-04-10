@@ -85,6 +85,12 @@ export const authApi = {
     api.patch<{ data: any }>("/auth/account/update", data),
   sessions: () => api.get<{ data: any[] }>("/auth/sessions"),
   deleteSession: (id: string) => api.delete(`/auth/sessions/${id}`),
+  adminResetRequest: (phone: string) =>
+    api.post<{ message: string; channel?: string; expiresIn?: number; _devCode?: string }>("/auth/admin/password/reset/request", { phone }),
+  adminResetVerify: (phone: string, code: string) =>
+    api.post<{ resetToken: string; expiresIn: number }>("/auth/admin/password/reset/verify", { phone, code }),
+  adminResetConfirm: (phone: string, resetToken: string, newPassword: string) =>
+    api.post<{ message: string }>("/auth/admin/password/reset/confirm", { phone, resetToken, newPassword }),
 };
 
 // --- Categories ---
@@ -1669,6 +1675,10 @@ export const salonApi = {
   // Recall Engine
   recall: (serviceInterval?: number) =>
     api.get<{ data: any[]; weeks: number }>(`/salon/recall${serviceInterval ? `?serviceInterval=${serviceInterval}` : ""}`),
+
+  // Monitoring
+  monitoringSummary: () => api.get<{ data: any }>("/salon/monitoring/summary"),
+  salonHealth:       () => api.get<{ status: string; checks: any }>("/salon/health"),
 };
 
 // --- Super Admin ---

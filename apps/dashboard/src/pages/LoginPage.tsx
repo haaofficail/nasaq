@@ -5,6 +5,7 @@ import { authApi } from "@/lib/api";
 import { clsx } from "clsx";
 import { BRAND } from "@/lib/branding";
 import { PlatformBrandStatic } from "@/components/branding/PlatformLogo";
+import { normalizePhone } from "@/lib/normalize-input";
 
 type Method = "phone" | "email";
 type Step   = "input" | "otp";
@@ -174,8 +175,9 @@ export function LoginPage() {
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">رقم الجوال</label>
                     <input
                       type="tel"
+                      inputMode="tel"
                       value={phone}
-                      onChange={e => { setPhone(e.target.value); setError(""); }}
+                      onChange={e => { setPhone(normalizePhone(e.target.value)); setError(""); }}
                       onKeyDown={e => e.key === "Enter" && requestOtp()}
                       placeholder="05XXXXXXXX"
                       dir="ltr"

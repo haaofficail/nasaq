@@ -20,6 +20,7 @@ import { awardLoyaltyPoints } from "../lib/segments-engine";
 import { fireBookingEvent } from "../lib/messaging-engine";
 import { decryptString } from "../lib/encryption";
 import { log } from "../lib/logger";
+import { salonLog } from "../lib/salon-logger";
 import { shadowWriteBookingOnCreate, shadowWriteBookingStatus } from "../lib/canonical-shadow";
 import type { AuthUser } from "../middleware/auth";
 
@@ -40,10 +41,10 @@ const ENABLE_CANONICAL_READ_LIST = process.env.ENABLE_CANONICAL_READ_LIST === "t
 const IMMEDIATE_TYPES = new Set(["product", "product_shipping", "food_order", "package", "add_on"]);
 
 const createBookingSchema = z.object({
-  customerId: z.string().uuid(),
-  eventDate: z.string().datetime().optional(),   // optional for immediate-sale types
-  eventEndDate: z.string().datetime().optional(),
-  locationId: z.string().uuid().optional(),
+  customerId: z.string().uuid({ message: "يجب اختيار العميل" }),
+  eventDate: z.string().datetime({ message: "تاريخ الموعد غير صحيح" }).optional(),
+  eventEndDate: z.string().datetime({ message: "تاريخ انتهاء الموعد غير صحيح" }).optional(),
+  locationId: z.string().uuid({ message: "معرّف الموقع غير صحيح" }).optional(),
   customLocation: z.string().optional(),
   locationNotes: z.string().optional(),
   customerNotes: z.string().optional(),
@@ -52,13 +53,13 @@ const createBookingSchema = z.object({
 
   // Items (الخدمات المحجوزة)
   items: z.array(z.object({
-    serviceId: z.string().uuid(),
-    quantity: z.number().int().min(1).default(1),
+    serviceId: z.string().uuid({ message: "يجب اختيار الخدمة" }),
+    quantity: z.number().int().min(1, { message: "الكمية يجب أن تكون 1 على الأقل" }).default(1),
     addons: z.array(z.object({
       addonId: z.string().uuid(),
       quantity: z.number().int().min(1).default(1),
     })).default([]),
-  })).min(1),
+  })).min(1, { message: "يجب إضافة خدمة واحدة على الأقل" }),
 
   // Coupon
   couponCode: z.string().optional(),
@@ -194,6 +195,9 @@ bookingsRouter.get("/", async (c) => {
         customerName: customers.name,
         customerPhone: customers.phone,
         locationName: locations.name,
+        // Fetch first service name + duration via correlated subquery (avoids N+1)
+        firstServiceName: sql<string | null>`(SELECT bi.service_name FROM booking_items bi WHERE bi.booking_id = ${bookings.id} LIMIT 1)`,
+        firstDurationMinutes: sql<number | null>`(SELECT s.duration_minutes FROM booking_items bi JOIN services s ON s.id = bi.service_id WHERE bi.booking_id = ${bookings.id} LIMIT 1)`,
       })
       .from(bookings)
       .leftJoin(customers, eq(bookings.customerId, customers.id))
@@ -210,6 +214,8 @@ bookingsRouter.get("/", async (c) => {
       ...r.booking,
       customer: { name: r.customerName, phone: r.customerPhone },
       location: r.locationName ? { name: r.locationName } : null,
+      serviceName: r.firstServiceName ?? null,
+      durationMinutes: r.firstDurationMinutes ?? null,
     })),
     pagination: { page, limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) },
   });
@@ -647,6 +653,39 @@ bookingsRouter.post("/", async (c) => {
         }
       }
 
+      // Staff slot conflict — منع تعارض وقت نفس الموظف
+      // فقط عند وجود userId (الحجز المُنشأ من الداشبورد) وتاريخ مجدوَل
+      if (userId && body.eventDate && !allImmediate) {
+        const totalDurationMins = Array.from(serviceMap.values())
+          .reduce((sum, s) => sum + ((s as any).durationMinutes ?? 60), 0);
+        const staffStart = resolvedEventDate;
+        const staffEnd = body.eventEndDate
+          ? new Date(body.eventEndDate)
+          : new Date(resolvedEventDate.getTime() + totalDurationMins * 60_000);
+
+        const { rows: staffConflict } = await tx.execute(sql`
+          SELECT id, booking_number FROM bookings
+          WHERE org_id      = ${orgId}
+            AND assigned_user_id = ${userId}
+            AND status NOT IN ('cancelled', 'no_show')
+            AND event_date  < ${staffEnd}
+            AND COALESCE(event_end_date, event_date + (
+              SELECT COALESCE(SUM(s.duration_minutes), 60) * interval '1 minute'
+              FROM booking_items bi
+              JOIN services s ON s.id = bi.service_id
+              WHERE bi.booking_id = bookings.id
+            )) > ${staffStart}
+          FOR UPDATE
+        `);
+
+        if (staffConflict.length > 0) {
+          throw Object.assign(new Error("STAFF_SLOT_CONFLICT"), {
+            status: 409,
+            conflicts: (staffConflict as any[]).map((r) => r.booking_number),
+          });
+        }
+      }
+
       // Insert booking
       const [newBooking] = await tx.insert(bookings).values({
         orgId,
@@ -768,18 +807,45 @@ bookingsRouter.post("/", async (c) => {
 
       return newBooking;
     });
-  } catch (err) {
+  } catch (err: any) {
     if (err instanceof LocationConflictError) {
+      salonLog.bookingConflictRejected({
+        requestId: requestId ?? undefined, orgId, assignedUserId: userId ?? undefined,
+        metadata: { conflictType: "location", conflictBookings: err.conflicts },
+      });
       return c.json({
         error: "يوجد تعارض — الموقع محجوز في هذا التاريخ",
         code: "LOCATION_CONFLICT",
         conflicts: err.conflicts,
       }, 409);
     }
+    if (err?.message === "STAFF_SLOT_CONFLICT") {
+      salonLog.bookingConflictRejected({
+        requestId: requestId ?? undefined, orgId, assignedUserId: userId ?? undefined,
+        metadata: { conflictType: "staff", conflictBookings: err.conflicts ?? [] },
+      });
+      return c.json({
+        error: "الموظف لديه حجز آخر في نفس الوقت — اختر وقتاً مختلفاً أو موظفاً آخر",
+        code: "STAFF_SLOT_CONFLICT",
+        conflicts: err.conflicts ?? [],
+      }, 409);
+    }
+    salonLog.bookingFailed({
+      requestId: requestId ?? undefined, orgId, assignedUserId: userId ?? undefined,
+      metadata: { reason: err?.message ?? "unknown" },
+    });
     throw err;
   }
 
   insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "booking", resourceId: booking.id });
+
+  salonLog.bookingCreated({
+    requestId: requestId ?? undefined, orgId,
+    bookingId: booking.id,
+    customerId: booking.customerId ?? undefined,
+    assignedUserId: userId ?? undefined,
+    metadata: { bookingNumber: booking.bookingNumber },
+  });
 
   // Free plan: increment counter after successful booking
   if (org?.plan === "free") {
@@ -916,6 +982,13 @@ bookingsRouter.patch("/:id/status", async (c) => {
     fireBookingEvent("booking_completed", { orgId, bookingId: id });
   }
 
+  // Monitoring: log status transitions
+  if (newStatus === "completed") {
+    salonLog.bookingCompleted({ requestId: requestId ?? undefined, orgId, bookingId: id, assignedUserId: actingUserId ?? undefined });
+  } else if (newStatus === "cancelled" || newStatus === "no_show") {
+    salonLog.bookingCancelled({ requestId: requestId ?? undefined, orgId, bookingId: id, assignedUserId: actingUserId ?? undefined, metadata: { reason, status: newStatus } });
+  }
+
   // On completion: deduct supplies + record consumptions (non-blocking)
   if (newStatus === "completed") {
     (async () => {
@@ -936,14 +1009,36 @@ bookingsRouter.patch("/:id/status", async (c) => {
 
           for (const recipe of recipes) {
             const totalQty = parseFloat(recipe.quantity as string) * (item.quantity || 1);
-            const [supply] = await db.select({ quantity: salonSupplies.quantity })
+            const [supply] = await db.select({ id: salonSupplies.id, quantity: salonSupplies.quantity })
               .from(salonSupplies).where(eq(salonSupplies.id, recipe.supplyId));
             if (!supply) continue;
 
-            const newQty = Math.max(0, parseFloat(supply.quantity as string) - totalQty);
+            const currentQty = parseFloat(supply.quantity as string);
+            if (currentQty < totalQty) {
+              salonLog.inventoryLowStock({
+                requestId: requestId ?? undefined, orgId, bookingId: id,
+                serviceId: item.serviceId ?? undefined,
+                metadata: { supplyId: recipe.supplyId, needed: totalQty, available: currentQty },
+              });
+              await db.insert(salonSupplyAdjustments).values({
+                orgId,
+                supplyId:  recipe.supplyId,
+                delta:     "0",
+                reason:    "manual",
+                notes:     `تحذير مخزون: حجز ${id.slice(0, 8)} يحتاج ${totalQty} والمتاح ${currentQty} — تم الخصم للصفر`,
+                createdBy: actingUserId,
+              });
+            }
+            const newQty = Math.max(0, currentQty - totalQty);
             await db.update(salonSupplies)
               .set({ quantity: String(newQty), updatedAt: new Date() })
               .where(eq(salonSupplies.id, recipe.supplyId));
+
+            salonLog.inventoryDeducted({
+              requestId: requestId ?? undefined, orgId, bookingId: id,
+              serviceId: item.serviceId ?? undefined,
+              metadata: { supplyId: recipe.supplyId, qty: totalQty, newQty },
+            });
 
             await db.insert(salonSupplyAdjustments).values({
               orgId,
@@ -968,7 +1063,12 @@ bookingsRouter.patch("/:id/status", async (c) => {
             });
           }
         }
-      } catch (_) { /* non-critical */ }
+      } catch (err) {
+        salonLog.dbError({
+          requestId: requestId ?? undefined, orgId, bookingId: id,
+          metadata: { operation: "inventory_deduction", error: String(err) },
+        });
+      }
     })();
   }
 
