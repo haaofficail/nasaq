@@ -296,17 +296,36 @@ authRouter.post("/otp/request", async (c) => {
     expiresAt,
   });
 
-  const smsSent = await sendSms(phone, `رمز التحقق في نسق: ${code}\nصالح لمدة 5 دقائق. لا تشاركه مع أحد.`);
+  const otpMessage = `مرحباً،\nرمز التحقق الخاص بك في منصة ترميز OS:\n*${code}*\nصالح لمدة 5 دقائق. لا تشاركه مع أحد.\nترميز OS`;
 
-  // في حال لم يُهيأ مزود SMS بعد — اطبع الكود في السجلات فقط
-  if (!smsSent) {
+  // محاولة الإرسال: واتساب أولاً ← SMS احتياطياً
+  let sent = false;
+  let channel = "none";
+
+  try {
+    const { sendViaBaileys } = await import("../lib/whatsappBaileys");
+    sent = await sendViaBaileys("platform", phone, otpMessage);
+    if (sent) channel = "whatsapp";
+  } catch { /* Baileys غير جاهز */ }
+
+  if (!sent) {
+    sent = await sendSms(phone, `رمز التحقق في ترميز OS: ${code}\nصالح لمدة 5 دقائق. لا تشاركه مع أحد.`);
+    if (sent) channel = "sms";
+  }
+
+  if (!sent) {
     console.log(`\n[OTP] ${phone}: ${code}\n`);
   }
 
   return c.json({
-    message: smsSent ? "تم إرسال رمز التحقق على جوالك" : "رمز التحقق: ظهر في سجلات الخادم",
+    message: channel === "whatsapp"
+      ? "تم إرسال رمز التحقق عبر واتساب"
+      : channel === "sms"
+        ? "تم إرسال رمز التحقق برسالة نصية"
+        : "رمز التحقق ظهر في سجلات الخادم",
+    channel,
     expiresIn: 300,
-    ...(!smsSent ? { _devCode: code } : {}),
+    ...(channel === "none" ? { _devCode: code } : {}),
   });
 });
 

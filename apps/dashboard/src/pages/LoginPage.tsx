@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Phone, Shield, ArrowLeft, Loader2, Mail, Eye, EyeOff } from "lucide-react";
+import { Phone, Shield, ArrowLeft, Loader2, Mail, Eye, EyeOff, MessageCircle } from "lucide-react";
 import { authApi } from "@/lib/api";
 import { clsx } from "clsx";
 import { BRAND } from "@/lib/branding";
@@ -27,7 +27,7 @@ function getRedirectAfterLogin(user: any): string {
 export function LoginPage() {
   const navigate = useNavigate();
 
-  const [method, setMethod]   = useState<Method>("email");
+  const [method, setMethod]   = useState<Method>("phone");
   const [step, setStep]       = useState<Step>("input");
 
   // phone flow
@@ -122,14 +122,40 @@ export function LoginPage() {
         {/* Card */}
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
 
-          {/* Method tabs — hidden temporarily (email only) */}
+          {/* Method tabs */}
+          <div className="flex border-b border-gray-100">
+            <button
+              onClick={() => switchMethod("phone")}
+              className={clsx(
+                "flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-medium transition-colors",
+                method === "phone"
+                  ? "text-brand-600 border-b-2 border-brand-500 bg-brand-50/50"
+                  : "text-gray-400 hover:text-gray-600"
+              )}
+            >
+              <MessageCircle className="w-4 h-4" />
+              واتساب
+            </button>
+            <button
+              onClick={() => switchMethod("email")}
+              className={clsx(
+                "flex-1 flex items-center justify-center gap-2 py-3.5 text-sm font-medium transition-colors",
+                method === "email"
+                  ? "text-brand-600 border-b-2 border-brand-500 bg-brand-50/50"
+                  : "text-gray-400 hover:text-gray-600"
+              )}
+            >
+              <Mail className="w-4 h-4" />
+              إيميل
+            </button>
+          </div>
 
           <div className="p-6">
 
             {/* ── Phone flow ── */}
             {method === "phone" && step === "input" && (
               <>
-                <p className="text-sm text-gray-500 mb-5 text-center">أدخل رقم جوالك وسنرسل لك رمز تحقق</p>
+                <p className="text-sm text-gray-500 mb-5 text-center">أدخل رقم جوالك وسنرسل لك رمز تحقق عبر واتساب</p>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">رقم الجوال</label>
@@ -167,7 +193,7 @@ export function LoginPage() {
                   </div>
                   <h2 className="text-base font-bold text-gray-900">رمز التحقق</h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    أدخل الرمز المكون من 6 أرقام المُرسل إلى <span className="font-mono text-gray-700" dir="ltr">{phone}</span>
+                    أُرسل رمز التحقق عبر واتساب إلى <span className="font-mono text-gray-700" dir="ltr">{phone}</span>
                   </p>
                 </div>
                 <div className="space-y-4">
