@@ -203,7 +203,12 @@ export default function WhatsAppGatewayTab() {
         onChange={(id) => setTab(id as typeof tab)}
       />
 
-      {tab === "qr" && <QrConnectionSection onStatusChange={refetchStatus} />}
+      {tab === "qr" && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+          <QrConnectionSection onStatusChange={refetchStatus} />
+          <TestTemplateSection connected={!!(status?.baileysConnected)} />
+        </div>
+      )}
       {tab === "credentials" && <CredentialsSendSection />}
       {tab === "send" && <SendMessageSection />}
       {tab === "templates" && <TemplatesSection />}
@@ -421,6 +426,100 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// TEST TEMPLATE SECTION — quick send beside QR panel
+// ══════════════════════════════════════════════════════════════
+
+function TestTemplateSection({ connected }: { connected: boolean }) {
+  const [phone, setPhone]     = useState("");
+  const [sending, setSending] = useState(false);
+  const [result, setResult]   = useState<"sent" | "failed" | null>(null);
+
+  const TEST_MESSAGE =
+    "مرحباً، هذه رسالة تجريبية من منصة ترميز OS للتحقق من صحة الاتصال بواتساب الأدمن.";
+
+  const handleSend = async () => {
+    if (!phone.trim()) { toast.error("أدخل رقم الجوال"); return; }
+    setSending(true);
+    setResult(null);
+    try {
+      const res = await adminApi.sendWaMessage({ phone: phone.trim(), message: TEST_MESSAGE });
+      if (res?.data?.sent) {
+        setResult("sent");
+        toast.success("تم إرسال رسالة الاختبار");
+      } else {
+        setResult("failed");
+        toast.error("فشل الإرسال");
+      }
+    } catch {
+      setResult("failed");
+      toast.error("فشل الإرسال");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className={clsx(
+      "bg-white rounded-2xl border p-5 space-y-4 transition-opacity",
+      connected ? "border-gray-100" : "border-gray-100 opacity-50 pointer-events-none"
+    )}>
+      <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+        <Send className="w-4 h-4 text-brand-500" />
+        قالب تجربة
+      </h3>
+
+      {!connected && (
+        <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+          يتطلب اتصال QR نشط أولاً
+        </p>
+      )}
+
+      <div className="space-y-3">
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">رقم الجوال</label>
+          <input
+            value={phone}
+            onChange={e => setPhone(e.target.value)}
+            placeholder="05xxxxxxxx"
+            dir="ltr"
+            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400"
+          />
+        </div>
+
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">نص الرسالة</label>
+          <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs text-gray-600 leading-relaxed">
+            {TEST_MESSAGE}
+          </div>
+        </div>
+
+        <button
+          onClick={handleSend}
+          disabled={sending || !connected}
+          className="w-full flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-600 text-white text-sm font-medium rounded-xl px-4 py-2.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          {sending ? "جارٍ الإرسال..." : "إرسال رسالة اختبار"}
+        </button>
+
+        {result === "sent" && (
+          <div className="flex items-center gap-2 text-xs text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2">
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+            تم الإرسال بنجاح
+          </div>
+        )}
+        {result === "failed" && (
+          <div className="flex items-center gap-2 text-xs text-red-700 bg-red-50 border border-red-100 rounded-xl px-3 py-2">
+            <XCircle className="w-3.5 h-3.5 shrink-0" />
+            فشل الإرسال — تأكد من صحة الرقم والاتصال
+          </div>
+        )}
+      </div>
     </div>
   );
 }
