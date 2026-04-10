@@ -4,9 +4,10 @@ import {
   LayoutDashboard, Building2, Users2, Briefcase, CreditCard, Package,
   Bell, Headphones, FileText, Megaphone, ClipboardList, Server, ShieldAlert, ShieldCheck, LogOut,
   Wrench, Images, ToggleLeft, BarChart3, Bot, Settings2,
-  Receipt, CalendarCheck, Users, ShoppingCart, Wallet, MessageCircle,
+  Receipt, CalendarCheck, Users, ShoppingCart, Wallet, MessageCircle, KeyRound, X, Eye, EyeOff,
 } from "lucide-react";
 import { clsx } from "clsx";
+import { authApi } from "../lib/api";
 
 // ════════════════════════════════════════════════════════════
 // Lazy-loaded tab components
@@ -115,9 +116,136 @@ const BRAND_VARS = [
   "--accent-business", "--accent-business-soft", "--nasaq-font-family",
 ];
 
+// ════════════════════════════════════════════════════════════
+// ChangePasswordModal
+// ════════════════════════════════════════════════════════════
+
+function ChangePasswordModal({ onClose }: { onClose: () => void }) {
+  const [currentPw, setCurrentPw] = useState("");
+  const [newPw, setNewPw] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    if (newPw.length < 8) { setError("كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل"); return; }
+    if (newPw !== confirmPw) { setError("كلمة المرور الجديدة وتأكيدها غير متطابقتين"); return; }
+    setLoading(true);
+    try {
+      await authApi.changePassword(currentPw, newPw);
+      setSuccess(true);
+      setTimeout(onClose, 1500);
+    } catch (err: any) {
+      setError(err?.response?.data?.message || err?.message || "حدث خطأ، حاول مرة أخرى");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" dir="rtl">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 z-10">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center">
+              <KeyRound className="w-5 h-5 text-brand-500" />
+            </div>
+            <h2 className="text-base font-bold text-gray-900">تغيير كلمة المرور</h2>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {success ? (
+          <div className="text-center py-6">
+            <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+              <ShieldCheck className="w-6 h-6 text-green-500" />
+            </div>
+            <p className="text-sm font-medium text-gray-900">تم تغيير كلمة المرور بنجاح</p>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">كلمة المرور الحالية</label>
+              <div className="relative">
+                <input
+                  type={showCurrent ? "text" : "password"}
+                  value={currentPw}
+                  onChange={e => setCurrentPw(e.target.value)}
+                  required
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 pr-3 pl-10"
+                  placeholder="أدخل كلمة مرورك الحالية"
+                />
+                <button type="button" onClick={() => setShowCurrent(v => !v)} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">كلمة المرور الجديدة</label>
+              <div className="relative">
+                <input
+                  type={showNew ? "text" : "password"}
+                  value={newPw}
+                  onChange={e => setNewPw(e.target.value)}
+                  required
+                  minLength={8}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 pr-3 pl-10"
+                  placeholder="8 أحرف على الأقل"
+                />
+                <button type="button" onClick={() => setShowNew(v => !v)} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1.5">تأكيد كلمة المرور الجديدة</label>
+              <input
+                type="password"
+                value={confirmPw}
+                onChange={e => setConfirmPw(e.target.value)}
+                required
+                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+                placeholder="أعد كتابة كلمة المرور الجديدة"
+              />
+            </div>
+            {error && (
+              <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+            )}
+            <div className="flex gap-2 pt-1">
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 bg-brand-500 text-white text-sm font-medium rounded-xl py-2.5 hover:bg-brand-600 transition-colors disabled:opacity-50"
+              >
+                {loading ? "جاري الحفظ..." : "حفظ كلمة المرور"}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 bg-gray-100 text-gray-600 text-sm font-medium rounded-xl py-2.5 hover:bg-gray-200 transition-colors"
+              >
+                إلغاء
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function AdminPage() {
   const { section: sectionParam } = useParams<{ section?: string }>();
   const [section, setSection] = useState(sectionParam || "overview");
+  const [showChangePw, setShowChangePw] = useState(false);
   const user = useCurrentAdmin();
   const navigate = useNavigate();
 
@@ -233,6 +361,13 @@ export function AdminPage() {
             </div>
           </div>
           <button
+            onClick={() => setShowChangePw(true)}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-500 hover:bg-white/5 hover:text-gray-300 transition-all"
+          >
+            <KeyRound className="w-4 h-4 shrink-0" />
+            <span>تغيير كلمة المرور</span>
+          </button>
+          <button
             onClick={handleLogout}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm text-gray-500 hover:bg-red-500/10 hover:text-red-400 transition-all"
           >
@@ -250,6 +385,8 @@ export function AdminPage() {
           </Suspense>
         </div>
       </div>
+
+      {showChangePw && <ChangePasswordModal onClose={() => setShowChangePw(false)} />}
     </div>
   );
 }
