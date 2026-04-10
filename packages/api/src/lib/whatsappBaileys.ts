@@ -1,6 +1,14 @@
 // ============================================================
 // WHATSAPP BAILEYS — QR-based WhatsApp connection per org
 // Uses @whiskeysockets/baileys (multi-device, no browser)
+//
+// Lifecycle guarantees:
+//   - Generation tracking prevents stale event handlers
+//   - isSocketAlive() checks ws.readyState for integrity
+//   - getBaileysState() auto-corrects stale states on poll
+//   - force=true on initBaileys allows explicit re-init
+//   - Reconnect with exponential backoff (max 5 attempts)
+//   - restoreAllBaileys() called at startup for saved sessions
 // ============================================================
 
 import baileysMod, {
@@ -29,12 +37,15 @@ const makeWASocket = (typeof _resolved === "function" ? _resolved : null) as typ
 export type WaStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 
 interface Session {
-  socket:    any | null;
-  status:    WaStatus;
-  qrBase64:  string | null;   // data:image/png;base64,…
-  phone:     string | null;   // e.g. "966501234567"
-  lastError: string | null;
-  updatedAt: Date;
+  socket:       any | null;
+  status:       WaStatus;
+  qrBase64:     string | null;   // data:image/png;base64,…
+  phone:        string | null;   // e.g. "966501234567"
+  lastError:    string | null;
+  updatedAt:    Date;
+  generation:   number;          // tracks init generation for event isolation
+  reconnects:   number;          // current consecutive reconnect count
+  reconnectTimer: ReturnType<typeof setTimeout> | null; // pending reconnect timer
 }
 
 // ── Singleton map (lives for the process lifetime) ────────
@@ -43,6 +54,11 @@ const sessions = new Map<string, Session>();
 const SESSIONS_DIR =
   process.env.WA_SESSIONS_DIR ?? "/var/www/nasaq/whatsapp-sessions";
 const DEFAULT_BROWSER: [string, string, string] = ["Ubuntu", "Chrome", "22.04.4"];
+
+// Reconnect config
+const MAX_RECONNECT_ATTEMPTS = 5;
+// Exponential backoff: attempt 1=2s, 2=4s, 3=8s, 4=16s, 5=32s
+const RECONNECT_BASE_DELAY_MS = 2_000;
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -57,6 +73,7 @@ function get(orgId: string): Session {
     sessions.set(orgId, {
       socket: null, status: "disconnected",
       qrBase64: null, phone: null, lastError: null, updatedAt: new Date(),
+      generation: 0, reconnects: 0, reconnectTimer: null,
     });
   }
   return sessions.get(orgId)!;
@@ -66,16 +83,58 @@ function touch(sess: Session, patch: Partial<Session>) {
   Object.assign(sess, patch, { updatedAt: new Date() });
 }
 
+/** Check if the underlying WebSocket is actually alive */
+function isSocketAlive(sock: any): boolean {
+  try {
+    // Baileys sockets expose ws property with readyState
+    const ws = sock?.ws;
+    if (!ws) return false;
+    // WebSocket.OPEN = 1
+    return ws.readyState === 1;
+  } catch {
+    return false;
+  }
+}
+
+/** Safely close a socket without throwing */
+function safeCloseSocket(sock: any): void {
+  if (!sock) return;
+  try { sock.end(undefined); } catch { /* ignore */ }
+}
+
+/** Cancel any pending reconnect timer for a session */
+function cancelReconnect(sess: Session): void {
+  if (sess.reconnectTimer) {
+    clearTimeout(sess.reconnectTimer);
+    sess.reconnectTimer = null;
+  }
+}
+
 // ── Public API ────────────────────────────────────────────
 
-/** Start or resume a session. No-op if already connecting/connected. */
-export async function initBaileys(orgId: string): Promise<void> {
+/**
+ * Start or resume a session.
+ * @param orgId  - session key ("platform" for admin, orgId for merchants)
+ * @param force  - if true, tear down existing socket and re-init (admin only)
+ */
+export async function initBaileys(orgId: string, force = false): Promise<void> {
   const sess = get(orgId);
 
-  // Already in-flight or connected — do nothing
+  // force=true: explicitly tear down and re-create (used by admin re-init)
+  if (force && sess.socket) {
+    log.info({ orgId }, "[wa-baileys] force re-init — closing existing socket");
+    cancelReconnect(sess);
+    safeCloseSocket(sess.socket);
+    touch(sess, { socket: null, qrBase64: null, status: "disconnected" });
+  }
+
+  // Already in-flight or connected — do nothing (unless forced above)
   if (sess.status === "connected" || sess.status === "connecting" || sess.status === "qr_ready") return;
 
-  touch(sess, { status: "connecting", qrBase64: null, lastError: null });
+  // Bump generation to invalidate any stale event handlers
+  const gen = ++sess.generation;
+  cancelReconnect(sess);
+  touch(sess, { status: "connecting", qrBase64: null, lastError: null, reconnects: 0 });
 
   try {
     if (typeof makeWASocket !== "function") {
@@ -115,6 +174,12 @@ export async function initBaileys(orgId: string): Promise<void> {
     sock.ev.on("creds.update", saveCreds);
 
     sock.ev.on("connection.update", async (update: { connection?: string; lastDisconnect?: { error?: unknown }; qr?: string }) => {
+      // Generation guard: ignore events from stale sockets
+      if (sess.generation !== gen) {
+        log.info({ orgId, gen, currentGen: sess.generation }, "[wa-baileys] ignoring stale event");
+        return;
+      }
+
       const { connection, lastDisconnect, qr } = update;
 
       // New QR received — convert to base64 PNG
@@ -136,7 +201,7 @@ export async function initBaileys(orgId: string): Promise<void> {
 
       if (connection === "open") {
         const phoneRaw = sock.user?.id?.split(":")[0] ?? null;
-        touch(sess, { status: "connected", qrBase64: null, phone: phoneRaw, lastError: null });
+        touch(sess, { status: "connected", qrBase64: null, phone: phoneRaw, lastError: null, reconnects: 0 });
         log.info({ orgId, phone: phoneRaw }, "[wa-baileys] connected");
       }
 
@@ -144,6 +209,8 @@ export async function initBaileys(orgId: string): Promise<void> {
         const reason = (lastDisconnect?.error as Boom)?.output?.statusCode;
         log.info({ orgId, reason }, "[wa-baileys] closed");
 
+        // Clear socket reference to prevent stale refs
+        safeCloseSocket(sess.socket);
         touch(sess, { socket: null, qrBase64: null });
 
         if (reason === DisconnectReason.loggedOut || reason === DisconnectReason.multideviceMismatch) {
@@ -153,14 +220,28 @@ export async function initBaileys(orgId: string): Promise<void> {
           touch(sess, {
             status: "disconnected",
             phone: null,
+            reconnects: 0,
             lastError:
               reason === DisconnectReason.multideviceMismatch
                 ? "عدم توافق بروتوكول واتساب. أعد بدء جلسة QR جديدة."
                 : "تم تسجيل الخروج من واتساب. ابدأ جلسة QR جديدة.",
           });
         } else {
-          // Transient error — reset to disconnected so user can re-init
-          touch(sess, { status: "disconnected", lastError: "انقطع اتصال واتساب. أعد بدء الجلسة." });
+          // Transient error — attempt reconnect with exponential backoff
+          const attempt = sess.reconnects + 1;
+          if (attempt <= MAX_RECONNECT_ATTEMPTS && hasSavedSession(orgId)) {
+            const delay = RECONNECT_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+            log.info({ orgId, attempt, delay }, "[wa-baileys] scheduling reconnect");
+            touch(sess, { status: "disconnected", reconnects: attempt });
+            sess.reconnectTimer = setTimeout(() => {
+              sess.reconnectTimer = null;
+              initBaileys(orgId).catch((err) => {
+                log.warn({ err, orgId }, "[wa-baileys] reconnect failed");
+              });
+            }, delay);
+          } else {
+            touch(sess, { status: "disconnected", reconnects: 0, lastError: "انقطع اتصال واتساب. أعد بدء الجلسة." });
+          }
         }
       }
     });
@@ -172,7 +253,11 @@ export async function initBaileys(orgId: string): Promise<void> {
   }
 }
 
-/** Get current session state for an org */
+/**
+ * Get current session state for an org.
+ * Auto-corrects stale states: if status says connected but socket is dead,
+ * resets to disconnected so callers never see a false "connected".
+ */
 export function getBaileysState(orgId: string): {
   status:    WaStatus;
   qrBase64:  string | null;
@@ -181,6 +266,20 @@ export function getBaileysState(orgId: string): {
   updatedAt: Date;
 } {
   const sess = get(orgId);
+
+  // Stale state correction: if we think we're connected but socket is dead
+  if (sess.status === "connected" && sess.socket && !isSocketAlive(sess.socket)) {
+    log.warn({ orgId }, "[wa-baileys] stale connected state — socket is dead, resetting");
+    safeCloseSocket(sess.socket);
+    touch(sess, { status: "disconnected", socket: null, qrBase64: null });
+  }
+
+  // Stale QR correction: if qr_ready but no socket
+  if (sess.status === "qr_ready" && !sess.socket) {
+    log.warn({ orgId }, "[wa-baileys] stale qr_ready state — no socket, resetting");
+    touch(sess, { status: "disconnected", qrBase64: null });
+  }
+
   return {
     status:    sess.status,
     qrBase64:  sess.qrBase64,
@@ -194,6 +293,13 @@ export function getBaileysState(orgId: string): {
 export async function sendViaBaileys(orgId: string, phone: string, message: string): Promise<boolean> {
   const sess = get(orgId);
   if (sess.status !== "connected" || !sess.socket) return false;
+
+  // Double-check socket is actually alive before sending
+  if (!isSocketAlive(sess.socket)) {
+    log.warn({ orgId, phone }, "[wa-baileys] send aborted — socket is dead");
+    touch(sess, { status: "disconnected", socket: null, qrBase64: null });
+    return false;
+  }
 
   try {
     const jid = phone.replace(/\+/g, "").replace(/\s/g, "") + "@s.whatsapp.net";
@@ -209,16 +315,18 @@ export async function sendViaBaileys(orgId: string, phone: string, message: stri
 /** Logout and remove session files */
 export async function logoutBaileys(orgId: string): Promise<void> {
   const sess = get(orgId);
+  cancelReconnect(sess);
 
   if (sess.socket) {
-    try { await sess.socket.logout(); } catch {}
+    try { await sess.socket.logout(); } catch { /* ignore */ }
+    safeCloseSocket(sess.socket);
     sess.socket = null;
   }
 
   const dir = path.join(SESSIONS_DIR, orgId);
   fs.rmSync(dir, { recursive: true, force: true });
 
-  touch(sess, { status: "disconnected", qrBase64: null, phone: null, lastError: null });
+  touch(sess, { status: "disconnected", qrBase64: null, phone: null, lastError: null, reconnects: 0 });
   log.info({ orgId }, "[wa-baileys] logged out");
 }
 
@@ -227,15 +335,47 @@ export function hasSavedSession(orgId: string): boolean {
   return fs.existsSync(path.join(SESSIONS_DIR, orgId, "creds.json"));
 }
 
-/** Restore all saved sessions on server startup */
+/**
+ * Restore all saved sessions on server startup.
+ * Validates creds.json integrity before attempting restore.
+ */
 export async function restoreAllBaileys(): Promise<void> {
   if (!fs.existsSync(SESSIONS_DIR)) return;
-  const dirs = fs.readdirSync(SESSIONS_DIR).filter(d =>
-    fs.statSync(path.join(SESSIONS_DIR, d)).isDirectory() &&
-    fs.existsSync(path.join(SESSIONS_DIR, d, "creds.json"))
-  );
+  const dirs = fs.readdirSync(SESSIONS_DIR).filter(d => {
+    const dirPath = path.join(SESSIONS_DIR, d);
+    const credsPath = path.join(dirPath, "creds.json");
+    if (!fs.statSync(dirPath).isDirectory()) return false;
+    if (!fs.existsSync(credsPath)) return false;
+    // Validate creds.json is non-empty and parseable
+    try {
+      const raw = fs.readFileSync(credsPath, "utf8").trim();
+      // Minimum valid JSON like {"k":1} is ~7 chars; 10 is a safe threshold
+      if (!raw || raw.length < 10) {
+        log.warn({ orgId: d }, "[wa-baileys] skipping restore — creds.json empty or corrupt");
+        return false;
+      }
+      JSON.parse(raw);
+      return true;
+    } catch {
+      log.warn({ orgId: d }, "[wa-baileys] skipping restore — creds.json invalid JSON");
+      return false;
+    }
+  });
+  log.info({ count: dirs.length, sessions: dirs }, "[wa-baileys] restoring saved sessions on startup");
   for (const orgId of dirs) {
     log.info({ orgId }, "[wa-baileys] restoring session");
-    initBaileys(orgId).catch(() => {});
+    initBaileys(orgId).catch((err) => {
+      log.warn({ err, orgId }, "[wa-baileys] restore failed — session will remain disconnected");
+    });
   }
 }
+
+// ── Exported for testing ─────────────────────────────────
+export const _test = {
+  sessions,
+  isSocketAlive,
+  MAX_RECONNECT_ATTEMPTS,
+  RECONNECT_BASE_DELAY_MS,
+  get,
+  cancelReconnect,
+};

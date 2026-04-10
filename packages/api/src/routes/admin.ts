@@ -2370,7 +2370,7 @@ adminRouter.post("/wa/qr/start", async (c) => {
   const adminId = c.get("adminId") as string;
   try {
     const { initBaileys } = await import("../lib/whatsappBaileys");
-    await initBaileys("platform");
+    await initBaileys("platform", true);
     logAdminAction(adminId, "start_wa_qr", "whatsapp", "platform", {}, c.req.header("X-Forwarded-For"));
     return c.json({ data: { ok: true, message: "جارٍ بدء جلسة QR..." } });
   } catch (err: any) {
