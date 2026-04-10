@@ -57,7 +57,8 @@ const DEFAULT_BROWSER: [string, string, string] = ["Ubuntu", "Chrome", "22.04.4"
 
 // Reconnect config
 const MAX_RECONNECT_ATTEMPTS = 5;
-const RECONNECT_BASE_DELAY_MS = 2_000;   // 2s, 4s, 8s, 16s, 32s
+// Exponential backoff: attempt 1=2s, 2=4s, 3=8s, 4=16s, 5=32s
+const RECONNECT_BASE_DELAY_MS = 2_000;
 
 // ── Helpers ───────────────────────────────────────────────
 
@@ -348,6 +349,7 @@ export async function restoreAllBaileys(): Promise<void> {
     // Validate creds.json is non-empty and parseable
     try {
       const raw = fs.readFileSync(credsPath, "utf8").trim();
+      // Minimum valid JSON like {"k":1} is ~7 chars; 10 is a safe threshold
       if (!raw || raw.length < 10) {
         log.warn({ orgId: d }, "[wa-baileys] skipping restore — creds.json empty or corrupt");
         return false;
