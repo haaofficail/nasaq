@@ -69,12 +69,25 @@ export function LoginPage() {
     finally { setLoading(false); }
   };
 
-  // ─── Email: login ─────────────────────────────────────────
-  const loginWithEmail = async () => {
-    if (!email || !password) { setError("أدخل البريد الإلكتروني وكلمة المرور للمتابعة"); return; }
+  // ─── Email: request OTP ───────────────────────────────────
+  const requestEmailOtp = async () => {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError("أدخل بريداً إلكترونياً صحيحاً"); return; }
     setLoading(true); setError("");
     try {
-      const res = await authApi.loginWithEmail(email, password);
+      const res: any = await authApi.requestEmailOtp(email);
+      if (res._devCode) setDevCode(res._devCode);
+      setStep("otp");
+    } catch (err: any) { setError(err.message); }
+    finally { setLoading(false); }
+  };
+
+  // ─── Email: verify OTP ────────────────────────────────────
+  const verifyEmailOtp = async () => {
+    const code = otp.join("");
+    if (code.length !== 6) { setError("أدخل رمز التحقق المكون من 6 أرقام"); return; }
+    setLoading(true); setError("");
+    try {
+      const res = await authApi.verifyEmailOtp(email, code);
       saveSession(res, remember);
       navigate(getRedirectAfterLogin(res.user));
     } catch (err: any) { setError(err.message); }
@@ -87,12 +100,12 @@ export function LoginPage() {
     if (value && !/^\d$/.test(value)) return;
     const next = [...otp]; next[index] = value; setOtp(next); setError("");
     if (value && index < 5) document.getElementById(`otp-${index + 1}`)?.focus();
-    if (value && index === 5 && next.join("").length === 6) setTimeout(verifyOtp, 100);
+    if (value && index === 5 && next.join("").length === 6) setTimeout(method === "email" ? verifyEmailOtp : verifyOtp, 100);
   };
 
   const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) document.getElementById(`otp-${index - 1}`)?.focus();
-    if (e.key === "Enter") verifyOtp();
+    if (e.key === "Enter") method === "email" ? verifyEmailOtp() : verifyOtp();
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -232,10 +245,10 @@ export function LoginPage() {
               </>
             )}
 
-            {/* ── Email flow ── */}
+            {/* ── Email OTP: input step ── */}
             {method === "email" && step === "input" && (
               <>
-                <p className="text-sm text-gray-500 mb-5 text-center">أدخل إيميلك وكلمة المرور</p>
+                <p className="text-sm text-gray-500 mb-5 text-center">أدخل بريدك الإلكتروني وسنرسل لك رمز تحقق</p>
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1.5">البريد الإلكتروني</label>
@@ -243,33 +256,12 @@ export function LoginPage() {
                       type="email"
                       value={email}
                       onChange={e => { setEmail(e.target.value); setError(""); }}
-                      onKeyDown={e => e.key === "Enter" && loginWithEmail()}
+                      onKeyDown={e => e.key === "Enter" && requestEmailOtp()}
                       placeholder="name@example.com"
                       dir="ltr"
                       className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all"
                       autoFocus
                     />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">كلمة المرور</label>
-                    <div className="relative">
-                      <input
-                        type={showPass ? "text" : "password"}
-                        value={password}
-                        onChange={e => { setPassword(e.target.value); setError(""); }}
-                        onKeyDown={e => e.key === "Enter" && loginWithEmail()}
-                        placeholder="••••••••"
-                        dir="ltr"
-                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all pr-11"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPass(p => !p)}
-                        className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                      >
-                        {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
                   </div>
                   <label className="flex items-center gap-2 cursor-pointer select-none">
                     <input type="checkbox" checked={remember} onChange={e => setRemember(e.target.checked)}
@@ -277,10 +269,58 @@ export function LoginPage() {
                     <span className="text-sm text-gray-500">تذكرني على هذا الجهاز</span>
                   </label>
                   {error && <p className="text-sm text-red-500 text-center">{error}</p>}
-                  <button onClick={loginWithEmail} disabled={loading || !email || !password} className="w-full bg-brand-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+                  <button onClick={requestEmailOtp} disabled={loading || !email} className="w-full bg-brand-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
                     {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                    تسجيل الدخول
+                    إرسال رمز التحقق
                   </button>
+                </div>
+              </>
+            )}
+
+            {/* ── Email OTP: verify step ── */}
+            {method === "email" && step === "otp" && (
+              <>
+                <div className="text-center mb-5">
+                  <div className="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center mx-auto mb-3">
+                    <Mail className="w-6 h-6 text-brand-600" />
+                  </div>
+                  <h2 className="text-base font-bold text-gray-900">رمز التحقق</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    أُرسل رمز التحقق إلى <span className="font-medium text-gray-700">{email}</span>
+                  </p>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex gap-2 justify-center" dir="ltr" onPaste={handlePaste}>
+                    {otp.map((digit, i) => (
+                      <input
+                        key={i} id={`otp-${i}`} type="text" inputMode="numeric" maxLength={1}
+                        value={digit}
+                        onChange={e => handleOtpChange(i, e.target.value)}
+                        onKeyDown={e => handleOtpKeyDown(i, e)}
+                        className="w-12 h-14 rounded-xl border border-gray-200 text-center text-xl font-bold outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-all"
+                        autoFocus={i === 0}
+                      />
+                    ))}
+                  </div>
+                  {devCode && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-lg p-2 text-center">
+                      <p className="text-xs text-amber-600">Dev Mode — الرمز:</p>
+                      <p className="text-lg font-bold font-mono text-amber-700 tracking-[0.3em]">{devCode}</p>
+                    </div>
+                  )}
+                  {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+                  <button onClick={verifyEmailOtp} disabled={loading || otp.join("").length !== 6} className="w-full bg-brand-500 text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+                    {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                    تأكيد الرمز
+                  </button>
+                  <div className="flex items-center justify-between text-sm">
+                    <button onClick={() => { setStep("input"); setOtp(["","","","","",""]); setError(""); }} className="text-gray-500 hover:text-gray-700 flex items-center gap-1">
+                      <ArrowLeft className="w-3 h-3 rotate-180" /> تغيير البريد
+                    </button>
+                    <button onClick={requestEmailOtp} disabled={loading} className="text-brand-500 hover:text-brand-600 font-medium">
+                      إعادة الإرسال
+                    </button>
+                  </div>
                 </div>
               </>
             )}

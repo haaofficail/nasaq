@@ -9,6 +9,7 @@ import { authMiddleware, type AuthUser } from "../middleware/auth";
 import { getBusinessDefaults, getTrustedIp } from "../lib/helpers";
 import { scryptSync, randomBytes, timingSafeEqual } from "crypto";
 import { sendSms } from "../lib/sms";
+import { sendEmail, buildOtpEmail } from "../lib/email";
 import { seedChartOfAccounts } from "../lib/seed-chart-of-accounts";
 
 // ============================================================
@@ -330,82 +331,127 @@ authRouter.post("/otp/request", async (c) => {
 });
 
 // ============================================================
+// POST /auth/otp/request-email — إرسال OTP عبر الإيميل
+// ============================================================
+
+authRouter.post("/otp/request-email", async (c) => {
+  const body = await c.req.json();
+  const email = (body.email ?? "").trim().toLowerCase();
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return c.json({ error: "بريد إلكتروني غير صحيح" }, 400);
+  }
+
+  const [user] = await db
+    .select({ id: users.id, name: users.name, status: users.status })
+    .from(users)
+    .where(eq(users.email, email));
+
+  if (!user) return c.json({ error: "البريد الإلكتروني غير مسجل في النظام" }, 404);
+  if (user.status === "suspended") return c.json({ error: "الحساب موقوف — تواصل مع المسؤول" }, 403);
+
+  // Rate limit: مرة واحدة كل دقيقة
+  const [recent] = await db
+    .select({ id: otpCodes.id })
+    .from(otpCodes)
+    .where(and(
+      eq(otpCodes.email, email),
+      eq(otpCodes.purpose, "login"),
+      gt(otpCodes.expiresAt, new Date()),
+      sql`${otpCodes.createdAt} > NOW() - INTERVAL '1 minute'`
+    ))
+    .limit(1);
+
+  if (recent) return c.json({ error: "يرجى الانتظار دقيقة قبل طلب رمز جديد" }, 429);
+
+  const code = generateOTP();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  await db.insert(otpCodes).values({ email, code, purpose: "login", expiresAt });
+
+  const { subject, html, text } = buildOtpEmail(code);
+  const sent = await sendEmail({ to: email, subject, html, text });
+
+  if (!sent) console.log(`\n[OTP-EMAIL] ${email}: ${code}\n`);
+
+  return c.json({
+    message: sent ? "تم إرسال رمز التحقق على بريدك الإلكتروني" : "رمز التحقق ظهر في سجلات الخادم",
+    expiresIn: 300,
+    ...(!sent ? { _devCode: code } : {}),
+  });
+});
+
+// ============================================================
 // POST /auth/otp/verify — التحقق من الرمز وتسجيل الدخول
+//   يقبل: { phone, code } أو { email, code }
 // ============================================================
 
 authRouter.post("/otp/verify", async (c) => {
   const ip = getTrustedIp(c);
-  if (!checkIpRateLimit(ip, 30, 15 * 60 * 1000)) { // 30 OTP attempts per IP per 15 min
+  if (!checkIpRateLimit(ip, 30, 15 * 60 * 1000)) {
     return c.json({ error: "تم تجاوز الحد المسموح — حاول بعد 15 دقيقة", code: "RATE_LIMITED" }, 429);
   }
 
   const body = await c.req.json();
   const phone = normalizePhone(body.phone);
-  const code = body.code;
+  const email = (body.email ?? "").trim().toLowerCase() || null;
+  const code  = body.code;
 
-  if (!phone || !code) {
-    return c.json({ error: "رقم الجوال والرمز مطلوبان" }, 400);
+  if ((!phone && !email) || !code) {
+    return c.json({ error: "رقم الجوال أو الإيميل والرمز مطلوبان" }, 400);
   }
 
-  // Find valid OTP (accept both login and register purposes)
+  // Build OTP lookup condition
+  const otpCondition = email
+    ? and(eq(otpCodes.email, email), eq(otpCodes.code, code), gt(otpCodes.expiresAt, new Date()))
+    : and(eq(otpCodes.phone, phone!), eq(otpCodes.code, code), gt(otpCodes.expiresAt, new Date()));
+
+  // Find valid OTP
   const [otp] = await db
-    .select({
-      id: otpCodes.id,
-      usedAt: otpCodes.usedAt,
-      attempts: otpCodes.attempts,
-    })
+    .select({ id: otpCodes.id, usedAt: otpCodes.usedAt, attempts: otpCodes.attempts })
     .from(otpCodes)
-    .where(
-      and(
-        eq(otpCodes.phone, phone),
-        eq(otpCodes.code, code),
-        gt(otpCodes.expiresAt, new Date())
-      )
-    )
+    .where(otpCondition)
     .orderBy(desc(otpCodes.createdAt))
     .limit(1);
 
   if (!otp) {
-    // Increment attempts on the latest active OTP for this phone — brute-force protection (P10)
-    await db.execute(sql`
-      UPDATE otp_codes SET attempts = COALESCE(attempts, 0) + 1
-      WHERE id = (
-        SELECT id FROM otp_codes
-        WHERE phone = ${phone} AND purpose = 'login'
-          AND expires_at > NOW() AND used_at IS NULL
-        ORDER BY created_at DESC LIMIT 1
-      )
-    `);
+    if (email) {
+      await db.execute(sql`
+        UPDATE otp_codes SET attempts = COALESCE(attempts, 0) + 1
+        WHERE id = (
+          SELECT id FROM otp_codes
+          WHERE email = ${email} AND purpose = 'login'
+            AND expires_at > NOW() AND used_at IS NULL
+          ORDER BY created_at DESC LIMIT 1
+        )
+      `);
+    } else {
+      await db.execute(sql`
+        UPDATE otp_codes SET attempts = COALESCE(attempts, 0) + 1
+        WHERE id = (
+          SELECT id FROM otp_codes
+          WHERE phone = ${phone} AND purpose = 'login'
+            AND expires_at > NOW() AND used_at IS NULL
+          ORDER BY created_at DESC LIMIT 1
+        )
+      `);
+    }
     return c.json({ error: "رمز التحقق غير صحيح أو منتهي الصلاحية" }, 400);
   }
 
-  if (otp.usedAt) {
-    return c.json({ error: "الرمز مستخدم مسبقاً" }, 400);
-  }
+  if (otp.usedAt) return c.json({ error: "الرمز مستخدم مسبقاً" }, 400);
+  if ((otp.attempts || 0) >= 5) return c.json({ error: "تم تجاوز عدد المحاولات — اطلب رمزاً جديداً" }, 429);
 
-  if ((otp.attempts || 0) >= 5) {
-    return c.json({ error: "تم تجاوز عدد المحاولات — اطلب رمزاً جديداً" }, 429);
-  }
+  await db.update(otpCodes).set({ usedAt: new Date() }).where(eq(otpCodes.id, otp.id));
 
-  // Mark OTP as used
-  await db
-    .update(otpCodes)
-    .set({ usedAt: new Date() })
-    .where(eq(otpCodes.id, otp.id));
-
-  // Find user
+  // Find user — by email or phone
   const [user] = await db
     .select({
-      id: users.id,
-      orgId: users.orgId,
-      name: users.name,
-      phone: users.phone,
-      email: users.email,
-      type: users.type,
-      avatar: users.avatar,
+      id: users.id, orgId: users.orgId, name: users.name,
+      phone: users.phone, email: users.email, type: users.type, avatar: users.avatar,
     })
     .from(users)
-    .where(eq(users.phone, phone));
+    .where(email ? eq(users.email, email) : eq(users.phone, phone!));
 
   if (!user) {
     return c.json({ error: "المستخدم غير موجود" }, 404);

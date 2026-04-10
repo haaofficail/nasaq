@@ -154,17 +154,19 @@ export const sessions = pgTable("sessions", {
 
 export const otpCodes = pgTable("otp_codes", {
   id: uuid("id").defaultRandom().primaryKey(),
-  
-  phone: text("phone").notNull(),
+
+  phone: text("phone"),                            // للتحقق عبر الجوال/واتساب (nullable)
+  email: text("email"),                            // للتحقق عبر الإيميل (nullable)
   code: text("code").notNull(),
   purpose: text("purpose").default("login"),       // login, verify, reset
   attempts: integer("attempts").default(0),
-  
+
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   usedAt: timestamp("used_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index("otp_codes_phone_idx").on(table.phone),
+  index("otp_codes_email_idx").on(table.email),
 ]);
 
 // ============================================================
