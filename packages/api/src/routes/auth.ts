@@ -798,12 +798,20 @@ authRouter.delete("/sessions/:id", async (c) => {
 // ============================================================
 // ADMIN PASSWORD RESET — عبر واتساب OTP
 // مسار منفصل تماماً عن reset العميل العادي
+// الأكواد والتوكنات تُخزّن كـ HMAC-SHA256 — لا نص plain في DB أبداً
 // ============================================================
 
 const ADMIN_NASAQ_ROLES = ["account_manager", "support_agent", "content_manager", "viewer"] as const;
 
 function isAdminUser(u: { isSuperAdmin: boolean | null; nasaqRole: string | null }): boolean {
   return (u.isSuperAdmin === true) || ADMIN_NASAQ_ROLES.includes(u.nasaqRole as any);
+}
+
+// HMAC-SHA256 — يُستخدم لتجزئة الأكواد والتوكنات قبل التخزين
+function hashAdminCode(value: string): string {
+  const { createHmac } = require("crypto") as typeof import("crypto");
+  const secret = process.env.OTP_HASH_SECRET ?? "tarmiz-dev-otp-secret-change-in-prod";
+  return createHmac("sha256", secret).update(value).digest("hex");
 }
 
 // POST /auth/admin/password/reset/request
@@ -829,7 +837,6 @@ authRouter.post("/admin/password/reset/request", async (c) => {
 
   // لا تكشف هل الرقم يخص Admin أو لا
   if (!user || user.status === "suspended" || !isAdminUser(user)) {
-    // سجّل المحاولة الفاشلة في audit log (بدون orgId)
     await db.insert(auditLogs).values({
       orgId: user?.orgId ?? null,
       userId: user?.id ?? null,
@@ -865,18 +872,19 @@ authRouter.post("/admin/password/reset/request", async (c) => {
   `);
 
   const code = generateOTP();
-  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 دقائق
+  const codeHash = hashAdminCode(code);       // ← HMAC-SHA256 — لا نص plain في DB
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-  await db.insert(otpCodes).values({ phone, code, purpose: "admin_reset", expiresAt });
+  await db.insert(otpCodes).values({ phone, code: codeHash, purpose: "admin_reset", expiresAt });
 
-  const message = `رمز استعادة كلمة مرور حساب الإدارة:\n\n${code}\n\nصالح لمدة 5 دقائق.\nلا تشاركه مع أحد.\n\nTarmiz OS`;
+  const waMessage = `رمز استعادة كلمة مرور حساب الإدارة:\n\n${code}\n\nصالح لمدة 5 دقائق.\nلا تشاركه مع أحد.\n\nTarmiz OS`;
 
   let sent = false;
   let channel = "none";
 
   try {
     const { sendViaBaileys } = await import("../lib/whatsappBaileys");
-    sent = await sendViaBaileys("platform", phone, message);
+    sent = await sendViaBaileys("platform", phone, waMessage);
     if (sent) channel = "whatsapp";
   } catch { /* Baileys غير جاهز */ }
 
@@ -885,11 +893,11 @@ authRouter.post("/admin/password/reset/request", async (c) => {
     if (sent) channel = "sms";
   }
 
+  // لا يُكشف الكود في response أبداً — سجّل في الـ logs فقط
   if (!sent) {
-    console.log(`\n[ADMIN-RESET OTP] ${phone}: ${code}\n`);
+    console.log(`[ADMIN-RESET OTP] phone=${phone} code=${code} (not sent — check WA/SMS config)`);
   }
 
-  // audit log
   await db.insert(auditLogs).values({
     orgId: user.orgId,
     userId: user.id,
@@ -898,40 +906,41 @@ authRouter.post("/admin/password/reset/request", async (c) => {
     resourceId: user.id,
     ip,
     userAgent: c.req.header("User-Agent") || "unknown",
-    metadata: { channel },
+    metadata: { channel, sent },
   }).catch(() => {});
 
+  // لا _devCode في الـ response — الكود يصل فقط عبر واتساب/SMS أو سجل الخادم
   return c.json({
     message: "إذا كانت البيانات صحيحة سيتم إرسال رمز التحقق",
     channel,
     expiresIn: 300,
-    ...(channel === "none" ? { _devCode: code } : {}),
   });
 });
 
 // POST /auth/admin/password/reset/verify
 authRouter.post("/admin/password/reset/verify", async (c) => {
   const ip = getTrustedIp(c);
-  // rate limit: 5 محاولات / 10 دقائق لكل IP
   if (!checkIpRateLimit(ip, 5, 10 * 60 * 1000)) {
     return c.json({ error: "تم تجاوز الحد المسموح — حاول بعد 10 دقائق", code: "RATE_LIMITED" }, 429);
   }
 
   const body = await c.req.json().catch(() => ({}));
-  const phone = normalizePhone(String(body.phone ?? ""));
-  const code  = String(body.code ?? "").trim();
+  const phone    = normalizePhone(String(body.phone ?? ""));
+  const codeRaw  = String(body.code ?? "").trim();
 
-  if (!phone || !code) {
+  if (!phone || !codeRaw) {
     return c.json({ error: "رقم الجوال والرمز مطلوبان" }, 400);
   }
 
-  // تحقق من OTP
+  // hash الكود المُدخل قبل المقارنة — لا يُخزّن plain text في DB
+  const codeHash = hashAdminCode(codeRaw);
+
   const [otp] = await db
     .select({ id: otpCodes.id, usedAt: otpCodes.usedAt, attempts: otpCodes.attempts })
     .from(otpCodes)
     .where(and(
       eq(otpCodes.phone, phone),
-      eq(otpCodes.code, code),
+      eq(otpCodes.code, codeHash),            // ← مقارنة hash مع hash
       eq(otpCodes.purpose, "admin_reset"),
       gt(otpCodes.expiresAt, new Date())
     ))
@@ -939,7 +948,7 @@ authRouter.post("/admin/password/reset/verify", async (c) => {
     .limit(1);
 
   if (!otp) {
-    // زد المحاولات الفاشلة
+    // زد المحاولات الفاشلة على آخر OTP نشط لهذا الرقم
     await db.execute(sql`
       UPDATE otp_codes SET attempts = COALESCE(attempts, 0) + 1
       WHERE id = (
@@ -965,28 +974,27 @@ authRouter.post("/admin/password/reset/verify", async (c) => {
     return c.json({ error: "غير مصرح" }, 403);
   }
 
-  // أنشئ resetToken صالح 10 دقائق
-  const resetToken = nanoid(48);
+  // أنشئ resetToken عشوائي قوي (48 حرف) — يُرسل للعميل plain text مرة واحدة
+  const resetToken     = nanoid(48);
+  const resetTokenHash = hashAdminCode(resetToken); // ← hash للتخزين في DB
   const tokenExpiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-  await db.execute(sql`
-    UPDATE otp_codes SET used_at = NOW() WHERE id = ${otp.id}
-  `);
+  await db.execute(sql`UPDATE otp_codes SET used_at = NOW() WHERE id = ${otp.id}`);
 
-  // خزّن الـ resetToken في otpCodes بـ purpose = admin_reset_token
+  // ألغِ أي reset token قديم
   await db.execute(sql`
     UPDATE otp_codes SET used_at = NOW()
     WHERE phone = ${phone} AND purpose = 'admin_reset_token' AND used_at IS NULL
   `);
 
+  // خزّن hash فقط — لا plain token في DB
   await db.insert(otpCodes).values({
     phone,
-    code: resetToken,
+    code: resetTokenHash,
     purpose: "admin_reset_token",
     expiresAt: tokenExpiresAt,
   });
 
-  // audit log
   await db.insert(auditLogs).values({
     orgId: user.orgId,
     userId: user.id,
@@ -997,6 +1005,7 @@ authRouter.post("/admin/password/reset/verify", async (c) => {
     userAgent: c.req.header("User-Agent") || "unknown",
   }).catch(() => {});
 
+  // نُرجع plain resetToken للعميل مرة واحدة — الـ DB يحمل hash فقط
   return c.json({ resetToken, expiresIn: 600 });
 });
 
@@ -1008,25 +1017,26 @@ authRouter.post("/admin/password/reset/confirm", async (c) => {
   }
 
   const body = await c.req.json().catch(() => ({}));
-  const phone       = normalizePhone(String(body.phone ?? ""));
-  const resetToken  = String(body.resetToken ?? "").trim();
-  const newPassword = String(body.newPassword ?? "").trim();
+  const phone        = normalizePhone(String(body.phone ?? ""));
+  const resetToken   = String(body.resetToken ?? "").trim();
+  const newPassword  = String(body.newPassword ?? "").trim();
 
   if (!phone || !resetToken || !newPassword) {
     return c.json({ error: "جميع الحقول مطلوبة" }, 400);
   }
-
   if (newPassword.length < 8) {
     return c.json({ error: "كلمة المرور يجب أن تكون 8 أحرف على الأقل" }, 400);
   }
 
-  // تحقق من resetToken
+  // hash الـ token المُدخل ثم قارنه بما في DB
+  const resetTokenHash = hashAdminCode(resetToken);
+
   const [tokenRow] = await db
     .select({ id: otpCodes.id, usedAt: otpCodes.usedAt })
     .from(otpCodes)
     .where(and(
       eq(otpCodes.phone, phone),
-      eq(otpCodes.code, resetToken),
+      eq(otpCodes.code, resetTokenHash),      // ← مقارنة hash مع hash
       eq(otpCodes.purpose, "admin_reset_token"),
       gt(otpCodes.expiresAt, new Date())
     ))
@@ -1037,7 +1047,6 @@ authRouter.post("/admin/password/reset/confirm", async (c) => {
     return c.json({ error: "رمز الاستعادة غير صالح أو منتهي الصلاحية — ابدأ من جديد" }, 400);
   }
 
-  // تأكد من أن المستخدم لا يزال admin
   const [user] = await db
     .select({ id: users.id, orgId: users.orgId, isSuperAdmin: users.isSuperAdmin, nasaqRole: users.nasaqRole, status: users.status })
     .from(users)
@@ -1047,22 +1056,16 @@ authRouter.post("/admin/password/reset/confirm", async (c) => {
     return c.json({ error: "غير مصرح" }, 403);
   }
 
-  // ألغِ الـ token + حدّث كلمة المرور في transaction
   await db.transaction(async (tx) => {
-    await tx.execute(sql`
-      UPDATE otp_codes SET used_at = NOW() WHERE id = ${tokenRow.id}
-    `);
+    await tx.execute(sql`UPDATE otp_codes SET used_at = NOW() WHERE id = ${tokenRow.id}`);
     await tx.update(users)
-      .set({ passwordHash: hashPassword(newPassword), updatedAt: new Date(), failedLoginAttempts: 0 })
+      .set({ passwordHash: hashPassword(newPassword), mustChangePassword: false, failedLoginAttempts: 0, updatedAt: new Date() })
       .where(eq(users.id, user.id));
   });
 
-  // أنهِ جميع الجلسات النشطة لهذا المستخدم (أمان: اجباره على إعادة الدخول)
-  await db.execute(sql`
-    DELETE FROM sessions WHERE user_id = ${user.id}
-  `);
+  // أنهِ جميع الجلسات النشطة — يُجبر على دخول جديد
+  await db.execute(sql`DELETE FROM sessions WHERE user_id = ${user.id}`);
 
-  // audit log
   await db.insert(auditLogs).values({
     orgId: user.orgId,
     userId: user.id,
