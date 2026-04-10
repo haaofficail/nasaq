@@ -1995,6 +1995,11 @@ export const adminApi = {
   // ── Credentials & Document Notifications ─────────────────
   sendCredentials:    (d: any) => api.post<{ data: any }>("/admin/wa/send-credentials", d),
   sendDocNotification:(d: any) => api.post<{ data: any }>("/admin/wa/send-doc-notification", d),
+
+  // ── Admin WhatsApp Platform Session (Baileys) ─────────────
+  platformWaStatus:     () => api.get<{ data: { status: string; phone: string | null; qrBase64: string | null; updatedAt: string } }>("/admin/whatsapp/status"),
+  platformWaDisconnect: () => api.delete("/admin/whatsapp/disconnect"),
+  platformWaReconnect:  () => api.post<{ data: any }>("/admin/whatsapp/reconnect"),
 };
 
 // --- Commercial Engine (admin only) ---

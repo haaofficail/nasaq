@@ -38,6 +38,7 @@ import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { nanoid } from "nanoid";
 import { scryptSync, randomBytes } from "crypto";
+import { initBaileys, getBaileysState, logoutBaileys, hasSavedSession } from "../lib/whatsappBaileys";
 
 function normalizePhoneAdmin(phone: string): string | null {
   if (!phone) return null;
@@ -836,6 +837,94 @@ adminRouter.get("/platform-config/public", async (c) => {
     supportPhone: platformConfig.supportPhone,
   }).from(platformConfig).where(eq(platformConfig.id, "default"));
   return c.json({ data: row ?? { platformName: "ترميز OS", logoUrl: null, faviconUrl: null, primaryColor: "#5b9bd5", supportEmail: null, supportPhone: null } });
+});
+
+// ============================================================
+// ADMIN WHATSAPP — platform-level session (orgId = "platform")
+// ============================================================
+
+const PLATFORM_WA_ID = "platform";
+
+/** GET /admin/whatsapp/status — current platform session state (polling) */
+adminRouter.get("/whatsapp/status", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const state = getBaileysState(PLATFORM_WA_ID);
+  return c.json({ data: state });
+});
+
+/** POST /admin/whatsapp/connect — SSE stream: starts QR or reports connected */
+adminRouter.post("/whatsapp/connect", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const enc = new TextEncoder();
+      const send = (obj: object) =>
+        controller.enqueue(enc.encode(`data: ${JSON.stringify(obj)}\n\n`));
+
+      // Start or resume platform session
+      initBaileys(PLATFORM_WA_ID).catch(() => {});
+
+      const TIMEOUT = 90_000;
+      const POLL    = 600;
+      const started = Date.now();
+      let lastQr    = "";
+
+      while (Date.now() - started < TIMEOUT) {
+        const s = getBaileysState(PLATFORM_WA_ID);
+
+        if (s.status === "qr_ready" && s.qrBase64 && s.qrBase64 !== lastQr) {
+          lastQr = s.qrBase64;
+          send({ type: "qr", qr: s.qrBase64 });
+        }
+
+        if (s.status === "connected") {
+          send({ type: "connected", phone: s.phone ?? "" });
+          logAdminAction(adminId, "platform_wa_connected", "platform", PLATFORM_WA_ID, { phone: s.phone }, c.req.header("X-Forwarded-For"));
+          break;
+        }
+
+        await new Promise(r => setTimeout(r, POLL));
+      }
+
+      if (getBaileysState(PLATFORM_WA_ID).status !== "connected") {
+        send({ type: "error", message: "انتهت المهلة — حاول مرة أخرى" });
+      }
+
+      controller.close();
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      "Content-Type":  "text/event-stream",
+      "Cache-Control": "no-cache",
+      "Connection":    "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
+  });
+});
+
+/** DELETE /admin/whatsapp/disconnect — logout platform session */
+adminRouter.delete("/whatsapp/disconnect", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  await logoutBaileys(PLATFORM_WA_ID);
+  logAdminAction(adminId, "platform_wa_disconnected", "platform", PLATFORM_WA_ID, {}, c.req.header("X-Forwarded-For"));
+  return c.json({ data: { ok: true } });
+});
+
+/** POST /admin/whatsapp/reconnect — force-restart platform session */
+adminRouter.post("/whatsapp/reconnect", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const adminId = c.get("adminId") as string;
+  if (!hasSavedSession(PLATFORM_WA_ID)) {
+    return c.json({ error: "لا توجد جلسة محفوظة — ابدأ بمسح QR" }, 400);
+  }
+  initBaileys(PLATFORM_WA_ID, true).catch(() => {});
+  logAdminAction(adminId, "platform_wa_reconnect", "platform", PLATFORM_WA_ID, {}, c.req.header("X-Forwarded-For"));
+  return c.json({ data: { reconnecting: true } });
 });
 
 adminRouter.get("/announcements", async (c) => {

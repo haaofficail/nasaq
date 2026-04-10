@@ -39,6 +39,7 @@ const OnlineOrdersAdminTab   = lazy(() => import("./admin/OnlineOrdersAdminTab")
 const ServiceOrdersAdminTab  = lazy(() => import("./admin/ServiceOrdersAdminTab"));
 const FinanceAdminTab        = lazy(() => import("./admin/FinanceAdminTab"));
 const WhatsAppGatewayTab     = lazy(() => import("./admin/WhatsAppGatewayTab"));
+const WhatsappAdminTab       = lazy(() => import("./admin/WhatsappAdminTab"));
 
 // ════════════════════════════════════════════════════════════
 // Constants
@@ -70,8 +71,9 @@ const SECTIONS = [
   { id: "kill-switches",  icon: ToggleLeft,  label: "مفاتيح الإيقاف",     roles: ["super_admin"] },
   { id: "quota-usage",    icon: BarChart3,   label: "استخدام الحصص",      roles: ["super_admin"] },
   { id: "guardian",          icon: Bot,        label: "الحارس الذكي",       roles: ["super_admin"] },
-  { id: "platform-settings", icon: Settings2, label: "إعدادات المنصة",     roles: ["super_admin"] },
-  { id: "system",            icon: Server,    label: "النظام",              roles: ["super_admin"] },
+  { id: "platform-settings", icon: Settings2,      label: "إعدادات المنصة",     roles: ["super_admin"] },
+  { id: "whatsapp-admin",    icon: MessageCircle, label: "واتساب الأدمن",       roles: ["super_admin"] },
+  { id: "system",            icon: Server,        label: "النظام",              roles: ["super_admin"] },
 ];
 
 const ALLOWED_NASAQ_ROLES = ["account_manager", "support_agent", "content_manager", "viewer"];
@@ -177,6 +179,7 @@ export function AdminPage() {
     "quota-usage":   <QuotaUsageTab />,
     guardian:            <GuardianTab />,
     "platform-settings": <PlatformSettingsTab />,
+    "whatsapp-admin":    <WhatsappAdminTab />,
     system:              <SystemTab />,
   };
 

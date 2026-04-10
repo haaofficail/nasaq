@@ -13,6 +13,7 @@ import { platformAuditLog, platformConfig } from "@nasaq/db/schema";
 import { eq } from "drizzle-orm";
 import { log } from "./lib/logger";
 import { startScheduler } from "./jobs/scheduler";
+import { restoreAllBaileys } from "./lib/whatsappBaileys";
 import { readFile, access } from "fs/promises";
 import { join as pathJoin } from "path";
 
@@ -934,6 +935,9 @@ const port = parseInt(process.env.PORT || "3000");
 log.info({ port, url: `http://localhost:${port}/api/v1` }, "nasaq-api started");
 
 const server = serve({ fetch: app.fetch, port });
+
+// Restore all saved Baileys sessions (orgs + platform admin) after server is up
+restoreAllBaileys().catch((err) => log.error({ err }, "[wa-baileys] restoreAllBaileys failed"));
 
 // Graceful shutdown — stop pg-boss, drain connections, close pools
 const shutdown = () => {
