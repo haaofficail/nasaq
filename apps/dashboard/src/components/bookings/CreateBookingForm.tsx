@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { Modal, Input, Select, TextArea, Button } from "../ui";
 import { bookingsApi, customersApi, servicesApi, settingsApi } from "@/lib/api";
-import { Plus, Trash2, CalendarCheck, MapPin, Package, Truck, Users, Home, Tent, Building2, Moon, CreditCard, Banknote, ChevronRight } from "lucide-react";
+import { Plus, Trash2, CalendarCheck, MapPin, Package, Truck, Users, Home, Tent, Moon, CreditCard, Banknote, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
-import { VAT_RATE, DEPOSIT_RATIO } from "@/lib/constants";
+import { VAT_RATE } from "@/lib/constants";
 
 // ── Payment methods ────────────────────────────────────────────────────────
 const PAY_METHODS = [
@@ -188,7 +188,6 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
   const subtotal = lineItems.reduce((s, l) => s + l.lineTotal, 0);
   const vat      = subtotal * VAT_RATE;
   const total    = subtotal + vat;
-  const deposit  = total * DEPOSIT_RATIO;
 
   // ── Item helpers ──────────────────────────────────────────────────────────
   const addItem    = () => setItems([...items, { serviceId: "", quantity: 1, addons: [] }]);
@@ -320,7 +319,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
           <div className="bg-gray-50 rounded-2xl p-5 text-center">
             <p className="text-xs text-gray-400 mb-1">المبلغ المستحق</p>
             <p className="text-4xl font-bold text-gray-900 tabular-nums">
-              {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              {total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               <span className="text-base font-normal text-gray-500 mr-1">ر.س</span>
             </p>
           </div>
@@ -379,13 +378,13 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                   <div className="bg-blue-50 rounded-xl p-3 text-center">
                     <p className="text-xs text-gray-400 mb-0.5">المدفوع</p>
                     <p className="text-base font-bold text-[#5b9bd5] tabular-nums">
-                      {(parseFloat(payAmount) || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} ر.س
+                      {(parseFloat(payAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
                     </p>
                   </div>
                   <div className="bg-amber-50 rounded-xl p-3 text-center">
                     <p className="text-xs text-gray-400 mb-0.5">الدين المتبقي</p>
                     <p className="text-base font-bold text-amber-600 tabular-nums">
-                      {Math.max(0, total - (parseFloat(payAmount) || 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })} ر.س
+                      {Math.max(0, total - (parseFloat(payAmount) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
                     </p>
                   </div>
                 </div>
