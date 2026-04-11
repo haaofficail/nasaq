@@ -455,6 +455,7 @@ function FlowerBuilderSection({ section, slug }: { section: FlowerSection; slug:
 function Skeleton() {
   return (
     <div dir="rtl" style={{ fontFamily: "inherit", minHeight: "100dvh", background: T.bg, maxWidth: 440, margin: "0 auto" }}>
+      <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: -1 }} />
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}`}</style>
       <div style={{ height: 74, background: T.surface, borderBottom: `1px solid ${T.border}` }} />
       <div style={{ padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
@@ -530,6 +531,9 @@ export function PublicStorefrontPage() {
         .book-pill{transition:opacity .12s,transform .12s;}
         .book-pill:active{opacity:.85;transform:scale(0.96);}
       `}</style>
+
+      {/* Full-screen background — bypasses dashboard CSS override */}
+      <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: -1 }} />
 
       <div dir="rtl" style={{ ...F, maxWidth: 440, margin: "0 auto", minHeight: "100dvh", background: T.bg, paddingBottom: 88 }}>
 
