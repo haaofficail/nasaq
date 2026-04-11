@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { toast } from "@/hooks/useToast";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { Banknote, FileText, TrendingUp, TrendingDown, Plus, Download, Loader2, Landmark, BookOpen, BookOpenCheck, BarChart2, GitMerge, ArrowLeft, Building2, Users, CalendarCheck, Layers } from "lucide-react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Banknote, FileText, TrendingUp, TrendingDown, Plus, Download, Loader2, Landmark, BookOpen, BookOpenCheck, BarChart2, GitMerge, ArrowLeft, Building2, Users, CalendarCheck, Layers, ExternalLink } from "lucide-react";
 import { clsx } from "clsx";
 import { financeApi, settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
@@ -120,6 +120,12 @@ export function FinancePage() {
 
       {activeTab === 0 && (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+            <p className="text-sm font-semibold text-gray-700">آخر الفواتير</p>
+            <Link to="/dashboard/invoices" className="flex items-center gap-1 text-xs text-brand-600 hover:underline">
+              إدارة الفواتير <ExternalLink className="w-3 h-3" />
+            </Link>
+          </div>
           {invoices.length === 0 ? (
             <div className="p-10 text-center">
               <FileText className="w-9 h-9 text-gray-200 mx-auto mb-2" />
@@ -128,31 +134,45 @@ export function FinancePage() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
-                  <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold uppercase tracking-wide">رقم الفاتورة</th>
-                  <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">العميل</th>
-                  <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">المبلغ</th>
-                  <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">الحالة</th>
-                  <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">التاريخ</th>
+                <tr className="border-b border-gray-100">
+                  <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold">رقم الفاتورة</th>
+                  <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">العميل</th>
+                  <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">المبلغ</th>
+                  <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">الحالة</th>
+                  <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">التاريخ</th>
+                  <th className="py-3 px-4" />
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((inv: any) => (
-                  <tr key={inv.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                    <td className="py-3.5 px-5 font-mono text-xs text-gray-600">{inv.invoiceNumber || inv.id?.substring(0, 8)}</td>
-                    <td className="py-3.5 px-4 text-gray-700">{inv.customerName || "—"}</td>
-                    <td className="py-3.5 px-4 font-bold tabular-nums">{Number(inv.totalAmount || 0).toLocaleString()} ر.س</td>
-                    <td className="py-3.5 px-4">
-                      <span className={clsx("px-2 py-0.5 rounded-full text-[10px] font-medium",
-                        inv.status === "paid" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600")}>
-                        {inv.status === "paid" ? "مدفوعة" : "معلقة"}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-gray-400 text-xs">
-                      {inv.createdAt ? fmtDate(inv.createdAt) : "—"}
-                    </td>
-                  </tr>
-                ))}
+                {invoices.map((inv: any) => {
+                  const isPaid = inv.status === "paid";
+                  const isPartial = inv.status === "partially_paid";
+                  const statusLabel = isPaid ? "مدفوعة" : isPartial ? "جزئي" : inv.status === "overdue" ? "متأخرة" : inv.status === "cancelled" ? "ملغاة" : "بانتظار الدفع";
+                  const statusCls = isPaid ? "bg-emerald-50 text-emerald-600" : isPartial ? "bg-teal-50 text-teal-600" : inv.status === "overdue" ? "bg-red-50 text-red-500" : inv.status === "cancelled" ? "bg-gray-100 text-gray-400" : "bg-amber-50 text-amber-600";
+                  return (
+                    <tr key={inv.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
+                      <td className="py-3.5 px-5">
+                        <Link to={`/dashboard/invoices/${inv.id}`} className="font-mono text-xs font-semibold text-brand-600 hover:underline">
+                          {inv.invoiceNumber || inv.id?.substring(0, 8)}
+                        </Link>
+                      </td>
+                      <td className="py-3.5 px-4 text-sm text-gray-700">{inv.buyerName || inv.customerName || "—"}</td>
+                      <td className="py-3.5 px-4 font-bold tabular-nums text-sm">{Number(inv.totalAmount || 0).toLocaleString()} ر.س</td>
+                      <td className="py-3.5 px-4">
+                        <span className={clsx("px-2 py-0.5 rounded-full text-[10px] font-medium", statusCls)}>{statusLabel}</span>
+                      </td>
+                      <td className="py-3.5 px-4 text-gray-400 text-xs whitespace-nowrap">
+                        {inv.issueDate ? fmtDate(inv.issueDate) : inv.createdAt ? fmtDate(inv.createdAt) : "—"}
+                      </td>
+                      <td className="py-3.5 px-4 text-left">
+                        <Link to={`/dashboard/invoices/${inv.id}`}
+                          className="inline-flex items-center gap-1 text-[11px] text-brand-600 hover:underline">
+                          عرض <ExternalLink className="w-3 h-3" />
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}

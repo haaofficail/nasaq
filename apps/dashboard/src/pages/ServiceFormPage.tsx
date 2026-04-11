@@ -38,6 +38,38 @@ const NEEDS_TIMING   = new Set(["appointment","execution","field_service","proje
 const RENTAL_TYPES   = new Set(["rental","event_rental"]);
 const NEEDS_CAPACITY = new Set(["event_rental","package","food_order","rental"]);
 
+// ── الأنواع المسموحة لكل نوع بيزنس ────────────────────────────────────────
+// undefined = كل الأنواع مسموحة (للأنشطة العامة)
+const BUSINESS_ALLOWED_SERVICE_TYPES: Record<string, string[]> = {
+  salon:           ["appointment", "product", "add_on", "package"],
+  barber:          ["appointment", "product", "add_on", "package"],
+  spa:             ["appointment", "product", "add_on", "package"],
+  fitness:         ["appointment", "product", "add_on", "package"],
+  massage:         ["appointment", "product", "add_on", "package"],
+  photography:     ["appointment", "product", "add_on", "package"],
+  cafe:            ["food_order", "product", "add_on", "package"],
+  restaurant:      ["food_order", "product", "add_on", "package"],
+  bakery:          ["food_order", "product", "add_on", "package"],
+  catering:        ["food_order", "product", "add_on", "package"],
+  rental:          ["rental", "product", "add_on"],
+  car_rental:      ["rental", "product", "add_on"],
+  hotel:           ["rental", "product", "add_on", "package"],
+  real_estate:     ["rental", "project"],
+  events:          ["event_rental", "product", "add_on", "package"],
+  event_organizer: ["event_rental", "product", "add_on", "package"],
+  workshop:        ["execution", "field_service", "product", "add_on", "project"],
+  maintenance:     ["execution", "field_service", "product", "add_on", "project"],
+  logistics:       ["field_service", "product", "product_shipping"],
+  construction:    ["project", "execution", "product", "add_on"],
+  retail:          ["product", "product_shipping", "add_on"],
+  flower_shop:     ["field_service", "product", "product_shipping", "add_on"],
+  printing:        ["product", "execution", "field_service", "add_on"],
+  laundry:         ["execution", "field_service", "product", "add_on"],
+  digital_services:["execution", "project", "product", "add_on"],
+  technology:      ["execution", "project", "product", "add_on"],
+  school:          ["appointment", "product", "package"],
+};
+
 // ── نوع الخدمة الافتراضي حسب نوع البيزنس ──────────────────────────────────
 const BUSINESS_DEFAULT_SERVICE_TYPE: Record<string, string> = {
   salon:          "appointment",
@@ -349,6 +381,15 @@ export function ServiceFormPage() {
   const typeConfig        = TYPE_CONFIG[form.serviceType] || DEFAULT_TYPE_CONFIG;
   const isExecutionMode   = form.serviceMode === "execution";
   const canToggleMode     = EXECUTION_TYPES.has(form.serviceType) || ["appointment","execution","field_service","project"].includes(form.serviceType);
+
+  // ── أنواع الخدمة المتاحة حسب نوع البيزنس ─────────────────────────────────
+  const orgBusinessType: string = (() => {
+    try { return JSON.parse(localStorage.getItem("nasaq_user") || "{}").businessType ?? ""; } catch { return ""; }
+  })();
+  const allowedTypeValues = BUSINESS_ALLOWED_SERVICE_TYPES[orgBusinessType];
+  const visibleServiceTypes = allowedTypeValues
+    ? SERVICE_TYPES.filter(t => allowedTypeValues.includes(t.value))
+    : SERVICE_TYPES;
 
   // executionReady: has components + all have cost > 0
   const allCompsForReady = [
@@ -761,7 +802,7 @@ export function ServiceFormPage() {
               </p>
             )}
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-              {SERVICE_TYPES.map(t => {
+              {visibleServiceTypes.map(t => {
                 const Icon = t.icon;
                 return (
                   <button key={t.value} type="button"
