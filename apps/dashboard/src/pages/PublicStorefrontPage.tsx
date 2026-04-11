@@ -112,20 +112,34 @@ const Icon = {
   ),
 };
 
-// ── Design tokens — true cool blue-gray palette ──────────────────────
-// Every color has a deliberate blue undertone, creating a cold, refined feel.
+// ── ترميز OS — Public Page Design System ─────────────────────────────
+// Constitutional rule: all public-facing pages derive their palette from
+// the platform brand #5b9bd5. This guarantees consistent identity and
+// naturally cool colors (blue undertone throughout every layer).
+//
+// BRAND = #5b9bd5 (91,155,213)
+//   bg           = brand at 6% opacity on white  → #F0F6FC
+//   surfaceSubtle= brand at 10% opacity           → #E3EFF9
+//   border       = brand at 22% opacity           → #C9DDEF
+//   borderFaint  = brand at 12% opacity           → #DCEBf8
+//   t1           = brand darkened 70%             → #0D2138  (deep navy)
+//   t2           = brand darkened 35%             → #2F6190  (mid blue-gray)
+//   t3           = brand darkened 10%             → #5289BE  (muted cool)
+const BRAND = "#5b9bd5";   // ترميز OS platform color — DO NOT change
+
 const T = {
-  bg:           "#EEF4FB",  // cool blue-white — page canvas
-  surface:      "#FFFFFF",  // pure white cards
-  surfaceSubtle:"#E8F0FA",  // tinted cool surface for inputs/tags
-  border:       "#D0DFF0",  // blue-cool border
-  borderFaint:  "#E2EDF8",  // very soft card border
-  t1:           "#162337",  // deep cool navy — NOT harsh black
-  t2:           "#4A6480",  // blue-gray secondary
-  t3:           "#7C99BB",  // cool muted blue-gray
+  brand:        BRAND,
+  bg:           "#F0F6FC",  // ترميز: brand @ 6% on white — airy cool canvas
+  surface:      "#FFFFFF",  // pure white
+  surfaceSubtle:"#E3EFF9",  // ترميز: brand @ 10% — inputs, tags
+  border:       "#C9DDEF",  // ترميز: brand @ 22% — card borders
+  borderFaint:  "#DCEBf8",  // ترميز: brand @ 12% — subtle dividers
+  t1:           "#0D2138",  // ترميز: deep brand navy — primary text
+  t2:           "#2F6190",  // ترميز: mid blue-gray — secondary text
+  t3:           "#5289BE",  // ترميز: muted cool blue — captions
   wa:           "#25D366",
-  shadow:       "0 1px 4px rgba(14,50,100,0.09), 0 1px 2px -1px rgba(14,50,100,0.06)",
-  shadowMd:     "0 4px 14px rgba(14,50,100,0.11), 0 2px 4px -2px rgba(14,50,100,0.07)",
+  shadow:       "0 1px 4px rgba(91,155,213,0.12), 0 1px 2px -1px rgba(91,155,213,0.08)",
+  shadowMd:     "0 4px 14px rgba(91,155,213,0.15), 0 2px 4px -2px rgba(91,155,213,0.10)",
 };
 
 // ── Booking Sheet ────────────────────────────────────────────────────
@@ -447,7 +461,7 @@ export function PublicStorefrontPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily)}:wght@400;500;600;700;800;900&display=swap');
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-        body{margin:0;background:#EEF4FB;}
+        body{margin:0;background:#F0F6FC;}
         @keyframes sheetIn{from{transform:translateY(100%)}to{transform:translateY(0)}}
         @keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
         .chip-bar::-webkit-scrollbar{display:none}
@@ -466,8 +480,8 @@ export function PublicStorefrontPage() {
             - Logo + name/city | contact icons
         */}
         <div style={{ background: T.surface, borderBottom: `1px solid ${T.borderFaint}`, boxShadow: "0 1px 0 rgba(15,23,42,0.04)", position: "sticky", top: 0, zIndex: 20 }}>
-          {/* Brand top accent line */}
-          <div style={{ height: 3, background: `linear-gradient(90deg, ${primary} 0%, ${darken(primary, -0.08)} 100%)` }} />
+          {/* ترميز OS platform identity stripe — always brand blue */}
+          <div style={{ height: 3, background: `linear-gradient(90deg, ${BRAND} 0%, #3d84c8 100%)` }} />
 
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px 13px" }}>
 
@@ -648,7 +662,7 @@ export function PublicStorefrontPage() {
         {/* Footer */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "28px 0 12px" }}>
           <span style={{ fontSize: 11, color: T.t3, fontWeight: 500 }}>مدعوم بـ</span>
-          <span style={{ fontSize: 11, fontWeight: 800, color: primary }}>{PLATFORM_NAME}</span>
+          <span style={{ fontSize: 11, fontWeight: 800, color: BRAND }}>{PLATFORM_NAME}</span>
         </div>
 
         {/* ━━━━ BOTTOM BAR ━━━━
@@ -659,7 +673,7 @@ export function PublicStorefrontPage() {
           position: "fixed", bottom: 0,
           left: "50%", transform: "translateX(-50%)",
           width: "100%", maxWidth: 440, zIndex: 20,
-          background: "rgba(238,244,251,0.97)",
+          background: "rgba(240,246,252,0.97)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           borderTop: `1px solid ${T.borderFaint}`,
