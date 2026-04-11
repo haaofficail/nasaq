@@ -575,91 +575,59 @@ salonRouter.get("/monitoring/summary", async (c) => {
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
 
-  // Booking counts for today (created_at)
-  const bookingStatsRes = await db.execute(sql`
-    SELECT
-      COUNT(*)                                                              AS bookings_today,
-      COUNT(*) FILTER (WHERE status = 'pending')                           AS pending_bookings,
-      COUNT(*) FILTER (WHERE status = 'completed'
-        AND created_at >= ${todayStart})                                   AS completed_today,
-      COUNT(*) FILTER (WHERE status IN ('cancelled', 'no_show')
-        AND created_at >= ${todayStart})                                   AS cancelled_today
-    FROM bookings
-    WHERE org_id = ${orgId}
-      AND created_at >= ${todayStart}
-      AND created_at <= ${todayEnd}
-  `);
-  const bookingStats = bookingStatsRes.rows[0];
+  // Safe query helper — returns null on failure (table might not exist)
+  async function safeQuery<T>(fn: () => Promise<T>): Promise<T | null> {
+    try { return await fn(); } catch { return null; }
+  }
 
-  // Pending bookings (all time, not just today)
-  const pendingRes = await db.execute(sql`
-    SELECT COUNT(*) AS pending_total
-    FROM bookings
-    WHERE org_id = ${orgId}
-      AND status = 'pending'
-  `);
-  const pendingRow = pendingRes.rows[0];
+  const [bookingStatsRes, pendingRes, conflictRes, lowStockRes, invFailRes, lastErrors] = await Promise.all([
+    safeQuery(() => db.execute(sql`
+      SELECT
+        COUNT(*)                                                            AS bookings_today,
+        COUNT(*) FILTER (WHERE status = 'pending')                         AS pending_bookings,
+        COUNT(*) FILTER (WHERE status = 'completed' AND created_at >= ${todayStart}) AS completed_today,
+        COUNT(*) FILTER (WHERE status IN ('cancelled', 'no_show') AND created_at >= ${todayStart}) AS cancelled_today
+      FROM bookings
+      WHERE org_id = ${orgId} AND created_at >= ${todayStart} AND created_at <= ${todayEnd}
+    `)),
+    safeQuery(() => db.execute(sql`
+      SELECT COUNT(*) AS pending_total FROM bookings WHERE org_id = ${orgId} AND status = 'pending'
+    `)),
+    safeQuery(() => db.execute(sql`
+      SELECT COUNT(*) AS conflict_count FROM salon_monitoring_events
+      WHERE org_id = ${orgId} AND event_type = 'booking_conflict_rejected' AND created_at >= ${todayStart}
+    `)),
+    safeQuery(() => db.execute(sql`
+      SELECT COUNT(*) AS low_stock_count FROM salon_supply_adjustments
+      WHERE org_id = ${orgId} AND reason = 'manual' AND delta = '0'
+        AND notes LIKE 'تحذير مخزون%' AND created_at >= ${todayStart}
+    `)),
+    safeQuery(() => db.execute(sql`
+      SELECT COUNT(*) AS failure_count FROM salon_monitoring_events
+      WHERE org_id = ${orgId} AND event_type = 'db_error' AND created_at >= ${todayStart}
+    `)),
+    safeQuery(() => db.select({
+      id: salonMonitoringEvents.id, eventType: salonMonitoringEvents.eventType,
+      bookingId: salonMonitoringEvents.bookingId, metadata: salonMonitoringEvents.metadata,
+      createdAt: salonMonitoringEvents.createdAt,
+    }).from(salonMonitoringEvents)
+      .where(and(eq(salonMonitoringEvents.orgId, orgId), sql`${salonMonitoringEvents.eventType} IN ('booking_failed', 'db_error', 'inventory_recipe_missing')`))
+      .orderBy(desc(salonMonitoringEvents.createdAt)).limit(5)),
+  ]);
 
-  // Conflict rejections today (from monitoring events)
-  const conflictRes = await db.execute(sql`
-    SELECT COUNT(*) AS conflict_count
-    FROM salon_monitoring_events
-    WHERE org_id = ${orgId}
-      AND event_type = 'booking_conflict_rejected'
-      AND created_at >= ${todayStart}
-  `);
-  const conflictRow = conflictRes.rows[0];
-
-  // Low stock warnings today
-  const lowStockRes = await db.execute(sql`
-    SELECT COUNT(*) AS low_stock_count
-    FROM salon_supply_adjustments
-    WHERE org_id = ${orgId}
-      AND reason = 'manual'
-      AND delta = '0'
-      AND notes LIKE 'تحذير مخزون%'
-      AND created_at >= ${todayStart}
-  `);
-  const lowStockRow = lowStockRes.rows[0];
-
-  // Inventory failures today (db_error events)
-  const invFailRes = await db.execute(sql`
-    SELECT COUNT(*) AS failure_count
-    FROM salon_monitoring_events
-    WHERE org_id = ${orgId}
-      AND event_type = 'db_error'
-      AND created_at >= ${todayStart}
-  `);
-  const invFailRow = invFailRes.rows[0];
-
-  // Last 5 critical events
-  const lastErrors = await db.select({
-    id:        salonMonitoringEvents.id,
-    eventType: salonMonitoringEvents.eventType,
-    bookingId: salonMonitoringEvents.bookingId,
-    metadata:  salonMonitoringEvents.metadata,
-    createdAt: salonMonitoringEvents.createdAt,
-  }).from(salonMonitoringEvents)
-    .where(and(
-      eq(salonMonitoringEvents.orgId, orgId),
-      sql`${salonMonitoringEvents.eventType} IN ('booking_failed', 'db_error', 'inventory_recipe_missing')`,
-    ))
-    .orderBy(desc(salonMonitoringEvents.createdAt))
-    .limit(5);
-
-  const s = bookingStats as any;
+  const s = (bookingStatsRes?.rows?.[0] ?? {}) as any;
 
   return c.json({
     data: {
-      bookingsToday:            Number(s?.bookings_today ?? 0),
-      completedToday:           Number(s?.completed_today ?? 0),
-      cancelledToday:           Number(s?.cancelled_today ?? 0),
-      pendingBookings:          Number((pendingRow as any)?.pending_total ?? 0),
-      conflictRejectionsToday:  Number((conflictRow as any)?.conflict_count ?? 0),
-      lowStockWarningsToday:    Number((lowStockRow as any)?.low_stock_count ?? 0),
-      inventoryFailuresToday:   Number((invFailRow as any)?.failure_count ?? 0),
-      lastCriticalErrors:       lastErrors,
-      generatedAt:              new Date().toISOString(),
+      bookingsToday:           Number(s?.bookings_today ?? 0),
+      completedToday:          Number(s?.completed_today ?? 0),
+      cancelledToday:          Number(s?.cancelled_today ?? 0),
+      pendingBookings:         Number((pendingRes?.rows?.[0] as any)?.pending_total ?? 0),
+      conflictRejectionsToday: Number((conflictRes?.rows?.[0] as any)?.conflict_count ?? 0),
+      lowStockWarningsToday:   Number((lowStockRes?.rows?.[0] as any)?.low_stock_count ?? 0),
+      inventoryFailuresToday:  Number((invFailRes?.rows?.[0] as any)?.failure_count ?? 0),
+      lastCriticalErrors:      lastErrors ?? [],
+      generatedAt:             new Date().toISOString(),
     },
   });
 });
