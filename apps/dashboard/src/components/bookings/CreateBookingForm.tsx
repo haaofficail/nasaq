@@ -393,35 +393,36 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
 
             {/* ── يسار: numpad ── */}
             {payMethod !== "later" && (
-              <div className="w-44 shrink-0 space-y-1.5">
+              <div className="w-56 shrink-0 space-y-2">
                 {/* شاشة العرض */}
-                <div className="bg-gray-900 rounded-lg px-3 py-2 text-left">
+                <div className="bg-gray-900 rounded-xl px-4 py-3 text-left">
                   <p className="text-[10px] text-gray-500 mb-0.5">المبلغ</p>
-                  <p className="text-xl font-bold text-white tabular-nums tracking-wide">{payAmount || "0"}</p>
+                  <p className="text-2xl font-bold text-white tabular-nums tracking-wide">{payAmount || "0"} <span className="text-sm font-normal text-gray-400">ر.س</span></p>
                 </div>
                 {/* اختصارات */}
-                <div className="grid grid-cols-3 gap-1">
+                <div className="grid grid-cols-3 gap-1.5">
                   {[{l:"كامل",v:total},{l:"نصف",v:total/2},{l:"ربع",v:total/4}].map(({l,v}) => (
                     <button key={l} type="button" onClick={() => setPayAmount(v.toFixed(2))}
-                      className={clsx("py-1 rounded text-[10px] font-semibold border transition-colors",
-                        parseFloat(payAmount) === parseFloat(v.toFixed(2)) ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
+                      className={clsx("py-2 rounded-lg text-xs font-semibold border transition-colors",
+                        parseFloat(payAmount) === parseFloat(v.toFixed(2)) ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
                       {l}
                     </button>
                   ))}
                 </div>
                 {/* مسح */}
                 <button type="button" onClick={() => pressKey("C")}
-                  className="w-full py-1 rounded border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 transition-colors">
+                  className="w-full py-2 rounded-lg border border-gray-200 text-xs font-medium text-gray-500 hover:bg-gray-50 transition-colors">
                   مسح الكل
                 </button>
-                {/* أرقام */}
-                <div className="grid grid-cols-3 gap-1">
+                {/* أرقام — أزرار كبيرة للتابلت */}
+                <div className="grid grid-cols-3 gap-1.5">
                   {numKeys.map(k => (
                     <button key={k} type="button" onClick={() => pressKey(k)}
                       className={clsx(
-                        "py-2.5 rounded border text-sm font-bold transition-colors select-none",
-                        k === "⌫" ? "border-red-100 bg-red-50 text-red-500 hover:bg-red-100"
-                                   : "border-gray-200 bg-white text-gray-800 hover:bg-gray-50 active:bg-gray-100"
+                        "h-12 rounded-xl border text-lg font-bold transition-colors select-none active:scale-95",
+                        k === "⌫"
+                          ? "border-red-100 bg-red-50 text-red-500 hover:bg-red-100"
+                          : "border-gray-200 bg-white text-gray-800 hover:bg-gray-50 shadow-sm"
                       )}>
                       {k}
                     </button>
