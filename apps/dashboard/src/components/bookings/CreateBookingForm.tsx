@@ -104,6 +104,9 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
   // Service search
   const [serviceSearch, setServiceSearch] = useState("");
 
+  // Availability check
+  const [availWarning, setAvailWarning] = useState("");
+
   // Reference data
   const [customers,        setCustomers]        = useState<{ value: string; label: string }[]>([]);
   const [services,         setServices]         = useState<ServiceRecord[]>([]);
@@ -134,10 +137,12 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
       })));
     }).catch(() => {});
     settingsApi.locations().then(r => {
-      setLocationOptions(r.data.map((loc: any) => ({
+      const locs = r.data.map((loc: any) => ({
         value: loc.id,
         label: `${loc.name}${loc.city ? " — " + loc.city : ""}`,
-      })));
+      }));
+      setLocationOptions(locs);
+      if (locs.length === 1) setLocationId(locs[0].value);
     }).catch(() => {});
   }, [open]);
 
@@ -236,6 +241,25 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
     if (open && defaultCustomerId) setCustomerId(defaultCustomerId);
   }, [open, defaultCustomerId]);
 
+  // Instant availability check when date + location change
+  useEffect(() => {
+    setAvailWarning("");
+    if (!eventDate || isImmediate) return;
+    const t = setTimeout(async () => {
+      try {
+        const res = await bookingsApi.checkAvailability({
+          date: eventDate,
+          locationId: locationId || undefined,
+          endDate: eventEndDate || undefined,
+        });
+        if (!res.available) {
+          setAvailWarning(`هذا التاريخ محجوز بالفعل${res.conflicts?.length ? " — " + res.conflicts.slice(0,2).join("، ") : ""}`);
+        }
+      } catch { /* silent */ }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [eventDate, eventEndDate, locationId, isImmediate]);
+
   // ── Build questionAnswers (rental metadata) ───────────────────────────────
   function buildQuestionAnswers() {
     const qa: { key: string; label: string; value: string | number | boolean }[] = [];
@@ -266,6 +290,8 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
     if (isAccommodation && maxCapacity > 0 && (adultsCount + childrenCount) > maxCapacity) {
       setError(`الحد الأقصى للوحدة ${maxCapacity} ${capLabel}`); return;
     }
+    if (locationOptions.length > 0 && !locationId && fulfillmentMode !== "delivery" && !isFieldService) { setError("يرجى اختيار الفرع"); return; }
+    if (availWarning)                                  { setError("التاريخ المختار محجوز — اختر تاريخاً آخر"); return; }
     setError("");
     // Pre-fill pay amount with total if services selected
     if (total > 0 && !payAmount) setPayAmount(total.toFixed(2));
@@ -420,8 +446,8 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                     <p className="text-sm font-bold text-[#5b9bd5] tabular-nums">{paid.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
                   </div>
                   <div>
-                    <p className="text-[10px] text-gray-400">المتبقي</p>
-                    <p className={clsx("text-sm font-bold tabular-nums", remaining > 0 ? "text-amber-600" : "text-green-600")}>
+                    <p className="text-[10px] text-gray-400">المبلغ المتبقي</p>
+                    <p className="text-sm font-bold tabular-nums text-gray-700">
                       {remaining.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
                     </p>
                   </div>
@@ -582,6 +608,14 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                   <Input label={checkoutLabel}  name="eventEndTime" type="time" value={eventEndTime} onChange={(e) => setEventEndTime(e.target.value)}  dir="ltr" />
                 </div>
               )}
+
+              {/* تحذير التعارض الفوري */}
+              {availWarning && (
+                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl text-xs text-red-600">
+                  <span className="shrink-0">⚠</span>
+                  <span>{availWarning} — اختر تاريخاً آخر</span>
+                </div>
+              )}
             </div>
           )}
 
@@ -689,7 +723,8 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
               name="locationId"
               value={locationId}
               onChange={(e) => setLocationId(e.target.value)}
-              options={[{ value: "", label: "بدون فرع محدد" }, ...locationOptions]}
+              options={locationOptions.length === 1 ? locationOptions : [{ value: "", label: "اختر الفرع..." }, ...locationOptions]}
+              required
             />
           )}
 
