@@ -270,9 +270,9 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
         questionAnswers: buildQuestionAnswers(),
         items: validItems.map(i => ({ serviceId: i.serviceId, quantity: i.quantity, addons: i.addons })),
       });
-      // Add payment if amount entered
+      // Add payment if not "later" and amount > 0
       const paid = parseFloat(payAmount);
-      if (paid > 0 && res?.data?.id) {
+      if (payMethod !== "later" && paid > 0 && res?.data?.id) {
         await bookingsApi.addPayment(res.data.id, { amount: paid, method: payMethod, type: "payment" }).catch(() => {});
       }
       onSuccess?.();
@@ -315,70 +315,83 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
       {/* ── Payment Step ── */}
       {step === "payment" && (
         <div className="space-y-5">
-          {/* Summary cards */}
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-gray-50 rounded-xl p-4 text-center">
-              <p className="text-xs text-gray-400 mb-1">الإجمالي</p>
-              <p className="text-lg font-bold text-gray-900">{total.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-xs font-normal">ر.س</span></p>
-            </div>
-            <div className="bg-blue-50 rounded-xl p-4 text-center">
-              <p className="text-xs text-gray-400 mb-1">المدفوع</p>
-              <p className="text-lg font-bold text-[#5b9bd5]">{(parseFloat(payAmount) || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-xs font-normal">ر.س</span></p>
-            </div>
-            <div className="bg-amber-50 rounded-xl p-4 text-center">
-              <p className="text-xs text-gray-400 mb-1">الدين المتبقي</p>
-              <p className="text-lg font-bold text-amber-600">
-                {Math.max(0, total - (parseFloat(payAmount) || 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-xs font-normal">ر.س</span>
-              </p>
-            </div>
+
+          {/* الإجمالي المستحق */}
+          <div className="bg-gray-50 rounded-2xl p-5 text-center">
+            <p className="text-xs text-gray-400 mb-1">المبلغ المستحق</p>
+            <p className="text-4xl font-bold text-gray-900 tabular-nums">
+              {total.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+              <span className="text-base font-normal text-gray-500 mr-1">ر.س</span>
+            </p>
           </div>
 
-          {/* Quick fill buttons */}
-          <div className="flex gap-2">
-            <button type="button" onClick={() => setPayAmount("0")}
-              className={clsx("flex-1 py-2 rounded-xl border text-sm font-medium transition-colors",
-                !payAmount || parseFloat(payAmount) === 0 ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
-              بدون دفع
-            </button>
-            <button type="button" onClick={() => setPayAmount(total.toFixed(2))}
-              className={clsx("flex-1 py-2 rounded-xl border text-sm font-medium transition-colors",
-                parseFloat(payAmount) === parseFloat(total.toFixed(2)) ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
-              كامل المبلغ
-            </button>
-          </div>
-
-          {/* Amount input */}
-          <Input
-            label="المبلغ المستلم"
-            name="payAmount"
-            type="number"
-            value={payAmount}
-            onChange={e => setPayAmount(e.target.value)}
-            placeholder="0.00"
-          />
-
-          {/* Payment method */}
+          {/* طريقة الدفع */}
           <div>
-            <p className="text-sm font-medium text-gray-700 mb-2">طريقة الدفع</p>
+            <p className="text-sm font-semibold text-gray-700 mb-2">طريقة الدفع</p>
             <div className="grid grid-cols-3 gap-2">
+              {/* دفع لاحقاً */}
+              <button type="button" onClick={() => { setPayMethod("later"); setPayAmount("0"); }}
+                className={clsx("col-span-3 py-3 rounded-xl border text-sm font-semibold transition-colors flex items-center justify-center gap-2",
+                  payMethod === "later" ? "border-gray-400 bg-gray-100 text-gray-700" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
+                الدفع لاحقاً
+              </button>
               {PAY_METHODS.map(m => (
-                <button
-                  key={m.value}
-                  type="button"
-                  onClick={() => setPayMethod(m.value)}
-                  className={clsx(
-                    "py-2.5 px-3 rounded-xl border text-sm font-medium transition-colors flex items-center justify-center gap-1.5",
-                    payMethod === m.value
-                      ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]"
-                      : "border-gray-200 text-gray-600 hover:bg-gray-50"
-                  )}
-                >
-                  {m.value === "cash" ? <Banknote className="w-3.5 h-3.5" /> : <CreditCard className="w-3.5 h-3.5" />}
+                <button key={m.value} type="button" onClick={() => { setPayMethod(m.value); if (!payAmount || parseFloat(payAmount) === 0) setPayAmount(total.toFixed(2)); }}
+                  className={clsx("py-3 rounded-xl border text-sm font-semibold transition-colors flex items-center justify-center gap-1.5",
+                    payMethod === m.value ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
+                  {m.value === "cash" ? <Banknote className="w-4 h-4" /> : <CreditCard className="w-4 h-4" />}
                   {m.label}
                 </button>
               ))}
             </div>
           </div>
+
+          {/* المبلغ المستلم — يظهر فقط إذا لم يكن "دفع لاحقاً" */}
+          {payMethod !== "later" && (
+            <div className="space-y-3">
+              {/* اختصارات المبلغ */}
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { label: "كامل المبلغ", val: total },
+                  { label: "نصف المبلغ",  val: total / 2 },
+                  { label: "ربع المبلغ",  val: total / 4 },
+                ].map(({ label, val }) => (
+                  <button key={label} type="button" onClick={() => setPayAmount(val.toFixed(2))}
+                    className={clsx("py-2 rounded-xl border text-xs font-semibold transition-colors",
+                      parseFloat(payAmount) === parseFloat(val.toFixed(2)) ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <Input
+                label="المبلغ المستلم"
+                name="payAmount"
+                type="number"
+                value={payAmount}
+                onChange={e => setPayAmount(e.target.value)}
+                placeholder="0.00"
+              />
+
+              {/* ملخص الدين */}
+              {total > 0 && (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-blue-50 rounded-xl p-3 text-center">
+                    <p className="text-xs text-gray-400 mb-0.5">المدفوع</p>
+                    <p className="text-base font-bold text-[#5b9bd5] tabular-nums">
+                      {(parseFloat(payAmount) || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} ر.س
+                    </p>
+                  </div>
+                  <div className="bg-amber-50 rounded-xl p-3 text-center">
+                    <p className="text-xs text-gray-400 mb-0.5">الدين المتبقي</p>
+                    <p className="text-base font-bold text-amber-600 tabular-nums">
+                      {Math.max(0, total - (parseFloat(payAmount) || 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })} ر.س
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       )}
 
