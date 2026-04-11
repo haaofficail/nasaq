@@ -1,23 +1,23 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { clsx } from "clsx";
 import {
-  Plus, CalendarCheck, Clock, CheckCircle, XCircle, Banknote,
-  Phone, Search, AlertTriangle, X, Scissors, ChevronRight,
-  CalendarDays, Filter, ArrowUpDown,
+  Plus, CheckCircle, AlertTriangle, X, CalendarDays,
+  ChevronLeft, Pencil, MoreHorizontal, CalendarCheck,
+  DollarSign, Clock, TrendingUp,
 } from "lucide-react";
 import { bookingsApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { toast } from "@/hooks/useToast";
 import { CreateBookingForm } from "@/components/bookings/CreateBookingForm";
-import { Button, confirmDialog } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { useBusiness } from "@/hooks/useBusiness";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function fmtDate(d: string | Date) {
   return new Date(d).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", {
-    day: "numeric", month: "short",
+    day: "numeric", month: "long",
   });
 }
 function fmtTime(d: string | Date) {
@@ -25,32 +25,12 @@ function fmtTime(d: string | Date) {
     hour: "2-digit", minute: "2-digit",
   });
 }
-
-// ── Status config ─────────────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<string, { label: string; dot: string; text: string }> = {
-  pending:     { label: "بانتظار التأكيد", dot: "bg-amber-400",  text: "text-amber-700"  },
-  confirmed:   { label: "مؤكد",           dot: "bg-blue-400",   text: "text-blue-700"   },
-  in_progress: { label: "قيد التنفيذ",    dot: "bg-violet-400", text: "text-violet-700" },
-  completed:   { label: "مكتمل",          dot: "bg-green-400",  text: "text-green-700"  },
-  cancelled:   { label: "ملغي",           dot: "bg-red-400",    text: "text-red-600"    },
-  no_show:     { label: "لم يحضر",        dot: "bg-gray-400",   text: "text-gray-600"   },
-};
-
-const PIPELINE_TABS = [
-  { key: "all",         label: "الكل" },
-  { key: "pending",     label: "بانتظار" },
-  { key: "confirmed",   label: "مؤكد" },
-  { key: "in_progress", label: "جاري" },
-  { key: "completed",   label: "مكتمل" },
-  { key: "cancelled",   label: "ملغي" },
-];
-
-// ── Date quick-filters ────────────────────────────────────────────────────────
-
-function isoDate(d: Date) {
-  return d.toISOString().split("T")[0];
+function getInitials(name: string) {
+  const words = name.trim().split(/\s+/);
+  if (words.length >= 2) return words[0][0] + words[words.length - 1][0];
+  return name.slice(0, 2);
 }
+function isoDate(d: Date) { return d.toISOString().split("T")[0]; }
 function getDateRange(preset: string): { dateFrom?: string; dateTo?: string } {
   const now = new Date();
   if (preset === "today") {
@@ -71,53 +51,97 @@ function getDateRange(preset: string): { dateFrom?: string; dateTo?: string } {
   return {};
 }
 
-const DATE_PRESETS = [
-  { key: "all",      label: "كل الأوقات" },
-  { key: "today",    label: "اليوم" },
-  { key: "tomorrow", label: "غداً" },
-  { key: "week",     label: "هذا الأسبوع" },
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const AVATAR_COLORS = [
+  "from-[#5b9bd5] to-[#3a7bc0]",
+  "from-[#34c77b] to-[#22a05e]",
+  "from-[#8b6cc1] to-[#6b4fa0]",
+  "from-[#f5a623] to-[#d4870a]",
+  "from-[#e74c5e] to-[#c4344a]",
+  "from-[#7eb5d4] to-[#5a9abf]",
 ];
 
-// ── Status badge ──────────────────────────────────────────────────────────────
+const STATUS_CONFIG: Record<string, {
+  label: string;
+  dotBg: string;
+  badgeBg: string;
+  badgeText: string;
+}> = {
+  pending:     { label: "بانتظار التأكيد", dotBg: "bg-[#f5a623]",  badgeBg: "bg-[#fff8ec]",  badgeText: "text-[#c47d0a]"  },
+  confirmed:   { label: "مؤكد",            dotBg: "bg-[#5b9bd5]",  badgeBg: "bg-[#e8f1fa]",  badgeText: "text-[#3a7bc0]"  },
+  in_progress: { label: "قيد التنفيذ",     dotBg: "bg-[#8b6cc1]",  badgeBg: "bg-[#f3f0fa]",  badgeText: "text-[#8b6cc1]"  },
+  completed:   { label: "مكتمل",           dotBg: "bg-[#34c77b]",  badgeBg: "bg-[#edfaf3]",  badgeText: "text-[#1a9e55]"  },
+  cancelled:   { label: "ملغي",            dotBg: "bg-[#e74c5e]",  badgeBg: "bg-[#fdf0f2]",  badgeText: "text-[#e74c5e]"  },
+  no_show:     { label: "لم يحضر",         dotBg: "bg-gray-400",   badgeBg: "bg-gray-100",   badgeText: "text-gray-600"   },
+};
 
-function StatusDot({ status }: { status: string }) {
+const PIPELINE_TABS = [
+  { key: "all",         label: "الكل"     },
+  { key: "pending",     label: "بانتظار"  },
+  { key: "confirmed",   label: "مؤكد"     },
+  { key: "in_progress", label: "جاري"     },
+  { key: "completed",   label: "مكتمل"    },
+  { key: "cancelled",   label: "ملغي"     },
+];
+
+const DATE_PRESETS = [
+  { key: "all",      label: "كل الأوقات"    },
+  { key: "today",    label: "اليوم"          },
+  { key: "tomorrow", label: "غداً"           },
+  { key: "week",     label: "هذا الأسبوع"   },
+];
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function StatusBadge({ status }: { status: string }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.pending;
   return (
-    <span className={clsx("inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full", cfg.text, "bg-white border border-current/20")}>
-      <span className={clsx("w-1.5 h-1.5 rounded-full", cfg.dot)} />
+    <span className={clsx(
+      "inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold whitespace-nowrap",
+      cfg.badgeBg, cfg.badgeText
+    )}>
+      <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0", cfg.dotBg)} />
       {cfg.label}
     </span>
   );
 }
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
+function Skeleton() {
+  return (
+    <tr className="animate-pulse">
+      {[...Array(6)].map((_, i) => (
+        <td key={i} className="px-4 py-4">
+          <div className="h-4 bg-gray-100 rounded-lg" />
+        </td>
+      ))}
+    </tr>
+  );
+}
 
-function Skeleton({ className }: { className?: string }) {
-  return <div className={clsx("animate-pulse bg-gray-100 rounded-2xl", className)} />;
+function MobileSkeleton() {
+  return <div className="h-28 bg-gray-100 rounded-xl animate-pulse" />;
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export function BookingsPage() {
-  const navigate     = useNavigate();
-  const location     = useLocation();
+  const navigate       = useNavigate();
+  const location       = useLocation();
   const [searchParams] = useSearchParams();
-  const biz          = useBusiness();
+  const biz            = useBusiness();
 
   const [activeTab,   setActiveTab]   = useState("all");
   const [datePreset,  setDatePreset]  = useState("all");
   const [search,      setSearch]      = useState("");
   const [showCreate,  setShowCreate]  = useState(() => location.pathname.endsWith("/new"));
   const defaultCustomerId = searchParams.get("customerId") || "";
-  const [showFilters, setShowFilters] = useState(false);
 
-  // Quick-action modals
-  const [confirmModal, setConfirmModal] = useState<string | null>(null);
-  const [cancelModal,  setCancelModal]  = useState<string | null>(null);
-  const [cancelReason, setCancelReason] = useState("");
+  const [confirmModal,  setConfirmModal]  = useState<string | null>(null);
+  const [cancelModal,   setCancelModal]   = useState<string | null>(null);
+  const [cancelReason,  setCancelReason]  = useState("");
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  // Build query params
   const params: Record<string, string> = {};
   if (activeTab !== "all") params.status = activeTab;
   if (search) params.search = search;
@@ -129,16 +153,47 @@ export function BookingsPage() {
     () => bookingsApi.list(params),
     [activeTab, search, datePreset]
   );
-
   const bookings: any[] = bookingsRes?.data || [];
-  const today = bookings.filter((b: any) => {
-    const d = b.eventDate ?? b.createdAt;
-    if (!d) return false;
-    const bd = new Date(d).toDateString();
-    return bd === new Date().toDateString();
-  });
 
-  // ── Actions ──────────────────────────────────────────────────────────────────
+  // ── Stats ─────────────────────────────────────────────────────────────────
+
+  const totalRevenue = bookings.reduce((s: number, b: any) => s + Number(b.totalAmount || 0), 0);
+  const pendingCount = bookings.filter((b: any) => b.status === "pending").length;
+  const completedCount = bookings.filter((b: any) => b.status === "completed").length;
+
+  const STATS = [
+    {
+      value: bookings.length,
+      label: "إجمالي المواعيد",
+      iconBg: "bg-[#e8f1fa]",
+      iconColor: "text-[#5b9bd5]",
+      icon: <CalendarCheck className="w-5 h-5" />,
+    },
+    {
+      value: pendingCount,
+      label: "بانتظار التأكيد",
+      iconBg: "bg-[#fff8ec]",
+      iconColor: "text-[#f5a623]",
+      icon: <Clock className="w-5 h-5" />,
+    },
+    {
+      value: completedCount,
+      label: "مكتملة",
+      iconBg: "bg-[#edfaf3]",
+      iconColor: "text-[#34c77b]",
+      icon: <CheckCircle className="w-5 h-5" />,
+    },
+    {
+      value: totalRevenue.toLocaleString("en-US", { minimumFractionDigits: totalRevenue % 1 ? 2 : 0, maximumFractionDigits: 2 }),
+      suffix: "ر.س",
+      label: "إجمالي الإيرادات",
+      iconBg: "bg-[#f3f0fa]",
+      iconColor: "text-[#8b6cc1]",
+      icon: <DollarSign className="w-5 h-5" />,
+    },
+  ];
+
+  // ── Actions ───────────────────────────────────────────────────────────────
 
   const doConfirm = async () => {
     if (!confirmModal) return;
@@ -165,7 +220,7 @@ export function BookingsPage() {
     setActionLoading(id + "_complete");
     try {
       await bookingsApi.updateStatus(id, "completed");
-      toast.success("اكتملت الخدمة — تم خصم المخزون");
+      toast.success("اكتملت الخدمة");
       refetch();
     } catch { toast.error("فشل إكمال الحجز"); }
     finally { setActionLoading(null); }
@@ -182,294 +237,469 @@ export function BookingsPage() {
     finally { setActionLoading(null); setCancelModal(null); setCancelReason(""); }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div dir="rtl" className="space-y-4 pb-24 md:pb-6">
+    <div dir="rtl" className="pb-10">
 
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3">
+      {/* ── Page Header ── */}
+      <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-lg font-bold text-gray-900">{biz.terminology.bookings}</h1>
-          <p className="text-xs text-gray-400 mt-0.5">إدارة المواعيد والمتابعة</p>
+          <h1 className="text-[22px] font-bold text-[#1a2332]">{biz.terminology.bookings}</h1>
+          <p className="text-[13px] text-[#6b7a8d] mt-0.5">إدارة المواعيد والمتابعة</p>
         </div>
-        <Button icon={Plus} onClick={() => setShowCreate(true)} className="shrink-0">
+        <button
+          onClick={() => setShowCreate(true)}
+          className="flex items-center gap-1.5 bg-[#5b9bd5] hover:bg-[#3a7bc0] text-white text-[13px] font-semibold px-5 py-2.5 rounded-[10px] transition-all shadow-[0_2px_8px_rgba(91,155,213,0.3)] hover:shadow-[0_4px_14px_rgba(91,155,213,0.4)] hover:-translate-y-px"
+        >
+          <Plus className="w-4 h-4" />
           {biz.terminology.newBooking}
-        </Button>
+        </button>
       </div>
 
-      {/* Stats strip — mobile friendly 2×2 grid */}
-      <div className="grid grid-cols-2 gap-3">
-        {[
-          { label: "إجمالي المواعيد",    value: bookings.length,                                                          color: "text-brand-600",   bg: "bg-brand-50"   },
-          { label: "بانتظار التأكيد",    value: bookings.filter((b: any) => b.status === "pending").length,                color: "text-amber-600",   bg: "bg-amber-50"   },
-          { label: "مكتملة",              value: bookings.filter((b: any) => b.status === "completed").length,              color: "text-green-600",   bg: "bg-green-50"   },
-          { label: "إجمالي الإيرادات",   value: bookings.reduce((s: number, b: any) => s + Number(b.totalAmount || 0), 0).toLocaleString("en-US") + " ر.س",
-                                                                                                                             color: "text-violet-600",  bg: "bg-violet-50"  },
-        ].map((s, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
-            <p className={clsx("text-xl font-bold tabular-nums", s.color)}>{s.value}</p>
-            <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
+      {/* ── Stats Grid ── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        {STATS.map((s, i) => (
+          <div
+            key={i}
+            className="bg-white border border-[#e8ecf1] rounded-xl p-4 flex items-start gap-3.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:border-transparent transition-all"
+          >
+            <div className={clsx("w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0", s.iconBg, s.iconColor)}>
+              {s.icon}
+            </div>
+            <div>
+              <p className="text-[22px] font-bold text-[#1a2332] leading-none tabular-nums">
+                {s.value}
+                {s.suffix && <span className="text-sm font-medium text-[#6b7a8d] mr-1">{s.suffix}</span>}
+              </p>
+              <p className="text-[12px] text-[#6b7a8d] mt-1 font-medium">{s.label}</p>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Date preset bar */}
-      <div className="flex gap-1 bg-white border border-gray-100 rounded-2xl p-1 overflow-x-auto scrollbar-hide">
-        {DATE_PRESETS.map(dp => (
-          <button
-            key={dp.key}
-            onClick={() => setDatePreset(dp.key)}
-            className={clsx(
-              "flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all",
-              datePreset === dp.key
-                ? "bg-brand-600 text-white shadow-sm"
-                : "text-gray-500 hover:bg-gray-50",
-            )}
-          >
-            {dp.label}
-          </button>
-        ))}
+      {/* ── Filters Bar ── */}
+      <div className="bg-white border border-[#e8ecf1] rounded-xl px-4 py-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Status pills */}
+          {PIPELINE_TABS.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={clsx(
+                "px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all border border-transparent",
+                activeTab === tab.key
+                  ? "bg-[#5b9bd5] text-white shadow-[0_2px_6px_rgba(91,155,213,0.25)]"
+                  : "text-[#6b7a8d] hover:bg-[#f8f9fb] hover:text-[#1a2332]"
+              )}
+            >
+              {tab.label}
+            </button>
+          ))}
+
+          {/* Divider */}
+          <div className="w-px h-5 bg-[#e8ecf1] mx-1" />
+
+          {/* Date presets */}
+          {DATE_PRESETS.map(dp => (
+            <button
+              key={dp.key}
+              onClick={() => setDatePreset(dp.key)}
+              className={clsx(
+                "px-3.5 py-1.5 rounded-full text-[12px] font-medium transition-all border border-transparent",
+                datePreset === dp.key
+                  ? "bg-[#1a2332] text-white"
+                  : "text-[#6b7a8d] hover:bg-[#f8f9fb] hover:text-[#1a2332]"
+              )}
+            >
+              {dp.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Search */}
+        <div className="flex items-center gap-2 bg-[#f8f9fb] border border-[#e8ecf1] rounded-lg px-3 py-2 min-w-[200px]">
+          <svg className="w-3.5 h-3.5 text-[#9aa5b4] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
+          <input
+            className="bg-transparent border-none outline-none text-[12px] text-[#1a2332] placeholder:text-[#9aa5b4] w-full"
+            placeholder="بحث بالاسم أو رقم الحجز..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            dir="rtl"
+          />
+          {search && (
+            <button onClick={() => setSearch("")} className="text-[#9aa5b4] hover:text-[#6b7a8d]">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Status tabs */}
-      <div className="flex gap-1 bg-white border border-gray-100 rounded-2xl p-1 overflow-x-auto scrollbar-hide">
-        {PIPELINE_TABS.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={clsx(
-              "flex-shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all",
-              activeTab === tab.key
-                ? "bg-brand-600 text-white shadow-sm"
-                : "text-gray-500 hover:bg-gray-50",
-            )}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
+      {/* ── Error ── */}
+      {error && (
+        <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 flex items-center gap-3 mb-4">
+          <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+          <p className="text-sm text-red-600 flex-1">{error}</p>
+          <button onClick={refetch} className="text-xs text-red-500 underline">إعادة المحاولة</button>
+        </div>
+      )}
 
-      {/* Search */}
-      <div className="relative">
-        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
-        <input
-          className="w-full bg-white border border-gray-200 rounded-2xl pr-10 pl-4 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300 transition-all"
-          placeholder="بحث بالاسم أو الجوال أو رقم الحجز أو الخدمة..."
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          dir="rtl"
-        />
-        {search && (
-          <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
-            <X className="w-4 h-4" />
-          </button>
+      {/* ── Desktop Table ── */}
+      <div className="hidden md:block bg-white border border-[#e8ecf1] rounded-xl overflow-hidden">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="bg-[#f8f9fb] border-b border-[#e8ecf1]">
+              {["العميل", "الخدمة", "التاريخ والوقت", "المبلغ", "الحالة", "إجراءات"].map(h => (
+                <th key={h} className="px-4 py-3 text-right text-[11px] font-semibold text-[#9aa5b4] tracking-wide whitespace-nowrap">
+                  {h}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              [...Array(5)].map((_, i) => <Skeleton key={i} />)
+            ) : bookings.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-16 text-center">
+                  <CalendarDays className="w-12 h-12 text-[#9aa5b4] opacity-30 mx-auto mb-3" />
+                  <p className="text-[14px] font-semibold text-[#6b7a8d] mb-1">لا توجد مواعيد</p>
+                  <p className="text-[12px] text-[#9aa5b4]">أضف موعداً جديداً لبدء التتبع</p>
+                </td>
+              </tr>
+            ) : bookings.map((b: any, idx: number) => {
+              const customerName = b.customerName || b.customer?.name || "عميل";
+              const initials = getInitials(customerName);
+              const avatarGrad = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+              const isLoading = (k: string) => actionLoading === b.id + k || actionLoading === b.id;
+
+              return (
+                <tr
+                  key={b.id}
+                  className="border-b border-[#e8ecf1] last:border-0 hover:bg-[#fafbfd] transition-colors"
+                >
+                  {/* العميل */}
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center gap-2.5">
+                      <div className={clsx(
+                        "w-9 h-9 rounded-[10px] flex items-center justify-center text-[12px] font-bold text-white bg-gradient-to-br shrink-0",
+                        avatarGrad
+                      )}>
+                        {initials}
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-semibold text-[#1a2332]">{customerName}</p>
+                        {b.customerPhone && (
+                          <p className="text-[11px] text-[#9aa5b4] mt-0.5 direction-ltr" dir="ltr">{b.customerPhone}</p>
+                        )}
+                      </div>
+                    </div>
+                  </td>
+
+                  {/* الخدمة */}
+                  <td className="px-4 py-3.5">
+                    <p className="text-[13px] font-medium text-[#1a2332]">
+                      {b.serviceName || "—"}
+                    </p>
+                    {(b.assignedUserName || b.durationMinutes) && (
+                      <p className="text-[11px] text-[#9aa5b4] mt-0.5">
+                        {[b.assignedUserName, b.durationMinutes ? `${b.durationMinutes} د` : null].filter(Boolean).join(" — ")}
+                      </p>
+                    )}
+                  </td>
+
+                  {/* التاريخ والوقت */}
+                  <td className="px-4 py-3.5 whitespace-nowrap">
+                    {b.eventDate ? (
+                      <>
+                        <p className="text-[13px] font-medium text-[#1a2332]">{fmtDate(b.eventDate)}</p>
+                        <p className="text-[11px] text-[#9aa5b4] mt-0.5">{fmtTime(b.eventDate)}</p>
+                      </>
+                    ) : <span className="text-[#9aa5b4]">—</span>}
+                  </td>
+
+                  {/* المبلغ */}
+                  <td className="px-4 py-3.5 whitespace-nowrap">
+                    <span className="text-[14px] font-bold text-[#1a2332] tabular-nums">
+                      {Number(b.totalAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                    </span>
+                    <span className="text-[11px] font-medium text-[#6b7a8d] mr-1">ر.س</span>
+                  </td>
+
+                  {/* الحالة */}
+                  <td className="px-4 py-3.5">
+                    <StatusBadge status={b.status} />
+                  </td>
+
+                  {/* إجراءات */}
+                  <td className="px-4 py-3.5">
+                    <div className="flex items-center gap-1">
+                      {b.status === "pending" && (
+                        <button
+                          onClick={() => setConfirmModal(b.id)}
+                          disabled={isLoading("")}
+                          title="تأكيد"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-[#9aa5b4] hover:bg-[#f8f9fb] hover:text-[#34c77b] transition-all disabled:opacity-50"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      {b.status === "confirmed" && (
+                        <button
+                          onClick={() => doStart(b.id)}
+                          disabled={isLoading("_start")}
+                          title="بدء الخدمة"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-[#9aa5b4] hover:bg-[#f3f0fa] hover:text-[#8b6cc1] transition-all disabled:opacity-50"
+                        >
+                          <TrendingUp className="w-4 h-4" />
+                        </button>
+                      )}
+                      {b.status === "in_progress" && (
+                        <button
+                          onClick={() => doComplete(b.id)}
+                          disabled={isLoading("_complete")}
+                          title="إكمال الخدمة"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-[#9aa5b4] hover:bg-[#edfaf3] hover:text-[#34c77b] transition-all disabled:opacity-50"
+                        >
+                          <CheckCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => navigate("/dashboard/bookings/" + b.id)}
+                        title="تعديل"
+                        className="w-8 h-8 rounded-lg flex items-center justify-center text-[#9aa5b4] hover:bg-[#f8f9fb] hover:text-[#1a2332] transition-all"
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </button>
+                      {["pending", "confirmed", "in_progress"].includes(b.status) && (
+                        <button
+                          onClick={() => { setCancelModal(b.id); setCancelReason(""); }}
+                          title="إلغاء"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-[#9aa5b4] hover:bg-[#fdf0f2] hover:text-[#e74c5e] transition-all"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* Table footer */}
+        {!loading && bookings.length > 0 && (
+          <div className="px-4 py-3 border-t border-[#e8ecf1] bg-[#f8f9fb] flex items-center justify-between">
+            <p className="text-[12px] text-[#9aa5b4]">عرض {bookings.length} موعد</p>
+          </div>
         )}
       </div>
 
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 border border-red-100 rounded-2xl px-5 py-4 flex items-center gap-3">
-          <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
-          <p className="text-sm text-red-600 flex-1">{error}</p>
-          <button onClick={refetch} className="text-xs text-red-500 underline shrink-0">إعادة المحاولة</button>
-        </div>
-      )}
+      {/* ── Mobile Cards ── */}
+      <div className="md:hidden">
+        {loading ? (
+          <div className="space-y-2">
+            {[...Array(4)].map((_, i) => <MobileSkeleton key={i} />)}
+          </div>
+        ) : bookings.length === 0 ? (
+          <div className="bg-white border border-[#e8ecf1] rounded-xl p-12 text-center">
+            <CalendarDays className="w-10 h-10 text-[#9aa5b4] opacity-30 mx-auto mb-3" />
+            <p className="text-[14px] font-semibold text-[#6b7a8d] mb-1">لا توجد مواعيد</p>
+            <p className="text-[12px] text-[#9aa5b4] mb-4">أضف موعداً جديداً لبدء التتبع</p>
+            <button
+              onClick={() => setShowCreate(true)}
+              className="flex items-center gap-1.5 bg-[#5b9bd5] text-white text-[13px] font-semibold px-4 py-2.5 rounded-[10px] mx-auto"
+            >
+              <Plus className="w-4 h-4" />
+              {biz.terminology.newBooking}
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {bookings.map((b: any, idx: number) => {
+              const customerName = b.customerName || b.customer?.name || "عميل";
+              const initials = getInitials(customerName);
+              const avatarGrad = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+              const isLoading = (k: string) => actionLoading === b.id + k || actionLoading === b.id;
 
-      {/* Booking list */}
-      {loading ? (
-        <div className="space-y-2">
-          {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-28" />)}
-        </div>
-      ) : bookings.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
-          <CalendarDays className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-gray-900 mb-1">لا توجد مواعيد</h3>
-          <p className="text-sm text-gray-400 mb-4">أضف موعداً جديداً لعميلتك</p>
-          <Button icon={Plus} onClick={() => setShowCreate(true)}>{biz.terminology.newBooking}</Button>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {bookings.map((booking: any) => {
-            const cfg = STATUS_CONFIG[booking.status] ?? STATUS_CONFIG.pending;
-            const isLoading = (k: string) => actionLoading === booking.id + k;
-
-            return (
-              <div
-                key={booking.id}
-                className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:border-brand-200 hover:shadow-sm transition-all"
-              >
-                {/* Main row */}
+              return (
                 <div
-                  onClick={() => navigate("/dashboard/bookings/" + booking.id)}
-                  className="flex items-start gap-3 p-4 cursor-pointer"
+                  key={b.id}
+                  className="bg-white border border-[#e8ecf1] rounded-xl overflow-hidden hover:border-[#5b9bd5]/30 transition-all"
                 >
-                  {/* Status stripe */}
-                  <div className={clsx("w-1 self-stretch rounded-full shrink-0 mt-0.5", cfg.dot)} />
-
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    {/* Row 1: name + amount */}
-                    <div className="flex items-start justify-between gap-2">
-                      <p className="text-sm font-bold text-gray-900 truncate">
-                        {booking.customerName || booking.customer?.name || "عميل"}
-                      </p>
-                      <span className="text-sm font-bold text-brand-600 tabular-nums shrink-0">
-                        {Number(booking.totalAmount || 0).toLocaleString("en-US")} ر.س
-                      </span>
+                  <div
+                    className="flex items-start gap-3 p-4 cursor-pointer"
+                    onClick={() => navigate("/dashboard/bookings/" + b.id)}
+                  >
+                    {/* Avatar */}
+                    <div className={clsx(
+                      "w-10 h-10 rounded-[10px] flex items-center justify-center text-[13px] font-bold text-white bg-gradient-to-br shrink-0",
+                      avatarGrad
+                    )}>
+                      {initials}
                     </div>
 
-                    {/* Row 2: service + staff */}
-                    {(booking.serviceName || booking.assignedUserName) && (
-                      <div className="flex items-center gap-2 mt-1 flex-wrap">
-                        {booking.serviceName && (
-                          <span className="text-xs text-gray-600 font-medium bg-gray-50 px-2 py-0.5 rounded-lg">
-                            {booking.serviceName}
-                            {booking.durationMinutes ? ` · ${booking.durationMinutes} د` : ""}
-                          </span>
-                        )}
-                        {booking.assignedUserName && (
-                          <span className="flex items-center gap-1 text-xs text-brand-600">
-                            <Scissors className="w-3 h-3" />
-                            {booking.assignedUserName}
-                          </span>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Row 3: date + phone + status */}
-                    <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                      {booking.eventDate && (
-                        <span className="flex items-center gap-1 text-xs text-gray-400">
-                          <CalendarCheck className="w-3 h-3" />
-                          {fmtDate(booking.eventDate)} · {fmtTime(booking.eventDate)}
+                    {/* Info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <p className="text-[13px] font-bold text-[#1a2332] truncate">{customerName}</p>
+                        <span className="text-[13px] font-bold text-[#5b9bd5] tabular-nums shrink-0">
+                          {Number(b.totalAmount || 0).toLocaleString("en-US")} ر.س
                         </span>
+                      </div>
+                      {b.serviceName && (
+                        <p className="text-[12px] text-[#6b7a8d] mt-0.5 font-medium">{b.serviceName}</p>
                       )}
-                      {booking.customerPhone && (
-                        <a
-                          href={`tel:${booking.customerPhone}`}
-                          onClick={e => e.stopPropagation()}
-                          className="flex items-center gap-1 text-xs text-gray-400 hover:text-brand-600 transition-colors"
+                      <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                        {b.eventDate && (
+                          <span className="text-[11px] text-[#9aa5b4]">
+                            {fmtDate(b.eventDate)} · {fmtTime(b.eventDate)}
+                          </span>
+                        )}
+                        <StatusBadge status={b.status} />
+                      </div>
+                    </div>
+
+                    <ChevronLeft className="w-4 h-4 text-[#9aa5b4] shrink-0 mt-1" />
+                  </div>
+
+                  {/* Quick actions */}
+                  {["pending", "confirmed", "in_progress"].includes(b.status) && (
+                    <div className="flex border-t border-[#f0f2f5] divide-x divide-[#f0f2f5]" onClick={e => e.stopPropagation()}>
+                      {b.status === "pending" && (
+                        <button
+                          disabled={isLoading("")}
+                          onClick={() => setConfirmModal(b.id)}
+                          className="flex-1 py-2.5 text-[12px] font-semibold text-[#3a7bc0] hover:bg-[#e8f1fa] transition-colors disabled:opacity-50"
                         >
-                          <Phone className="w-3 h-3" />
-                          {booking.customerPhone}
-                        </a>
+                          تأكيد الموعد
+                        </button>
                       )}
+                      {b.status === "confirmed" && (
+                        <button
+                          disabled={isLoading("_start")}
+                          onClick={() => doStart(b.id)}
+                          className="flex-1 py-2.5 text-[12px] font-semibold text-[#8b6cc1] hover:bg-[#f3f0fa] transition-colors disabled:opacity-50"
+                        >
+                          بدء الخدمة
+                        </button>
+                      )}
+                      {b.status === "in_progress" && (
+                        <button
+                          disabled={isLoading("_complete")}
+                          onClick={() => doComplete(b.id)}
+                          className="flex-1 py-2.5 text-[12px] font-semibold text-[#1a9e55] hover:bg-[#edfaf3] transition-colors disabled:opacity-50"
+                        >
+                          إكمال الخدمة
+                        </button>
+                      )}
+                      <button
+                        disabled={isLoading("_cancel")}
+                        onClick={() => { setCancelModal(b.id); setCancelReason(""); }}
+                        className="px-5 py-2.5 text-[12px] font-medium text-[#e74c5e] hover:bg-[#fdf0f2] transition-colors disabled:opacity-50"
+                      >
+                        إلغاء
+                      </button>
                     </div>
-
-                    {/* Row 4: status badge */}
-                    <div className="mt-2">
-                      <StatusDot status={booking.status} />
-                    </div>
-                  </div>
-
-                  {/* Chevron */}
-                  <ChevronRight className="w-4 h-4 text-gray-300 shrink-0 mt-1" />
+                  )}
                 </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
 
-                {/* Quick-action strip */}
-                {["pending", "confirmed", "in_progress"].includes(booking.status) && (
-                  <div className="flex border-t border-gray-50 divide-x divide-gray-50" onClick={e => e.stopPropagation()}>
-                    {booking.status === "pending" && (
-                      <button
-                        disabled={isLoading("_confirm")}
-                        onClick={() => setConfirmModal(booking.id)}
-                        className="flex-1 py-2.5 text-xs font-semibold text-brand-600 hover:bg-brand-50 transition-colors disabled:opacity-50"
-                      >
-                        {isLoading("_confirm") ? "..." : "تأكيد الموعد"}
-                      </button>
-                    )}
-                    {booking.status === "confirmed" && (
-                      <button
-                        disabled={isLoading("_start")}
-                        onClick={() => doStart(booking.id)}
-                        className="flex-1 py-2.5 text-xs font-semibold text-violet-600 hover:bg-violet-50 transition-colors disabled:opacity-50"
-                      >
-                        {isLoading("_start") ? "..." : "بدء الخدمة"}
-                      </button>
-                    )}
-                    {booking.status === "in_progress" && (
-                      <button
-                        disabled={isLoading("_complete")}
-                        onClick={() => doComplete(booking.id)}
-                        className="flex-1 py-2.5 text-xs font-semibold text-green-600 hover:bg-green-50 transition-colors disabled:opacity-50"
-                      >
-                        {isLoading("_complete") ? "..." : "إكمال الخدمة"}
-                      </button>
-                    )}
-                    <button
-                      disabled={isLoading("_cancel")}
-                      onClick={() => { setCancelModal(booking.id); setCancelReason(""); }}
-                      className="px-4 py-2.5 text-xs font-medium text-red-400 hover:bg-red-50 transition-colors disabled:opacity-50"
-                    >
-                      إلغاء
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Create booking form */}
+      {/* ── Create Form ── */}
       {showCreate && (
         <CreateBookingForm
           open={true}
-          onClose={() => { setShowCreate(false); if (location.pathname.endsWith("/new")) navigate("/dashboard/bookings"); }}
-          onSuccess={() => { setShowCreate(false); refetch(); toast.success("تم إنشاء الموعد"); if (location.pathname.endsWith("/new")) navigate("/dashboard/bookings"); }}
+          onClose={() => {
+            setShowCreate(false);
+            if (location.pathname.endsWith("/new")) navigate("/dashboard/bookings");
+          }}
+          onSuccess={() => {
+            setShowCreate(false);
+            refetch();
+            toast.success("تم إنشاء الموعد");
+            if (location.pathname.endsWith("/new")) navigate("/dashboard/bookings");
+          }}
           defaultCustomerId={defaultCustomerId}
         />
       )}
 
-      {/* Confirm modal */}
+      {/* ── Confirm Modal ── */}
       {confirmModal && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4" dir="rtl">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div className="p-6 text-center">
-              <div className="w-12 h-12 rounded-full bg-brand-50 flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-6 h-6 text-brand-500" />
+              <div className="w-12 h-12 rounded-full bg-[#e8f1fa] flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-6 h-6 text-[#5b9bd5]" />
               </div>
-              <h3 className="text-base font-bold text-gray-900 mb-1">تأكيد الموعد</h3>
-              <p className="text-sm text-gray-500">سيتم إبلاغ العميلة تلقائياً إذا كانت الرسائل مفعّلة.</p>
+              <h3 className="text-[15px] font-bold text-[#1a2332] mb-1">تأكيد الموعد</h3>
+              <p className="text-[13px] text-[#6b7a8d]">سيتم إبلاغ العميل تلقائياً إذا كانت الرسائل مفعّلة.</p>
             </div>
             <div className="px-6 pb-6 flex gap-2">
-              <button onClick={() => setConfirmModal(null)} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">تراجع</button>
-              <button onClick={doConfirm} disabled={!!actionLoading} className="flex-1 py-3 rounded-xl bg-brand-500 text-white text-sm font-bold hover:bg-brand-600 disabled:opacity-50 transition-colors">تأكيد</button>
+              <button
+                onClick={() => setConfirmModal(null)}
+                className="flex-1 py-3 rounded-xl border border-[#e8ecf1] text-[13px] font-medium text-[#6b7a8d] hover:bg-[#f8f9fb] transition-colors"
+              >
+                تراجع
+              </button>
+              <button
+                onClick={doConfirm}
+                disabled={!!actionLoading}
+                className="flex-1 py-3 rounded-xl bg-[#5b9bd5] text-white text-[13px] font-bold hover:bg-[#3a7bc0] disabled:opacity-50 transition-colors"
+              >
+                تأكيد
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Cancel modal */}
+      {/* ── Cancel Modal ── */}
       {cancelModal && (
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4" dir="rtl">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center shrink-0">
-                  <AlertTriangle className="w-5 h-5 text-red-500" />
+                <div className="w-10 h-10 rounded-full bg-[#fdf0f2] flex items-center justify-center shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-[#e74c5e]" />
                 </div>
                 <div>
-                  <h3 className="text-base font-bold text-gray-900">إلغاء الموعد</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">لا يمكن التراجع عن هذا الإجراء</p>
+                  <h3 className="text-[15px] font-bold text-[#1a2332]">إلغاء الموعد</h3>
+                  <p className="text-[11px] text-[#9aa5b4] mt-0.5">لا يمكن التراجع عن هذا الإجراء</p>
                 </div>
-                <button onClick={() => setCancelModal(null)} className="mr-auto text-gray-300 hover:text-gray-500">
+                <button onClick={() => setCancelModal(null)} className="mr-auto text-[#9aa5b4] hover:text-[#6b7a8d]">
                   <X className="w-5 h-5" />
                 </button>
               </div>
-              <label className="block text-sm font-medium text-gray-700 mb-1.5">سبب الإلغاء (اختياري)</label>
+              <label className="block text-[13px] font-medium text-[#1a2332] mb-1.5">سبب الإلغاء (اختياري)</label>
               <textarea
                 value={cancelReason}
                 onChange={e => setCancelReason(e.target.value)}
-                placeholder="مثال: طلب العميلة إلغاء الموعد"
+                placeholder="مثال: طلب العميل إلغاء الموعد"
                 rows={2}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-red-300 focus:ring-2 focus:ring-red-50 transition-all resize-none"
+                className="w-full rounded-xl border border-[#e8ecf1] px-3 py-2.5 text-[13px] outline-none focus:border-[#5b9bd5] focus:ring-2 focus:ring-[#5b9bd5]/10 transition-all resize-none"
               />
             </div>
             <div className="px-6 pb-6 flex gap-2">
-              <button onClick={() => setCancelModal(null)} className="flex-1 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">تراجع</button>
-              <button onClick={doCancel} disabled={!!actionLoading} className="flex-1 py-3 rounded-xl bg-red-500 text-white text-sm font-bold hover:bg-red-600 disabled:opacity-50 transition-colors">إلغاء الموعد</button>
+              <button
+                onClick={() => setCancelModal(null)}
+                className="flex-1 py-3 rounded-xl border border-[#e8ecf1] text-[13px] font-medium text-[#6b7a8d] hover:bg-[#f8f9fb] transition-colors"
+              >
+                تراجع
+              </button>
+              <button
+                onClick={doCancel}
+                disabled={!!actionLoading}
+                className="flex-1 py-3 rounded-xl bg-[#e74c5e] text-white text-[13px] font-bold hover:bg-[#c4344a] disabled:opacity-50 transition-colors"
+              >
+                إلغاء الموعد
+              </button>
             </div>
           </div>
         </div>
