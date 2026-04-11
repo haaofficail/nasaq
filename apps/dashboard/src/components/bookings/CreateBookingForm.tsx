@@ -332,111 +332,106 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
       )}
 
       {/* ── Payment Step ── */}
-      {step === "payment" && (
-        <div className="space-y-4 max-w-sm mx-auto">
-
-          {/* الإجمالي */}
-          <div className="flex items-center justify-between px-1">
-            <span className="text-sm text-gray-500">المبلغ المستحق</span>
-            <span className="text-xl font-bold text-gray-900 tabular-nums">
-              {total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-sm font-normal text-gray-400">ر.س</span>
-            </span>
-          </div>
-
-          {/* طريقة الدفع */}
-          <div className="space-y-1.5">
-            <p className="text-xs font-semibold text-gray-500 px-1">طريقة الدفع</p>
-            <button type="button" onClick={() => { setPayMethod("later"); setPayAmount("0"); }}
-              className={clsx("w-full py-2 rounded-lg border text-sm font-medium transition-colors",
-                payMethod === "later" ? "border-gray-400 bg-gray-100 text-gray-700" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
-              الدفع لاحقاً
-            </button>
-            <div className="grid grid-cols-3 gap-1.5">
-              {PAY_METHODS.map(m => (
-                <button key={m.value} type="button"
-                  onClick={() => { setPayMethod(m.value); if (!payAmount || parseFloat(payAmount) === 0) setPayAmount(total.toFixed(2)); }}
-                  className={clsx("py-2 rounded-lg border text-xs font-medium transition-colors",
-                    payMethod === m.value ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
-                  {m.label}
+      {step === "payment" && (() => {
+        const pressKey = (k: string) => {
+          if (k === "C") { setPayAmount("0"); return; }
+          if (k === "⌫") { setPayAmount(v => v.length > 1 ? v.slice(0, -1) : "0"); return; }
+          if (k === ".") { setPayAmount(v => v.includes(".") ? v : v + "."); return; }
+          setPayAmount(v => {
+            const cur = v === "0" ? "" : v;
+            const next = cur + k;
+            const parts = next.split(".");
+            if (parts[1] && parts[1].length > 2) return v;
+            return next;
+          });
+        };
+        const paid = parseFloat(payAmount) || 0;
+        const remaining = Math.max(0, total - paid);
+        const numKeys = ["1","2","3","4","5","6","7","8","9",".","0","⌫"];
+        return (
+          <div className="flex gap-4">
+            {/* ── يمين: طريقة الدفع + ملخص ── */}
+            <div className="flex-1 space-y-3">
+              <div className="space-y-1.5">
+                <p className="text-xs font-semibold text-gray-500">طريقة الدفع</p>
+                <button type="button" onClick={() => { setPayMethod("later"); setPayAmount("0"); }}
+                  className={clsx("w-full py-2 rounded-lg border text-sm font-medium transition-colors",
+                    payMethod === "later" ? "border-gray-400 bg-gray-100 text-gray-700" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
+                  الدفع لاحقاً
                 </button>
-              ))}
-            </div>
-          </div>
-
-          {/* المبلغ — يظهر فقط إذا لم يكن "دفع لاحقاً" */}
-          {payMethod !== "later" && (
-            <div className="space-y-2">
-              {/* عرض المبلغ المدخل */}
-              <div className="bg-gray-50 rounded-lg px-4 py-2 flex items-center justify-between">
-                <span className="text-xs text-gray-400">المبلغ</span>
-                <span className="text-2xl font-bold tabular-nums text-gray-900 tracking-wide">
-                  {payAmount || "0"} <span className="text-sm font-normal text-gray-400">ر.س</span>
-                </span>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {PAY_METHODS.map(m => (
+                    <button key={m.value} type="button"
+                      onClick={() => { setPayMethod(m.value); if (!payAmount || paid === 0) setPayAmount(total.toFixed(2)); }}
+                      className={clsx("py-2 rounded-lg border text-xs font-medium transition-colors",
+                        payMethod === m.value ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              {/* اختصارات */}
-              <div className="grid grid-cols-3 gap-1.5">
-                {[{ label: "كامل", val: total }, { label: "نصف", val: total / 2 }, { label: "ربع", val: total / 4 }].map(({ label, val }) => (
-                  <button key={label} type="button" onClick={() => setPayAmount(val.toFixed(2))}
-                    className={clsx("py-1.5 rounded-lg border text-xs font-medium transition-colors",
-                      parseFloat(payAmount) === parseFloat(val.toFixed(2)) ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
-                    {label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Numpad */}
-              {(() => {
-                const press = (k: string) => {
-                  if (k === "⌫") {
-                    setPayAmount(v => v.length > 1 ? v.slice(0, -1) : "0");
-                  } else if (k === ".") {
-                    setPayAmount(v => v.includes(".") ? v : v + ".");
-                  } else {
-                    setPayAmount(v => {
-                      const cur = v === "0" ? "" : v;
-                      const next = cur + k;
-                      // max 2 decimal places
-                      const parts = next.split(".");
-                      if (parts[1] && parts[1].length > 2) return v;
-                      return next;
-                    });
-                  }
-                };
-                const keys = ["1","2","3","4","5","6","7","8","9",".","0","⌫"];
-                return (
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {keys.map(k => (
-                      <button key={k} type="button" onClick={() => press(k)}
-                        className={clsx(
-                          "py-3 rounded-lg border text-sm font-semibold transition-colors select-none",
-                          k === "⌫" ? "border-red-100 bg-red-50 text-red-500 hover:bg-red-100"
-                                     : "border-gray-200 bg-white text-gray-800 hover:bg-gray-50 active:bg-gray-100"
-                        )}>
-                        {k}
-                      </button>
-                    ))}
+              {payMethod !== "later" && (
+                <div className="space-y-1.5 pt-2 border-t border-gray-100">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">المستحق</span>
+                    <span className="font-bold tabular-nums">{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س</span>
                   </div>
-                );
-              })()}
-
-              {/* ملخص */}
-              <div className="flex items-center justify-between text-sm pt-1 border-t border-gray-100">
-                <span className="text-gray-500">المدفوع</span>
-                <span className="font-semibold text-[#5b9bd5] tabular-nums">
-                  {(parseFloat(payAmount) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
-                </span>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-500">الدين المتبقي</span>
-                <span className={clsx("font-semibold tabular-nums", Math.max(0, total - (parseFloat(payAmount) || 0)) > 0 ? "text-amber-600" : "text-green-600")}>
-                  {Math.max(0, total - (parseFloat(payAmount) || 0)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
-                </span>
-              </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">المدفوع</span>
+                    <span className="font-semibold text-[#5b9bd5] tabular-nums">{paid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">المتبقي</span>
+                    <span className={clsx("font-semibold tabular-nums", remaining > 0 ? "text-amber-600" : "text-green-600")}>
+                      {remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      )}
+
+            {/* ── يسار: numpad ── */}
+            {payMethod !== "later" && (
+              <div className="w-44 shrink-0 space-y-1.5">
+                {/* شاشة العرض */}
+                <div className="bg-gray-900 rounded-lg px-3 py-2 text-left">
+                  <p className="text-[10px] text-gray-500 mb-0.5">المبلغ</p>
+                  <p className="text-xl font-bold text-white tabular-nums tracking-wide">{payAmount || "0"}</p>
+                </div>
+                {/* اختصارات */}
+                <div className="grid grid-cols-3 gap-1">
+                  {[{l:"كامل",v:total},{l:"نصف",v:total/2},{l:"ربع",v:total/4}].map(({l,v}) => (
+                    <button key={l} type="button" onClick={() => setPayAmount(v.toFixed(2))}
+                      className={clsx("py-1 rounded text-[10px] font-semibold border transition-colors",
+                        parseFloat(payAmount) === parseFloat(v.toFixed(2)) ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+                {/* مسح */}
+                <button type="button" onClick={() => pressKey("C")}
+                  className="w-full py-1 rounded border border-gray-200 text-xs text-gray-500 hover:bg-gray-50 transition-colors">
+                  مسح الكل
+                </button>
+                {/* أرقام */}
+                <div className="grid grid-cols-3 gap-1">
+                  {numKeys.map(k => (
+                    <button key={k} type="button" onClick={() => pressKey(k)}
+                      className={clsx(
+                        "py-2.5 rounded border text-sm font-bold transition-colors select-none",
+                        k === "⌫" ? "border-red-100 bg-red-50 text-red-500 hover:bg-red-100"
+                                   : "border-gray-200 bg-white text-gray-800 hover:bg-gray-50 active:bg-gray-100"
+                      )}>
+                      {k}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* ── Booking Form ── */}
       {step !== "payment" && <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
