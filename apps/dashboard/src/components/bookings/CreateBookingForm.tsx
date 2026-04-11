@@ -349,84 +349,82 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
         const remaining = Math.max(0, total - paid);
         const numKeys = ["1","2","3","4","5","6","7","8","9",".","0","⌫"];
         return (
-          <div className="flex gap-4">
-            {/* ── يمين: طريقة الدفع + ملخص ── */}
-            <div className="flex-1 space-y-3">
-              <div className="space-y-1.5">
-                <p className="text-xs font-semibold text-gray-500">طريقة الدفع</p>
-                <button type="button" onClick={() => { setPayMethod("later"); setPayAmount("0"); }}
-                  className={clsx("w-full py-2 rounded-lg border text-sm font-medium transition-colors",
-                    payMethod === "later" ? "border-gray-400 bg-gray-100 text-gray-700" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
-                  الدفع لاحقاً
-                </button>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {PAY_METHODS.map(m => (
-                    <button key={m.value} type="button"
-                      onClick={() => { setPayMethod(m.value); if (!payAmount || paid === 0) setPayAmount(total.toFixed(2)); }}
-                      className={clsx("py-2 rounded-lg border text-xs font-medium transition-colors",
-                        payMethod === m.value ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
+          <div className="space-y-4">
+            {/* طريقة الدفع */}
+            <div className="space-y-1.5">
+              <p className="text-xs font-semibold text-gray-500">طريقة الدفع</p>
+              <button type="button" onClick={() => { setPayMethod("later"); setPayAmount("0"); }}
+                className={clsx("w-full py-2.5 rounded-xl border text-sm font-medium transition-colors",
+                  payMethod === "later" ? "border-gray-400 bg-gray-100 text-gray-700" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
+                الدفع لاحقاً
+              </button>
+              <div className="grid grid-cols-3 gap-2">
+                {PAY_METHODS.map(m => (
+                  <button key={m.value} type="button"
+                    onClick={() => { setPayMethod(m.value); if (!payAmount || paid === 0) setPayAmount(total.toFixed(2)); }}
+                    className={clsx("py-2.5 rounded-xl border text-xs font-semibold transition-colors",
+                      payMethod === m.value ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
+                    {m.label}
+                  </button>
+                ))}
               </div>
-
-              {payMethod !== "later" && (
-                <div className="space-y-1.5 pt-2 border-t border-gray-100">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">المستحق</span>
-                    <span className="font-bold tabular-nums">{total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">المدفوع</span>
-                    <span className="font-semibold text-[#5b9bd5] tabular-nums">{paid.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">المتبقي</span>
-                    <span className={clsx("font-semibold tabular-nums", remaining > 0 ? "text-amber-600" : "text-green-600")}>
-                      {remaining.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ر.س
-                    </span>
-                  </div>
-                </div>
-              )}
             </div>
 
-            {/* ── يسار: numpad ── */}
+            {/* Numpad + ملخص */}
             {payMethod !== "later" && (
-              <div className="w-56 shrink-0 space-y-2">
+              <div className="space-y-3">
                 {/* شاشة العرض */}
-                <div className="bg-gray-900 rounded-xl px-4 py-3 text-left">
-                  <p className="text-[10px] text-gray-500 mb-0.5">المبلغ</p>
-                  <p className="text-2xl font-bold text-white tabular-nums tracking-wide">{payAmount || "0"} <span className="text-sm font-normal text-gray-400">ر.س</span></p>
+                <div className="bg-gray-900 rounded-xl px-5 py-3 flex items-center justify-between">
+                  <span className="text-xs text-gray-500">المبلغ المُدخل</span>
+                  <span className="text-3xl font-bold text-white tabular-nums">{payAmount || "0"} <span className="text-base font-normal text-gray-400">ر.س</span></span>
                 </div>
-                {/* اختصارات */}
-                <div className="grid grid-cols-3 gap-1.5">
+
+                {/* اختصارات + مسح */}
+                <div className="grid grid-cols-4 gap-2">
                   {[{l:"كامل",v:total},{l:"نصف",v:total/2},{l:"ربع",v:total/4}].map(({l,v}) => (
                     <button key={l} type="button" onClick={() => setPayAmount(v.toFixed(2))}
-                      className={clsx("py-2 rounded-lg text-xs font-semibold border transition-colors",
+                      className={clsx("py-2.5 rounded-xl border text-xs font-semibold transition-colors",
                         parseFloat(payAmount) === parseFloat(v.toFixed(2)) ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
                       {l}
                     </button>
                   ))}
+                  <button type="button" onClick={() => pressKey("C")}
+                    className="py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors">
+                    مسح
+                  </button>
                 </div>
-                {/* مسح */}
-                <button type="button" onClick={() => pressKey("C")}
-                  className="w-full py-2 rounded-lg border border-gray-200 text-xs font-medium text-gray-500 hover:bg-gray-50 transition-colors">
-                  مسح الكل
-                </button>
-                {/* أرقام — أزرار كبيرة للتابلت */}
-                <div className="grid grid-cols-3 gap-1.5">
+
+                {/* Numpad — أزرار كبيرة للتابلت */}
+                <div className="grid grid-cols-3 gap-2">
                   {numKeys.map(k => (
                     <button key={k} type="button" onClick={() => pressKey(k)}
                       className={clsx(
-                        "h-12 rounded-xl border text-lg font-bold transition-colors select-none active:scale-95",
+                        "h-14 rounded-xl border text-xl font-bold transition-colors select-none active:scale-95",
                         k === "⌫"
                           ? "border-red-100 bg-red-50 text-red-500 hover:bg-red-100"
-                          : "border-gray-200 bg-white text-gray-800 hover:bg-gray-50 shadow-sm"
+                          : "border-gray-100 bg-gray-50 text-gray-900 hover:bg-gray-100 shadow-sm"
                       )}>
                       {k}
                     </button>
                   ))}
+                </div>
+
+                {/* ملخص */}
+                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-gray-100 text-center">
+                  <div>
+                    <p className="text-[10px] text-gray-400">المستحق</p>
+                    <p className="text-sm font-bold text-gray-900 tabular-nums">{total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400">المدفوع</p>
+                    <p className="text-sm font-bold text-[#5b9bd5] tabular-nums">{paid.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-gray-400">المتبقي</p>
+                    <p className={clsx("text-sm font-bold tabular-nums", remaining > 0 ? "text-amber-600" : "text-green-600")}>
+                      {remaining.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
