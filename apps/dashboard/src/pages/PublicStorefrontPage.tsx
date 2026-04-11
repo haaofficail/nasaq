@@ -129,7 +129,7 @@ const BRAND = "#5b9bd5";   // ترميز OS platform color — DO NOT change
 
 const T = {
   brand:        BRAND,
-  bg:           "#F0F6FC",  // ترميز: brand @ 6% on white — airy cool canvas
+  bg:           "#FFFFFF",  // white background
   surface:      "#FFFFFF",  // pure white
   surfaceSubtle:"#E3EFF9",  // ترميز: brand @ 10% — inputs, tags
   border:       "#C9DDEF",  // ترميز: brand @ 22% — card borders
@@ -477,7 +477,7 @@ export function PublicStorefrontPage() {
   const [showSheet, setShowSheet] = useState(false);
   const catBarRef = useRef<HTMLDivElement>(null);
   const slug = orgSlug || "";
-  usePublicTheme(data);
+  // usePublicTheme deliberately removed — public pages use ترميز OS brand only, not org theme
 
   const inCart    = (id: string) => cart.some(s => s.id === id);
   const toggleCart = (svc: ServiceItem) =>
@@ -522,7 +522,7 @@ export function PublicStorefrontPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily)}:wght@400;500;600;700;800;900&display=swap');
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-        body{margin:0;background:#F0F6FC;}
+        body{margin:0;background:#ffffff;}
         @keyframes sheetIn{from{transform:translateY(100%)}to{transform:translateY(0)}}
         @keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
         .chip-bar::-webkit-scrollbar{display:none}
@@ -741,7 +741,7 @@ export function PublicStorefrontPage() {
           position: "fixed", bottom: 0,
           left: "50%", transform: "translateX(-50%)",
           width: "100%", maxWidth: 440, zIndex: 20,
-          background: "rgba(240,246,252,0.97)",
+          background: "rgba(255,255,255,0.97)",
           backdropFilter: "blur(20px)",
           WebkitBackdropFilter: "blur(20px)",
           borderTop: `1px solid ${T.borderFaint}`,
