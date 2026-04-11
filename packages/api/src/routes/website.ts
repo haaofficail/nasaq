@@ -527,8 +527,8 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
   // Normalise to array — supports single serviceId (legacy) or serviceIds[]
   const serviceIdList: string[] = serviceIds ?? (serviceId ? [serviceId] : []);
 
-  // 1. Resolve org
-  const [org] = await db.select({ id: organizations.id, name: organizations.name })
+  // 1. Resolve org + settings
+  const [org] = await db.select({ id: organizations.id, name: organizations.name, settings: organizations.settings })
     .from(organizations).where(and(eq(organizations.slug, slug), sql`${organizations.subscriptionStatus} IN ('active', 'trialing')`));
   if (!org) return c.json({ error: "المنشأة غير موجودة أو غير نشطة" }, 404);
 
@@ -628,7 +628,10 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
   const subtotal       = svcPrice + addonsSum;
   const vatAmount      = subtotal * (DEFAULT_VAT_RATE / 100);
   const total          = subtotal + vatAmount;
-  const depositPct     = parseFloat(String(service.depositPercent ?? "30")) / 100;
+  // العربون اختياري — يُحسب فقط إذا كان requireDeposit مفعّلاً في إعدادات المنشأة
+  const orgSettings    = (org.settings ?? {}) as Record<string, unknown>;
+  const requireDeposit = orgSettings.requireDeposit === true;
+  const depositPct     = requireDeposit ? parseFloat(String(service.depositPercent ?? "30")) / 100 : 0;
   const depositAmount  = total * depositPct;
 
   const bookingNumber  = generateBookingNumber("NSQ");

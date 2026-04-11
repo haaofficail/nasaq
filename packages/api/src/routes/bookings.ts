@@ -603,10 +603,14 @@ bookingsRouter.post("/", async (c) => {
   const vatRate = typeof orgSettings.vatRate === "number" ? orgSettings.vatRate : DEFAULT_VAT_RATE;
   const vatAmount = subtotal * (vatRate / 100);
   const totalAmount = subtotal + vatAmount;
-  const depositPercent = Math.max(
-    DEFAULT_DEPOSIT_PERCENT,
-    ...Array.from(serviceMap.values()).map(s => parseFloat(String((s as any).depositPercent ?? DEFAULT_DEPOSIT_PERCENT))),
-  );
+  // العربون اختياري — يُحسب فقط إذا كان requireDeposit مفعّلاً في إعدادات الحجز
+  const requireDeposit = orgSettings.requireDeposit === true;
+  const depositPercent = requireDeposit
+    ? Math.max(
+        DEFAULT_DEPOSIT_PERCENT,
+        ...Array.from(serviceMap.values()).map(s => parseFloat(String((s as any).depositPercent ?? DEFAULT_DEPOSIT_PERCENT))),
+      )
+    : 0;
   const depositAmount = totalAmount * (depositPercent / 100);
 
   // 4. Generate identifiers outside transaction (idempotent)
