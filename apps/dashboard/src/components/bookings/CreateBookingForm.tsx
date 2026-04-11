@@ -1,9 +1,19 @@
 import { useState, useEffect, useMemo } from "react";
 import { Modal, Input, Select, TextArea, Button } from "../ui";
 import { bookingsApi, customersApi, servicesApi, settingsApi } from "@/lib/api";
-import { Plus, Trash2, CalendarCheck, MapPin, Package, Truck, Users, Home, Tent, Building2, Moon } from "lucide-react";
+import { Plus, Trash2, CalendarCheck, MapPin, Package, Truck, Users, Home, Tent, Building2, Moon, CreditCard, Banknote, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
 import { VAT_RATE, DEPOSIT_RATIO } from "@/lib/constants";
+
+// ── Payment methods ────────────────────────────────────────────────────────
+const PAY_METHODS = [
+  { value: "cash",          label: "نقد" },
+  { value: "mada",          label: "مدى" },
+  { value: "visa_master",   label: "فيزا / ماستر" },
+  { value: "bank_transfer", label: "تحويل بنكي" },
+  { value: "apple_pay",     label: "Apple Pay" },
+  { value: "payment_link",  label: "رابط دفع" },
+];
 
 // ── Service type groups ────────────────────────────────────────────────────
 const IMMEDIATE_TYPES  = new Set(["product", "product_shipping", "food_order", "package", "add_on"]);
@@ -85,6 +95,11 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
   // UI state
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState("");
+  const [step,     setStep]     = useState<"form" | "payment">("form");
+
+  // Payment step state
+  const [payAmount, setPayAmount] = useState("");
+  const [payMethod, setPayMethod] = useState("cash");
 
   // Reference data
   const [customers,        setCustomers]        = useState<{ value: string; label: string }[]>([]);
@@ -189,6 +204,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
     setItems([{ serviceId: "", quantity: 1, addons: [] }]);
     setCustomerNotes(""); setInternalNotes(""); setError("");
     setAdultsCount(1); setChildrenCount(0);
+    setStep("form"); setPayAmount(""); setPayMethod("cash");
   };
 
   // Sync eventDate when initialDate changes (e.g. clicking a different calendar day)
@@ -217,10 +233,9 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
     return qa;
   }
 
-  // ── Submit ────────────────────────────────────────────────────────────────
-  const submit = async () => {
+  // ── Step 1: validate then go to payment ──────────────────────────────────
+  const goToPayment = () => {
     const validItems = items.filter(i => i.serviceId);
-
     if (!customerId)                                   { setError("يرجى اختيار العميل"); return; }
     if (!isImmediate && !eventDate)                    { setError("يرجى تحديد تاريخ البداية"); return; }
     if (needsEndDate && !eventEndDate)                 { setError("يرجى تحديد تاريخ الانتهاء"); return; }
@@ -232,10 +247,18 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
     if (isAccommodation && maxCapacity > 0 && (adultsCount + childrenCount) > maxCapacity) {
       setError(`الحد الأقصى للوحدة ${maxCapacity} ${capLabel}`); return;
     }
+    setError("");
+    // Pre-fill pay amount with total if services selected
+    if (total > 0 && !payAmount) setPayAmount(total.toFixed(2));
+    setStep("payment");
+  };
 
+  // ── Step 2: create booking + optional payment ─────────────────────────────
+  const confirmBooking = async () => {
+    const validItems = items.filter(i => i.serviceId);
     setLoading(true); setError("");
     try {
-      await bookingsApi.create({
+      const res = await bookingsApi.create({
         customerId,
         eventDate:    isImmediate ? undefined : new Date(`${eventDate}T${eventTime}:00`).toISOString(),
         eventEndDate: needsEndDate && eventEndDate ? new Date(`${eventEndDate}T${eventEndTime}:00`).toISOString() : undefined,
@@ -247,11 +270,17 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
         questionAnswers: buildQuestionAnswers(),
         items: validItems.map(i => ({ serviceId: i.serviceId, quantity: i.quantity, addons: i.addons })),
       });
+      // Add payment if amount entered
+      const paid = parseFloat(payAmount);
+      if (paid > 0 && res?.data?.id) {
+        await bookingsApi.addPayment(res.data.id, { amount: paid, method: payMethod, type: "payment" }).catch(() => {});
+      }
       onSuccess?.();
       onClose();
       reset();
     } catch (err: any) {
       setError(err.message || "حدث خطأ، يرجى المحاولة مرة أخرى");
+      setStep("form");
     } finally {
       setLoading(false);
     }
@@ -260,12 +289,21 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <Modal
-      open={open} onClose={onClose} title="حجز جديد" size="xl"
+      open={open} onClose={onClose}
+      title={step === "form" ? "حجز جديد" : "خطوة الدفع"}
+      size="xl"
       footer={
-        <>
-          <Button variant="secondary" onClick={onClose}>إلغاء</Button>
-          <Button onClick={submit} loading={loading} icon={CalendarCheck}>إنشاء الحجز</Button>
-        </>
+        step === "form" ? (
+          <>
+            <Button variant="secondary" onClick={onClose}>إلغاء</Button>
+            <Button onClick={goToPayment} icon={ChevronRight}>التالي — الدفع</Button>
+          </>
+        ) : (
+          <>
+            <Button variant="secondary" onClick={() => setStep("form")}>رجوع</Button>
+            <Button onClick={confirmBooking} loading={loading} icon={CalendarCheck}>تأكيد الحجز</Button>
+          </>
+        )
       }
     >
       {error && (
@@ -274,7 +312,83 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* ── Payment Step ── */}
+      {step === "payment" && (
+        <div className="space-y-5">
+          {/* Summary cards */}
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-gray-50 rounded-xl p-4 text-center">
+              <p className="text-xs text-gray-400 mb-1">الإجمالي</p>
+              <p className="text-lg font-bold text-gray-900">{total.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-xs font-normal">ر.س</span></p>
+            </div>
+            <div className="bg-blue-50 rounded-xl p-4 text-center">
+              <p className="text-xs text-gray-400 mb-1">العربون (30%)</p>
+              <p className="text-lg font-bold text-[#5b9bd5]">{deposit.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-xs font-normal">ر.س</span></p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-4 text-center">
+              <p className="text-xs text-gray-400 mb-1">المتبقي</p>
+              <p className="text-lg font-bold text-gray-700">
+                {Math.max(0, total - (parseFloat(payAmount) || 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-xs font-normal">ر.س</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Quick fill buttons */}
+          <div className="flex gap-2">
+            <button type="button" onClick={() => setPayAmount("0")}
+              className={clsx("flex-1 py-2 rounded-xl border text-sm font-medium transition-colors",
+                parseFloat(payAmount) === 0 ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
+              بدون دفع
+            </button>
+            <button type="button" onClick={() => setPayAmount(deposit.toFixed(2))}
+              className={clsx("flex-1 py-2 rounded-xl border text-sm font-medium transition-colors",
+                parseFloat(payAmount) === parseFloat(deposit.toFixed(2)) ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
+              عربون فقط
+            </button>
+            <button type="button" onClick={() => setPayAmount(total.toFixed(2))}
+              className={clsx("flex-1 py-2 rounded-xl border text-sm font-medium transition-colors",
+                parseFloat(payAmount) === parseFloat(total.toFixed(2)) ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
+              كامل المبلغ
+            </button>
+          </div>
+
+          {/* Amount input */}
+          <Input
+            label="المبلغ المستلم"
+            name="payAmount"
+            type="number"
+            value={payAmount}
+            onChange={e => setPayAmount(e.target.value)}
+            placeholder="0.00"
+          />
+
+          {/* Payment method */}
+          <div>
+            <p className="text-sm font-medium text-gray-700 mb-2">طريقة الدفع</p>
+            <div className="grid grid-cols-3 gap-2">
+              {PAY_METHODS.map(m => (
+                <button
+                  key={m.value}
+                  type="button"
+                  onClick={() => setPayMethod(m.value)}
+                  className={clsx(
+                    "py-2.5 px-3 rounded-xl border text-sm font-medium transition-colors flex items-center justify-center gap-1.5",
+                    payMethod === m.value
+                      ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]"
+                      : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                  )}
+                >
+                  {m.value === "cash" ? <Banknote className="w-3.5 h-3.5" /> : <CreditCard className="w-3.5 h-3.5" />}
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Booking Form ── */}
+      {step !== "payment" && <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
         {/* ── Left column ── */}
         <div className="lg:col-span-2 space-y-5">
@@ -602,7 +716,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
           </div>
         </div>
 
-      </div>
+      </div>}
     </Modal>
   );
 }
