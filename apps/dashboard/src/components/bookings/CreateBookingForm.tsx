@@ -366,6 +366,15 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
           {/* المبلغ — يظهر فقط إذا لم يكن "دفع لاحقاً" */}
           {payMethod !== "later" && (
             <div className="space-y-2">
+              {/* عرض المبلغ المدخل */}
+              <div className="bg-gray-50 rounded-lg px-4 py-2 flex items-center justify-between">
+                <span className="text-xs text-gray-400">المبلغ</span>
+                <span className="text-2xl font-bold tabular-nums text-gray-900 tracking-wide">
+                  {payAmount || "0"} <span className="text-sm font-normal text-gray-400">ر.س</span>
+                </span>
+              </div>
+
+              {/* اختصارات */}
               <div className="grid grid-cols-3 gap-1.5">
                 {[{ label: "كامل", val: total }, { label: "نصف", val: total / 2 }, { label: "ربع", val: total / 4 }].map(({ label, val }) => (
                   <button key={label} type="button" onClick={() => setPayAmount(val.toFixed(2))}
@@ -376,18 +385,42 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                 ))}
               </div>
 
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  value={payAmount}
-                  onChange={e => setPayAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-[#5b9bd5] tabular-nums"
-                  dir="ltr"
-                />
-                <span className="text-sm text-gray-400 shrink-0">ر.س</span>
-              </div>
+              {/* Numpad */}
+              {(() => {
+                const press = (k: string) => {
+                  if (k === "⌫") {
+                    setPayAmount(v => v.length > 1 ? v.slice(0, -1) : "0");
+                  } else if (k === ".") {
+                    setPayAmount(v => v.includes(".") ? v : v + ".");
+                  } else {
+                    setPayAmount(v => {
+                      const cur = v === "0" ? "" : v;
+                      const next = cur + k;
+                      // max 2 decimal places
+                      const parts = next.split(".");
+                      if (parts[1] && parts[1].length > 2) return v;
+                      return next;
+                    });
+                  }
+                };
+                const keys = ["1","2","3","4","5","6","7","8","9",".","0","⌫"];
+                return (
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {keys.map(k => (
+                      <button key={k} type="button" onClick={() => press(k)}
+                        className={clsx(
+                          "py-3 rounded-lg border text-sm font-semibold transition-colors select-none",
+                          k === "⌫" ? "border-red-100 bg-red-50 text-red-500 hover:bg-red-100"
+                                     : "border-gray-200 bg-white text-gray-800 hover:bg-gray-50 active:bg-gray-100"
+                        )}>
+                        {k}
+                      </button>
+                    ))}
+                  </div>
+                );
+              })()}
 
+              {/* ملخص */}
               <div className="flex items-center justify-between text-sm pt-1 border-t border-gray-100">
                 <span className="text-gray-500">المدفوع</span>
                 <span className="font-semibold text-[#5b9bd5] tabular-nums">
