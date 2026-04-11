@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Modal, Input, Select, TextArea, Button } from "../ui";
 import { bookingsApi, customersApi, servicesApi, settingsApi } from "@/lib/api";
-import { Plus, Trash2, CalendarCheck, MapPin, Package, Truck, Users, Home, Tent, Moon, CreditCard, Banknote, ChevronRight } from "lucide-react";
+import { Plus, Trash2, CalendarCheck, MapPin, Package, Truck, Users, Home, Tent, Moon, CreditCard, Banknote, ChevronRight, Search, Check } from "lucide-react";
 import { clsx } from "clsx";
 import { VAT_RATE } from "@/lib/constants";
 
@@ -54,7 +54,7 @@ type ServiceRecord = {
   maxCapacity: number; minCapacity: number; capacityLabel: string | null;
   durationMinutes: number;
 };
-type BookingItem = { serviceId: string; quantity: number; addons: { addonId: string; quantity: number }[] };
+type BookingItem = { serviceId: string; quantity: number; addons: { addonId: string; quantity: number }[]; customPrice?: string };
 type FulfillmentMode = "in_venue" | "pickup" | "delivery";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -100,6 +100,9 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
   // Payment step state
   const [payAmount, setPayAmount] = useState("");
   const [payMethod, setPayMethod] = useState("cash");
+
+  // Service search
+  const [serviceSearch, setServiceSearch] = useState("");
 
   // Reference data
   const [customers,        setCustomers]        = useState<{ value: string; label: string }[]>([]);
@@ -179,7 +182,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
       const svc = services.find(s => s.id === item.serviceId);
       if (!svc) return null;
       const daysMultiplier = RENTAL_TYPES.has(svc.serviceType) ? Math.max(1, rentalDays) : 1;
-      const unitPrice = parseFloat(svc.basePrice || "0");
+      const unitPrice = parseFloat(item.customPrice ?? svc.basePrice ?? "0") || 0;
       const lineTotal = unitPrice * item.quantity * daysMultiplier;
       return { svc, item, unitPrice, daysMultiplier, lineTotal };
     }).filter(Boolean) as { svc: ServiceRecord; item: BookingItem; unitPrice: number; daysMultiplier: number; lineTotal: number }[];
@@ -195,6 +198,23 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
   const updateItem = (i: number, field: string, value: any) =>
     setItems(items.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
 
+  // Toggle a service card on/off
+  const toggleService = (serviceId: string) => {
+    if (items.some(it => it.serviceId === serviceId)) {
+      // Remove — keep at least one empty slot if all removed
+      const next = items.filter(it => it.serviceId !== serviceId);
+      setItems(next.length > 0 ? next : [{ serviceId: "", quantity: 1, addons: [] }]);
+    } else {
+      // Add — remove any empty placeholder first, then push
+      const withoutEmpty = items.filter(it => it.serviceId !== "");
+      setItems([...withoutEmpty, { serviceId, quantity: 1, addons: [] }]);
+    }
+  };
+
+  const filteredServices = services.filter(s =>
+    !serviceSearch || s.name.toLowerCase().includes(serviceSearch.toLowerCase())
+  );
+
   // ── Reset ────────────────────────────────────────────────────────────────
   const reset = () => {
     setCustomerId(""); setEventDate(initialDate ?? ""); setEventTime("15:00");
@@ -203,7 +223,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
     setItems([{ serviceId: "", quantity: 1, addons: [] }]);
     setCustomerNotes(""); setInternalNotes(""); setError("");
     setAdultsCount(1); setChildrenCount(0);
-    setStep("form"); setPayAmount(""); setPayMethod("cash");
+    setStep("form"); setPayAmount(""); setPayMethod("cash"); setServiceSearch("");
   };
 
   // Sync eventDate when initialDate changes (e.g. clicking a different calendar day)
@@ -267,7 +287,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
         customerNotes:  customerNotes || undefined,
         internalNotes:  internalNotes || undefined,
         questionAnswers: buildQuestionAnswers(),
-        items: validItems.map(i => ({ serviceId: i.serviceId, quantity: i.quantity, addons: i.addons })),
+        items: validItems.map(i => ({ serviceId: i.serviceId, quantity: i.quantity, addons: i.addons, unitPrice: i.customPrice ? parseFloat(i.customPrice) : undefined })),
       });
       // Add payment if not "later" and amount > 0
       const paid = parseFloat(payAmount);
@@ -414,76 +434,109 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
           </div>
 
           {/* 2. Services */}
-          <div>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-900">الخدمات</h3>
-              <button onClick={addItem} className="text-xs text-[#5b9bd5] hover:text-blue-700 font-medium flex items-center gap-1">
-                <Plus className="w-3.5 h-3.5" /> إضافة خدمة
-              </button>
+          <div className="space-y-3">
+            <h3 className="text-sm font-semibold text-gray-900">الخدمات</h3>
+
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input
+                type="text"
+                value={serviceSearch}
+                onChange={e => setServiceSearch(e.target.value)}
+                placeholder={services.length === 0 ? "جاري التحميل..." : "البحث عن خدمة..."}
+                className="w-full pr-9 pl-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5] transition-colors"
+              />
             </div>
 
-            <div className="space-y-3">
-              {items.map((item, i) => {
-                const svc = services.find(s => s.id === item.serviceId);
-                const typeMeta = svc ? (SERVICE_TYPE_LABELS[svc.serviceType] ?? null) : null;
-                const isRentalItem = svc && RENTAL_TYPES.has(svc.serviceType);
+            {/* Cards grid */}
+            <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-0.5">
+              {filteredServices.map(svc => {
+                const isSelected = items.some(it => it.serviceId === svc.id);
+                const typeMeta = SERVICE_TYPE_LABELS[svc.serviceType] ?? null;
                 return (
-                  <div key={i} className="p-4 border border-gray-200 rounded-xl bg-white space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="flex-1">
-                        <Select
-                          name={`service-${i}`}
-                          value={item.serviceId}
-                          onChange={(e) => updateItem(i, "serviceId", e.target.value)}
-                          options={services.map(s => ({
-                            value: s.id,
-                            label: `${s.name} — ${Number(s.basePrice).toLocaleString()} ر.س`,
-                          }))}
-                          placeholder={services.length === 0 ? "جاري التحميل..." : "اختر الخدمة"}
-                        />
-                      </div>
-                      {items.length > 1 && (
-                        <button onClick={() => removeItem(i)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg mt-0.5">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-
-                    {svc && (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {typeMeta && (
-                          <span className={clsx("text-[10px] px-2 py-0.5 rounded-full font-medium border border-transparent", typeMeta.color)}>
-                            {typeMeta.label}
-                          </span>
-                        )}
-                        {svc.maxCapacity > 0 && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 font-medium flex items-center gap-1">
-                            <Users className="w-3 h-3" /> حتى {svc.maxCapacity} {svc.capacityLabel ?? "ضيف"}
-                          </span>
-                        )}
-                        {isRentalItem && rentalDays > 0 && (
-                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-600 font-medium flex items-center gap-1">
-                            <Moon className="w-3 h-3" /> {rentalDays} {durLabel}
-                          </span>
-                        )}
-                      </div>
+                  <button
+                    key={svc.id}
+                    type="button"
+                    onClick={() => toggleService(svc.id)}
+                    className={clsx(
+                      "relative p-3 rounded-xl border text-right transition-all w-full",
+                      isSelected
+                        ? "border-[#5b9bd5] bg-blue-50 shadow-sm"
+                        : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
                     )}
-
-                    {/* Quantity (hidden for accommodation — guests are separate) */}
-                    {item.serviceId && !isAccommodationService(svc!) && (
-                      <Input
-                        label="الكمية"
-                        name={`qty-${i}`}
-                        type="number"
-                        value={String(item.quantity)}
-                        onChange={(e) => updateItem(i, "quantity", Math.max(1, parseInt(e.target.value) || 1))}
-                        dir="ltr"
-                      />
+                  >
+                    {isSelected && (
+                      <span className="absolute top-2 left-2 w-5 h-5 bg-[#5b9bd5] rounded-full flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </span>
                     )}
-                  </div>
+                    <p className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2 mb-1">{svc.name}</p>
+                    <p className="text-xs font-bold text-[#5b9bd5]">{Number(svc.basePrice).toLocaleString()} ر.س</p>
+                    {typeMeta && (
+                      <span className={clsx("text-[10px] px-1.5 py-0.5 rounded-full font-medium mt-1 inline-block", typeMeta.color)}>
+                        {typeMeta.label}
+                      </span>
+                    )}
+                  </button>
                 );
               })}
+              {filteredServices.length === 0 && services.length > 0 && (
+                <p className="col-span-2 text-sm text-gray-400 text-center py-6">لا توجد خدمات مطابقة</p>
+              )}
             </div>
+
+            {/* Selected services — quantity + custom price */}
+            {items.filter(it => it.serviceId).length > 0 && (
+              <div className="space-y-2 pt-1">
+                <p className="text-xs font-semibold text-gray-500">الخدمات المختارة</p>
+                {items.map((item, i) => {
+                  const svc = services.find(s => s.id === item.serviceId);
+                  if (!item.serviceId || !svc) return null;
+                  const isRentalItem = RENTAL_TYPES.has(svc.serviceType);
+                  return (
+                    <div key={item.serviceId} className="flex items-center gap-2 p-3 bg-blue-50 border border-[#5b9bd5]/20 rounded-xl">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-gray-900 truncate">{svc.name}</p>
+                        {isRentalItem && rentalDays > 0 && (
+                          <p className="text-[10px] text-emerald-600 mt-0.5 flex items-center gap-1">
+                            <Moon className="w-3 h-3" /> {rentalDays} {durLabel}
+                          </p>
+                        )}
+                      </div>
+                      {/* Custom price override */}
+                      <div className="flex flex-col items-end gap-1">
+                        <p className="text-[10px] text-gray-400">السعر</p>
+                        <input
+                          type="number"
+                          value={item.customPrice ?? svc.basePrice}
+                          onChange={e => updateItem(i, "customPrice", e.target.value)}
+                          className="w-20 text-xs border border-gray-200 rounded-lg px-2 py-1 text-left outline-none focus:border-[#5b9bd5]"
+                          dir="ltr"
+                        />
+                      </div>
+                      {/* Quantity */}
+                      {!isAccommodationService(svc) && (
+                        <div className="flex flex-col items-end gap-1">
+                          <p className="text-[10px] text-gray-400">الكمية</p>
+                          <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                            <button type="button" onClick={() => updateItem(i, "quantity", Math.max(1, item.quantity - 1))}
+                              className="px-2 py-1 text-gray-500 hover:bg-gray-100 text-sm">−</button>
+                            <span className="px-2 py-1 text-xs font-semibold tabular-nums">{item.quantity}</span>
+                            <button type="button" onClick={() => updateItem(i, "quantity", item.quantity + 1)}
+                              className="px-2 py-1 text-gray-500 hover:bg-gray-100 text-sm">+</button>
+                          </div>
+                        </div>
+                      )}
+                      <button type="button" onClick={() => toggleService(item.serviceId)}
+                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg">
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* 3. Date / Duration */}
