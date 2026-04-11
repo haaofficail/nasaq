@@ -248,7 +248,7 @@ export function CustomerDetailPage() {
 
           {/* quick actions */}
           <div className="flex gap-2 flex-shrink-0 flex-wrap">
-            <Link to={`/bookings/new?customerId=${id}`}>
+            <Link to={`/dashboard/bookings/new?customerId=${id}`}>
               <Button size="sm" variant="primary">
                 <Plus className="w-4 h-4 ml-1" /> {biz.terminology.newBooking}
               </Button>
