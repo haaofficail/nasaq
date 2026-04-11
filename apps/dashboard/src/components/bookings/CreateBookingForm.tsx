@@ -322,12 +322,12 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
               <p className="text-lg font-bold text-gray-900">{total.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-xs font-normal">ر.س</span></p>
             </div>
             <div className="bg-blue-50 rounded-xl p-4 text-center">
-              <p className="text-xs text-gray-400 mb-1">العربون (30%)</p>
-              <p className="text-lg font-bold text-[#5b9bd5]">{deposit.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-xs font-normal">ر.س</span></p>
+              <p className="text-xs text-gray-400 mb-1">المدفوع</p>
+              <p className="text-lg font-bold text-[#5b9bd5]">{(parseFloat(payAmount) || 0).toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-xs font-normal">ر.س</span></p>
             </div>
-            <div className="bg-gray-50 rounded-xl p-4 text-center">
-              <p className="text-xs text-gray-400 mb-1">المتبقي</p>
-              <p className="text-lg font-bold text-gray-700">
+            <div className="bg-amber-50 rounded-xl p-4 text-center">
+              <p className="text-xs text-gray-400 mb-1">الدين المتبقي</p>
+              <p className="text-lg font-bold text-amber-600">
                 {Math.max(0, total - (parseFloat(payAmount) || 0)).toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-xs font-normal">ر.س</span>
               </p>
             </div>
@@ -337,13 +337,8 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
           <div className="flex gap-2">
             <button type="button" onClick={() => setPayAmount("0")}
               className={clsx("flex-1 py-2 rounded-xl border text-sm font-medium transition-colors",
-                parseFloat(payAmount) === 0 ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
+                !payAmount || parseFloat(payAmount) === 0 ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
               بدون دفع
-            </button>
-            <button type="button" onClick={() => setPayAmount(deposit.toFixed(2))}
-              className={clsx("flex-1 py-2 rounded-xl border text-sm font-medium transition-colors",
-                parseFloat(payAmount) === parseFloat(deposit.toFixed(2)) ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
-              عربون فقط
             </button>
             <button type="button" onClick={() => setPayAmount(total.toFixed(2))}
               className={clsx("flex-1 py-2 rounded-xl border text-sm font-medium transition-colors",
@@ -703,10 +698,6 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                   <div className="flex justify-between text-lg font-bold text-gray-900">
                     <span>الإجمالي</span>
                     <span>{total.toLocaleString(undefined, { maximumFractionDigits: 0 })} ر.س</span>
-                  </div>
-                  <div className="flex justify-between text-xs text-[#5b9bd5] mt-1">
-                    <span>العربون (30%)</span>
-                    <span>{deposit.toLocaleString(undefined, { maximumFractionDigits: 0 })} ر.س</span>
                   </div>
                 </div>
               </>
