@@ -490,7 +490,9 @@ websiteRouter.get("/public/:orgSlug/blog", async (c) => {
 const publicBookSchema = z.object({
   customerName:    z.string().min(1).max(200),
   customerPhone:   z.string().min(7).max(20),
-  serviceId:       z.string().uuid(),
+  // multi-service: prefer serviceIds[], fallback to legacy serviceId
+  serviceId:       z.string().uuid().optional(),
+  serviceIds:      z.array(z.string().uuid()).min(1).max(10).optional(),
   eventDate:       z.string().datetime(),
   selectedAddons:  z.array(z.string().uuid()).max(20).optional().default([]),
   customLocation:  z.string().max(500).optional().nullable(),
@@ -504,6 +506,9 @@ const publicBookSchema = z.object({
     errorMap: () => ({ message: "يجب الموافقة على الشروط والأحكام وسياسة الخصوصية" }),
   }),
   policyVersion:   z.string().max(20).optional().default("1.0"),
+}).refine(d => d.serviceId || (d.serviceIds && d.serviceIds.length > 0), {
+  message: "يجب تحديد خدمة واحدة على الأقل",
+  path: ["serviceId"],
 });
 
 websiteRouter.post("/public/:orgSlug/book", async (c) => {
@@ -517,7 +522,10 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
   const body = publicBookSchema.safeParse(await c.req.json());
   if (!body.success) return c.json({ error: "بيانات غير صحيحة", details: body.error.flatten() }, 422);
 
-  const { customerName, customerPhone, serviceId, eventDate, selectedAddons, customLocation, notes, questionAnswers, acceptedTerms, policyVersion } = body.data;
+  const { customerName, customerPhone, serviceId, serviceIds, eventDate, selectedAddons, customLocation, notes, questionAnswers, acceptedTerms, policyVersion } = body.data;
+
+  // Normalise to array — supports single serviceId (legacy) or serviceIds[]
+  const serviceIdList: string[] = serviceIds ?? (serviceId ? [serviceId] : []);
 
   // 1. Resolve org
   const [org] = await db.select({ id: organizations.id, name: organizations.name })
@@ -526,14 +534,18 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
 
   const orgId = org.id;
 
-  // 2. Validate service belongs to org and is active
-  const [service] = await db.select({
+  // 2. Validate all services belong to org and are active
+  const serviceList = await db.select({
     id: services.id, name: services.name,
     basePrice: services.basePrice, serviceType: services.serviceType,
     depositPercent: services.depositPercent,
     durationMinutes: services.durationMinutes,
-  }).from(services).where(and(eq(services.id, serviceId), eq(services.orgId, orgId), eq(services.status, "active")));
-  if (!service) return c.json({ error: "الخدمة غير متوفرة" }, 404);
+  }).from(services).where(and(inArray(services.id, serviceIdList), eq(services.orgId, orgId), eq(services.status, "active")));
+
+  if (serviceList.length !== serviceIdList.length) return c.json({ error: "إحدى الخدمات المحددة غير متوفرة" }, 404);
+
+  // Primary service for backward-compat logging/response
+  const service = serviceList[0];
 
   // 3. Find or create customer by phone
   let [customer] = await db.select({ id: customers.id })
@@ -544,7 +556,7 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
     }).returning({ id: customers.id });
   }
 
-  // 3b. Prevent duplicate booking (same customer + service + same calendar day, non-terminal status)
+  // 3b. Prevent duplicate booking (same customer + any of the selected services + same calendar day)
   const bookingDay = new Date(eventDate);
   bookingDay.setUTCHours(0, 0, 0, 0);
   const nextDay = new Date(bookingDay);
@@ -557,20 +569,20 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
     .where(and(
       eq(bookings.orgId, orgId),
       eq(bookings.customerId, customer.id),
-      eq(bookingItems.serviceId, serviceId),
+      inArray(bookingItems.serviceId, serviceIdList),
       notInArray(bookings.status, ["cancelled", "no_show"]),
       sql`${bookings.eventDate} >= ${bookingDay} AND ${bookings.eventDate} < ${nextDay}`,
     ));
   if (duplicate) {
     salonLog.bookingConflictRejected({
-      orgId, customerId: customer.id, serviceId,
+      orgId, customerId: customer.id, serviceId: service.id,
       metadata: { conflictType: "duplicate" },
     });
     return c.json({ error: "يوجد حجز مسبق لك على هذه الخدمة في نفس اليوم" }, 409);
   }
 
-  // 3c. Org-level time slot conflict (no assignedUserId at public booking time)
-  const serviceDuration = service.durationMinutes ?? 60;
+  // 3c. Org-level time slot conflict — total duration = sum of all selected services
+  const serviceDuration = serviceList.reduce((sum, s) => sum + (s.durationMinutes ?? 60), 0);
   const eventStart = new Date(eventDate);
   const eventEnd = new Date(eventStart.getTime() + serviceDuration * 60_000);
 
@@ -603,15 +615,15 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
     const qIds = questionAnswers.map(q => q.questionId);
     const questionRows = await db.select({ id: serviceQuestions.id, question: serviceQuestions.question })
       .from(serviceQuestions)
-      .where(and(inArray(serviceQuestions.id, qIds), eq(serviceQuestions.serviceId, serviceId)));
+      .where(and(inArray(serviceQuestions.id, qIds), inArray(serviceQuestions.serviceId, serviceIdList)));
     const qMap = Object.fromEntries(questionRows.map(q => [q.id, q.question]));
     enrichedAnswers = questionAnswers
       .filter(a => qMap[a.questionId]) // only valid question IDs
       .map(a => ({ questionId: a.questionId, question: qMap[a.questionId], answer: a.answer }));
   }
 
-  // 5. Calculate totals
-  const svcPrice       = parseFloat(String(service.basePrice || "0"));
+  // 5. Calculate totals — sum all selected services
+  const svcPrice       = serviceList.reduce((sum, s) => sum + parseFloat(String(s.basePrice || "0")), 0);
   const addonsSum      = addonsList.reduce((s, a) => s + parseFloat(a.price || "0"), 0);
   const subtotal       = svcPrice + addonsSum;
   const vatAmount      = subtotal * (DEFAULT_VAT_RATE / 100);
@@ -652,19 +664,23 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
       trackingToken,
     }).returning();
 
-    const [item] = await tx.insert(bookingItems).values({
-      bookingId: b.id,
-      serviceId: service.id,
-      serviceName: service.name,
-      quantity: 1,
-      unitPrice: svcPrice.toFixed(2),
-      totalPrice: svcPrice.toFixed(2),
-    }).returning({ id: bookingItems.id });
+    // Insert one bookingItem per service
+    const insertedItems = await tx.insert(bookingItems).values(
+      serviceList.map(s => ({
+        bookingId: b.id,
+        serviceId: s.id,
+        serviceName: s.name,
+        quantity: 1,
+        unitPrice: parseFloat(String(s.basePrice || "0")).toFixed(2),
+        totalPrice: parseFloat(String(s.basePrice || "0")).toFixed(2),
+      }))
+    ).returning({ id: bookingItems.id });
 
-    if (addonsList.length > 0) {
+    // Attach addons to the first item only (multi-service addons not yet supported)
+    if (addonsList.length > 0 && insertedItems[0]) {
       await tx.insert(bookingItemAddons).values(
         addonsList.map((a) => ({
-          bookingItemId: item.id,
+          bookingItemId: insertedItems[0].id,
           addonId: a.id,
           addonName: a.name,
           quantity: 1,
@@ -692,7 +708,8 @@ websiteRouter.post("/public/:orgSlug/book", async (c) => {
       totalAmount: booking.totalAmount,
       depositAmount: booking.depositAmount,
       status: booking.status,
-      serviceName: service.name,
+      serviceName: serviceList.map(s => s.name).join("، "),
+      serviceNames: serviceList.map(s => s.name),
       orgName: org.name,
     },
   }, 201);

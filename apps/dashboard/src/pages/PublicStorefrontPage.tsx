@@ -142,34 +142,38 @@ const T = {
   shadowMd:     "0 4px 14px rgba(91,155,213,0.15), 0 2px 4px -2px rgba(91,155,213,0.10)",
 };
 
-// ── Booking Sheet ────────────────────────────────────────────────────
-function BookingSheet({ service, org, slug, onClose }: {
-  service: ServiceItem; org: OrgData; slug: string; onClose: () => void;
+// ── Booking Sheet — supports single or multiple services ─────────────
+function BookingSheet({ services: cartServices, org, slug, onClose }: {
+  services: ServiceItem[]; org: OrgData; slug: string; onClose: () => void;
 }) {
   const primary = org.primaryColor || "#5b9bd5";
-  const price = parseFloat(service.basePrice || String(service.price ?? 0));
+  const total   = cartServices.reduce((sum, s) => sum + parseFloat(s.basePrice || String(s.price ?? 0)), 0);
+  const totalDuration = cartServices.reduce((sum, s) => sum + (s.duration ?? 0), 0);
 
   const [date, setDate]       = useState("");
   const [time, setTime]       = useState("");
   const [name, setName]       = useState("");
   const [phone, setPhone]     = useState("");
+  const [agreed, setAgreed]   = useState(false);
   const [submitting, setSub]  = useState(false);
-  const [done, setDone]       = useState<{ bookingNumber?: string } | null>(null);
+  const [done, setDone]       = useState<{ bookingNumber?: string; totalAmount?: string } | null>(null);
   const [error, setError]     = useState("");
 
-  const today = new Date().toISOString().split("T")[0];
-  const slots = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00"];
-  const canSubmit = date && time && name.trim() && phone.trim();
+  const today      = new Date().toISOString().split("T")[0];
+  const slots      = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00"];
+  const canSubmit  = date && time && name.trim() && phone.trim() && agreed;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setError(""); setSub(true);
     try {
       const res = await websiteApi.publicBook(slug, {
-        customerName: name.trim(), customerPhone: phone.trim(),
-        serviceId: service.id,
-        eventDate: new Date(`${date}T${time}`).toISOString(),
+        customerName:  name.trim(),
+        customerPhone: phone.trim(),
+        serviceIds:    cartServices.map(s => s.id),
+        eventDate:     new Date(`${date}T${time}`).toISOString(),
         selectedAddons: [],
+        acceptedTerms: true,
       });
       if (res?.data) setDone(res.data);
       else setError(res?.error || "حدث خطأ، حاول مجدداً");
@@ -177,11 +181,12 @@ function BookingSheet({ service, org, slug, onClose }: {
     finally { setSub(false); }
   };
 
+  const serviceNames = cartServices.map(s => s.name).join("، ");
   const waLink = org.phone
     ? `https://wa.me/${org.phone.replace(/\D/g,"")}?text=${encodeURIComponent(
         done
-          ? `مرحبا، تم حجز "${service.name}" بتاريخ ${date} الساعة ${time}`
-          : `مرحبا، أريد الاستفسار عن "${service.name}"`
+          ? `مرحبا، تم حجز: ${serviceNames} بتاريخ ${date} الساعة ${time}`
+          : `مرحبا، أريد الاستفسار عن: ${serviceNames}`
       )}`
     : null;
 
@@ -194,27 +199,24 @@ function BookingSheet({ service, org, slug, onClose }: {
 
   return (
     <>
-      {/* Backdrop */}
-      <div style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(15,23,42,0.5)", backdropFilter: "blur(4px)" }}
+      <div style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(13,33,56,0.55)", backdropFilter: "blur(4px)" }}
         onClick={onClose} />
 
-      {/* Sheet */}
       <div dir="rtl" style={{
         position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50,
         background: T.surface, borderRadius: "20px 20px 0 0",
         maxHeight: "93dvh", overflowY: "auto",
         maxWidth: 440, margin: "0 auto",
-        boxShadow: "0 -8px 40px rgba(15,23,42,0.15)",
+        boxShadow: "0 -8px 40px rgba(13,33,56,0.18)",
         animation: "sheetIn .28s cubic-bezier(.32,.72,0,1)",
         fontFamily: "inherit",
       }}>
-        {/* Handle */}
         <div style={{ display: "flex", justifyContent: "center", paddingTop: 12 }}>
           <div style={{ width: 36, height: 4, borderRadius: 2, background: T.border }} />
         </div>
 
         {done ? (
-          /* ── Success state ── */
+          /* ── Success ── */
           <div style={{ padding: "24px 22px 48px", textAlign: "center" }}>
             <div style={{
               width: 64, height: 64, borderRadius: "50%", margin: "0 auto 18px",
@@ -224,15 +226,24 @@ function BookingSheet({ service, org, slug, onClose }: {
             }}>
               {Icon.check}
             </div>
-            <p style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 900, color: T.t1 }}>تم الحجز</p>
+            <p style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 900, color: T.t1 }}>تم الحجز بنجاح</p>
             {done.bookingNumber && (
-              <p style={{ margin: "0 0 18px", fontSize: 12, color: T.t3, fontWeight: 600 }}>
-                رقم الحجز #{done.bookingNumber}
-              </p>
+              <p style={{ margin: "0 0 18px", fontSize: 12, color: T.t3, fontWeight: 600 }}>رقم الحجز #{done.bookingNumber}</p>
             )}
-            <div style={{ margin: "0 0 20px", padding: "14px 18px", borderRadius: 14, background: T.surfaceSubtle, border: `1px solid ${T.borderFaint}` }}>
-              <p style={{ margin: "0 0 3px", fontWeight: 800, color: T.t1, fontSize: 14 }}>{service.name}</p>
-              <p style={{ margin: 0, fontSize: 12, color: T.t2 }}>{date} · {time}</p>
+            {/* Services summary */}
+            <div style={{ margin: "0 0 20px", borderRadius: 14, background: T.surfaceSubtle, border: `1px solid ${T.borderFaint}`, overflow: "hidden" }}>
+              {cartServices.map((s, i) => (
+                <div key={s.id} style={{ padding: "11px 16px", borderBottom: i < cartServices.length - 1 ? `1px solid ${T.borderFaint}` : "none", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: T.t1 }}>{s.name}</span>
+                  {parseFloat(s.basePrice || String(s.price ?? 0)) > 0 && (
+                    <span style={{ fontSize: 13, fontWeight: 800, color: primary }}>{parseFloat(s.basePrice || String(s.price ?? 0)).toLocaleString("ar-SA")} ر.س</span>
+                  )}
+                </div>
+              ))}
+              <div style={{ padding: "11px 16px", background: hex2rgb(primary, 0.06), display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: T.t2 }}>{date} · {time}</span>
+                {total > 0 && <span style={{ fontSize: 14, fontWeight: 900, color: primary }}>{total.toLocaleString("ar-SA")} ر.س</span>}
+              </div>
             </div>
             {waLink && (
               <a href={waLink} target="_blank" rel="noreferrer" style={{
@@ -242,7 +253,7 @@ function BookingSheet({ service, org, slug, onClose }: {
                 textDecoration: "none", marginBottom: 10,
                 boxShadow: `0 4px 16px rgba(37,211,102,0.3)`,
               }}>
-                {Icon.wa} تحدث معنا على واتساب
+                {Icon.wa} تواصل معنا
               </a>
             )}
             <button onClick={onClose} style={{
@@ -253,24 +264,48 @@ function BookingSheet({ service, org, slug, onClose }: {
           </div>
 
         ) : (
-          /* ── Form state ── */
+          /* ── Form ── */
           <div style={{ padding: "8px 20px 48px" }}>
-            {/* Service header */}
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 0 16px", borderBottom: `1px solid ${T.borderFaint}`, marginBottom: 22 }}>
-              <div>
-                <p style={{ margin: "0 0 4px", fontWeight: 800, color: T.t1, fontSize: 15 }}>{service.name}</p>
-                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                  {price > 0 && <span style={{ fontSize: 15, fontWeight: 900, color: primary }}>{price.toLocaleString("ar-SA")} ر.س</span>}
-                  {service.duration ? (
-                    <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12, color: T.t3 }}>
-                      {Icon.clock} {service.duration} دقيقة
-                    </span>
-                  ) : null}
-                </div>
+
+            {/* Cart summary header */}
+            <div style={{ padding: "12px 0 16px", borderBottom: `1px solid ${T.borderFaint}`, marginBottom: 20 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                <p style={{ margin: 0, fontWeight: 900, color: T.t1, fontSize: 15 }}>
+                  {cartServices.length === 1 ? cartServices[0].name : `${cartServices.length} خدمات محددة`}
+                </p>
+                <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${T.border}`, background: T.surfaceSubtle, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: T.t3 }}>
+                  {Icon.close}
+                </button>
               </div>
-              <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${T.border}`, background: T.surfaceSubtle, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: T.t3 }}>
-                {Icon.close}
-              </button>
+
+              {/* Service list (multi-service mode) */}
+              {cartServices.length > 1 && (
+                <div style={{ display: "flex", flexDirection: "column", gap: 6, marginBottom: 10 }}>
+                  {cartServices.map(s => {
+                    const p = parseFloat(s.basePrice || String(s.price ?? 0));
+                    return (
+                      <div key={s.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px", borderRadius: 10, background: T.surfaceSubtle }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: T.t1 }}>{s.name}</span>
+                        {p > 0 && <span style={{ fontSize: 13, fontWeight: 800, color: primary }}>{p.toLocaleString("ar-SA")} ر.س</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Total row */}
+              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                {total > 0 && (
+                  <span style={{ fontSize: cartServices.length > 1 ? 16 : 15, fontWeight: 900, color: primary }}>
+                    {cartServices.length > 1 ? "المجموع: " : ""}{total.toLocaleString("ar-SA")} ر.س
+                  </span>
+                )}
+                {totalDuration > 0 && (
+                  <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 12, color: T.t3 }}>
+                    {Icon.clock} {totalDuration} دقيقة
+                  </span>
+                )}
+              </div>
             </div>
 
             {/* Date */}
@@ -304,11 +339,29 @@ function BookingSheet({ service, org, slug, onClose }: {
             </div>
 
             {/* Phone */}
-            <div style={{ marginBottom: 22 }}>
+            <div style={{ marginBottom: 16 }}>
               <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>رقم الجوال</label>
               <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="05xxxxxxxx" dir="ltr"
                 style={{ ...inputStyle, textAlign: "right" }} />
             </div>
+
+            {/* Terms checkbox — PDPL م/8-أ */}
+            <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 20, cursor: "pointer" }}>
+              <div onClick={() => setAgreed(!agreed)} style={{
+                width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 1,
+                border: `2px solid ${agreed ? primary : T.border}`,
+                background: agreed ? primary : T.surface,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                transition: "all .15s",
+              }}>
+                {agreed && <svg viewBox="0 0 24 24" fill="none" strokeWidth={3} style={{ width: 12, height: 12 }}>
+                  <path stroke="white" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>}
+              </div>
+              <span style={{ fontSize: 12, color: T.t2, lineHeight: 1.5 }}>
+                أوافق على الشروط والأحكام وسياسة الخصوصية
+              </span>
+            </label>
 
             {error && (
               <div style={{ marginBottom: 14, padding: "11px 14px", borderRadius: 10, background: "#FFF1F2", border: "1px solid #FECDD3", color: "#E11D48", fontSize: 13, fontWeight: 600, textAlign: "center" }}>
@@ -328,7 +381,7 @@ function BookingSheet({ service, org, slug, onClose }: {
               boxShadow: canSubmit && !submitting ? `0 6px 20px ${hex2rgb(primary, 0.35)}` : "none",
               transition: "all .2s",
             }}>
-              {submitting ? "جاري الحجز..." : "تأكيد الحجز"}
+              {submitting ? "جاري الحجز..." : `تأكيد الحجز${cartServices.length > 1 ? ` (${cartServices.length})` : ""}`}
             </button>
           </div>
         )}
@@ -418,10 +471,15 @@ export function PublicStorefrontPage() {
   const [data, setData]           = useState<SiteData | null>(null);
   const [loading, setLoading]     = useState(true);
   const [activeCat, setActiveCat] = useState("all");
-  const [bookingSvc, setBookingSvc] = useState<ServiceItem | null>(null);
+  const [cart, setCart]           = useState<ServiceItem[]>([]);
+  const [showSheet, setShowSheet] = useState(false);
   const catBarRef = useRef<HTMLDivElement>(null);
   const slug = orgSlug || "";
   usePublicTheme(data);
+
+  const inCart    = (id: string) => cart.some(s => s.id === id);
+  const toggleCart = (svc: ServiceItem) =>
+    setCart(prev => inCart(svc.id) ? prev.filter(s => s.id !== svc.id) : [...prev, svc]);
 
   useEffect(() => {
     if (!slug) return;
@@ -628,25 +686,29 @@ export function PublicStorefrontPage() {
                       )}
                     </div>
 
-                    {/* Book button */}
-                    {showBook && (
-                      <button className="book-pill" onClick={() => setBookingSvc(s)} style={{
-                        flexShrink: 0,
-                        padding: "9px 18px",
-                        borderRadius: 10,
-                        background: primary,
-                        color: "white",
-                        fontWeight: 800,
-                        fontSize: 13,
-                        border: "none",
-                        cursor: "pointer",
-                        fontFamily: "inherit",
-                        whiteSpace: "nowrap",
-                        boxShadow: `0 2px 8px ${hex2rgb(primary, 0.28)}`,
-                      }}>
-                        احجز
-                      </button>
-                    )}
+                    {/* Cart toggle button */}
+                    {showBook && (() => {
+                      const added = inCart(s.id);
+                      return (
+                        <button className="book-pill" onClick={() => toggleCart(s)} style={{
+                          flexShrink: 0,
+                          padding: "9px 16px",
+                          borderRadius: 10,
+                          background: added ? hex2rgb(primary, 0.1) : primary,
+                          color: added ? primary : "white",
+                          fontWeight: 800,
+                          fontSize: 13,
+                          border: `1.5px solid ${added ? hex2rgb(primary, 0.3) : primary}`,
+                          cursor: "pointer",
+                          fontFamily: "inherit",
+                          whiteSpace: "nowrap",
+                          boxShadow: added ? "none" : `0 2px 8px ${hex2rgb(primary, 0.28)}`,
+                          transition: "all .15s",
+                        }}>
+                          {added ? "مضافة ✓" : "أضف"}
+                        </button>
+                      );
+                    })()}
                   </div>
                 );
               })}
@@ -682,15 +744,24 @@ export function PublicStorefrontPage() {
           boxShadow: "0 -4px 20px rgba(15,23,42,0.07)",
         }}>
           {showBook && active.length > 0 && (
-            <button onClick={() => setBookingSvc(active[0])} style={{
+            <button onClick={() => cart.length > 0 ? setShowSheet(true) : setCart([active[0]])} style={{
               flex: 1, padding: "13px 0", borderRadius: 13, border: "none",
-              background: `linear-gradient(135deg, ${primary} 0%, ${darken(primary)} 100%)`,
-              color: "white", fontWeight: 900, fontSize: 14,
+              background: cart.length > 0
+                ? `linear-gradient(135deg, ${primary} 0%, ${darken(primary)} 100%)`
+                : T.surfaceSubtle,
+              color: cart.length > 0 ? "white" : T.t3,
+              fontWeight: 900, fontSize: 14,
               cursor: "pointer", fontFamily: "inherit",
-              boxShadow: `0 4px 16px ${hex2rgb(primary, 0.35)}`,
-              letterSpacing: 0.1,
+              boxShadow: cart.length > 0 ? `0 4px 16px ${hex2rgb(primary, 0.35)}` : "none",
+              transition: "all .2s",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             }}>
-              احجز الآن
+              {cart.length > 0 ? (
+                <>
+                  <span style={{ background: "rgba(255,255,255,0.25)", borderRadius: 8, padding: "1px 8px", fontSize: 12, fontWeight: 900 }}>{cart.length}</span>
+                  تأكيد الحجز
+                </>
+              ) : "اختر خدمة للحجز"}
             </button>
           )}
 
@@ -713,8 +784,13 @@ export function PublicStorefrontPage() {
         </div>
 
         {/* Booking sheet */}
-        {bookingSvc && (
-          <BookingSheet service={bookingSvc} org={org} slug={slug} onClose={() => setBookingSvc(null)} />
+        {showSheet && cart.length > 0 && (
+          <BookingSheet
+            services={cart}
+            org={org}
+            slug={slug}
+            onClose={() => { setShowSheet(false); setCart([]); }}
+          />
         )}
       </div>
     </>
