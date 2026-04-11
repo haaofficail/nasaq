@@ -155,7 +155,7 @@ export function SchedulePage() {
   const [selectedStaff, setSelectedStaff] = useState("all");
   const [viewMode, setViewMode] = useState<"list" | "columns">("list");
 
-  const { data, loading, refetch } = useApi(
+  const { data, loading, error, refetch } = useApi(
     () => bookingsApi.list({ dateFrom: currentDate, dateTo: addDays(currentDate, 1), limit: "100" }),
     [currentDate]
   );
@@ -251,6 +251,15 @@ export function SchedulePage() {
           </div>
         ))}
       </div>
+
+      {/* Error state */}
+      {error && !loading && (
+        <div className="bg-red-50 border border-red-100 rounded-2xl p-4 text-sm text-red-600 flex items-center gap-2">
+          <XCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
+          <button onClick={refetch} className="mr-auto text-xs underline hover:no-underline">إعادة المحاولة</button>
+        </div>
+      )}
 
       {/* Staff filter — only in list view */}
       {viewMode === "list" && staffList.length > 0 && (
