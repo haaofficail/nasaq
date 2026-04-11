@@ -146,7 +146,8 @@ const T = {
 function BookingSheet({ services: cartServices, org, slug, onClose }: {
   services: ServiceItem[]; org: OrgData; slug: string; onClose: () => void;
 }) {
-  const primary = org.primaryColor || "#5b9bd5";
+  // Public pages always use platform BRAND — org color never overrides buttons/structure
+  const primary = BRAND;
   const total   = cartServices.reduce((sum, s) => sum + parseFloat(s.basePrice || String(s.price ?? 0)), 0);
   const totalDuration = cartServices.reduce((sum, s) => sum + (s.duration ?? 0), 0);
 
@@ -498,7 +499,8 @@ export function PublicStorefrontPage() {
   );
 
   const { org, services, categories, config } = data;
-  const primary     = config?.primaryColor || org.primaryColor || "#5b9bd5";
+  // Public pages: always BRAND for UI structure — org color only for price display
+  const primary     = BRAND;
   const logo        = config?.logoUrl || org.logo;
   const fontFamily  = config?.fontFamily || "IBM Plex Sans Arabic";
   const headerCfg   = config?.headerConfig;
