@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import { clsx } from "clsx";
 import {
   Plus, CalendarCheck, Clock, CheckCircle, XCircle, Banknote,
@@ -101,12 +101,14 @@ function Skeleton({ className }: { className?: string }) {
 export function BookingsPage() {
   const navigate     = useNavigate();
   const location     = useLocation();
+  const [searchParams] = useSearchParams();
   const biz          = useBusiness();
 
   const [activeTab,   setActiveTab]   = useState("all");
   const [datePreset,  setDatePreset]  = useState("all");
   const [search,      setSearch]      = useState("");
   const [showCreate,  setShowCreate]  = useState(() => location.pathname.endsWith("/new"));
+  const defaultCustomerId = searchParams.get("customerId") || "";
   const [showFilters, setShowFilters] = useState(false);
 
   // Quick-action modals
@@ -414,8 +416,9 @@ export function BookingsPage() {
       {showCreate && (
         <CreateBookingForm
           open={true}
-          onClose={() => setShowCreate(false)}
-          onSuccess={() => { setShowCreate(false); refetch(); toast.success("تم إنشاء الموعد"); }}
+          onClose={() => { setShowCreate(false); if (location.pathname.endsWith("/new")) navigate("/dashboard/bookings"); }}
+          onSuccess={() => { setShowCreate(false); refetch(); toast.success("تم إنشاء الموعد"); if (location.pathname.endsWith("/new")) navigate("/dashboard/bookings"); }}
+          defaultCustomerId={defaultCustomerId}
         />
       )}
 

@@ -139,8 +139,13 @@ export function CreateInvoiceModal({ open, onClose, onSuccess }: Props) {
 
   const importFromBooking = useCallback(async (booking: any) => {
     setImportedBookingId(booking.id);
-    setBuyerName(booking.customerName || booking.buyerName || "");
-    setBuyerPhone(booking.customerPhone || "");
+    const cName = booking.customerName || booking.customer?.name || booking.buyerName || "";
+    const cPhone = booking.customerPhone || booking.customer?.phone || "";
+    const cId = booking.customerId || null;
+    setBuyerName(cName);
+    setBuyerPhone(cPhone);
+    if (cId) setSelectedCustomerId(cId);
+    if (cName) setCustomerSearch(cName);
     // Import items from booking
     try {
       const res = await financeApi.importBooking(booking.id);

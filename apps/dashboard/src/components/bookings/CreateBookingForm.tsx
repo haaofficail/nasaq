@@ -60,11 +60,11 @@ function fmtDuration(days: number, label: string) {
 }
 
 // ── Component ──────────────────────────────────────────────────────────────
-export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defaultServiceId }: {
-  open: boolean; onClose: () => void; onSuccess?: () => void; initialDate?: string; defaultServiceId?: string;
+export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defaultServiceId, defaultCustomerId }: {
+  open: boolean; onClose: () => void; onSuccess?: () => void; initialDate?: string; defaultServiceId?: string; defaultCustomerId?: string;
 }) {
   // Core booking state
-  const [customerId,    setCustomerId]    = useState("");
+  const [customerId,    setCustomerId]    = useState(defaultCustomerId ?? "");
   const [eventDate,     setEventDate]     = useState(initialDate ?? "");
   const [eventTime,     setEventTime]     = useState("15:00");
   const [eventEndDate,  setEventEndDate]  = useState("");
@@ -195,6 +195,11 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
   useEffect(() => {
     if (open && initialDate) setEventDate(initialDate);
   }, [open, initialDate]);
+
+  // Pre-fill customer when defaultCustomerId is provided (e.g. from customer profile link)
+  useEffect(() => {
+    if (open && defaultCustomerId) setCustomerId(defaultCustomerId);
+  }, [open, defaultCustomerId]);
 
   // ── Build questionAnswers (rental metadata) ───────────────────────────────
   function buildQuestionAnswers() {

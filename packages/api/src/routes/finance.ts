@@ -511,6 +511,35 @@ financeRouter.post("/invoices/:id/payments", async (c) => {
   } catch {}
 
   insertAuditLog({ orgId, userId, action: "created", resource: "invoice_payment", resourceId: payment.id });
+
+  // إرسال إشعار الدفع للعميل على واتساب (fire-and-forget)
+  if (inv.buyerPhone) {
+    (async () => {
+      try {
+        const { sendWhatsApp } = await import("../lib/whatsapp");
+        const fmtAmt = (n: string | number) =>
+          parseFloat(String(n)).toLocaleString("ar-SA", { minimumFractionDigits: 2 });
+        const remaining = total - paid;
+        const isPaid = paid >= total;
+        const lines = [
+          `مرحباً ${inv.buyerName} 👋`,
+          ``,
+          isPaid
+            ? `✅ تم سداد فاتورتك بالكامل من ${inv.sellerName}`
+            : `✅ تم استلام دفعة من ${inv.sellerName}`,
+          ``,
+          `📄 رقم الفاتورة: ${inv.invoiceNumber}`,
+          `💳 المبلغ المستلم: ${fmtAmt(body.amount)} ر.س`,
+          `💰 إجمالي الفاتورة: ${fmtAmt(total)} ر.س`,
+          !isPaid ? `⏳ المتبقي: ${fmtAmt(remaining)} ر.س` : "",
+          ``,
+          `شكراً لتعاملكم معنا 🙏`,
+        ].filter(l => l !== undefined && l !== null).join("\n").replace(/\n\n\n/g, "\n\n");
+        await sendWhatsApp(inv.buyerPhone, lines);
+      } catch {}
+    })().catch(() => {});
+  }
+
   return c.json({ data: payment }, 201);
 });
 

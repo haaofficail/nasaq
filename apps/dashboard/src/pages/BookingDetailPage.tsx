@@ -27,12 +27,27 @@ const RESCHEDULE_REASONS = [
   { value: "other",             label: "أخرى" },
 ];
 
+const PAY_METHODS = [
+  { value: "cash",          label: "نقداً" },
+  { value: "mada",          label: "مدى" },
+  { value: "visa_master",   label: "فيزا / ماستر" },
+  { value: "bank_transfer", label: "تحويل بنكي" },
+  { value: "apple_pay",     label: "Apple Pay" },
+  { value: "payment_link",  label: "رابط دفع" },
+];
+
 export function BookingDetailPage() {
   const { id } = useParams();
   const biz = useBusiness();
   const [showPayment, setShowPayment] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+
+  // Complete booking modal — payment step before completion
+  const [showComplete,       setShowComplete]       = useState(false);
+  const [completePayAmount,  setCompletePayAmount]  = useState("");
+  const [completePayMethod,  setCompletePayMethod]  = useState("cash");
+  const [completing,         setCompleting]         = useState(false);
 
   const [showReschedule, setShowReschedule] = useState(false);
   const [rescheduleDate, setRescheduleDate] = useState("");
@@ -76,6 +91,22 @@ export function BookingDetailPage() {
     setShowPayment(false);
     setPaymentAmount("");
     refetch();
+  };
+
+  const handleCompleteBooking = async () => {
+    setCompleting(true);
+    try {
+      if (completePayAmount && parseFloat(completePayAmount) > 0) {
+        await addPayment({ amount: parseFloat(completePayAmount), method: completePayMethod, type: "payment" });
+      }
+      await updateStatus({ status: "completed" });
+      hapticSuccess();
+      setShowComplete(false);
+      refetch();
+      refetchEvents();
+    } finally {
+      setCompleting(false);
+    }
   };
 
   const openVisitNote = () => {
@@ -302,7 +333,14 @@ export function BookingDetailPage() {
             <div className="space-y-2">
               {booking.status === "pending" && <button onClick={() => handleStatusChange("confirmed")} className="w-full bg-blue-500 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-blue-600">تأكيد الحجز</button>}
               {booking.status === "confirmed" && <button onClick={() => handleStatusChange("in_progress")} className="w-full bg-purple-500 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-purple-600">بدء التنفيذ</button>}
-              {booking.status === "in_progress" && <button onClick={() => handleStatusChange("completed")} className="w-full bg-green-500 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-green-600">إكمال الحجز</button>}
+              {booking.status === "in_progress" && (
+                <button
+                  onClick={() => { setCompletePayAmount(remaining > 0 ? String(remaining) : ""); setShowComplete(true); }}
+                  className="w-full bg-green-500 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-green-600"
+                >
+                  إكمال الحجز وتسجيل الدفع
+                </button>
+              )}
               {booking.status !== "cancelled" && booking.status !== "completed" && (
                 <button
                   onClick={() => {
@@ -441,6 +479,74 @@ export function BookingDetailPage() {
       <Modal open={showCancelConfirm} onClose={() => setShowCancelConfirm(false)} title="إلغاء الحجز" size="sm"
         footer={<><Button variant="secondary" onClick={() => setShowCancelConfirm(false)}>تراجع</Button><Button variant="danger" onClick={doCancelBooking}>نعم، ألغِ الحجز</Button></>}>
         <p className="text-sm text-gray-600">سيتم إلغاء الحجز ولا يمكن التراجع عن ذلك. هل أنت متأكد؟</p>
+      </Modal>
+
+      {/* Complete Booking — Payment Step */}
+      <Modal
+        open={showComplete}
+        onClose={() => setShowComplete(false)}
+        title="إكمال الحجز"
+        size="sm"
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => setShowComplete(false)}>تراجع</Button>
+            <Button onClick={handleCompleteBooking} loading={completing} className="bg-green-600 hover:bg-green-700">
+              تأكيد الإكمال
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          {/* Payment summary */}
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="bg-green-50 rounded-xl p-3">
+              <p className="text-xs text-green-600 mb-0.5">مدفوع</p>
+              <p className="text-base font-bold text-green-700">{paid.toLocaleString()} ر.س</p>
+            </div>
+            <div className="bg-red-50 rounded-xl p-3">
+              <p className="text-xs text-red-500 mb-0.5">المتبقي</p>
+              <p className="text-base font-bold text-red-600">{remaining.toLocaleString()} ر.س</p>
+            </div>
+            <div className="bg-gray-50 rounded-xl p-3">
+              <p className="text-xs text-gray-500 mb-0.5">الإجمالي</p>
+              <p className="text-base font-bold text-gray-700">{total.toLocaleString()} ر.س</p>
+            </div>
+          </div>
+
+          {remaining > 0 && (
+            <>
+              <p className="text-sm font-medium text-gray-700">تسجيل الدفعة الأخيرة</p>
+              <Input
+                label="المبلغ المستلم"
+                name="completeAmount"
+                type="number"
+                value={completePayAmount}
+                onChange={e => setCompletePayAmount(e.target.value)}
+                suffix="ر.س"
+                dir="ltr"
+                placeholder="0"
+              />
+              <Select
+                label="طريقة الدفع"
+                name="completeMethod"
+                value={completePayMethod}
+                onChange={e => setCompletePayMethod(e.target.value)}
+                options={PAY_METHODS}
+              />
+              <p className="text-xs text-gray-400">اتركه فارغاً إذا لم تستلم دفعة الآن</p>
+            </>
+          )}
+
+          {remaining === 0 && (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-700 text-center font-medium">
+              المبلغ مسدد بالكامل
+            </div>
+          )}
+
+          <p className="text-xs text-gray-400 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+            سيتم إرسال ملخص الحجز والفاتورة للعميل على واتساب تلقائياً بعد الإكمال.
+          </p>
+        </div>
       </Modal>
     </div>
   );
