@@ -266,6 +266,13 @@ function RequireAdminAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+// Redirect /bookings/* → /dashboard/bookings/* preserving search params
+function BookingPathRedirect() {
+  const loc = useLocation();
+  const rest = loc.pathname.replace(/^\/bookings/, "");
+  return <Navigate to={`/dashboard/bookings${rest}${loc.search}`} replace />;
+}
+
 export default function App() {
   return (
     <Suspense fallback={<PageLoader />}>
@@ -546,6 +553,10 @@ export default function App() {
           <Route path="support"           element={<SupportPage />} />
           <Route path="team"              element={<TeamPage />} />
         </Route>
+
+        {/* ── Top-level catch-all: redirect stray paths to dashboard equivalents ── */}
+        <Route path="/bookings/*" element={<BookingPathRedirect />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
     </Suspense>
   );
