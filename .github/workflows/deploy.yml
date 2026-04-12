@@ -9,7 +9,25 @@ permissions:
   contents: read
 
 jobs:
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v3
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: TypeScript check — API
+        run: pnpm --filter @nasaq/api exec tsc --noEmit
+      - name: TypeScript check — Dashboard
+        run: pnpm --filter dashboard exec tsc --noEmit
+
   deploy:
+    needs: typecheck
     runs-on: ubuntu-latest
     steps:
       - name: Deploy via SSH

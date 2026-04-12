@@ -22,12 +22,16 @@ import { log } from "../lib/logger";
 async function deductPOSInventory(orgId: string, items: { id?: string; name: string; quantity: number; price: number }[]) {
   for (const item of items) {
     if (!item.id) continue;
-    // Deduct from flower_inventory (atomic, floor at 0)
-    await pool.query(
-      `UPDATE flower_inventory SET stock = GREATEST(stock - $1, 0), updated_at = NOW()
-       WHERE id = $2 AND org_id = $3`,
+    // Atomic deduct — only if sufficient stock (prevents oversell under concurrency)
+    const res = await pool.query(
+      `UPDATE flower_inventory SET stock = stock - $1, updated_at = NOW()
+       WHERE id = $2 AND org_id = $3 AND stock >= $1
+       RETURNING id`,
       [item.quantity, item.id, orgId],
     );
+    if (res.rowCount === 0) {
+      log.error(`[POS_INVENTORY] insufficient stock for item=${item.id} name=${item.name} qty=${item.quantity} org=${orgId}`);
+    }
     // Post COGS entry
     try {
       await postInventoryMovement({
@@ -368,7 +372,7 @@ posRouter.post("/sale", async (c) => {
   }
 
   const changeAmount = Math.max(0, +(paymentsTotal - total).toFixed(2));
-  const txNum = `POS-${Date.now().toString(36).toUpperCase()}`;
+  const txNum = `POS-${nanoid(10).toUpperCase()}`;
 
   // Get org info for invoice
   const [orgRow] = await db.select({
@@ -377,7 +381,7 @@ posRouter.post("/sale", async (c) => {
     settings: organizations.settings,
   }).from(organizations).where(eq(organizations.id, orgId));
 
-  // Insert pos_transaction
+  // Insert pos_transaction — ON CONFLICT deduplicates retries
   const txResult = await pool.query(
     `INSERT INTO pos_transactions
        (org_id, transaction_number, type, customer_id, customer_name, customer_phone,
@@ -385,6 +389,7 @@ posRouter.post("/sale", async (c) => {
         tax_percent, tax_amount, total_amount, payments, change_amount,
         notes, sold_by, sold_by_name, status)
      VALUES ($1,$2,'sale',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,'completed')
+     ON CONFLICT (org_id, transaction_number) DO UPDATE SET updated_at = EXCLUDED.updated_at
      RETURNING *`,
     [
       orgId, txNum,
@@ -473,7 +478,7 @@ posRouter.post("/sale/split", async (c) => {
 
   // Create parent transaction (summary)
   const allTotals = calcTotals(body.allItems, null, 0);
-  const parentTxNum = `POS-${Date.now().toString(36).toUpperCase()}`;
+  const parentTxNum = `POS-${nanoid(10).toUpperCase()}`;
 
   const parentResult = await pool.query(
     `INSERT INTO pos_transactions
@@ -609,7 +614,7 @@ posRouter.post("/sale/:id/refund", async (c) => {
   if (!orig.rows[0]) return c.json({ error: "العملية غير موجودة" }, 404);
   if (orig.rows[0].status === "refunded") return c.json({ error: "هذه العملية مستردة بالفعل" }, 400);
 
-  const txNum = `REF-${Date.now().toString(36).toUpperCase()}`;
+  const txNum = `REF-${nanoid(10).toUpperCase()}`;
   const result = await pool.query(
     `INSERT INTO pos_transactions
        (org_id, transaction_number, type, customer_id, customer_name, items,
