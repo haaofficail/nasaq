@@ -6,6 +6,11 @@ import { normalizePhone } from "@/lib/normalize-input";
 
 const businessTypes = BUSINESS_TYPE_LIST.map(b => ({ value: b.key, label: b.name }));
 
+function isValidSaudiPhone(phone: string) {
+  const clean = phone.replace(/\D/g, "");
+  return clean.length === 10 && clean.startsWith("05");
+}
+
 export function RegisterPage() {
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -17,9 +22,9 @@ export function RegisterPage() {
     otp: "",
   });
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
   const [error, setError] = useState("");
   const [regData, setRegData] = useState<any>(null);
-  const [devCode, setDevCode] = useState("");
 
   const update = (field: string, val: string) => setForm((f) => ({ ...f, [field]: val }));
 
@@ -40,12 +45,33 @@ export function RegisterPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "خطأ في التسجيل");
       setRegData(data);
-      if (data._devCode) setDevCode(data._devCode);
       setStep(3);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setResending(true);
+    setError("");
+    try {
+      const endpoint = form.email ? "/api/v1/auth/otp/request-email" : "/api/v1/auth/otp/request";
+      const body = form.email ? { email: form.email } : { phone: regData?.phone || form.phone };
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "تعذّر إعادة الإرسال");
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setResending(false);
     }
   };
 
@@ -60,7 +86,6 @@ export function RegisterPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "رمز غير صحيح");
-      // Store token
       localStorage.setItem("nasaq_token", data.token);
       if (data.user) {
         localStorage.setItem("nasaq_user", JSON.stringify(data.user));
@@ -75,6 +100,24 @@ export function RegisterPage() {
       setLoading(false);
     }
   };
+
+  const goToStep2 = () => {
+    if (!form.businessName || !form.businessType) {
+      setError("يرجى تعبئة جميع الحقول المطلوبة");
+      return;
+    }
+    setError("");
+    setStep(2);
+  };
+
+  const goToStep3 = () => {
+    if (!form.phone) { setError("رقم الجوال مطلوب"); return; }
+    if (!isValidSaudiPhone(form.phone)) { setError("رقم الجوال غير صحيح — تأكد أنه يبدأ بـ 05 ومكوّن من 10 أرقام"); return; }
+    setError("");
+    handleRegister();
+  };
+
+  const otpTarget = form.email || regData?.phone || form.phone;
 
   return (
     <div dir="rtl" className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-[Tajawal,sans-serif]">
@@ -118,8 +161,10 @@ export function RegisterPage() {
                     type="text"
                     value={form.businessName}
                     onChange={(e) => update("businessName", e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && goToStep2()}
                     className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors"
                     placeholder="مثال: شركة الأمجاد للفعاليات"
+                    autoFocus
                   />
                 </div>
                 <div>
@@ -143,17 +188,10 @@ export function RegisterPage() {
                 </div>
               </div>
               <button
-                onClick={() => {
-                  if (!form.businessName || !form.businessType) {
-                    setError("يرجى تعبئة جميع الحقول المطلوبة");
-                    return;
-                  }
-                  setError("");
-                  setStep(2);
-                }}
+                onClick={goToStep2}
                 className="w-full mt-6 bg-brand-500 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-colors"
               >
-                التالي ←
+                التالي
               </button>
               {error && <p className="text-red-500 text-sm mt-3 text-center">{error}</p>}
             </>
@@ -172,9 +210,11 @@ export function RegisterPage() {
                     inputMode="tel"
                     value={form.phone}
                     onChange={(e) => update("phone", normalizePhone(e.target.value))}
+                    onKeyDown={(e) => e.key === "Enter" && goToStep3()}
                     className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors"
                     placeholder="05XXXXXXXX"
                     dir="ltr"
+                    autoFocus
                   />
                 </div>
                 <div>
@@ -183,6 +223,7 @@ export function RegisterPage() {
                     type="email"
                     value={form.email}
                     onChange={(e) => update("email", e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && goToStep3()}
                     className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors"
                     placeholder="email@example.com"
                     dir="ltr"
@@ -190,19 +231,15 @@ export function RegisterPage() {
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
-                <button onClick={() => setStep(1)} className="px-6 py-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-                  → السابق
+                <button onClick={() => { setError(""); setStep(1); }} className="px-6 py-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                  السابق
                 </button>
                 <button
-                  onClick={() => {
-                    if (!form.phone) { setError("رقم الجوال مطلوب"); return; }
-                    setError("");
-                    handleRegister();
-                  }}
+                  onClick={goToStep3}
                   disabled={loading}
                   className="flex-1 bg-brand-500 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
-                  {loading ? "جاري التسجيل..." : "إنشاء الحساب ←"}
+                  {loading ? "جاري التسجيل..." : "إنشاء الحساب"}
                 </button>
               </div>
               {error && <p className="text-red-500 text-sm mt-3 text-center">{error}</p>}
@@ -212,35 +249,40 @@ export function RegisterPage() {
           {/* Step 3: OTP */}
           {step === 3 && (
             <>
-              <h1 className="text-2xl font-black text-gray-900 mb-2">تحقق من الجوال</h1>
+              <h1 className="text-2xl font-black text-gray-900 mb-2">تحقق من هويتك</h1>
               <p className="text-gray-500 text-sm mb-6">
-                تم إرسال رمز التحقق إلى {regData?.phone || form.phone}
+                تم إرسال رمز التحقق إلى <span className="font-semibold text-gray-700">{otpTarget}</span>
               </p>
-              {devCode && (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4">
-                  <p className="text-xs text-amber-700 font-medium">وضع التطوير — رمز التحقق: <span className="font-black">{devCode}</span></p>
-                </div>
-              )}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">رمز التحقق</label>
                 <input
                   type="text"
                   value={form.otp}
-                  onChange={(e) => update("otp", e.target.value)}
+                  onChange={(e) => update("otp", e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onKeyDown={(e) => e.key === "Enter" && form.otp.length === 6 && handleVerify()}
                   className="w-full rounded-xl border border-gray-200 px-4 py-3 text-center text-2xl font-black tracking-widest outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors"
-                  placeholder="xxxxxx"
+                  placeholder="000000"
                   maxLength={6}
                   dir="ltr"
+                  autoFocus
+                  inputMode="numeric"
                 />
               </div>
               <button
                 onClick={handleVerify}
                 disabled={loading || form.otp.length < 6}
-                className="w-full mt-6 bg-brand-500 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
+                className="w-full mt-4 bg-brand-500 text-white py-4 rounded-xl font-bold hover:bg-blue-700 transition-colors disabled:opacity-50"
               >
-                {loading ? "جاري التحقق..." : "تحقق ودخول ←"}
+                {loading ? "جاري التحقق..." : "تحقق ودخول"}
               </button>
-              {error && <p className="text-red-500 text-sm mt-3 text-center">{error}</p>}
+              <button
+                onClick={handleResendOtp}
+                disabled={resending}
+                className="w-full mt-3 py-2 text-sm text-gray-500 hover:text-brand-500 transition-colors disabled:opacity-50"
+              >
+                {resending ? "جاري الإرسال..." : "لم يصلك الرمز؟ إعادة الإرسال"}
+              </button>
+              {error && <p className="text-red-500 text-sm mt-2 text-center">{error}</p>}
             </>
           )}
 
