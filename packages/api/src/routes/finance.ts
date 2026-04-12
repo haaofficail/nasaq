@@ -514,6 +514,7 @@ financeRouter.post("/invoices/:id/payments", async (c) => {
 
   // إرسال إشعار الدفع للعميل على واتساب (fire-and-forget)
   if (inv.buyerPhone) {
+    const buyerPhone = inv.buyerPhone;
     (async () => {
       try {
         const { sendWhatsApp } = await import("../lib/whatsapp");
@@ -535,7 +536,7 @@ financeRouter.post("/invoices/:id/payments", async (c) => {
           ``,
           `شكراً لتعاملكم معنا 🙏`,
         ].filter(l => l !== undefined && l !== null).join("\n").replace(/\n\n\n/g, "\n\n");
-        await sendWhatsApp(inv.buyerPhone, lines);
+        await sendWhatsApp(buyerPhone, lines);
       } catch {}
     })().catch(() => {});
   }

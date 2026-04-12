@@ -876,6 +876,7 @@ export function POSPage() {
   };
 
   const changeQty = (id: string, delta: number) => {
+    if (completing) return;
     setCart(prev => prev.map(c => c.id === id ? { ...c, qty: c.qty + delta } : c).filter(c => c.qty > 0));
   };
 
@@ -888,7 +889,7 @@ export function POSPage() {
     setCart(prev => prev.map(c => c.id === id ? { ...c, staffId, staffName } : c));
   };
 
-  const removeItem = (id: string) => setCart(prev => prev.filter(c => c.id !== id));
+  const removeItem = (id: string) => { if (completing) return; setCart(prev => prev.filter(c => c.id !== id)); };
 
   const clearAll = useCallback(() => {
     setCart([]);

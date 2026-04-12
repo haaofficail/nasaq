@@ -12,6 +12,7 @@ import {
 import { nanoid } from "nanoid";
 import { DEFAULT_VAT_RATE } from "@nasaq/db/constants";
 import { lookupByBarcode } from "../lib/barcode";
+import { log } from "../lib/logger";
 
 // ============================================================
 // INVENTORY HELPERS — POS stock deduction
@@ -75,6 +76,7 @@ const saleItemSchema = z.object({
   price: z.number().min(0, { message: "السعر يجب أن يكون 0 أو أكثر" }),
   staffId: z.string().uuid({ message: "معرّف الموظف غير صحيح" }).optional().nullable(),
   staffName: z.string().optional().nullable(),
+  note: z.string().max(500).optional().nullable(),
 });
 
 const createSaleSchema = z.object({
@@ -396,18 +398,24 @@ posRouter.post("/sale", async (c) => {
   );
   const tx = txResult.rows[0];
 
-  // Create invoice
-  const invoice = await createPOSInvoice({
-    orgId,
-    transactionId: tx.id,
-    sellerName: orgRow?.name || "نسق",
-    sellerVat: (orgRow as any)?.vatNumber || "",
-    buyerName: body.customerName || "زائر",
-    buyerPhone: body.customerPhone || null,
-    items: body.items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price })),
-    subtotal, discountAmount, taxable, vatAmount, total,
-    notes: body.notes,
-  });
+  // Create invoice — if it fails, roll back the transaction row (compensating delete)
+  let invoice;
+  try {
+    invoice = await createPOSInvoice({
+      orgId,
+      transactionId: tx.id,
+      sellerName: orgRow?.name || "نسق",
+      sellerVat: (orgRow as any)?.vatNumber || "",
+      buyerName: body.customerName || "زائر",
+      buyerPhone: body.customerPhone || null,
+      items: body.items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price })),
+      subtotal, discountAmount, taxable, vatAmount, total,
+      notes: body.notes,
+    });
+  } catch (err) {
+    await pool.query(`DELETE FROM pos_transactions WHERE id = $1`, [tx.id]);
+    throw err;
+  }
 
   // Link invoice to transaction
   await pool.query(`UPDATE pos_transactions SET invoice_id = $1 WHERE id = $2`, [invoice.id, tx.id]);
@@ -627,13 +635,17 @@ posRouter.post("/sale/:id/refund", async (c) => {
         if (je.rows[0] && userId) {
           await reverseJournalEntry(je.rows[0].id, userId, reason || "استرداد POS");
         }
-      } catch { /* لا يوقف */ }
+      } catch (err: any) {
+        log.error(`[POS_REFUND] journal reversal failed txId=${orig.rows[0].id} ${err?.message}`);
+      }
     }
 
     // Restore inventory for refunded items
     try {
       await restorePOSInventory(orgId, orig.rows[0].items);
-    } catch { /* لا يوقف */ }
+    } catch (err: any) {
+      log.error(`[POS_REFUND] inventory restore failed txId=${orig.rows[0].id} ${err?.message}`);
+    }
   })();
 
   insertAuditLog({ orgId, userId, action: "deleted", resource: "pos_sale", resourceId: orig.rows[0].id, metadata: { refundTx: txNum, reason } });
