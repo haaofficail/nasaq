@@ -200,6 +200,9 @@ export const services = pgTable("services", {
   amenities: jsonb("amenities").default([]).notNull(),
   // e.g. ["wifi", "pool", "ac", "parking", "kitchen", "bbq", "gym"]
 
+  // POS price floor — الحد الأدنى للسعر في الكاشير (NULL = لا قيد)
+  minPrice: numeric("min_price", { precision: 10, scale: 2 }),
+
   // Barcode (Code128 compatible)
   barcode: text("barcode"),
 

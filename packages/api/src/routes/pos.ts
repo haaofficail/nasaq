@@ -371,6 +371,24 @@ posRouter.post("/sale", async (c) => {
     return c.json({ error: "مجموع طرق الدفع لا يساوي الإجمالي" }, 400);
   }
 
+  // Server-side minPrice enforcement — لا يمكن تجاوزه من الـ client
+  const serviceIds = body.items.map(i => i.id);
+  if (serviceIds.length > 0) {
+    const minPriceRows = await pool.query<{ id: string; min_price: string | null }>(
+      `SELECT id, min_price FROM services WHERE id = ANY($1) AND org_id = $2`,
+      [serviceIds, orgId]
+    );
+    const minPriceMap = Object.fromEntries(
+      minPriceRows.rows.map(r => [r.id, r.min_price ? parseFloat(r.min_price) : null])
+    );
+    for (const item of body.items) {
+      const floor = minPriceMap[item.id];
+      if (floor != null && floor > 0 && item.price < floor) {
+        return c.json({ error: `السعر للبند "${item.name}" أقل من الحد الأدنى المسموح (${floor} ر.س)` }, 422);
+      }
+    }
+  }
+
   const changeAmount = Math.max(0, +(paymentsTotal - total).toFixed(2));
   const txNum = `POS-${nanoid(10).toUpperCase()}`;
 

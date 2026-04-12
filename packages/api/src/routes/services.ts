@@ -89,6 +89,8 @@ const createServiceSchema = z.object({
   deliveryCost:       z.coerce.string().default("0"),
   // ── Barcode (migration 050) ──────────────────────────────────────────────
   barcode:            z.string().max(100).optional().nullable(),
+  // ── POS price floor (migration 124) ─────────────────────────────────────
+  minPrice:           z.coerce.string().optional().nullable(),
   // ── Amenities (migration 054) — for rental, chalet, apartment, hotel ────
   amenities:          z.array(z.string()).default([]),
   // ── Template link (migration 102) — field_service linked to event_package_template ──
