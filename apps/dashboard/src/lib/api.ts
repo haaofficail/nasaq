@@ -171,6 +171,10 @@ export const bookingsApi = {
     api.patch<{ data: any }>(`/bookings/${id}/reschedule`, data),
   addPayment: (id: string, data: any) => api.post(`/bookings/${id}/payments`, data),
   calendar: (from: string, to: string) => api.get<{ data: any[] }>(`/bookings/calendar/events?from=${from}&to=${to}`),
+  checkAvailability: (params: { date: string; locationId?: string; endDate?: string }) => {
+    const qs = new URLSearchParams({ date: params.date, ...(params.locationId ? { locationId: params.locationId } : {}), ...(params.endDate ? { endDate: params.endDate } : {}) });
+    return api.get<{ available: boolean; conflicts: string[] }>(`/bookings/check-availability?${qs}`);
+  },
   stats: (period?: string) => api.get<{ data: any }>(`/bookings/stats/summary?period=${period || "month"}`),
   trend: (months?: number) => api.get<{ data: any[] }>(`/bookings/stats/trend?months=${months || 6}`),
   growth: (period?: string) => api.get<{ data: any }>(`/bookings/stats/growth?period=${period || "month"}`),

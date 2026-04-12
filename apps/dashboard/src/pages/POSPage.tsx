@@ -5,11 +5,13 @@ import {
   CreditCard, Banknote, ArrowLeftRight, Receipt, X, CheckCircle2,
   Users, Scissors, ChevronDown, Tag, StickyNote, Percent,
   RotateCcw, Clock, TrendingUp, Wallet, Printer, Smartphone,
-  SplitSquareHorizontal, AlertCircle, ScanBarcode,
+  SplitSquareHorizontal, AlertCircle, ScanBarcode, ChevronRight,
+  Lock, Pencil,
 } from "lucide-react";
 import { posApi, servicesApi, menuApi, categoriesApi, customersApi, settingsApi } from "@/lib/api";
 import { VAT_RATE as VAT_RATE_DECIMAL } from "@/lib/constants";
 import { useApi } from "@/hooks/useApi";
+import { usePermission } from "@/hooks/usePermission";
 import { toast } from "@/hooks/useToast";
 import { success as hapticSuccess } from "@/lib/haptics";
 import { normalizeNumeric } from "@/lib/normalize-input";
@@ -737,6 +739,9 @@ function SalesLogTab() {
 
 export function POSPage() {
   const [activeTab, setActiveTab] = useState<"pos" | "log">("pos");
+  const { systemRole, hasPermission } = usePermission();
+  const canEditPrice = systemRole === "owner" || systemRole === "manager"
+    || hasPermission("pos.override_price");
 
   // Catalog state
   const [activeCat, setActiveCat] = useState("all");
@@ -748,9 +753,12 @@ export function POSPage() {
   const [customer, setCustomer] = useState<{ id?: string; name: string; phone?: string } | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [showCustomerList, setShowCustomerList] = useState(false);
+  const [showCustomerInput, setShowCustomerInput] = useState(false);
   const [discType, setDiscType] = useState<"fixed" | "percent">("fixed");
   const [discValue, setDiscValue] = useState("");
+  const [showDiscount, setShowDiscount] = useState(false);
   const [notes, setNotes] = useState("");
+  const [expandedItem, setExpandedItem] = useState<string | null>(null);
 
   // Payment state
   const [payMode, setPayMode] = useState<"cash" | "card" | "mada" | "apple_pay" | "bank_transfer" | "mixed">("cash");
@@ -1118,27 +1126,21 @@ export function POSPage() {
                   {filteredServices.map(svc => {
                     const inCart = cart.find(c => c.id === svc.id);
                     const initial = (svc.name || "خ").charAt(0);
-                    const effectivePrice = inCart ? (inCart.customPrice ?? inCart.price) : Number(svc.basePrice || svc.price || 0);
+                    const basePrice = Number(svc.basePrice || svc.price || 0);
                     return (
                       <div
                         key={svc.id}
                         className={clsx(
-                          "relative text-right rounded-2xl border transition-all select-none overflow-hidden flex flex-col",
+                          "relative rounded-2xl border transition-all select-none overflow-hidden",
                           inCart
-                            ? "border-brand-300 bg-white shadow-md shadow-brand-500/10"
-                            : "border-gray-100 bg-white hover:border-brand-200 hover:shadow-md hover:shadow-gray-200/80"
+                            ? "border-brand-300 bg-white shadow-[0_2px_12px_rgba(91,155,213,0.15)]"
+                            : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm"
                         )}
                       >
-                        {/* Colored header band */}
-                        <div className={clsx(
-                          "h-1.5 w-full shrink-0",
-                          inCart ? "bg-brand-500" : "bg-gradient-to-r from-gray-200 to-gray-100"
-                        )} />
-
-                        {/* Card body — clickable to add */}
+                        {/* Full-card click zone */}
                         <button
                           onClick={() => addToCart(svc)}
-                          className="flex-1 p-3.5 text-right active:scale-[0.97] transition-transform"
+                          className="w-full text-right p-3.5 pb-10 active:scale-[0.97] transition-transform"
                         >
                           {/* Icon */}
                           <div className={clsx(
@@ -1149,44 +1151,45 @@ export function POSPage() {
                           </div>
 
                           {/* Name */}
-                          <p className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-tight mb-2">
+                          <p className={clsx(
+                            "text-[13px] font-semibold leading-tight line-clamp-2 mb-1.5",
+                            inCart ? "text-brand-700" : "text-gray-800"
+                          )}>
                             {svc.name}
                           </p>
 
                           {/* Price */}
-                          <p className={clsx("text-base font-black tabular-nums", inCart ? "text-brand-600" : "text-gray-800")}>
-                            {effectivePrice.toLocaleString("en-US", { minimumFractionDigits: 0 })}
-                            <span className="text-xs font-medium text-gray-400 mr-0.5">ر.س</span>
+                          <p className={clsx("text-sm font-bold tabular-nums", inCart ? "text-brand-600" : "text-gray-600")}>
+                            {basePrice.toLocaleString("en-US", { minimumFractionDigits: 0 })}
+                            <span className="text-[11px] font-medium text-gray-400 mr-0.5">ر.س</span>
                           </p>
                         </button>
 
-                        {/* Inline qty controls — only when in cart */}
+                        {/* Qty controls — absolute overlay at bottom */}
                         {inCart ? (
-                          <div className="flex items-center justify-between px-2.5 pb-2.5 gap-1" onClick={e => e.stopPropagation()}>
+                          <div
+                            className="absolute bottom-0 left-0 right-0 flex items-center bg-brand-500 px-2 py-1.5 gap-2"
+                            onClick={e => e.stopPropagation()}
+                          >
                             <button
                               onClick={() => changeQty(inCart.id, -1)}
-                              className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-colors border border-gray-200"
+                              className="w-7 h-7 rounded-lg bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors"
                             >
-                              <Minus className="w-3.5 h-3.5" />
+                              <Minus className="w-3 h-3" />
                             </button>
-                            <span className="flex-1 text-center text-sm font-black text-brand-600 tabular-nums">
+                            <span className="flex-1 text-center text-sm font-black text-white tabular-nums">
                               {inCart.qty}
                             </span>
                             <button
                               onClick={() => changeQty(inCart.id, 1)}
-                              className="w-8 h-8 rounded-xl bg-brand-500 hover:bg-brand-600 text-white flex items-center justify-center transition-colors shadow-sm shadow-brand-500/30"
+                              className="w-7 h-7 rounded-lg bg-white/20 hover:bg-white/30 text-white flex items-center justify-center transition-colors"
                             >
-                              <Plus className="w-3.5 h-3.5" />
+                              <Plus className="w-3 h-3" />
                             </button>
                           </div>
                         ) : (
-                          <div className="px-2.5 pb-2.5">
-                            <button
-                              onClick={() => addToCart(svc)}
-                              className="w-full h-8 rounded-xl bg-gray-100 hover:bg-brand-50 hover:text-brand-600 text-gray-400 flex items-center justify-center gap-1 text-[11px] font-semibold transition-colors border border-gray-200 hover:border-brand-200"
-                            >
-                              <Plus className="w-3 h-3" /> إضافة
-                            </button>
+                          <div className="absolute bottom-0 left-0 right-0 h-8 flex items-center justify-center">
+                            <Plus className="w-3.5 h-3.5 text-gray-300" />
                           </div>
                         )}
                       </div>
@@ -1246,26 +1249,52 @@ export function POSPage() {
               )}
             </div>
 
-            {/* Customer picker */}
-            <div className="px-3 py-2.5 border-b border-gray-100 shrink-0 relative">
-              <div className="relative">
-                <Users className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 pointer-events-none" />
-                <input
-                  className={clsx(
-                    "w-full bg-gray-50 border rounded-xl pr-8 pl-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300 transition-all",
-                    customer ? "border-brand-300 bg-brand-50/30 focus:border-brand-400" : "border-gray-200 focus:border-brand-400"
-                  )}
-                  placeholder="عميل (اختياري)..."
-                  value={customerSearch}
-                  onChange={e => { setCustomerSearch(e.target.value); setShowCustomerList(true); setCustomer(null); }}
-                  onFocus={() => setShowCustomerList(true)}
-                />
-                {customer && (
-                  <button onClick={() => { setCustomer(null); setCustomerSearch(""); }} className="absolute left-2 top-1/2 -translate-y-1/2 p-1 text-gray-300 hover:text-red-400 rounded">
+            {/* Customer picker — compact chip, expands on click */}
+            <div className="px-3 py-2 border-b border-gray-100 shrink-0 relative">
+              {!showCustomerInput && !customer ? (
+                <button
+                  onClick={() => setShowCustomerInput(true)}
+                  className="flex items-center gap-1.5 text-[12px] text-gray-400 hover:text-brand-600 transition-colors py-1"
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>العميل: زائر</span>
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+              ) : (
+                <div className="relative">
+                  <Users className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 pointer-events-none" />
+                  <input
+                    className={clsx(
+                      "w-full bg-gray-50 border rounded-xl pr-8 pl-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300 transition-all",
+                      customer ? "border-brand-300 bg-brand-50/30 focus:border-brand-400" : "border-gray-200 focus:border-brand-400"
+                    )}
+                    placeholder="ابحث عن عميل..."
+                    value={customerSearch}
+                    autoFocus={!customer}
+                    onChange={e => { setCustomerSearch(e.target.value); setShowCustomerList(true); setCustomer(null); }}
+                    onFocus={() => setShowCustomerList(true)}
+                    onBlur={() => { if (!customer) { setTimeout(() => { setShowCustomerList(false); if (!customerSearch) setShowCustomerInput(false); }, 150); } }}
+                  />
+                  <button
+                    onClick={() => { setCustomer(null); setCustomerSearch(""); setShowCustomerInput(false); }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 p-1 text-gray-300 hover:text-red-400 rounded"
+                  >
                     <X className="w-3.5 h-3.5" />
                   </button>
-                )}
-              </div>
+                </div>
+              )}
+              {/* Selected customer chip */}
+              {customer && !showCustomerInput && (
+                <div className="flex items-center gap-2 py-1">
+                  <div className="flex items-center gap-1.5 bg-brand-50 border border-brand-200 rounded-lg px-2.5 py-1 flex-1 min-w-0">
+                    <Users className="w-3 h-3 text-brand-400 shrink-0" />
+                    <span className="text-[12px] font-semibold text-brand-700 truncate">{customer.name}</span>
+                  </div>
+                  <button onClick={() => { setCustomer(null); setCustomerSearch(""); }} className="p-1 text-gray-300 hover:text-red-400 rounded transition-colors">
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              )}
               {showCustomerList && customerList.length > 0 && (
                 <div className="absolute left-3 right-3 z-20 bg-white border border-gray-200 rounded-2xl shadow-xl mt-1 max-h-44 overflow-y-auto">
                   {customerList.slice(0, 6).map((c: any) => (
@@ -1276,6 +1305,7 @@ export function POSPage() {
                         setCustomer({ id: c.id, name: c.name, phone: c.phone });
                         setCustomerSearch(c.name);
                         setShowCustomerList(false);
+                        setShowCustomerInput(false);
                       }}
                     >
                       <p className="font-semibold text-gray-800 text-sm">{c.name}</p>
@@ -1296,39 +1326,33 @@ export function POSPage() {
                   <p className="text-xs text-gray-400 font-medium">اضغط على أي منتج لإضافته</p>
                 </div>
               ) : (
-                <div className="p-3 space-y-2">
+                <div className="p-2.5 space-y-1.5">
                   {cart.map(item => {
                     const effectiveUnitPrice = item.customPrice ?? item.price;
                     const belowMin = item.minPrice != null && item.minPrice > 0 && effectiveUnitPrice < item.minPrice;
                     const priceChanged = item.customPrice !== undefined && item.customPrice !== item.price;
+                    const isExpanded = expandedItem === item.id;
                     return (
                       <div key={item.id} className={clsx(
-                        "rounded-2xl p-3 border transition-colors",
-                        belowMin ? "bg-red-50 border-red-200" : "bg-gray-50 border-gray-100 hover:border-gray-200"
+                        "rounded-xl border transition-all overflow-hidden",
+                        belowMin ? "border-red-200 bg-red-50" : "border-gray-100 bg-gray-50"
                       )}>
-                        {/* Row 1: Name + delete */}
-                        <div className="flex items-start gap-2 mb-2.5">
-                          <p className="text-sm font-semibold text-gray-900 flex-1 leading-tight">{item.name}</p>
-                          <button onClick={() => removeItem(item.id)} className="text-gray-300 hover:text-red-400 transition-colors shrink-0 mt-0.5 p-0.5 rounded">
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-
-                        {/* Row 2: Qty stepper + line total */}
-                        <div className="flex items-center justify-between mb-2.5">
-                          <div className="flex items-center gap-1">
+                        {/* ── Compact row (always visible) ── */}
+                        <div className="flex items-center gap-2 px-3 py-2.5">
+                          {/* Qty stepper */}
+                          <div className="flex items-center gap-1 shrink-0">
                             <button
                               onClick={() => changeQty(item.id, -1)}
-                              className="w-7 h-7 rounded-xl bg-white border border-gray-200 flex items-center justify-center hover:border-gray-300 active:scale-90 transition-all shadow-sm"
+                              className="w-6 h-6 rounded-lg bg-white border border-gray-200 flex items-center justify-center hover:border-red-200 hover:text-red-500 transition-colors"
                             >
-                              <Minus className="w-3 h-3 text-gray-500" />
+                              <Minus className="w-2.5 h-2.5" />
                             </button>
                             {editingQty === item.id ? (
                               <input
                                 type="text"
                                 inputMode="numeric"
                                 defaultValue={item.qty}
-                                className="w-11 text-center text-sm font-bold border border-brand-300 rounded-xl px-1 py-0.5 focus:outline-none bg-white"
+                                className="w-8 text-center text-xs font-bold border border-brand-300 rounded-lg px-0.5 py-0.5 focus:outline-none bg-white"
                                 autoFocus
                                 onBlur={e => { updateQty(item.id, parseInt(normalizeNumeric(e.target.value)) || 1); setEditingQty(null); }}
                                 onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditingQty(null); }}
@@ -1336,70 +1360,102 @@ export function POSPage() {
                             ) : (
                               <button
                                 onClick={() => setEditingQty(item.id)}
-                                className="w-9 text-center text-sm font-bold text-gray-800 hover:text-brand-600 transition-colors tabular-nums"
+                                className="w-7 text-center text-xs font-bold text-brand-600 hover:text-brand-700 tabular-nums"
                               >
                                 {item.qty}
                               </button>
                             )}
                             <button
                               onClick={() => changeQty(item.id, 1)}
-                              className="w-7 h-7 rounded-xl bg-brand-500 flex items-center justify-center hover:bg-brand-600 active:scale-90 transition-all shadow-sm shadow-brand-500/20"
+                              className="w-6 h-6 rounded-lg bg-brand-500 text-white flex items-center justify-center hover:bg-brand-600 transition-colors"
                             >
-                              <Plus className="w-3 h-3 text-white" />
+                              <Plus className="w-2.5 h-2.5" />
                             </button>
                           </div>
-                          <span className="text-sm font-black text-gray-900 tabular-nums">
-                            {fmt(effectiveUnitPrice * item.qty)}
-                            <span className="text-xs font-medium text-gray-400 mr-0.5">ر.س</span>
-                          </span>
-                        </div>
 
-                        {/* Row 3: Unit price override */}
-                        <div className={clsx("flex items-center gap-2 rounded-xl px-2.5 py-1.5 border", belowMin ? "bg-red-100 border-red-200" : "bg-white border-gray-200")}>
-                          <span className="text-[11px] text-gray-400 shrink-0">سعر الوحدة</span>
-                          <input
-                            type="text"
-                            inputMode="decimal"
-                            className="flex-1 bg-transparent text-sm font-bold text-gray-800 outline-none tabular-nums text-left min-w-0"
-                            value={item.customPrice !== undefined ? String(item.customPrice) : String(item.price)}
-                            onChange={e => updateItemPrice(item.id, e.target.value)}
-                            dir="ltr"
-                          />
-                          {priceChanged && (
-                            <button
-                              onClick={() => setCart(prev => prev.map(c => c.id === item.id ? { ...c, customPrice: undefined } : c))}
-                              className="text-gray-300 hover:text-brand-500 transition-colors shrink-0"
-                              title="استعادة السعر الأصلي"
-                            >
-                              <RotateCcw className="w-3 h-3" />
-                            </button>
-                          )}
-                          {item.minPrice != null && item.minPrice > 0 && (
-                            <span className={clsx("text-[10px] shrink-0 tabular-nums", belowMin ? "text-red-600 font-bold" : "text-gray-400")}>
-                              حد أدنى {fmt(item.minPrice)}
+                          {/* Name */}
+                          <p className="flex-1 text-[13px] font-medium text-gray-800 truncate min-w-0">{item.name}</p>
+
+                          {/* Total + expand + delete */}
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {priceChanged && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" title="سعر معدَّل" />}
+                            <span className="text-[13px] font-bold text-gray-900 tabular-nums">
+                              {fmt(effectiveUnitPrice * item.qty)}
                             </span>
-                          )}
+                            {canEditPrice && (
+                              <button
+                                onClick={() => setExpandedItem(isExpanded ? null : item.id)}
+                                className={clsx(
+                                  "p-1 rounded-lg transition-colors",
+                                  isExpanded ? "text-brand-500 bg-brand-50" : "text-gray-300 hover:text-gray-500 hover:bg-gray-200"
+                                )}
+                                title="تعديل السعر"
+                              >
+                                <Pencil className="w-3 h-3" />
+                              </button>
+                            )}
+                            <button
+                              onClick={() => removeItem(item.id)}
+                              className="p-1 rounded-lg text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </div>
                         </div>
 
-                        {/* Min price warning */}
-                        {belowMin && (
-                          <p className="text-[11px] text-red-600 font-medium mt-1.5 flex items-center gap-1">
-                            <AlertCircle className="w-3 h-3" />
-                            السعر أقل من الحد الأدنى المسموح به
-                          </p>
+                        {/* ── Expanded details (price edit + note) — only for authorized users ── */}
+                        {isExpanded && canEditPrice && (
+                          <div className="px-3 pb-3 pt-1 border-t border-gray-200 bg-white space-y-2">
+                            {/* Price override */}
+                            <div className={clsx(
+                              "flex items-center gap-2 rounded-lg px-2.5 py-2 border",
+                              belowMin ? "bg-red-50 border-red-200" : "bg-gray-50 border-gray-200"
+                            )}>
+                              <span className="text-[11px] text-gray-400 shrink-0">سعر الوحدة</span>
+                              <input
+                                type="text"
+                                inputMode="decimal"
+                                className="flex-1 bg-transparent text-sm font-bold text-gray-800 outline-none tabular-nums text-left min-w-0"
+                                value={item.customPrice !== undefined ? String(item.customPrice) : String(item.price)}
+                                onChange={e => updateItemPrice(item.id, e.target.value)}
+                                dir="ltr"
+                              />
+                              {item.minPrice != null && item.minPrice > 0 && (
+                                <span className={clsx("text-[10px] shrink-0 tabular-nums", belowMin ? "text-red-600 font-bold" : "text-gray-400")}>
+                                  حد أدنى {fmt(item.minPrice)}
+                                </span>
+                              )}
+                              {priceChanged && (
+                                <button
+                                  onClick={() => setCart(prev => prev.map(c => c.id === item.id ? { ...c, customPrice: undefined } : c))}
+                                  className="text-gray-300 hover:text-brand-500 transition-colors shrink-0"
+                                  title="استعادة السعر الأصلي"
+                                >
+                                  <RotateCcw className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+
+                            {belowMin && (
+                              <p className="text-[11px] text-red-600 font-medium flex items-center gap-1">
+                                <AlertCircle className="w-3 h-3 shrink-0" />
+                                السعر أقل من الحد الأدنى
+                              </p>
+                            )}
+
+                            {/* Per-item note */}
+                            <input
+                              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] text-gray-700 outline-none placeholder:text-gray-300 focus:border-brand-300"
+                              placeholder="ملاحظة على هذا البند..."
+                              value={item.note || ""}
+                              onChange={e => updateItemNote(item.id, e.target.value)}
+                            />
+                          </div>
                         )}
 
-                        {/* Row 4: Per-item note (expandable) */}
-                        <input
-                          className="w-full mt-2 bg-transparent text-[11px] text-gray-400 outline-none placeholder:text-gray-300 border-b border-dashed border-gray-200 pb-0.5"
-                          placeholder="ملاحظة على هذا البند..."
-                          value={item.note || ""}
-                          onChange={e => updateItemNote(item.id, e.target.value)}
-                        />
-
-                        {/* Row 5: Staff name */}
+                        {/* Staff name pill */}
                         {item.staffName && (
-                          <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-200">
+                          <div className="flex items-center gap-1 px-3 pb-2">
                             <Scissors className="w-3 h-3 text-gray-300" />
                             <span className="text-[11px] text-gray-400">{item.staffName}</span>
                           </div>
@@ -1411,40 +1467,66 @@ export function POSPage() {
               )}
             </div>
 
-            {/* Discount + Notes */}
-            <div className="px-3 pb-2 space-y-2 border-t border-gray-100 pt-2.5 shrink-0">
-              <div className="flex gap-1.5">
-                <button
-                  onClick={() => setDiscType(t => t === "fixed" ? "percent" : "fixed")}
-                  className={clsx(
-                    "w-9 h-9 rounded-xl border flex items-center justify-center transition-all shrink-0",
-                    discType === "percent"
-                      ? "border-brand-400 bg-brand-50 text-brand-500"
-                      : "border-gray-200 text-gray-400 hover:bg-gray-50"
-                  )}
-                  title={discType === "fixed" ? "مبلغ ثابت" : "نسبة مئوية"}
-                >
-                  {discType === "fixed" ? <Tag className="w-3.5 h-3.5" /> : <Percent className="w-3.5 h-3.5" />}
-                </button>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300 tabular-nums"
-                  placeholder={discType === "fixed" ? "خصم ثابت (ر.س)" : "خصم % (0-100)"}
-                  value={discValue}
-                  onChange={e => setDiscValue(normalizeNumeric(e.target.value))}
-                  dir="ltr"
-                />
+            {/* Discount + Notes — progressive disclosure */}
+            <div className="px-3 pb-2 border-t border-gray-100 pt-2 shrink-0">
+              {/* Toggle links */}
+              <div className="flex items-center gap-3 mb-1.5">
+                {!showDiscount ? (
+                  <button
+                    onClick={() => setShowDiscount(true)}
+                    className="flex items-center gap-1 text-[12px] text-gray-400 hover:text-brand-600 transition-colors"
+                  >
+                    <Tag className="w-3 h-3" />
+                    خصم
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => { setShowDiscount(false); setDiscValue(""); }}
+                    className="flex items-center gap-1 text-[12px] text-brand-500 hover:text-brand-700 transition-colors"
+                  >
+                    <Tag className="w-3 h-3" />
+                    إلغاء الخصم
+                  </button>
+                )}
+                <span className="w-px h-3 bg-gray-200" />
+                <div className="flex items-center gap-1.5 flex-1">
+                  <StickyNote className="w-3 h-3 text-gray-300 shrink-0" />
+                  <input
+                    className="flex-1 bg-transparent text-[12px] text-gray-600 outline-none placeholder:text-gray-300"
+                    placeholder="ملاحظة..."
+                    value={notes}
+                    onChange={e => setNotes(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="flex items-center gap-1.5">
-                <StickyNote className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                <input
-                  className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-xs outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
-                  placeholder="ملاحظة (اختياري)"
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                />
-              </div>
+
+              {/* Discount row — only when toggled */}
+              {showDiscount && (
+                <div className="flex gap-1.5">
+                  <button
+                    onClick={() => setDiscType(t => t === "fixed" ? "percent" : "fixed")}
+                    className={clsx(
+                      "w-9 h-9 rounded-xl border flex items-center justify-center transition-all shrink-0",
+                      discType === "percent"
+                        ? "border-brand-400 bg-brand-50 text-brand-500"
+                        : "border-gray-200 text-gray-400 hover:bg-gray-50"
+                    )}
+                    title={discType === "fixed" ? "مبلغ ثابت" : "نسبة مئوية"}
+                  >
+                    {discType === "fixed" ? <Tag className="w-3.5 h-3.5" /> : <Percent className="w-3.5 h-3.5" />}
+                  </button>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300 tabular-nums"
+                    placeholder={discType === "fixed" ? "خصم ثابت (ر.س)" : "خصم % (0-100)"}
+                    value={discValue}
+                    onChange={e => setDiscValue(normalizeNumeric(e.target.value))}
+                    autoFocus
+                    dir="ltr"
+                  />
+                </div>
+              )}
             </div>
 
             {/* Totals */}
@@ -1523,6 +1605,28 @@ export function POSPage() {
               {/* Payment details */}
               {payMode === "cash" && (
                 <div className="space-y-2 mb-3">
+                  {/* Quick-amount presets */}
+                  <div className="flex gap-1.5">
+                    {[
+                      { label: "المبلغ كاملاً", value: total },
+                      { label: "500", value: 500 },
+                      { label: "100", value: 100 },
+                      { label: "50", value: 50 },
+                    ].map(preset => (
+                      <button
+                        key={preset.label}
+                        onClick={() => setCashReceived(String(preset.value))}
+                        className={clsx(
+                          "flex-1 py-1.5 rounded-xl text-[11px] font-bold border transition-all",
+                          parseFloat(cashReceived || "0") === preset.value
+                            ? "border-brand-400 bg-brand-500 text-white"
+                            : "border-gray-200 bg-gray-50 text-gray-500 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600"
+                        )}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
                   <input
                     type="text"
                     inputMode="decimal"

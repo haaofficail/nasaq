@@ -221,6 +221,38 @@ bookingsRouter.get("/", async (c) => {
   });
 });
 
+// GET /bookings/check-availability — instant conflict check before booking
+// MUST be registered before /:id to avoid route collision
+bookingsRouter.get("/check-availability", async (c) => {
+  const orgId     = getOrgId(c);
+  const locationId = c.req.query("locationId");
+  const date       = c.req.query("date"); // YYYY-MM-DD
+  const endDate    = c.req.query("endDate"); // optional for rentals
+
+  if (!date) return c.json({ available: true });
+
+  const dayStart = new Date(`${date}T00:00:00`);
+  const dayEnd   = endDate ? new Date(`${endDate}T23:59:59`) : new Date(`${date}T23:59:59`);
+
+  const conditions = [
+    eq(bookings.orgId, orgId),
+    sql`${bookings.status} NOT IN ('cancelled')`,
+    // overlapping: starts before end AND ends after start
+    lte(bookings.eventDate, dayEnd),
+    gte(sql`COALESCE(${bookings.eventEndDate}, ${bookings.eventDate})`, dayStart),
+  ];
+
+  if (locationId) conditions.push(eq(bookings.locationId, locationId));
+
+  const conflicts = await db
+    .select({ bookingNumber: bookings.bookingNumber, eventDate: bookings.eventDate })
+    .from(bookings)
+    .where(and(...conditions))
+    .limit(5);
+
+  return c.json({ available: conflicts.length === 0, conflicts: conflicts.map(r => r.bookingNumber) });
+});
+
 // GET /bookings/calendar — alias for /calendar/events (accepts month=YYYY-MM or from/to)
 // MUST be registered before /:id to avoid route collision
 bookingsRouter.get("/calendar", async (c) => {
