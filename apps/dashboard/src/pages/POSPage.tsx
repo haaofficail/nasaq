@@ -21,14 +21,17 @@ import { normalizeNumeric } from "@/lib/normalize-input";
 interface CartItem {
   id: string;
   name: string;
-  price: number;
+  price: number;         // السعر الأصلي
+  customPrice?: number;  // السعر المعدَّل (ما سيُحسب)
+  minPrice?: number;     // الحد الأدنى (من إعداد الخدمة)
   qty: number;
   staffId?: string;
   staffName?: string;
+  note?: string;         // ملاحظة على البند
 }
 
 interface PaymentRow {
-  method: "cash" | "card" | "bank_transfer";
+  method: "cash" | "card" | "mada" | "apple_pay" | "bank_transfer";
   amount: string;
   reference?: string;
 }
@@ -55,6 +58,8 @@ interface SaleResult {
 const PAYMENT_LABELS: Record<string, string> = {
   cash: "نقد",
   card: "بطاقة",
+  mada: "مدى",
+  apple_pay: "Apple Pay",
   bank_transfer: "تحويل بنكي",
 };
 
@@ -76,7 +81,7 @@ const SPLIT_PART_COLORS = [
 const VAT_RATE = VAT_RATE_DECIMAL * 100; // e.g. 0.15 → 15
 
 function calcCart(items: CartItem[], discType: "fixed" | "percent", discValue: number) {
-  const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const subtotal = items.reduce((s, i) => s + (i.customPrice ?? i.price) * i.qty, 0);
   const discountAmount = discType === "percent"
     ? +(subtotal * discValue / 100).toFixed(2)
     : Math.min(discValue, subtotal);
@@ -360,6 +365,8 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
                         >
                           <option value="cash">نقد</option>
                           <option value="card">بطاقة</option>
+                          <option value="mada">مدى</option>
+                          <option value="apple_pay">Apple Pay</option>
                           <option value="bank_transfer">تحويل</option>
                         </select>
                         <input
@@ -427,9 +434,12 @@ interface ReceiptModalProps {
   result: SaleResult;
   orgName: string;
   onClose: () => void;
+  hasNextPart?: boolean;
+  currentPart?: number;
+  totalParts?: number;
 }
 
-function ReceiptModal({ result, orgName, onClose }: ReceiptModalProps) {
+function ReceiptModal({ result, orgName, onClose, hasNextPart, currentPart, totalParts }: ReceiptModalProps) {
   const { invoice, transaction } = result;
   const payments: any[] = transaction?.payments || [];
   const isSplit = !!invoice?.parentInvoiceId || invoice?.splitTotal > 1;
@@ -530,6 +540,18 @@ function ReceiptModal({ result, orgName, onClose }: ReceiptModalProps) {
           </div>
         </div>
 
+        {/* Part navigator */}
+        {totalParts && totalParts > 1 && (
+          <div className="mx-6 mb-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center justify-between">
+            <span className="text-xs text-amber-700 font-semibold">
+              إيصال الجزء {currentPart} من {totalParts}
+            </span>
+            {hasNextPart && (
+              <span className="text-xs text-amber-600">اضغط "التالي" للجزء التالي</span>
+            )}
+          </div>
+        )}
+
         {/* Actions */}
         <div className="flex gap-2 px-6 pb-6">
           <button
@@ -542,7 +564,8 @@ function ReceiptModal({ result, orgName, onClose }: ReceiptModalProps) {
             onClick={onClose}
             className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors"
           >
-            <CheckCircle2 className="w-4 h-4" /> تم
+            <CheckCircle2 className="w-4 h-4" />
+            {hasNextPart ? `التالي — الجزء ${(currentPart ?? 0) + 1}` : "تم"}
           </button>
         </div>
       </div>
@@ -730,7 +753,7 @@ export function POSPage() {
   const [notes, setNotes] = useState("");
 
   // Payment state
-  const [payMode, setPayMode] = useState<"cash" | "card" | "bank_transfer" | "mixed">("cash");
+  const [payMode, setPayMode] = useState<"cash" | "card" | "mada" | "apple_pay" | "bank_transfer" | "mixed">("cash");
   const [cashReceived, setCashReceived] = useState("");
   const [cardRef, setCardRef] = useState("");
   const [bankRef, setBankRef] = useState("");
@@ -742,6 +765,8 @@ export function POSPage() {
   // UI state
   const [completing, setCompleting] = useState(false);
   const [saleResult, setSaleResult] = useState<SaleResult | null>(null);
+  const [splitResults, setSplitResults] = useState<SaleResult[]>([]);
+  const [splitReceiptIdx, setSplitReceiptIdx] = useState(0);
   const [showSplit, setShowSplit] = useState(false);
   const [editingQty, setEditingQty] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"catalog" | "cart">("catalog");
@@ -802,9 +827,11 @@ export function POSPage() {
   const mixedRemaining = +(total - mixedTotal).toFixed(2);
 
   // Get final payments array
-  const buildPayments = (): { method: "cash" | "card" | "bank_transfer"; amount: number; reference?: string }[] => {
+  const buildPayments = (): { method: string; amount: number; reference?: string }[] => {
     if (payMode === "cash") return [{ method: "cash", amount: total }];
     if (payMode === "card") return [{ method: "card", amount: total, reference: cardRef || undefined }];
+    if (payMode === "mada") return [{ method: "mada", amount: total }];
+    if (payMode === "apple_pay") return [{ method: "apple_pay", amount: total }];
     if (payMode === "bank_transfer") return [{ method: "bank_transfer", amount: total, reference: bankRef || undefined }];
     return mixedPayments
       .filter(p => parseFloat(p.amount || "0") > 0)
@@ -813,6 +840,8 @@ export function POSPage() {
 
   const canComplete = () => {
     if (cart.length === 0) return false;
+    // Block if any item is below min price
+    if (cart.some(c => c.minPrice != null && c.minPrice > 0 && (c.customPrice ?? c.price) < c.minPrice)) return false;
     if (payMode === "cash") return parseFloat(cashReceived || "0") >= total;
     if (payMode === "mixed") return Math.abs(mixedRemaining) < 0.05;
     return true;
@@ -823,8 +852,19 @@ export function POSPage() {
     setCart(prev => {
       const existing = prev.find(c => c.id === svc.id);
       if (existing) return prev.map(c => c.id === svc.id ? { ...c, qty: c.qty + 1 } : c);
-      return [...prev, { id: svc.id, name: svc.name, price: Number(svc.basePrice ?? svc.price ?? 0), qty: 1 }];
+      const basePrice = Number(svc.basePrice ?? svc.price ?? 0);
+      const minP = Number(svc.minPrice ?? 0) || undefined;
+      return [...prev, { id: svc.id, name: svc.name, price: basePrice, minPrice: minP, qty: 1 }];
     });
+  };
+
+  const updateItemPrice = (id: string, val: string) => {
+    const n = parseFloat(normalizeNumeric(val));
+    setCart(prev => prev.map(c => c.id === id ? { ...c, customPrice: isNaN(n) ? undefined : n } : c));
+  };
+
+  const updateItemNote = (id: string, note: string) => {
+    setCart(prev => prev.map(c => c.id === id ? { ...c, note } : c));
   };
 
   const changeQty = (id: string, delta: number) => {
@@ -860,7 +900,7 @@ export function POSPage() {
     setCompleting(true);
     try {
       const res = await posApi.sale({
-        items: cart.map(c => ({ id: c.id, name: c.name, quantity: c.qty, price: c.price, staffId: c.staffId || undefined, staffName: c.staffName })),
+        items: cart.map(c => ({ id: c.id, name: c.name, quantity: c.qty, price: c.customPrice ?? c.price, staffId: c.staffId || undefined, staffName: c.staffName, note: c.note || undefined })),
         payments: buildPayments(),
         customerId: customer?.id,
         customerName: customer?.name || "زائر",
@@ -896,10 +936,14 @@ export function POSPage() {
         })),
         notes: notes || null,
       });
-      // Show receipt of first child
-      const firstChild = res.data?.children?.[0];
-      if (firstChild) setSaleResult(firstChild);
-      toast.success("تم إتمام البيع المقسّم");
+      // Show receipts for all parts
+      const children: SaleResult[] = res.data?.children || [];
+      if (children.length > 0) {
+        setSplitResults(children);
+        setSplitReceiptIdx(0);
+        setSaleResult(children[0]);
+      }
+      toast.success(`تم إتمام البيع المقسّم — ${children.length} أجزاء`);
       hapticSuccess();
     } catch (err: any) {
       toast.error(err?.message || "فشل إتمام البيع المقسّم");
@@ -909,8 +953,17 @@ export function POSPage() {
   };
 
   const handleReceiptClose = () => {
-    setSaleResult(null);
-    clearAll();
+    // If split: advance to next part's receipt, else close
+    if (splitResults.length > 0 && splitReceiptIdx < splitResults.length - 1) {
+      const nextIdx = splitReceiptIdx + 1;
+      setSplitReceiptIdx(nextIdx);
+      setSaleResult(splitResults[nextIdx]);
+    } else {
+      setSaleResult(null);
+      setSplitResults([]);
+      setSplitReceiptIdx(0);
+      clearAll();
+    }
   };
 
   // Barcode state
@@ -1065,12 +1118,12 @@ export function POSPage() {
                   {filteredServices.map(svc => {
                     const inCart = cart.find(c => c.id === svc.id);
                     const initial = (svc.name || "خ").charAt(0);
+                    const effectivePrice = inCart ? (inCart.customPrice ?? inCart.price) : Number(svc.basePrice || svc.price || 0);
                     return (
-                      <button
+                      <div
                         key={svc.id}
-                        onClick={() => addToCart(svc)}
                         className={clsx(
-                          "relative text-right rounded-2xl border transition-all active:scale-[0.97] select-none overflow-hidden",
+                          "relative text-right rounded-2xl border transition-all select-none overflow-hidden flex flex-col",
                           inCart
                             ? "border-brand-300 bg-white shadow-md shadow-brand-500/10"
                             : "border-gray-100 bg-white hover:border-brand-200 hover:shadow-md hover:shadow-gray-200/80"
@@ -1078,43 +1131,65 @@ export function POSPage() {
                       >
                         {/* Colored header band */}
                         <div className={clsx(
-                          "h-1.5 w-full",
+                          "h-1.5 w-full shrink-0",
                           inCart ? "bg-brand-500" : "bg-gradient-to-r from-gray-200 to-gray-100"
                         )} />
 
-                        <div className="p-4">
-                          {/* Cart qty badge */}
-                          {inCart && (
-                            <span className="absolute top-3 left-3 min-w-[22px] h-[22px] bg-brand-500 text-white rounded-full text-xs font-bold flex items-center justify-center tabular-nums px-1 shadow-sm">
-                              {inCart.qty}
-                            </span>
-                          )}
-
+                        {/* Card body — clickable to add */}
+                        <button
+                          onClick={() => addToCart(svc)}
+                          className="flex-1 p-3.5 text-right active:scale-[0.97] transition-transform"
+                        >
                           {/* Icon */}
                           <div className={clsx(
-                            "w-10 h-10 rounded-xl flex items-center justify-center mb-3 text-sm font-bold",
-                            inCart
-                              ? "bg-brand-50 text-brand-600"
-                              : "bg-gray-100 text-gray-500"
+                            "w-9 h-9 rounded-xl flex items-center justify-center mb-2.5 text-sm font-bold",
+                            inCart ? "bg-brand-50 text-brand-600" : "bg-gray-100 text-gray-500"
                           )}>
                             {initial}
                           </div>
 
                           {/* Name */}
-                          <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight mb-2">
+                          <p className="text-[13px] font-semibold text-gray-900 line-clamp-2 leading-tight mb-2">
                             {svc.name}
                           </p>
 
                           {/* Price */}
-                          <p className={clsx(
-                            "text-base font-black tabular-nums",
-                            inCart ? "text-brand-600" : "text-gray-800"
-                          )}>
-                            {Number(svc.basePrice || svc.price || 0).toLocaleString("en-US", { minimumFractionDigits: 0 })}
+                          <p className={clsx("text-base font-black tabular-nums", inCart ? "text-brand-600" : "text-gray-800")}>
+                            {effectivePrice.toLocaleString("en-US", { minimumFractionDigits: 0 })}
                             <span className="text-xs font-medium text-gray-400 mr-0.5">ر.س</span>
                           </p>
-                        </div>
-                      </button>
+                        </button>
+
+                        {/* Inline qty controls — only when in cart */}
+                        {inCart ? (
+                          <div className="flex items-center justify-between px-2.5 pb-2.5 gap-1" onClick={e => e.stopPropagation()}>
+                            <button
+                              onClick={() => changeQty(inCart.id, -1)}
+                              className="w-8 h-8 rounded-xl bg-gray-100 hover:bg-red-50 hover:text-red-500 flex items-center justify-center transition-colors border border-gray-200"
+                            >
+                              <Minus className="w-3.5 h-3.5" />
+                            </button>
+                            <span className="flex-1 text-center text-sm font-black text-brand-600 tabular-nums">
+                              {inCart.qty}
+                            </span>
+                            <button
+                              onClick={() => changeQty(inCart.id, 1)}
+                              className="w-8 h-8 rounded-xl bg-brand-500 hover:bg-brand-600 text-white flex items-center justify-center transition-colors shadow-sm shadow-brand-500/30"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="px-2.5 pb-2.5">
+                            <button
+                              onClick={() => addToCart(svc)}
+                              className="w-full h-8 rounded-xl bg-gray-100 hover:bg-brand-50 hover:text-brand-600 text-gray-400 flex items-center justify-center gap-1 text-[11px] font-semibold transition-colors border border-gray-200 hover:border-brand-200"
+                            >
+                              <Plus className="w-3 h-3" /> إضافة
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -1222,57 +1297,116 @@ export function POSPage() {
                 </div>
               ) : (
                 <div className="p-3 space-y-2">
-                  {cart.map(item => (
-                    <div key={item.id} className="bg-gray-50 rounded-2xl p-3 border border-gray-100 hover:border-gray-200 transition-colors">
-                      <div className="flex items-start gap-2 mb-2.5">
-                        <p className="text-sm font-semibold text-gray-900 flex-1 leading-tight">{item.name}</p>
-                        <button onClick={() => removeItem(item.id)} className="text-gray-300 hover:text-red-400 transition-colors shrink-0 mt-0.5 p-0.5 rounded">
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => changeQty(item.id, -1)}
-                            className="w-7 h-7 rounded-xl bg-white border border-gray-200 flex items-center justify-center hover:border-gray-300 active:scale-90 transition-all shadow-sm"
-                          >
-                            <Minus className="w-3 h-3 text-gray-500" />
+                  {cart.map(item => {
+                    const effectiveUnitPrice = item.customPrice ?? item.price;
+                    const belowMin = item.minPrice != null && item.minPrice > 0 && effectiveUnitPrice < item.minPrice;
+                    const priceChanged = item.customPrice !== undefined && item.customPrice !== item.price;
+                    return (
+                      <div key={item.id} className={clsx(
+                        "rounded-2xl p-3 border transition-colors",
+                        belowMin ? "bg-red-50 border-red-200" : "bg-gray-50 border-gray-100 hover:border-gray-200"
+                      )}>
+                        {/* Row 1: Name + delete */}
+                        <div className="flex items-start gap-2 mb-2.5">
+                          <p className="text-sm font-semibold text-gray-900 flex-1 leading-tight">{item.name}</p>
+                          <button onClick={() => removeItem(item.id)} className="text-gray-300 hover:text-red-400 transition-colors shrink-0 mt-0.5 p-0.5 rounded">
+                            <Trash2 className="w-3.5 h-3.5" />
                           </button>
-                          {editingQty === item.id ? (
-                            <input
-                              type="text"
-                              inputMode="numeric"
-                              defaultValue={item.qty}
-                              className="w-11 text-center text-sm font-bold border border-brand-300 rounded-xl px-1 py-0.5 focus:outline-none bg-white"
-                              autoFocus
-                              onBlur={e => { updateQty(item.id, parseInt(normalizeNumeric(e.target.value)) || 1); setEditingQty(null); }}
-                              onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditingQty(null); }}
-                            />
-                          ) : (
+                        </div>
+
+                        {/* Row 2: Qty stepper + line total */}
+                        <div className="flex items-center justify-between mb-2.5">
+                          <div className="flex items-center gap-1">
                             <button
-                              onClick={() => setEditingQty(item.id)}
-                              className="w-9 text-center text-sm font-bold text-gray-800 hover:text-brand-600 transition-colors tabular-nums"
+                              onClick={() => changeQty(item.id, -1)}
+                              className="w-7 h-7 rounded-xl bg-white border border-gray-200 flex items-center justify-center hover:border-gray-300 active:scale-90 transition-all shadow-sm"
                             >
-                              {item.qty}
+                              <Minus className="w-3 h-3 text-gray-500" />
+                            </button>
+                            {editingQty === item.id ? (
+                              <input
+                                type="text"
+                                inputMode="numeric"
+                                defaultValue={item.qty}
+                                className="w-11 text-center text-sm font-bold border border-brand-300 rounded-xl px-1 py-0.5 focus:outline-none bg-white"
+                                autoFocus
+                                onBlur={e => { updateQty(item.id, parseInt(normalizeNumeric(e.target.value)) || 1); setEditingQty(null); }}
+                                onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditingQty(null); }}
+                              />
+                            ) : (
+                              <button
+                                onClick={() => setEditingQty(item.id)}
+                                className="w-9 text-center text-sm font-bold text-gray-800 hover:text-brand-600 transition-colors tabular-nums"
+                              >
+                                {item.qty}
+                              </button>
+                            )}
+                            <button
+                              onClick={() => changeQty(item.id, 1)}
+                              className="w-7 h-7 rounded-xl bg-brand-500 flex items-center justify-center hover:bg-brand-600 active:scale-90 transition-all shadow-sm shadow-brand-500/20"
+                            >
+                              <Plus className="w-3 h-3 text-white" />
+                            </button>
+                          </div>
+                          <span className="text-sm font-black text-gray-900 tabular-nums">
+                            {fmt(effectiveUnitPrice * item.qty)}
+                            <span className="text-xs font-medium text-gray-400 mr-0.5">ر.س</span>
+                          </span>
+                        </div>
+
+                        {/* Row 3: Unit price override */}
+                        <div className={clsx("flex items-center gap-2 rounded-xl px-2.5 py-1.5 border", belowMin ? "bg-red-100 border-red-200" : "bg-white border-gray-200")}>
+                          <span className="text-[11px] text-gray-400 shrink-0">سعر الوحدة</span>
+                          <input
+                            type="text"
+                            inputMode="decimal"
+                            className="flex-1 bg-transparent text-sm font-bold text-gray-800 outline-none tabular-nums text-left min-w-0"
+                            value={item.customPrice !== undefined ? String(item.customPrice) : String(item.price)}
+                            onChange={e => updateItemPrice(item.id, e.target.value)}
+                            dir="ltr"
+                          />
+                          {priceChanged && (
+                            <button
+                              onClick={() => setCart(prev => prev.map(c => c.id === item.id ? { ...c, customPrice: undefined } : c))}
+                              className="text-gray-300 hover:text-brand-500 transition-colors shrink-0"
+                              title="استعادة السعر الأصلي"
+                            >
+                              <RotateCcw className="w-3 h-3" />
                             </button>
                           )}
-                          <button
-                            onClick={() => changeQty(item.id, 1)}
-                            className="w-7 h-7 rounded-xl bg-brand-500 flex items-center justify-center hover:bg-brand-600 active:scale-90 transition-all shadow-sm shadow-brand-500/20"
-                          >
-                            <Plus className="w-3 h-3 text-white" />
-                          </button>
+                          {item.minPrice != null && item.minPrice > 0 && (
+                            <span className={clsx("text-[10px] shrink-0 tabular-nums", belowMin ? "text-red-600 font-bold" : "text-gray-400")}>
+                              حد أدنى {fmt(item.minPrice)}
+                            </span>
+                          )}
                         </div>
-                        <span className="text-sm font-black text-gray-900 tabular-nums">{fmt(item.price * item.qty)} <span className="text-xs font-medium text-gray-400">ر.س</span></span>
+
+                        {/* Min price warning */}
+                        {belowMin && (
+                          <p className="text-[11px] text-red-600 font-medium mt-1.5 flex items-center gap-1">
+                            <AlertCircle className="w-3 h-3" />
+                            السعر أقل من الحد الأدنى المسموح به
+                          </p>
+                        )}
+
+                        {/* Row 4: Per-item note (expandable) */}
+                        <input
+                          className="w-full mt-2 bg-transparent text-[11px] text-gray-400 outline-none placeholder:text-gray-300 border-b border-dashed border-gray-200 pb-0.5"
+                          placeholder="ملاحظة على هذا البند..."
+                          value={item.note || ""}
+                          onChange={e => updateItemNote(item.id, e.target.value)}
+                        />
+
+                        {/* Row 5: Staff name */}
+                        {item.staffName && (
+                          <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-200">
+                            <Scissors className="w-3 h-3 text-gray-300" />
+                            <span className="text-[11px] text-gray-400">{item.staffName}</span>
+                          </div>
+                        )}
                       </div>
-                      {item.staffName && (
-                        <div className="flex items-center gap-1 mt-2 pt-2 border-t border-gray-200">
-                          <Scissors className="w-3 h-3 text-gray-300" />
-                          <span className="text-[11px] text-gray-400">{item.staffName}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1339,18 +1473,41 @@ export function POSPage() {
 
             {/* Payment section */}
             <div className="px-3 pt-3 border-t border-gray-100 shrink-0">
-              {/* Method buttons */}
-              <div className="grid grid-cols-4 gap-1.5 mb-3">
-                {(["cash", "card", "bank_transfer", "mixed"] as const).map(method => {
-                  const icons = { cash: Banknote, card: CreditCard, bank_transfer: ArrowLeftRight, mixed: Wallet };
-                  const labels = { cash: "نقد", card: "بطاقة", bank_transfer: "تحويل", mixed: "مختلط" };
+              {/* Method buttons — row 1 */}
+              <div className="grid grid-cols-3 gap-1.5 mb-1.5">
+                {(["cash", "card", "mada"] as const).map(method => {
+                  const icons = { cash: Banknote, card: CreditCard, mada: Smartphone };
+                  const labels = { cash: "نقد", card: "بطاقة", mada: "مدى" };
                   const Icon = icons[method];
                   return (
                     <button
                       key={method}
                       onClick={() => setPayMode(method)}
                       className={clsx(
-                        "flex flex-col items-center gap-1.5 py-3 rounded-2xl border text-[11px] font-bold transition-all",
+                        "flex flex-col items-center gap-1 py-2.5 rounded-xl border text-[11px] font-bold transition-all",
+                        payMode === method
+                          ? "border-brand-400 bg-brand-500 text-white shadow-md shadow-brand-500/25"
+                          : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100 hover:border-gray-300"
+                      )}
+                    >
+                      <Icon className="w-4 h-4" />
+                      {labels[method]}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Method buttons — row 2 */}
+              <div className="grid grid-cols-3 gap-1.5 mb-3">
+                {(["apple_pay", "bank_transfer", "mixed"] as const).map(method => {
+                  const icons = { apple_pay: Smartphone, bank_transfer: ArrowLeftRight, mixed: Wallet };
+                  const labels = { apple_pay: "Apple Pay", bank_transfer: "تحويل", mixed: "مختلط" };
+                  const Icon = icons[method];
+                  return (
+                    <button
+                      key={method}
+                      onClick={() => setPayMode(method)}
+                      className={clsx(
+                        "flex flex-col items-center gap-1 py-2.5 rounded-xl border text-[11px] font-bold transition-all",
                         payMode === method
                           ? "border-brand-400 bg-brand-500 text-white shadow-md shadow-brand-500/25"
                           : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100 hover:border-gray-300"
@@ -1418,6 +1575,8 @@ export function POSPage() {
                       >
                         <option value="cash">نقد</option>
                         <option value="card">بطاقة</option>
+                        <option value="mada">مدى</option>
+                        <option value="apple_pay">Apple Pay</option>
                         <option value="bank_transfer">تحويل</option>
                       </select>
                       <input
@@ -1504,6 +1663,9 @@ export function POSPage() {
           result={saleResult}
           orgName={orgProfile?.name || "ترميز OS"}
           onClose={handleReceiptClose}
+          hasNextPart={splitResults.length > 0 && splitReceiptIdx < splitResults.length - 1}
+          currentPart={splitResults.length > 0 ? splitReceiptIdx + 1 : undefined}
+          totalParts={splitResults.length > 0 ? splitResults.length : undefined}
         />
       )}
 
