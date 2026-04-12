@@ -21,10 +21,15 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ["xlsx"],
+    exclude: ["@capacitor-firebase/messaging", "capacitor-thermal-printer"],
   },
   build: {
     chunkSizeWarningLimit: 600,
     rollupOptions: {
+      // These Capacitor plugins import native/firebase SDKs not available on web.
+      // They are loaded via dynamic import only when isNative === true.
+      external: (id) =>
+        id === "@capacitor-firebase/messaging" || id === "capacitor-thermal-printer",
       output: {
         manualChunks(id) {
           if (id.includes("node_modules/react/") || id.includes("node_modules/react-dom/") || id.includes("node_modules/scheduler/")) return "react";

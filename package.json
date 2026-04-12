@@ -14,10 +14,33 @@
     "db:seed": "pnpm --filter @nasaq/db seed",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "cap:build": "pnpm --filter @nasaq/dashboard build && npx cap sync",
+    "cap:android": "pnpm cap:build && npx cap open android",
+    "cap:ios": "pnpm cap:build && npx cap open ios",
+    "cap:run:android": "pnpm cap:build && npx cap run android",
+    "cap:run:ios": "pnpm cap:build && npx cap run ios"
   },
   "engines": {
     "node": ">=20",
     "pnpm": ">=9"
+  },
+  "dependencies": {
+    "@capacitor-firebase/messaging": "^8.2.0",
+    "@capacitor/android": "^8.3.0",
+    "@capacitor/app": "^8.0.1",
+    "@capacitor/camera": "^8.0.2",
+    "@capacitor/cli": "^8.3.0",
+    "@capacitor/core": "^8.2.0",
+    "@capacitor/haptics": "^8.0.1",
+    "@capacitor/ios": "^8.3.0",
+    "@capacitor/keyboard": "^8.0.3",
+    "@capacitor/local-notifications": "^8.0.2",
+    "@capacitor/network": "^8.0.1",
+    "@capacitor/preferences": "^8.0.1",
+    "@capacitor/push-notifications": "^8.0.3",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
+    "capacitor-thermal-printer": "^0.2.5"
   }
 }
