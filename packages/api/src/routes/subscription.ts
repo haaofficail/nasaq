@@ -426,6 +426,42 @@ export async function _activateOrder(order: any, paymentRef: string | null, acto
     }
   }
 
+  // Referral credit: if this org was referred and subscription just activated → give referrer +30 days
+  if (order.orderType === "upgrade" || order.orderType === "renewal") {
+    const [thisOrg] = await db.select({
+      referredByOrgId:  organizations.referredByOrgId,
+      referralCredited: organizations.referralCredited,
+    }).from(organizations).where(eq(organizations.id, order.orgId));
+
+    if (thisOrg?.referredByOrgId && !thisOrg.referralCredited) {
+      // Credit referrer: extend their subscriptionEndsAt by 30 days
+      const [referrer] = await db.select({ subscriptionEndsAt: organizations.subscriptionEndsAt })
+        .from(organizations).where(eq(organizations.id, thisOrg.referredByOrgId));
+
+      const referrerBase = referrer?.subscriptionEndsAt && referrer.subscriptionEndsAt > now
+        ? referrer.subscriptionEndsAt : now;
+      const referrerNewEnd = new Date(referrerBase);
+      referrerNewEnd.setDate(referrerNewEnd.getDate() + 30);
+
+      await db.update(organizations)
+        .set({ subscriptionEndsAt: referrerNewEnd, updatedAt: now })
+        .where(eq(organizations.id, thisOrg.referredByOrgId));
+
+      // Mark credited so it only happens once
+      await db.update(organizations)
+        .set({ referralCredited: true, updatedAt: now })
+        .where(eq(organizations.id, order.orgId));
+
+      insertAuditLog({
+        orgId:    thisOrg.referredByOrgId,
+        userId:   null,
+        action:   "updated",
+        resource: "referral_credit",
+        metadata: { description: `شهر مجاني بسبب تفعيل اشتراك المنشأة المدعوة`, referredOrgId: order.orgId, newEndsAt: referrerNewEnd },
+      });
+    }
+  }
+
   // Audit: payment confirmed + subscription activated
   insertAuditLog({
     orgId:      order.orgId,
@@ -597,4 +633,34 @@ orgStatsRouter.get("/sales", async (c) => {
   });
 
   return c.json({ data: result });
+});
+
+// ============================================================
+// GET /organization/referral
+// كود الدعوة الخاص بالمنشأة + إحصائيات
+// ============================================================
+subscriptionRouter.get("/referral", async (c) => {
+  const orgId = getOrgId(c);
+
+  const [org] = await db.select({
+    referralCode:        organizations.referralCode,
+    subscriptionEndsAt:  organizations.subscriptionEndsAt,
+  }).from(organizations).where(eq(organizations.id, orgId));
+
+  if (!org) return c.json({ error: "منشأة غير موجودة" }, 404);
+
+  // Count referred orgs
+  const [stats] = await db.select({
+    total:    count(),
+    credited: sql<number>`COUNT(*) FILTER (WHERE referral_credited = true)`,
+  }).from(organizations).where(eq(organizations.referredByOrgId, orgId));
+
+  return c.json({
+    data: {
+      referralCode:   org.referralCode,
+      totalReferred:  Number(stats?.total ?? 0),
+      credited:       Number(stats?.credited ?? 0),
+      pendingCredit:  Number(stats?.total ?? 0) - Number(stats?.credited ?? 0),
+    },
+  });
 });

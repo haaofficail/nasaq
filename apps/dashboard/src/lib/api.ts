@@ -904,6 +904,7 @@ export const orgSubscriptionApi = {
   confirmPayment: (orderId: string, paymentRef?: string) => api.post<{ data: any }>("/organization/subscription/confirm-payment", { orderId, paymentRef }),
   paymentUrl:     (orderId: string, returnUrl: string)   => api.get<{ data: { paymentUrl: string } }>(`/organization/subscription/payment-url?orderId=${encodeURIComponent(orderId)}&returnUrl=${encodeURIComponent(returnUrl)}`),
   deactivateAddon:(addonKey: string)                     => api.delete<{ data: any }>(`/organization/subscription/addons/${addonKey}`),
+  referral:       ()                                     => api.get<{ data: any }>("/organization/subscription/referral"),
 };
 
 export const orgStatsApi = {

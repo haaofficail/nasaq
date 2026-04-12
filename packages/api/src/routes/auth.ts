@@ -82,10 +82,20 @@ authRouter.post("/register", async (c) => {
   }
 
   const body = await c.req.json();
-  const { businessName, phone, email, businessType, password } = body;
+  const { businessName, phone, email, businessType, password, referralCode } = body;
 
   if (!businessName || (!phone && !email)) {
     return c.json({ error: "اسم النشاط مطلوب مع جوال أو إيميل" }, 400);
+  }
+
+  // Validate referral code if provided
+  let referredByOrgId: string | null = null;
+  if (referralCode) {
+    const [referrer] = await db.select({ id: organizations.id })
+      .from(organizations)
+      .where(eq(organizations.referralCode, referralCode.trim().toUpperCase()));
+    if (referrer) referredByOrgId = referrer.id;
+    // Invalid code → silently ignore (don't block registration)
   }
 
   // Email registration requires password
@@ -126,6 +136,8 @@ authRouter.post("/register", async (c) => {
     const seqRow = (seqResult as any).rows?.[0] ?? (seqResult as any)[0] ?? { n: "0001" };
     const orgCode = `NSQ-${String(seqRow.n).padStart(4, "0")}`;
 
+    const orgReferralCode = nanoid(8).toUpperCase();
+
     const [org] = await tx.insert(organizations).values({
       orgCode,
       name: businessName,
@@ -140,6 +152,8 @@ authRouter.post("/register", async (c) => {
       operatingProfile: bizDefaults.operatingProfile,
       serviceDeliveryModes: bizDefaults.serviceDeliveryModes,
       enabledCapabilities: bizDefaults.enabledCapabilities,
+      referralCode: orgReferralCode,
+      referredByOrgId: referredByOrgId ?? undefined,
     }).returning();
 
     const [owner] = await tx.insert(users).values({

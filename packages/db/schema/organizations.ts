@@ -155,6 +155,11 @@ export const organizations = pgTable("organizations", {
   isTrial: boolean("is_trial").default(true),
   trialStartedAt: timestamp("trial_started_at", { withTimezone: true }).defaultNow(),
 
+  // Referral system
+  referralCode:     varchar("referral_code", { length: 12 }).unique(),
+  referredByOrgId:  uuid("referred_by_org_id"),
+  referralCredited: boolean("referral_credited").default(false).notNull(),
+
   // Metadata
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),

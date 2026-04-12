@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
 import { BUSINESS_TYPE_LIST } from "@/lib/constants";
 import { normalizePhone } from "@/lib/normalize-input";
@@ -13,6 +13,8 @@ function isValidSaudiPhone(phone: string) {
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const referralCode = searchParams.get("ref") ?? "";
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     businessName: "",
@@ -40,6 +42,7 @@ export function RegisterPage() {
           phone: form.phone,
           email: form.email,
           businessType: form.businessType,
+          ...(referralCode ? { referralCode } : {}),
         }),
       });
       const data = await res.json();

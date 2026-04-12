@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import {
   CreditCard, CheckCircle2, Clock, Package, History,
   ArrowUp, ArrowDown, Minus, RefreshCw, AlertCircle, X, ExternalLink,
+  Gift, Copy, Check,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { orgSubscriptionApi } from "@/lib/api";
@@ -73,6 +74,8 @@ export function SubscriptionPage() {
 
   const { data: subRes, loading, refetch: refetchSub } = useApi(() => orgSubscriptionApi.get(), []);
   const { data: ordersRes, refetch: refetchOrders }     = useApi(() => orgSubscriptionApi.orders(), []);
+  const { data: referralRes }                           = useApi(() => orgSubscriptionApi.referral(), []);
+  const [copied, setCopied] = useState(false);
 
   // ── معالجة callback من موياسار بعد إتمام الدفع ──────────
   useEffect(() => {
@@ -593,6 +596,56 @@ export function SubscriptionPage() {
           </div>
         )}
       </Modal>
+
+      {/* ── Referral Section ── */}
+      {referralRes?.data && (() => {
+        const ref = referralRes.data;
+        const link = `${window.location.origin}/register?ref=${ref.referralCode}`;
+        const copyLink = () => {
+          navigator.clipboard.writeText(link);
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2000);
+        };
+        return (
+          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+            <div className="flex items-center gap-2 mb-1">
+              <Gift className="w-5 h-5 text-brand-500" />
+              <h2 className="text-base font-bold text-gray-900">ادعُ وأحصل على شهر مجاني</h2>
+            </div>
+            <p className="text-sm text-gray-500 mb-4">
+              شارك رابط الدعوة — كل عميل يُسجّل ويُفعّل اشتراكاً عبر رابطك تحصل على 30 يوماً مجاناً تُضاف فوراً لاشتراكك.
+            </p>
+
+            {/* Link box */}
+            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-4">
+              <span className="flex-1 text-sm text-gray-700 truncate font-mono" dir="ltr">{link}</span>
+              <button
+                onClick={copyLink}
+                className="flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 shrink-0"
+              >
+                {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                {copied ? "تم النسخ" : "نسخ"}
+              </button>
+            </div>
+
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-gray-50 rounded-xl p-3 text-center">
+                <p className="text-xl font-black text-gray-900">{ref.totalReferred}</p>
+                <p className="text-xs text-gray-500">مدعوين</p>
+              </div>
+              <div className="bg-green-50 rounded-xl p-3 text-center">
+                <p className="text-xl font-black text-green-700">{ref.credited}</p>
+                <p className="text-xs text-green-600">تم الإضافة</p>
+              </div>
+              <div className="bg-amber-50 rounded-xl p-3 text-center">
+                <p className="text-xl font-black text-amber-700">{ref.pendingCredit}</p>
+                <p className="text-xs text-amber-600">بانتظار التفعيل</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
