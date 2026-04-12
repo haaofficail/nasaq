@@ -1,4 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <rect width="32" height="32" rx="7" fill="#5b9bd5"/>
-  <text x="16" y="22" font-family="'IBM Plex Sans Arabic', Arial, sans-serif" font-size="16" font-weight="700" fill="white" text-anchor="middle">ت</text>
+  <!-- ت: horizontal stroke -->
+  <rect x="7" y="18" width="18" height="2.5" rx="1.25" fill="white"/>
+  <!-- ت: curved bottom -->
+  <path d="M7 20 Q7 27 16 27 Q25 27 25 20" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- ت: two dots -->
+  <circle cx="12.5" cy="13" r="2" fill="white"/>
+  <circle cx="19.5" cy="13" r="2" fill="white"/>
 </svg>
