@@ -63,7 +63,7 @@ async function restorePOSInventory(orgId: string, items: any[]) {
 // ============================================================
 
 const paymentRowSchema = z.object({
-  method: z.enum(["cash", "card", "bank_transfer"]),
+  method: z.enum(["cash", "card", "mada", "apple_pay", "bank_transfer"]),
   amount: z.number().min(0),
   reference: z.string().optional().nullable(),
 });
