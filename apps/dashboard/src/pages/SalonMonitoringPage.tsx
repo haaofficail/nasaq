@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlertCircle, CheckCircle, AlertTriangle, Loader2, RefreshCw, Activity } from "lucide-react";
 import { salonApi } from "@/lib/api";
 import { clsx } from "clsx";
+import { SALON_MONITORING_EVENT_LABELS as EVENT_LABELS } from "@/lib/constants";
 
 // ============================================================
 // SALON MONITORING PAGE — صفحة المراقبة التشغيلية
@@ -45,13 +46,6 @@ function HealthBadge({ status }: { status: string }) {
   );
 }
 
-const EVENT_LABELS: Record<string, string> = {
-  booking_conflict_rejected:   "رفض — تعارض حجز",
-  booking_failed:              "فشل إنشاء حجز",
-  db_error:                    "خطأ قاعدة بيانات",
-  inventory_recipe_missing:    "وصفة مخزون ناقصة",
-  inventory_low_stock_warning: "تحذير مخزون منخفض",
-};
 
 export function SalonMonitoringPage() {
   const [summary, setSummary] = useState<any>(null);
@@ -74,12 +68,23 @@ export function SalonMonitoringPage() {
       setLastRefresh(new Date());
     } catch (e: any) {
       setError(e?.message ?? "تعذّر تحميل بيانات المراقبة");
+      // auto-retry after 10s on error so monitoring stays live
+      retryRef.current = setTimeout(load, 10_000);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const retryRef    = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    load();
+    intervalRef.current = setInterval(load, 60_000);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (retryRef.current)    clearTimeout(retryRef.current);
+    };
+  }, []);
 
   if (loading) return (
     <div className="min-h-[300px] flex items-center justify-center">
@@ -102,7 +107,7 @@ export function SalonMonitoringPage() {
     : "unhealthy";
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
+    <div className="space-y-5 max-w-4xl">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">

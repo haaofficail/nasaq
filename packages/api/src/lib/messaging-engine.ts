@@ -44,8 +44,9 @@ export function fireBookingEvent(
   payload: BookingEventPayload,
 ): void {
   // fire-and-forget — لا await
+  // P2-2 fix: log.error so monitoring picks up engine-level failures
   _send(eventType, payload).catch((err) =>
-    log.warn({ err, eventType, orgId: payload.orgId }, "[msg-engine] unhandled error"),
+    log.error({ err, eventType, orgId: payload.orgId }, "[msg-engine] unhandled error"),
   );
 }
 
@@ -177,14 +178,19 @@ async function _send(eventType: BookingEventType, payload: BookingEventPayload):
     } else {
       delivered = await sendWhatsApp(phone, message);
     }
-  } catch (_err) {
+  } catch (err) {
+    // P1-2 fix: log.error so monitoring/alerting picks up delivery failures
+    log.error({ err, orgId, eventType, phone }, "message delivery failed");
     delivered = false;
   }
 
   // ── 6. تسجيل في message_logs ─────────────────────────────
+  // P1-2 fix: log INSERT failures instead of swallowing them silently
   await pool.query(
     `INSERT INTO message_logs (org_id, channel, recipient_phone, message_text, status, category)
      VALUES ($1, $2, $3, $4, $5, $6)`,
     [orgId, channel, phone, message, delivered ? "sent" : "failed", eventType],
-  ).catch(() => {});
+  ).catch((err) => {
+    log.error({ err, orgId, eventType }, "message_logs INSERT failed");
+  });
 }

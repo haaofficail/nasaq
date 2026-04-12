@@ -390,6 +390,7 @@ posRouter.post("/sale", async (c) => {
   }
 
   const changeAmount = Math.max(0, +(paymentsTotal - total).toFixed(2));
+  // nanoid(10) intentional: human-readable short ID for receipts (≠ UUID used for booking IDs)
   const txNum = `POS-${nanoid(10).toUpperCase()}`;
 
   // Get org info for invoice
@@ -487,6 +488,24 @@ posRouter.post("/sale/split", async (c) => {
   const orgId = getOrgId(c);
   const userId = getUserId(c);
   const body = createSplitSaleSchema.parse(await c.req.json());
+
+  // Server-side minPrice enforcement on allItems
+  const serviceIds = body.allItems.map(i => i.id);
+  if (serviceIds.length > 0) {
+    const minPriceRows = await pool.query<{ id: string; min_price: string | null }>(
+      `SELECT id, min_price FROM services WHERE id = ANY($1) AND org_id = $2`,
+      [serviceIds, orgId]
+    );
+    const minPriceMap = Object.fromEntries(
+      minPriceRows.rows.map(r => [r.id, r.min_price ? parseFloat(r.min_price) : null])
+    );
+    for (const item of body.allItems) {
+      const floor = minPriceMap[item.id];
+      if (floor != null && floor > 0 && item.price < floor) {
+        return c.json({ error: `السعر للبند "${item.name}" أقل من الحد الأدنى المسموح (${floor} ر.س)` }, 422);
+      }
+    }
+  }
 
   const [orgRow] = await db.select({
     name: organizations.name,

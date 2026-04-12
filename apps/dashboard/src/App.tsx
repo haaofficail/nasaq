@@ -420,11 +420,11 @@ export default function App() {
 
           <Route path="schedule" element={<SchedulePage />} />
           <Route path="commissions" element={<CommissionsPage />} />
-          <Route path="salon-supplies" element={<SalonSuppliesPage />} />
-          <Route path="salon-monitoring" element={<SalonMonitoringPage />} />
-          <Route path="staff-performance" element={<StaffPerformancePage />} />
+          <Route path="salon-supplies" element={<ProtectedRoute permission="products.inventory"><SalonSuppliesPage /></ProtectedRoute>} />
+          <Route path="salon-monitoring" element={<ProtectedRoute anyPermission={["products.inventory", "reports.performance"]}><SalonMonitoringPage /></ProtectedRoute>} />
+          <Route path="staff-performance" element={<ProtectedRoute permission="reports.performance"><StaffPerformancePage /></ProtectedRoute>} />
           <Route path="customers/:id/beauty-card" element={<ClientBeautyCardPage />} />
-          <Route path="recall" element={<RecallPage />} />
+          <Route path="recall" element={<ProtectedRoute permission="customers.view"><RecallPage /></ProtectedRoute>} />
 
           <Route path="flower-inventory" element={<FlowerInventoryPage />} />
           <Route path="flower-master" element={<FlowerMasterPage />} />

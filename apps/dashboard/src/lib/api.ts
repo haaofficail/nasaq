@@ -33,13 +33,38 @@ function getHeaders(): Record<string, string> {
   return headers;
 }
 
+const REQUEST_TIMEOUT_MS = 30_000;
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers: { ...getHeaders(), ...options.headers as Record<string, string> },
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers: { ...getHeaders(), ...options.headers as Record<string, string> },
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    if (err instanceof DOMException && err.name === "AbortError") {
+      throw new Error("[TIMEOUT] انتهت مهلة الطلب، تحقق من اتصالك بالإنترنت");
+    }
+    throw err;
+  }
+  clearTimeout(timer);
 
   if (!res.ok) {
+    if (res.status === 401) {
+      localStorage.removeItem("nasaq_token");
+      sessionStorage.removeItem("nasaq_token");
+      const currentPath = window.location.pathname;
+      if (!currentPath.startsWith("/login") && !currentPath.startsWith("/admin-login") && !currentPath.startsWith("/school/login")) {
+        window.location.href = "/login";
+      }
+      throw new Error("[HTTP_401] انتهت الجلسة، يرجى تسجيل الدخول مجدداً");
+    }
     const body = await res.json().catch(() => ({ error: "Network error" }));
     const code = body.code ? `[${body.code}]` : `[HTTP_${res.status}]`;
     const rawError = body.error;

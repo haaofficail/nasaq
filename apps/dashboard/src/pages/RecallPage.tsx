@@ -4,16 +4,10 @@ import { salonApi } from "@/lib/api";
 import { Users, Phone, MessageCircle, Clock, Send } from "lucide-react";
 import { clsx } from "clsx";
 import { SkeletonRows } from "@/components/ui/Skeleton";
-
-const INTERVALS = [
-  { weeks: 4,  label: "4 أسابيع", desc: "قصة شعر" },
-  { weeks: 6,  label: "6 أسابيع", desc: "صبغة جذور" },
-  { weeks: 8,  label: "8 أسابيع", desc: "هايلايت" },
-  { weeks: 12, label: "12 أسبوع", desc: "علاج متخصص" },
-];
+import { SALON_RECALL_INTERVALS as INTERVALS } from "@/lib/constants";
 
 const WA_TEMPLATE = (name: string) =>
-  `مرحباً ${name}،\nلاحظنا أنه مضى وقت منذ زيارتك الأخيرة لنا 💇\nنود دعوتك لحجز موعدك القادم — فريقنا مستعد لخدمتك!\nاحجزي الآن عبر الرابط: `;
+  `مرحباً ${name}،\nلاحظنا أنه مضى وقت منذ زيارتك الأخيرة لنا.\nنود دعوتك لحجز موعدك القادم — فريقنا مستعد لخدمتك!\nاحجزي الآن عبر الرابط: `;
 
 export function RecallPage() {
   const [weeks, setWeeks] = useState(6);
@@ -36,7 +30,12 @@ export function RecallPage() {
 
   const buildWaLink = (phone: string, msg: string) => {
     const clean = phone.replace(/\D/g, "");
-    const intl = clean.startsWith("0") ? "966" + clean.slice(1) : clean;
+    const intl = clean.startsWith("00") ? clean.slice(2)
+      : clean.startsWith("966") ? clean
+      : clean.startsWith("0") ? "966" + clean.slice(1)
+      : clean;
+    // Validate: Saudi numbers must be 12 digits (966 + 9 digits)
+    if (intl.length < 10) return "#invalid-phone";
     return `https://wa.me/${intl}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -44,7 +43,7 @@ export function RecallPage() {
   const msgToSend = customMsg.trim() || "مرحباً! نود تذكيرك بموعدك القادم معنا. احجزي الآن.";
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 max-w-2xl">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -56,7 +55,7 @@ export function RecallPage() {
         {selected.size > 0 && (
           <button
             onClick={() => setShowMsgPanel(true)}
-            className="flex items-center gap-2 bg-green-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-green-600"
+            className="flex items-center gap-2 bg-brand-500 text-white px-4 py-2 rounded-xl text-sm font-medium hover:bg-brand-600"
           >
             <MessageCircle className="w-4 h-4" />
             تواصل مع {selected.size} عميل
@@ -173,40 +172,46 @@ export function RecallPage() {
       {/* Bulk message panel */}
       {showMsgPanel && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl">
-            <div className="px-5 py-4 border-b border-gray-100">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90vh] flex flex-col">
+            <div className="px-5 py-4 border-b border-gray-100 shrink-0">
               <h3 className="font-bold text-gray-900">رسالة لـ {selectedClients.length} عميل</h3>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-5 space-y-3 overflow-y-auto flex-1">
               <textarea
                 className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none"
-                rows={4}
+                rows={3}
                 value={customMsg}
                 onChange={e => setCustomMsg(e.target.value)}
                 placeholder={WA_TEMPLATE("العميلة")}
               />
-              <p className="text-xs text-gray-400">
-                سيُفتح واتساب لكل عميل على حدة — {selectedClients.length} نافذة
-              </p>
+              <p className="text-xs text-gray-400">انقر على كل عميل لفتح واتساب — المتصفح لا يسمح بفتح عدة نوافذ دفعة واحدة</p>
+              <div className="space-y-1.5">
+                {selectedClients.map(c => (
+                  <a
+                    key={c.id}
+                    href={buildWaLink(c.phone, customMsg.trim() || WA_TEMPLATE(c.name))}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl border border-gray-100 hover:border-green-200 hover:bg-green-50 transition-colors"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-xs shrink-0">
+                      {c.name?.[0] || "ع"}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">{c.name}</p>
+                      <p className="text-xs text-gray-400" dir="ltr">{c.phone}</p>
+                    </div>
+                    <Send className="w-3.5 h-3.5 text-green-500 shrink-0" />
+                  </a>
+                ))}
+              </div>
             </div>
-            <div className="px-5 pb-5 flex gap-2 justify-end">
+            <div className="px-5 pb-5 shrink-0">
               <button
-                onClick={() => setShowMsgPanel(false)}
-                className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
+                onClick={() => { setShowMsgPanel(false); setSelected(new Set()); }}
+                className="w-full px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
               >
-                إلغاء
-              </button>
-              <button
-                onClick={() => {
-                  for (const c of selectedClients) {
-                    window.open(buildWaLink(c.phone, customMsg.trim() || WA_TEMPLATE(c.name)), "_blank");
-                  }
-                  setShowMsgPanel(false);
-                  setSelected(new Set());
-                }}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-green-500 text-white text-sm font-medium hover:bg-green-600"
-              >
-                <Send className="w-4 h-4" /> إرسال
+                إغلاق
               </button>
             </div>
           </div>

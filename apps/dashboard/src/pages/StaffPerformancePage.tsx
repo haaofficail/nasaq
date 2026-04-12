@@ -5,11 +5,15 @@ import { TrendingUp, Users, BarChart3, RepeatIcon, Star } from "lucide-react";
 import { clsx } from "clsx";
 import { SkeletonRows } from "@/components/ui/Skeleton";
 
-const NOW = new Date();
-const firstOfMonth = `${NOW.getFullYear()}-${String(NOW.getMonth() + 1).padStart(2, "0")}-01`;
-const today = NOW.toISOString().slice(0, 10);
+function getDefaultRange() {
+  const now = new Date();
+  const firstOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+  const today = now.toISOString().slice(0, 10);
+  return { firstOfMonth, today };
+}
 
 export function StaffPerformancePage() {
+  const { firstOfMonth, today } = getDefaultRange();
   const [from, setFrom] = useState(firstOfMonth);
   const [to,   setTo]   = useState(today);
 
@@ -17,7 +21,7 @@ export function StaffPerformancePage() {
     () => salonApi.staffPerformance(from, to),
     [from, to]
   );
-  const { data: staffData } = useApi(() => staffApi.list ? staffApi.list() : Promise.resolve({ data: [] }), []);
+  const { data: staffData } = useApi(() => staffApi.list(), []);
 
   const perf: any[]  = perfData?.data || [];
   const staff: any[] = staffData?.data || [];
@@ -29,7 +33,7 @@ export function StaffPerformancePage() {
   const totalRevenue = perf.reduce((s, p) => s + p.revenue, 0);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 max-w-4xl">
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
@@ -52,7 +56,8 @@ export function StaffPerformancePage() {
       ) : perf.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
           <Users className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-          <p className="text-gray-400">لا توجد بيانات في هذه الفترة</p>
+          <p className="text-gray-400">لا توجد حجوزات مكتملة في هذه الفترة</p>
+          <p className="text-xs text-gray-300 mt-1">{from} — {to}</p>
         </div>
       ) : (
         <div className="space-y-3">

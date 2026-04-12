@@ -18,7 +18,7 @@ import { readFile, access } from "fs/promises";
 import { join as pathJoin } from "path";
 
 // Middleware
-import { authMiddleware, requirePermission, requireCapability, locationFilter, superAdminMiddleware } from "./middleware/auth";
+import { authMiddleware, requirePermission, requireCapability, requirePerm, locationFilter, superAdminMiddleware } from "./middleware/auth";
 
 // Routes
 import { authRouter } from "./routes/auth";
@@ -488,9 +488,23 @@ app.route("/messaging", messagingRouter);
 // --- Flower Builder ---
 app.route("/flower-builder", flowerBuilderRouter);
 
-// --- Salon Supplies ---
+// --- Salon ---
+// authMiddleware runs for all /salon/* routes.
+// Permission guards are split by sub-path to match actual semantics:
+//   supplies/* + recipes/*  → inventory permission (stock management)
+//   beauty-profile/*        → customers permission (client data)
+//   visit-notes/*           → bookings permission (booking context)
+//   staff-performance, recall, monitoring/* → reports.performance / customers.view
+//   health                  → auth only (no write actions)
+// NOTE: Any salon-related route added outside this prefix must register its own guard.
 app.use("/salon/*", authMiddleware);
-app.use("/salon/*", methodGuard("inventory"));
+app.use("/salon/supplies*", methodGuard("inventory"));
+app.use("/salon/recipes*", methodGuard("inventory"));
+app.use("/salon/beauty-profile*", methodGuard("customers"));
+app.use("/salon/visit-notes*", methodGuard("bookings"));
+app.use("/salon/staff-performance*", requirePerm("reports.performance"));
+app.use("/salon/recall*", requirePerm("customers.view"));
+app.use("/salon/monitoring*", requirePerm("reports.performance"));
 app.route("/salon", salonRouter);
 
 // --- Restaurant Intelligence ---

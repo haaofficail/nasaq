@@ -63,7 +63,7 @@ export function ServiceDetailPage() {
   const recipes: any[] = recipesRes?.data ?? [];
   const supplies: any[] = suppliesRes?.data ?? [];
   const [recipeForm, setRecipeForm] = useState({ supplyId: "", quantity: "1" });
-  const { mutate: addRecipe } = useMutation((data: any) => salonApi.addRecipe(data));
+  const { mutate: addRecipe, loading: addingRecipe } = useMutation((data: any) => salonApi.addRecipe(data));
   const { mutate: deleteRecipe } = useMutation((recipeId: string) => salonApi.deleteRecipe(recipeId));
 
   const service = res?.data;
@@ -879,15 +879,21 @@ export function ServiceDetailPage() {
                 />
                 <Button
                   size="sm"
-                  disabled={!recipeForm.supplyId}
+                  disabled={!recipeForm.supplyId || addingRecipe}
                   onClick={async () => {
                     if (!recipeForm.supplyId) return;
-                    await addRecipe({ serviceId: id!, supplyId: recipeForm.supplyId, quantity: recipeForm.quantity });
+                    const qty = parseFloat(recipeForm.quantity);
+                    if (isNaN(qty) || qty <= 0) {
+                      toast.error("الكمية يجب أن تكون أكبر من صفر");
+                      return;
+                    }
+                    const result = await addRecipe({ serviceId: id!, supplyId: recipeForm.supplyId, quantity: recipeForm.quantity });
+                    if (result === null) return;
                     setRecipeForm({ supplyId: "", quantity: "1" });
                     refetchRecipes();
                   }}
                 >
-                  إضافة
+                  {addingRecipe ? <Loader2 className="w-4 h-4 animate-spin" /> : "إضافة"}
                 </Button>
               </div>
             </div>
@@ -913,7 +919,12 @@ export function ServiceDetailPage() {
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-bold text-gray-700 tabular-nums">{parseFloat(r.quantity).toFixed(2)}</span>
                       <button
-                        onClick={async () => { await deleteRecipe(r.id); refetchRecipes(); }}
+                        onClick={async () => {
+                          const ok = await confirmDialog({ title: "حذف مستلزم", message: `هل تريد حذف "${supply?.name || "هذا المستلزم"}" من الوصفة؟` });
+                          if (!ok) return;
+                          await deleteRecipe(r.id);
+                          refetchRecipes();
+                        }}
                         className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-red-50 hover:border-red-200 text-gray-400 hover:text-red-500"
                       >
                         ×

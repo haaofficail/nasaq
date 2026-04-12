@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "./useToast";
 
 type ApiState<T> = {
@@ -13,14 +13,20 @@ type ApiState<T> = {
  */
 export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []) {
   const [state, setState] = useState<ApiState<T>>({ data: null, loading: true, error: null });
+  const isMounted = useRef(true);
+
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
 
   const fetchData = useCallback(async () => {
     setState((prev) => ({ ...prev, loading: true, error: null }));
     try {
       const result = await fetcher();
-      setState({ data: result, loading: false, error: null });
+      if (isMounted.current) setState({ data: result, loading: false, error: null });
     } catch (err: unknown) {
-      setState({ data: null, loading: false, error: err instanceof Error ? err.message : "حدث خطأ" });
+      if (isMounted.current) setState({ data: null, loading: false, error: err instanceof Error ? err.message : "حدث خطأ" });
     }
   }, deps);
 

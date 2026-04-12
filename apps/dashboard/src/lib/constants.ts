@@ -235,3 +235,62 @@ export const WORK_ORDER_CATEGORIES = [
   { key: "installation",   label: "تركيب" },
   { key: "other",          label: "أخرى" },
 ] as const;
+
+// ── Salon Beauty Card ─────────────────────────────────────────
+export const SALON_HAIR_TYPES = ["straight", "wavy", "curly", "coily"] as const;
+export const SALON_HAIR_LABELS: Record<string, string> = {
+  straight: "ناعم مستقيم", wavy: "موجي", curly: "مجعد", coily: "مجعد كثيف",
+};
+export const SALON_HAIR_CONDITIONS = ["healthy", "damaged", "color_treated", "bleached", "dry", "oily"] as const;
+export const SALON_HAIR_CONDITION_LABELS: Record<string, string> = {
+  healthy: "سليم", damaged: "تالف", color_treated: "مصبوغ",
+  bleached: "مبيض", dry: "جاف", oily: "دهني",
+};
+export const SALON_SKIN_TYPES = ["normal", "oily", "dry", "combination", "sensitive"] as const;
+export const SALON_SKIN_LABELS: Record<string, string> = {
+  normal: "عادي", oily: "دهني", dry: "جاف", combination: "مختلط", sensitive: "حساس",
+};
+
+// ── Salon Monitoring ──────────────────────────────────────────
+export const SALON_MONITORING_EVENT_LABELS: Record<string, string> = {
+  booking_conflict_rejected:   "رفض — تعارض حجز",
+  booking_failed:              "فشل إنشاء حجز",
+  db_error:                    "خطأ قاعدة بيانات",
+  inventory_recipe_missing:    "وصفة مخزون ناقصة",
+  inventory_low_stock_warning: "تحذير مخزون منخفض",
+};
+
+// ── Salon Recall ──────────────────────────────────────────────
+export const SALON_RECALL_INTERVALS = [
+  { weeks: 4,  label: "4 أسابيع",  desc: "قصة شعر" },
+  { weeks: 6,  label: "6 أسابيع",  desc: "صبغة جذور" },
+  { weeks: 8,  label: "8 أسابيع",  desc: "هايلايت" },
+  { weeks: 12, label: "12 أسبوع", desc: "علاج متخصص" },
+] as const;
+
+// ── Salon Supplies ────────────────────────────────────────────
+export const SALON_SUPPLY_CATEGORIES: Record<string, string> = {
+  hair_color: "صبغة شعر",
+  hair_care:  "عناية بالشعر",
+  nail:       "أظافر",
+  skin:       "عناية بالبشرة",
+  tools:      "أدوات",
+  general:    "عام",
+};
+
+export const SALON_SUPPLY_UNITS: Record<string, string> = {
+  ml:     "مل",
+  g:      "جرام",
+  piece:  "قطعة",
+  bottle: "زجاجة",
+  tube:   "أنبوب",
+  box:    "علبة",
+};
+
+export const SALON_SUPPLY_REASONS: { value: string; label: string }[] = [
+  { value: "restock",  label: "إضافة مخزون" },
+  { value: "consumed", label: "استهلاك" },
+  { value: "waste",    label: "هدر/تلف" },
+  { value: "return",   label: "إرجاع للمورد" },
+  { value: "manual",   label: "تعديل يدوي" },
+];

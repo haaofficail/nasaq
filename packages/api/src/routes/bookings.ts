@@ -663,6 +663,53 @@ bookingsRouter.post("/", async (c) => {
   const maxBufferBefore = allImmediate ? 0 : Math.max(0, ...Array.from(serviceMap.values()).map(s => (s as any).bufferBeforeMinutes || 0));
   const maxBufferAfter  = allImmediate ? 0 : Math.max(0, ...Array.from(serviceMap.values()).map(s => (s as any).bufferAfterMinutes  || 0));
 
+  // P1-3: Working hours enforcement — staff schedule + location opening hours
+  if (body.eventDate && !allImmediate) {
+    const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+    const DAY_ABBR: Record<string, string> = {
+      sunday: "sun", monday: "mon", tuesday: "tue", wednesday: "wed",
+      thursday: "thu", friday: "fri", saturday: "sat",
+    };
+    const dayName = DAY_NAMES[resolvedEventDate.getUTCDay()];
+    const eventHHMM = `${String(resolvedEventDate.getUTCHours()).padStart(2, "0")}:${String(resolvedEventDate.getUTCMinutes()).padStart(2, "0")}`;
+
+    // Check assigned staff working hours
+    if (userId) {
+      const { rows: [staffRow] } = await db.execute(
+        sql`SELECT working_hours FROM users WHERE id = ${userId} LIMIT 1`
+      );
+      const wh = (staffRow as any)?.working_hours?.[dayName];
+      if (wh?.active === false) {
+        return c.json({ error: `الموظف المعيّن غير متاح يوم ${dayName}` }, 422);
+      }
+      if (wh?.active === true && wh.start && wh.end) {
+        if (eventHHMM < wh.start || eventHHMM >= wh.end) {
+          return c.json({ error: `الموظف المعيّن غير متاح في هذا الوقت (دوامه ${wh.start} – ${wh.end})` }, 422);
+        }
+      }
+    }
+
+    // Check location opening hours
+    if (body.locationId) {
+      const { rows: [locRow] } = await db.execute(
+        sql`SELECT opening_hours FROM locations WHERE id = ${body.locationId} AND org_id = ${orgId} LIMIT 1`
+      );
+      const ohMap = (locRow as any)?.opening_hours ?? {};
+      // opening_hours keys may be full ("sunday") or abbreviated ("sun") — try both
+      const oh = ohMap[DAY_ABBR[dayName]] ?? ohMap[dayName];
+      if (oh?.active === false) {
+        return c.json({ error: `الفرع مغلق هذا اليوم` }, 422);
+      }
+      if (oh?.active === true) {
+        const open  = oh.open  ?? oh.start;
+        const close = oh.close ?? oh.end;
+        if (open && close && (eventHHMM < open || eventHHMM >= close)) {
+          return c.json({ error: `الفرع مغلق في هذا الوقت (${open} – ${close})` }, 422);
+        }
+      }
+    }
+  }
+
   let booking: typeof bookings.$inferSelect;
   try {
     booking = await db.transaction(async (tx) => {
@@ -946,24 +993,30 @@ bookingsRouter.patch("/:id/status", async (c) => {
     },
   }, "[guardrails] bookings.status.update (legacy write path)");
 
-  // Read current status for audit trail
-  const [existing] = await db.select({ status: bookings.status })
-    .from(bookings).where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)));
-  if (!existing) return c.json({ error: "الحجز غير موجود" }, 404);
-  const fromStatus = existing.status;
+  // P0-1 fix: wrap read+write in a transaction with FOR UPDATE to prevent TOCTOU
+  const statusTx = await db.transaction(async (tx) => {
+    const [existing] = await tx.select({ status: bookings.status })
+      .from(bookings)
+      .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)))
+      .for("update");
+    if (!existing) return null;
 
-  const updates: Partial<typeof bookings.$inferInsert> = { status: newStatus, updatedAt: new Date() };
-  if (newStatus === "cancelled") {
-    updates.cancelledAt = new Date();
-    updates.cancellationReason = reason ?? null;
-  }
+    const updates: Partial<typeof bookings.$inferInsert> = { status: newStatus, updatedAt: new Date() };
+    if (newStatus === "cancelled") {
+      updates.cancelledAt = new Date();
+      updates.cancellationReason = reason ?? null;
+    }
 
-  const [updated] = await db.update(bookings)
-    .set(updates)
-    .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)))
-    .returning();
+    const [upd] = await tx.update(bookings)
+      .set(updates)
+      .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)))
+      .returning();
 
-  if (!updated) return c.json({ error: "الحجز غير موجود" }, 404);
+    return upd ? { fromStatus: existing.status, updated: upd } : null;
+  });
+
+  if (!statusTx) return c.json({ error: "الحجز غير موجود" }, 404);
+  const { fromStatus, updated } = statusTx;
 
   // Booking event — status change
   db.insert(bookingEvents).values({
@@ -1045,57 +1098,64 @@ bookingsRouter.patch("/:id/status", async (c) => {
 
           for (const recipe of recipes) {
             const totalQty = parseFloat(recipe.quantity as string) * (item.quantity || 1);
-            const [supply] = await db.select({ id: salonSupplies.id, quantity: salonSupplies.quantity })
-              .from(salonSupplies).where(eq(salonSupplies.id, recipe.supplyId));
-            if (!supply) continue;
 
-            const currentQty = parseFloat(supply.quantity as string);
-            if (currentQty < totalQty) {
-              salonLog.inventoryLowStock({
+            // P0-2 fix: SELECT FOR UPDATE + UPDATE inside transaction — prevents concurrent oversell
+            await db.transaction(async (tx) => {
+              const [supply] = await tx
+                .select({ id: salonSupplies.id, quantity: salonSupplies.quantity })
+                .from(salonSupplies)
+                .where(eq(salonSupplies.id, recipe.supplyId))
+                .for("update");
+              if (!supply) return;
+
+              const currentQty = parseFloat(supply.quantity as string);
+              if (currentQty < totalQty) {
+                salonLog.inventoryLowStock({
+                  requestId: requestId ?? undefined, orgId, bookingId: id,
+                  serviceId: item.serviceId ?? undefined,
+                  metadata: { supplyId: recipe.supplyId, needed: totalQty, available: currentQty },
+                });
+                await tx.insert(salonSupplyAdjustments).values({
+                  orgId,
+                  supplyId:  recipe.supplyId,
+                  delta:     "0",
+                  reason:    "manual",
+                  notes:     `تحذير مخزون: حجز ${id.slice(0, 8)} يحتاج ${totalQty} والمتاح ${currentQty} — تم الخصم للصفر`,
+                  createdBy: actingUserId,
+                });
+              }
+              const newQty = Math.max(0, currentQty - totalQty);
+              await tx.update(salonSupplies)
+                .set({ quantity: String(newQty), updatedAt: new Date() })
+                .where(eq(salonSupplies.id, recipe.supplyId));
+
+              salonLog.inventoryDeducted({
                 requestId: requestId ?? undefined, orgId, bookingId: id,
                 serviceId: item.serviceId ?? undefined,
-                metadata: { supplyId: recipe.supplyId, needed: totalQty, available: currentQty },
+                metadata: { supplyId: recipe.supplyId, qty: totalQty, newQty },
               });
-              await db.insert(salonSupplyAdjustments).values({
+
+              await tx.insert(salonSupplyAdjustments).values({
                 orgId,
                 supplyId:  recipe.supplyId,
-                delta:     "0",
-                reason:    "manual",
-                notes:     `تحذير مخزون: حجز ${id.slice(0, 8)} يحتاج ${totalQty} والمتاح ${currentQty} — تم الخصم للصفر`,
+                delta:     String(-totalQty),
+                reason:    "consumed",
+                notes:     `خصم تلقائي — حجز ${id.slice(0, 8)}`,
                 createdBy: actingUserId,
               });
-            }
-            const newQty = Math.max(0, currentQty - totalQty);
-            await db.update(salonSupplies)
-              .set({ quantity: String(newQty), updatedAt: new Date() })
-              .where(eq(salonSupplies.id, recipe.supplyId));
 
-            salonLog.inventoryDeducted({
-              requestId: requestId ?? undefined, orgId, bookingId: id,
-              serviceId: item.serviceId ?? undefined,
-              metadata: { supplyId: recipe.supplyId, qty: totalQty, newQty },
-            });
-
-            await db.insert(salonSupplyAdjustments).values({
-              orgId,
-              supplyId:  recipe.supplyId,
-              delta:     String(-totalQty),
-              reason:    "consumed",
-              notes:     `خصم تلقائي — حجز ${id.slice(0, 8)}`,
-              createdBy: actingUserId,
-            });
-
-            // Record consumption in booking_consumptions
-            await db.insert(bookingConsumptions).values({
-              orgId,
-              bookingId: id,
-              bookingItemId: item.id,
-              supplyId: recipe.supplyId,
-              quantity: String(totalQty),
-              unit: (recipe as any).unit || null,
-              consumedAt: new Date(),
-              createdBy: actingUserId,
-              notes: `خصم تلقائي من وصفة الخدمة`,
+              // Record consumption in booking_consumptions
+              await tx.insert(bookingConsumptions).values({
+                orgId,
+                bookingId: id,
+                bookingItemId: item.id,
+                supplyId: recipe.supplyId,
+                quantity: String(totalQty),
+                unit: (recipe as any).unit || null,
+                consumedAt: new Date(),
+                createdBy: actingUserId,
+                notes: `خصم تلقائي من وصفة الخدمة`,
+              });
             });
           }
         }

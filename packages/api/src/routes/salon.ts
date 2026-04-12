@@ -71,7 +71,8 @@ salonRouter.get("/supplies/low-stock", async (c) => {
       eq(salonSupplies.isActive, true),
       lte(salonSupplies.quantity, salonSupplies.minQuantity),
     ))
-    .orderBy(asc(salonSupplies.quantity));
+    .orderBy(asc(salonSupplies.quantity))
+    .limit(100);
 
   return c.json({ data: rows, count: rows.length });
 });
@@ -177,7 +178,8 @@ salonRouter.post("/supplies/:id/adjust", async (c) => {
       .where(and(eq(salonSupplies.id, supplyId), eq(salonSupplies.orgId, orgId)));
     if (!supply) throw Object.assign(new Error("NOT_FOUND"), { status: 404 });
 
-    const newQty = parseFloat(supply.quantity as string) + parseFloat(body.delta);
+    const currentQty = parseFloat(supply.quantity as string ?? "0");
+    const newQty = (isNaN(currentQty) ? 0 : currentQty) + parseFloat(body.delta);
     if (newQty < 0) throw Object.assign(new Error("NEGATIVE_STOCK"), { status: 422 });
 
     const [updatedSupply] = await tx.update(salonSupplies)
@@ -250,6 +252,23 @@ salonRouter.put("/beauty-profile/:customerId", async (c) => {
   const customerId = c.req.param("customerId");
   const body = beautyProfileSchema.parse(await c.req.json());
 
+  // Role check: staff can only edit profiles of clients they've served
+  const user = c.get("user") as { id: string; type?: string; systemRole?: string } | null;
+  const isPrivileged = user?.type === "owner" || user?.systemRole === "owner" || user?.type === "manager";
+  if (!isPrivileged && userId) {
+    const { rows: served } = await db.execute(sql`
+      SELECT 1 FROM bookings
+      WHERE org_id = ${orgId}
+        AND customer_id = ${customerId}
+        AND assigned_user_id = ${userId}
+        AND status NOT IN ('cancelled', 'no_show')
+      LIMIT 1
+    `);
+    if ((served as any[]).length === 0) {
+      return c.json({ error: "غير مصرح — يمكنك تعديل ملف العملاء الذين قدّمت لهم خدمة فقط" }, 403);
+    }
+  }
+
   const [existing] = await db.select({ id: clientBeautyProfiles.id }).from(clientBeautyProfiles)
     .where(and(eq(clientBeautyProfiles.orgId, orgId), eq(clientBeautyProfiles.customerId, customerId)));
 
@@ -265,7 +284,12 @@ salonRouter.put("/beauty-profile/:customerId", async (c) => {
       .returning();
   }
 
-  insertAuditLog({ orgId, userId, action: "updated", resource: "beauty_profile", resourceId: customerId });
+  // Audit log — flag when sensitive medical fields are modified
+  const hasMedicalChange = body.allergies !== undefined || body.sensitivities !== undefined || body.medicalNotes !== undefined;
+  insertAuditLog({
+    orgId, userId, action: "updated", resource: "beauty_profile", resourceId: customerId,
+    metadata: hasMedicalChange ? { medicalFieldsModified: true } : {},
+  });
   return c.json({ data: result });
 });
 
@@ -406,11 +430,18 @@ salonRouter.get("/staff-performance", async (c) => {
   const from  = c.req.query("from");
   const to    = c.req.query("to");
 
-  const dateConditions = [
-    eq(bookings.orgId, orgId),
-  ];
-  if (from) dateConditions.push(gte(bookings.eventDate, new Date(from)));
-  if (to)   dateConditions.push(lte(bookings.eventDate, new Date(to)));
+  // Validate date strings to prevent Invalid Date in SQL
+  const fromDate = from ? new Date(from) : null;
+  const toDate   = to   ? new Date(to)   : null;
+  if (fromDate && isNaN(fromDate.getTime())) return c.json({ error: "تاريخ البداية غير صحيح" }, 400);
+  if (toDate   && isNaN(toDate.getTime()))   return c.json({ error: "تاريخ النهاية غير صحيح" }, 400);
+
+  // P1-1 fix: non-owner staff see only their own performance
+  const user = c.get("user") as { id: string; type?: string; systemRole?: string } | null;
+  const isPrivileged = user?.type === "owner" || user?.systemRole === "owner" || user?.type === "manager";
+  const staffIdFilter = (!isPrivileged && user?.id)
+    ? sql`AND b.assigned_user_id = ${user.id}`
+    : sql``;
 
   // Aggregate bookings per assigned staff
   const rows = await db.execute(sql`
@@ -429,13 +460,18 @@ salonRouter.get("/staff-performance", async (c) => {
     FROM bookings b
     WHERE b.org_id = ${orgId}
       AND b.assigned_user_id IS NOT NULL
-      ${from ? sql`AND b.event_date >= ${new Date(from)}` : sql``}
-      ${to   ? sql`AND b.event_date <= ${new Date(to)}`   : sql``}
+      ${staffIdFilter}
+      ${fromDate ? sql`AND b.event_date >= ${fromDate}` : sql``}
+      ${toDate   ? sql`AND b.event_date <= ${toDate}`   : sql``}
     GROUP BY b.assigned_user_id
     ORDER BY revenue DESC
   `);
 
   // Rebooking rate: % of completed clients who booked again within 90 days
+  const rebookStaffFilter = (!isPrivileged && user?.id)
+    ? sql`AND b1.assigned_user_id = ${user.id}`
+    : sql``;
+
   const rebookRows = await db.execute(sql`
     SELECT
       b1.assigned_user_id AS staff_id,
@@ -452,18 +488,19 @@ salonRouter.get("/staff-performance", async (c) => {
     WHERE b1.org_id = ${orgId}
       AND b1.status = 'completed'
       AND b1.assigned_user_id IS NOT NULL
-      ${from ? sql`AND b1.event_date >= ${new Date(from)}` : sql``}
-      ${to   ? sql`AND b1.event_date <= ${new Date(to)}`   : sql``}
+      ${rebookStaffFilter}
+      ${fromDate ? sql`AND b1.event_date >= ${fromDate}` : sql``}
+      ${toDate   ? sql`AND b1.event_date <= ${toDate}`   : sql``}
     GROUP BY b1.assigned_user_id
   `);
 
-  // Merge
+  // P2-1 fix: access .rows safely — db.execute returns QueryResult with .rows array
   const rebookMap: Record<string, any> = {};
-  for (const r of rebookRows.rows ?? (rebookRows as unknown as any[])) {
+  for (const r of (rebookRows as any).rows as any[]) {
     rebookMap[(r as any).staff_id] = r;
   }
 
-  const result = (rows.rows ?? (rows as unknown as any[])).map((r: any) => {
+  const result = ((rows as any).rows as any[]).map((r: any) => {
     const rb = rebookMap[r.staff_id];
     const rebookingRate = rb && Number(rb.served_clients) > 0
       ? Math.round((Number(rb.rebooked_clients) / Number(rb.served_clients)) * 100)

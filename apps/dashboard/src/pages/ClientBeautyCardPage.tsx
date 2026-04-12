@@ -4,17 +4,18 @@ import { useApi, useMutation } from "@/hooks/useApi";
 import { salonApi, customersApi } from "@/lib/api";
 import {
   ArrowRight, Sparkles, AlertTriangle, Heart, User,
-  Clock, Pencil, Check, X, ChevronDown, ChevronUp, Loader2,
+  Clock, Pencil, Check, X, Loader2,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { fmtDate } from "@/lib/utils";
-
-const HAIR_TYPES   = ["straight", "wavy", "curly", "coily"];
-const HAIR_LABELS: Record<string, string> = { straight: "ناعم مستقيم", wavy: "موجي", curly: "مجعد", coily: "مجعد كثيف" };
-const HAIR_COND    = ["healthy", "damaged", "color_treated", "bleached", "dry", "oily"];
-const HAIR_COND_AR: Record<string, string> = { healthy: "سليم", damaged: "تالف", color_treated: "مصبوغ", bleached: "مبيض", dry: "جاف", oily: "دهني" };
-const SKIN_TYPES   = ["normal", "oily", "dry", "combination", "sensitive"];
-const SKIN_LABELS: Record<string, string> = { normal: "عادي", oily: "دهني", dry: "جاف", combination: "مختلط", sensitive: "حساس" };
+import {
+  SALON_HAIR_TYPES as HAIR_TYPES,
+  SALON_HAIR_LABELS as HAIR_LABELS,
+  SALON_HAIR_CONDITIONS as HAIR_COND,
+  SALON_HAIR_CONDITION_LABELS as HAIR_COND_AR,
+  SALON_SKIN_TYPES as SKIN_TYPES,
+  SALON_SKIN_LABELS as SKIN_LABELS,
+} from "@/lib/constants";
 
 // ============================================================
 // Editable Section Wrapper
@@ -81,6 +82,7 @@ export function ClientBeautyCardPage() {
   const [prefDraft, setPrefDraft]  = useState<any>({});
 
   const { mutate: saveProfile } = useMutation((data: any) => salonApi.saveBeautyProfile(customerId!, data));
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const startEdit = (section: string) => {
     if (section === "hair")  { setHairDraft({ hairType: profile.hairType, hairTexture: profile.hairTexture, hairCondition: profile.hairCondition, naturalColor: profile.naturalColor, currentColor: profile.currentColor }); setEditHair(true); }
@@ -90,7 +92,13 @@ export function ClientBeautyCardPage() {
   };
 
   const save = async (section: string, draft: any) => {
-    await saveProfile({ ...profile, ...draft });
+    setSaveError(null);
+    // useMutation.mutate swallows errors internally (shows toast) and returns null on failure
+    const result = await saveProfile({ ...profile, ...draft });
+    if (result === null) {
+      setSaveError("تعذّر حفظ التغييرات — حاول مجدداً");
+      return; // don't close editor or refetch on failure
+    }
     refetch();
     if (section === "hair")  setEditHair(false);
     if (section === "skin")  setEditSkin(false);
@@ -121,6 +129,16 @@ export function ClientBeautyCardPage() {
           <p className="text-sm text-gray-400">{customer?.name}</p>
         </div>
       </div>
+
+      {/* Save error */}
+      {saveError && (
+        <div className="bg-red-50 border border-red-100 rounded-2xl px-5 py-3 flex items-center justify-between gap-3">
+          <p className="text-sm text-red-600">{saveError}</p>
+          <button onClick={() => setSaveError(null)} className="text-red-400 hover:text-red-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Last Formula Banner */}
       {profile.lastFormula && (
@@ -193,7 +211,7 @@ export function ClientBeautyCardPage() {
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-medium text-gray-500 block mb-1">حالة الشعر</label>
                 <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white"
@@ -218,7 +236,7 @@ export function ClientBeautyCardPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="نوع الشعر" value={profile.hairType ? HAIR_LABELS[profile.hairType] || profile.hairType : null} />
             <Field label="حالة الشعر" value={profile.hairCondition ? HAIR_COND_AR[profile.hairCondition] || profile.hairCondition : null} />
             <Field label="اللون الطبيعي" value={profile.naturalColor} />
@@ -259,7 +277,7 @@ export function ClientBeautyCardPage() {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <Field label="نوع البشرة" value={profile.skinType ? SKIN_LABELS[profile.skinType] || profile.skinType : null} />
             <Field label="المشاكل" value={profile.skinConcerns} />
           </div>

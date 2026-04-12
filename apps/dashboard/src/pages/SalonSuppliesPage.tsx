@@ -2,33 +2,16 @@ import { useState } from "react";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { salonApi } from "@/lib/api";
 import {
-  Package, AlertTriangle, Plus, ChevronDown, ChevronUp,
-  ArrowUp, ArrowDown, History, X, Check,
+  Package, AlertTriangle, Plus, ChevronUp,
+  ArrowUp, ArrowDown, History, X, Check, Pencil,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { SkeletonRows } from "@/components/ui/Skeleton";
-
-const CATEGORIES: Record<string, string> = {
-  hair_color:  "صبغة شعر",
-  hair_care:   "عناية بالشعر",
-  nail:        "أظافر",
-  skin:        "عناية بالبشرة",
-  tools:       "أدوات",
-  general:     "عام",
-};
-
-const UNITS: Record<string, string> = {
-  ml: "مل", g: "جرام", piece: "قطعة",
-  bottle: "زجاجة", tube: "أنبوب", box: "علبة",
-};
-
-const REASONS: { value: string; label: string }[] = [
-  { value: "restock",  label: "إضافة مخزون" },
-  { value: "consumed", label: "استهلاك" },
-  { value: "waste",    label: "هدر/تلف" },
-  { value: "return",   label: "إرجاع للمورد" },
-  { value: "manual",   label: "تعديل يدوي" },
-];
+import {
+  SALON_SUPPLY_CATEGORIES as CATEGORIES,
+  SALON_SUPPLY_UNITS as UNITS,
+  SALON_SUPPLY_REASONS as REASONS,
+} from "@/lib/constants";
 
 // ============================================================
 // Add / Edit Modal
@@ -49,8 +32,19 @@ function SupplyFormModal({
     costPerUnit: initial?.costPerUnit || "",
     notes:       initial?.notes || "",
   });
+  const [saving, setSaving] = useState(false);
 
   const set = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
+
+  const isValid = form.name.trim().length > 0
+    && parseFloat(form.quantity) >= 0
+    && parseFloat(form.minQuantity) >= 0;
+
+  const handleSave = async () => {
+    if (!isValid || saving) return;
+    setSaving(true);
+    try { await onSave(form); } finally { setSaving(false); }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
@@ -69,7 +63,7 @@ function SupplyFormModal({
               placeholder="مثال: صبغة لوريال"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-500 block mb-1">الفئة</label>
               <select
@@ -95,7 +89,7 @@ function SupplyFormModal({
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-gray-500 block mb-1">الكمية الحالية</label>
               <input
@@ -141,11 +135,11 @@ function SupplyFormModal({
             إلغاء
           </button>
           <button
-            onClick={() => { if (form.name) onSave(form); }}
-            disabled={!form.name}
+            onClick={handleSave}
+            disabled={!isValid || saving}
             className="px-4 py-2 rounded-xl bg-brand-500 text-white text-sm font-medium disabled:opacity-40"
           >
-            حفظ
+            {saving ? "جارٍ الحفظ..." : "حفظ"}
           </button>
         </div>
       </div>
@@ -254,6 +248,44 @@ function AdjustModal({
 }
 
 // ============================================================
+// Supply History — يُجلب عند التوسع فقط
+// ============================================================
+const REASON_LABELS: Record<string, string> = Object.fromEntries(
+  REASONS.map(r => [r.value, r.label])
+);
+
+function SupplyHistoryPanel({ supplyId }: { supplyId: string }) {
+  const { data, loading } = useApi(() => salonApi.getSupply(supplyId), [supplyId]);
+  const history: any[] = data?.data?.history ?? [];
+
+  if (loading) return <p className="text-xs text-gray-300 py-2 text-center">جارٍ التحميل...</p>;
+  if (history.length === 0) return <p className="text-xs text-gray-300 py-2 text-center">لا يوجد سجل تعديلات</p>;
+
+  return (
+    <div className="divide-y divide-gray-50">
+      {history.map((h: any) => {
+        const delta = parseFloat(h.delta);
+        const isPos = delta > 0;
+        return (
+          <div key={h.id} className="flex items-center justify-between py-2 px-4 gap-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-gray-600">{REASON_LABELS[h.reason] ?? h.reason}</p>
+              {h.notes && <p className="text-xs text-gray-400 truncate">{h.notes}</p>}
+            </div>
+            <span className={clsx("text-xs font-bold tabular-nums shrink-0", isPos ? "text-green-600" : "text-red-500")}>
+              {isPos ? "+" : ""}{delta.toFixed(1)}
+            </span>
+            <span className="text-xs text-gray-300 shrink-0 w-16 text-left">
+              {new Date(h.createdAt).toLocaleDateString("ar-SA", { month: "short", day: "numeric" })}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ============================================================
 // Main Page
 // ============================================================
 export function SalonSuppliesPage() {
@@ -298,7 +330,7 @@ export function SalonSuppliesPage() {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 max-w-3xl">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -413,10 +445,10 @@ export function SalonSuppliesPage() {
                           </button>
                           <button
                             onClick={() => setEditItem(supply)}
-                            className="w-8 h-8 rounded-lg border border-gray-200 text-gray-500 flex items-center justify-center hover:bg-gray-50 text-xs"
+                            className="w-8 h-8 rounded-lg border border-gray-200 text-gray-500 flex items-center justify-center hover:bg-gray-50"
                             title="تعديل"
                           >
-                            ✎
+                            <Pencil className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setExpandedId(isExpanded ? null : supply.id)}
@@ -437,6 +469,15 @@ export function SalonSuppliesPage() {
                               style={{ width: `${Math.min(100, (qty / (min * 2)) * 100)}%` }}
                             />
                           </div>
+                        </div>
+                      )}
+
+                      {/* Adjustment history */}
+                      {isExpanded && (
+                        <div className="border-t border-gray-50 bg-gray-50/40">
+                          <p className="text-xs font-semibold text-gray-400 px-4 pt-3 pb-1">سجل التعديلات</p>
+                          <SupplyHistoryPanel supplyId={supply.id} />
+                          <div className="h-3" />
                         </div>
                       )}
                     </div>
