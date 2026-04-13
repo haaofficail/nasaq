@@ -1022,6 +1022,40 @@ try {
   await pool.query(`CREATE INDEX IF NOT EXISTS menu_items_category_idx ON menu_items(org_id, category_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS menu_items_active_idx   ON menu_items(org_id, is_active)`);
 
+  // menu_modifier_groups + menu_modifiers (migration 092)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS menu_modifier_groups (
+      id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id          UUID        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      menu_item_id    UUID        NOT NULL REFERENCES menu_items(id) ON DELETE CASCADE,
+      name            TEXT        NOT NULL,
+      selection_type  TEXT        NOT NULL DEFAULT 'single',
+      is_required     BOOLEAN     NOT NULL DEFAULT false,
+      min_select      INT         NOT NULL DEFAULT 0,
+      max_select      INT         NOT NULL DEFAULT 1,
+      sort_order      INT         NOT NULL DEFAULT 0,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_menu_modifier_groups_item ON menu_modifier_groups(menu_item_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_menu_modifier_groups_org  ON menu_modifier_groups(org_id)`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS menu_modifiers (
+      id           UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id       UUID          NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      group_id     UUID          NOT NULL REFERENCES menu_modifier_groups(id) ON DELETE CASCADE,
+      name         TEXT          NOT NULL,
+      price_delta  NUMERIC(10,2) NOT NULL DEFAULT 0,
+      is_default   BOOLEAN       NOT NULL DEFAULT false,
+      is_available BOOLEAN       NOT NULL DEFAULT true,
+      sort_order   INT           NOT NULL DEFAULT 0,
+      created_at   TIMESTAMPTZ   NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_menu_modifiers_group ON menu_modifiers(group_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_menu_modifiers_org   ON menu_modifiers(org_id)`);
+
   log.info("menu tables bootstrap complete");
 } catch (err) {
   log.error({ err }, "menu tables bootstrap error — continuing startup");

@@ -779,19 +779,24 @@ export function POSPage() {
   const [editingQty, setEditingQty] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"catalog" | "cart">("catalog");
 
-  // Data — profile first so isFoodBusiness is known before dependent hooks
+  // Profile — used for org name in receipt only
   const { data: profileRes } = useApi(() => settingsApi.profile(), []);
   const orgProfile = profileRes?.data as any;
 
-  const FOOD_BUSINESS_TYPES = ["restaurant", "cafe", "bakery", "catering"];
-  const isFoodBusiness = FOOD_BUSINESS_TYPES.includes(orgProfile?.businessType ?? "");
+  // Menu items + categories fetched unconditionally.
+  // If this org has the "catalog" capability → API returns data → food-business mode.
+  // If not (403 / empty) → data stays null/[] → fall back to services.
+  const { data: menuItemsRes, loading: loadingMenuItems } = useApi(() => menuApi.items(), []);
+  const { data: menuCatRes } = useApi(() => menuApi.categories(), []);
 
-  // Categories: food businesses use menu_categories; others use service categories
-  const { data: categoriesRes } = useApi(
-    () => isFoodBusiness ? menuApi.categories() : categoriesApi.list(true),
-    [isFoodBusiness]
-  );
-  const categories: any[] = categoriesRes?.data || [];
+  const menuItemsList: any[] = menuItemsRes?.data ?? [];
+  const menuCatList:   any[] = menuCatRes?.data   ?? [];
+  // Food-business mode when the catalog API actually returned data
+  const isFoodBusiness = menuItemsList.length > 0 || menuCatList.length > 0;
+
+  // Service categories — fetched always, used as fallback for non-food businesses
+  const { data: svcCatRes } = useApi(() => categoriesApi.list(true), []);
+  const categories: any[] = isFoodBusiness ? menuCatList : (svcCatRes?.data || []);
 
   const { data: servicesRes, loading: loadingServices } = useApi(
     () => servicesApi.list({ status: "active", visibleInPOS: "true" }),
@@ -805,13 +810,8 @@ export function POSPage() {
   );
   const customerList: any[] = (customersRes as any)?.data || [];
 
-  const { data: menuItemsRes, loading: loadingMenuItems } = useApi(
-    () => isFoodBusiness ? menuApi.items() : Promise.resolve(null),
-    [isFoodBusiness]
-  );
-
   // Normalise menu items to same shape as services for the cart
-  const menuItemsAsServices: any[] = (menuItemsRes?.data ?? []).map((item: any) => ({
+  const menuItemsAsServices: any[] = menuItemsList.map((item: any) => ({
     id: item.id,
     name: item.name,
     price: item.price,
@@ -820,7 +820,8 @@ export function POSPage() {
   }));
 
   const effectiveServices = isFoodBusiness ? menuItemsAsServices : services;
-  const effectiveLoading  = isFoodBusiness ? loadingMenuItems : loadingServices;
+  // Hold skeleton until menu items resolve — avoids service→menu content flicker
+  const effectiveLoading = loadingMenuItems || (!isFoodBusiness && loadingServices);
 
   // Filtered services
   const filteredServices = effectiveServices.filter((s: any) => {
