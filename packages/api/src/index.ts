@@ -1044,6 +1044,65 @@ try {
   log.error({ err }, "plan_capabilities bootstrap error — continuing startup");
 }
 
+// Bootstrap: restaurant tables schema fixes (migration 090 may not have run on existing DBs)
+try {
+  // restaurant_tables: ensure all required columns exist
+  await pool.query(`ALTER TABLE restaurant_tables ADD COLUMN IF NOT EXISTS number     TEXT NOT NULL DEFAULT ''`);
+  await pool.query(`ALTER TABLE restaurant_tables ADD COLUMN IF NOT EXISTS capacity   INTEGER NOT NULL DEFAULT 4`);
+  await pool.query(`ALTER TABLE restaurant_tables ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE restaurant_tables ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS restaurant_tables_org_idx    ON restaurant_tables(org_id)`);
+  await pool.query(`CREATE INDEX IF NOT EXISTS restaurant_tables_status_idx ON restaurant_tables(org_id, status)`);
+
+  // table_sessions: ensure seated_at column exists
+  await pool.query(`ALTER TABLE table_sessions ADD COLUMN IF NOT EXISTS seated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
+
+  // restaurant_booking_config: ensure table exists
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS restaurant_booking_config (
+      id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id                   UUID NOT NULL UNIQUE REFERENCES organizations(id) ON DELETE CASCADE,
+      min_guests               INTEGER NOT NULL DEFAULT 1,
+      max_guests               INTEGER NOT NULL DEFAULT 12,
+      slot_duration_min        INTEGER NOT NULL DEFAULT 60,
+      advance_booking_days     INTEGER NOT NULL DEFAULT 30,
+      min_notice_hours         INTEGER NOT NULL DEFAULT 2,
+      waitlist_enabled         BOOLEAN NOT NULL DEFAULT false,
+      auto_confirm             BOOLEAN NOT NULL DEFAULT false,
+      special_requests_enabled BOOLEAN NOT NULL DEFAULT true,
+      max_concurrent_per_slot  INTEGER NOT NULL DEFAULT 5,
+      turnover_time_min        INTEGER NOT NULL DEFAULT 15,
+      deposit_required         BOOLEAN NOT NULL DEFAULT false,
+      deposit_amount           NUMERIC(10,2) NOT NULL DEFAULT 0,
+      cancellation_hours       INTEGER NOT NULL DEFAULT 24,
+      notes                    TEXT,
+      created_at               TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at               TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+
+  // restaurant_sections: ensure table exists
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS restaurant_sections (
+      id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      org_id     UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+      name       TEXT NOT NULL,
+      name_en    TEXT,
+      capacity   INTEGER NOT NULL DEFAULT 20,
+      is_active  BOOLEAN NOT NULL DEFAULT true,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      notes      TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS restaurant_sections_org_idx ON restaurant_sections(org_id)`);
+
+  log.info("restaurant schema bootstrap complete");
+} catch (err) {
+  log.error({ err }, "restaurant schema bootstrap error — continuing startup");
+}
+
 // Start pg-boss scheduler (creates pgboss schema on first run, resumes on restart)
 const boss = await startScheduler();
 
