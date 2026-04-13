@@ -958,8 +958,9 @@ try {
   log.error({ err }, "migration runner error — continuing startup");
 }
 
-// Bootstrap: ensure critical tables exist even if migration runner seeded them without executing
-// (happens when _migrations was empty on first run — all files marked applied without running)
+// Bootstrap: ensure menu tables exist and have all required columns.
+// CREATE TABLE IF NOT EXISTS handles fresh installs.
+// ALTER TABLE ADD COLUMN IF NOT EXISTS handles existing tables with older schemas.
 try {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS menu_categories (
@@ -975,7 +976,16 @@ try {
       updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
     )
   `);
+  // Add any columns that may be missing from older schema versions
+  await pool.query(`ALTER TABLE menu_categories ADD COLUMN IF NOT EXISTS name_en     TEXT`);
+  await pool.query(`ALTER TABLE menu_categories ADD COLUMN IF NOT EXISTS description TEXT`);
+  await pool.query(`ALTER TABLE menu_categories ADD COLUMN IF NOT EXISTS image       TEXT`);
+  await pool.query(`ALTER TABLE menu_categories ADD COLUMN IF NOT EXISTS sort_order  INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE menu_categories ADD COLUMN IF NOT EXISTS is_active   BOOLEAN NOT NULL DEFAULT true`);
+  await pool.query(`ALTER TABLE menu_categories ADD COLUMN IF NOT EXISTS created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
+  await pool.query(`ALTER TABLE menu_categories ADD COLUMN IF NOT EXISTS updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
   await pool.query(`CREATE INDEX IF NOT EXISTS menu_categories_org_idx ON menu_categories(org_id)`);
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS menu_items (
       id               UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -996,9 +1006,22 @@ try {
       updated_at       TIMESTAMPTZ   NOT NULL DEFAULT NOW()
     )
   `);
+  // Add any columns that may be missing from older schema versions
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS name_en          TEXT`);
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS description      TEXT`);
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image_url        TEXT`);
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS is_available     BOOLEAN NOT NULL DEFAULT true`);
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS is_active        BOOLEAN NOT NULL DEFAULT true`);
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS is_popular       BOOLEAN NOT NULL DEFAULT false`);
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS preparation_time INTEGER NOT NULL DEFAULT 10`);
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS calories         INTEGER`);
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS sort_order       INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
+  await pool.query(`ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS updated_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()`);
   await pool.query(`CREATE INDEX IF NOT EXISTS menu_items_org_idx      ON menu_items(org_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS menu_items_category_idx ON menu_items(org_id, category_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS menu_items_active_idx   ON menu_items(org_id, is_active)`);
+
   log.info("menu tables bootstrap complete");
 } catch (err) {
   log.error({ err }, "menu tables bootstrap error — continuing startup");
