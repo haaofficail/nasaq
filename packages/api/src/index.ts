@@ -1027,6 +1027,23 @@ try {
   log.error({ err }, "menu tables bootstrap error — continuing startup");
 }
 
+// Bootstrap: plan_capabilities — not in any migration file, queried by resolveOrgContext on every request
+try {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS plan_capabilities (
+      id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      plan_code    VARCHAR(20) NOT NULL,
+      capability_key TEXT      NOT NULL,
+      enabled      BOOLEAN     NOT NULL DEFAULT true,
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CONSTRAINT plan_capabilities_unique_idx UNIQUE (plan_code, capability_key)
+    )
+  `);
+  log.info("plan_capabilities bootstrap complete");
+} catch (err) {
+  log.error({ err }, "plan_capabilities bootstrap error — continuing startup");
+}
+
 // Start pg-boss scheduler (creates pgboss schema on first run, resumes on restart)
 const boss = await startScheduler();
 
