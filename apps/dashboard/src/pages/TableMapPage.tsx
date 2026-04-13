@@ -114,7 +114,8 @@ export function TableMapPage() {
 
   const handleCreate = async () => {
     if (!newTable.number.trim()) return;
-    await createMut.mutate({ number: newTable.number.trim(), section: newTable.section || null, capacity: newTable.capacity });
+    const result = await createMut.mutate({ number: newTable.number.trim(), section: newTable.section || null, capacity: newTable.capacity });
+    if (!result) return; // mutation failed — error toast already shown by useMutation
     toast.success(`تمت إضافة طاولة ${newTable.number}`);
     setNewTable({ number: "", section: "", capacity: 4 });
     setShowAddModal(false);

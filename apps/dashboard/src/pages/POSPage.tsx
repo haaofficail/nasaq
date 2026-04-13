@@ -779,8 +779,18 @@ export function POSPage() {
   const [editingQty, setEditingQty] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"catalog" | "cart">("catalog");
 
-  // Data
-  const { data: categoriesRes } = useApi(() => categoriesApi.list(true), []);
+  // Data — profile first so isFoodBusiness is known before dependent hooks
+  const { data: profileRes } = useApi(() => settingsApi.profile(), []);
+  const orgProfile = profileRes?.data as any;
+
+  const FOOD_BUSINESS_TYPES = ["restaurant", "cafe", "bakery", "catering"];
+  const isFoodBusiness = FOOD_BUSINESS_TYPES.includes(orgProfile?.businessType ?? "");
+
+  // Categories: food businesses use menu_categories; others use service categories
+  const { data: categoriesRes } = useApi(
+    () => isFoodBusiness ? menuApi.categories() : categoriesApi.list(true),
+    [isFoodBusiness]
+  );
   const categories: any[] = categoriesRes?.data || [];
 
   const { data: servicesRes, loading: loadingServices } = useApi(
@@ -795,12 +805,6 @@ export function POSPage() {
   );
   const customerList: any[] = (customersRes as any)?.data || [];
 
-  const { data: profileRes } = useApi(() => settingsApi.profile(), []);
-  const orgProfile = profileRes?.data as any;
-
-  const FOOD_BUSINESS_TYPES = ["restaurant", "cafe", "bakery", "catering"];
-  const isFoodBusiness = FOOD_BUSINESS_TYPES.includes(orgProfile?.businessType ?? "");
-
   const { data: menuItemsRes, loading: loadingMenuItems } = useApi(
     () => isFoodBusiness ? menuApi.items() : Promise.resolve(null),
     [isFoodBusiness]
@@ -811,7 +815,7 @@ export function POSPage() {
     id: item.id,
     name: item.name,
     price: item.price,
-    categoryId: item.categoryId,
+    categoryId: item.category_id,  // PostgreSQL returns snake_case
     visibleInPOS: true,
   }));
 

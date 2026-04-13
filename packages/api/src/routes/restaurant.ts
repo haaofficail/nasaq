@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { pool, db } from "@nasaq/db/client";
-import { eq, and, ilike, or, sql } from "drizzle-orm";
+import { eq, and, ilike, or, sql, desc } from "drizzle-orm";
 import { loyaltyStamps } from "@nasaq/db/schema";
 import { customers } from "@nasaq/db/schema";
 import { getOrgId, getUserId } from "../lib/helpers";
@@ -221,7 +221,7 @@ restaurantRouter.get("/loyalty", async (c) => {
           )
         : eq(loyaltyStamps.orgId, orgId)
     )
-    .orderBy(loyaltyStamps.updatedAt)
+    .orderBy(desc(loyaltyStamps.updatedAt))
     .limit(100);
 
   return c.json({ data: rows });
