@@ -267,7 +267,7 @@ export function MenuPage() {
       categoryId: itemModal.catId,
       isAvailable: itemForm.is_available,
       isPopular: itemForm.is_popular,
-      preparationTime: itemForm.preparation_time ? parseInt(itemForm.preparation_time) : null,
+      preparationTime: itemForm.preparation_time ? parseInt(itemForm.preparation_time) : 10,
     };
     if (itemModal.item) {
       await updateItem.mutate({ id: itemModal.item.id, ...payload });
