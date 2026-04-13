@@ -56,9 +56,13 @@ export function CategoriesPage() {
     };
 
     if (editingItem) {
-      await updateCat({ id: editingItem.id, data: payload });
+      const res = await updateCat({ id: editingItem.id, data: payload });
+      if (!res) return;
+      toast.success("تم تعديل التصنيف");
     } else {
-      await createCat(payload);
+      const res = await createCat(payload);
+      if (!res) return;
+      toast.success("تم إضافة التصنيف");
     }
     setShowCreate(false);
     refetch();
@@ -67,7 +71,8 @@ export function CategoriesPage() {
   const handleDelete = async (cat: any) => {
     const ok = await confirmDialog({ title: `حذف تصنيف "${cat.name}"؟`, danger: true, confirmLabel: "حذف" });
     if (!ok) return;
-    await deleteCat(cat.id);
+    const res = await deleteCat(cat.id);
+    if (!res) return;
     toast.success("تم حذف التصنيف");
     refetch();
   };

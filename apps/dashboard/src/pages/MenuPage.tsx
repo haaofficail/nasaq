@@ -245,8 +245,13 @@ export function MenuPage() {
 
   const saveCat = async () => {
     if (!catForm.name.trim()) return;
-    if (catModal.item) await updateCat.mutate({ id: catModal.item.id, ...catForm });
-    else await createCat.mutate(catForm);
+    if (catModal.item) {
+      const res = await updateCat.mutate({ id: catModal.item.id, ...catForm });
+      if (!res) return;
+    } else {
+      const res = await createCat.mutate(catForm);
+      if (!res) return;
+    }
     setCatModal({ open: false });
     toast.success(catModal.item ? "تم تعديل التصنيف" : "تم إضافة التصنيف");
     refetchCats();
@@ -286,7 +291,8 @@ export function MenuPage() {
   const handleDeleteCat = async (id: string, name: string) => {
     const ok = await confirmDialog({ title: `حذف تصنيف "${name}"؟`, message: "سيُحذف التصنيف وجميع أصنافه نهائياً", danger: true, confirmLabel: "حذف" });
     if (!ok) return;
-    await deleteCat.mutate(id);
+    const res = await deleteCat.mutate(id);
+    if (!res) return;
     if (selectedCat === id) setSelectedCat(null);
     toast.success("تم حذف التصنيف");
     refetchCats();
@@ -296,7 +302,8 @@ export function MenuPage() {
   const handleDeleteItem = async (id: string, name: string) => {
     const ok = await confirmDialog({ title: `حذف "${name}"؟`, danger: true, confirmLabel: "حذف" });
     if (!ok) return;
-    await deleteItem.mutate(id);
+    const res = await deleteItem.mutate(id);
+    if (!res) return;
     toast.success("تم حذف الصنف");
     refetchItems();
   };
