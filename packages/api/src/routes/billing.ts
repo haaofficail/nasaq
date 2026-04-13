@@ -9,6 +9,7 @@ import { insertAuditLog } from "../lib/audit";
 import { invalidateOrgStatusCache } from "../middleware/auth";
 import { log } from "../lib/logger";
 import { decryptString } from "../lib/encryption";
+import { postCustomerCollection } from "../lib/posting-engine";
 
 // ============================================================
 // BILLING ROUTER
@@ -356,6 +357,21 @@ billingRouter.post("/webhook/booking-payment", async (c) => {
      VALUES ($1, $2, $3, 'SAR', 'payment_link', 'completed', 'moyasar', $4, NOW(), 'دفع إلكتروني عبر Moyasar')`,
     [orgId, bookingId, amount, event.data.id],
   );
+
+  // Post accounting entry — تحصيل من عميل عبر Moyasar
+  try {
+    await postCustomerCollection({
+      orgId,
+      date: new Date(),
+      amount,
+      description: `تحصيل دفع إلكتروني Moyasar — حجز #${bookingId}`,
+      sourceId: event.data.id,
+      useBankAccount: true,
+      createdBy: "moyasar_webhook",
+    });
+  } catch {
+    // المحاسبة غير مُفعّلة أو حسابات غير مهيأة — نكمل بدون قيد
+  }
 
   log.info({ orgId, bookingId, amount }, "[billing/webhook/booking] payment recorded");
   return c.json({ received: true });

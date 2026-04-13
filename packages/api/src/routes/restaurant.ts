@@ -44,7 +44,13 @@ restaurantRouter.get("/tables", async (c) => {
 // POST /restaurant/tables
 restaurantRouter.post("/tables", async (c) => {
   const orgId = getOrgId(c);
-  const body = tableSchema.parse(await c.req.json());
+  let body: z.infer<typeof tableSchema>;
+  try {
+    body = tableSchema.parse(await c.req.json());
+  } catch (err: any) {
+    const details = err?.errors?.map((e: any) => `${e.path.join(".")}: ${e.message}`).join(", ");
+    return c.json({ error: `بيانات غير صالحة — ${details || err.message}` }, 400);
+  }
   try {
     const result = await pool.query(
       `INSERT INTO restaurant_tables (org_id, number, section, capacity, status, notes, sort_order)

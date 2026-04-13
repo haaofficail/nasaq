@@ -380,8 +380,8 @@ serviceOrdersRouter.patch("/:id/status", async (c) => {
            total_bookings    = COALESCE(total_bookings, 0) + 1,
            last_booking_at   = NOW(),
            updated_at        = NOW()
-         WHERE id=$1`,
-        [order.customer_id, Number(order.total_amount ?? 0)]
+         WHERE id=$1 AND org_id = $3`,
+        [order.customer_id, Number(order.total_amount ?? 0), orgId]
       );
     }
 
@@ -393,7 +393,7 @@ serviceOrdersRouter.patch("/:id/status", async (c) => {
       );
       for (const r of reservations) {
         await client.query(
-          `UPDATE decor_assets SET status='in_use', updated_at=NOW() WHERE id=$1`, [r.asset_id]
+          `UPDATE decor_assets SET status='in_use', updated_at=NOW() WHERE id=$1 AND org_id=$2`, [r.asset_id, orgId]
         );
         await client.query(
           `UPDATE decor_asset_reservations SET status='dispatched', updated_at=NOW()

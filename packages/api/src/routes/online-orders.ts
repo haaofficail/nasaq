@@ -211,8 +211,8 @@ onlineOrdersRouter.patch("/:id/status", async (c) => {
         });
         if (postResult?.entryId) {
           await pool.query(
-            `UPDATE online_orders SET journal_entry_id = $1, payment_status = 'paid' WHERE id = $2`,
-            [postResult.entryId, id]
+            `UPDATE online_orders SET journal_entry_id = $1, payment_status = 'paid' WHERE id = $2 AND org_id = $3`,
+            [postResult.entryId, id, orgId]
           );
         }
       } catch {
@@ -230,8 +230,8 @@ onlineOrdersRouter.patch("/:id/status", async (c) => {
         cancellationReason || `إلغاء طلب أونلاين #${current.order_number}`
       );
       await pool.query(
-        `UPDATE online_orders SET payment_status = 'refunded' WHERE id = $1`,
-        [id]
+        `UPDATE online_orders SET payment_status = 'refunded' WHERE id = $1 AND org_id = $2`,
+        [id, orgId]
       );
     } catch {
       // تجاهل أخطاء المحاسبة
@@ -267,8 +267,8 @@ onlineOrdersRouter.patch("/:id/status", async (c) => {
         });
         if (postResult?.entryId) {
           await pool.query(
-            `UPDATE online_orders SET journal_entry_id = $1 WHERE id = $2`,
-            [postResult.entryId, id]
+            `UPDATE online_orders SET journal_entry_id = $1 WHERE id = $2 AND org_id = $3`,
+            [postResult.entryId, id, orgId]
           );
         }
       } catch {
@@ -331,8 +331,8 @@ onlineOrdersRouter.delete("/:id", async (c) => {
         `إلغاء طلب أونلاين #${current.order_number}`
       );
       await pool.query(
-        `UPDATE online_orders SET payment_status = 'refunded' WHERE id = $1`,
-        [id]
+        `UPDATE online_orders SET payment_status = 'refunded' WHERE id = $1 AND org_id = $2`,
+        [id, orgId]
       );
     } catch {
       // تجاهل أخطاء المحاسبة

@@ -329,9 +329,9 @@ servicesRouter.get("/:id", async (c) => {
               COALESCE(SUM(i.unit_cost_estimate * i.quantity), 0) AS estimated_cost
        FROM event_package_templates t
        LEFT JOIN event_package_template_items i ON i.template_id = t.id
-       WHERE t.id = $1
+       WHERE t.id = $1 AND t.org_id = $2
        GROUP BY t.id`,
-      [(service as any).templateId]
+      [(service as any).templateId, orgId]
     );
     template = tRows[0] ?? null;
   }

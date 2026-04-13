@@ -437,12 +437,12 @@ posRouter.post("/sale", async (c) => {
       notes: body.notes,
     });
   } catch (err) {
-    await pool.query(`DELETE FROM pos_transactions WHERE id = $1`, [tx.id]);
+    await pool.query(`DELETE FROM pos_transactions WHERE id = $1 AND org_id = $2`, [tx.id, orgId]);
     throw err;
   }
 
   // Link invoice to transaction
-  await pool.query(`UPDATE pos_transactions SET invoice_id = $1 WHERE id = $2`, [invoice.id, tx.id]);
+  await pool.query(`UPDATE pos_transactions SET invoice_id = $1 WHERE id = $2 AND org_id = $3`, [invoice.id, tx.id, orgId]);
 
   // Async: journal entry + customer stats + inventory deduction
   (async () => {
@@ -551,7 +551,7 @@ posRouter.post("/sale/split", async (c) => {
     splitTotal: body.parts.length,
   });
 
-  await pool.query(`UPDATE pos_transactions SET invoice_id = $1 WHERE id = $2`, [parentInvoice.id, parentTx.id]);
+  await pool.query(`UPDATE pos_transactions SET invoice_id = $1 WHERE id = $2 AND org_id = $3`, [parentInvoice.id, parentTx.id, orgId]);
 
   const children: any[] = [];
 
@@ -603,7 +603,7 @@ posRouter.post("/sale/split", async (c) => {
       splitTotal: body.parts.length,
     });
 
-    await pool.query(`UPDATE pos_transactions SET invoice_id = $1 WHERE id = $2`, [childInvoice.id, childTx.id]);
+    await pool.query(`UPDATE pos_transactions SET invoice_id = $1 WHERE id = $2 AND org_id = $3`, [childInvoice.id, childTx.id, orgId]);
 
     // Async: journal entry
     (async () => {

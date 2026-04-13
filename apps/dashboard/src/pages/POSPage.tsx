@@ -1385,9 +1385,16 @@ export function POSPage() {
                           {/* Total + expand + delete */}
                           <div className="flex items-center gap-1.5 shrink-0">
                             {priceChanged && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" title="سعر معدَّل" />}
-                            <span className="text-[13px] font-bold text-gray-900 tabular-nums">
-                              {fmt(effectiveUnitPrice * item.qty)}
-                            </span>
+                            <div className="text-right">
+                              <div className="text-[13px] font-bold text-gray-900 tabular-nums">
+                                {fmt(effectiveUnitPrice * item.qty)}
+                              </div>
+                              {item.qty > 1 && (
+                                <div className="text-[10px] text-gray-400 tabular-nums">
+                                  {fmt(effectiveUnitPrice)} × {item.qty}
+                                </div>
+                              )}
+                            </div>
                             {canEditPrice && (
                               <button
                                 onClick={() => setExpandedItem(isExpanded ? null : item.id)}

@@ -397,8 +397,8 @@ workOrdersRouter.patch("/:id/status", async (c) => {
           `إلغاء أمر عمل #${existing.orderNumber}`
         );
         await client.query(
-          `UPDATE work_orders SET payment_status = 'refunded' WHERE id = $1`,
-          [id]
+          `UPDATE work_orders SET payment_status = 'refunded' WHERE id = $1 AND org_id = $2`,
+          [id, orgId]
         );
       } catch { /* تجاهل أخطاء المحاسبة */ }
     }

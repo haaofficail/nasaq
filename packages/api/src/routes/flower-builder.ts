@@ -569,8 +569,8 @@ flowerBuilderRouter.patch("/orders/:id/status", async (c) => {
           reason || `إلغاء طلب ورود #${order.order_number}`
         );
         await client.query(
-          `UPDATE flower_orders SET payment_status = 'refunded' WHERE id = $1`,
-          [id]
+          `UPDATE flower_orders SET payment_status = 'refunded' WHERE id = $1 AND org_id = $2`,
+          [id, orgId]
         );
       } catch {
         // تجاهل أخطاء المحاسبة
