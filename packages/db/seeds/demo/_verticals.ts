@@ -32,11 +32,11 @@ export async function seedFlowerVertical(client: any, orgId: string) {
 
   // 1. Flower variants (global master table — no org_id, no service_id)
   const flowerVariants = [
-    { type: "rose",      color: "red",    origin: "هولندا",  grade: "A", size: "medium", nameAr: "ورد روز أحمر", nameEn: "Red Rose", price: 8  },
-    { type: "rose",      color: "white",  origin: "كينيا",   grade: "A", size: "medium", nameAr: "ورد أبيض",     nameEn: "White Rose", price: 6 },
-    { type: "lily",      color: "white",  origin: "هولندا",  grade: "A", size: "large",  nameAr: "ليلى بيضاء",   nameEn: "White Lily", price: 12 },
-    { type: "sunflower", color: "yellow", origin: "إيران",   grade: "B", size: "large",  nameAr: "زنبق أصفر",    nameEn: "Sunflower",  price: 5  },
-    { type: "orchid",    color: "purple", origin: "تايلاند", grade: "A", size: "small",  nameAr: "أوركيد بنفسجي",nameEn: "Purple Orchid", price: 35 },
+    { type: "rose",      color: "red",    origin: "dutch",    grade: "A", size: "medium", nameAr: "ورد روز أحمر", nameEn: "Red Rose",      price: 8  },
+    { type: "rose",      color: "white",  origin: "kenyan",   grade: "A", size: "medium", nameAr: "ورد أبيض",     nameEn: "White Rose",    price: 6  },
+    { type: "lily",      color: "white",  origin: "dutch",    grade: "A", size: "large",  nameAr: "ليلى بيضاء",   nameEn: "White Lily",    price: 12 },
+    { type: "sunflower", color: "yellow", origin: "other",    grade: "B", size: "large",  nameAr: "زنبق أصفر",    nameEn: "Sunflower",     price: 5  },
+    { type: "orchid",    color: "purple", origin: "thailand", grade: "A", size: "small",  nameAr: "أوركيد بنفسجي",nameEn: "Purple Orchid", price: 35 },
   ];
 
   const variantIds: string[] = [];
@@ -241,14 +241,14 @@ export async function seedCarRentalVertical(client: any, orgId: string) {
 
     await client.query(
       `INSERT INTO car_rental_reservations
-         (org_id, customer_id, status, payment_status, payment_method,
+         (org_id, customer_id, driver_name, driver_phone, status, payment_status, payment_method,
           pickup_date, return_date, rental_days,
           daily_rate, total_rental_cost, tax_amount, total_amount,
           source)
-       VALUES ($1,$2,$3,$4,'cash',$5,$6,$7,$8,$9,$10,$11,'dashboard')
+       VALUES ($1,$2,$3,$4,$5,$6,'cash',$7,$8,$9,$10,$11,$12,$13,'dashboard')
        ON CONFLICT DO NOTHING`,
       [
-        orgId, cust.id,
+        orgId, cust.id, cust.name, cust.phone,
         status, payStatus,
         iso(startDate), iso(endDate), days,
         fmt(dailyRate), fmt(totalRentalCost), fmt(taxAmount), fmt(totalAmount),
@@ -521,7 +521,8 @@ export async function seedSchoolVertical(client: any, orgId: string) {
       await client.query(
         `INSERT INTO student_attendance
            (org_id, student_id, class_room_id, attendance_date, status)
-         VALUES ($1,$2,$3,$4,$5)`,
+         VALUES ($1,$2,$3,$4,$5)
+         ON CONFLICT (org_id, student_id, attendance_date) DO NOTHING`,
         [
           orgId, studentId, classRoomId,
           iso(attendDate).slice(0, 10),
