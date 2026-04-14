@@ -214,7 +214,7 @@ export async function createOrg(client: any, cfg: OrgConfig): Promise<string | n
         trial_ends_at, city, tagline, description, onboarding_completed, has_demo_data,
         enabled_capabilities, vat_number, commercial_register,
         operating_profile, service_delivery_modes)
-     VALUES ($1,$2,$3,$4,$5,$6,'professional','active',NOW()+INTERVAL '365 days',
+     VALUES ($1,$2,$3,$4,$5,$6,'pro','active',NOW()+INTERVAL '365 days',
              $7,$8,$9,true,true,$10,$11,$12,$13,$14)
      RETURNING id`,
     [
