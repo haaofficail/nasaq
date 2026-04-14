@@ -233,10 +233,10 @@ export async function createOrg(client: any, cfg: OrgConfig): Promise<string | n
 /** Create owner + staff users */
 export async function createTeam(client: any, orgId: string, ownerName: string, ownerPhone: string, ownerEmail: string) {
   const staffNames = [
-    { name: "سلمى المنصور",    role: "manager" },
-    { name: "ماجد العسيري",   role: "staff" },
-    { name: "رنا الشاوي",      role: "staff" },
-    { name: "هاني الرفاعي",    role: "staff" },
+    { name: "سلمى المنصور",    role: "employee" },
+    { name: "ماجد العسيري",   role: "employee" },
+    { name: "رنا الشاوي",      role: "employee" },
+    { name: "هاني الرفاعي",    role: "employee" },
   ];
 
   await client.query(
