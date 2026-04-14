@@ -823,56 +823,62 @@ export async function seedP1Infrastructure(
   }
 
   // ── 5. treasury_accounts + cashier_shifts (POS only) ────────────
+  // Wrapped in try-catch: server DB may have older schema (pre-migration 0001)
+  // with different column structure. 42703 = undefined_column, 42P01 = undefined_table.
   if (hasPos) {
-    // Create main cash account if not exists
-    let treasuryId: string | null = null;
-    const existTa = await client.query(
-      `SELECT id FROM treasury_accounts WHERE org_id = $1 AND type = 'main_cash' LIMIT 1`,
-      [orgId]
-    );
-    if (existTa.rows[0]) {
-      treasuryId = existTa.rows[0].id;
-    } else {
-      const taRes = await client.query(
-        `INSERT INTO treasury_accounts (org_id, name, type)
-         VALUES ($1,'الصندوق الرئيسي','main_cash')
-         RETURNING id`,
+    try {
+      let treasuryId: string | null = null;
+      const existTa = await client.query(
+        `SELECT id FROM treasury_accounts WHERE org_id = $1 LIMIT 1`,
         [orgId]
       );
-      treasuryId = taRes.rows[0].id;
-    }
+      if (existTa.rows[0]) {
+        treasuryId = existTa.rows[0].id;
+      } else {
+        const taRes = await client.query(
+          `INSERT INTO treasury_accounts (org_id, name, type)
+           VALUES ($1,'الصندوق الرئيسي','main_cash')
+           RETURNING id`,
+          [orgId]
+        );
+        treasuryId = taRes.rows[0]?.id ?? null;
+      }
 
-    if (treasuryId) {
-      const cashierId = staffIds[0]; // owner as default cashier
-      // 3 closed shifts over last 3 days
-      for (let d = 3; d >= 1; d--) {
-        const shiftDate = new Date(today);
-        shiftDate.setDate(shiftDate.getDate() - d);
-        const openBal = rand(1000, 3000);
-        const closeBal = openBal + rand(2000, 8000);
-        const actualCash = closeBal + (Math.random() < 0.3 ? rand(-50, 50) : 0);
+      if (treasuryId) {
+        const cashierId = staffIds[0];
+        for (let d = 3; d >= 1; d--) {
+          const shiftDate = new Date(today);
+          shiftDate.setDate(shiftDate.getDate() - d);
+          const openBal = rand(1000, 3000);
+          const closeBal = openBal + rand(2000, 8000);
+          const actualCash = closeBal + (Math.random() < 0.3 ? rand(-50, 50) : 0);
+          await client.query(
+            `INSERT INTO cashier_shifts
+               (org_id, treasury_account_id, cashier_id,
+                opening_balance, closing_balance, actual_cash, variance,
+                status, opened_at, closed_at)
+             VALUES ($1,$2,$3,$4,$5,$6,$7,'closed',$8,$9)`,
+            [
+              orgId, treasuryId, cashierId,
+              fmt(openBal), fmt(closeBal), fmt(actualCash), fmt(actualCash - closeBal),
+              shiftDate.toISOString(),
+              new Date(shiftDate.getTime() + 9 * 60 * 60 * 1000).toISOString(),
+            ]
+          );
+        }
         await client.query(
           `INSERT INTO cashier_shifts
-             (org_id, treasury_account_id, cashier_id,
-              opening_balance, closing_balance, actual_cash, variance,
-              status, opened_at, closed_at)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,'closed',$8,$9)`,
-          [
-            orgId, treasuryId, cashierId,
-            fmt(openBal), fmt(closeBal), fmt(actualCash), fmt(actualCash - closeBal),
-            shiftDate.toISOString(),
-            new Date(shiftDate.getTime() + 9 * 60 * 60 * 1000).toISOString(),
-          ]
+             (org_id, treasury_account_id, cashier_id, opening_balance, status, opened_at)
+           VALUES ($1,$2,$3,$4,'open',$5)`,
+          [orgId, treasuryId, cashierId, fmt(rand(500, 2000)), today.toISOString()]
         );
       }
-      // 1 open shift (today)
-      await client.query(
-        `INSERT INTO cashier_shifts
-           (org_id, treasury_account_id, cashier_id,
-            opening_balance, status, opened_at)
-         VALUES ($1,$2,$3,$4,'open',$5)`,
-        [orgId, treasuryId, cashierId, fmt(rand(500, 2000)), today.toISOString()]
-      );
+    } catch (err: any) {
+      if (err.code === "42703" || err.code === "42P01") {
+        // Schema mismatch — server has older cashier_shifts structure, skip silently
+      } else {
+        throw err;
+      }
     }
   }
 
