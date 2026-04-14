@@ -36,6 +36,12 @@ export function planAllows(currentPlan: SubscriptionPlan | undefined, requiredPl
   return (PLAN_RANK[currentPlan] ?? 0) >= PLAN_RANK[requiredPlan];
 }
 
+/** Business types that get an isolated vertical sidebar (home + specialty groups only, no universal nav) */
+export const ISOLATED_VERTICAL_TYPES = new Set(["school", "real_estate", "flower_shop"]);
+
+/** Business types that get the focused Food & Beverage sidebar */
+export const FOOD_BEVERAGE_TYPES = new Set(["restaurant", "cafe", "bakery", "catering"]);
+
 export interface NavItemEntry {
   name: string;
   href: string;
@@ -49,6 +55,13 @@ export interface NavItemEntry {
   allowedBusinessTypes?: string[];
   /** If set, item is hidden for these business types */
   excludedBusinessTypes?: string[];
+  /**
+   * Mark item to appear in the focused Food & Beverage sidebar.
+   * F&B types show only items flagged with foodBeverageOps: true
+   * (plus their own specialty group and analysis/growth groups).
+   * allowedBusinessTypes / excludedBusinessTypes on the item still apply.
+   */
+  foodBeverageOps?: boolean;
 }
 
 export interface NavGroupEntry {
@@ -101,11 +114,11 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     items: [
       { name: "الخدمات",          href: "/dashboard/catalog",        icon: Layers,        requiredCapabilities: ["catalog"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental"] },
       { name: "الحجوزات",        href: "/dashboard/bookings",     icon: CalendarCheck, requiredCapabilities: ["bookings"] },
-      { name: "نقطة البيع",        href: "/dashboard/pos",          icon: ShoppingBag,   requiredCapabilities: ["pos"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental", "restaurant", "bakery", "catering", "flower_shop"] },
-      { name: "الطلبات",         href: "/dashboard/orders",       icon: Package,       requiredCapabilities: ["online_orders"] },
+      { name: "نقطة البيع",        href: "/dashboard/pos",          icon: ShoppingBag,   requiredCapabilities: ["pos"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental", "restaurant", "bakery", "catering", "flower_shop"], foodBeverageOps: true },
+      { name: "الطلبات",         href: "/dashboard/orders",       icon: Package,       requiredCapabilities: ["online_orders"], foodBeverageOps: true },
       { name: "التوصيل",          href: "/dashboard/delivery",     icon: Truck,         requiredCapabilities: [], requiredPlan: "basic", excludedBusinessTypes: ["salon", "barber", "spa", "fitness", "massage", "photography", "hotel", "car_rental", "rental", "real_estate", "school"] },
       { name: "أوامر العمل",     href: "/dashboard/work-orders",  icon: ClipboardCheck, requiredCapabilities: [], allowedBusinessTypes: ["workshop", "maintenance", "logistics", "construction", "laundry", "photography"] },
-      { name: "العملاء",         href: "/dashboard/customers",    icon: Users,         requiredCapabilities: [], excludedBusinessTypes: ["flower_shop"] },
+      { name: "العملاء",         href: "/dashboard/customers",    icon: Users,         requiredCapabilities: [], excludedBusinessTypes: ["flower_shop"], foodBeverageOps: true },
       { name: "العقود",          href: "/dashboard/contracts",    icon: FileSignature, requiredCapabilities: [], requiredPlan: "basic", excludedBusinessTypes: ["salon", "spa", "restaurant", "cafe", "bakery", "flower_shop", "retail", "laundry", "rental", "car_rental", "hotel", "real_estate"] },
     ],
   },
@@ -579,8 +592,8 @@ export function buildVisibleNav(ctx: OrgNavContext): NavGroupEntry[] {
   const universal   = visible.filter((g) => !isSpecialty(g));
   const specialty   = visible.filter((g) => isSpecialty(g));
 
-  // Isolated verticals: show only home + their specialty modules (no commercial nav)
-  if (ctx.businessType === "school" || ctx.businessType === "real_estate" || ctx.businessType === "flower_shop") {
+  // Isolated verticals: show only home + their specialty modules (no universal nav)
+  if (ISOLATED_VERTICAL_TYPES.has(ctx.businessType)) {
     const homeGroup = universal.find((g) => g.id === "home");
     return [
       ...(homeGroup ? [homeGroup] : []),
@@ -588,34 +601,27 @@ export function buildVisibleNav(ctx: OrgNavContext): NavGroupEntry[] {
     ];
   }
 
-  // Food & Beverage: focused sidebar with only café-relevant items
-  if (ctx.businessType === "restaurant" || ctx.businessType === "cafe" || ctx.businessType === "bakery" || ctx.businessType === "catering") {
-    const homeGroup = universal.find((g) => g.id === "home");
-    const opsGroup  = universal.find((g) => g.id === "operations");
-    const growGroup = universal.find((g) => g.id === "growth");
-    const foodGroup = specialty.find((g) => g.id === "specialty_food");
-
-    const cafeAllowedOps = ctx.businessType === "cafe"
-      ? ["/dashboard/pos", "/dashboard/orders", "/dashboard/customers"]
-      : ["/dashboard/orders", "/dashboard/customers"];
-    const cafeOps = opsGroup ? {
-      ...opsGroup,
-      items: opsGroup.items.filter((i) => cafeAllowedOps.includes(i.href)),
-    } : null;
-
-    const cafeGrowth = growGroup ? {
-      ...growGroup,
-      items: growGroup.items,
-    } : null;
-
+  // Food & Beverage: focused sidebar — specialty group + flagged ops items + analysis + growth
+  if (FOOD_BEVERAGE_TYPES.has(ctx.businessType)) {
+    const homeGroup     = universal.find((g) => g.id === "home");
+    const opsGroup      = universal.find((g) => g.id === "operations");
+    const growGroup     = universal.find((g) => g.id === "growth");
+    const foodGroup     = specialty.find((g) => g.id === "specialty_food");
     const analysisGroup = universal.find((g) => g.id === "analysis");
+
+    // Items already had excludedBusinessTypes applied in the visible filter above,
+    // so filtering by foodBeverageOps is enough to pick the right subset.
+    const fbOps = opsGroup ? {
+      ...opsGroup,
+      items: opsGroup.items.filter((i) => i.foodBeverageOps === true),
+    } : null;
 
     return [
       ...(homeGroup ? [homeGroup] : []),
       ...(foodGroup ? [foodGroup] : []),
-      ...(cafeOps && cafeOps.items.length > 0 ? [cafeOps] : []),
+      ...(fbOps && fbOps.items.length > 0 ? [fbOps] : []),
       ...(analysisGroup && analysisGroup.items.length > 0 ? [analysisGroup] : []),
-      ...(cafeGrowth && cafeGrowth.items.length > 0 ? [cafeGrowth] : []),
+      ...(growGroup && growGroup.items.length > 0 ? [growGroup] : []),
     ];
   }
 
