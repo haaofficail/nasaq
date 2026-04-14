@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   FileSignature, Plus, Search, AlertCircle, CheckCircle2, Clock,
-  XCircle, RotateCcw, Eye, Loader2, Archive, ChevronDown,
+  XCircle, RotateCcw, Eye, Loader2, Archive, ChevronDown, Link2,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { contractsApi } from "@/lib/api";
@@ -284,6 +284,12 @@ export function ContractsPage() {
                     </div>
                     <h3 className="font-semibold text-gray-900 mb-0.5">{c.title}</h3>
                     <p className="text-sm text-gray-500">{c.party_name}</p>
+                    {c.linked_entity_name && (
+                      <p className="flex items-center gap-1 text-xs text-brand-600 mt-0.5">
+                        <Link2 size={11} />
+                        {c.linked_entity_name}
+                      </p>
+                    )}
                     <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-gray-400">
                       <span>{fmtDate(c.start_date)} — {fmtDate(c.end_date)}</span>
                       <span className="font-mono text-gray-600">{fmt(c.value)}</span>

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowRight, FileSignature, CheckCircle2, Clock, XCircle, RotateCcw, Archive,
-  Plus, Loader2, AlertCircle, FileText, Trash2, RotateCw, Edit2, ChevronDown,
+  Plus, Loader2, AlertCircle, FileText, Trash2, RotateCw, Edit2, ChevronDown, Link2,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { contractsApi } from "@/lib/api";
@@ -295,6 +295,16 @@ export function ContractDetailPage() {
             <p className="text-sm font-medium text-gray-700">{PAYMENT_TERMS[contract.payment_terms] ?? contract.payment_terms ?? "—"}</p>
           </div>
         </div>
+
+        {contract.linked_entity_name && (
+          <div className="mt-4 pt-4 border-t border-gray-100">
+            <p className="text-xs text-gray-400 mb-1">الأصل المرتبط</p>
+            <p className="flex items-center gap-1.5 text-sm font-medium text-brand-600">
+              <Link2 size={14} />
+              {contract.linked_entity_name}
+            </p>
+          </div>
+        )}
 
         {contract.notes && (
           <div className="mt-4 pt-4 border-t border-gray-100">

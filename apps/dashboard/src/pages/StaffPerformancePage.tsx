@@ -1,9 +1,12 @@
 import { useState } from "react";
 import { useApi } from "@/hooks/useApi";
 import { salonApi, staffApi } from "@/lib/api";
+import { useBusiness } from "@/hooks/useBusiness";
 import { TrendingUp, Users, BarChart3, RepeatIcon, Star } from "lucide-react";
 import { clsx } from "clsx";
 import { SkeletonRows } from "@/components/ui/Skeleton";
+
+const BEAUTY_TYPES = new Set(["salon", "barber", "spa", "fitness"]);
 
 function getDefaultRange() {
   const now = new Date();
@@ -13,15 +16,28 @@ function getDefaultRange() {
 }
 
 export function StaffPerformancePage() {
+  const biz = useBusiness();
+  const isBeauty = BEAUTY_TYPES.has(biz.key);
   const { firstOfMonth, today } = getDefaultRange();
   const [from, setFrom] = useState(firstOfMonth);
   const [to,   setTo]   = useState(today);
 
   const { data: perfData, loading } = useApi(
-    () => salonApi.staffPerformance(from, to),
-    [from, to]
+    () => isBeauty ? salonApi.staffPerformance(from, to) : Promise.resolve(null),
+    [from, to, isBeauty]
   );
   const { data: staffData } = useApi(() => staffApi.list(), []);
+
+  if (!isBeauty) {
+    return (
+      <div className="flex items-center justify-center min-h-[300px]">
+        <div className="text-center">
+          <BarChart3 className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+          <p className="text-gray-500 font-medium">هذه الصفحة مخصصة لمنشآت الصالون والسبا</p>
+        </div>
+      </div>
+    );
+  }
 
   const perf: any[]  = perfData?.data || [];
   const staff: any[] = staffData?.data || [];

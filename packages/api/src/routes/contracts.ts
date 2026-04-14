@@ -137,7 +137,14 @@ contractsRouter.get("/", async (c) => {
   let q = `
     SELECT c.*,
       (SELECT COUNT(*) FROM contract_payments cp WHERE cp.contract_id = c.id AND cp.status = 'pending') AS pending_payments,
-      (SELECT COUNT(*) FROM contract_documents cd WHERE cd.contract_id = c.id) AS document_count
+      (SELECT COUNT(*) FROM contract_documents cd WHERE cd.contract_id = c.id) AS document_count,
+      CASE
+        WHEN c.linked_entity_type = 'equipment'
+          THEN (SELECT ra.name FROM rental_assets ra WHERE ra.id = c.linked_entity_id LIMIT 1)
+        WHEN c.linked_entity_type = 'car'
+          THEN (SELECT ra.name FROM rental_assets ra WHERE ra.id = c.linked_entity_id LIMIT 1)
+        ELSE NULL
+      END AS linked_entity_name
     FROM contracts c
     WHERE c.org_id = $1
   `;
@@ -171,7 +178,18 @@ contractsRouter.get("/:id", async (c) => {
   const { id } = c.req.param();
 
   const [{ rows: [contract] }, { rows: payments }, { rows: documents }] = await Promise.all([
-    pool.query("SELECT * FROM contracts WHERE id=$1 AND org_id=$2", [id, orgId]),
+    pool.query(
+      `SELECT c.*,
+         CASE
+           WHEN c.linked_entity_type = 'equipment'
+             THEN (SELECT ra.name FROM rental_assets ra WHERE ra.id = c.linked_entity_id LIMIT 1)
+           WHEN c.linked_entity_type = 'car'
+             THEN (SELECT ra.name FROM rental_assets ra WHERE ra.id = c.linked_entity_id LIMIT 1)
+           ELSE NULL
+         END AS linked_entity_name
+       FROM contracts c WHERE c.id=$1 AND c.org_id=$2`,
+      [id, orgId]
+    ),
     pool.query("SELECT * FROM contract_payments WHERE contract_id=$1 ORDER BY due_date", [id]),
     pool.query("SELECT * FROM contract_documents WHERE contract_id=$1 ORDER BY created_at", [id]),
   ]);
