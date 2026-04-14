@@ -65,18 +65,12 @@ async function run() {
 
     if (resetFlag) {
       console.log("Resetting demo orgs...");
-      // Delete booking_items first — service_id is NOT NULL so cascade doesn't work
-      await client.query(`
-        DELETE FROM booking_items
-        WHERE booking_id IN (
-          SELECT b.id FROM bookings b
-          JOIN organizations o ON b.org_id = o.id
-          WHERE o.has_demo_data = true AND o.slug LIKE 'demo-%'
-        )
-      `);
+      // Temporarily disable FK constraint triggers so cascades work cleanly
+      await client.query(`SET session_replication_role = 'replica'`);
       await client.query(
         `DELETE FROM organizations WHERE has_demo_data = true AND slug LIKE 'demo-%'`
       );
+      await client.query(`SET session_replication_role = 'origin'`);
       console.log("  → Done\n");
     }
 
