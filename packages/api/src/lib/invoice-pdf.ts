@@ -404,7 +404,7 @@ export async function buildInvoiceData(
 ): Promise<InvoiceData | null> {
   const { rows: [inv] } = await pool.query(
     `SELECT i.*,
-            o.logo_url,
+            o.logo AS logo_url,
             array_agg(
               json_build_object(
                 'description',    ii.description,
@@ -420,7 +420,7 @@ export async function buildInvoiceData(
      LEFT JOIN invoice_items ii ON ii.invoice_id = i.id
      LEFT JOIN organizations o  ON o.id = i.org_id
      WHERE i.id = $1 AND i.org_id = $2
-     GROUP BY i.id, o.logo_url`,
+     GROUP BY i.id, o.logo`,
     [invoiceId, orgId],
   );
 
