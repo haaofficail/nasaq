@@ -563,6 +563,282 @@ export async function seedMedicalVertical(client: any, orgId: string) {
   }
 }
 
+// ─── FOOD & BEVERAGE ─────────────────────────────────────────────────────────
+// Tables: menu_categories, menu_items, restaurant_tables, loyalty_stamps
+
+async function seedFoodVertical(client: any, orgId: string) {
+  const customers = await getOrgCustomers(client, orgId);
+
+  // Detect sub-type from org business_type
+  const typeRes = await client.query(
+    `SELECT business_type FROM organizations WHERE id = $1`,
+    [orgId]
+  );
+  const businessType: string = typeRes.rows[0]?.business_type ?? "restaurant";
+
+  // ── Menu Categories ───────────────────────────────────────────────────────
+  type MenuCatDef = { name: string; name_en: string };
+  const catsByType: Record<string, MenuCatDef[]> = {
+    restaurant: [
+      { name: "المقبلات",    name_en: "Starters" },
+      { name: "الأطباق الرئيسية", name_en: "Main Dishes" },
+      { name: "الشوايات",   name_en: "Grills" },
+      { name: "السلطات",    name_en: "Salads" },
+      { name: "الحلويات",   name_en: "Desserts" },
+    ],
+    cafe: [
+      { name: "القهوة والمشروبات الساخنة", name_en: "Hot Drinks" },
+      { name: "المشروبات الباردة",         name_en: "Cold Drinks" },
+      { name: "الحلويات والكيك",           name_en: "Sweets & Cake" },
+      { name: "الوجبات الخفيفة",           name_en: "Snacks" },
+    ],
+    bakery: [
+      { name: "الخبز والمعجنات", name_en: "Bread & Pastries" },
+      { name: "الكيك والتورتات", name_en: "Cakes & Tarts" },
+      { name: "الحلويات الشرقية", name_en: "Oriental Sweets" },
+      { name: "المشروبات",       name_en: "Drinks" },
+    ],
+    catering: [
+      { name: "باقات الأفراح",   name_en: "Wedding Packages" },
+      { name: "باقات الفعاليات", name_en: "Event Packages" },
+      { name: "الوجبات الجاهزة", name_en: "Ready Meals" },
+      { name: "المشروبات",       name_en: "Drinks" },
+    ],
+  };
+  const cats = catsByType[businessType] ?? catsByType.restaurant;
+
+  const catIds: string[] = [];
+  for (let i = 0; i < cats.length; i++) {
+    const r = await client.query(
+      `INSERT INTO menu_categories (org_id, name, name_en, sort_order, is_active)
+       VALUES ($1, $2, $3, $4, true)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [orgId, cats[i].name, cats[i].name_en, i + 1]
+    );
+    if (r.rows[0]) catIds.push(r.rows[0].id);
+  }
+  if (catIds.length === 0) return;
+
+  // ── Menu Items ────────────────────────────────────────────────────────────
+  type MenuItemDef = { name: string; price: number; popular?: boolean; prep?: number };
+  const itemsByType: Record<string, MenuItemDef[][]> = {
+    restaurant: [
+      // Starters
+      [
+        { name: "حراق إصبعه",       price: 18, popular: true, prep: 10 },
+        { name: "سلطة فتوش",        price: 14, prep: 5 },
+        { name: "حمص بالزيت",       price: 12, prep: 5 },
+        { name: "متبل",             price: 12, prep: 5 },
+      ],
+      // Main
+      [
+        { name: "مندي دجاج",        price: 55, popular: true, prep: 40 },
+        { name: "كبسة لحم",         price: 75, popular: true, prep: 45 },
+        { name: "هريس باللحم",      price: 45, prep: 35 },
+        { name: "مكلوبة",           price: 50, prep: 40 },
+      ],
+      // Grills
+      [
+        { name: "مشويات مشكلة",     price: 95, popular: true, prep: 30 },
+        { name: "دجاج مشوي",        price: 60, prep: 25 },
+        { name: "كباب عراقي",       price: 65, prep: 20 },
+      ],
+      // Salads
+      [
+        { name: "سلطة قيصر",        price: 22, prep: 10 },
+        { name: "سلطة خضراء",       price: 18, prep: 8 },
+      ],
+      // Desserts
+      [
+        { name: "أم علي",           price: 20, popular: true, prep: 15 },
+        { name: "كنافة",            price: 22, prep: 10 },
+        { name: "بسبوسة",           price: 16, prep: 5 },
+      ],
+    ],
+    cafe: [
+      // Hot
+      [
+        { name: "قهوة عربية",       price: 12, popular: true, prep: 5 },
+        { name: "كابتشينو",         price: 18, popular: true, prep: 5 },
+        { name: "لاتيه",            price: 20, prep: 5 },
+        { name: "موكا",             price: 22, prep: 5 },
+        { name: "شاي كرك",         price: 10, prep: 5 },
+      ],
+      // Cold
+      [
+        { name: "فرابتشينو",        price: 24, popular: true, prep: 7 },
+        { name: "آيس لاتيه",        price: 22, prep: 5 },
+        { name: "عصير طازج",        price: 18, prep: 5 },
+        { name: "سموذي فراولة",     price: 22, prep: 7 },
+      ],
+      // Sweets
+      [
+        { name: "تشيز كيك",         price: 28, popular: true, prep: 3 },
+        { name: "براونيز",          price: 20, prep: 3 },
+        { name: "كروف",            price: 22, prep: 3 },
+      ],
+      // Snacks
+      [
+        { name: "سندويش كلوب",      price: 30, prep: 10 },
+        { name: "باستا دجاج",       price: 35, prep: 15 },
+        { name: "بيتزا صغيرة",      price: 32, prep: 20 },
+      ],
+    ],
+    bakery: [
+      // Bread
+      [
+        { name: "خبز التميس",       price: 8,  popular: true, prep: 20 },
+        { name: "كرواسون زبدة",     price: 12, prep: 15 },
+        { name: "خبز الثوم",        price: 10, prep: 15 },
+      ],
+      // Cake
+      [
+        { name: "كيك الشوكولاتة",   price: 35, popular: true, prep: 3 },
+        { name: "تورتة الفراولة",   price: 45, prep: 3 },
+        { name: "كيك الريد فيلفت",  price: 40, prep: 3 },
+        { name: "كب كيك مشكل",      price: 25, prep: 3 },
+      ],
+      // Oriental
+      [
+        { name: "بقلاوة",           price: 30, popular: true, prep: 3 },
+        { name: "معمول تمر",        price: 28, prep: 3 },
+        { name: "بسبوسة",           price: 22, prep: 3 },
+      ],
+      // Drinks
+      [
+        { name: "قهوة سادة",        price: 10, prep: 5 },
+        { name: "شاي بالنعناع",     price: 8,  prep: 5 },
+        { name: "عصير برتقال",      price: 15, prep: 5 },
+      ],
+    ],
+    catering: [
+      [
+        { name: "باقة فرح اقتصادية (50 شخص)",    price: 2500, popular: true, prep: 120 },
+        { name: "باقة فرح مميزة (100 شخص)",      price: 5000, prep: 120 },
+      ],
+      [
+        { name: "باقة فعالية ذهبية (30 شخص)",    price: 1800, popular: true, prep: 90 },
+        { name: "باقة فعالية فضية (50 شخص)",     price: 2800, prep: 90 },
+      ],
+      [
+        { name: "صحن كبسة دجاج",    price: 35, prep: 40 },
+        { name: "صحن مندي لحم",     price: 55, popular: true, prep: 45 },
+        { name: "صحن أرز بالخضار",  price: 25, prep: 30 },
+      ],
+      [
+        { name: "طقم مشروبات باردة", price: 80, prep: 10 },
+        { name: "قهوة وتمر للحفلات", price: 120, prep: 15 },
+      ],
+    ],
+  };
+  const itemGroups = itemsByType[businessType] ?? itemsByType.restaurant;
+
+  for (let ci = 0; ci < catIds.length && ci < itemGroups.length; ci++) {
+    const group = itemGroups[ci];
+    for (let si = 0; si < group.length; si++) {
+      const item = group[si];
+      await client.query(
+        `INSERT INTO menu_items
+           (org_id, category_id, name, price, is_available, is_active, is_popular, preparation_time, sort_order)
+         VALUES ($1,$2,$3,$4,true,true,$5,$6,$7)
+         ON CONFLICT DO NOTHING`,
+        [orgId, catIds[ci], item.name, item.price, item.popular ?? false, item.prep ?? 15, si + 1]
+      );
+    }
+  }
+
+  // ── Restaurant Tables ─────────────────────────────────────────────────────
+  if (businessType === "restaurant" || businessType === "cafe") {
+    const sections = businessType === "restaurant"
+      ? ["داخلي", "داخلي", "داخلي", "خارجي", "خارجي", "VIP", "VIP", "عائلي", "عائلي", "عائلي"]
+      : ["قاعة رئيسية", "قاعة رئيسية", "قاعة رئيسية", "تيراس", "تيراس", "VIP", "VIP", "داخلي", "داخلي", "داخلي"];
+    const caps  = [2, 4, 4, 4, 2, 6, 8, 6, 6, 4];
+    for (let t = 0; t < 10; t++) {
+      await client.query(
+        `INSERT INTO restaurant_tables (org_id, number, section, capacity, status)
+         VALUES ($1,$2,$3,$4,'available')
+         ON CONFLICT (org_id, number) DO NOTHING`,
+        [orgId, t + 1, sections[t], caps[t]]
+      );
+    }
+  }
+
+  // ── Loyalty Stamps ────────────────────────────────────────────────────────
+  const stampCusts = customers.slice(0, 15);
+  for (const c of stampCusts) {
+    const stampsCount = rand(1, 12);
+    const freeRedeemed = Math.floor(stampsCount / 10);
+    await client.query(
+      `INSERT INTO loyalty_stamps
+         (org_id, customer_id, stamps_count, stamps_goal, free_items_redeemed, last_stamp_at)
+       VALUES ($1,$2,$3,10,$4,NOW() - INTERVAL '1 day' * $5)
+       ON CONFLICT (org_id, customer_id) DO NOTHING`,
+      [orgId, c.id, stampsCount, freeRedeemed, rand(1, 30)]
+    );
+  }
+}
+
+// ─── RENTAL ───────────────────────────────────────────────────────────────────
+// Tables: rental_assets
+
+async function seedRentalVertical(client: any, orgId: string) {
+  // Check table exists first
+  const tblCheck = await client.query(
+    `SELECT to_regclass('public.rental_assets') AS tbl`
+  );
+  if (!tblCheck.rows[0]?.tbl) return;
+
+  type AssetDef = { name: string; category: string; daily_rate: number; deposit: number };
+  const assets: AssetDef[] = [
+    { name: "شاشة LED 55 بوصة",        category: "أجهزة عرض",    daily_rate: 350,  deposit: 2000 },
+    { name: "بروجيكتور 4K",             category: "أجهزة عرض",    daily_rate: 250,  deposit: 1500 },
+    { name: "كاميرا Canon EOS R5",       category: "كاميرات",       daily_rate: 450,  deposit: 5000 },
+    { name: "طاولة مستديرة 10 أشخاص",   category: "أثاث",          daily_rate: 120,  deposit: 500  },
+    { name: "كرسي فولاذي",              category: "أثاث",          daily_rate: 15,   deposit: 80   },
+    { name: "خيمة ضيافة 10×10م",        category: "خيم وظلال",     daily_rate: 800,  deposit: 3000 },
+    { name: "مولد كهربائي 10 كيلو",      category: "معدات كهربائية", daily_rate: 600,  deposit: 2500 },
+    { name: "مكيف تبريد محمول",          category: "معدات كهربائية", daily_rate: 200,  deposit: 1000 },
+    { name: "نظام صوت متكامل",           category: "صوتيات",        daily_rate: 500,  deposit: 3000 },
+    { name: "إضاءة LED ملونة (طقم)",     category: "إضاءة",         daily_rate: 180,  deposit: 800  },
+    { name: "سيارة نقل 4 طن",           category: "مركبات",        daily_rate: 900,  deposit: 5000 },
+    { name: "رافعة شوكية",              category: "معدات ثقيلة",    daily_rate: 1200, deposit: 8000 },
+  ];
+
+  // Try to detect column names (some schemas use status, some condition)
+  const colRes = await client.query(
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'rental_assets'
+     ORDER BY ordinal_position`
+  );
+  const cols: string[] = colRes.rows.map((r: any) => r.column_name);
+  const hasStatus    = cols.includes("status");
+  const hasDailyRate = cols.includes("daily_rate");
+  const hasDeposit   = cols.includes("deposit_amount");
+  const hasCategory  = cols.includes("category");
+
+  if (!hasDailyRate) return; // schema doesn't match, skip silently
+
+  for (const a of assets) {
+    const parts: string[] = ["org_id", "name"];
+    const vals: any[]     = [orgId, a.name];
+    let idx = 3;
+
+    if (hasCategory)  { parts.push("category");         vals.push(a.category);    idx++; }
+    if (hasDailyRate) { parts.push("daily_rate");        vals.push(a.daily_rate);  idx++; }
+    if (hasDeposit)   { parts.push("deposit_amount");    vals.push(a.deposit);     idx++; }
+    if (hasStatus)    { parts.push("status");            vals.push("available");   idx++; }
+
+    const placeholders = vals.map((_, i) => `$${i + 1}`).join(", ");
+    await client.query(
+      `INSERT INTO rental_assets (${parts.join(", ")})
+       VALUES (${placeholders})
+       ON CONFLICT DO NOTHING`,
+      vals
+    );
+  }
+}
+
 // ─── Dispatcher ──────────────────────────────────────────────────────────────
 
 const VERTICAL_MAP: Record<string, (client: any, orgId: string) => Promise<void>> = {
@@ -582,6 +858,11 @@ const VERTICAL_MAP: Record<string, (client: any, orgId: string) => Promise<void>
   event_organizer:  seedEventsVertical,
   events_vendor:    seedEventsVertical,
   photography:      seedEventsVertical,
+  restaurant:       seedFoodVertical,
+  cafe:             seedFoodVertical,
+  bakery:           seedFoodVertical,
+  catering:         seedFoodVertical,
+  rental:           seedRentalVertical,
 };
 
 export async function seedVertical(client: any, orgId: string, businessType: string) {
