@@ -635,6 +635,310 @@ export async function createPosTransactions(
   }
 }
 
+// ─── P1 Infrastructure ───────────────────────────────────────────────────────
+
+/** Quick items per business type for POS */
+const POS_QUICK_ITEMS: Record<string, Array<{ name: string; price: number; category: string; color: string }>> = {
+  restaurant: [
+    { name: "قهوة سعودية",   price: 15, category: "مشروبات", color: "#6F4E37" },
+    { name: "ماء معدني",      price: 5,  category: "مشروبات", color: "#2196F3" },
+    { name: "عصير طازج",     price: 20, category: "مشروبات", color: "#FF9800" },
+    { name: "طبق اليوم",     price: 45, category: "أطباق",   color: "#4CAF50" },
+    { name: "مقبلات مشكلة",  price: 25, category: "أطباق",   color: "#9C27B0" },
+    { name: "حلى اليوم",     price: 20, category: "حلويات",  color: "#E91E63" },
+  ],
+  cafe: [
+    { name: "لاتيه",         price: 22, category: "قهوة",    color: "#795548" },
+    { name: "كابتشينو",      price: 20, category: "قهوة",    color: "#6D4C41" },
+    { name: "أمريكانو",      price: 15, category: "قهوة",    color: "#3E2723" },
+    { name: "تشيز كيك",      price: 28, category: "معجنات",  color: "#FFC107" },
+    { name: "كرواسون",       price: 18, category: "معجنات",  color: "#FF9800" },
+    { name: "ماء معدني",     price: 5,  category: "مشروبات", color: "#2196F3" },
+  ],
+  bakery: [
+    { name: "خبز تميس",      price: 5,  category: "خبز",     color: "#8D6E63" },
+    { name: "كيك شوكولاتة",  price: 25, category: "كيك",     color: "#5D4037" },
+    { name: "كوكيز",          price: 10, category: "حلويات",  color: "#FF9800" },
+    { name: "كرواسون",       price: 12, category: "معجنات",  color: "#FFC107" },
+    { name: "حلا بالتمر",    price: 20, category: "حلويات",  color: "#795548" },
+    { name: "عصير طازج",     price: 15, category: "مشروبات", color: "#4CAF50" },
+  ],
+  flower_shop: [
+    { name: "وردة منفردة",   price: 15, category: "ورود",    color: "#E91E63" },
+    { name: "باقة صغيرة",   price: 80, category: "باقات",   color: "#F44336" },
+    { name: "بالونة هيليوم", price: 25, category: "إكسسوار", color: "#9C27B0" },
+    { name: "تغليف هدية",    price: 20, category: "إكسسوار", color: "#2196F3" },
+    { name: "بطاقة معايدة",  price: 10, category: "إكسسوار", color: "#4CAF50" },
+    { name: "ماء ورد",       price: 30, category: "منتجات",  color: "#FF9800" },
+  ],
+};
+const DEFAULT_QUICK_ITEMS: Array<{ name: string; price: number; category: string; color: string }> = [
+  { name: "خدمة سريعة",     price: 50,  category: "خدمات",   color: "#5b9bd5" },
+  { name: "منتج أساسي",     price: 30,  category: "منتجات",  color: "#4CAF50" },
+  { name: "إضافة خاصة",     price: 20,  category: "إضافات",  color: "#FF9800" },
+  { name: "باقة مميزة",     price: 100, category: "باقات",   color: "#9C27B0" },
+  { name: "مشروب",           price: 10,  category: "مشروبات", color: "#2196F3" },
+  { name: "منتج إضافي",     price: 45,  category: "منتجات",  color: "#F44336" },
+];
+
+const EMPLOYEE_JOB_TITLES = [
+  "موظف استقبال",
+  "مشرف عمليات",
+  "كاشير",
+  "موظف مبيعات",
+  "مساعد إداري",
+  "موظف خدمة عملاء",
+];
+
+/**
+ * Seed P1 infrastructure:
+ * hr_employees → hr_attendance → shifts → (treasury_accounts + cashier_shifts) → service_staff → booking_assignments → pos_quick_items
+ */
+export async function seedP1Infrastructure(
+  client: any,
+  orgId: string,
+  staffIds: string[],
+  serviceIds: string[],
+  hasPos: boolean,
+  businessType: string = "services"
+): Promise<void> {
+  if (staffIds.length === 0) return;
+
+  // ── 1. Fetch user info ───────────────────────────────────────────
+  const usersRes = await client.query(
+    `SELECT id, name, type FROM users WHERE org_id = $1 AND id = ANY($2) ORDER BY created_at`,
+    [orgId, staffIds]
+  );
+  const userRows: Array<{ id: string; name: string; type: string }> = usersRes.rows;
+
+  // ── 2. hr_employees ──────────────────────────────────────────────
+  const employeeIds: string[] = [];
+  for (let i = 0; i < userRows.length; i++) {
+    const user = userRows[i];
+    const isOwner = user.type === "owner";
+    const empNum = `EMP-${String(i + 1).padStart(3, "0")}`;
+    const jobTitle = isOwner ? "مدير عام" : pick(EMPLOYEE_JOB_TITLES);
+    const basicSalary = isOwner ? rand(10000, 15000) : rand(4000, 8000);
+    const housingAllowance = isOwner ? rand(1500, 2500) : rand(400, 1200);
+    const transportAllowance = rand(200, 600);
+    const hireDateMs = Date.now() - rand(12, 36) * 30 * 24 * 60 * 60 * 1000;
+    const hireDate = new Date(hireDateMs).toISOString().split("T")[0];
+
+    const r = await client.query(
+      `INSERT INTO hr_employees
+         (org_id, employee_number, full_name, job_title, employment_type, status,
+          hire_date, basic_salary, housing_allowance, transport_allowance,
+          nationality, is_saudi, gosi_eligible, payroll_day, user_id)
+       VALUES ($1,$2,$3,$4,'full_time','active',$5,$6,$7,$8,'SA',$9,true,28,$10)
+       ON CONFLICT (org_id, employee_number) DO NOTHING
+       RETURNING id`,
+      [
+        orgId, empNum, user.name, jobTitle,
+        hireDate,
+        fmt(basicSalary), fmt(housingAllowance), fmt(transportAllowance),
+        isOwner,
+        user.id,
+      ]
+    );
+    if (r.rows[0]?.id) employeeIds.push(r.rows[0].id);
+  }
+  // Fallback: fetch existing
+  if (employeeIds.length === 0) {
+    const ex = await client.query(
+      `SELECT id FROM hr_employees WHERE org_id = $1 ORDER BY created_at LIMIT $2`,
+      [orgId, userRows.length]
+    );
+    employeeIds.push(...ex.rows.map((r: any) => r.id));
+  }
+
+  // ── 3. hr_attendance — last 14 working days ──────────────────────
+  const ATTENDANCE_STATUSES = [
+    "present", "present", "present", "present", "present",
+    "present", "present", "late", "late", "absent",
+  ];
+  const today = new Date();
+  for (const empId of employeeIds) {
+    for (let d = 14; d >= 1; d--) {
+      const date = new Date(today);
+      date.setDate(date.getDate() - d);
+      const dow = date.getDay(); // 0=Sun,5=Fri,6=Sat
+      if (dow === 5 || dow === 6) continue; // KSA weekend
+      const dateStr = date.toISOString().split("T")[0];
+      const status = pick(ATTENDANCE_STATUSES);
+      const absent = status === "absent";
+      const late = status === "late";
+      const checkInH = absent ? null : (late ? rand(9, 10) : rand(8, 9));
+      const checkInM = absent ? null : rand(0, 59);
+      const checkOutH = absent ? null : rand(17, 18);
+      const checkOutM = absent ? null : rand(0, 59);
+      const checkIn = checkInH !== null
+        ? `${String(checkInH).padStart(2, "0")}:${String(checkInM!).padStart(2, "0")}`
+        : null;
+      const checkOut = checkOutH !== null
+        ? `${String(checkOutH).padStart(2, "0")}:${String(checkOutM!).padStart(2, "0")}`
+        : null;
+      const lateMinutes = late ? rand(15, 90) : 0;
+      await client.query(
+        `INSERT INTO hr_attendance
+           (org_id, employee_id, attendance_date, check_in, check_out, status, late_minutes, source)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,'manual')
+         ON CONFLICT (org_id, employee_id, attendance_date) DO NOTHING`,
+        [orgId, empId, dateStr, checkIn, checkOut, status, lateMinutes]
+      );
+    }
+  }
+
+  // ── 4. shifts — last 30 days + next 7 ───────────────────────────
+  const SHIFT_DEFS = [
+    { label: "صباحي",  start: "08:00", end: "16:00" },
+    { label: "مسائي",  start: "14:00", end: "22:00" },
+  ];
+  const shiftStaff = staffIds.length > 1 ? staffIds.slice(1) : staffIds;
+  for (let d = 30; d >= -7; d--) {
+    const date = new Date(today);
+    date.setDate(date.getDate() - d);
+    const dow = date.getDay();
+    if (dow === 5) continue; // no shifts on Friday
+    const maxShifts = Math.min(2, shiftStaff.length);
+    for (let s = 0; s < maxShifts; s++) {
+      const def = SHIFT_DEFS[s % SHIFT_DEFS.length];
+      const userId = shiftStaff[s % shiftStaff.length];
+      const isPast = d > 0;
+      const isToday = d === 0;
+      const status = isPast ? "completed" : (isToday ? "in_progress" : "scheduled");
+      await client.query(
+        `INSERT INTO shifts
+           (org_id, user_id, date, start_time, end_time, status, actual_start_time, actual_end_time)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+        [
+          orgId, userId,
+          date.toISOString(),
+          def.start, def.end,
+          status,
+          isPast ? def.start : null,
+          isPast ? def.end : null,
+        ]
+      );
+    }
+  }
+
+  // ── 5. treasury_accounts + cashier_shifts (POS only) ────────────
+  if (hasPos) {
+    // Create main cash account if not exists
+    let treasuryId: string | null = null;
+    const existTa = await client.query(
+      `SELECT id FROM treasury_accounts WHERE org_id = $1 AND type = 'main_cash' LIMIT 1`,
+      [orgId]
+    );
+    if (existTa.rows[0]) {
+      treasuryId = existTa.rows[0].id;
+    } else {
+      const taRes = await client.query(
+        `INSERT INTO treasury_accounts
+           (org_id, name, type, opening_balance, current_balance, is_default, is_active)
+         VALUES ($1,'الصندوق الرئيسي','main_cash',$2,$3,true,true)
+         RETURNING id`,
+        [orgId, fmt(rand(1000, 5000)), fmt(rand(8000, 25000))]
+      );
+      treasuryId = taRes.rows[0].id;
+    }
+
+    if (treasuryId) {
+      const cashierId = staffIds[0]; // owner as default cashier
+      // 3 closed shifts over last 3 days
+      for (let d = 3; d >= 1; d--) {
+        const shiftDate = new Date(today);
+        shiftDate.setDate(shiftDate.getDate() - d);
+        const openBal = rand(1000, 3000);
+        const closeBal = openBal + rand(2000, 8000);
+        const actualCash = closeBal + (Math.random() < 0.3 ? rand(-50, 50) : 0);
+        await client.query(
+          `INSERT INTO cashier_shifts
+             (org_id, treasury_account_id, cashier_id,
+              opening_balance, closing_balance, actual_cash, variance,
+              status, opened_at, closed_at)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,'closed',$8,$9)`,
+          [
+            orgId, treasuryId, cashierId,
+            fmt(openBal), fmt(closeBal), fmt(actualCash), fmt(actualCash - closeBal),
+            shiftDate.toISOString(),
+            new Date(shiftDate.getTime() + 9 * 60 * 60 * 1000).toISOString(),
+          ]
+        );
+      }
+      // 1 open shift (today)
+      await client.query(
+        `INSERT INTO cashier_shifts
+           (org_id, treasury_account_id, cashier_id,
+            opening_balance, status, opened_at)
+         VALUES ($1,$2,$3,$4,'open',$5)`,
+        [orgId, treasuryId, cashierId, fmt(rand(500, 2000)), today.toISOString()]
+      );
+    }
+  }
+
+  // ── 6. service_staff — link each service to 1–2 staff ───────────
+  const staffForServices = staffIds.length > 1 ? staffIds.slice(1) : staffIds;
+  for (let i = 0; i < serviceIds.length; i++) {
+    const userId = staffForServices[i % staffForServices.length];
+    await client.query(
+      `INSERT INTO service_staff (org_id, service_id, user_id, commission_mode, is_active)
+       VALUES ($1,$2,$3,'inherit',true)
+       ON CONFLICT (service_id, user_id) DO NOTHING`,
+      [orgId, serviceIds[i], userId]
+    );
+    // assign a second staff member to some services
+    if (staffForServices.length >= 2 && i % 3 === 0) {
+      const secondUser = staffForServices[(i + 1) % staffForServices.length];
+      if (secondUser !== userId) {
+        await client.query(
+          `INSERT INTO service_staff (org_id, service_id, user_id, commission_mode, is_active)
+           VALUES ($1,$2,$3,'inherit',true)
+           ON CONFLICT (service_id, user_id) DO NOTHING`,
+          [orgId, serviceIds[i], secondUser]
+        );
+      }
+    }
+  }
+
+  // ── 7. booking_assignments ───────────────────────────────────────
+  const bookingsRes = await client.query(
+    `SELECT id FROM bookings
+     WHERE org_id = $1 AND status NOT IN ('pending','cancelled')
+     ORDER BY created_at LIMIT 40`,
+    [orgId]
+  );
+  for (let i = 0; i < bookingsRes.rows.length; i++) {
+    if (Math.random() > 0.75) continue; // assign ~75%
+    const bookingId = bookingsRes.rows[i].id;
+    const userId = staffIds[i % staffIds.length];
+    await client.query(
+      `INSERT INTO booking_assignments (org_id, booking_id, user_id, role)
+       VALUES ($1,$2,$3,'staff')`,
+      [orgId, bookingId, userId]
+    );
+  }
+
+  // ── 8. pos_quick_items ───────────────────────────────────────────
+  if (hasPos) {
+    const existItems = await client.query(
+      `SELECT COUNT(*) AS cnt FROM pos_quick_items WHERE org_id = $1`,
+      [orgId]
+    );
+    if (parseInt(existItems.rows[0].cnt) === 0) {
+      const items = POS_QUICK_ITEMS[businessType] || DEFAULT_QUICK_ITEMS;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        await client.query(
+          `INSERT INTO pos_quick_items (org_id, name, price, category, color, sort_order, is_active)
+           VALUES ($1,$2,$3,$4,$5,$6,true)`,
+          [orgId, item.name, fmt(item.price), item.category, item.color, i + 1]
+        );
+      }
+    }
+  }
+}
+
 /** Create monthly expenses */
 export async function createExpenses(
   client: any,

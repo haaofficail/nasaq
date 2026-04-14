@@ -33,7 +33,7 @@ import { ALL_ORGS } from "./_data";
 import {
   createOrg, createTeam, createPipeline, createCatalog,
   createCustomers, createBookings, createPosTransactions,
-  createExpenses, seedChartOfAccounts,
+  createExpenses, seedChartOfAccounts, seedP1Infrastructure,
 } from "./_shared";
 import { seedVertical } from "./_verticals";
 
@@ -82,14 +82,30 @@ async function run() {
           }
         };
 
-        // 1. Pre-delete tables that may block org deletion
-        //    Only tables confirmed to have RESTRICT/NO ACTION FK or that our seed writes to
+        // 1. Pre-delete tables that may block org deletion.
+        //    Order: child tables BEFORE parent tables.
+        //    All tables with non-CASCADE FKs pointing to tables that will be cascade-deleted.
         const preTables = [
+          // ── F&B (menu_items BEFORE menu_categories — category_id FK) ──────
+          "menu_items",              // category_id → menu_categories (RESTRICT in prod)
+          "menu_categories",         // org_id CASCADE
+
+          // ── P1 tables with RESTRICT FKs that block CASCADE deletion ───────
+          "cashier_shifts",          // treasury_account_id → treasury_accounts (RESTRICT)
+                                     // cashier_id → users (RESTRICT)
+          "shifts",                  // user_id → users (RESTRICT)
+          "booking_assignments",     // user_id → users (RESTRICT)
+
+          // ── P1 tables — safe cleanup before org delete ────────────────────
+          "service_staff",           // service_id → services (CASCADE, but seed writes here)
+          "pos_quick_items",         // org_id CASCADE
+          "hr_attendance",           // employee_id → hr_employees (CASCADE)
+          "hr_employees",            // user_id → users (SET NULL — safe, but explicit)
+
+          // ── Existing non-cascade tables ───────────────────────────────────
           "rfp_proposals",           // ON DELETE no action (confirmed)
           "client_salon_profile",    // legacy table — FK not CASCADE until migration 128
-          "menu_categories",         // F&B vertical writes here
-          "menu_items",              // F&B vertical writes here
-          "restaurant_tables",       // F&B vertical writes here
+          "restaurant_tables",       // org_id CASCADE
           "contract_documents",      // contracts vertical
           "contract_payments",       // contracts vertical
           "contracts",               // contracts vertical
@@ -189,6 +205,11 @@ async function run() {
 
         // Vertical-specific deep data (flower_shop, hotel, car_rental, salon, school, ...)
         await seedVertical(client, orgId, cfg.businessType);
+
+        // P1 Infrastructure: shifts, HR, cashier shifts, service_staff, booking_assignments, pos_quick_items
+        await seedP1Infrastructure(
+          client, orgId, staffIds, serviceIds, cfg.hasPos, cfg.businessType
+        );
 
         await client.query("COMMIT");
         console.log(`  → OK (orgId: ${orgId})`);
