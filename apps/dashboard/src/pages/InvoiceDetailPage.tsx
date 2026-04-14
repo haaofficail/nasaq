@@ -41,17 +41,35 @@ const TABS = [
 ];
 
 // ── print helpers ─────────────────────────────────────────────────
-function printWindow(title: string, html: string) {
-  const w = window.open("", "_blank", "width=800,height=900");
+const BRAND = "#5b9bd5";
+const INK   = "#1a1a1a";
+const MUTED = "rgba(26,26,26,0.45)";
+
+function fmtNum(n: any) {
+  return parseFloat(String(n || 0)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function fmtPrintDate(d: any): string {
+  if (!d) return "—";
+  try {
+    return new Date(d).toLocaleDateString("ar-SA", { year: "numeric", month: "numeric", day: "numeric", calendar: "gregory" });
+  } catch { return String(d); }
+}
+
+function printWindow(title: string, bodyHtml: string) {
+  const w = window.open("", "_blank", "width=900,height=1000");
   if (!w) return;
   w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head>
     <meta charset="utf-8"><title>${title}</title>
-    <style>body{font-family:Arial,sans-serif;padding:24px;color:#111}
-    table{width:100%;border-collapse:collapse}
-    th,td{border:1px solid #e5e7eb;padding:8px 10px;text-align:right;font-size:13px}
-    th{background:#f9fafb;font-weight:600}
-    @media print{button{display:none}}</style>
-    </head><body>${html}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+      @page{size:A4;margin:0}
+      body{font-family:'IBM Plex Sans Arabic',Arial,sans-serif;font-size:10px;color:${INK};direction:rtl;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .page{width:210mm;min-height:297mm;background:#fff;padding:18mm 19mm 18mm 16mm;border-right:3mm solid ${BRAND};overflow:hidden}
+      @media print{body{background:#fff}.page{box-shadow:none}}
+    </style>
+    </head><body><div class="page">${bodyHtml}</div>
     <script>window.onload=()=>{window.print()}<\/script></body></html>`);
   w.document.close();
 }
@@ -122,48 +140,246 @@ export function InvoiceDetailPage() {
 
   const printInvoice = () => {
     if (!inv) return;
-    const itemRows = (inv.items || []).map((it: any, i: number) => `
-      <tr>
-        <td>${i + 1}</td>
-        <td>${it.description}</td>
-        <td style="text-align:center">${it.quantity}</td>
-        <td>${fmt(it.unitPrice)} ر.س</td>
-        <td>${it.vatRate ?? 0}%</td>
-        <td>${fmt(it.vatAmount ?? 0)} ر.س</td>
-        <td>${fmt(it.totalAmount)} ر.س</td>
-      </tr>`).join("");
+
+    const invTypeLabel = inv.invoiceType === "tax" ? "فاتورة ضريبية" : "فاتورة ضريبية مبسطة";
+    const invTypeEn    = inv.invoiceType === "tax" ? "Tax Invoice"    : "Simplified Tax Invoice";
+    const hasDiscount  = Number(inv.discountAmount || 0) > 0 ||
+      (inv.items || []).some((it: any) => Number(it.discountAmount || 0) > 0);
+
+    const discColDefs    = hasDiscount ? `<col style="width:18mm"><col style="width:24mm">` : "";
+    const discHeaderCols = hasDiscount ? `
+      <th style="padding:3mm 3mm 2mm;color:#fff;text-align:right;white-space:nowrap">
+        <div style="font-size:10px">الخصم</div><div style="font-size:7px;opacity:0.75;margin-top:0.5mm">Discount</div>
+      </th>
+      <th style="padding:3mm 3mm 2mm;color:#fff;text-align:right;white-space:nowrap">
+        <div style="font-size:10px">بعد الخصم</div><div style="font-size:7px;opacity:0.75;margin-top:0.5mm">After Disc.</div>
+      </th>` : "";
+
+    const itemRows = (inv.items || []).map((it: any, i: number) => {
+      const rowBg      = i % 2 === 0 ? "#ffffff" : "#fafafa";
+      const unitPrice  = Number(it.unitPrice  || 0);
+      const qty        = Number(it.quantity    || 0);
+      const discAmt    = Number(it.discountAmount || 0);
+      const rowSub     = unitPrice * qty;
+      const afterDisc  = rowSub - discAmt;
+      const discCols   = hasDiscount ? `
+        <td style="padding:3mm;border-bottom:1px solid #f0f0f0;direction:ltr;text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:10px;color:${INK}">${discAmt > 0 ? fmtNum(discAmt) : "—"}</td>
+        <td style="padding:3mm;border-bottom:1px solid #f0f0f0;direction:ltr;text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:10px;color:${INK}">${fmtNum(afterDisc)}</td>` : "";
+      return `
+        <tr style="background:${rowBg}">
+          <td style="padding:3mm;border-bottom:1px solid #f0f0f0;text-align:center;direction:ltr;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:10px;color:${MUTED}">${i + 1}</td>
+          <td style="padding:3mm;border-bottom:1px solid #f0f0f0;white-space:normal;word-wrap:break-word;overflow:hidden">
+            <div style="font-weight:700;font-size:10px;color:${INK};word-break:break-word">${it.description}</div>
+          </td>
+          <td style="padding:3mm;border-bottom:1px solid #f0f0f0;direction:ltr;text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:10px;color:${INK}">${fmtNum(it.unitPrice)}</td>
+          <td style="padding:3mm;border-bottom:1px solid #f0f0f0;direction:ltr;text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:10px;color:${INK}">${it.quantity}</td>
+          <td style="padding:3mm;border-bottom:1px solid #f0f0f0;direction:ltr;text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:10px;color:${INK}">${fmtNum(rowSub)}</td>
+          ${discCols}
+          <td style="padding:3mm;border-bottom:1px solid #f0f0f0;direction:ltr;text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap;font-size:10px;font-weight:700;color:${INK}">${fmtNum(it.totalAmount)}</td>
+        </tr>`;
+    }).join("");
+
+    const discSummaryRow = Number(inv.discountAmount || 0) > 0 ? `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:2.5mm 3mm;border-bottom:1px solid #eaeaea">
+        <div><div style="font-size:9px;font-weight:700;color:${INK}">الخصم</div><div style="font-size:7px;color:${MUTED}">Discount</div></div>
+        <div style="font-size:10px;font-variant-numeric:tabular-nums;direction:ltr;color:${INK}">- ${fmtNum(inv.discountAmount)} ر.س</div>
+      </div>` : "";
+
+    const defaultTerms = [
+      "أي تمديد يُحتسب بتكلفة إضافية",
+      "جميع التجهيزات تحت مسؤولية العميل",
+      "يتحمل العميل أي تلف أو فقد",
+      "الفاتورة تُعد عرض سعر صالح لمدة 3 أيام فقط",
+    ];
+    const terms = (inv.termsAndConditions || "").split("\n").filter(Boolean).length > 0
+      ? (inv.termsAndConditions as string).split("\n").filter(Boolean)
+      : defaultTerms;
+
     printWindow(`فاتورة ${inv.invoiceNumber}`, `
-      <h2 style="margin-bottom:16px">فاتورة ضريبية — ${inv.invoiceNumber}</h2>
-      <p>البائع: <strong>${inv.sellerName}</strong> ${inv.sellerVatNumber ? `| الرقم الضريبي: ${inv.sellerVatNumber}` : ""}</p>
-      <p>العميل: <strong>${inv.buyerName}</strong> ${inv.buyerPhone ? `| ${inv.buyerPhone}` : ""}</p>
-      <p>تاريخ الإصدار: ${inv.issueDate ? new Date(inv.issueDate).toLocaleDateString("ar-SA") : "—"}</p>
-      <br/>
-      <table>
-        <thead><tr><th>#</th><th>الوصف</th><th>الكمية</th><th>سعر الوحدة</th><th>الضريبة%</th><th>قيمة الضريبة</th><th>الإجمالي</th></tr></thead>
-        <tbody>${itemRows}</tbody>
-      </table>
-      <br/>
-      <table style="width:300px;margin-right:auto">
-        <tr><td>المجموع الفرعي</td><td>${fmt(inv.taxableAmount ?? inv.subtotal)} ر.س</td></tr>
-        <tr><td>قيمة الضريبة</td><td>${fmt(inv.vatAmount)} ر.س</td></tr>
-        <tr style="font-weight:bold"><td>الإجمالي</td><td>${fmt(inv.totalAmount)} ر.س</td></tr>
-      </table>`);
+
+      <!-- ══ HEADER ══════════════════════════════════════ -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8mm">
+        <div style="flex:1;min-width:0;overflow:hidden">
+          <div style="font-size:24px;font-weight:700;color:${INK};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${inv.sellerName}</div>
+        </div>
+        <div style="flex-shrink:0;margin-right:8mm;text-align:left">
+          <div style="display:inline-block;background:${BRAND};color:#fff;font-size:9px;font-weight:700;padding:1.5mm 4mm;border-radius:2mm;margin-bottom:2mm">${invTypeLabel} · ${invTypeEn}</div>
+          <div style="font-size:20px;font-weight:700;color:${INK};direction:ltr;text-align:left;margin-bottom:1mm;font-variant-numeric:tabular-nums">${inv.invoiceNumber}</div>
+          <div style="font-size:9px;color:${MUTED};direction:ltr;text-align:left">${fmtPrintDate(inv.issueDate)}</div>
+        </div>
+      </div>
+
+      <!-- ══ DATE BOXES ══════════════════════════════════ -->
+      <div style="display:flex;gap:3mm;margin-bottom:6mm">
+        ${[
+          { ar: "تاريخ الإصدار", en: "Issue Date", val: fmtPrintDate(inv.issueDate) },
+          { ar: "تاريخ الاستحقاق", en: "Due Date", val: fmtPrintDate(inv.dueDate) },
+          { ar: "تاريخ التوريد", en: "Supply Date", val: fmtPrintDate(inv.issueDate) },
+        ].map(d => `
+        <div style="flex:1;border:1px solid #eaeaea;padding:3mm;border-radius:1.5mm;overflow:hidden">
+          <div style="font-size:9px;font-weight:700;color:${INK};margin-bottom:0.5mm">${d.ar}</div>
+          <div style="font-size:8px;color:${MUTED};margin-bottom:1.5mm">${d.en}</div>
+          <div style="font-size:11px;font-weight:700;color:${INK};direction:ltr;font-variant-numeric:tabular-nums">${d.val}</div>
+        </div>`).join("")}
+      </div>
+
+      <!-- ══ PARTIES ═════════════════════════════════════ -->
+      <div style="display:flex;gap:4mm;margin-bottom:6mm">
+        <div style="flex:1;border:1px solid #eaeaea;border-top:2mm solid ${BRAND};padding:5mm;border-radius:1.5mm;overflow:hidden">
+          <div style="font-size:10px;font-weight:700;color:${INK};margin-bottom:3mm">معلومات النشاط <span style="color:${MUTED};font-weight:400;font-size:9px"> — Business Info</span></div>
+          <div style="margin-bottom:2mm"><div style="font-size:8px;color:${MUTED};margin-bottom:0.5mm">الاسم التجاري · Commercial Name</div>
+            <div style="font-size:11px;font-weight:700;color:${INK};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${inv.sellerName}</div></div>
+          ${inv.sellerAddress ? `<div style="margin-bottom:2mm"><div style="font-size:8px;color:${MUTED};margin-bottom:0.5mm">العنوان · Address</div><div style="font-size:10px;color:${INK};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${inv.sellerAddress}</div></div>` : ""}
+          ${inv.sellerVatNumber ? `<div><div style="font-size:8px;color:${MUTED};margin-bottom:0.5mm">الرقم الضريبي · Tax Number</div><div style="font-size:10px;font-weight:700;color:${BRAND};direction:ltr;text-align:right;font-variant-numeric:tabular-nums">${inv.sellerVatNumber}</div></div>` : ""}
+        </div>
+        <div style="flex:1;border:1px solid #eaeaea;border-top:2mm solid ${INK};padding:5mm;border-radius:1.5mm;overflow:hidden">
+          <div style="font-size:10px;font-weight:700;color:${INK};margin-bottom:3mm">معلومات العميل <span style="color:${MUTED};font-weight:400;font-size:9px"> — Customer Info</span></div>
+          <div style="margin-bottom:2mm"><div style="font-size:8px;color:${MUTED};margin-bottom:0.5mm">اسم العميل · Customer Name</div>
+            <div style="font-size:11px;font-weight:700;color:${INK};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${inv.buyerName}</div></div>
+          ${inv.buyerPhone ? `<div><div style="font-size:8px;color:${MUTED};margin-bottom:0.5mm">الجوال · Mobile Number</div><div style="font-size:10px;color:${INK};direction:ltr;text-align:right;font-variant-numeric:tabular-nums">${inv.buyerPhone}</div></div>` : ""}
+        </div>
+      </div>
+
+      <!-- ══ ITEMS TABLE ═════════════════════════════════ -->
+      <div style="margin-bottom:6mm;overflow:hidden">
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+          <colgroup>
+            <col style="width:7mm"><col>
+            <col style="width:22mm"><col style="width:14mm">
+            <col style="width:22mm">${discColDefs}
+            <col style="width:22mm">
+          </colgroup>
+          <thead>
+            <tr style="background:${BRAND}">
+              <th style="padding:3mm 3mm 2mm;color:#fff;text-align:center;white-space:nowrap"><div style="font-size:10px">#</div></th>
+              <th style="padding:3mm 3mm 2mm;color:#fff;text-align:right"><div style="font-size:10px">تفاصيل المنتج</div><div style="font-size:7px;opacity:0.75;margin-top:0.5mm">Product Details</div></th>
+              <th style="padding:3mm 3mm 2mm;color:#fff;text-align:right;white-space:nowrap"><div style="font-size:10px">سعر الوحدة</div><div style="font-size:7px;opacity:0.75;margin-top:0.5mm">Unit Price</div></th>
+              <th style="padding:3mm 3mm 2mm;color:#fff;text-align:right;white-space:nowrap"><div style="font-size:10px">الكمية</div><div style="font-size:7px;opacity:0.75;margin-top:0.5mm">Quantity</div></th>
+              <th style="padding:3mm 3mm 2mm;color:#fff;text-align:right;white-space:nowrap"><div style="font-size:10px">المجموع الفرعي</div><div style="font-size:7px;opacity:0.75;margin-top:0.5mm">Subtotal</div></th>
+              ${discHeaderCols}
+              <th style="padding:3mm 3mm 2mm;color:#fff;text-align:right;white-space:nowrap"><div style="font-size:10px">المجموع</div><div style="font-size:7px;opacity:0.75;margin-top:0.5mm">Total</div></th>
+            </tr>
+          </thead>
+          <tbody>${itemRows}</tbody>
+        </table>
+      </div>
+
+      <!-- ══ FINANCIAL SUMMARY ════════════════════════════ -->
+      <div style="display:flex;margin-bottom:8mm">
+        <div style="width:70mm;border:1px solid #eaeaea;border-radius:1.5mm;overflow:hidden">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:2.5mm 3mm;border-bottom:1px solid #eaeaea">
+            <div><div style="font-size:9px;font-weight:700;color:${INK}">المجموع الفرعي</div><div style="font-size:7px;color:${MUTED}">Subtotal</div></div>
+            <div style="font-size:10px;font-variant-numeric:tabular-nums;direction:ltr;font-weight:700;color:${INK}">${fmtNum(inv.taxableAmount ?? inv.subtotal)} ر.س</div>
+          </div>
+          ${discSummaryRow}
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:3mm;background:${BRAND}">
+            <div><div style="font-size:10px;font-weight:700;color:#fff">إجمالي الطلب</div><div style="font-size:7px;color:rgba(255,255,255,0.75)">Grand Total</div></div>
+            <div style="font-size:13px;font-variant-numeric:tabular-nums;direction:ltr;font-weight:700;color:#fff">${fmtNum(inv.totalAmount)} ر.س</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ══ TERMS ════════════════════════════════════════ -->
+      <div style="margin-bottom:6mm;border-top:1px solid #eaeaea;padding-top:4mm">
+        <div style="font-size:9px;font-weight:700;color:${INK};margin-bottom:2mm">الشروط العامة:</div>
+        ${terms.map((t: string) => `<div style="font-size:8.5px;color:rgba(26,26,26,0.5);margin-bottom:1.5mm;display:flex;gap:2mm"><span style="flex-shrink:0;color:${BRAND};font-weight:700">·</span><span style="word-break:break-word">${t}</span></div>`).join("")}
+      </div>
+
+      <!-- ══ SIGNATURES ═══════════════════════════════════ -->
+      <div style="display:flex;gap:4mm;margin-bottom:8mm">
+        ${[{ar:"توقيع البائع",en:"Seller Signature"},{ar:"ختم المنشأة",en:"Official Seal"},{ar:"توقيع العميل",en:"Customer Signature"}].map(s=>`
+        <div style="flex:1;text-align:center">
+          <div style="height:14mm"></div>
+          <div style="border-top:1px dashed #ccc;padding-top:2mm">
+            <div style="font-size:8px;font-weight:700;color:${INK}">${s.ar}</div>
+            <div style="font-size:7px;color:${MUTED}">${s.en}</div>
+          </div>
+        </div>`).join("")}
+      </div>
+
+      <!-- ══ FOOTER ═══════════════════════════════════════ -->
+      <div style="border-top:1px solid #f0f0f0;padding-top:4mm;text-align:center">
+        ${inv.qrCode ? `<div style="margin-bottom:3mm"><img src="data:image/png;base64,${inv.qrCode}" alt="ZATCA QR" style="width:16mm;height:16mm;display:inline-block" onerror="this.style.display='none'"><div style="font-size:7px;color:${MUTED};margin-top:1mm">رمز الفاتورة الإلكترونية — ZATCA</div></div>` : ""}
+        <div style="font-size:12px;font-weight:700;color:${BRAND};margin-bottom:3mm">شكراً لتعاملكم</div>
+        <div style="border-top:1px solid #f0f0f0;padding-top:2.5mm"><span style="font-size:7.5px;color:#ccc">مدعوم بواسطة </span><span style="font-size:7.5px;font-weight:700;color:${BRAND}">ترميز OS</span><span style="font-size:7.5px;color:#ccc"> · tarmizos.com</span></div>
+      </div>`);
   };
 
   const printReceipt = () => {
     if (!inv) return;
+    const remaining = Math.max(0, Number(inv.totalAmount || 0) - Number(inv.paidAmount || 0));
+    const pmtRows = pmts.map((p: any, i: number) => `
+      <tr style="background:${i % 2 === 0 ? "#ffffff" : "#fafafa"}">
+        <td style="padding:3mm;border-bottom:1px solid #f0f0f0;text-align:center;color:${MUTED};font-size:10px;direction:ltr;font-variant-numeric:tabular-nums">${i + 1}</td>
+        <td style="padding:3mm;border-bottom:1px solid #f0f0f0;font-size:10px;color:${INK};direction:ltr;text-align:left;font-variant-numeric:tabular-nums;font-weight:700">${fmtNum(p.amount)} ر.س</td>
+        <td style="padding:3mm;border-bottom:1px solid #f0f0f0;font-size:10px;color:${INK}">${PAY_METHOD[p.paymentMethod] || p.paymentMethod}</td>
+        <td style="padding:3mm;border-bottom:1px solid #f0f0f0;font-size:10px;color:${INK};direction:ltr;text-align:left;font-variant-numeric:tabular-nums">${p.paymentDate ? fmtPrintDate(p.paymentDate) : "—"}</td>
+      </tr>`).join("");
+
     printWindow(`إيصال ${inv.invoiceNumber}`, `
-      <h2 style="text-align:center;margin-bottom:16px">إيصال دفع</h2>
-      <p>رقم الفاتورة: <strong>${inv.invoiceNumber}</strong></p>
-      <p>العميل: <strong>${inv.buyerName}</strong></p>
-      <p>الإجمالي: <strong>${fmt(inv.totalAmount)} ر.س</strong></p>
-      <p>المدفوع: <strong>${fmt(inv.paidAmount ?? 0)} ر.س</strong></p>
-      <p>المتبقي: <strong>${fmt(Math.max(0, Number(inv.totalAmount) - Number(inv.paidAmount ?? 0)))} ر.س</strong></p>
-      <br/>
-      ${pmts.length > 0 ? `<table>
-        <thead><tr><th>#</th><th>المبلغ</th><th>الطريقة</th><th>التاريخ</th></tr></thead>
-        <tbody>${pmts.map((p: any, i: number) => `<tr><td>${i + 1}</td><td>${fmt(p.amount)} ر.س</td><td>${PAY_METHOD[p.paymentMethod] || p.paymentMethod}</td><td>${p.paymentDate ? new Date(p.paymentDate).toLocaleDateString("ar-SA") : "—"}</td></tr>`).join("")}</tbody>
-      </table>` : ""}`);
+      <!-- ══ HEADER ══════════════════════════════════════ -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8mm">
+        <div style="flex:1;overflow:hidden">
+          <div style="font-size:24px;font-weight:700;color:${INK};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${inv.sellerName}</div>
+          ${inv.sellerVatNumber ? `<div style="font-size:9px;color:${MUTED};margin-top:1mm;direction:ltr;font-variant-numeric:tabular-nums">الرقم الضريبي · ${inv.sellerVatNumber}</div>` : ""}
+        </div>
+        <div style="flex-shrink:0;margin-right:8mm;text-align:left">
+          <div style="display:inline-block;background:${BRAND};color:#fff;font-size:9px;font-weight:700;padding:1.5mm 4mm;border-radius:2mm;margin-bottom:2mm">إيصال دفع · Payment Receipt</div>
+          <div style="font-size:20px;font-weight:700;color:${INK};direction:ltr;text-align:left;margin-bottom:1mm;font-variant-numeric:tabular-nums">${inv.invoiceNumber}</div>
+          <div style="font-size:9px;color:${MUTED};direction:ltr;text-align:left">${fmtPrintDate(inv.issueDate)}</div>
+        </div>
+      </div>
+
+      <!-- ══ PARTIES ═════════════════════════════════════ -->
+      <div style="display:flex;gap:4mm;margin-bottom:6mm">
+        <div style="flex:1;border:1px solid #eaeaea;border-top:2mm solid ${BRAND};padding:5mm;border-radius:1.5mm;overflow:hidden">
+          <div style="font-size:8px;color:${MUTED};margin-bottom:0.5mm">البائع · Seller</div>
+          <div style="font-size:14px;font-weight:700;color:${INK};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${inv.sellerName}</div>
+        </div>
+        <div style="flex:1;border:1px solid #eaeaea;border-top:2mm solid ${INK};padding:5mm;border-radius:1.5mm;overflow:hidden">
+          <div style="font-size:8px;color:${MUTED};margin-bottom:0.5mm">العميل · Customer</div>
+          <div style="font-size:14px;font-weight:700;color:${INK};overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${inv.buyerName}</div>
+          ${inv.buyerPhone ? `<div style="font-size:10px;color:${INK};direction:ltr;text-align:right;font-variant-numeric:tabular-nums;margin-top:1mm">${inv.buyerPhone}</div>` : ""}
+        </div>
+      </div>
+
+      <!-- ══ AMOUNTS ═════════════════════════════════════ -->
+      <div style="display:flex;gap:4mm;margin-bottom:6mm">
+        ${[
+          { ar:"الإجمالي",    en:"Grand Total",    val:`${fmtNum(inv.totalAmount)} ر.س`,  bold:false },
+          { ar:"المبلغ المدفوع", en:"Amount Paid", val:`${fmtNum(inv.paidAmount ?? 0)} ر.س`, bold:false },
+          { ar:"المبلغ المتبقي", en:"Remaining",   val:`${fmtNum(remaining)} ر.س`, bold:true },
+        ].map(a => `
+        <div style="flex:1;border:1px solid #eaeaea;padding:4mm;border-radius:1.5mm;text-align:center">
+          <div style="font-size:9px;font-weight:700;color:${INK}">${a.ar}</div>
+          <div style="font-size:7px;color:${MUTED};margin-bottom:2mm">${a.en}</div>
+          <div style="font-size:${a.bold ? "14" : "12"}px;font-weight:700;color:${a.bold && remaining > 0 ? BRAND : INK};direction:ltr;font-variant-numeric:tabular-nums">${a.val}</div>
+        </div>`).join("")}
+      </div>
+
+      <!-- ══ PAYMENTS TABLE ══════════════════════════════ -->
+      ${pmts.length > 0 ? `
+      <div style="margin-bottom:6mm;overflow:hidden">
+        <div style="font-size:10px;font-weight:700;color:${INK};margin-bottom:3mm">سجل المدفوعات · Payment History</div>
+        <table style="width:100%;border-collapse:collapse;table-layout:fixed">
+          <colgroup><col style="width:7mm"><col><col style="width:30mm"><col style="width:30mm"></colgroup>
+          <thead>
+            <tr style="background:${BRAND}">
+              <th style="padding:3mm;color:#fff;text-align:center;font-size:10px">#</th>
+              <th style="padding:3mm;color:#fff;text-align:right;font-size:10px">المبلغ · Amount</th>
+              <th style="padding:3mm;color:#fff;text-align:right;font-size:10px">طريقة الدفع · Method</th>
+              <th style="padding:3mm;color:#fff;text-align:right;font-size:10px">التاريخ · Date</th>
+            </tr>
+          </thead>
+          <tbody>${pmtRows}</tbody>
+        </table>
+      </div>` : ""}
+
+      <!-- ══ FOOTER ═══════════════════════════════════════ -->
+      <div style="border-top:1px solid #f0f0f0;padding-top:4mm;text-align:center;margin-top:6mm">
+        <div style="font-size:12px;font-weight:700;color:${BRAND};margin-bottom:3mm">شكراً لتعاملكم</div>
+        <div style="border-top:1px solid #f0f0f0;padding-top:2.5mm"><span style="font-size:7.5px;color:#ccc">مدعوم بواسطة </span><span style="font-size:7.5px;font-weight:700;color:${BRAND}">ترميز OS</span><span style="font-size:7.5px;color:#ccc"> · tarmizos.com</span></div>
+      </div>`);
   };
 
   if (loading) return <PageSkeleton />;
