@@ -9,7 +9,8 @@
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio",
     "seed": "tsx scripts/seed.ts",
-    "seed:demo": "tsx seeds/seed-demo.ts"
+    "seed:demo": "tsx seeds/seed-demo.ts",
+    "seed:full": "tsx seeds/demo/index.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.38.0",

@@ -12,6 +12,7 @@
     "db:push": "pnpm --filter @nasaq/db push",
     "db:studio": "pnpm --filter @nasaq/db studio",
     "db:seed": "pnpm --filter @nasaq/db seed",
+    "db:seed:demo": "pnpm --filter @nasaq/db seed:full",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
