@@ -298,15 +298,14 @@ export async function createCatalog(
     const svcSlug = `svc-${Date.now()}-${si + 1}`;
     const r = await client.query(
       `INSERT INTO services
-         (org_id, category_id, name, slug, base_price, min_price, duration_minutes, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'active') RETURNING id`,
+         (org_id, category_id, name, slug, base_price, duration_minutes, status)
+       VALUES ($1,$2,$3,$4,$5,$6,'active') RETURNING id`,
       [
         orgId,
         catMap[svc.category] || null,
         svc.name,
         svcSlug,
         svc.price,
-        svc.minPrice || null,
         svc.duration,
       ]
     );

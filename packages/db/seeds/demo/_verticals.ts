@@ -1,6 +1,6 @@
 /**
  * Special Verticals — بيانات عميقة للأنواع التي لها جداول متخصصة
- * تستخدم الجداول الفعلية الموجودة في قاعدة البيانات فقط.
+ * يستخدم الأعمدة الفعلية الموجودة في قاعدة البيانات.
  */
 
 import { pick, rand, fmt, iso, randomDate, nextBookingNumber } from "./_shared";
@@ -24,87 +24,93 @@ async function getOrgServices(client: any, orgId: string) {
 }
 
 // ─── FLOWER SHOP ─────────────────────────────────────────────────────────────
-// Tables: flower_orders, flower_batches, flower_variants
+// Tables: flower_orders, flower_batches, flower_variants (global master)
 
 export async function seedFlowerVertical(client: any, orgId: string) {
   const customers = await getOrgCustomers(client, orgId);
-  const services = await getOrgServices(client, orgId);
-  if (!customers.length || !services.length) return;
+  if (!customers.length) return;
 
-  // 1. Flower batches (وردود واردة)
-  const flowers = [
-    { name: "ورد روز أحمر هولندي",  origin: "هولندا", costPerUnit: 8,  qty: 200 },
-    { name: "ورد أبيض كلاسيكي",     origin: "كينيا",  costPerUnit: 6,  qty: 150 },
-    { name: "ليلى بيضاء",            origin: "هولندا", costPerUnit: 12, qty: 80  },
-    { name: "زنبق أصفر",             origin: "إيران",  costPerUnit: 5,  qty: 120 },
-    { name: "أوركيد بنفسجي",         origin: "تايلاند",costPerUnit: 35, qty: 40  },
+  // 1. Flower variants (global master table — no org_id, no service_id)
+  const flowerVariants = [
+    { type: "rose",      color: "red",    origin: "هولندا",  grade: "A", size: "medium", nameAr: "ورد روز أحمر", nameEn: "Red Rose", price: 8  },
+    { type: "rose",      color: "white",  origin: "كينيا",   grade: "A", size: "medium", nameAr: "ورد أبيض",     nameEn: "White Rose", price: 6 },
+    { type: "lily",      color: "white",  origin: "هولندا",  grade: "A", size: "large",  nameAr: "ليلى بيضاء",   nameEn: "White Lily", price: 12 },
+    { type: "sunflower", color: "yellow", origin: "إيران",   grade: "B", size: "large",  nameAr: "زنبق أصفر",    nameEn: "Sunflower",  price: 5  },
+    { type: "orchid",    color: "purple", origin: "تايلاند", grade: "A", size: "small",  nameAr: "أوركيد بنفسجي",nameEn: "Purple Orchid", price: 35 },
   ];
 
-  for (const f of flowers) {
+  const variantIds: string[] = [];
+  for (const v of flowerVariants) {
+    const r = await client.query(
+      `INSERT INTO flower_variants
+         (flower_type, color, origin, grade, size, display_name_ar, display_name_en, base_price_per_stem, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [v.type, v.color, v.origin, v.grade, v.size, v.nameAr, v.nameEn, fmt(v.price)]
+    );
+    if (r.rows[0]) variantIds.push(r.rows[0].id);
+    else {
+      // Already exists — fetch it
+      const existing = await client.query(
+        `SELECT id FROM flower_variants WHERE flower_type=$1 AND color=$2 AND origin=$3 LIMIT 1`,
+        [v.type, v.color, v.origin]
+      );
+      if (existing.rows[0]) variantIds.push(existing.rows[0].id);
+    }
+  }
+
+  // 2. Flower batches (using variant_id)
+  for (let i = 0; i < variantIds.length; i++) {
+    const vid = variantIds[i];
+    const qty = rand(50, 200);
     await client.query(
       `INSERT INTO flower_batches
-         (org_id, batch_number, origin_country, quantity_received, quantity_remaining,
-          cost_per_unit, total_cost, received_at, expiry_date, status)
-       VALUES ($1,$2,$3,$4,$4,$5,$6,$7,$8,'active')
+         (org_id, variant_id, batch_number, quantity_received, quantity_remaining,
+          unit_cost, received_at, expiry_estimated, quality_status, is_active)
+       VALUES ($1,$2,$3,$4,$4,$5,$6,$7,'good',true)
        ON CONFLICT DO NOTHING`,
       [
-        orgId,
-        `BATCH-${rand(1000,9999)}`,
-        f.origin, f.qty,
-        fmt(f.costPerUnit), fmt(f.qty * f.costPerUnit),
+        orgId, vid,
+        `BATCH-${rand(1000, 9999)}`,
+        qty,
+        fmt(flowerVariants[i]?.price || 10),
         iso(randomDate(14)),
-        iso(new Date(Date.now() + rand(3,14) * 86400000)),
+        iso(new Date(Date.now() + rand(3, 14) * 86400000)),
       ]
     );
   }
 
-  // 2. Flower orders
-  const statuses = ["new","confirmed","in_preparation","ready","delivered","delivered","cancelled"];
-  const payStatuses = ["paid","paid","paid","partially_paid","pending"];
+  // 3. Flower orders
+  const statuses = ["new", "confirmed", "in_preparation", "ready", "delivered", "delivered", "cancelled"];
+  const payStatuses = ["paid", "paid", "paid", "pending", "pending"];
 
   for (let i = 0; i < 20; i++) {
     const cust = pick(customers);
-    const svc = pick(services);
-    const status = pick(statuses);
-    const payStatus = pick(payStatuses);
     const orderDate = randomDate(60);
-    const subtotal = Number(svc.base_price) * rand(1,2);
+    const subtotal = rand(150, 800);
     const vatAmount = subtotal * 0.15;
     const total = subtotal + vatAmount;
-    const paidAmount = payStatus === "paid" ? total : payStatus === "partially_paid" ? total * 0.5 : 0;
+    const payStatus = pick(payStatuses);
+    const paidAmount = payStatus === "paid" ? total : 0;
 
     await client.query(
       `INSERT INTO flower_orders
-         (org_id, customer_id, order_number, status, payment_status,
-          delivery_date, subtotal, vat_amount, total_amount, paid_amount,
-          delivery_type, source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pickup','dashboard')
+         (org_id, customer_id, customer_name, customer_phone,
+          order_number, status, payment_status, paid_amount,
+          delivery_date, subtotal, vat_amount, total,
+          delivery_type, items)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pickup',$13)
        ON CONFLICT DO NOTHING`,
       [
-        orgId, cust.id,
-        `FO-2026-${rand(1000,9999)}`,
-        status, payStatus,
-        iso(new Date(orderDate.getTime() + rand(1,5) * 86400000)),
-        fmt(subtotal), fmt(vatAmount), fmt(total), fmt(paidAmount),
+        orgId, cust.id, cust.name, cust.phone,
+        `FO-2026-${rand(1000, 9999)}`,
+        pick(statuses), payStatus, fmt(paidAmount),
+        iso(new Date(orderDate.getTime() + rand(1, 5) * 86400000)),
+        fmt(subtotal), fmt(vatAmount), fmt(total),
+        JSON.stringify([{ name: "باقة زهور", qty: 1, price: subtotal }]),
       ]
     );
-  }
-
-  // 3. Flower variants (تنويعات الأسعار)
-  for (const svc of services.slice(0, 3)) {
-    for (const size of ["small","medium","large"]) {
-      await client.query(
-        `INSERT INTO flower_variants
-           (org_id, service_id, size, price, min_price, is_active)
-         VALUES ($1,$2,$3,$4,$5,true)
-         ON CONFLICT DO NOTHING`,
-        [
-          orgId, svc.id, size,
-          fmt(Number(svc.base_price) * (size === "small" ? 0.7 : size === "large" ? 1.4 : 1)),
-          fmt(Number(svc.base_price) * 0.6),
-        ]
-      );
-    }
   }
 }
 
@@ -115,30 +121,30 @@ export async function seedHotelVertical(client: any, orgId: string) {
   const customers = await getOrgCustomers(client, orgId);
   if (!customers.length) return;
 
-  // 1. Room types
+  // 1. Room types (columns: org_id, name, name_en, max_occupancy, price_per_night, is_active)
   const roomTypeData = [
-    { name: "غرفة قياسية",  nameEn: "Standard Room", basePrice: 450, capacity: 2 },
-    { name: "غرفة ديلوكس",  nameEn: "Deluxe Room",   basePrice: 650, capacity: 2 },
-    { name: "جناح تنفيذي",  nameEn: "Executive Suite", basePrice: 1200, capacity: 3 },
-    { name: "جناح ملكي",    nameEn: "Royal Suite",    basePrice: 2500, capacity: 4 },
+    { name: "غرفة قياسية",  nameEn: "Standard Room",   pricePerNight: 450, maxOccupancy: 2 },
+    { name: "غرفة ديلوكس",  nameEn: "Deluxe Room",     pricePerNight: 650, maxOccupancy: 2 },
+    { name: "جناح تنفيذي",  nameEn: "Executive Suite", pricePerNight: 1200, maxOccupancy: 3 },
+    { name: "جناح ملكي",    nameEn: "Royal Suite",     pricePerNight: 2500, maxOccupancy: 4 },
   ];
 
   const roomTypeIds: string[] = [];
   for (const rt of roomTypeData) {
     const r = await client.query(
       `INSERT INTO room_types
-         (org_id, name, name_en, base_price, capacity, is_active)
+         (org_id, name, name_en, price_per_night, max_occupancy, is_active)
        VALUES ($1,$2,$3,$4,$5,true)
        ON CONFLICT DO NOTHING
        RETURNING id`,
-      [orgId, rt.name, rt.nameEn, fmt(rt.basePrice), rt.capacity]
+      [orgId, rt.name, rt.nameEn, fmt(rt.pricePerNight), rt.maxOccupancy]
     );
     if (r.rows[0]) roomTypeIds.push(r.rows[0].id);
   }
 
-  // 2. Room units
+  // 2. Room units (columns: org_id, room_type_id, room_number, floor, status, is_active)
   let roomNum = 101;
-  for (const [idx, rt] of roomTypeData.entries()) {
+  for (const [idx] of roomTypeData.entries()) {
     const count = [8, 6, 3, 2][idx] || 4;
     const typeId = roomTypeIds[idx];
     if (!typeId) continue;
@@ -148,13 +154,14 @@ export async function seedHotelVertical(client: any, orgId: string) {
            (org_id, room_type_id, room_number, floor, status, is_active)
          VALUES ($1,$2,$3,$4,'available',true)
          ON CONFLICT DO NOTHING`,
-        [orgId, typeId, String(roomNum++), Math.ceil((roomNum - 100) / 10)]
+        [orgId, typeId, String(roomNum), Math.ceil(roomNum / 10) - 9]
       );
+      roomNum++;
     }
   }
 
   // 3. Hotel reservations
-  const statuses = ["confirmed","checked_in","checked_out","checked_out","cancelled"];
+  const statuses = ["confirmed", "checked_in", "checked_out", "checked_out", "cancelled"];
 
   for (let i = 0; i < 25; i++) {
     const cust = pick(customers);
@@ -163,62 +170,60 @@ export async function seedHotelVertical(client: any, orgId: string) {
     const checkOut = new Date(checkIn.getTime() + nights * 86400000);
     const status = pick(statuses);
     const rtData = pick(roomTypeData);
-    const subtotal = rtData.basePrice * nights;
-    const vatAmount = subtotal * 0.15;
-    const total = subtotal + vatAmount;
-    const paidAmount = ["checked_out","confirmed"].includes(status) ? total :
-                        status === "checked_in" ? total * 0.5 : 0;
+    const pricePerNight = rtData.pricePerNight;
+    const totalRoomCost = pricePerNight * nights;
+    const taxAmount = totalRoomCost * 0.15;
+    const totalAmount = totalRoomCost + taxAmount;
+    const payStatus = ["checked_out", "confirmed"].includes(status) ? "paid" :
+                       status === "checked_in" ? "partially_paid" : "pending";
 
     await client.query(
       `INSERT INTO hotel_reservations
-         (org_id, customer_id, reservation_number, status, payment_status,
+         (org_id, customer_id, guest_name, guest_phone, status, payment_status,
           check_in_date, check_out_date, nights,
-          subtotal, vat_amount, total_amount, paid_amount,
+          price_per_night, total_room_cost, tax_amount, total_amount,
           adults, source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'dashboard')
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'dashboard')
        ON CONFLICT DO NOTHING`,
       [
-        orgId, cust.id,
-        nextBookingNumber("HTL"),
-        status,
-        paidAmount >= total ? "paid" : paidAmount > 0 ? "partially_paid" : "pending",
+        orgId, cust.id, cust.name, cust.phone,
+        status, payStatus,
         iso(checkIn), iso(checkOut), nights,
-        fmt(subtotal), fmt(vatAmount), fmt(total), fmt(paidAmount),
-        rand(1, rtData.capacity),
+        fmt(pricePerNight), fmt(totalRoomCost), fmt(taxAmount), fmt(totalAmount),
+        rand(1, rtData.maxOccupancy),
       ]
     );
   }
 }
 
 // ─── CAR RENTAL ──────────────────────────────────────────────────────────────
-// Tables: car_rental_reservations, assets, vehicle_units
+// Tables: car_rental_reservations, assets
 
 export async function seedCarRentalVertical(client: any, orgId: string) {
   const customers = await getOrgCustomers(client, orgId);
   if (!customers.length) return;
 
-  // 1. Vehicles as assets
+  // 1. Vehicles as assets (columns: org_id, name, status, is_active, serial_number, notes)
   const vehicles = [
-    { name: "تويوتا كامري 2024",   code: "CAM-001", dailyRate: 220, plate: "أ ب ج 1234" },
-    { name: "تويوتا هايلاندر 2023", code: "HLX-001", dailyRate: 380, plate: "د ه و 2345" },
-    { name: "هوندا سيفيك 2024",    code: "CIV-001", dailyRate: 180, plate: "ز ح ط 3456" },
-    { name: "فورد إكسبلورر 2023",  code: "EXP-001", dailyRate: 420, plate: "ي ك ل 4567" },
-    { name: "لكزس ES350 2024",     code: "LXS-001", dailyRate: 750, plate: "م ن س 5678" },
-    { name: "تويوتا يارس 2024",    code: "YRS-001", dailyRate: 120, plate: "ع غ ف 6789" },
+    { name: "تويوتا كامري 2024",    serial: "CAM-001", dailyRate: 220 },
+    { name: "تويوتا هايلاندر 2023", serial: "HLX-001", dailyRate: 380 },
+    { name: "هوندا سيفيك 2024",     serial: "CIV-001", dailyRate: 180 },
+    { name: "فورد إكسبلورر 2023",   serial: "EXP-001", dailyRate: 420 },
+    { name: "لكزس ES350 2024",      serial: "LXS-001", dailyRate: 750 },
+    { name: "تويوتا يارس 2024",     serial: "YRS-001", dailyRate: 120 },
   ];
 
   for (const v of vehicles) {
     await client.query(
-      `INSERT INTO assets
-         (org_id, name, asset_code, category, status, daily_rate, is_active)
-       VALUES ($1,$2,$3,'vehicle','available',$4,true)
+      `INSERT INTO assets (org_id, name, serial_number, status, is_active, notes)
+       VALUES ($1,$2,$3,'available',true,$4)
        ON CONFLICT DO NOTHING`,
-      [orgId, v.name, v.code, fmt(v.dailyRate)]
+      [orgId, v.name, v.serial, `معدل الإيجار اليومي: ${v.dailyRate} ريال`]
     );
   }
 
   // 2. Car rental reservations
-  const statuses = ["confirmed","active","completed","completed","completed","cancelled"];
+  const statuses = ["confirmed", "active", "completed", "completed", "completed", "cancelled"];
 
   for (let i = 0; i < 20; i++) {
     const cust = pick(customers);
@@ -227,26 +232,26 @@ export async function seedCarRentalVertical(client: any, orgId: string) {
     const endDate = new Date(startDate.getTime() + days * 86400000);
     const status = pick(statuses);
     const vehicle = pick(vehicles);
-    const subtotal = vehicle.dailyRate * days;
-    const vatAmount = subtotal * 0.15;
-    const total = subtotal + vatAmount;
-    const paidAmount = ["completed","active"].includes(status) ? total :
-                        status === "confirmed" ? total * 0.3 : 0;
+    const dailyRate = vehicle.dailyRate;
+    const totalRentalCost = dailyRate * days;
+    const taxAmount = totalRentalCost * 0.15;
+    const totalAmount = totalRentalCost + taxAmount;
+    const payStatus = ["completed", "active"].includes(status) ? "paid" :
+                       status === "confirmed" ? "partially_paid" : "pending";
 
     await client.query(
       `INSERT INTO car_rental_reservations
-         (org_id, customer_id, reservation_number, status, payment_status,
+         (org_id, customer_id, status, payment_status, payment_method,
           pickup_date, return_date, rental_days,
-          subtotal, vat_amount, total_amount, paid_amount, source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'dashboard')
+          daily_rate, total_rental_cost, tax_amount, total_amount,
+          source)
+       VALUES ($1,$2,$3,$4,'cash',$5,$6,$7,$8,$9,$10,$11,'dashboard')
        ON CONFLICT DO NOTHING`,
       [
         orgId, cust.id,
-        nextBookingNumber("CAR"),
-        status,
-        paidAmount >= total ? "paid" : paidAmount > 0 ? "partially_paid" : "pending",
+        status, payStatus,
         iso(startDate), iso(endDate), days,
-        fmt(subtotal), fmt(vatAmount), fmt(total), fmt(paidAmount),
+        fmt(dailyRate), fmt(totalRentalCost), fmt(taxAmount), fmt(totalAmount),
       ]
     );
   }
@@ -260,67 +265,62 @@ export async function seedSalonVertical(client: any, orgId: string) {
   const services = await getOrgServices(client, orgId);
   if (!customers.length || !services.length) return;
 
-  // 1. Service orders (appointments)
-  const statuses = ["completed","completed","completed","scheduled","cancelled","no_show"];
+  // 1. Service orders (columns: org_id, order_number, type, status, customer_id, customer_name, customer_phone, event_date, total_amount, service_id)
+  const statuses = ["completed", "completed", "completed", "scheduled", "cancelled", "no_show"];
 
   for (let i = 0; i < 35; i++) {
     const cust = pick(customers);
     const svc = pick(services);
-    const scheduledAt = randomDate(60);
+    const eventDate = randomDate(60);
     const status = pick(statuses);
-    const subtotal = Number(svc.base_price);
-    const vatAmount = subtotal * 0.15;
-    const total = subtotal + vatAmount;
-    const paidAmount = status === "completed" ? total : status === "scheduled" ? total * 0.3 : 0;
+    const total = Number(svc.base_price) * 1.15;
 
     await client.query(
       `INSERT INTO service_orders
-         (org_id, customer_id, order_number, status, payment_status,
-          scheduled_at, subtotal, vat_amount, total_amount, paid_amount, source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'dashboard')
+         (org_id, customer_id, customer_name, customer_phone,
+          order_number, type, status, service_id,
+          event_date, total_amount)
+       VALUES ($1,$2,$3,$4,$5,'appointment',$6,$7,$8,$9)
        ON CONFLICT DO NOTHING`,
       [
-        orgId, cust.id,
-        `SAL-${rand(1000,9999)}`,
-        status,
-        paidAmount >= total ? "paid" : paidAmount > 0 ? "partially_paid" : "pending",
-        iso(scheduledAt),
-        fmt(subtotal), fmt(vatAmount), fmt(total), fmt(paidAmount),
+        orgId, cust.id, cust.name, cust.phone,
+        `SAL-${rand(1000, 9999)}`,
+        status, svc.id,
+        iso(eventDate), fmt(total),
       ]
     );
   }
 
-  // 2. Salon supplies
+  // 2. Salon supplies (columns: org_id, name, category, unit, quantity, cost_per_unit, is_active)
   const supplies = [
-    { name: "أكسجين شعر 30vol", unit: "liter",  qty: 10, cost: 25 },
-    { name: "صبغة Wella N5",    unit: "tube",   qty: 50, cost: 35 },
-    { name: "كيراتين برازيلي",   unit: "ml",     qty: 5000, cost: 180 },
-    { name: "أسيتون إزالة",     unit: "liter",  qty: 8,  cost: 15 },
-    { name: "قفازات بلاستيك",   unit: "box",    qty: 20, cost: 22 },
-    { name: "قطن تنظيف",        unit: "pack",   qty: 30, cost: 12 },
+    { name: "أكسجين شعر 30vol", category: "chemicals", unit: "liter",  qty: 10, cost: 25 },
+    { name: "صبغة Wella N5",    category: "chemicals", unit: "tube",   qty: 50, cost: 35 },
+    { name: "كيراتين برازيلي",   category: "chemicals", unit: "ml",     qty: 5000, cost: 180 },
+    { name: "أسيتون إزالة",     category: "chemicals", unit: "liter",  qty: 8,  cost: 15 },
+    { name: "قفازات بلاستيك",   category: "tools",     unit: "box",    qty: 20, cost: 22 },
+    { name: "قطن تنظيف",        category: "tools",     unit: "pack",   qty: 30, cost: 12 },
   ];
 
   for (const s of supplies) {
     await client.query(
-      `INSERT INTO salon_supplies
-         (org_id, name, unit, quantity_in_stock, cost_per_unit, is_active)
-       VALUES ($1,$2,$3,$4,$5,true)
+      `INSERT INTO salon_supplies (org_id, name, category, unit, quantity, cost_per_unit, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,true)
        ON CONFLICT DO NOTHING`,
-      [orgId, s.name, s.unit, s.qty, fmt(s.cost)]
+      [orgId, s.name, s.category, s.unit, s.qty, fmt(s.cost)]
     );
   }
 
-  // 3. Client salon profiles (beauty history)
+  // 3. Client salon profiles (columns: org_id, client_id, hair_type, skin_type, allergies, notes)
   for (const cust of customers.slice(0, 10)) {
     await client.query(
       `INSERT INTO client_salon_profile
-         (org_id, customer_id, hair_type, skin_type, allergies, preferred_stylist_notes)
+         (org_id, client_id, hair_type, skin_type, allergies, notes)
        VALUES ($1,$2,$3,$4,$5,$6)
-       ON CONFLICT (org_id, customer_id) DO NOTHING`,
+       ON CONFLICT (org_id, client_id) DO NOTHING`,
       [
         orgId, cust.id,
-        pick(["طبيعي","جاف","دهني","مختلط"]),
-        pick(["طبيعية","حساسة","دهنية","جافة"]),
+        pick(["طبيعي", "جاف", "دهني", "مختلط"]),
+        pick(["طبيعية", "حساسة", "دهنية", "جافة"]),
         pick([null, "حساسية للأمونيا", "حساسية للعطور", null]),
         pick([null, "تفضل الأسلوب الكلاسيكي", "تفضل الألوان الداكنة", null]),
       ]
@@ -335,31 +335,24 @@ export async function seedBarberVertical(client: any, orgId: string) {
   const services = await getOrgServices(client, orgId);
   if (!customers.length || !services.length) return;
 
-  const statuses = ["completed","completed","completed","scheduled","cancelled"];
+  const statuses = ["completed", "completed", "completed", "scheduled", "cancelled"];
 
   for (let i = 0; i < 40; i++) {
     const cust = pick(customers);
     const svc = pick(services);
-    const scheduledAt = randomDate(60);
-    const status = pick(statuses);
-    const subtotal = Number(svc.base_price);
-    const vatAmount = subtotal * 0.15;
-    const total = subtotal + vatAmount;
-    const paidAmount = status === "completed" ? total : 0;
+    const total = Number(svc.base_price) * 1.15;
 
     await client.query(
       `INSERT INTO service_orders
-         (org_id, customer_id, order_number, status, payment_status,
-          scheduled_at, subtotal, vat_amount, total_amount, paid_amount, source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'dashboard')
+         (org_id, customer_id, customer_name, customer_phone,
+          order_number, type, status, service_id, event_date, total_amount)
+       VALUES ($1,$2,$3,$4,$5,'appointment',$6,$7,$8,$9)
        ON CONFLICT DO NOTHING`,
       [
-        orgId, cust.id,
-        `BAR-${rand(1000,9999)}`,
-        status,
-        paidAmount > 0 ? "paid" : "pending",
-        iso(scheduledAt),
-        fmt(subtotal), fmt(vatAmount), fmt(total), fmt(paidAmount),
+        orgId, cust.id, cust.name, cust.phone,
+        `BAR-${rand(1000, 9999)}`,
+        pick(statuses), svc.id,
+        iso(randomDate(60)), fmt(total),
       ]
     );
   }
@@ -372,70 +365,55 @@ export async function seedSpaVertical(client: any, orgId: string) {
   const services = await getOrgServices(client, orgId);
   if (!customers.length || !services.length) return;
 
-  const statuses = ["completed","completed","scheduled","cancelled"];
+  const statuses = ["completed", "completed", "scheduled", "cancelled"];
 
   for (let i = 0; i < 30; i++) {
     const cust = pick(customers);
     const svc = pick(services);
-    const scheduledAt = randomDate(60);
-    const status = pick(statuses);
-    const subtotal = Number(svc.base_price);
-    const vatAmount = subtotal * 0.15;
-    const total = subtotal + vatAmount;
-    const paidAmount = status === "completed" ? total : status === "scheduled" ? total * 0.5 : 0;
+    const total = Number(svc.base_price) * 1.15;
 
     await client.query(
       `INSERT INTO service_orders
-         (org_id, customer_id, order_number, status, payment_status,
-          scheduled_at, subtotal, vat_amount, total_amount, paid_amount, source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'dashboard')
+         (org_id, customer_id, customer_name, customer_phone,
+          order_number, type, status, service_id, event_date, total_amount)
+       VALUES ($1,$2,$3,$4,$5,'appointment',$6,$7,$8,$9)
        ON CONFLICT DO NOTHING`,
       [
-        orgId, cust.id,
-        `SPA-${rand(1000,9999)}`,
-        status,
-        paidAmount >= total ? "paid" : paidAmount > 0 ? "partially_paid" : "pending",
-        iso(scheduledAt),
-        fmt(subtotal), fmt(vatAmount), fmt(total), fmt(paidAmount),
+        orgId, cust.id, cust.name, cust.phone,
+        `SPA-${rand(1000, 9999)}`,
+        pick(statuses), svc.id,
+        iso(randomDate(60)), fmt(total),
       ]
     );
   }
 }
 
 // ─── MAINTENANCE / WORKSHOP ───────────────────────────────────────────────────
-// Tables: service_orders, work_orders
 
 export async function seedMaintenanceVertical(client: any, orgId: string) {
   const customers = await getOrgCustomers(client, orgId);
   const services = await getOrgServices(client, orgId);
   if (!customers.length || !services.length) return;
 
-  const statuses = ["completed","completed","in_progress","scheduled","cancelled"];
-  const kinds = ["maintenance","repair","inspection","installation"];
+  const statuses = ["completed", "completed", "in_progress", "scheduled", "cancelled"];
+  const kinds = ["maintenance", "repair", "inspection", "installation"];
 
   for (let i = 0; i < 25; i++) {
     const cust = pick(customers);
     const svc = pick(services);
-    const scheduledAt = randomDate(60);
-    const status = pick(statuses);
-    const subtotal = Number(svc.base_price);
-    const vatAmount = subtotal * 0.15;
-    const total = subtotal + vatAmount;
-    const paidAmount = status === "completed" ? total : 0;
+    const total = Number(svc.base_price) * 1.15;
 
     await client.query(
       `INSERT INTO service_orders
-         (org_id, customer_id, order_number, status, kind, payment_status,
-          scheduled_at, subtotal, vat_amount, total_amount, paid_amount, source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'dashboard')
+         (org_id, customer_id, customer_name, customer_phone,
+          order_number, type, status, order_kind, service_id, event_date, total_amount)
+       VALUES ($1,$2,$3,$4,$5,'service',$6,$7,$8,$9,$10)
        ON CONFLICT DO NOTHING`,
       [
-        orgId, cust.id,
-        `SO-${rand(1000,9999)}`,
-        status, pick(kinds),
-        paidAmount > 0 ? "paid" : "pending",
-        iso(scheduledAt),
-        fmt(subtotal), fmt(vatAmount), fmt(total), fmt(paidAmount),
+        orgId, cust.id, cust.name, cust.phone,
+        `SO-${rand(1000, 9999)}`,
+        pick(statuses), pick(kinds), svc.id,
+        iso(randomDate(60)), fmt(total),
       ]
     );
   }
@@ -449,8 +427,8 @@ export async function seedEventsVertical(client: any, orgId: string) {
   const services = await getOrgServices(client, orgId);
   if (!customers.length || !services.length) return;
 
-  const statuses = ["approved","approved","sent","draft","rejected"];
-  const eventTypes = ["زفاف","خطوبة","مؤتمر","يوم ميلاد","حفل تخرج","فعالية شركاتية"];
+  const statuses = ["approved", "approved", "sent", "draft", "rejected"];
+  const eventTypes = ["زفاف", "خطوبة", "مؤتمر", "يوم ميلاد", "حفل تخرج", "فعالية شركاتية"];
 
   for (let i = 0; i < 20; i++) {
     const cust = pick(customers);
@@ -458,30 +436,33 @@ export async function seedEventsVertical(client: any, orgId: string) {
     const status = pick(statuses);
     const eventDate = randomDate(90);
     const subtotal = Number(svc.base_price);
-    const vatAmount = subtotal * 0.15;
+    const vatRate = 15;
+    const vatAmount = subtotal * (vatRate / 100);
     const total = subtotal + vatAmount;
 
     const r = await client.query(
       `INSERT INTO event_quotations
-         (org_id, customer_id, quotation_number, status, event_type, event_date,
-          subtotal, vat_amount, total_amount, source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'dashboard')
+         (org_id, quotation_number, client_name, client_phone, status,
+          title, event_date, subtotal, vat_rate, vat_amount, total)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
        ON CONFLICT DO NOTHING
        RETURNING id`,
       [
-        orgId, cust.id,
-        `EQ-2026-${rand(1000,9999)}`,
-        status, pick(eventTypes),
+        orgId,
+        `EQ-2026-${rand(1000, 9999)}`,
+        cust.name, cust.phone,
+        status,
+        `عرض سعر — ${pick(eventTypes)}`,
         iso(eventDate),
-        fmt(subtotal), fmt(vatAmount), fmt(total),
+        fmt(subtotal), vatRate, fmt(vatAmount), fmt(total),
       ]
     );
     if (!r.rows[0]) continue;
 
-    // Quotation items
+    // Quotation items (columns: quotation_id, org_id, description, qty, unit_price, total_price)
     await client.query(
       `INSERT INTO event_quotation_items
-         (quotation_id, org_id, name, quantity, unit_price, total_price)
+         (quotation_id, org_id, description, qty, unit_price, total_price)
        VALUES ($1,$2,$3,1,$4,$4)
        ON CONFLICT DO NOTHING`,
       [r.rows[0].id, orgId, svc.name, fmt(subtotal)]
@@ -490,30 +471,30 @@ export async function seedEventsVertical(client: any, orgId: string) {
 }
 
 // ─── SCHOOL ──────────────────────────────────────────────────────────────────
-// Tables: students, subjects, student_attendance, school_settings
+// Tables: students, student_attendance, school_settings
 
 export async function seedSchoolVertical(client: any, orgId: string) {
   const customers = await getOrgCustomers(client, orgId);
   if (!customers.length) return;
 
-  // 1. Students (linked to customers)
-  const grades = ["الأول الابتدائي","الثاني الابتدائي","الثالث الابتدائي",
-                  "الرابع الابتدائي","الخامس الابتدائي","السادس الابتدائي"];
+  // 1. Students (columns: org_id, full_name, grade, is_active — no customer_id, no status, no grade_level)
+  const grades = ["الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس"];
+  const genders = ["male", "female"];
 
   for (const cust of customers.slice(0, 20)) {
     const r = await client.query(
       `INSERT INTO students
-         (org_id, customer_id, name, grade_level, status)
-       VALUES ($1,$2,$3,$4,'active')
+         (org_id, full_name, grade, gender, guardian_name, guardian_phone, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,true)
        ON CONFLICT DO NOTHING
        RETURNING id`,
-      [orgId, cust.id, cust.name, pick(grades)]
+      [orgId, cust.name, pick(grades), pick(genders), `ولي أمر ${cust.name}`, cust.phone]
     );
 
     if (!r.rows[0]) continue;
     const studentId = r.rows[0].id;
 
-    // 2. Attendance records per student
+    // 2. Attendance records
     for (let d = 0; d < rand(10, 20); d++) {
       const attendDate = randomDate(60);
       await client.query(
@@ -524,74 +505,47 @@ export async function seedSchoolVertical(client: any, orgId: string) {
         [
           orgId, studentId,
           iso(attendDate).slice(0, 10),
-          pick(["present","present","present","absent","late"]),
+          pick(["present", "present", "present", "absent", "late"]),
         ]
       );
     }
   }
 
-  // 3. Subjects
-  const subjectList = [
-    { name: "الرياضيات", nameEn: "Mathematics" },
-    { name: "اللغة العربية", nameEn: "Arabic Language" },
-    { name: "اللغة الإنجليزية", nameEn: "English Language" },
-    { name: "العلوم", nameEn: "Science" },
-    { name: "الدراسات الاجتماعية", nameEn: "Social Studies" },
-    { name: "التربية الإسلامية", nameEn: "Islamic Studies" },
-  ];
-
-  for (const subj of subjectList) {
-    await client.query(
-      `INSERT INTO subjects (org_id, name, name_en, is_active)
-       VALUES ($1,$2,$3,true)
-       ON CONFLICT DO NOTHING`,
-      [orgId, subj.name, subj.nameEn]
-    );
-  }
-
-  // 4. School settings
+  // 3. School settings (columns: org_id, school_name, school_type, education_level, setup_status)
   await client.query(
     `INSERT INTO school_settings
-       (org_id, academic_year, grading_system, passing_grade)
-     VALUES ($1,'2025-2026','percentage',60)
+       (org_id, school_name, school_type, education_level, setup_status)
+     VALUES ($1,$2,'private','primary','complete')
      ON CONFLICT (org_id) DO NOTHING`,
-    [orgId]
+    [orgId, "مدرسة ترميز النموذجية"]
   );
 }
 
 // ─── MEDICAL ─────────────────────────────────────────────────────────────────
-// Tables: service_orders (appointments)
 
 export async function seedMedicalVertical(client: any, orgId: string) {
   const customers = await getOrgCustomers(client, orgId);
   const services = await getOrgServices(client, orgId);
   if (!customers.length || !services.length) return;
 
-  const statuses = ["completed","completed","scheduled","cancelled"];
+  const statuses = ["completed", "completed", "scheduled", "cancelled"];
 
   for (let i = 0; i < 30; i++) {
     const cust = pick(customers);
     const svc = pick(services);
-    const scheduledAt = randomDate(60);
-    const status = pick(statuses);
-    const subtotal = Number(svc.base_price);
-    const vatAmount = subtotal * 0.15;
-    const total = subtotal + vatAmount;
-    const paidAmount = status === "completed" ? total : 0;
+    const total = Number(svc.base_price) * 1.15;
 
     await client.query(
       `INSERT INTO service_orders
-         (org_id, customer_id, order_number, status, payment_status,
-          scheduled_at, subtotal, vat_amount, total_amount, paid_amount, source)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'dashboard')
+         (org_id, customer_id, customer_name, customer_phone,
+          order_number, type, status, service_id, event_date, total_amount)
+       VALUES ($1,$2,$3,$4,$5,'appointment',$6,$7,$8,$9)
        ON CONFLICT DO NOTHING`,
       [
-        orgId, cust.id,
-        `MED-${rand(1000,9999)}`,
-        status,
-        paidAmount > 0 ? "paid" : "pending",
-        iso(scheduledAt),
-        fmt(subtotal), fmt(vatAmount), fmt(total), fmt(paidAmount),
+        orgId, cust.id, cust.name, cust.phone,
+        `MED-${rand(1000, 9999)}`,
+        pick(statuses), svc.id,
+        iso(randomDate(60)), fmt(total),
       ]
     );
   }
