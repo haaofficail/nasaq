@@ -231,30 +231,47 @@ export async function createOrg(client: any, cfg: OrgConfig): Promise<string | n
 }
 
 /** Create owner + staff users */
-export async function createTeam(client: any, orgId: string, ownerName: string, ownerPhone: string, ownerEmail: string) {
+/** Returns array of staff user IDs (owner + employees) created for the org */
+export async function createTeam(client: any, orgId: string, ownerName: string, ownerPhone: string, ownerEmail: string): Promise<string[]> {
   const staffNames = [
-    { name: "سلمى المنصور",    role: "employee" },
-    { name: "ماجد العسيري",   role: "employee" },
-    { name: "رنا الشاوي",      role: "employee" },
-    { name: "هاني الرفاعي",    role: "employee" },
+    { name: "سلمى المنصور",  role: "employee" },
+    { name: "ماجد العسيري", role: "employee" },
+    { name: "رنا الشاوي",    role: "employee" },
+    { name: "هاني الرفاعي",  role: "employee" },
   ];
 
-  await client.query(
+  const staffIds: string[] = [];
+
+  const ownerRes = await client.query(
     `INSERT INTO users (org_id, name, phone, email, type, status)
      VALUES ($1,$2,$3,$4,'owner','active')
-     ON CONFLICT DO NOTHING`,
+     ON CONFLICT DO NOTHING
+     RETURNING id`,
     [orgId, ownerName, ownerPhone, ownerEmail]
   );
+  if (ownerRes.rows[0]?.id) staffIds.push(ownerRes.rows[0].id);
 
-  for (const s of staffNames.slice(0, 2)) {
+  for (const s of staffNames.slice(0, 3)) {
     const phone = `+9665000${rand(10000, 99999)}`;
-    await client.query(
+    const sRes = await client.query(
       `INSERT INTO users (org_id, name, phone, email, type, status)
        VALUES ($1,$2,$3,$4,$5,'active')
-       ON CONFLICT DO NOTHING`,
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
       [orgId, s.name, phone, `staff-${phone.slice(-5)}@demo.sa`, s.role]
     );
+    if (sRes.rows[0]?.id) staffIds.push(sRes.rows[0].id);
   }
+
+  // Fallback: if ON CONFLICT fired (org already had users), fetch existing
+  if (staffIds.length === 0) {
+    const existing = await client.query(
+      `SELECT id FROM users WHERE org_id = $1 ORDER BY created_at LIMIT 4`, [orgId]
+    );
+    staffIds.push(...existing.rows.map((r: any) => r.id));
+  }
+
+  return staffIds;
 }
 
 /** Create default booking pipeline */
@@ -371,7 +388,8 @@ export async function createBookings(
   count = 40,
   sellerVatNumber?: string,
   sellerCR?: string,
-  sellerCity?: string
+  sellerCity?: string,
+  staffIds: string[] = []
 ) {
   const resolvedVat = sellerVatNumber || `310${rand(10000000,99999999)}00003`;
   const resolvedCR  = sellerCR  || `10${rand(10000000,99999999)}`;
@@ -394,12 +412,16 @@ export async function createBookings(
 
     const bookingNum = nextBookingNumber();
 
+    // Assign staff to ~80% of bookings (not pending/cancelled)
+    const assignStaff = staffIds.length > 0 && bookingStatus !== "pending" && bookingStatus !== "cancelled" && Math.random() < 0.8;
+    const assignedUserId = assignStaff ? staffIds[i % staffIds.length] : null;
+
     const bRes = await client.query(
       `INSERT INTO bookings
          (org_id, customer_id, booking_number, status, payment_status, event_date,
           subtotal, discount_amount, vat_amount, total_amount, deposit_amount, paid_amount, balance_due,
-          source, internal_notes)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'dashboard',$14)
+          source, internal_notes, assigned_user_id)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'dashboard',$14,$15)
        RETURNING id`,
       [
         orgId, customer.id, bookingNum, bookingStatus, paymentStatus,
@@ -407,6 +429,7 @@ export async function createBookings(
         fmt(subtotal), fmt(discount), fmt(vatAmount), fmt(total),
         fmt(paidAmount * 0.3), fmt(paidAmount), fmt(balanceDue),
         pick(INTERNAL_NOTES),
+        assignedUserId,
       ]
     );
     const bookingId = bRes.rows[0].id;

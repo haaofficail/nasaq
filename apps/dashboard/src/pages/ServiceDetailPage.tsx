@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { clsx } from "clsx";
 import { servicesApi, questionsApi, inventoryApi, teamApi, salonApi } from "@/lib/api";
+import { useBusiness } from "@/hooks/useBusiness";
 import { CreateBookingForm } from "@/components/bookings/CreateBookingForm";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Modal, Input, TextArea, Select, Button, Toggle, confirmDialog } from "@/components/ui";
@@ -36,9 +37,13 @@ const EMPTY_Q = {
   price: 0,
 };
 
+const BEAUTY_TYPES = new Set(["salon","barber","spa","fitness"]);
+
 export function ServiceDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const biz = useBusiness();
+  const isBeauty = BEAUTY_TYPES.has(biz.key);
   const [activeTab, setActiveTab] = useState<Tab>("info");
   const [showBooking, setShowBooking] = useState(false);
 
@@ -57,9 +62,9 @@ export function ServiceDetailPage() {
   const { mutate: deleteService, loading: deleting } = useMutation((sid: string) => servicesApi.delete(sid));
   const { mutate: duplicateService } = useMutation((sid: string) => servicesApi.duplicate(sid));
 
-  // Recipes (salon supplies)
-  const { data: recipesRes, refetch: refetchRecipes } = useApi(() => salonApi.recipes(id!), [id]);
-  const { data: suppliesRes } = useApi(() => salonApi.supplies(), []);
+  // Recipes (salon supplies) — فقط للصالونات والسبا
+  const { data: recipesRes, refetch: refetchRecipes } = useApi(() => isBeauty ? salonApi.recipes(id!) : Promise.resolve(null), [id, isBeauty]);
+  const { data: suppliesRes } = useApi(() => isBeauty ? salonApi.supplies() : Promise.resolve(null), [isBeauty]);
   const recipes: any[] = recipesRes?.data ?? [];
   const supplies: any[] = suppliesRes?.data ?? [];
   const [recipeForm, setRecipeForm] = useState({ supplyId: "", quantity: "1" });
@@ -319,7 +324,7 @@ export function ServiceDetailPage() {
     { key: "info", label: "معلومات الخدمة", icon: Package },
     { key: "components", label: "المكونات والتكاليف", icon: Boxes },
     { key: "requirements", label: "المتطلبات", icon: ClipboardList, badge: requirements.length || undefined },
-    { key: "recipes", label: "وصفة المستلزمات", icon: FlaskConical, badge: recipes.length || undefined },
+    ...(isBeauty ? [{ key: "recipes" as Tab, label: "وصفة المستلزمات", icon: FlaskConical, badge: recipes.length || undefined }] : []),
     { key: "staff", label: "الموظفون", icon: Users, badge: serviceStaff.length || undefined },
     { key: "questions", label: "أسئلة مخصصة", icon: HelpCircle },
     { key: "booking-settings", label: "إعدادات الحجز", icon: Settings2 },

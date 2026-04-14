@@ -837,6 +837,147 @@ async function seedRentalVertical(client: any, orgId: string) {
       vals
     );
   }
+
+  // ── Seed contracts linked to rental assets ──────────────────────────────────
+  // Check contracts table exists
+  const contractsTblCheck = await client.query(
+    `SELECT to_regclass('public.contracts') AS tbl`
+  );
+  if (!contractsTblCheck.rows[0]?.tbl) return;
+
+  // Fetch the assets we just inserted (to get their IDs)
+  const assetRows = await client.query(
+    `SELECT id, name, daily_rate FROM rental_assets WHERE org_id = $1 ORDER BY created_at LIMIT 12`,
+    [orgId]
+  );
+  if (!assetRows.rows.length) return;
+
+  // Reference customers for contracts
+  const custRows = await client.query(
+    `SELECT id, name, phone FROM customers WHERE org_id = $1 ORDER BY created_at LIMIT 8`,
+    [orgId]
+  );
+  const customers = custRows.rows;
+  if (!customers.length) return;
+
+  // Skip if contracts already seeded
+  const existingContracts = await client.query(
+    `SELECT id FROM contracts WHERE org_id = $1 LIMIT 1`, [orgId]
+  );
+  if (existingContracts.rows.length) return;
+
+  type ContractDef = {
+    assetIdx: number; custIdx: number;
+    startOffset: number; durationDays: number;
+    status: string; paymentTerms: string;
+  };
+
+  const contractDefs: ContractDef[] = [
+    { assetIdx: 0,  custIdx: 0, startOffset: -60,  durationDays: 90,  status: "active",      paymentTerms: "monthly"  },
+    { assetIdx: 1,  custIdx: 1, startOffset: -30,  durationDays: 60,  status: "active",      paymentTerms: "monthly"  },
+    { assetIdx: 2,  custIdx: 2, startOffset: -10,  durationDays: 30,  status: "active",      paymentTerms: "one_time" },
+    { assetIdx: 5,  custIdx: 3, startOffset: -5,   durationDays: 14,  status: "active",      paymentTerms: "one_time" },
+    { assetIdx: 6,  custIdx: 4, startOffset: -90,  durationDays: 180, status: "active",      paymentTerms: "monthly"  },
+    { assetIdx: 8,  custIdx: 0, startOffset: -120, durationDays: 90,  status: "expired",     paymentTerms: "monthly"  },
+    { assetIdx: 3,  custIdx: 5, startOffset: -180, durationDays: 90,  status: "expired",     paymentTerms: "monthly"  },
+    { assetIdx: 9,  custIdx: 1, startOffset:  0,   durationDays: 7,   status: "draft",       paymentTerms: "one_time" },
+    { assetIdx: 11, custIdx: 6, startOffset: -25,  durationDays: 365, status: "active",      paymentTerms: "quarterly"},
+    { assetIdx: 7,  custIdx: 7, startOffset: -14,  durationDays: 14,  status: "active",      paymentTerms: "one_time" },
+  ];
+
+  const now = new Date();
+  let contractNum = 1001;
+
+  for (const def of contractDefs) {
+    const asset = assetRows.rows[def.assetIdx % assetRows.rows.length];
+    const cust  = customers[def.custIdx % customers.length];
+
+    const startDate = new Date(now);
+    startDate.setDate(startDate.getDate() + def.startOffset);
+    const endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + def.durationDays);
+
+    const dailyRate  = parseFloat(asset.daily_rate) || 200;
+    const totalValue = Math.round(dailyRate * def.durationDays);
+
+    const insertedContract = await client.query(
+      `INSERT INTO contracts
+         (org_id, contract_number, contract_type, title,
+          party_name, party_phone,
+          start_date, end_date, value, payment_terms,
+          status, linked_entity_type, linked_entity_id,
+          notes)
+       VALUES ($1,$2,'lease',$3,$4,$5,$6,$7,$8,$9,$10,'equipment',$11,$12)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [
+        orgId,
+        `EQ-${contractNum++}`,
+        `عقد تأجير ${asset.name}`,
+        cust.name,
+        cust.phone || null,
+        startDate.toISOString().split("T")[0],
+        endDate.toISOString().split("T")[0],
+        totalValue,
+        def.paymentTerms,
+        def.status,
+        asset.id,
+        `عقد تأجير ${asset.name} لمدة ${def.durationDays} يوم`,
+      ]
+    );
+
+    if (!insertedContract.rows.length) continue;
+    const contractId = insertedContract.rows[0].id;
+
+    // Seed contract payments based on payment terms
+    if (def.paymentTerms === "one_time") {
+      const paidAt = def.status === "active" || def.status === "expired"
+        ? startDate.toISOString() : null;
+      await client.query(
+        `INSERT INTO contract_payments
+           (org_id, contract_id, due_date, amount, status, paid_at, payment_method)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)
+         ON CONFLICT DO NOTHING`,
+        [
+          orgId, contractId,
+          startDate.toISOString().split("T")[0],
+          totalValue,
+          paidAt ? "paid" : "pending",
+          paidAt,
+          paidAt ? "bank_transfer" : null,
+        ]
+      );
+    } else {
+      // Monthly/quarterly — split into installments
+      const installCount = def.paymentTerms === "monthly"
+        ? Math.ceil(def.durationDays / 30)
+        : Math.ceil(def.durationDays / 90);
+      const installAmount = Math.round(totalValue / installCount);
+      const intervalDays  = def.paymentTerms === "monthly" ? 30 : 90;
+
+      for (let i = 0; i < installCount; i++) {
+        const dueDate = new Date(startDate);
+        dueDate.setDate(dueDate.getDate() + i * intervalDays);
+        const isPast   = dueDate < now;
+        const paidAt   = isPast && def.status !== "draft" ? dueDate.toISOString() : null;
+
+        await client.query(
+          `INSERT INTO contract_payments
+             (org_id, contract_id, due_date, amount, status, paid_at, payment_method)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)
+           ON CONFLICT DO NOTHING`,
+          [
+            orgId, contractId,
+            dueDate.toISOString().split("T")[0],
+            installAmount,
+            paidAt ? "paid" : (isPast ? "overdue" : "pending"),
+            paidAt,
+            paidAt ? "cash" : null,
+          ]
+        );
+      }
+    }
+  }
 }
 
 // ─── Dispatcher ──────────────────────────────────────────────────────────────

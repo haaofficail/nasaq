@@ -85,10 +85,14 @@ async function run() {
         // 1. Pre-delete tables that may block org deletion
         //    Only tables confirmed to have RESTRICT/NO ACTION FK or that our seed writes to
         const preTables = [
-          "rfp_proposals",      // ON DELETE no action (confirmed)
-          "menu_categories",    // F&B vertical writes here
-          "menu_items",         // F&B vertical writes here
-          "restaurant_tables",  // F&B vertical writes here
+          "rfp_proposals",        // ON DELETE no action (confirmed)
+          "menu_categories",      // F&B vertical writes here
+          "menu_items",           // F&B vertical writes here
+          "restaurant_tables",    // F&B vertical writes here
+          "contract_documents",   // contracts vertical
+          "contract_payments",    // contracts vertical
+          "contracts",            // contracts vertical
+          "rental_assets",        // rental vertical
         ];
         for (const tbl of preTables) {
           await safeDelete(tbl);
@@ -126,7 +130,7 @@ async function run() {
         }
 
         // Team
-        await createTeam(client, orgId, cfg.ownerName, cfg.phone, cfg.email);
+        const staffIds = await createTeam(client, orgId, cfg.ownerName, cfg.phone, cfg.email);
 
         // Roles
         await client.query(
@@ -166,7 +170,7 @@ async function run() {
         const bookingCount = cfg.hasPos ? 30 : 40;
         await createBookings(
           client, orgId, cfg.name, customers, serviceIds, cfg.services, accounts, bookingCount,
-          cfg.vatNumber, cfg.crNumber, cfg.city
+          cfg.vatNumber, cfg.crNumber, cfg.city, staffIds
         );
 
         // POS transactions
