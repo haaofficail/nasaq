@@ -83,7 +83,8 @@ export async function seedFlowerVertical(client: any, orgId: string) {
 
   // 3. Flower orders
   const statuses = ["new", "confirmed", "in_preparation", "ready", "delivered", "delivered", "cancelled"];
-  const payStatuses = ["paid", "paid", "paid", "pending", "pending"];
+  // Valid values per chk_flower_orders_payment_status: unpaid|paid|partially_paid|refunded
+  const payStatuses = ["paid", "paid", "paid", "unpaid", "unpaid"];
 
   for (let i = 0; i < 20; i++) {
     const cust = pick(customers);
@@ -258,7 +259,7 @@ export async function seedCarRentalVertical(client: any, orgId: string) {
 }
 
 // ─── SALON ───────────────────────────────────────────────────────────────────
-// Tables: service_orders, salon_supplies, client_salon_profile
+// Tables: service_orders, salon_supplies, client_beauty_profiles
 
 export async function seedSalonVertical(client: any, orgId: string) {
   const customers = await getOrgCustomers(client, orgId);
@@ -311,13 +312,13 @@ export async function seedSalonVertical(client: any, orgId: string) {
     );
   }
 
-  // 3. Client salon profiles (columns: org_id, client_id, hair_type, skin_type, allergies, notes)
+  // 3. Client beauty profiles (table: client_beauty_profiles, PK unique on org_id + customer_id)
   for (const cust of customers.slice(0, 10)) {
     await client.query(
-      `INSERT INTO client_salon_profile
-         (org_id, client_id, hair_type, skin_type, allergies, notes)
+      `INSERT INTO client_beauty_profiles
+         (org_id, customer_id, hair_type, skin_type, allergies, preferences)
        VALUES ($1,$2,$3,$4,$5,$6)
-       ON CONFLICT (org_id, client_id) DO NOTHING`,
+       ON CONFLICT (org_id, customer_id) DO NOTHING`,
       [
         orgId, cust.id,
         pick(["طبيعي", "جاف", "دهني", "مختلط"]),

@@ -72,24 +72,43 @@ async function run() {
       const demoIds: string[] = demoRes.rows.map((r: any) => r.id);
 
       if (demoIds.length > 0) {
-        // Delete tables that have RESTRICT FKs on parent tables that cascade from org.
-        // Must be deleted BEFORE the parent cascade fires.
+        // Safe delete: silently skips if table doesn't exist (pg code 42P01)
+        const safeDelete = async (table: string) => {
+          try {
+            await client.query(`DELETE FROM ${table} WHERE org_id = ANY($1)`, [demoIds]);
+          } catch (err: any) {
+            if (err.code === "42P01") return; // undefined_table — skip
+            throw err;
+          }
+        };
 
-        // booking_items.service_id → services (RESTRICT) — services cascade from org
+        // 1. Pre-delete tables that may block org deletion
+        //    Only tables confirmed to have RESTRICT/NO ACTION FK or that our seed writes to
+        const preTables = [
+          "rfp_proposals",      // ON DELETE no action (confirmed)
+          "menu_categories",    // F&B vertical writes here
+          "menu_items",         // F&B vertical writes here
+          "restaurant_tables",  // F&B vertical writes here
+        ];
+        for (const tbl of preTables) {
+          await safeDelete(tbl);
+        }
+
+        // 2. booking_items.service_id → services (RESTRICT, no org_id column)
         await client.query(
           `DELETE FROM booking_items WHERE booking_id IN
            (SELECT id FROM bookings WHERE org_id = ANY($1))`,
           [demoIds]
         );
 
-        // journal_entry_lines.account_id → chart_of_accounts (RESTRICT) — COA cascade from org
+        // 3. journal_entry_lines.account_id → chart_of_accounts (RESTRICT, no org_id column)
         await client.query(
           `DELETE FROM journal_entry_lines WHERE entry_id IN
            (SELECT id FROM journal_entries WHERE org_id = ANY($1))`,
           [demoIds]
         );
 
-        // Now safe to delete orgs (all other cascades are either CASCADE or already cleaned)
+        // Now safe to delete orgs
         await client.query(`DELETE FROM organizations WHERE id = ANY($1)`, [demoIds]);
       }
       console.log("  → Done\n");
