@@ -32,7 +32,6 @@ INSERT INTO organizations (
 INSERT INTO users (
   org_id,
   name,
-  name_en,
   email,
   phone,
   type,
@@ -42,7 +41,6 @@ INSERT INTO users (
 ) VALUES (
   '00000000-0000-0000-0000-000000000001',
   'مدير النظام',
-  'System Admin',
   'info@tarmizos.com',
   '+966000000001',
   'owner',
