@@ -65,12 +65,33 @@ async function run() {
 
     if (resetFlag) {
       console.log("Resetting demo orgs...");
-      // Temporarily disable FK constraint triggers so cascades work cleanly
-      await client.query(`SET session_replication_role = 'replica'`);
-      await client.query(
-        `DELETE FROM organizations WHERE has_demo_data = true AND slug LIKE 'demo-%'`
+      // Collect demo org IDs
+      const demoRes = await client.query(
+        `SELECT id FROM organizations WHERE has_demo_data = true AND slug LIKE 'demo-%'`
       );
-      await client.query(`SET session_replication_role = 'origin'`);
+      const demoIds: string[] = demoRes.rows.map((r: any) => r.id);
+
+      if (demoIds.length > 0) {
+        // Delete tables that have RESTRICT FKs on parent tables that cascade from org.
+        // Must be deleted BEFORE the parent cascade fires.
+
+        // booking_items.service_id → services (RESTRICT) — services cascade from org
+        await client.query(
+          `DELETE FROM booking_items WHERE booking_id IN
+           (SELECT id FROM bookings WHERE org_id = ANY($1))`,
+          [demoIds]
+        );
+
+        // journal_entry_lines.account_id → chart_of_accounts (RESTRICT) — COA cascade from org
+        await client.query(
+          `DELETE FROM journal_entry_lines WHERE entry_id IN
+           (SELECT id FROM journal_entries WHERE org_id = ANY($1))`,
+          [demoIds]
+        );
+
+        // Now safe to delete orgs (all other cascades are either CASCADE or already cleaned)
+        await client.query(`DELETE FROM organizations WHERE id = ANY($1)`, [demoIds]);
+      }
       console.log("  → Done\n");
     }
 
