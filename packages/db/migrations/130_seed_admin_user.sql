@@ -29,25 +29,27 @@ INSERT INTO organizations (
 
 -- 2. Create super admin user (password: Admin@tarmiz2026)
 -- Change password after first login via admin panel
-INSERT INTO users (
-  org_id,
-  name,
-  email,
-  phone,
-  type,
-  status,
-  password_hash,
-  is_super_admin
-) VALUES (
-  '00000000-0000-0000-0000-000000000001',
-  'مدير النظام',
-  'info@tarmizos.com',
-  '+966000000001',
-  'owner',
-  'active',
-  '6d4c3a4f31d622e244439eac5bd2b759:2bb0432d214c916cd47c02b6ada74f27ed908b335c1c62b6db90000051cc89d443161accfbb32c46d95e2d7c120ce540f0ff270b591f754c56d4e8c4a57ed81d',
-  true
-) ON CONFLICT (email) DO UPDATE
-  SET password_hash = EXCLUDED.password_hash,
-      is_super_admin = true,
-      status        = 'active';
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM users WHERE email = 'info@tarmizos.com') THEN
+    INSERT INTO users (
+      org_id, name, email, phone,
+      type, status, password_hash, is_super_admin
+    ) VALUES (
+      '00000000-0000-0000-0000-000000000001',
+      'مدير النظام',
+      'info@tarmizos.com',
+      '+966000000001',
+      'owner',
+      'active',
+      '6d4c3a4f31d622e244439eac5bd2b759:2bb0432d214c916cd47c02b6ada74f27ed908b335c1c62b6db90000051cc89d443161accfbb32c46d95e2d7c120ce540f0ff270b591f754c56d4e8c4a57ed81d',
+      true
+    );
+  ELSE
+    UPDATE users
+    SET password_hash  = '6d4c3a4f31d622e244439eac5bd2b759:2bb0432d214c916cd47c02b6ada74f27ed908b335c1c62b6db90000051cc89d443161accfbb32c46d95e2d7c120ce540f0ff270b591f754c56d4e8c4a57ed81d',
+        is_super_admin = true,
+        status         = 'active'
+    WHERE email = 'info@tarmizos.com';
+  END IF;
+END $$;
