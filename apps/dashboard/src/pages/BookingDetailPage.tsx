@@ -363,7 +363,7 @@ export function BookingDetailPage() {
               <div className="flex items-center gap-2"><User className="w-4 h-4 text-gray-400" />{booking.customerName || booking.customer?.name}</div>
               {(booking.customerPhone || booking.customer?.phone) && <div className="flex items-center gap-2"><Phone className="w-4 h-4 text-gray-400" /><span dir="ltr">{booking.customerPhone || booking.customer?.phone}</span></div>}
             </div>
-            {booking.customerId && (
+            {booking.customerId && ["salon","barber","spa","fitness"].includes(biz.key) && (
               <a href={`/dashboard/customers/${booking.customerId}/beauty-card`}
                 className="mt-3 flex items-center gap-1.5 text-xs text-brand-500 hover:underline">
                 <Sparkles className="w-3.5 h-3.5" /> بطاقة الجمال
@@ -371,8 +371,8 @@ export function BookingDetailPage() {
             )}
           </div>
 
-          {/* Visit Note (salon only) */}
-          {(booking.status === "completed" || booking.status === "in_progress") && (
+          {/* Visit Note — صالونات وسبا فقط */}
+          {["salon","barber","spa","fitness"].includes(biz.key) && (booking.status === "completed" || booking.status === "in_progress") && (
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold text-gray-900 text-sm">ملاحظات الزيارة</h3>

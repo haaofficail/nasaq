@@ -49,6 +49,7 @@ const SERVICE_TYPE_LABELS: Record<string, { label: string; color: string }> = {
 // ── Types ──────────────────────────────────────────────────────────────────
 type ServiceRecord = {
   id: string; name: string; basePrice: string;
+  imageUrl?: string | null;
   serviceType: string;
   hasDelivery: boolean; allowsPickup: boolean; allowsInVenue: boolean;
   maxCapacity: number; minCapacity: number; capacityLabel: string | null;
@@ -126,6 +127,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
         id: s.id,
         name: s.name,
         basePrice: s.basePrice ?? "0",
+        imageUrl: s.imageUrl ?? s.image ?? null,
         serviceType: s.serviceType || "appointment",
         hasDelivery: s.hasDelivery ?? false,
         allowsPickup: s.allowsPickup ?? false,
@@ -504,24 +506,37 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                     type="button"
                     onClick={() => toggleService(svc.id)}
                     className={clsx(
-                      "relative p-3 rounded-xl border text-right transition-all w-full",
+                      "relative rounded-xl border text-right transition-all w-full overflow-hidden",
                       isSelected
                         ? "border-[#5b9bd5] bg-blue-50 shadow-sm"
                         : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
                     )}
                   >
-                    {isSelected && (
-                      <span className="absolute top-2 left-2 w-5 h-5 bg-[#5b9bd5] rounded-full flex items-center justify-center">
-                        <Check className="w-3 h-3 text-white" />
-                      </span>
+                    {/* Service image */}
+                    {svc.imageUrl && (
+                      <div className="w-full h-24 overflow-hidden">
+                        <img
+                          src={svc.imageUrl}
+                          alt={svc.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => { (e.currentTarget.parentElement as HTMLElement).style.display = "none"; }}
+                        />
+                      </div>
                     )}
-                    <p className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2 mb-1">{svc.name}</p>
-                    <p className="text-xs font-bold text-[#5b9bd5]">{Number(svc.basePrice).toLocaleString()} ر.س</p>
-                    {typeMeta && (
-                      <span className={clsx("text-[10px] px-1.5 py-0.5 rounded-full font-medium mt-1 inline-block", typeMeta.color)}>
-                        {typeMeta.label}
-                      </span>
-                    )}
+                    <div className="p-3">
+                      {isSelected && (
+                        <span className="absolute top-2 left-2 w-5 h-5 bg-[#5b9bd5] rounded-full flex items-center justify-center z-10">
+                          <Check className="w-3 h-3 text-white" />
+                        </span>
+                      )}
+                      <p className="text-xs font-semibold text-gray-900 leading-snug line-clamp-2 mb-1">{svc.name}</p>
+                      <p className="text-xs font-bold text-[#5b9bd5]">{Number(svc.basePrice).toLocaleString()} ر.س</p>
+                      {typeMeta && (
+                        <span className={clsx("text-[10px] px-1.5 py-0.5 rounded-full font-medium mt-1 inline-block", typeMeta.color)}>
+                          {typeMeta.label}
+                        </span>
+                      )}
+                    </div>
                   </button>
                 );
               })}

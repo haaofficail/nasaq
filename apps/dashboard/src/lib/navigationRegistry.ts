@@ -106,7 +106,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
       { name: "التوصيل",          href: "/dashboard/delivery",     icon: Truck,         requiredCapabilities: [], requiredPlan: "basic", excludedBusinessTypes: ["salon", "barber", "spa", "fitness", "massage", "photography", "hotel", "car_rental", "rental", "real_estate", "school"] },
       { name: "أوامر العمل",     href: "/dashboard/work-orders",  icon: ClipboardCheck, requiredCapabilities: [], allowedBusinessTypes: ["workshop", "maintenance", "logistics", "construction", "laundry", "photography"] },
       { name: "العملاء",         href: "/dashboard/customers",    icon: Users,         requiredCapabilities: [], excludedBusinessTypes: ["flower_shop"] },
-      { name: "العقود",          href: "/dashboard/contracts",    icon: FileSignature, requiredCapabilities: [], requiredPlan: "basic", excludedBusinessTypes: ["salon", "spa", "restaurant", "cafe", "bakery", "flower_shop", "retail", "laundry"] },
+      { name: "العقود",          href: "/dashboard/contracts",    icon: FileSignature, requiredCapabilities: [], requiredPlan: "basic", excludedBusinessTypes: ["salon", "spa", "restaurant", "cafe", "bakery", "flower_shop", "retail", "laundry", "rental", "car_rental", "hotel", "real_estate"] },
     ],
   },
 
