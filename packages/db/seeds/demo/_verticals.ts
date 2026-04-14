@@ -223,7 +223,7 @@ export async function seedCarRentalVertical(client: any, orgId: string) {
   }
 
   // 2. Car rental reservations
-  const statuses = ["confirmed", "active", "completed", "completed", "completed", "cancelled"];
+  const statuses = ["confirmed", "picked_up", "completed", "completed", "completed", "cancelled"];
 
   for (let i = 0; i < 20; i++) {
     const cust = pick(customers);
@@ -265,8 +265,10 @@ export async function seedSalonVertical(client: any, orgId: string) {
   const services = await getOrgServices(client, orgId);
   if (!customers.length || !services.length) return;
 
-  // 1. Service orders (columns: org_id, order_number, type, status, customer_id, customer_name, customer_phone, event_date, total_amount, service_id)
-  const statuses = ["completed", "completed", "completed", "scheduled", "cancelled", "no_show"];
+  // 1. Service orders (type must be: kiosk|newborn_reception|custom_arrangement|field_execution|custom_decor)
+  // (order_kind must be: sale|booking|project)
+  // (status must be: draft|confirmed|deposit_pending|scheduled|preparing|ready|dispatched|in_setup|completed_on_site|returned|inspected|closed|cancelled)
+  const statuses = ["closed", "closed", "closed", "scheduled", "cancelled"];
 
   for (let i = 0; i < 35; i++) {
     const cust = pick(customers);
@@ -278,10 +280,9 @@ export async function seedSalonVertical(client: any, orgId: string) {
     await client.query(
       `INSERT INTO service_orders
          (org_id, customer_id, customer_name, customer_phone,
-          order_number, type, status, service_id,
+          order_number, type, order_kind, status, service_id,
           event_date, total_amount)
-       VALUES ($1,$2,$3,$4,$5,'appointment',$6,$7,$8,$9)
-       ON CONFLICT DO NOTHING`,
+       VALUES ($1,$2,$3,$4,$5,'custom_arrangement','booking',$6,$7,$8,$9)`,
       [
         orgId, cust.id, cust.name, cust.phone,
         `SAL-${rand(1000, 9999)}`,
@@ -335,7 +336,7 @@ export async function seedBarberVertical(client: any, orgId: string) {
   const services = await getOrgServices(client, orgId);
   if (!customers.length || !services.length) return;
 
-  const statuses = ["completed", "completed", "completed", "scheduled", "cancelled"];
+  const statuses = ["closed", "closed", "closed", "scheduled", "cancelled"];
 
   for (let i = 0; i < 40; i++) {
     const cust = pick(customers);
@@ -345,9 +346,8 @@ export async function seedBarberVertical(client: any, orgId: string) {
     await client.query(
       `INSERT INTO service_orders
          (org_id, customer_id, customer_name, customer_phone,
-          order_number, type, status, service_id, event_date, total_amount)
-       VALUES ($1,$2,$3,$4,$5,'appointment',$6,$7,$8,$9)
-       ON CONFLICT DO NOTHING`,
+          order_number, type, order_kind, status, service_id, event_date, total_amount)
+       VALUES ($1,$2,$3,$4,$5,'custom_arrangement','booking',$6,$7,$8,$9)`,
       [
         orgId, cust.id, cust.name, cust.phone,
         `BAR-${rand(1000, 9999)}`,
@@ -365,7 +365,7 @@ export async function seedSpaVertical(client: any, orgId: string) {
   const services = await getOrgServices(client, orgId);
   if (!customers.length || !services.length) return;
 
-  const statuses = ["completed", "completed", "scheduled", "cancelled"];
+  const statuses = ["closed", "closed", "scheduled", "cancelled"];
 
   for (let i = 0; i < 30; i++) {
     const cust = pick(customers);
@@ -375,9 +375,8 @@ export async function seedSpaVertical(client: any, orgId: string) {
     await client.query(
       `INSERT INTO service_orders
          (org_id, customer_id, customer_name, customer_phone,
-          order_number, type, status, service_id, event_date, total_amount)
-       VALUES ($1,$2,$3,$4,$5,'appointment',$6,$7,$8,$9)
-       ON CONFLICT DO NOTHING`,
+          order_number, type, order_kind, status, service_id, event_date, total_amount)
+       VALUES ($1,$2,$3,$4,$5,'custom_arrangement','booking',$6,$7,$8,$9)`,
       [
         orgId, cust.id, cust.name, cust.phone,
         `SPA-${rand(1000, 9999)}`,
@@ -395,8 +394,7 @@ export async function seedMaintenanceVertical(client: any, orgId: string) {
   const services = await getOrgServices(client, orgId);
   if (!customers.length || !services.length) return;
 
-  const statuses = ["completed", "completed", "in_progress", "scheduled", "cancelled"];
-  const kinds = ["maintenance", "repair", "inspection", "installation"];
+  const statuses = ["closed", "closed", "preparing", "scheduled", "cancelled"];
 
   for (let i = 0; i < 25; i++) {
     const cust = pick(customers);
@@ -406,13 +404,12 @@ export async function seedMaintenanceVertical(client: any, orgId: string) {
     await client.query(
       `INSERT INTO service_orders
          (org_id, customer_id, customer_name, customer_phone,
-          order_number, type, status, order_kind, service_id, event_date, total_amount)
-       VALUES ($1,$2,$3,$4,$5,'service',$6,$7,$8,$9,$10)
-       ON CONFLICT DO NOTHING`,
+          order_number, type, order_kind, status, service_id, event_date, total_amount)
+       VALUES ($1,$2,$3,$4,$5,'field_execution','project',$6,$7,$8,$9)`,
       [
         orgId, cust.id, cust.name, cust.phone,
         `SO-${rand(1000, 9999)}`,
-        pick(statuses), pick(kinds), svc.id,
+        pick(statuses), svc.id,
         iso(randomDate(60)), fmt(total),
       ]
     );
@@ -427,7 +424,7 @@ export async function seedEventsVertical(client: any, orgId: string) {
   const services = await getOrgServices(client, orgId);
   if (!customers.length || !services.length) return;
 
-  const statuses = ["approved", "approved", "sent", "draft", "rejected"];
+  const statuses = ["accepted", "accepted", "sent", "draft", "rejected"];
   const eventTypes = ["زفاف", "خطوبة", "مؤتمر", "يوم ميلاد", "حفل تخرج", "فعالية شركاتية"];
 
   for (let i = 0; i < 20; i++) {
@@ -477,41 +474,7 @@ export async function seedSchoolVertical(client: any, orgId: string) {
   const customers = await getOrgCustomers(client, orgId);
   if (!customers.length) return;
 
-  // 1. Students (columns: org_id, full_name, grade, is_active — no customer_id, no status, no grade_level)
-  const grades = ["الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس"];
-  const genders = ["male", "female"];
-
-  for (const cust of customers.slice(0, 20)) {
-    const r = await client.query(
-      `INSERT INTO students
-         (org_id, full_name, grade, gender, guardian_name, guardian_phone, is_active)
-       VALUES ($1,$2,$3,$4,$5,$6,true)
-       ON CONFLICT DO NOTHING
-       RETURNING id`,
-      [orgId, cust.name, pick(grades), pick(genders), `ولي أمر ${cust.name}`, cust.phone]
-    );
-
-    if (!r.rows[0]) continue;
-    const studentId = r.rows[0].id;
-
-    // 2. Attendance records
-    for (let d = 0; d < rand(10, 20); d++) {
-      const attendDate = randomDate(60);
-      await client.query(
-        `INSERT INTO student_attendance
-           (org_id, student_id, attendance_date, status)
-         VALUES ($1,$2,$3,$4)
-         ON CONFLICT DO NOTHING`,
-        [
-          orgId, studentId,
-          iso(attendDate).slice(0, 10),
-          pick(["present", "present", "present", "absent", "late"]),
-        ]
-      );
-    }
-  }
-
-  // 3. School settings (columns: org_id, school_name, school_type, education_level, setup_status)
+  // 1. School settings (columns: org_id, school_name, school_type, education_level, setup_status)
   await client.query(
     `INSERT INTO school_settings
        (org_id, school_name, school_type, education_level, setup_status)
@@ -519,6 +482,54 @@ export async function seedSchoolVertical(client: any, orgId: string) {
      ON CONFLICT (org_id) DO NOTHING`,
     [orgId, "مدرسة ترميز النموذجية"]
   );
+
+  // 2. Class rooms (required by student_attendance FK)
+  const grades = ["الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس"];
+  const classRoomIds: Record<string, string> = {};
+
+  for (const grade of grades) {
+    const r = await client.query(
+      `INSERT INTO class_rooms (org_id, grade, name, capacity, is_active)
+       VALUES ($1,$2,$3,30,true)
+       RETURNING id`,
+      [orgId, grade, `فصل ${grade}`]
+    );
+    classRoomIds[grade] = r.rows[0].id;
+  }
+
+  // 3. Students
+  const genders = ["male", "female"];
+
+  for (const cust of customers.slice(0, 20)) {
+    const grade = pick(grades);
+    const classRoomId = classRoomIds[grade];
+
+    const r = await client.query(
+      `INSERT INTO students
+         (org_id, class_room_id, full_name, grade, gender, guardian_name, guardian_phone, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,true)
+       RETURNING id`,
+      [orgId, classRoomId, cust.name, grade, pick(genders), `ولي أمر ${cust.name}`, cust.phone]
+    );
+
+    if (!r.rows[0]) continue;
+    const studentId = r.rows[0].id;
+
+    // 4. Attendance records (class_room_id required)
+    for (let d = 0; d < rand(10, 20); d++) {
+      const attendDate = randomDate(60);
+      await client.query(
+        `INSERT INTO student_attendance
+           (org_id, student_id, class_room_id, attendance_date, status)
+         VALUES ($1,$2,$3,$4,$5)`,
+        [
+          orgId, studentId, classRoomId,
+          iso(attendDate).slice(0, 10),
+          pick(["present", "present", "present", "absent", "late"]),
+        ]
+      );
+    }
+  }
 }
 
 // ─── MEDICAL ─────────────────────────────────────────────────────────────────
@@ -528,7 +539,7 @@ export async function seedMedicalVertical(client: any, orgId: string) {
   const services = await getOrgServices(client, orgId);
   if (!customers.length || !services.length) return;
 
-  const statuses = ["completed", "completed", "scheduled", "cancelled"];
+  const statuses = ["closed", "closed", "scheduled", "cancelled"];
 
   for (let i = 0; i < 30; i++) {
     const cust = pick(customers);
@@ -538,9 +549,8 @@ export async function seedMedicalVertical(client: any, orgId: string) {
     await client.query(
       `INSERT INTO service_orders
          (org_id, customer_id, customer_name, customer_phone,
-          order_number, type, status, service_id, event_date, total_amount)
-       VALUES ($1,$2,$3,$4,$5,'appointment',$6,$7,$8,$9)
-       ON CONFLICT DO NOTHING`,
+          order_number, type, order_kind, status, service_id, event_date, total_amount)
+       VALUES ($1,$2,$3,$4,$5,'custom_arrangement','booking',$6,$7,$8,$9)`,
       [
         orgId, cust.id, cust.name, cust.phone,
         `MED-${rand(1000, 9999)}`,

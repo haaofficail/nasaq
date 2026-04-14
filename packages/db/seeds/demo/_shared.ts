@@ -567,7 +567,7 @@ export async function createPosTransactions(
           notes, status, created_at)
        VALUES ($1,$2,'sale',$3,$4,$5,$6,$7,
                $8,$9,$10,15,$11,$12,$13,0,$14,'completed',$15)
-       ON CONFLICT (org_id, transaction_number) DO NOTHING`,
+       `,
       [
         orgId, txNum,
         isGuest ? null : customer.id,
