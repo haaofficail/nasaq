@@ -17,7 +17,12 @@
  */
 
 import { Pool } from "pg";
-import "dotenv/config";
+import dotenv from "dotenv";
+import path from "path";
+// Load .env from monorepo root (../../) then fallback to local
+dotenv.config({ path: path.resolve(__dirname, "../../../../.env") });
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+dotenv.config();
 import { ALL_ORGS } from "./_data";
 import {
   createOrg, createTeam, createPipeline, createCatalog,
