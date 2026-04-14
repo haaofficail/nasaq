@@ -834,11 +834,10 @@ export async function seedP1Infrastructure(
       treasuryId = existTa.rows[0].id;
     } else {
       const taRes = await client.query(
-        `INSERT INTO treasury_accounts
-           (org_id, name, type, opening_balance, current_balance, is_default, is_active)
-         VALUES ($1,'الصندوق الرئيسي','main_cash',$2,$3,true,true)
+        `INSERT INTO treasury_accounts (org_id, name, type)
+         VALUES ($1,'الصندوق الرئيسي','main_cash')
          RETURNING id`,
-        [orgId, fmt(rand(1000, 5000)), fmt(rand(8000, 25000))]
+        [orgId]
       );
       treasuryId = taRes.rows[0].id;
     }
