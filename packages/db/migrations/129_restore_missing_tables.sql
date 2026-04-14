@@ -206,9 +206,9 @@ CREATE INDEX IF NOT EXISTS idx_so_service_id ON service_orders(service_id);
 
 -- ── من Migration 104: applied_template_id ────────────────────────────────────
 
+-- applied_template_id: بدون FK لأن event_package_templates قد لا تكون موجودة
 ALTER TABLE service_orders
-  ADD COLUMN IF NOT EXISTS applied_template_id UUID
-    REFERENCES event_package_templates(id) ON DELETE SET NULL;
+  ADD COLUMN IF NOT EXISTS applied_template_id UUID;
 
 CREATE INDEX IF NOT EXISTS idx_service_orders_applied_template
   ON service_orders(applied_template_id) WHERE applied_template_id IS NOT NULL;
