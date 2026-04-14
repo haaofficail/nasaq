@@ -85,14 +85,15 @@ async function run() {
         // 1. Pre-delete tables that may block org deletion
         //    Only tables confirmed to have RESTRICT/NO ACTION FK or that our seed writes to
         const preTables = [
-          "rfp_proposals",        // ON DELETE no action (confirmed)
-          "menu_categories",      // F&B vertical writes here
-          "menu_items",           // F&B vertical writes here
-          "restaurant_tables",    // F&B vertical writes here
-          "contract_documents",   // contracts vertical
-          "contract_payments",    // contracts vertical
-          "contracts",            // contracts vertical
-          "rental_assets",        // rental vertical
+          "rfp_proposals",           // ON DELETE no action (confirmed)
+          "client_salon_profile",    // legacy table — FK not CASCADE until migration 128
+          "menu_categories",         // F&B vertical writes here
+          "menu_items",              // F&B vertical writes here
+          "restaurant_tables",       // F&B vertical writes here
+          "contract_documents",      // contracts vertical
+          "contract_payments",       // contracts vertical
+          "contracts",               // contracts vertical
+          "rental_assets",           // rental vertical
         ];
         for (const tbl of preTables) {
           await safeDelete(tbl);
