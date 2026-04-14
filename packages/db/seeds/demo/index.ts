@@ -173,8 +173,8 @@ async function run() {
         // POS settings (for pos-capable orgs)
         if (cfg.hasPos) {
           await client.query(
-            `INSERT INTO pos_settings (org_id, default_tax_percent, max_discount_percent)
-             VALUES ($1, 15, 20)
+            `INSERT INTO pos_settings (org_id, tax_rate)
+             VALUES ($1, 15)
              ON CONFLICT (org_id) DO NOTHING`,
             [orgId]
           );

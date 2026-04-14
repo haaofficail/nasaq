@@ -183,7 +183,7 @@ export async function seedHotelVertical(client: any, orgId: string) {
          (org_id, customer_id, guest_name, guest_phone, status, payment_status,
           check_in_date, check_out_date, nights,
           price_per_night, total_room_cost, tax_amount, total_amount,
-          adults, source)
+          adult_count, source)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,'dashboard')
        ON CONFLICT DO NOTHING`,
       [
@@ -204,7 +204,18 @@ export async function seedCarRentalVertical(client: any, orgId: string) {
   const customers = await getOrgCustomers(client, orgId);
   if (!customers.length) return;
 
-  // 1. Vehicles as assets (columns: org_id, name, status, is_active, serial_number, notes)
+  // 1. Asset type for vehicles (required — asset_type_id is NOT NULL)
+  const atRes = await client.query(
+    `INSERT INTO asset_types (org_id, name, name_en, category)
+     VALUES ($1, 'مركبات', 'Vehicles', 'vehicles')
+     ON CONFLICT DO NOTHING
+     RETURNING id`,
+    [orgId]
+  );
+  const assetTypeId: string | null = atRes.rows[0]?.id ?? null;
+  if (!assetTypeId) return; // shouldn't happen
+
+  // 2. Vehicles as assets
   const vehicles = [
     { name: "تويوتا كامري 2024",    serial: "CAM-001", dailyRate: 220 },
     { name: "تويوتا هايلاندر 2023", serial: "HLX-001", dailyRate: 380 },
@@ -216,10 +227,10 @@ export async function seedCarRentalVertical(client: any, orgId: string) {
 
   for (const v of vehicles) {
     await client.query(
-      `INSERT INTO assets (org_id, name, serial_number, status, is_active, notes)
-       VALUES ($1,$2,$3,'available',true,$4)
+      `INSERT INTO assets (org_id, asset_type_id, name, serial_number, status, is_active, notes)
+       VALUES ($1,$2,$3,$4,'available',true,$5)
        ON CONFLICT DO NOTHING`,
-      [orgId, v.name, v.serial, `معدل الإيجار اليومي: ${v.dailyRate} ريال`]
+      [orgId, assetTypeId, v.name, v.serial, `معدل الإيجار اليومي: ${v.dailyRate} ريال`]
     );
   }
 
