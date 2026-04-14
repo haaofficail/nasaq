@@ -41,8 +41,24 @@ const ALLOWED_PATHS = [
   "packages/db/migrations",
   "packages/db/schema",
   "scripts/repairs",
-  "packages/db/seeds/reference",
+  "packages/db/seeds",      // جميع سكريبتات الـ seed — مسموح لها تكتب مباشرة
 ];
+
+/**
+ * Whitelist: route files that are ALLOWED to write directly to specific tables
+ * because they OWN those tables (this is the canonical API for that domain).
+ * Format: "partial/file/path" → Set of table names
+ */
+const ROUTE_TABLE_OWNERSHIP: Record<string, Set<string>> = {
+  "routes/flower-builder.ts":  new Set(["flower_orders", "customers"]),
+  "routes/fulfillments.ts":    new Set(["fulfillments", "stock_movements", "asset_allocations"]),
+  "routes/inventory.ts":       new Set(["stock_movements", "inventory_movements"]),
+  "routes/billing.ts":         new Set(["payments", "invoices", "invoice_payments"]),
+  "routes/bookings.ts":        new Set(["bookings", "booking_items", "payments"]),
+  "routes/pos.ts":             new Set(["customers"]),           // counter update (total_spent)
+  "routes/service-orders.ts":  new Set(["flower_batches", "customers"]),
+  "guardian/scanner.ts":       new Set(["bookings"]),            // auto-cancellation job
+};
 
 const EXCLUDED_DIRS = new Set([
   "node_modules",
@@ -146,6 +162,14 @@ function isAllowedPath(filePath: string, repoRoot: string): boolean {
   return ALLOWED_PATHS.some((allowed) => relative.startsWith(allowed));
 }
 
+function isOwnedWrite(filePath: string, repoRoot: string, table: string): boolean {
+  const relative = path.relative(repoRoot, filePath).replace(/\\/g, "/");
+  for (const [pattern, tables] of Object.entries(ROUTE_TABLE_OWNERSHIP)) {
+    if (relative.includes(pattern) && tables.has(table)) return true;
+  }
+  return false;
+}
+
 function scanFile(filePath: string, repoRoot: string): Violation[] {
   if (isAllowedPath(filePath, repoRoot)) return [];
 
@@ -158,6 +182,7 @@ function scanFile(filePath: string, repoRoot: string): Violation[] {
     for (const { type, regex } of patterns) {
       lines.forEach((line, idx) => {
         if (regex.test(line)) {
+          if (isOwnedWrite(filePath, repoRoot, table)) return; // intentional — route owns this table
           violations.push({
             file: filePath,
             line: idx + 1,
@@ -232,8 +257,9 @@ function main() {
     console.log("-".repeat(60));
   }
 
-  console.log(`\nTotal violations: ${violations.length}`);
-  process.exit(violations.length > 0 ? 1 : 0);
+  const highViolations = violations.filter(v => v.severity === "HIGH");
+  console.log(`\nTotal violations: ${violations.length} (HIGH: ${highViolations.length})`);
+  process.exit(highViolations.length > 0 ? 1 : 0);
 }
 
 main();

@@ -19,7 +19,13 @@
 import { Pool } from "pg";
 import dotenv from "dotenv";
 import path from "path";
-// Load .env from monorepo root (../../) then fallback to local
+import { fileURLToPath } from "url";
+
+// ESM-safe __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load .env: try monorepo root first, then local packages/db/
 dotenv.config({ path: path.resolve(__dirname, "../../../../.env") });
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 dotenv.config();
