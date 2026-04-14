@@ -283,24 +283,28 @@ export async function createCatalog(
   const catMap: Record<string, string> = {};
 
   for (let i = 0; i < categories.length; i++) {
+    const slug = `cat-${Date.now()}-${i + 1}`;
     const r = await client.query(
-      `INSERT INTO categories (org_id, name, sort_order)
-       VALUES ($1,$2,$3) RETURNING id`,
-      [orgId, categories[i], i + 1]
+      `INSERT INTO categories (org_id, name, slug, sort_order)
+       VALUES ($1,$2,$3,$4) RETURNING id`,
+      [orgId, categories[i], slug, i + 1]
     );
     catMap[categories[i]] = r.rows[0].id;
   }
 
   const serviceIds: string[] = [];
-  for (const svc of services) {
+  for (let si = 0; si < services.length; si++) {
+    const svc = services[si];
+    const svcSlug = `svc-${Date.now()}-${si + 1}`;
     const r = await client.query(
       `INSERT INTO services
-         (org_id, category_id, name, base_price, min_price, duration_minutes, is_active)
-       VALUES ($1,$2,$3,$4,$5,$6,true) RETURNING id`,
+         (org_id, category_id, name, slug, base_price, min_price, duration_minutes, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'active') RETURNING id`,
       [
         orgId,
         catMap[svc.category] || null,
         svc.name,
+        svcSlug,
         svc.price,
         svc.minPrice || null,
         svc.duration,
