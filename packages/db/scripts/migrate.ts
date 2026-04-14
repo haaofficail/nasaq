@@ -29,7 +29,8 @@ if (!DATABASE_URL) {
   process.exit(1);
 }
 
-const dryRun = process.argv.includes("--dry-run");
+const dryRun    = process.argv.includes("--dry-run");
+const baseline  = process.argv.includes("--baseline");
 const MIGRATIONS_DIR = resolve(__dirname, "../migrations");
 
 // Only numbered migrations (e.g. 004_*, 128_*) — not drizzle-kit 0000_* files
@@ -63,6 +64,28 @@ async function run() {
     const all = getNumberedMigrations();
     const pending = all.filter((m) => !applied.has(m.file));
 
+    // ── Baseline mode ────────────────────────────────────────────────────────
+    // Mark all existing migration files as applied WITHOUT running their SQL.
+    // Use once on a DB that was set up before this runner existed.
+    if (baseline) {
+      const untracked = all.filter((m) => !applied.has(m.file));
+      if (untracked.length === 0) {
+        console.log("Baseline: nothing to record — all files already tracked.");
+        return;
+      }
+      console.log(`Baseline: recording ${untracked.length} existing migration(s) as applied...\n`);
+      for (const m of untracked) {
+        await client.query(
+          "INSERT INTO _nasaq_migrations (filename) VALUES ($1) ON CONFLICT DO NOTHING",
+          [m.file]
+        );
+        console.log(`  ✓ ${m.file}`);
+      }
+      console.log(`\nBaseline complete. Run 'pnpm migrate' for future migrations.`);
+      return;
+    }
+
+    // ── Normal mode ──────────────────────────────────────────────────────────
     if (pending.length === 0) {
       console.log("All migrations up to date.");
       return;
