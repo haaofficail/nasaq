@@ -65,6 +65,15 @@ async function run() {
 
     if (resetFlag) {
       console.log("Resetting demo orgs...");
+      // Nullify service_id FK in booking_items first to avoid cascade constraint violation
+      await client.query(`
+        UPDATE booking_items SET service_id = NULL
+        WHERE booking_id IN (
+          SELECT b.id FROM bookings b
+          JOIN organizations o ON b.org_id = o.id
+          WHERE o.has_demo_data = true AND o.slug LIKE 'demo-%'
+        )
+      `);
       await client.query(
         `DELETE FROM organizations WHERE has_demo_data = true AND slug LIKE 'demo-%'`
       );
