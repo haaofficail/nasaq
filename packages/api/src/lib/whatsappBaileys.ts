@@ -27,12 +27,13 @@ export type WaStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 
 interface Session {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  socket:     any | null;
-  status:     WaStatus;
-  qrBase64:   string | null;   // data:image/png;base64,…
-  phone:      string | null;   // e.g. "966501234567"
-  updatedAt:  Date;
-  generation: number;          // incremented on each init — stale handlers are ignored
+  socket:       any | null;
+  status:       WaStatus;
+  qrBase64:     string | null;   // data:image/png;base64,…
+  phone:        string | null;   // e.g. "966501234567"
+  updatedAt:    Date;
+  generation:   number;          // incremented on each init — stale handlers are ignored
+  retryCount:   number;          // consecutive reconnect attempts (reset on successful connect)
 }
 
 // ── Singleton map (lives for the process lifetime) ────────
@@ -53,7 +54,7 @@ function get(orgId: string): Session {
   if (!sessions.has(orgId)) {
     sessions.set(orgId, {
       socket: null, status: "disconnected",
-      qrBase64: null, phone: null, updatedAt: new Date(), generation: 0,
+      qrBase64: null, phone: null, updatedAt: new Date(), generation: 0, retryCount: 0,
     });
   }
   return sessions.get(orgId)!;
@@ -116,7 +117,7 @@ export async function initBaileys(orgId: string, force = false): Promise<void> {
 
     if (connection === "open") {
       const phoneRaw = sock.user?.id?.split(":")[0] ?? null;
-      touch(sess, { status: "connected", qrBase64: null, phone: phoneRaw });
+      touch(sess, { status: "connected", qrBase64: null, phone: phoneRaw, retryCount: 0 });
       log.info({ orgId, phone: phoneRaw }, "[wa-baileys] connected");
     }
 
@@ -127,21 +128,26 @@ export async function initBaileys(orgId: string, force = false): Promise<void> {
       touch(sess, { socket: null, qrBase64: null });
 
       if (reason === DisconnectReason.loggedOut) {
-        // Permanent logout — clear files
+        // Permanent logout — clear files and stop
         const dir = path.join(SESSIONS_DIR, orgId);
         fs.rmSync(dir, { recursive: true, force: true });
-        touch(sess, { status: "disconnected", phone: null });
+        touch(sess, { status: "disconnected", phone: null, retryCount: 0 });
       } else {
-        // Transient error — auto-reconnect if saved creds still exist
-        touch(sess, { status: "disconnected" });
-        if (hasSavedSession(orgId)) {
-          log.info({ orgId, reason }, "[wa-baileys] reconnecting in 5s");
+        // Transient error — auto-reconnect with exponential backoff (max 5 retries)
+        const retries = (sess.retryCount ?? 0) + 1;
+        touch(sess, { status: "disconnected", retryCount: retries });
+
+        if (retries > 5) {
+          log.warn({ orgId, retries }, "[wa-baileys] max retries reached — giving up until manual reconnect");
+        } else if (hasSavedSession(orgId)) {
+          const backoffMs = Math.min(5_000 * retries, 60_000); // 5s, 10s, 15s, 20s, 25s … cap 60s
+          log.info({ orgId, reason, retries, backoffMs }, "[wa-baileys] reconnecting with backoff");
           setTimeout(() => {
             // Only reconnect if generation hasn't changed (no newer init already running)
             if (sessions.get(orgId)?.generation === gen) {
               initBaileys(orgId).catch(() => {});
             }
-          }, 5_000);
+          }, backoffMs);
         }
       }
     }

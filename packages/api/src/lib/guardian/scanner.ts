@@ -169,7 +169,7 @@ export async function runGuardianScan(type: "scheduled" | "manual" = "scheduled"
          AND NOT EXISTS (
            SELECT 1 FROM users u
            WHERE u.org_id = o.id
-             AND u.role = 'owner'
+             AND u.type = 'owner'
              AND u.status = 'active'
          )
        LIMIT 50`,

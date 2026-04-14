@@ -1442,8 +1442,8 @@ log.info({ port, url: `http://localhost:${port}/api/v1` }, "nasaq-api started");
 
 const server = serve({ fetch: app.fetch, port });
 
-// Restore all saved Baileys sessions (orgs + platform admin) after server is up
-restoreAllBaileys().catch((err) => log.error({ err }, "[wa-baileys] restoreAllBaileys failed"));
+// NOTE: restoreAllBaileys() already called above (lines ~1433-1437) inside try/catch.
+// Removed duplicate call here to prevent double-restore race condition.
 
 // Graceful shutdown — stop pg-boss, drain connections, close pools
 const shutdown = () => {
@@ -1459,5 +1459,15 @@ const shutdown = () => {
 
 process.on("SIGTERM", shutdown);
 process.on("SIGINT", shutdown);
+
+// ── Process-level safety net ──────────────────────────────
+// Prevents unhandled Baileys WebSocket errors from crashing the entire API process.
+// Baileys emits errors via EventEmitter in some edge cases (e.g. socket close during send).
+process.on("uncaughtException", (err) => {
+  log.error({ err }, "[process] uncaughtException — logged, not crashing");
+});
+process.on("unhandledRejection", (reason) => {
+  log.error({ reason }, "[process] unhandledRejection — logged, not crashing");
+});
 
 export default app;
