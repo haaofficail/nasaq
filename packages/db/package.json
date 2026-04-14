@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "generate": "drizzle-kit generate",
-    "migrate": "sh -c 'set -a && [ -f ../../.env ] && . ../../.env; set +a && drizzle-kit migrate'",
+    "migrate": "tsx scripts/migrate.ts",
     "push": "drizzle-kit push",
     "studio": "drizzle-kit studio",
     "seed": "tsx scripts/seed.ts",
