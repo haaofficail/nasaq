@@ -143,6 +143,31 @@ export function nextPosNumber(): string {
   return `POS-2026-${String(posSeq++).padStart(5, "0")}`;
 }
 
+/**
+ * Generate a ZATCA-compliant Base64 TLV QR code string.
+ * TLV fields: tag(1)=sellerName, tag(2)=vatNumber, tag(3)=date, tag(4)=total, tag(5)=vat
+ */
+export function generateZatcaQr(
+  sellerName: string,
+  vatNumber: string,
+  invoiceDate: string,
+  totalAmount: number,
+  vatAmount: number
+): string {
+  function tlv(tag: number, value: string): Buffer {
+    const valueBytes = Buffer.from(value, "utf8");
+    return Buffer.concat([Buffer.from([tag]), Buffer.from([valueBytes.length]), valueBytes]);
+  }
+  const tlvData = Buffer.concat([
+    tlv(1, sellerName),
+    tlv(2, vatNumber),
+    tlv(3, invoiceDate),
+    tlv(4, totalAmount.toFixed(2)),
+    tlv(5, vatAmount.toFixed(2)),
+  ]);
+  return tlvData.toString("base64");
+}
+
 // ─── Core seeding functions ───────────────────────────────────────────────────
 
 /** Seed chart of accounts for an org. Returns account map: systemKey → id */
@@ -187,7 +212,7 @@ export async function createOrg(client: any, cfg: OrgConfig): Promise<string | n
     `INSERT INTO organizations
        (name, slug, subdomain, phone, email, business_type, plan, subscription_status,
         trial_ends_at, city, tagline, description, onboarding_completed, has_demo_data,
-        enabled_capabilities, vat_number, cr_number,
+        enabled_capabilities, vat_number, commercial_register,
         operating_profile, service_delivery_modes)
      VALUES ($1,$2,$3,$4,$5,$6,'professional','active',NOW()+INTERVAL '365 days',
              $7,$8,$9,true,true,$10,$11,$12,$13,$14)
@@ -340,8 +365,14 @@ export async function createBookings(
   serviceIds: string[],
   services: ServiceDef[],
   accounts: Record<string, string>,
-  count = 40
+  count = 40,
+  sellerVatNumber?: string,
+  sellerCR?: string,
+  sellerCity?: string
 ) {
+  const resolvedVat = sellerVatNumber || `310${rand(10000000,99999999)}00003`;
+  const resolvedCR  = sellerCR  || `10${rand(10000000,99999999)}`;
+  const resolvedAddr = sellerCity ? `${sellerCity}، المملكة العربية السعودية` : "الرياض، المملكة العربية السعودية";
   for (let i = 0; i < count; i++) {
     const customer = pick(customers);
     const svcIdx = rand(0, services.length - 1);
@@ -399,21 +430,32 @@ export async function createBookings(
 
     // Invoice
     const invoiceNum = nextInvoiceNumber();
+    const qrCode = generateZatcaQr(orgName, resolvedVat, iso(eventDate), total, vatAmount);
+
     const iRes = await client.query(
       `INSERT INTO invoices
          (org_id, booking_id, customer_id, invoice_number, invoice_type, uuid, status,
-          issue_date, seller_name, buyer_name, buyer_phone,
+          issue_date,
+          seller_name, seller_vat_number, seller_cr, seller_address,
+          buyer_name, buyer_phone,
           subtotal, discount_amount, taxable_amount, vat_rate, vat_amount, total_amount, paid_amount,
-          paid_at, source_type)
+          paid_at, qr_code, source_type)
        VALUES ($1,$2,$3,$4,'simplified',gen_random_uuid(),$5,
-               $6,$7,$8,$9,$10,$11,$12,15,$13,$14,$14,$15,'booking')
+               $6,
+               $7,$8,$9,$10,
+               $11,$12,
+               $13,$14,$15,15,$16,$17,$17,
+               $18,$19,'booking')
        RETURNING id`,
       [
         orgId, bookingId, customer.id, invoiceNum,
         paymentStatus === "paid" ? "paid" : "partially_paid",
-        iso(eventDate), orgName, customer.name, customer.phone,
+        iso(eventDate),
+        orgName, resolvedVat, resolvedCR, resolvedAddr,
+        customer.name, customer.phone,
         fmt(subtotal), fmt(discount), fmt(taxable), fmt(vatAmount), fmt(total),
         paymentStatus === "paid" ? iso(eventDate) : null,
+        qrCode,
       ]
     );
     const invoiceId = iRes.rows[0].id;

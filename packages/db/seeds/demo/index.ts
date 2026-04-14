@@ -35,6 +35,7 @@ import {
   createCustomers, createBookings, createPosTransactions,
   createExpenses, seedChartOfAccounts,
 } from "./_shared";
+import { seedVertical } from "./_verticals";
 
 // ─── CLI args ────────────────────────────────────────────────────────────────
 
@@ -121,7 +122,8 @@ async function run() {
         // Bookings + invoices + journal entries
         const bookingCount = cfg.hasPos ? 30 : 40;
         await createBookings(
-          client, orgId, cfg.name, customers, serviceIds, cfg.services, accounts, bookingCount
+          client, orgId, cfg.name, customers, serviceIds, cfg.services, accounts, bookingCount,
+          cfg.vatNumber, cfg.crNumber, cfg.city
         );
 
         // POS transactions
@@ -136,6 +138,9 @@ async function run() {
           Math.floor(Math.random() * 6)
         ];
         await createExpenses(client, orgId, accounts, monthlyRent);
+
+        // Vertical-specific deep data (flower_shop, hotel, car_rental, salon, school, ...)
+        await seedVertical(client, orgId, cfg.businessType);
 
         await client.query("COMMIT");
         console.log(`  → OK (orgId: ${orgId})`);
