@@ -4,7 +4,9 @@ import {
   Loader2, CheckCircle2, XCircle, RefreshCw,
   Signal, AlertTriangle, QrCode, Smartphone,
   Key, Unplug, Link2, Search, Building2, Users, Wifi, WifiOff, LogOut,
+  Image as ImageIcon, Upload, Eye, AlertOctagon,
 } from "lucide-react";
+import { useMemo, useRef as useFileRef } from "react";
 import { clsx } from "clsx";
 import { adminApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
@@ -309,7 +311,7 @@ function PlatformSessionSection() {
 }
 
 export default function WhatsAppGatewayTab() {
-  const [tab, setTab] = useState<"platform" | "qr" | "credentials" | "send" | "templates" | "log">("platform");
+  const [tab, setTab] = useState<"platform" | "qr" | "credentials" | "send" | "invite" | "templates" | "log">("platform");
 
   const { data: statusData, loading: statusLoading, refetch: refetchStatus } = useApi(() => adminApi.waStatus(), []);
   const status = statusData?.data;
@@ -381,6 +383,7 @@ export default function WhatsAppGatewayTab() {
           { id: "platform",    label: "جلسة المنصة" },
           { id: "qr",          label: "ربط منشأة QR" },
           { id: "credentials", label: "بيانات الدخول" },
+          { id: "invite",      label: "دعوة منشأة" },
           { id: "send",        label: "إرسال رسالة" },
           { id: "templates",   label: "القوالب" },
           { id: "log",         label: "سجل الرسائل" },
@@ -398,6 +401,7 @@ export default function WhatsAppGatewayTab() {
         </div>
       )}
       {tab === "credentials" && <CredentialsSendSection />}
+      {tab === "invite" && <InviteOrgSection baileysConnected={!!(status?.baileysConnected)} />}
       {tab === "send" && <SendMessageSection />}
       {tab === "templates" && <TemplatesSection />}
       {tab === "log" && <MessageLogSection />}
@@ -1563,6 +1567,362 @@ function MessageLogSection() {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════
+// INVITE ORG SECTION — دعوة منشأة
+// ══════════════════════════════════════════════════════════════
+
+const DEFAULT_INVITE_MSG =
+  "السلام عليكم،\nنأمل الاطلاع على دعوة تجربة نظام ترميز عبر الرابط التالي:\n{{link}}\nويسعدنا استقبال استفساراتكم.";
+
+const SEND_MODE_LABELS: Record<string, { label: string; color: string }> = {
+  text:          { label: "نص فقط",                  color: "bg-blue-50 text-blue-700 border-blue-200" },
+  image_caption: { label: "صورة مع نص (caption)",     color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+  text_fallback: { label: "نص فقط — fallback (Baileys غير متصل)", color: "bg-amber-50 text-amber-700 border-amber-200" },
+};
+
+function InviteOrgSection({ baileysConnected }: { baileysConnected: boolean }) {
+  const fileInputRef = useFileRef<HTMLInputElement>(null);
+
+  const [form, setForm] = useState({
+    phone: "", recipientName: "", message: DEFAULT_INVITE_MSG, orgId: "",
+  });
+  const [imageBase64, setImageBase64]   = useState<string | null>(null);
+  const [imageMimeType, setImageMimeType] = useState<string>("image/jpeg");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [showPreview,  setShowPreview]  = useState(false);
+  const [sending,      setSending]      = useState(false);
+  const [result,       setResult]       = useState<any>(null);
+  const [dupWarning,   setDupWarning]   = useState<{ lastSentMinutes: number } | null>(null);
+  const [logPage,      setLogPage]      = useState(1);
+
+  const { data: logData, loading: logLoading, refetch: refetchLog } =
+    useApi(() => adminApi.waMessages({ category: "invite", page: logPage }), [logPage]);
+
+  // Computed send mode (for preview)
+  const sendMode = useMemo<string>(() => {
+    if (!imageBase64) return "text";
+    return baileysConnected ? "image_caption" : "text_fallback";
+  }, [imageBase64, baileysConnected]);
+
+  const handleOrgSelect = (org: { id: string; name: string; phone: string }) => {
+    setForm(f => ({ ...f, orgId: org.id, recipientName: org.name, phone: org.phone || f.phone }));
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("حجم الصورة يجب أن يكون أقل من 5 ميجابايت");
+      return;
+    }
+    setImageMimeType(file.type || "image/jpeg");
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const dataUrl = ev.target?.result as string;
+      setImagePreview(dataUrl);
+      setImageBase64(dataUrl.split(",")[1] ?? null);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const clearImage = () => {
+    setImageBase64(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const doSend = async (force = false) => {
+    if (!form.phone.trim() || !form.message.trim()) {
+      toast.error("رقم الجوال والرسالة إجباريان");
+      return;
+    }
+    setSending(true);
+    setResult(null);
+    setDupWarning(null);
+    try {
+      const res = await adminApi.sendWaMessage({
+        phone:         form.phone,
+        message:       form.message,
+        recipientName: form.recipientName || undefined,
+        orgId:         form.orgId || undefined,
+        channel:       "whatsapp",
+        category:      "invite",
+        force,
+        ...(imageBase64 ? { imageBase64, imageMimeType } : {}),
+      });
+      const data = res.data;
+
+      if (data?.duplicateWarning) {
+        setDupWarning({ lastSentMinutes: data.lastSentMinutes });
+        setSending(false);
+        return;
+      }
+
+      setResult(data);
+      if (data?.sent) {
+        toast.success("تم إرسال الدعوة بنجاح");
+        setForm(f => ({ ...f, phone: "", recipientName: "", orgId: "" }));
+        clearImage();
+        refetchLog();
+      } else {
+        toast.error(data?.error || "فشل الإرسال");
+      }
+    } catch (err: any) {
+      setResult({ sent: false, error: err?.message });
+      toast.error(err?.message || "خطأ في الإرسال");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+
+      {/* Form card */}
+      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+        <div className="flex items-center gap-2">
+          <Send className="w-4 h-4 text-brand-500" />
+          <h3 className="text-sm font-semibold text-gray-800">دعوة منشأة</h3>
+          <span className="text-[10px] bg-brand-50 text-brand-600 px-2 py-0.5 rounded-full font-medium">دعوة مباشرة</span>
+        </div>
+
+        {/* Org picker */}
+        <OrgSearchPicker onSelect={handleOrgSelect} />
+
+        {/* Phone + name */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">رقم الجوال <span className="text-red-400">*</span></label>
+            <input
+              value={form.phone}
+              onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+              placeholder="05XXXXXXXX أو +966XXXXXXXXX"
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400"
+              dir="ltr"
+            />
+          </div>
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">اسم المستلم</label>
+            <input
+              value={form.recipientName}
+              onChange={e => setForm(f => ({ ...f, recipientName: e.target.value }))}
+              placeholder="اختياري"
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400"
+            />
+          </div>
+        </div>
+
+        {/* Message */}
+        <div>
+          <label className="text-xs text-gray-500 block mb-1">نص الرسالة <span className="text-red-400">*</span></label>
+          <textarea
+            value={form.message}
+            onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
+            rows={5}
+            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 resize-none"
+          />
+        </div>
+
+        {/* Image upload */}
+        <div>
+          <label className="text-xs text-gray-500 block mb-2 flex items-center gap-1">
+            <ImageIcon className="w-3.5 h-3.5" /> صورة مرفقة (اختياري — حتى 5 MB)
+          </label>
+          {imagePreview ? (
+            <div className="flex items-start gap-3">
+              <img src={imagePreview} alt="preview" className="w-24 h-24 object-cover rounded-xl border border-gray-200" />
+              <div className="space-y-1.5">
+                <p className="text-xs text-gray-500">الصورة جاهزة للإرسال</p>
+                <button
+                  onClick={clearImage}
+                  className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                >
+                  <XCircle className="w-3.5 h-3.5" /> إزالة الصورة
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-2 border border-dashed border-gray-300 rounded-xl px-4 py-3 text-xs text-gray-500 hover:border-brand-400 hover:text-brand-500 transition-colors w-full justify-center"
+            >
+              <Upload className="w-4 h-4" />
+              اختر صورة من جهازك
+            </button>
+          )}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            onChange={handleImageChange}
+            className="hidden"
+          />
+        </div>
+
+        {/* Send mode badge */}
+        <div className={clsx(
+          "flex items-center gap-2 rounded-xl px-3 py-2 border text-xs font-medium",
+          SEND_MODE_LABELS[sendMode]?.color || "bg-gray-50 text-gray-500 border-gray-200"
+        )}>
+          <Eye className="w-3.5 h-3.5 shrink-0" />
+          <span>وضع الإرسال: {SEND_MODE_LABELS[sendMode]?.label}</span>
+        </div>
+
+        {/* Duplicate warning */}
+        {dupWarning && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-3">
+            <AlertOctagon className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold text-amber-800">تحذير: تكرار مبكر</p>
+              <p className="text-xs text-amber-700 mt-0.5">
+                تم إرسال دعوة لهذا الرقم منذ {dupWarning.lastSentMinutes} دقيقة فقط.
+              </p>
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => { setDupWarning(null); doSend(true); }}
+                  className="text-xs bg-amber-500 text-white px-3 py-1.5 rounded-lg hover:bg-amber-600 font-medium"
+                >
+                  إرسال على أي حال
+                </button>
+                <button
+                  onClick={() => setDupWarning(null)}
+                  className="text-xs text-amber-700 px-3 py-1.5 rounded-lg hover:bg-amber-100"
+                >
+                  إلغاء
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Result */}
+        {result && !dupWarning && (
+          <div className={clsx("rounded-xl p-3 text-xs font-medium flex items-center gap-2",
+            result.sent
+              ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+              : "bg-red-50 text-red-700 border border-red-100"
+          )}>
+            {result.sent ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+            {result.sent
+              ? `تم الإرسال بنجاح — وضع: ${SEND_MODE_LABELS[result.sendMode]?.label || result.sendMode}`
+              : `فشل الإرسال: ${result.error}`}
+          </div>
+        )}
+
+        {/* Preview toggle */}
+        {form.message && (
+          <div>
+            <button
+              onClick={() => setShowPreview(p => !p)}
+              className="text-xs text-brand-500 hover:text-brand-700 flex items-center gap-1 font-medium"
+            >
+              <Eye className="w-3.5 h-3.5" />
+              {showPreview ? "إخفاء المعاينة" : "معاينة الرسالة"}
+            </button>
+            {showPreview && (
+              <div className="mt-2 bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2">
+                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">معاينة</p>
+                {imagePreview && (
+                  <img src={imagePreview} alt="attachment" className="w-40 rounded-xl border border-gray-200" />
+                )}
+                <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{form.message}</p>
+                <p className={clsx(
+                  "text-[10px] font-medium px-2 py-0.5 rounded-full w-fit",
+                  SEND_MODE_LABELS[sendMode]?.color || ""
+                )}>
+                  {SEND_MODE_LABELS[sendMode]?.label}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Send button */}
+        <button
+          onClick={() => doSend(false)}
+          disabled={sending || !form.phone.trim() || !form.message.trim()}
+          className="w-full flex items-center justify-center gap-2 bg-brand-500 text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          {sending ? "جارٍ الإرسال..." : "إرسال الدعوة"}
+        </button>
+      </div>
+
+      {/* Invite log */}
+      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
+            <MessageCircle className="w-4 h-4 text-brand-500" />
+            سجل الدعوات المرسلة
+          </h3>
+          <button onClick={() => refetchLog()} className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
+            <RefreshCw className="w-3 h-3" /> تحديث
+          </button>
+        </div>
+
+        {logLoading ? (
+          <div className="p-6"><Spinner /></div>
+        ) : !logData?.data?.length ? (
+          <div className="p-6"><Empty icon={MessageCircle} text="لا توجد دعوات مرسلة بعد" /></div>
+        ) : (
+          <>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
+                  <th className="text-right px-4 py-3 font-semibold">المستلم</th>
+                  <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">وضع الإرسال</th>
+                  <th className="text-right px-4 py-3 font-semibold">الحالة</th>
+                  <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">التاريخ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {logData.data.map((msg: any) => (
+                  <tr key={msg.id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
+                    <td className="px-4 py-3">
+                      <p className="text-sm font-medium text-gray-800">{msg.recipientName || "—"}</p>
+                      <p className="text-xs text-gray-400 font-mono" dir="ltr">{msg.recipientPhone}</p>
+                    </td>
+                    <td className="px-4 py-3 hidden sm:table-cell">
+                      <span className="flex items-center gap-1 text-xs text-gray-500">
+                        {msg.attachmentUrl ? <ImageIcon className="w-3.5 h-3.5 text-brand-400" /> : null}
+                        {msg.attachmentUrl ? "مع صورة" : "نص فقط"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={clsx("text-[10px] px-2 py-0.5 rounded-full font-semibold",
+                        STATUS_MAP[msg.status]?.color || "bg-gray-100 text-gray-500"
+                      )}>
+                        {STATUS_MAP[msg.status]?.label || msg.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-400 hidden md:table-cell">
+                      {msg.createdAt ? new Date(msg.createdAt).toLocaleString("ar") : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            {logData.pagination?.totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-gray-100">
+                <button disabled={logPage <= 1} onClick={() => setLogPage(p => p - 1)}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40">
+                  السابق
+                </button>
+                <span className="text-xs text-gray-400">{logPage} / {logData.pagination.totalPages}</span>
+                <button disabled={logPage >= logData.pagination.totalPages} onClick={() => setLogPage(p => p + 1)}
+                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40">
+                  التالي
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

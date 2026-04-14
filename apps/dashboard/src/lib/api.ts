@@ -2024,11 +2024,12 @@ export const adminApi = {
   updateWaTemplate: (id: string, d: any) => api.patch<{ data: any }>(`/admin/wa/templates/${id}`, d),
   deleteWaTemplate: (id: string) => api.delete<{ ok: boolean }>(`/admin/wa/templates/${id}`),
   sendWaMessage: (d: any) => api.post<{ data: any }>("/admin/wa/send", d),
-  waMessages: (params?: { orgId?: string; status?: string; page?: number }) => {
+  waMessages: (params?: { orgId?: string; status?: string; category?: string; page?: number }) => {
     const qs = new URLSearchParams();
-    if (params?.orgId)  qs.set("orgId", params.orgId);
-    if (params?.status) qs.set("status", params.status);
-    if (params?.page)   qs.set("page", String(params.page));
+    if (params?.orgId)    qs.set("orgId", params.orgId);
+    if (params?.status)   qs.set("status", params.status);
+    if (params?.category) qs.set("category", params.category);
+    if (params?.page)     qs.set("page", String(params.page));
     return api.get<{ data: any[]; pagination: any }>(`/admin/wa/messages?${qs}`);
   },
 

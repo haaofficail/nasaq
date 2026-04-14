@@ -93,20 +93,27 @@ export const adminWaTemplates = pgTable("admin_wa_templates", {
 // ============================================================
 
 export const adminWaMessages = pgTable("admin_wa_messages", {
-  id:             uuid("id").defaultRandom().primaryKey(),
-  adminId:        uuid("admin_id").notNull(),
-  orgId:          uuid("org_id"),
-  recipientPhone: text("recipient_phone").notNull(),
-  recipientName:  text("recipient_name"),
-  templateId:     uuid("template_id"),
-  messageText:    text("message_text").notNull(),
-  channel:        text("channel").default("whatsapp").notNull(),
-  status:         text("status").default("pending").notNull(), // pending | sent | failed
-  errorMessage:   text("error_message"),
-  sentAt:         timestamp("sent_at", { withTimezone: true }),
-  createdAt:      timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  id:                uuid("id").defaultRandom().primaryKey(),
+  adminId:           uuid("admin_id").notNull(),
+  orgId:             uuid("org_id"),
+  recipientPhone:    text("recipient_phone").notNull(),
+  recipientName:     text("recipient_name"),
+  templateId:        uuid("template_id"),
+  messageText:       text("message_text").notNull(),
+  channel:           text("channel").default("whatsapp").notNull(),
+  status:            text("status").default("pending").notNull(), // pending | sent | failed
+  errorMessage:      text("error_message"),
+  sentAt:            timestamp("sent_at", { withTimezone: true }),
+  // invite extensions
+  attachmentUrl:     text("attachment_url"),
+  category:         text("category").default("general").notNull(),  // general | invite | ...
+  providerMessageId: text("provider_message_id"),
+  updatedAt:         timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+  createdAt:         timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => [
   index("idx_admin_wa_messages_admin").on(table.adminId),
   index("idx_admin_wa_messages_org").on(table.orgId),
   index("idx_admin_wa_messages_created").on(table.createdAt),
+  index("idx_admin_wa_messages_category").on(table.category),
+  index("idx_admin_wa_messages_phone").on(table.recipientPhone),
 ]);

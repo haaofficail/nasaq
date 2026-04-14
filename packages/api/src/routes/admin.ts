@@ -34,7 +34,7 @@ import {
 import { _activateOrder } from "./subscription";
 import { getPagination, generateSlug } from "../lib/helpers";
 import { superAdminMiddleware } from "../middleware/auth";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, readFile } from "fs/promises";
 import { join } from "path";
 import { nanoid } from "nanoid";
 import { scryptSync, randomBytes } from "crypto";
@@ -2368,40 +2368,102 @@ adminRouter.post("/wa/send", async (c) => {
   const adminId = c.get("adminId") as string;
 
   const body = z.object({
-    phone: z.string().min(5),
-    message: z.string().min(1),
-    recipientName: z.string().optional(),
-    orgId: z.string().uuid().optional(),
-    templateId: z.string().uuid().optional(),
-    channel: z.enum(["whatsapp", "sms"]).default("whatsapp"),
+    phone:          z.string().min(5),
+    message:        z.string().min(1),
+    recipientName:  z.string().optional(),
+    orgId:          z.string().uuid().optional(),
+    templateId:     z.string().uuid().optional(),
+    channel:        z.enum(["whatsapp", "sms"]).default("whatsapp"),
+    // Invite extensions
+    imageBase64:    z.string().optional(),   // base64 image data (no data:… prefix)
+    imageMimeType:  z.string().optional(),   // e.g. "image/jpeg"
+    category:       z.string().default("general"),
+    force:          z.boolean().default(false), // skip duplicate guard
   }).parse(await c.req.json());
 
   // Normalize phone
   const phone = normalizePhoneAdmin(body.phone) || body.phone;
 
+  // ── Duplicate guard for invite category ──────────────────
+  if (body.category === "invite" && !body.force) {
+    const thirtyMinAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const recent = await db.select({ createdAt: adminWaMessages.createdAt })
+      .from(adminWaMessages)
+      .where(and(
+        eq(adminWaMessages.recipientPhone, phone),
+        eq(adminWaMessages.category, "invite"),
+        gte(adminWaMessages.createdAt, thirtyMinAgo),
+      ))
+      .limit(1);
+    if (recent.length > 0) {
+      const diffMin = Math.round((Date.now() - new Date(recent[0].createdAt).getTime()) / 60_000);
+      return c.json({ data: { duplicateWarning: true, lastSentMinutes: diffMin } });
+    }
+  }
+
+  // ── Persist image to disk if provided ────────────────────
+  let savedAttachmentUrl: string | null = null;
+  if (body.imageBase64 && body.channel === "whatsapp") {
+    try {
+      const ext = (body.imageMimeType ?? "image/jpeg").split("/")[1]?.replace("jpeg", "jpg") || "jpg";
+      const filename = `${nanoid(16)}.${ext}`;
+      const uploadDir = join(process.env.UPLOAD_DIR || "/var/www/nasaq/uploads", "admin-wa");
+      await mkdir(uploadDir, { recursive: true });
+      await writeFile(join(uploadDir, filename), Buffer.from(body.imageBase64, "base64"));
+      savedAttachmentUrl = `/api/v1/admin/wa/attachment/${filename}`;
+    } catch (e) {
+      log.warn({ err: e }, "[admin-wa] failed to save attachment to disk");
+    }
+  }
+
   // Log message first
   const [msg] = await db.insert(adminWaMessages).values({
     adminId,
-    orgId: body.orgId || null,
+    orgId:          body.orgId || null,
     recipientPhone: phone,
-    recipientName: body.recipientName || null,
-    templateId: body.templateId || null,
-    messageText: body.message,
-    channel: body.channel,
-    status: "pending",
+    recipientName:  body.recipientName || null,
+    templateId:     body.templateId || null,
+    messageText:    body.message,
+    channel:        body.channel,
+    status:         "pending",
+    category:       body.category,
+    attachmentUrl:  savedAttachmentUrl,
   }).returning();
 
-  // Try to send
-  let sent = false;
+  // ── Try to send ───────────────────────────────────────────
+  let sent        = false;
+  let sendMode    = "text";
   let errorMessage = "";
   try {
     if (body.channel === "whatsapp") {
-      // Try Baileys platform session first, then fallback to configured providers
-      const { sendViaBaileys } = await import("../lib/whatsappBaileys");
-      sent = await sendViaBaileys("platform", phone, body.message).catch((e) => { log.warn({ err: e, phone }, "[admin-wa] baileys failed"); return false; });
-      if (!sent) {
-        const { sendWhatsApp } = await import("../lib/whatsapp");
-        sent = await sendWhatsApp(phone, body.message);
+      const { sendViaBaileys, sendImageViaBaileys } = await import("../lib/whatsappBaileys");
+
+      if (body.imageBase64) {
+        // Attempt image+caption in one message (Baileys only)
+        const imgBuf = Buffer.from(body.imageBase64, "base64");
+        sent = await sendImageViaBaileys("platform", phone, imgBuf, body.message)
+          .catch((e) => { log.warn({ err: e, phone }, "[admin-wa] image baileys failed"); return false; });
+        if (sent) {
+          sendMode = "image_caption";
+        } else {
+          // Fallback: text only
+          sent = await sendViaBaileys("platform", phone, body.message)
+            .catch((e) => { log.warn({ err: e, phone }, "[admin-wa] text baileys failed"); return false; });
+          if (!sent) {
+            const { sendWhatsApp } = await import("../lib/whatsapp");
+            sent = await sendWhatsApp(phone, body.message);
+          }
+          sendMode = "text_fallback";
+        }
+      } else {
+        // Text only
+        sent = await sendViaBaileys("platform", phone, body.message)
+          .catch((e) => { log.warn({ err: e, phone }, "[admin-wa] baileys failed"); return false; });
+        if (!sent) {
+          const { sendWhatsApp } = await import("../lib/whatsapp");
+          sent = await sendWhatsApp(phone, body.message);
+        }
+        sendMode = "text";
       }
     } else {
       const { sendSms } = await import("../lib/sms");
@@ -2413,28 +2475,45 @@ adminRouter.post("/wa/send", async (c) => {
 
   // Update status
   await db.update(adminWaMessages).set({
-    status: sent ? "sent" : "failed",
+    status:      sent ? "sent" : "failed",
     errorMessage: sent ? null : (errorMessage || "فشل الإرسال"),
-    sentAt: sent ? new Date() : null,
+    sentAt:      sent ? new Date() : null,
+    updatedAt:   new Date(),
   }).where(eq(adminWaMessages.id, msg.id));
 
   logAdminAction(adminId, "send_wa_message", "wa_message", msg.id, {
-    phone, channel: body.channel, orgId: body.orgId, sent,
+    phone, channel: body.channel, orgId: body.orgId, sent, category: body.category, sendMode,
   }, c.req.header("X-Forwarded-For"));
 
-  return c.json({ data: { id: msg.id, sent, error: sent ? null : (errorMessage || "فشل الإرسال") } });
+  return c.json({ data: { id: msg.id, sent, sendMode, error: sent ? null : (errorMessage || "فشل الإرسال") } });
+});
+
+// ── Serve Admin WA Attachments ─────────────────────────────
+adminRouter.get("/wa/attachment/:filename", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const filename = c.req.param("filename");
+  if (/[/\\.]/.test(filename.replace(/\.[a-z]+$/, ""))) return c.text("Forbidden", 403);
+  const uploadDir = join(process.env.UPLOAD_DIR || "/var/www/nasaq/uploads", "admin-wa");
+  const file = await readFile(join(uploadDir, filename)).catch(() => null);
+  if (!file) return c.text("Not found", 404);
+  const ext  = filename.split(".").pop()?.toLowerCase();
+  const mime = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : ext === "webp" ? "image/webp" : "image/jpeg";
+  c.header("Cache-Control", "private, max-age=86400");
+  return c.body(file, 200, { "Content-Type": mime });
 });
 
 // ── Message Log ────────────────────────────────────────────
 adminRouter.get("/wa/messages", async (c) => {
   if (!isSuperAdmin(c)) return superAdminOnly(c);
   const { page, limit, offset } = getPagination(c);
-  const orgId = c.req.query("orgId");
-  const status = c.req.query("status");
+  const orgId    = c.req.query("orgId");
+  const status   = c.req.query("status");
+  const category = c.req.query("category");
 
   const conds: any[] = [];
-  if (orgId) conds.push(eq(adminWaMessages.orgId, orgId));
-  if (status) conds.push(eq(adminWaMessages.status, status));
+  if (orgId)    conds.push(eq(adminWaMessages.orgId, orgId));
+  if (status)   conds.push(eq(adminWaMessages.status, status));
+  if (category) conds.push(eq(adminWaMessages.category, category));
   const where = conds.length ? and(...conds) : undefined;
 
   const [rows, [{ total }]] = await Promise.all([

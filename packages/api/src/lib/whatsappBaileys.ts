@@ -193,6 +193,34 @@ export async function sendViaBaileys(orgId: string, phone: string, message: stri
   }
 }
 
+/** Send a WhatsApp image+caption via an active Baileys session.
+ *  Falls back to text-only if the socket is not connected or if the send fails. */
+export async function sendImageViaBaileys(
+  orgId: string,
+  phone: string,
+  imageBuffer: Buffer,
+  caption: string,
+): Promise<boolean> {
+  const sess = get(orgId);
+  if (sess.status !== "connected" || !sess.socket) return false;
+
+  try {
+    const jid = phone.replace(/\+/g, "").replace(/\s/g, "") + "@s.whatsapp.net";
+    await sess.socket.sendMessage(jid, { image: imageBuffer, caption });
+    log.info({ orgId, phone }, "[wa-baileys] image+caption sent");
+    return true;
+  } catch (err: any) {
+    log.error({ err, orgId, phone }, "[wa-baileys] image send failed");
+    const msg = String(err?.message ?? err?.output?.payload?.message ?? "");
+    if (msg.includes("Connection Closed") || msg.includes("not open") || err?.output?.statusCode === 428) {
+      log.warn({ orgId }, "[wa-baileys] connection lost on image send — resetting");
+      touch(sess, { status: "disconnected", socket: null, qrBase64: null });
+      if (hasSavedSession(orgId)) initBaileys(orgId).catch(() => {});
+    }
+    return false;
+  }
+}
+
 /** Logout and remove session files */
 export async function logoutBaileys(orgId: string): Promise<void> {
   const sess = get(orgId);
