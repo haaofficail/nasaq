@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import { Decimal } from "decimal.js";
 import { eq, and, asc, desc, lte, sql, gte, lt, count } from "drizzle-orm";
 import { db, pool } from "@nasaq/db/client";
 import {
@@ -186,11 +187,11 @@ salonRouter.post("/supplies/:id/adjust", async (c) => {
     // operate on the row already modified by the first — no double-spend.
     const { rows } = await tx.execute(sql`
       UPDATE salon_supplies
-      SET quantity   = (quantity::numeric + ${parseFloat(body.delta)})::text,
+      SET quantity   = (quantity::numeric + ${new Decimal(body.delta).toFixed(2)})::text,
           updated_at = NOW()
       WHERE id = ${supplyId}
         AND org_id = ${orgId}
-        AND (quantity::numeric + ${parseFloat(body.delta)}) >= 0
+        AND (quantity::numeric + ${new Decimal(body.delta).toFixed(2)}) >= 0
       RETURNING *
     `);
 

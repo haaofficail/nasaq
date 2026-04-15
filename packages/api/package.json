@@ -17,6 +17,7 @@
     "@whiskeysockets/baileys": "^6.7.18",
     "dotenv": "^16.4.0",
     "drizzle-orm": "^0.38.0",
+    "decimal.js": "^10.4.3",
     "hono": "^4.6.0",
     "nanoid": "^5.0.0",
     "nodemailer": "^8.0.5",

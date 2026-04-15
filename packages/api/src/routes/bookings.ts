@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { z } from "zod";
+import { Decimal } from "decimal.js";
 import { eq, and, asc, desc, gte, lte, lt, or, ilike, count, sql, between, inArray } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import {
@@ -537,11 +538,8 @@ bookingsRouter.post("/", async (c) => {
     ? Math.max(1, Math.ceil((new Date(body.eventEndDate).getTime() - new Date(body.eventDate).getTime()) / (1000 * 60 * 60 * 24)))
     : 1;
 
-  // ZATCA-compliant monetary rounding — prevents IEEE-754 drift across line items
-  // All monetary values rounded to 2 decimal places (halalas) after each arithmetic op
-  const round2 = (n: number): number => Math.round(n * 100) / 100;
-
-  let subtotal = 0;
+  // ZATCA-compliant monetary mathematics using decimal.js
+  let subtotal = new Decimal(0);
   const itemsToInsert: any[] = [];
   const addonsToInsert: any[] = [];
 
@@ -570,30 +568,30 @@ bookingsRouter.post("/", async (c) => {
     }
 
     // Calculate price with applicable pricing rules
-    let unitPrice = parseFloat(service.basePrice);
-    const pricingBreakdown: any[] = [{ rule: "base", label: "السعر الأساسي", amount: unitPrice }];
+    let unitPrice = new Decimal(service.basePrice);
+    const pricingBreakdown: any[] = [{ rule: "base", label: "السعر الأساسي", amount: unitPrice.toNumber() }];
 
     const rules = allPricingRules.filter(
       (r) => r.serviceId === service.id || r.serviceId === null
     );
 
     for (const rule of rules) {
-      const adjustment = applyPricingRule(rule, unitPrice, body.eventDate ?? "", body.locationId);
+      const adjustment = applyPricingRule(rule, unitPrice.toNumber(), body.eventDate ?? "", body.locationId);
       if (adjustment !== 0) {
-        unitPrice += adjustment;
+        unitPrice = unitPrice.add(adjustment);
         pricingBreakdown.push({
           rule: rule.type,
           label: rule.name,
           adjustment: adjustment,
-          amount: unitPrice,
+          amount: unitPrice.toNumber(),
         });
       }
     }
 
     const daysMultiplier = RENTAL_SVC_TYPES.has(sType ?? "") ? rentalDays : 1;
-    unitPrice = round2(unitPrice);
-    const totalPrice = round2(unitPrice * item.quantity * daysMultiplier);
-    subtotal = round2(subtotal + totalPrice);
+    unitPrice = unitPrice.toDecimalPlaces(2);
+    const totalPrice = unitPrice.mul(item.quantity).mul(daysMultiplier).toDecimalPlaces(2);
+    subtotal = subtotal.add(totalPrice);
 
     const itemId = crypto.randomUUID();
     itemsToInsert.push({
@@ -614,15 +612,15 @@ bookingsRouter.post("/", async (c) => {
       const addon = addonMap.get(addonReq.addonId);
       if (!addon) continue;
 
-      let addonPrice: number;
+      let addonPrice: Decimal;
       if (addon.priceMode === "percentage") {
-        addonPrice = round2(unitPrice * (parseFloat(addon.price) / 100));
+        addonPrice = unitPrice.mul(new Decimal(addon.price).div(100)).toDecimalPlaces(2);
       } else {
-        addonPrice = round2(parseFloat(addon.price));
+        addonPrice = new Decimal(addon.price).toDecimalPlaces(2);
       }
 
-      const addonTotal = round2(addonPrice * addonReq.quantity);
-      subtotal = round2(subtotal + addonTotal);
+      const addonTotal = addonPrice.mul(addonReq.quantity).toDecimalPlaces(2);
+      subtotal = subtotal.add(addonTotal);
 
       addonsToInsert.push({
         bookingItemId: itemId,
@@ -638,8 +636,8 @@ bookingsRouter.post("/", async (c) => {
   // 3. Calculate totals — vatRate from org settings, depositPercent from services
   const orgSettings = (orgRow[0]?.settings ?? {}) as Record<string, unknown>;
   const vatRate = typeof orgSettings.vatRate === "number" ? orgSettings.vatRate : DEFAULT_VAT_RATE;
-  const vatAmount = round2(subtotal * (vatRate / 100));
-  const totalAmount = round2(subtotal + vatAmount);
+  const vatAmount = subtotal.mul(vatRate).div(100).toDecimalPlaces(2);
+  const totalAmount = subtotal.add(vatAmount).toDecimalPlaces(2);
   // العربون اختياري — يُحسب فقط إذا كان requireDeposit مفعّلاً في إعدادات الحجز
   const requireDeposit = orgSettings.requireDeposit === true;
   const depositPercent = requireDeposit
@@ -648,7 +646,7 @@ bookingsRouter.post("/", async (c) => {
         ...Array.from(serviceMap.values()).map(s => parseFloat(String((s as any).depositPercent ?? DEFAULT_DEPOSIT_PERCENT))),
       )
     : 0;
-  const depositAmount = round2(totalAmount * (depositPercent / 100));
+  const depositAmount = totalAmount.mul(depositPercent).div(100).toDecimalPlaces(2);
 
   // 4. Generate identifiers outside transaction (idempotent)
   const bookingNumber = generateBookingNumber("NSQ");
@@ -1097,27 +1095,27 @@ bookingsRouter.patch("/:id/status", async (c) => {
               .for("update");
             if (!supply) continue;
 
-            const currentQty = parseFloat(supply.quantity as string);
+            const currentQty = new Decimal(supply.quantity as string);
             // P0-4 fix: allow negative stock — real shortage is recorded, not hidden by Math.max(0,…)
-            const newQty = currentQty - totalQty;
+            const newQty = currentQty.sub(totalQty);
 
-            if (newQty < 0) {
+            if (newQty.isNegative()) {
               salonLog.inventoryLowStock({
                 requestId: requestId ?? undefined, orgId, bookingId: id,
                 serviceId: item.serviceId ?? undefined,
-                metadata: { supplyId: recipe.supplyId, needed: totalQty, available: currentQty },
-              });
-            }
-
-            await tx.update(salonSupplies)
-              .set({ quantity: String(newQty), updatedAt: new Date() })
-              .where(eq(salonSupplies.id, recipe.supplyId));
-
-            salonLog.inventoryDeducted({
-              requestId: requestId ?? undefined, orgId, bookingId: id,
-              serviceId: item.serviceId ?? undefined,
-              metadata: { supplyId: recipe.supplyId, qty: totalQty, newQty },
+              metadata: { supplyId: recipe.supplyId, needed: totalQty, available: currentQty.toNumber() },
             });
+          }
+
+          await tx.update(salonSupplies)
+            .set({ quantity: newQty.toFixed(2), updatedAt: new Date() })
+            .where(eq(salonSupplies.id, recipe.supplyId));
+
+          salonLog.inventoryDeducted({
+            requestId: requestId ?? undefined, orgId, bookingId: id,
+            serviceId: item.serviceId ?? undefined,
+            metadata: { supplyId: recipe.supplyId, qty: totalQty, newQty: newQty.toNumber() },
+          });
 
             await tx.insert(salonSupplyAdjustments).values({
               orgId,
