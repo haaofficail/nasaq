@@ -13,6 +13,7 @@ export { ModernInput }    from "./ModernInput";
 export { StatCard }       from "./StatCard";
 export { BookingCard }    from "./BookingCard";
 export { DataTable }      from "./DataTable";
+export { BulkActionBar }  from "./BulkActionBar";
 export { EditableCell }   from "./EditableCell";
 export { PageSkeleton, SkeletonRows, SkeletonCards } from "./Skeleton";
 export { Pagination }     from "./Pagination";
@@ -268,15 +269,40 @@ export function Toggle({ checked, onChange, label }: {
 // EMPTY STATE
 // ============================================================
 
-export function EmptyState({ title, description, action, icon: Icon = Inbox }: {
-  title: string; description?: string; action?: ReactNode; icon?: any;
+export function EmptyState({ 
+  title, 
+  description, 
+  action, 
+  secondaryAction,
+  icon: Icon = Inbox,
+  variant = "default"
+}: {
+  title: string; 
+  description?: string; 
+  action?: ReactNode; 
+  secondaryAction?: ReactNode;
+  icon?: any;
+  variant?: "default" | "dashed" | "card";
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center">
-      <Icon className="w-12 h-12 text-gray-300 mb-4" />
-      <h3 className="text-base font-medium text-gray-900 mb-1">{title}</h3>
-      {description && <p className="text-sm text-gray-500 mb-4 max-w-sm">{description}</p>}
-      {action}
+    <div className={clsx(
+      "flex flex-col items-center justify-center text-center p-8 sm:p-12 transition-all",
+      variant === "dashed" && "border-2 border-dashed border-gray-200 rounded-3xl bg-gray-50/50",
+      variant === "card" && "bg-white border border-gray-100 shadow-sm rounded-3xl",
+      variant === "default" && "py-16"
+    )}>
+      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-5 ring-8 ring-gray-50/50">
+        <Icon className="w-8 h-8 text-gray-400" />
+      </div>
+      <h3 className="text-lg font-bold text-gray-900 mb-1.5">{title}</h3>
+      {description && <p className="text-[14px] text-gray-500 mb-6 max-w-sm leading-relaxed">{description}</p>}
+      
+      {(action || secondaryAction) && (
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          {action}
+          {secondaryAction}
+        </div>
+      )}
     </div>
   );
 }

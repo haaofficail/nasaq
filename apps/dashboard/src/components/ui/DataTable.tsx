@@ -18,10 +18,13 @@ interface DataTableProps<T> {
   onAdd?: () => void;
   addLabel?: string;
   onFilter?: () => void;
-  renderRow?: (row: T, index: number) => ReactNode;
   keyExtractor?: (row: T) => string;
   loading?: boolean;
   emptyText?: string;
+  selectable?: boolean;
+  selectedIds?: string[];
+  onSelect?: (id: string, checked: boolean) => void;
+  onSelectAll?: (checked: boolean) => void;
 }
 
 export function DataTable<T extends Record<string, any>>({
@@ -34,12 +37,18 @@ export function DataTable<T extends Record<string, any>>({
   addLabel = "إضافة",
   onFilter,
   renderRow,
-  keyExtractor,
   loading,
   emptyText = "لا توجد بيانات",
+  selectable,
+  selectedIds = [],
+  onSelect,
+  onSelectAll,
 }: DataTableProps<T>) {
   const [searchVal, setSearchVal] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
+  
+  const isAllSelected = data.length > 0 && selectedIds.length === data.length;
+  const isSomeSelected = selectedIds.length > 0 && selectedIds.length < data.length;
 
   const handleSearch = (v: string) => {
     setSearchVal(v);
@@ -100,12 +109,25 @@ export function DataTable<T extends Record<string, any>>({
       {/* Table */}
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
-          <thead>
+          <thead className="bg-white">
             <tr className="border-b border-gray-100">
+              {selectable && (
+                <th className="px-4 py-3 w-10">
+                  <div className="flex items-center justify-center">
+                    <input 
+                      type="checkbox"
+                      checked={isAllSelected}
+                      ref={(input) => { if (input) input.indeterminate = isSomeSelected; }}
+                      onChange={(e) => onSelectAll?.(e.target.checked)}
+                      className="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 cursor-pointer"
+                    />
+                  </div>
+                </th>
+              )}
               {columns.map(col => (
                 <th
                   key={col.key}
-                  className="text-right px-4 py-2.5 text-xs font-semibold text-gray-400 whitespace-nowrap"
+                  className="text-right px-4 py-3 text-xs font-semibold text-gray-500 whitespace-nowrap"
                   style={col.width ? { width: col.width } : undefined}
                 >
                   {col.label}
@@ -131,14 +153,32 @@ export function DataTable<T extends Record<string, any>>({
                 </td>
               </tr>
             ) : (
-              data.map((row, i) =>
-                renderRow ? (
-                  <tr key={keyExtractor ? keyExtractor(row) : i}>{renderRow(row, i)}</tr>
+              data.map((row, i) => {
+                const rowKey = keyExtractor ? keyExtractor(row) : String(i);
+                const isSelected = selectedIds.includes(rowKey);
+                
+                return renderRow ? (
+                  <tr key={rowKey}>{renderRow(row, i)}</tr>
                 ) : (
                   <tr
-                    key={keyExtractor ? keyExtractor(row) : i}
-                    className="border-b border-gray-100 hover:bg-gray-50/60 transition-colors"
+                    key={rowKey}
+                    className={clsx(
+                      "border-b border-gray-50 transition-colors",
+                      isSelected ? "bg-brand-50/40" : "hover:bg-gray-50/60"
+                    )}
                   >
+                    {selectable && (
+                      <td className="px-4 py-3 text-center align-middle">
+                        <div className="flex items-center justify-center">
+                          <input 
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => onSelect?.(rowKey, e.target.checked)}
+                            className="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 cursor-pointer transition-colors"
+                          />
+                        </div>
+                      </td>
+                    )}
                     {columns.map(col => (
                       <td
                         key={col.key}
@@ -149,8 +189,8 @@ export function DataTable<T extends Record<string, any>>({
                       </td>
                     ))}
                   </tr>
-                )
-              )
+                );
+              })
             )}
           </tbody>
         </table>
