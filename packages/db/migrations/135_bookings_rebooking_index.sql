@@ -6,6 +6,6 @@
 
 -- Index على (org_id, customer_id, event_date) مع فلتر على الحجوزات الفعلية
 -- CONCURRENTLY لتجنب قفل الجدول أثناء البناء
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_bookings_rebooking
+CREATE INDEX IF NOT EXISTS idx_bookings_rebooking
   ON bookings(org_id, customer_id, event_date)
   WHERE status NOT IN ('cancelled', 'no_show');

@@ -537,6 +537,10 @@ bookingsRouter.post("/", async (c) => {
     ? Math.max(1, Math.ceil((new Date(body.eventEndDate).getTime() - new Date(body.eventDate).getTime()) / (1000 * 60 * 60 * 24)))
     : 1;
 
+  // ZATCA-compliant monetary rounding — prevents IEEE-754 drift across line items
+  // All monetary values rounded to 2 decimal places (halalas) after each arithmetic op
+  const round2 = (n: number): number => Math.round(n * 100) / 100;
+
   let subtotal = 0;
   const itemsToInsert: any[] = [];
   const addonsToInsert: any[] = [];
@@ -587,8 +591,9 @@ bookingsRouter.post("/", async (c) => {
     }
 
     const daysMultiplier = RENTAL_SVC_TYPES.has(sType ?? "") ? rentalDays : 1;
-    const totalPrice = unitPrice * item.quantity * daysMultiplier;
-    subtotal += totalPrice;
+    unitPrice = round2(unitPrice);
+    const totalPrice = round2(unitPrice * item.quantity * daysMultiplier);
+    subtotal = round2(subtotal + totalPrice);
 
     const itemId = crypto.randomUUID();
     itemsToInsert.push({
@@ -611,13 +616,13 @@ bookingsRouter.post("/", async (c) => {
 
       let addonPrice: number;
       if (addon.priceMode === "percentage") {
-        addonPrice = unitPrice * (parseFloat(addon.price) / 100);
+        addonPrice = round2(unitPrice * (parseFloat(addon.price) / 100));
       } else {
-        addonPrice = parseFloat(addon.price);
+        addonPrice = round2(parseFloat(addon.price));
       }
 
-      const addonTotal = addonPrice * addonReq.quantity;
-      subtotal += addonTotal;
+      const addonTotal = round2(addonPrice * addonReq.quantity);
+      subtotal = round2(subtotal + addonTotal);
 
       addonsToInsert.push({
         bookingItemId: itemId,
@@ -633,8 +638,8 @@ bookingsRouter.post("/", async (c) => {
   // 3. Calculate totals — vatRate from org settings, depositPercent from services
   const orgSettings = (orgRow[0]?.settings ?? {}) as Record<string, unknown>;
   const vatRate = typeof orgSettings.vatRate === "number" ? orgSettings.vatRate : DEFAULT_VAT_RATE;
-  const vatAmount = subtotal * (vatRate / 100);
-  const totalAmount = subtotal + vatAmount;
+  const vatAmount = round2(subtotal * (vatRate / 100));
+  const totalAmount = round2(subtotal + vatAmount);
   // العربون اختياري — يُحسب فقط إذا كان requireDeposit مفعّلاً في إعدادات الحجز
   const requireDeposit = orgSettings.requireDeposit === true;
   const depositPercent = requireDeposit
@@ -643,7 +648,7 @@ bookingsRouter.post("/", async (c) => {
         ...Array.from(serviceMap.values()).map(s => parseFloat(String((s as any).depositPercent ?? DEFAULT_DEPOSIT_PERCENT))),
       )
     : 0;
-  const depositAmount = totalAmount * (depositPercent / 100);
+  const depositAmount = round2(totalAmount * (depositPercent / 100));
 
   // 4. Generate identifiers outside transaction (idempotent)
   const bookingNumber = generateBookingNumber("NSQ");
@@ -721,6 +726,12 @@ bookingsRouter.post("/", async (c) => {
           ? new Date(new Date(body.eventEndDate).getTime() + maxBufferAfter * 60_000)
           : new Date(resolvedEventDate.getTime() + 24 * 60 * 60 * 1000 + maxBufferAfter * 60_000);
 
+        // Advisory lock on (org × location) slot — prevents phantom reads where two concurrent
+        // inserts both see 0 conflicts and both proceed. FOR UPDATE alone can't lock non-existent rows.
+        await tx.execute(sql`
+          SELECT pg_advisory_xact_lock(hashtext(${orgId}), hashtext(${'loc:' + body.locationId}))
+        `);
+
         const { rows: conflictRows } = await tx.execute(sql`
           SELECT id, booking_number FROM bookings
           WHERE org_id = ${orgId}
@@ -745,6 +756,11 @@ bookingsRouter.post("/", async (c) => {
         const staffEnd = body.eventEndDate
           ? new Date(body.eventEndDate)
           : new Date(resolvedEventDate.getTime() + totalDurationMins * 60_000);
+
+        // Advisory lock on (org × staff) slot — prevents phantom double-bookings for same staff
+        await tx.execute(sql`
+          SELECT pg_advisory_xact_lock(hashtext(${orgId}), hashtext(${'staff:' + userId}))
+        `);
 
         const { rows: staffConflict } = await tx.execute(sql`
           SELECT id, booking_number FROM bookings
@@ -994,6 +1010,8 @@ bookingsRouter.patch("/:id/status", async (c) => {
   }, "[guardrails] bookings.status.update (legacy write path)");
 
   // P0-1 fix: wrap read+write in a transaction with FOR UPDATE to prevent TOCTOU
+  // P0-2 fix: supply deduction is INSIDE this transaction — atomic with status change (no silent failures)
+  // P0-3 fix: un-completing a booking reverses supply consumptions before re-deducting is possible
   const statusTx = await db.transaction(async (tx) => {
     const [existing] = await tx.select({ status: bookings.status })
       .from(bookings)
@@ -1012,7 +1030,121 @@ bookingsRouter.patch("/:id/status", async (c) => {
       .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)))
       .returning();
 
-    return upd ? { fromStatus: existing.status, updated: upd } : null;
+    if (!upd) return null;
+
+    // ── Supply Reversal: restores inventory when un-completing a booking ──
+    // Covers: completed → pending, completed → cancelled, completed → no_show
+    if (existing.status === "completed" && newStatus !== "completed") {
+      const consumptions = await tx.select().from(bookingConsumptions)
+        .where(and(eq(bookingConsumptions.bookingId, id), eq(bookingConsumptions.orgId, orgId)));
+
+      for (const consumption of consumptions) {
+        if (!consumption.supplyId) continue;
+        const qty = parseFloat(consumption.quantity as string);
+        // Atomic addition — safe to run concurrently
+        await tx.execute(sql`
+          UPDATE salon_supplies
+          SET quantity = (quantity::numeric + ${qty})::text, updated_at = NOW()
+          WHERE id = ${consumption.supplyId} AND org_id = ${orgId}
+        `);
+        await tx.insert(salonSupplyAdjustments).values({
+          orgId,
+          supplyId:  consumption.supplyId,
+          delta:     String(qty),
+          reason:    "adjusted",
+          notes:     `إعادة مخزون — تراجع حجز ${id.slice(0, 8)} من مكتمل إلى ${newStatus}`,
+          createdBy: actingUserId,
+        });
+      }
+
+      if (consumptions.length > 0) {
+        await tx.delete(bookingConsumptions)
+          .where(and(eq(bookingConsumptions.bookingId, id), eq(bookingConsumptions.orgId, orgId)));
+      }
+    }
+
+    // ── Supply Deduction: deducts recipe quantities on booking completion ──
+    if (newStatus === "completed" && existing.status !== "completed") {
+      // Idempotency guard: skip if consumption records already exist (e.g. duplicate PATCH)
+      const { rows: alreadyConsumed } = await tx.execute(sql`
+        SELECT 1 FROM booking_consumptions
+        WHERE booking_id = ${id} AND org_id = ${orgId}
+        LIMIT 1
+      `);
+
+      if (alreadyConsumed.length === 0) {
+        const items = await tx.select({
+          id: bookingItems.id,
+          serviceId: bookingItems.serviceId,
+          quantity: bookingItems.quantity,
+        }).from(bookingItems).where(eq(bookingItems.bookingId, id));
+
+        for (const item of items) {
+          if (!item.serviceId) continue;
+          const recipes = await tx.select().from(serviceSupplyRecipes)
+            .where(and(
+              eq(serviceSupplyRecipes.serviceId, item.serviceId),
+              eq(serviceSupplyRecipes.orgId, orgId),
+            ));
+
+          for (const recipe of recipes) {
+            const totalQty = parseFloat(recipe.quantity as string) * (item.quantity || 1);
+
+            const [supply] = await tx
+              .select({ id: salonSupplies.id, quantity: salonSupplies.quantity })
+              .from(salonSupplies)
+              .where(eq(salonSupplies.id, recipe.supplyId))
+              .for("update");
+            if (!supply) continue;
+
+            const currentQty = parseFloat(supply.quantity as string);
+            // P0-4 fix: allow negative stock — real shortage is recorded, not hidden by Math.max(0,…)
+            const newQty = currentQty - totalQty;
+
+            if (newQty < 0) {
+              salonLog.inventoryLowStock({
+                requestId: requestId ?? undefined, orgId, bookingId: id,
+                serviceId: item.serviceId ?? undefined,
+                metadata: { supplyId: recipe.supplyId, needed: totalQty, available: currentQty },
+              });
+            }
+
+            await tx.update(salonSupplies)
+              .set({ quantity: String(newQty), updatedAt: new Date() })
+              .where(eq(salonSupplies.id, recipe.supplyId));
+
+            salonLog.inventoryDeducted({
+              requestId: requestId ?? undefined, orgId, bookingId: id,
+              serviceId: item.serviceId ?? undefined,
+              metadata: { supplyId: recipe.supplyId, qty: totalQty, newQty },
+            });
+
+            await tx.insert(salonSupplyAdjustments).values({
+              orgId,
+              supplyId:  recipe.supplyId,
+              delta:     String(-totalQty),
+              reason:    "consumed",
+              notes:     `خصم تلقائي — حجز ${id.slice(0, 8)}`,
+              createdBy: actingUserId,
+            });
+
+            await tx.insert(bookingConsumptions).values({
+              orgId,
+              bookingId: id,
+              bookingItemId: item.id,
+              supplyId: recipe.supplyId,
+              quantity: String(totalQty),
+              unit: (recipe as any).unit || null,
+              consumedAt: new Date(),
+              createdBy: actingUserId,
+              notes: `خصم تلقائي من وصفة الخدمة`,
+            });
+          }
+        }
+      }
+    }
+
+    return { fromStatus: existing.status, updated: upd };
   });
 
   if (!statusTx) return c.json({ error: "الحجز غير موجود" }, 404);
@@ -1078,95 +1210,6 @@ bookingsRouter.patch("/:id/status", async (c) => {
     salonLog.bookingCancelled({ requestId: requestId ?? undefined, orgId, bookingId: id, assignedUserId: actingUserId ?? undefined, metadata: { reason, status: newStatus } });
   }
 
-  // On completion: deduct supplies + record consumptions (non-blocking)
-  if (newStatus === "completed") {
-    (async () => {
-      try {
-        const items = await db.select({
-          id: bookingItems.id,
-          serviceId: bookingItems.serviceId,
-          quantity: bookingItems.quantity,
-        }).from(bookingItems).where(eq(bookingItems.bookingId, id));
-
-        for (const item of items) {
-          if (!item.serviceId) continue;
-          const recipes = await db.select().from(serviceSupplyRecipes)
-            .where(and(
-              eq(serviceSupplyRecipes.serviceId, item.serviceId),
-              eq(serviceSupplyRecipes.orgId, orgId),
-            ));
-
-          for (const recipe of recipes) {
-            const totalQty = parseFloat(recipe.quantity as string) * (item.quantity || 1);
-
-            // P0-2 fix: SELECT FOR UPDATE + UPDATE inside transaction — prevents concurrent oversell
-            await db.transaction(async (tx) => {
-              const [supply] = await tx
-                .select({ id: salonSupplies.id, quantity: salonSupplies.quantity })
-                .from(salonSupplies)
-                .where(eq(salonSupplies.id, recipe.supplyId))
-                .for("update");
-              if (!supply) return;
-
-              const currentQty = parseFloat(supply.quantity as string);
-              if (currentQty < totalQty) {
-                salonLog.inventoryLowStock({
-                  requestId: requestId ?? undefined, orgId, bookingId: id,
-                  serviceId: item.serviceId ?? undefined,
-                  metadata: { supplyId: recipe.supplyId, needed: totalQty, available: currentQty },
-                });
-                await tx.insert(salonSupplyAdjustments).values({
-                  orgId,
-                  supplyId:  recipe.supplyId,
-                  delta:     "0",
-                  reason:    "manual",
-                  notes:     `تحذير مخزون: حجز ${id.slice(0, 8)} يحتاج ${totalQty} والمتاح ${currentQty} — تم الخصم للصفر`,
-                  createdBy: actingUserId,
-                });
-              }
-              const newQty = Math.max(0, currentQty - totalQty);
-              await tx.update(salonSupplies)
-                .set({ quantity: String(newQty), updatedAt: new Date() })
-                .where(eq(salonSupplies.id, recipe.supplyId));
-
-              salonLog.inventoryDeducted({
-                requestId: requestId ?? undefined, orgId, bookingId: id,
-                serviceId: item.serviceId ?? undefined,
-                metadata: { supplyId: recipe.supplyId, qty: totalQty, newQty },
-              });
-
-              await tx.insert(salonSupplyAdjustments).values({
-                orgId,
-                supplyId:  recipe.supplyId,
-                delta:     String(-totalQty),
-                reason:    "consumed",
-                notes:     `خصم تلقائي — حجز ${id.slice(0, 8)}`,
-                createdBy: actingUserId,
-              });
-
-              // Record consumption in booking_consumptions
-              await tx.insert(bookingConsumptions).values({
-                orgId,
-                bookingId: id,
-                bookingItemId: item.id,
-                supplyId: recipe.supplyId,
-                quantity: String(totalQty),
-                unit: (recipe as any).unit || null,
-                consumedAt: new Date(),
-                createdBy: actingUserId,
-                notes: `خصم تلقائي من وصفة الخدمة`,
-              });
-            });
-          }
-        }
-      } catch (err) {
-        salonLog.dbError({
-          requestId: requestId ?? undefined, orgId, bookingId: id,
-          metadata: { operation: "inventory_deduction", error: String(err) },
-        });
-      }
-    })();
-  }
 
   return c.json({ data: updated });
 });
