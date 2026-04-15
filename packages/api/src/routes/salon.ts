@@ -173,19 +173,29 @@ salonRouter.post("/supplies/:id/adjust", async (c) => {
   const supplyId = c.req.param("id");
   const body = adjustSchema.parse(await c.req.json());
 
+  // First verify the supply exists and belongs to this org
+  const [exists] = await db.select({ id: salonSupplies.id })
+    .from(salonSupplies)
+    .where(and(eq(salonSupplies.id, supplyId), eq(salonSupplies.orgId, orgId)));
+  if (!exists) return c.json({ error: "المستلزم غير موجود" }, 404);
+
   const updated = await db.transaction(async (tx) => {
-    const [supply] = await tx.select().from(salonSupplies)
-      .where(and(eq(salonSupplies.id, supplyId), eq(salonSupplies.orgId, orgId)));
-    if (!supply) throw Object.assign(new Error("NOT_FOUND"), { status: 404 });
+    // Atomic UPDATE: compute new quantity in SQL to eliminate race condition.
+    // The WHERE clause (quantity + delta >= 0) acts as the negative-stock guard.
+    // If two concurrent requests arrive simultaneously, the second UPDATE will
+    // operate on the row already modified by the first — no double-spend.
+    const { rows } = await tx.execute(sql`
+      UPDATE salon_supplies
+      SET quantity   = (quantity::numeric + ${parseFloat(body.delta)})::text,
+          updated_at = NOW()
+      WHERE id = ${supplyId}
+        AND org_id = ${orgId}
+        AND (quantity::numeric + ${parseFloat(body.delta)}) >= 0
+      RETURNING *
+    `);
 
-    const currentQty = parseFloat(supply.quantity as string ?? "0");
-    const newQty = (isNaN(currentQty) ? 0 : currentQty) + parseFloat(body.delta);
-    if (newQty < 0) throw Object.assign(new Error("NEGATIVE_STOCK"), { status: 422 });
-
-    const [updatedSupply] = await tx.update(salonSupplies)
-      .set({ quantity: String(newQty), updatedAt: new Date() })
-      .where(eq(salonSupplies.id, supplyId))
-      .returning();
+    if ((rows as any[]).length === 0)
+      throw Object.assign(new Error("NEGATIVE_STOCK"), { status: 422 });
 
     await tx.insert(salonSupplyAdjustments).values({
       orgId,
@@ -196,11 +206,7 @@ salonRouter.post("/supplies/:id/adjust", async (c) => {
       createdBy: userId,
     });
 
-    return updatedSupply;
-  }).catch((err) => {
-    if (err.status === 404) throw err;
-    if (err.message === "NEGATIVE_STOCK") throw err;
-    throw err;
+    return (rows as any[])[0];
   });
 
   insertAuditLog({ orgId, userId, action: "adjusted", resource: "salon_supply", resourceId: supplyId, metadata: { delta: body.delta, reason: body.reason } });
@@ -332,6 +338,13 @@ salonRouter.post("/visit-notes/:bookingId", async (c) => {
   const bookingId = c.req.param("bookingId");
   const body = visitNoteSchema.parse(await c.req.json());
 
+  // IDOR guard: confirm the booking belongs to this org before writing any note.
+  // Without this check a staff member could supply a bookingId from another tenant.
+  const [ownerCheck] = await db.select({ id: bookings.id, customerId: bookings.customerId })
+    .from(bookings)
+    .where(and(eq(bookings.id, bookingId), eq(bookings.orgId, orgId)));
+  if (!ownerCheck) return c.json({ error: "الحجز غير موجود" }, 404);
+
   // Upsert: one note per booking (overwrite if exists)
   const [existing] = await db.select({ id: visitNotes.id }).from(visitNotes)
     .where(and(eq(visitNotes.orgId, orgId), eq(visitNotes.bookingId, bookingId)));
@@ -348,14 +361,36 @@ salonRouter.post("/visit-notes/:bookingId", async (c) => {
       .returning();
   }
 
-  // Auto-update lastFormula on beauty profile if formula provided
+  // Auto-update lastFormula on beauty profile if formula provided.
+  // Apply the same privilege gate as PUT /beauty-profile: staff may only write
+  // formula data for customers they have personally served, so they cannot bypass
+  // the protected PUT route by submitting a visit-note with a fabricated formula.
   if (body.formula) {
-    await db.update(clientBeautyProfiles)
-      .set({ lastFormula: body.formula, updatedAt: new Date() })
-      .where(and(
-        eq(clientBeautyProfiles.orgId, orgId),
-        eq(clientBeautyProfiles.customerId, body.customerId),
-      ));
+    const user = c.get("user") as { id: string; type?: string; systemRole?: string } | null;
+    const isPrivileged =
+      user?.type === "owner" || user?.systemRole === "owner" || user?.type === "manager";
+
+    let allowFormulaUpdate = isPrivileged;
+    if (!allowFormulaUpdate && userId) {
+      const { rows: served } = await db.execute(sql`
+        SELECT 1 FROM bookings
+        WHERE org_id = ${orgId}
+          AND customer_id = ${body.customerId}
+          AND assigned_user_id = ${userId}
+          AND status NOT IN ('cancelled', 'no_show')
+        LIMIT 1
+      `);
+      allowFormulaUpdate = (served as any[]).length > 0;
+    }
+
+    if (allowFormulaUpdate) {
+      await db.update(clientBeautyProfiles)
+        .set({ lastFormula: body.formula, updatedAt: new Date() })
+        .where(and(
+          eq(clientBeautyProfiles.orgId, orgId),
+          eq(clientBeautyProfiles.customerId, body.customerId),
+        ));
+    }
   }
 
   insertAuditLog({ orgId, userId, action: "created", resource: "visit_note", resourceId: bookingId });
@@ -530,7 +565,7 @@ salonRouter.get("/staff-performance", async (c) => {
 salonRouter.get("/recall", async (c) => {
   const orgId   = c.get("orgId") as string;
   const weeks   = parseInt(c.req.query("serviceInterval") || "6");
-  const limit   = parseInt(c.req.query("limit") || "50");
+  const limit   = Math.min(Math.max(1, parseInt(c.req.query("limit") || "50")), 200);
   const cutoff  = new Date();
   cutoff.setDate(cutoff.getDate() - weeks * 7);
 
