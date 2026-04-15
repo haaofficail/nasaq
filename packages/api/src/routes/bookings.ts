@@ -11,6 +11,7 @@ import {
   bookingEvents, bookingConsumptions, paymentGatewayConfigs, users,
   bookingRecords, bookingLines, bookingLineAddons, bookingTimelineEvents,
   bookingRecordAssignments, bookingRecordCommissions, bookingRecordConsumptions, bookingPaymentLinks,
+  bookingPipelineStages,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, generateBookingNumber } from "../lib/helpers";
 import { postCashSale, postDepositReceived, postRefund, isAccountingEnabled } from "../lib/posting-engine";
@@ -1017,6 +1018,43 @@ bookingsRouter.patch("/:id/status", async (c) => {
       .for("update");
     if (!existing) return null;
 
+    // ── Workflow State Machine Guard ──
+    if (
+      newStatus !== "cancelled" &&
+      newStatus !== "refunded" &&
+      newStatus !== "no_show" &&
+      existing.status !== newStatus
+    ) {
+      const dbStages = await tx.select({
+        mappedStatus: bookingPipelineStages.mappedStatus,
+        sortOrder: bookingPipelineStages.sortOrder,
+        isSkippable: bookingPipelineStages.isSkippable,
+      })
+      .from(bookingPipelineStages)
+      .where(and(eq(bookingPipelineStages.orgId, orgId), sql`mapped_status IS NOT NULL`))
+      .orderBy(asc(bookingPipelineStages.sortOrder));
+
+      if (dbStages.length > 0) {
+        const fromStage = dbStages.find((s) => s.mappedStatus === existing.status);
+        const toStage = dbStages.find((s) => s.mappedStatus === newStatus);
+
+        if (fromStage && toStage) {
+          if (toStage.sortOrder < fromStage.sortOrder) {
+            return { error: "لا يمكن التراجع لمرحلة سابقة في مسار الحجز." };
+          }
+
+          const skippedStages = dbStages.filter(
+            (s) => s.sortOrder > fromStage.sortOrder && s.sortOrder < toStage.sortOrder
+          );
+
+          const mandatorySkipped = skippedStages.find((s) => s.isSkippable === false);
+          if (mandatorySkipped) {
+            return { error: `الحماية مفعّلة: لا يمكن تجاوز المرحلة الإجبارية` };
+          }
+        }
+      }
+    }
+
     const updates: Partial<typeof bookings.$inferInsert> = { status: newStatus, updatedAt: new Date() };
     if (newStatus === "cancelled") {
       updates.cancelledAt = new Date();
@@ -1146,6 +1184,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
   });
 
   if (!statusTx) return c.json({ error: "الحجز غير موجود" }, 404);
+  if ("error" in statusTx) return c.json({ error: statusTx.error }, 422);
   const { fromStatus, updated } = statusTx;
 
   // Booking event — status change

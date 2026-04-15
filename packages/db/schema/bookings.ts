@@ -275,6 +275,8 @@ export const bookingPipelineStages = pgTable("booking_pipeline_stages", {
   
   isDefault: boolean("is_default").default(false),
   isTerminal: boolean("is_terminal").default(false), // مرحلة نهائية (مكتمل/ملغي)
+  mappedStatus: text("mapped_status"),
+  isSkippable: boolean("is_skippable").default(true).notNull(),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
