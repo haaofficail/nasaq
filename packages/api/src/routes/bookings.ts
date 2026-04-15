@@ -51,6 +51,7 @@ const createBookingSchema = z.object({
   locationNotes: z.string().optional(),
   customerNotes: z.string().optional(),
   internalNotes: z.string().optional(),
+  assignedUserId: z.string().uuid().optional().nullable(),
   source: z.string().default("dashboard"),
 
   // Items (الخدمات المحجوزة)
@@ -747,8 +748,9 @@ bookingsRouter.post("/", async (c) => {
       }
 
       // Staff slot conflict — منع تعارض وقت نفس الموظف
-      // فقط عند وجود userId (الحجز المُنشأ من الداشبورد) وتاريخ مجدوَل
-      if (userId && body.eventDate && !allImmediate) {
+      // نفحص بناءً على assignedUserId القادم من الطلب، أو على userId للمكتب كبديل
+      const targetStaffId = body.assignedUserId ?? userId;
+      if (targetStaffId && body.eventDate && !allImmediate) {
         const totalDurationMins = Array.from(serviceMap.values())
           .reduce((sum, s) => sum + ((s as any).durationMinutes ?? 60), 0);
         const staffStart = resolvedEventDate;
@@ -758,13 +760,13 @@ bookingsRouter.post("/", async (c) => {
 
         // Advisory lock on (org × staff) slot — prevents phantom double-bookings for same staff
         await tx.execute(sql`
-          SELECT pg_advisory_xact_lock(hashtext(${orgId}), hashtext(${'staff:' + userId}))
+          SELECT pg_advisory_xact_lock(hashtext(${orgId}), hashtext(${'staff:' + targetStaffId}))
         `);
 
         const { rows: staffConflict } = await tx.execute(sql`
           SELECT id, booking_number FROM bookings
           WHERE org_id      = ${orgId}
-            AND assigned_user_id = ${userId}
+            AND assigned_user_id = ${targetStaffId}
             AND status NOT IN ('cancelled', 'no_show')
             AND event_date  < ${staffEnd}
             AND COALESCE(event_end_date, event_date + (
@@ -804,7 +806,7 @@ bookingsRouter.post("/", async (c) => {
         paidAmount: "0",
         balanceDue: totalAmount.toFixed(2),
         couponCode: body.couponCode,
-        assignedUserId: userId,
+        assignedUserId: targetStaffId || null,
         trackingToken,
         source: body.source,
         utmSource: body.utmSource,
@@ -1276,39 +1278,79 @@ bookingsRouter.patch("/:id/reschedule", async (c) => {
   const id = c.req.param("id");
   const body = rescheduleSchema.parse(await c.req.json());
 
-  const [existing] = await db.select().from(bookings)
-    .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)));
-  if (!existing) return c.json({ error: "الحجز غير موجود" }, 404);
-  if (existing.status === "cancelled") return c.json({ error: "لا يمكن تعديل حجز ملغي" }, 422);
-  if (existing.status === "completed") return c.json({ error: "لا يمكن تعديل حجز مكتمل" }, 422);
+  try {
+    const updated = await db.transaction(async (tx) => {
+      const [existing] = await tx.select().from(bookings)
+        .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId))).for("update");
+      if (!existing) throw Object.assign(new Error("الحجز غير موجود"), { status: 404 });
+      if (existing.status === "cancelled") throw Object.assign(new Error("لا يمكن تعديل حجز ملغي"), { status: 422 });
+      if (existing.status === "completed") throw Object.assign(new Error("لا يمكن تعديل حجز مكتمل"), { status: 422 });
 
-  // Build note with reschedule log (append to existing internalNotes)
-  const REASONS: Record<string, string> = {
-    customer_request:  "بطلب العميل",
-    staff_unavailable: "الموظف غير متاح",
-    emergency:         "طارئ",
-    double_booking:    "تعارض مواعيد",
-    other:             "أخرى",
-  };
-  const reasonLabel = REASONS[body.reason] ?? body.reason;
-  const prevDate = existing.eventDate ? new Date(existing.eventDate).toISOString() : "—";
-  const logLine = `[تأجيل ${new Date().toISOString().slice(0, 10)}] من: ${prevDate} → إلى: ${body.eventDate} — السبب: ${reasonLabel}${body.notes ? ` — ${body.notes}` : ""}`;
-  const updatedNotes = existing.internalNotes
-    ? `${existing.internalNotes}\n${logLine}`
-    : logLine;
+      // ── Smart Conflict Preventer Guard ──
+      const targetStaffId = body.assignedUserId !== undefined ? body.assignedUserId : existing.assignedUserId;
+      if (targetStaffId) {
+        const { rows: durRows } = await tx.execute(sql`
+          SELECT COALESCE(SUM(s.duration_minutes), 60) as duration
+          FROM booking_items bi JOIN services s ON s.id = bi.service_id
+          WHERE bi.booking_id = ${id}
+        `);
+        const durationMins = (durRows as any[])[0]?.duration || 60;
+        
+        const staffStart = new Date(body.eventDate);
+        const staffEnd = body.eventEndDate ? new Date(body.eventEndDate) : new Date(staffStart.getTime() + durationMins * 60_000);
 
-  const updates: Partial<typeof bookings.$inferInsert> = {
-    eventDate:    new Date(body.eventDate),
-    internalNotes: updatedNotes,
-    updatedAt:    new Date(),
-  };
-  if (body.eventEndDate !== undefined) updates.eventEndDate = new Date(body.eventEndDate);
-  if (body.assignedUserId !== undefined) updates.assignedUserId = body.assignedUserId;
+        await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${orgId}), hashtext(${'staff:' + targetStaffId}))`);
 
-  const [updated] = await db.update(bookings)
-    .set(updates)
-    .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)))
-    .returning();
+        const { rows: staffConflict } = await tx.execute(sql`
+          SELECT id, booking_number FROM bookings
+          WHERE org_id = ${orgId}
+            AND assigned_user_id = ${targetStaffId}
+            AND id != ${id}
+            AND status NOT IN ('cancelled', 'no_show')
+            AND event_date < ${staffEnd}
+            AND COALESCE(event_end_date, event_date + (
+              SELECT COALESCE(SUM(s.duration_minutes), 60) * interval '1 minute'
+              FROM booking_items bi JOIN services s ON s.id = bi.service_id
+              WHERE bi.booking_id = bookings.id
+            )) > ${staffStart}
+          FOR UPDATE
+        `);
+
+        if (staffConflict.length > 0) {
+          throw Object.assign(new Error("تعارض في مواعيد الموظف: " + (staffConflict as any[])[0].booking_number), { status: 409 });
+        }
+      }
+
+      // Build note with reschedule log (append to existing internalNotes)
+      const REASONS: Record<string, string> = {
+        customer_request:  "بطلب العميل",
+        staff_unavailable: "الموظف غير متاح",
+        emergency:         "طارئ",
+        double_booking:    "تعارض مواعيد",
+        other:             "أخرى",
+      };
+      const reasonLabel = REASONS[body.reason] ?? body.reason;
+      const prevDate = existing.eventDate ? new Date(existing.eventDate).toISOString() : "—";
+      const logLine = \`[تأجيل \${new Date().toISOString().slice(0, 10)}] من: \${prevDate} → إلى: \${body.eventDate} — السبب: \${reasonLabel}\${body.notes ? \` — \${body.notes}\` : ""}\`;
+      const updatedNotes = existing.internalNotes
+        ? \`\${existing.internalNotes}\\n\${logLine}\`
+        : logLine;
+
+      const updates: Partial<typeof bookings.$inferInsert> = {
+        eventDate:    new Date(body.eventDate),
+        internalNotes: updatedNotes,
+        updatedAt:    new Date(),
+      };
+      if (body.eventEndDate !== undefined) updates.eventEndDate = new Date(body.eventEndDate);
+      if (body.assignedUserId !== undefined) updates.assignedUserId = body.assignedUserId;
+
+      const [upd] = await tx.update(bookings)
+        .set(updates)
+        .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)))
+        .returning();
+        
+      return upd;
+    });
 
   // Booking event — rescheduled
   db.insert(bookingEvents).values({
@@ -1316,7 +1358,7 @@ bookingsRouter.patch("/:id/reschedule", async (c) => {
     bookingId: id,
     userId,
     eventType: "rescheduled",
-    metadata: { from: prevDate, to: body.eventDate, reason: body.reason, notes: body.notes },
+    metadata: { to: body.eventDate, reason: body.reason, notes: body.notes },
   }).catch(() => {});
 
   insertAuditLog({
@@ -1324,10 +1366,13 @@ bookingsRouter.patch("/:id/reschedule", async (c) => {
     action: "rescheduled",
     resource: "booking",
     resourceId: updated.id,
-    metadata: { from: prevDate, to: body.eventDate, reason: body.reason },
+    metadata: { to: body.eventDate, reason: body.reason },
   });
 
   return c.json({ data: updated });
+  } catch (err: any) {
+    return c.json({ error: err.message }, err.status || 500);
+  }
 });
 
 // ============================================================
