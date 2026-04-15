@@ -13,6 +13,7 @@ export { ModernInput }    from "./ModernInput";
 export { StatCard }       from "./StatCard";
 export { BookingCard }    from "./BookingCard";
 export { DataTable }      from "./DataTable";
+export { EditableCell }   from "./EditableCell";
 export { PageSkeleton, SkeletonRows, SkeletonCards } from "./Skeleton";
 export { Pagination }     from "./Pagination";
 export { SearchInput }    from "./SearchInput";

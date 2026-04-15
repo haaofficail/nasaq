@@ -20,6 +20,7 @@ import { PLAN_MAP } from "@/lib/constants";
 import { useAlerts } from "@/hooks/useAlerts";
 import { FreePlanBanner } from "@/components/FreePlanBanner";
 import { FreeLimitModal } from "@/components/FreeLimitModal";
+import { CommandPalette } from "@/components/ui/CommandPalette";
 // الداشبورد يستخدم هوية ترميز OS الثابتة — لا يُستورد DashboardThemeProvider هنا
 
 // قائمة CSS vars التي تحقنها applyOrgTheme — نُزيلها عند دخول الداشبورد
@@ -514,6 +515,7 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
+      <CommandPalette />
       <Toaster />
       <ConfirmDialogHost />
     </div>
