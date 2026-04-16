@@ -32,9 +32,9 @@ export async function seedFlowerVertical(client: any, orgId: string) {
 
   // 1. Flower variants (global master table — no org_id, no service_id)
   const flowerVariants = [
-    { type: "rose",      color: "red",    origin: "dutch",    grade: "A", size: "medium", nameAr: "ورد روز أحمر", nameEn: "Red Rose",      price: 8  },
+    { type: "rose",      color: "red",    origin: "netherlands",    grade: "A", size: "medium", nameAr: "ورد روز أحمر", nameEn: "Red Rose",      price: 8  },
     { type: "rose",      color: "white",  origin: "kenyan",   grade: "A", size: "medium", nameAr: "ورد أبيض",     nameEn: "White Rose",    price: 6  },
-    { type: "lily",      color: "white",  origin: "dutch",    grade: "A", size: "large",  nameAr: "ليلى بيضاء",   nameEn: "White Lily",    price: 12 },
+    { type: "lily",      color: "white",  origin: "netherlands",    grade: "A", size: "large",  nameAr: "ليلى بيضاء",   nameEn: "White Lily",    price: 12 },
     { type: "sunflower", color: "yellow", origin: "other",    grade: "B", size: "large",  nameAr: "زنبق أصفر",    nameEn: "Sunflower",     price: 5  },
     { type: "orchid",    color: "purple", origin: "thailand", grade: "A", size: "small",  nameAr: "أوركيد بنفسجي",nameEn: "Purple Orchid", price: 35 },
   ];
@@ -294,10 +294,11 @@ export async function seedSalonVertical(client: any, orgId: string) {
          (org_id, customer_id, customer_name, customer_phone,
           order_number, type, order_kind, status, service_id,
           event_date, total_amount)
-       VALUES ($1,$2,$3,$4,$5,'custom_arrangement','booking',$6,$7,$8,$9)`,
+       VALUES ($1,$2,$3,$4,$5,'custom_arrangement','booking',$6,$7,$8,$9)
+       ON CONFLICT DO NOTHING`,
       [
         orgId, cust.id, cust.name, cust.phone,
-        `SAL-${rand(1000, 9999)}`,
+        `SAL-${rand(100000, 999999)}`,
         status, svc.id,
         iso(eventDate), fmt(total),
       ]
@@ -359,10 +360,11 @@ export async function seedBarberVertical(client: any, orgId: string) {
       `INSERT INTO service_orders
          (org_id, customer_id, customer_name, customer_phone,
           order_number, type, order_kind, status, service_id, event_date, total_amount)
-       VALUES ($1,$2,$3,$4,$5,'custom_arrangement','booking',$6,$7,$8,$9)`,
+       VALUES ($1,$2,$3,$4,$5,'custom_arrangement','booking',$6,$7,$8,$9)
+       ON CONFLICT DO NOTHING`,
       [
         orgId, cust.id, cust.name, cust.phone,
-        `BAR-${rand(1000, 9999)}`,
+        `BAR-${rand(100000, 999999)}`,
         pick(statuses), svc.id,
         iso(randomDate(60)), fmt(total),
       ]
@@ -388,10 +390,11 @@ export async function seedSpaVertical(client: any, orgId: string) {
       `INSERT INTO service_orders
          (org_id, customer_id, customer_name, customer_phone,
           order_number, type, order_kind, status, service_id, event_date, total_amount)
-       VALUES ($1,$2,$3,$4,$5,'custom_arrangement','booking',$6,$7,$8,$9)`,
+       VALUES ($1,$2,$3,$4,$5,'custom_arrangement','booking',$6,$7,$8,$9)
+       ON CONFLICT DO NOTHING`,
       [
         orgId, cust.id, cust.name, cust.phone,
-        `SPA-${rand(1000, 9999)}`,
+        `SPA-${rand(100000, 999999)}`,
         pick(statuses), svc.id,
         iso(randomDate(60)), fmt(total),
       ]
@@ -417,10 +420,11 @@ export async function seedMaintenanceVertical(client: any, orgId: string) {
       `INSERT INTO service_orders
          (org_id, customer_id, customer_name, customer_phone,
           order_number, type, order_kind, status, service_id, event_date, total_amount)
-       VALUES ($1,$2,$3,$4,$5,'field_execution','project',$6,$7,$8,$9)`,
+       VALUES ($1,$2,$3,$4,$5,'field_execution','project',$6,$7,$8,$9)
+       ON CONFLICT DO NOTHING`,
       [
         orgId, cust.id, cust.name, cust.phone,
-        `SO-${rand(1000, 9999)}`,
+        `SO-${rand(100000, 999999)}`,
         pick(statuses), svc.id,
         iso(randomDate(60)), fmt(total),
       ]
@@ -563,10 +567,11 @@ export async function seedMedicalVertical(client: any, orgId: string) {
       `INSERT INTO service_orders
          (org_id, customer_id, customer_name, customer_phone,
           order_number, type, order_kind, status, service_id, event_date, total_amount)
-       VALUES ($1,$2,$3,$4,$5,'custom_arrangement','booking',$6,$7,$8,$9)`,
+       VALUES ($1,$2,$3,$4,$5,'custom_arrangement','booking',$6,$7,$8,$9)
+       ON CONFLICT DO NOTHING`,
       [
         orgId, cust.id, cust.name, cust.phone,
-        `MED-${rand(1000, 9999)}`,
+        `MED-${rand(100000, 999999)}`,
         pick(statuses), svc.id,
         iso(randomDate(60)), fmt(total),
       ]
