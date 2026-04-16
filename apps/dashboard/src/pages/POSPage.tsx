@@ -8,7 +8,7 @@ import {
   SplitSquareHorizontal, AlertCircle, ScanBarcode, ChevronRight,
   Lock, Pencil,
 } from "lucide-react";
-import { posApi, servicesApi, menuApi, categoriesApi, customersApi, settingsApi } from "@/lib/api";
+import { posApi, servicesApi, menuApi, categoriesApi, customersApi, settingsApi, bookingsApi } from "@/lib/api";
 import { VAT_RATE as VAT_RATE_DECIMAL } from "@/lib/constants";
 import { useApi } from "@/hooks/useApi";
 import { usePermission } from "@/hooks/usePermission";
@@ -778,6 +778,8 @@ export function POSPage() {
   const [showSplit, setShowSplit] = useState(false);
   const [editingQty, setEditingQty] = useState<string | null>(null);
   const [mobileView, setMobileView] = useState<"catalog" | "cart">("catalog");
+  const [linkedBookingId, setLinkedBookingId] = useState<string | null>(null);
+  const [linkedBookingNumber, setLinkedBookingNumber] = useState<string | null>(null);
 
   // Profile — used for org name in receipt only
   const { data: profileRes } = useApi(() => settingsApi.profile(), []);
@@ -911,6 +913,8 @@ export function POSPage() {
     setCardRef("");
     setBankRef("");
     setMixedPayments([{ method: "cash", amount: "" }, { method: "card", amount: "" }]);
+    setLinkedBookingId(null);
+    setLinkedBookingNumber(null);
   }, []);
 
   const handleCompleteSale = async () => {
@@ -925,8 +929,18 @@ export function POSPage() {
         customerPhone: customer?.phone,
         discountType: parseFloat(discValue || "0") > 0 ? discType : null,
         discountValue: parseFloat(discValue || "0"),
-        notes: notes || null,
+        notes: (notes ? notes + "\n" : "") + (linkedBookingNumber ? `مرتبط بحجز رقم: ${linkedBookingNumber}` : ""),
       });
+
+      // Auto-complete the linked booking if it exists
+      if (linkedBookingId) {
+        try {
+          await bookingsApi.updateStatus(linkedBookingId, "completed", "تم إنهاء إجراءات الدفع من نقاط البيع (POS)");
+        } catch (e) {
+          console.error("فشل تغيير حالة الحجز:", e);
+        }
+      }
+
       setSaleResult(res.data);
       toast.success("تم إتمام البيع");
       hapticSuccess();
@@ -1006,20 +1020,76 @@ export function POSPage() {
 
     // 2. Fallback: API lookup (covers inventory_products)
     setBarcodeLoading(true);
+    let foundProduct = false;
     try {
       const res: any = await posApi.lookupByBarcode(trimmed);
       if (res?.data) {
         const item = res.data;
         addToCart({ id: item.id, name: item.name, basePrice: item.price });
         toast.success(`أضيف: ${item.name}`);
-      } else {
-        toast.error("الباركود غير مسجل في النظام");
+        foundProduct = true;
       }
     } catch {
-      toast.error("الباركود غير مسجل في النظام");
-    } finally {
-      setBarcodeLoading(false);
+      // Ignored, try booking lookup instead
     }
+
+    // 3. Fallback: Lookup bookings (Flexible search without forcing a prefix)
+    if (!foundProduct) {
+      try {
+        const bRes = await bookingsApi.list({ search: trimmed });
+        const bookingItem = bRes.data?.find((b: any) => b.bookingNumber === trimmed || b.id === trimmed);
+
+        if (bookingItem) {
+          try {
+            // Fetch the full booking details to get the exact items
+            const fullRes = await bookingsApi.get(bookingItem.id);
+            const fullBooking = fullRes?.data;
+            if (fullBooking) {
+              setLinkedBookingId(fullBooking.id);
+              setLinkedBookingNumber(fullBooking.bookingNumber);
+              
+              if (fullBooking.customerId) {
+                setCustomer({ id: fullBooking.customerId, name: fullBooking.customerName || fullBooking.customer?.name || "عميل", phone: fullBooking.customerPhone || fullBooking.customer?.phone });
+                setCustomerSearch(fullBooking.customerName || fullBooking.customer?.name || "عميل");
+              }
+
+              const newCartItems: CartItem[] = (fullBooking.items || []).map((it: any) => ({
+                id: it.serviceId || it.id,
+                name: it.serviceName || it.service?.name || "خدمة حجز",
+                price: Number(it.unitPrice || it.totalPrice / Math.max(1, it.quantity) || 0),
+                qty: Number(it.quantity || 1)
+              }));
+
+              // Handle prepaid deposit intelligently
+              const paid = Number(fullBooking.paidAmount || 0);
+              if (paid > 0) {
+                newCartItems.push({
+                  id: "deposit-" + fullBooking.id,
+                  name: `خصم مدفوع مسبقاً (عربون)`,
+                  price: -paid,
+                  qty: 1,
+                  note: `رقم الحجز: ${fullBooking.bookingNumber}`
+                });
+              }
+
+              setCart(newCartItems);
+              toast.success(`تم استيراد حجز #${fullBooking.bookingNumber} بنجاح`);
+              foundProduct = true;
+            }
+          } catch(e) {
+            toast.error("حدث خطأ أثناء فك تفاصيل الحجز");
+          }
+        }
+      } catch {
+        // Safe fail
+      }
+    }
+
+    if (!foundProduct) {
+      toast.error("الباركود غير مسجل أو ليس لديه حجز نشط");
+    }
+
+    setBarcodeLoading(false);
     setBarcodeInput("");
     if (barcodeRef.current) barcodeRef.current.value = "";
   };
