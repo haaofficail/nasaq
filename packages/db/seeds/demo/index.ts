@@ -137,6 +137,7 @@ async function run() {
           "table_reservations",          // org_id CASCADE
           "restaurant_sections",         // org_id CASCADE
           "treasury_transactions",       // org_id CASCADE
+          "treasury_accounts",           // org_id CASCADE (non-POS orgs get bank account in seedFinancialLayer)
           "hr_payroll_items",            // payroll_id → hr_payroll (CASCADE)
           "hr_payroll",                  // org_id CASCADE
           "hr_leaves",                   // org_id CASCADE

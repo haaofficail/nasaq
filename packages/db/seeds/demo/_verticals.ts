@@ -2234,11 +2234,22 @@ export async function seedInventoryVertical(client: any, orgId: string, productP
 // customer_interactions
 
 export async function seedFinancialLayer(client: any, orgId: string) {
-  // 1. treasury_transactions — need treasury_account_id
-  const taRes = await client.query(
+  // 1. treasury_transactions — ensure treasury_account exists (non-POS orgs may not have one)
+  let taRes = await client.query(
     `SELECT id, current_balance FROM treasury_accounts WHERE org_id=$1 AND is_active=true LIMIT 1`,
     [orgId]
   );
+  if (!taRes.rows[0]) {
+    // Create a bank account for non-POS orgs
+    const created = await client.query(
+      `INSERT INTO treasury_accounts (org_id, name, type)
+       VALUES ($1, 'الحساب البنكي الرئيسي', 'bank')
+       ON CONFLICT DO NOTHING
+       RETURNING id, current_balance`,
+      [orgId]
+    );
+    if (created.rows[0]) taRes = created;
+  }
   if (taRes.rows[0]) {
     const taId = taRes.rows[0].id;
     let runningBalance = parseFloat(taRes.rows[0].current_balance || "0");
