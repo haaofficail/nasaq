@@ -5,6 +5,8 @@ import { useNavigate } from "react-router-dom";
 import { bookingsApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { CreateBookingForm } from "@/components/bookings/CreateBookingForm";
+import { AIYieldPanel } from "@/components/dashboard/AIYieldPanel";
+import { toast } from "@/hooks/useToast";
 
 const DAY_NAMES = ["أحد", "اثنين", "ثلاثاء", "أربعاء", "خميس", "جمعة", "سبت"];
 
@@ -233,6 +235,22 @@ export function CalendarPage() {
           </div>
         ))}
       </div>
+
+      {viewMode === "day" && !loading && dayEvents.length > 0 && (
+        <AIYieldPanel 
+          bookings={dayEvents} 
+          date={selectedDay}
+          onApply={async (bookingId, newIsoDate) => {
+            try {
+              await bookingsApi.reschedule(bookingId, { eventDate: newIsoDate });
+              toast.success("تم إغلاق الفراغ المهدر بنجاح! وقت جديد متاح الآن.");
+              refetch();
+            } catch(e: any) {
+              toast.error(e.message || "حدث خطأ");
+            }
+          }}
+        />
+      )}
 
       {loading ? (
         <div className="flex justify-center py-20">
