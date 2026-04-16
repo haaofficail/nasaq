@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Megaphone, Tag, Star, ShoppingCart, Plus, Send, Trash2, Eye, EyeOff,
-  CheckCircle, XCircle, MessageCircle, BarChart2, RefreshCw, ChevronDown,
+  CheckCircle, XCircle, MessageCircle, BarChart2, RefreshCw, ChevronDown, Clock
 } from "lucide-react";
 import { clsx } from "clsx";
 import { marketingApi } from "@/lib/api";
@@ -11,6 +11,7 @@ import { Button, Modal, Input, Select, PageHeader } from "@/components/ui";
 
 const TABS = [
   { id: "campaigns", label: "الحملات" },
+  { id: "retention", label: "الاحتفاظ الآلي" },
   { id: "coupons",   label: "الكوبونات" },
   { id: "reviews",   label: "التقييمات" },
   { id: "abandoned", label: "السلات المتروكة" },
@@ -49,6 +50,16 @@ export function MarketingPage() {
   // Forms
   const [campForm, setCampForm] = useState({ ...EMPTY_CAMPAIGN });
   const [coupForm, setCoupForm] = useState({ ...EMPTY_COUPON });
+
+  // Retention Engine State
+  const [retentionActive, setRetentionActive] = useState(true); // Default active for demo
+  const [retentionDays, setRetentionDays] = useState(30);
+  const [retentionCouponMode, setRetentionCouponMode] = useState<"none" | "existing" | "unique">("unique");
+  const [retentionCouponId, setRetentionCouponId] = useState("");
+  const [retentionCouponVal, setRetentionCouponVal] = useState("20");
+  const [retentionCouponType, setRetentionCouponType] = useState("percentage");
+  const [retentionChannels, setRetentionChannels] = useState({ whatsapp: true, sms: false, email: false });
+  const [retentionMsg, setRetentionMsg] = useState("مرحباً {{customer_name}}، اشتقنا لك! لقد لاحظنا مرور {{absent_days}} يوم على آخر زيارة لك. يسعدنا تقديم خصم خاص لتشجيعك على العودة باستخدام كود: {{coupon_code}}");
 
   // Data
   const { data: campRes, loading: cLoading, refetch: refetchCampaigns } = useApi(() => marketingApi.campaigns(), []);
@@ -170,6 +181,140 @@ export function MarketingPage() {
           </div>
         ))}
       </div>
+
+      {/* ── RETENTION ENGINE ────────────────────────────── */}
+      {tabId === "retention" && (
+        <div className="space-y-6 max-w-4xl">
+          {/* Header & Main Toggle */}
+          <div className={clsx("rounded-2xl border p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 transition-colors shadow-sm", retentionActive ? "bg-white border-brand-200" : "bg-gray-50 border-gray-100")}>
+            <div className="flex items-center gap-4">
+              <div className={clsx("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-inner", retentionActive ? "bg-gradient-to-br from-brand-400 to-brand-600 text-white" : "bg-gray-200 text-gray-400")}>
+                <RefreshCw className={clsx("w-7 h-7", retentionActive && "animate-[spin_4s_linear_infinite]")} />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold tracking-tight text-gray-900">المحرك التسويقي الذكي للاسترجاع</h2>
+                <p className="text-sm text-gray-500 mt-1 max-w-lg">يعمل خلف الكواليس كأنه مسوقك الآلي. يستشعر انقطاع العملاء، وينشئ لهم عروض وتواصل تلقائي لاستعادتهم بدون أي تدخل بشري.</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 shrink-0 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100">
+              <span className={clsx("text-sm font-bold", retentionActive ? "text-brand-600" : "text-gray-400")}>
+                {retentionActive ? "المحرك يراقب ويعمل الان" : "المحرك متوقف"}
+              </span>
+              <button 
+                onClick={() => setRetentionActive(!retentionActive)}
+                className={clsx("relative inline-flex h-7 w-12 items-center rounded-full transition-colors focus:outline-none", retentionActive ? "bg-brand-500" : "bg-gray-200")}
+              >
+                <span className={clsx("inline-block h-5 w-5 transform rounded-full bg-white transition-transform", retentionActive ? "-translate-x-6" : "-translate-x-1")} />
+              </button>
+            </div>
+          </div>
+
+          {/* Configs (Disabled opacity if inactive) */}
+          <div className={clsx("grid grid-cols-1 md:grid-cols-2 gap-6 transition-opacity duration-300", !retentionActive && "opacity-50 pointer-events-none")}>
+            
+            {/* Condition & Channel */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
+              <div className="flex items-center gap-2 mb-2 pb-3 border-b border-gray-50">
+                <div className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"><Clock className="w-3.5 h-3.5" /></div>
+                <h3 className="font-bold text-gray-900">شروط الإطلاق</h3>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">عدد أيام الانقطاع لاسترجاع العميل</label>
+                <div className="relative">
+                  <input type="number" value={retentionDays} onChange={e => setRetentionDays(Number(e.target.value))} 
+                         className="w-full pl-16 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-brand-500 outline-none text-xl font-bold" />
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium select-none">يوم</span>
+                </div>
+                <p className="text-xs text-gray-400 mt-2">سيعمل المحرك على استهداف من تجاوز انقطاعهم {retentionDays} يوماً بدقة.</p>
+              </div>
+
+              <div className="pt-4 space-y-3">
+                <label className="block text-sm font-semibold text-gray-700">قنوات الاستهداف المتعددة</label>
+                <div className="flex gap-2 flex-wrap">
+                  {Object.entries({ whatsapp: "واتساب", sms: "رسالة نصية", email: "الإيميل" }).map(([key, label]) => (
+                    <button key={key} onClick={() => setRetentionChannels(p => ({ ...p, [key]: !(p as any)[key] }))}
+                            className={clsx("flex items-center gap-2 px-4 py-2 border rounded-xl transition-all cursor-pointer",
+                              (retentionChannels as any)[key] ? "border-brand-500 bg-brand-50 text-brand-700 ring-1 ring-brand-500" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
+                      <div className={clsx("w-4 h-4 rounded-md border flex items-center justify-center", (retentionChannels as any)[key] ? "bg-brand-500 border-brand-500 text-white" : "border-gray-300")}>
+                         {(retentionChannels as any)[key] && <CheckCircle className="w-3 h-3" />}
+                      </div>
+                      <span className="text-sm font-bold">{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* AI Coupon Generator */}
+            <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
+              <div className="flex items-center gap-2 mb-2 pb-3 border-b border-gray-50">
+                <div className="w-6 h-6 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600"><Tag className="w-3.5 h-3.5" /></div>
+                <h3 className="font-bold text-gray-900">الكوبون التعويضي</h3>
+              </div>
+
+              <div className="flex gap-2 p-1 bg-gray-100/70 rounded-xl overflow-hidden shrink-0">
+                <button onClick={() => setRetentionCouponMode("unique")} className={clsx("flex-1 py-1.5 text-xs font-bold rounded-lg transition-all", retentionCouponMode === "unique" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500")}>توليد آلي فريد (لكل عميل)</button>
+                <button onClick={() => setRetentionCouponMode("existing")} className={clsx("flex-1 py-1.5 text-xs font-bold rounded-lg transition-all", retentionCouponMode === "existing" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500")}>استخدام كوبون عام</button>
+                <button onClick={() => setRetentionCouponMode("none")} className={clsx("flex-1 py-1.5 text-xs font-bold rounded-lg transition-all", retentionCouponMode === "none" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500")}>بدون خصم (استرجاع فقط)</button>
+              </div>
+
+              {retentionCouponMode === "unique" && (
+                <div className="bg-orange-50 border border-orange-100 p-4 rounded-xl space-y-4">
+                  <p className="text-xs text-orange-700 font-medium leading-relaxed">في هذا النمط، سيقوم النظام تلقائياً بتوليد كود خصم عشوائي (مثلاً: <span className="font-mono bg-white px-1">WIN-A7X9</span>) صالح للاستخدام مرة واحدة فقط وبمدة صلاحية أسبوعين، لمنع استغلال الكوبونات العامة.</p>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">نوع الخصم الفريد</label>
+                      <Select name="type" value={retentionCouponType} onChange={e => setRetentionCouponType(e.target.value)} options={[{value:"percentage", label: "نسبة %"},{value:"fixed", label: 'مبلغ مقتطع'}]} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">مقدار الخصم الفريد</label>
+                      <Input name="val" value={retentionCouponVal} onChange={e => setRetentionCouponVal(e.target.value)} dir="ltr" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {retentionCouponMode === "existing" && (
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">اختر من كوبوناتك العامة</label>
+                  <Select name="coupon_id" value={retentionCouponId} onChange={e => setRetentionCouponId(e.target.value)}
+                          options={[{value:"", label: "اختر الكوبون..."}, ...coupons.map(c => ({ value: c.id, label: `${c.name} (${c.code})` }))]} />
+                  <p className="text-xs text-gray-400 mt-2">سيتم إرسال هذا الكوبون الشائع لكل العملاء المستهدفين.</p>
+                </div>
+              )}
+            </div>
+
+            {/* Template */}
+            <div className="md:col-span-2 bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+              <div className="flex items-center gap-2 pb-3 border-b border-gray-50">
+                <div className="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600"><MessageCircle className="w-3.5 h-3.5" /></div>
+                <h3 className="font-bold text-gray-900">نص الرسالة المطاطي التلقائي</h3>
+              </div>
+
+              <div>
+                <p className="text-xs font-bold text-gray-500 mb-2">اضغط على المتغيرات لإدراجها</p>
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {['{{customer_name}}', '{{coupon_code}}', '{{absent_days}}'].map(v => (
+                    <button key={v} onClick={() => setRetentionMsg(m => m + " " + v)} className="px-2.5 py-1 text-xs font-mono font-medium rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border border-blue-100 text-left" dir="ltr">{v}</button>
+                  ))}
+                </div>
+                <textarea rows={4} value={retentionMsg} onChange={e => setRetentionMsg(e.target.value)}
+                          placeholder="مرحباً {{customer_name}}، مضى {{absent_days}} يوم ولم نرك..."
+                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:bg-white focus:border-brand-500 transition-colors resize-none text-sm leading-relaxed" />
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button className="px-6 py-2.5 rounded-xl bg-brand-500 text-white font-bold hover:bg-brand-600 transition-shadow shadow-sm shadow-brand-500/20 active:scale-95 flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4" /> حفظ قاعدة الأتمتة
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
 
       {/* ── CAMPAIGNS ───────────────────────────────────── */}
       {tabId === "campaigns" && (
