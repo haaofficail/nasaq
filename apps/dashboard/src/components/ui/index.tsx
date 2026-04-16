@@ -56,8 +56,8 @@ export function Modal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      <div ref={ref} className={clsx("relative bg-white rounded-2xl shadow-2xl w-full flex flex-col max-h-[90vh]", sizes[size])}>
+      <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={onClose} />
+      <div ref={ref} className={clsx("relative bg-white/95 backdrop-blur-3xl border border-white shadow-token-xl rounded-3xl w-full flex flex-col max-h-[90vh]", sizes[size])}>
         {/* Header */}
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <h2 className="text-lg font-bold text-gray-900">{title}</h2>
@@ -118,9 +118,9 @@ export function Input({
           max={isNumeric ? undefined : max}
           step={isNumeric ? undefined : step}
           className={clsx(
-            "w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors",
-            error ? "border-red-300 focus:border-red-500 focus:ring-1 focus:ring-red-200" : "border-gray-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-100",
-            disabled && "bg-gray-50 text-gray-400 cursor-not-allowed",
+            "w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2.5 text-sm outline-none transition-all",
+            error ? "border-red-300 bg-red-50/30 focus:border-red-500 focus:ring-4 focus:ring-red-100" : "focus:bg-white focus:border-brand-400 focus:ring-4 focus:ring-brand-50/50",
+            disabled && "bg-gray-100/50 text-gray-400 cursor-not-allowed",
             prefix && "pr-10", suffix && "pl-16",
           )}
         />
@@ -154,8 +154,8 @@ export function TextArea({
         id={name} name={name} value={value} onChange={onChange}
         placeholder={placeholder} rows={rows}
         className={clsx(
-          "w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors resize-none",
-          error ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-100",
+          "w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-3 text-sm outline-none transition-all resize-none",
+          error ? "border-red-300 bg-red-50/30 focus:border-red-500 focus:ring-4 focus:ring-red-100" : "focus:bg-white focus:border-brand-400 focus:ring-4 focus:ring-brand-50/50",
         )}
       />
       {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
@@ -185,8 +185,8 @@ export function Select({
       <select
         id={name} name={name} value={value} onChange={onChange}
         className={clsx(
-          "w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition-colors appearance-none bg-white",
-          error ? "border-red-300" : "border-gray-200 focus:border-brand-500 focus:ring-1 focus:ring-brand-100",
+          "w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2.5 text-sm outline-none transition-all appearance-none",
+          error ? "border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100" : "focus:bg-white focus:border-brand-400 focus:ring-4 focus:ring-brand-50/50",
           !value && "text-gray-400",
         )}
       >
@@ -214,9 +214,9 @@ export function Button({
   icon?: any; className?: string; fullWidth?: boolean;
 }) {
   const variants = {
-    primary: "bg-brand-500 text-white hover:bg-brand-600 shadow-sm",
-    secondary: "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50",
-    danger: "bg-red-500 text-white hover:bg-red-600",
+    primary: "bg-brand-500 text-white shadow-token-md hover:shadow-glow hover:-translate-y-[1px] hover:bg-brand-600 border border-brand-400/20",
+    secondary: "bg-white text-gray-700 border border-gray-200 shadow-token-xs hover:border-gray-300 hover:shadow-token-sm hover:-translate-y-[1px]",
+    danger: "bg-red-500 text-white shadow-token-sm hover:shadow-lg hover:bg-red-600 hover:-translate-y-[1px]",
     ghost: "text-gray-600 hover:bg-gray-100",
   };
   const sizes = { sm: "px-3 py-1.5 text-xs", md: "px-4 py-2.5 text-sm", lg: "px-6 py-3 text-base" };
@@ -225,7 +225,7 @@ export function Button({
     <button
       type={type} onClick={onClick} disabled={disabled || loading}
       className={clsx(
-        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors",
+        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-300 ease-out",
         variants[variant], sizes[size],
         (disabled || loading) && "opacity-50 cursor-not-allowed",
         fullWidth && "w-full",
@@ -286,9 +286,9 @@ export function EmptyState({
 }) {
   return (
     <div className={clsx(
-      "flex flex-col items-center justify-center text-center p-8 sm:p-12 transition-all",
-      variant === "dashed" && "border-2 border-dashed border-gray-200 rounded-3xl bg-gray-50/50",
-      variant === "card" && "bg-white border border-gray-100 shadow-sm rounded-3xl",
+      "flex flex-col items-center justify-center text-center p-8 sm:p-12 transition-all duration-500 ease-out",
+      variant === "dashed" && "border-2 border-dashed border-gray-200 rounded-3xl bg-gray-50/30",
+      variant === "card" && "elegant-card",
       variant === "default" && "py-16"
     )}>
       <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-5 ring-8 ring-gray-50/50">

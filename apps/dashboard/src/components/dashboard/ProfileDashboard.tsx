@@ -106,7 +106,7 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
       {/* ══════════════════════════════════════════════════════
           HEADER CARD
       ══════════════════════════════════════════════════════ */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="elegant-card relative overflow-hidden">
         {/* Brand accent strip */}
         <div className="h-[3px] bg-gradient-to-r from-brand-600 via-brand-400 to-brand-300" />
 

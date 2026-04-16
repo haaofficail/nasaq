@@ -12,8 +12,8 @@ export function KPICard({ config }: KPICardProps) {
   const value = data != null ? config.transform(data) : null;
 
   return (
-    <div className="group bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-gray-200 transition-all duration-200 p-5 flex flex-col gap-4 overflow-hidden relative">
-      <div className="absolute inset-0 bg-gradient-to-br from-transparent to-gray-50/0 group-hover:to-gray-50/50 transition-all duration-200 pointer-events-none rounded-2xl" />
+    <div className="group elegant-card p-5 flex flex-col gap-5 overflow-hidden relative">
+      <div className="absolute inset-0 bg-gradient-to-br from-transparent to-brand-50/0 group-hover:to-brand-50/30 transition-all duration-500 pointer-events-none rounded-3xl" />
 
       <div className={clsx(
         "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0",
