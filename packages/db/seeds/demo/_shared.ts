@@ -664,12 +664,16 @@ const POS_QUICK_ITEMS: Record<string, Array<{ name: string; price: number; categ
     { name: "عصير طازج",     price: 15, category: "مشروبات", color: "#4CAF50" },
   ],
   flower_shop: [
-    { name: "وردة منفردة",   price: 15, category: "ورود",    color: "#E91E63" },
-    { name: "باقة صغيرة",   price: 80, category: "باقات",   color: "#F44336" },
-    { name: "بالونة هيليوم", price: 25, category: "إكسسوار", color: "#9C27B0" },
-    { name: "تغليف هدية",    price: 20, category: "إكسسوار", color: "#2196F3" },
-    { name: "بطاقة معايدة",  price: 10, category: "إكسسوار", color: "#4CAF50" },
-    { name: "ماء ورد",       price: 30, category: "منتجات",  color: "#FF9800" },
+    { name: "باقة ورد صغيرة",    price: 150, category: "باقات",      color: "#e91e8c" },
+    { name: "باقة ورد متوسطة",   price: 280, category: "باقات",      color: "#c2185b" },
+    { name: "باقة ورد كبيرة",    price: 450, category: "باقات",      color: "#880e4f" },
+    { name: "بوكيه مختلط موسمي", price: 200, category: "باقات",      color: "#f06292" },
+    { name: "وردة واحدة",         price: 25,  category: "مفردات",     color: "#ef5350" },
+    { name: "صندوق هدية صغير",   price: 380, category: "هدايا",      color: "#7b1fa2" },
+    { name: "صندوق هدية كبير",   price: 580, category: "هدايا",      color: "#4a148c" },
+    { name: "نبات داخلي صغير",   price: 150, category: "نباتات",     color: "#388e3c" },
+    { name: "تنسيق طاولة",       price: 320, category: "تنسيقات",    color: "#1565c0" },
+    { name: "إضافة بالون",        price: 35,  category: "إضافات",     color: "#f57c00" },
   ],
 };
 const DEFAULT_QUICK_ITEMS: Array<{ name: string; price: number; category: string; color: string }> = [

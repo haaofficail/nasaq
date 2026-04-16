@@ -5,6 +5,23 @@
 
 import { pick, rand, fmt, iso, randomDate, nextBookingNumber } from "./_shared";
 
+// ─── Shared types ─────────────────────────────────────────────────────────────
+
+/** Product shape accepted by seedInventoryVertical */
+export interface InventoryProductInput {
+  name: string;
+  nameEn?: string;
+  sku?: string;
+  category: string;
+  unit: string;
+  unitCost: number;
+  sellingPrice: number;
+  stock: number;
+  minStock: number;
+  maxStock?: number | null;
+  notes?: string | null;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 async function getOrgCustomers(client: any, orgId: string) {
@@ -24,70 +41,512 @@ async function getOrgServices(client: any, orgId: string) {
 }
 
 // ─── FLOWER SHOP ─────────────────────────────────────────────────────────────
-// Tables: flower_orders, flower_batches, flower_variants (global master)
+// Tables: flower_variants, flower_batches, categories, services,
+//         event_package_templates, event_package_template_items,
+//         decor_assets, service_orders
+// NOTE: inventory_products are seeded via seedInventoryVertical(FLOWER_SHOP_PRODUCTS)
+
+/** 20 realistic flower-shop inventory products passed to seedInventoryVertical */
+export const FLOWER_SHOP_PRODUCTS: InventoryProductInput[] = [
+  { name: "ورق تغليف شفاف للباقات",         nameEn: "Clear Cellophane Wrap",             sku: "FLWR-00101", category: "أدوات التغليف",         unit: "رول",      unitCost: 25, sellingPrice: 45, stock: 50,  minStock: 10,  maxStock: 100, notes: "ورق شفاف عالي الجودة لتغليف الباقات بمقاس 60×60 سم" },
+  { name: "شريط ساتان أبيض 5م",              nameEn: "White Satin Ribbon 5m",             sku: "FLWR-00102", category: "أدوات التغليف",         unit: "رول",      unitCost: 8,  sellingPrice: 15, stock: 200, minStock: 50,  maxStock: 500, notes: null },
+  { name: "إسفنج الزهور الأخضر Oasis",       nameEn: "Oasis Floral Foam",                 sku: "FLWR-00201", category: "مستلزمات الزهور",       unit: "قطعة",     unitCost: 12, sellingPrice: 22, stock: 100, minStock: 30,  maxStock: null, notes: null },
+  { name: "سلك الزهور 0.8mm",                nameEn: "Floral Wire 0.8mm",                 sku: "FLWR-00202", category: "مستلزمات الزهور",       unit: "علبة",     unitCost: 18, sellingPrice: 35, stock: 60,  minStock: 15,  maxStock: null, notes: null },
+  { name: "مادة حافظة للزهور Chrysal",       nameEn: "Chrysal Flower Food",               sku: "FLWR-00203", category: "مستلزمات الزهور",       unit: "لتر",      unitCost: 45, sellingPrice: 80, stock: 30,  minStock: 8,   maxStock: null, notes: null },
+  { name: "مقص الزهور الاحترافي",             nameEn: "Professional Floral Scissors",      sku: "FLWR-00204", category: "مستلزمات الزهور",       unit: "قطعة",     unitCost: 85, sellingPrice: 150, stock: 10, minStock: 2,   maxStock: null, notes: null },
+  { name: "وعاء زجاجي شفاف 30cm",            nameEn: "Glass Vase 30cm",                   sku: "FLWR-00301", category: "الأوعية والقواعد",      unit: "قطعة",     unitCost: 35, sellingPrice: 75, stock: 40,  minStock: 10,  maxStock: null, notes: null },
+  { name: "وعاء خزفي أبيض مربع",             nameEn: "White Ceramic Square Pot",          sku: "FLWR-00302", category: "الأوعية والقواعد",      unit: "قطعة",     unitCost: 28, sellingPrice: 65, stock: 30,  minStock: 8,   maxStock: null, notes: null },
+  { name: "قاعدة سيلندر كريستال 20cm",       nameEn: "Crystal Cylinder Base 20cm",        sku: "FLWR-00303", category: "الأوعية والقواعد",      unit: "قطعة",     unitCost: 55, sellingPrice: 120, stock: 20, minStock: 5,   maxStock: null, notes: null },
+  { name: "صندوق هدية أبيض مع غطاء",         nameEn: "White Gift Box with Lid",           sku: "FLWR-00401", category: "أدوات التغليف",         unit: "قطعة",     unitCost: 12, sellingPrice: 25, stock: 80,  minStock: 20,  maxStock: null, notes: null },
+  { name: "ورق كرافت بني للتغليف",           nameEn: "Brown Kraft Paper",                 sku: "FLWR-00402", category: "أدوات التغليف",         unit: "رول",      unitCost: 20, sellingPrice: 38, stock: 35,  minStock: 10,  maxStock: null, notes: null },
+  { name: "سبراي لمعة الأوراق الخضراء",      nameEn: "Leaf Shine Spray",                  sku: "FLWR-00501", category: "مواد الحفظ والصيانة",   unit: "علبة",     unitCost: 30, sellingPrice: 55, stock: 25,  minStock: 6,   maxStock: null, notes: null },
+  { name: "محلول حفظ الورود المقطوعة",       nameEn: "Cut Flower Preservative",           sku: "FLWR-00502", category: "مواد الحفظ والصيانة",   unit: "لتر",      unitCost: 40, sellingPrice: 75, stock: 20,  minStock: 5,   maxStock: null, notes: null },
+  { name: "ربطة حرير ذهبية 2م",              nameEn: "Gold Silk Ribbon 2m",               sku: "FLWR-00403", category: "أدوات التغليف",         unit: "قطعة",     unitCost: 6,  sellingPrice: 12, stock: 150, minStock: 30,  maxStock: null, notes: null },
+  { name: "كارت رسالة شخصي فاخر",            nameEn: "Luxury Personal Message Card",      sku: "FLWR-00601", category: "الإضافات والهدايا",     unit: "قطعة",     unitCost: 2,  sellingPrice: 5,  stock: 500, minStock: 100, maxStock: null, notes: null },
+  { name: "شمع عطري هدية صغير",              nameEn: "Small Aromatic Candle Gift",        sku: "FLWR-00602", category: "الإضافات والهدايا",     unit: "قطعة",     unitCost: 25, sellingPrice: 55, stock: 40,  minStock: 10,  maxStock: null, notes: null },
+  { name: "بالون لاتكس شفاف 30cm",           nameEn: "Clear Latex Balloon 30cm",          sku: "FLWR-00603", category: "الإضافات والهدايا",     unit: "علبة 10",  unitCost: 15, sellingPrice: 28, stock: 60,  minStock: 15,  maxStock: null, notes: null },
+  { name: "تربة نباتية عالية الجودة 5L",     nameEn: "Premium Potting Soil 5L",           sku: "FLWR-00304", category: "الأوعية والقواعد",      unit: "كيس",      unitCost: 18, sellingPrice: 35, stock: 45,  minStock: 10,  maxStock: null, notes: null },
+  { name: "أحجار عرض ملونة للأوعية",         nameEn: "Decorative Colored Stones",         sku: "FLWR-00305", category: "الأوعية والقواعد",      unit: "كيس",      unitCost: 10, sellingPrice: 22, stock: 70,  minStock: 15,  maxStock: null, notes: null },
+  { name: "شوكولاتة هدية بلجيكية صغيرة",    nameEn: "Small Belgian Gift Chocolate",       sku: "FLWR-00604", category: "الإضافات والهدايا",     unit: "علبة",     unitCost: 30, sellingPrice: 65, stock: 35,  minStock: 8,   maxStock: null, notes: null },
+];
 
 export async function seedFlowerVertical(client: any, orgId: string) {
   const customers = await getOrgCustomers(client, orgId);
   if (!customers.length) return;
 
-  // 1. Flower variants (global master table — no org_id, no service_id)
+  // ── [A] flower_variants — 12 varieties ──────────────────────────────────────
+  // Enums verified: flower_type, flower_color, flower_origin, flower_grade,
+  //                 flower_size, bloom_stage
   const flowerVariants = [
-    { type: "rose",      color: "red",    origin: "netherlands", grade: "grade_a", size: "medium", bloom: "semi_open", nameAr: "ورد روز أحمر",   nameEn: "Red Rose",      price: 8  },
-    { type: "rose",      color: "white",  origin: "kenya",       grade: "grade_a", size: "medium", bloom: "bud",       nameAr: "ورد أبيض",        nameEn: "White Rose",    price: 6  },
-    { type: "lily",      color: "white",  origin: "netherlands", grade: "grade_a", size: "large",  bloom: "open",      nameAr: "ليلى بيضاء",      nameEn: "White Lily",    price: 12 },
-    { type: "sunflower", color: "yellow", origin: "other",       grade: "grade_b", size: "large",  bloom: "full_bloom",nameAr: "زنبق أصفر",       nameEn: "Sunflower",     price: 5  },
-    { type: "orchid",    color: "purple", origin: "thailand",    grade: "grade_a", size: "small",  bloom: "semi_open", nameAr: "أوركيد بنفسجي",   nameEn: "Purple Orchid", price: 35 },
+    {
+      type: "rose", color: "red", origin: "netherlands", grade: "grade_a",
+      size: "medium", bloom: "semi_open",
+      nameAr: "وردة حمراء هولندية درجة أولى", nameEn: "Red Rose Netherlands Grade A",
+      price: 8, shelf: 10,
+      notesAr: "وردة حمراء كثيفة البتلات ذات رائحة عطرة قوية مثالية للمناسبات الرومانسية.",
+    },
+    {
+      type: "rose", color: "white", origin: "kenya", grade: "grade_a",
+      size: "medium", bloom: "bud",
+      nameAr: "وردة بيضاء كينية برعم", nameEn: "White Rose Kenya Bud",
+      price: 6, shelf: 10,
+      notesAr: "وردة بيضاء نقية في مرحلة البرعم مناسبة لتنسيقات الأعراس والعرائس.",
+    },
+    {
+      type: "rose", color: "pink", origin: "ecuador", grade: "premium",
+      size: "large", bloom: "semi_open",
+      nameAr: "وردة وردية إكوادورية بريميوم", nameEn: "Pink Rose Ecuador Premium",
+      price: 9, shelf: 12,
+      notesAr: "وردة وردية كبيرة الحجم من أجود مزارع الإكوادور ذات عمر افتراضي ممتاز.",
+    },
+    {
+      type: "lily", color: "white", origin: "netherlands", grade: "grade_a",
+      size: "large", bloom: "open",
+      nameAr: "زنبق أبيض هولندي", nameEn: "White Lily Netherlands",
+      price: 12, shelf: 8,
+      notesAr: "زنبق أبيض فاخر برائحة زكية يضفي جواً رومانسياً راقياً على أي تنسيق.",
+    },
+    {
+      type: "orchid", color: "purple", origin: "thailand", grade: "premium",
+      size: "small", bloom: "semi_open",
+      nameAr: "أوركيد بنفسجي تايلاندي", nameEn: "Purple Orchid Thailand Premium",
+      price: 35, shelf: 21,
+      notesAr: "أوركيد بنفسجي نادر من تايلاند يعيش أسابيع مع الرعاية المناسبة.",
+    },
+    {
+      type: "orchid", color: "white", origin: "thailand", grade: "premium",
+      size: "small", bloom: "open",
+      nameAr: "أوركيد أبيض فندالا", nameEn: "White Phalaenopsis Orchid",
+      price: 40, shelf: 21,
+      notesAr: "أوركيد أبيض من نوع فالينوبسيس مثالي للهدايا الراقية والمكاتب الفاخرة.",
+    },
+    {
+      type: "tulip", color: "red", origin: "netherlands", grade: "grade_a",
+      size: "medium", bloom: "bud",
+      nameAr: "توليب أحمر هولندي", nameEn: "Red Tulip Netherlands",
+      price: 10, shelf: 7,
+      notesAr: "توليب أحمر زاهي اللون يفتح تدريجياً ليعطي بهاءً مميزاً للباقة.",
+    },
+    {
+      type: "carnation", color: "pink", origin: "colombia", grade: "grade_a",
+      size: "medium", bloom: "open",
+      nameAr: "قرنفل وردي كولومبي", nameEn: "Pink Carnation Colombia",
+      price: 4, shelf: 14,
+      notesAr: "قرنفل وردي ذو عمر افتراضي طويل مناسب للباقات الاقتصادية والهدايا اليومية.",
+    },
+    {
+      type: "sunflower", color: "yellow", origin: "local_saudi", grade: "grade_b",
+      size: "large", bloom: "full_bloom",
+      nameAr: "عباد الشمس الأصفر المحلي", nameEn: "Sunflower Local Saudi",
+      price: 5, shelf: 7,
+      notesAr: "عباد شمس بهيج اللون يضفي طابع البهجة والحيوية على أي تنسيق زهري.",
+    },
+    {
+      type: "gypsophila", color: "white", origin: "netherlands", grade: "grade_a",
+      size: "small", bloom: "open",
+      nameAr: "جبسوفيلا أبيض (نسمة)", nameEn: "White Gypsophila Baby Breath",
+      price: 3, shelf: 7,
+      notesAr: "نسمة بيضاء ناعمة تستخدم لملء الباقات وإضافة اللمسة الخفيفة الجمالية.",
+    },
+    {
+      type: "iris", color: "purple", origin: "netherlands", grade: "grade_a",
+      size: "medium", bloom: "bud",
+      nameAr: "أيريس بنفسجي هولندي", nameEn: "Purple Iris Netherlands",
+      price: 9, shelf: 8,
+      notesAr: "أيريس بنفسجي أنيق ذو شكل هندسي مميز يبرز في تنسيقات المؤتمرات والمكاتب.",
+    },
+    {
+      type: "peony", color: "pink", origin: "france", grade: "premium",
+      size: "large", bloom: "semi_open",
+      nameAr: "فاوانيا وردية فرنسية", nameEn: "Pink Peony France Premium",
+      price: 25, shelf: 7,
+      notesAr: "فاوانيا فرنسية فاخرة ذات بتلات كثيفة ورائحة سحرية تُعدّ ملكة الزهور.",
+    },
   ];
 
   const variantIds: string[] = [];
+  const variantMap: Map<string, string> = new Map(); // key: type+color → id
+
   for (const v of flowerVariants) {
     const r = await client.query(
       `INSERT INTO flower_variants
-         (flower_type, color, origin, grade, size, bloom_stage, display_name_ar, display_name_en, base_price_per_stem, is_active)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,true)
-       ON CONFLICT DO NOTHING
+         (flower_type, color, origin, grade, size, bloom_stage,
+          display_name_ar, display_name_en, base_price_per_stem,
+          shelf_life_days, notes_ar, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,true)
+       ON CONFLICT (flower_type, color, origin, grade, size, bloom_stage) DO NOTHING
        RETURNING id`,
-      [v.type, v.color, v.origin, v.grade, v.size, v.bloom, v.nameAr, v.nameEn, fmt(v.price)]
+      [v.type, v.color, v.origin, v.grade, v.size, v.bloom,
+       v.nameAr, v.nameEn, fmt(v.price), v.shelf, v.notesAr]
     );
-    if (r.rows[0]) variantIds.push(r.rows[0].id);
-    else {
-      // Already exists — fetch it
+    let vid: string | null = r.rows[0]?.id ?? null;
+    if (!vid) {
       const existing = await client.query(
-        `SELECT id FROM flower_variants WHERE flower_type=$1 AND color=$2 AND origin=$3 AND bloom_stage=$4 LIMIT 1`,
-        [v.type, v.color, v.origin, v.bloom]
+        `SELECT id FROM flower_variants
+         WHERE flower_type=$1 AND color=$2 AND origin=$3 AND grade=$4 AND size=$5 AND bloom_stage=$6
+         LIMIT 1`,
+        [v.type, v.color, v.origin, v.grade, v.size, v.bloom]
       );
-      if (existing.rows[0]) variantIds.push(existing.rows[0].id);
+      vid = existing.rows[0]?.id ?? null;
+    }
+    if (vid) {
+      variantIds.push(vid);
+      variantMap.set(`${v.type}:${v.color}`, vid);
     }
   }
 
-  // 2. Flower batches (using variant_id)
+  // ── [B] flower_batches — one batch per variant ───────────────────────────────
+  const batchQuantities = [200, 180, 150, 120, 80, 70, 100, 130, 90, 300, 110, 60];
   for (let i = 0; i < variantIds.length; i++) {
     const vid = variantIds[i];
-    const qty = rand(50, 200);
+    const v = flowerVariants[i];
+    const qty = batchQuantities[i] ?? rand(50, 200);
     await client.query(
       `INSERT INTO flower_batches
          (org_id, variant_id, batch_number, quantity_received, quantity_remaining,
-          unit_cost, received_at, expiry_estimated, quality_status, is_active)
-       VALUES ($1,$2,$3,$4,$4,$5,$6,$7,'good',true)
+          unit_cost, received_at, expiry_estimated,
+          current_bloom_stage, quality_status, is_active)
+       VALUES ($1,$2,$3,$4,$4,$5,$6,$7,$8,'fresh',true)
        ON CONFLICT DO NOTHING`,
       [
         orgId, vid,
-        `BATCH-${rand(1000, 9999)}`,
+        `BATCH-${String(i + 1).padStart(3, "0")}-${rand(1000, 9999)}`,
         qty,
-        fmt(flowerVariants[i]?.price || 10),
-        iso(randomDate(14)),
-        iso(new Date(Date.now() + rand(3, 14) * 86400000)),
+        fmt(v.price),
+        iso(randomDate(7)),
+        iso(new Date(Date.now() + v.shelf * 86400000)),
+        v.bloom,
       ]
     );
   }
 
-  // 3. Flower service orders (using service_orders — flower_orders table not available)
-  const statuses = ["closed", "closed", "scheduled", "confirmed", "cancelled"];
+  // ── [C] categories — 6 categories ──────────────────────────────────────────
+  const categoryDefs = [
+    {
+      slug: "flower-bouquets", name: "باقات الورود", nameEn: "Flower Bouquets",
+      description: "تشكيلة متنوعة من الباقات المصممة لكل مناسبة بأفضل الزهور الطازجة",
+      icon: "bouquet", sort: 1,
+    },
+    {
+      slug: "wedding-floral", name: "تنسيقات الأعراس", nameEn: "Wedding Floral",
+      description: "خدمات تنسيق زهور الأعراس الكاملة من الكوش حتى طاولات الضيوف",
+      icon: "wedding", sort: 2,
+    },
+    {
+      slug: "gift-boxes", name: "الهدايا والصناديق", nameEn: "Gift Boxes",
+      description: "صناديق هدايا فاخرة تجمع بين الورود والشوكولاتة والإكسسوارات",
+      icon: "gift", sort: 3,
+    },
+    {
+      slug: "natural-plants", name: "النباتات الطبيعية", nameEn: "Natural Plants",
+      description: "نباتات داخلية وخارجية مع وعاء مميز ودليل العناية",
+      icon: "plant", sort: 4,
+    },
+    {
+      slug: "event-arrangements", name: "تنسيقات المناسبات", nameEn: "Event Arrangements",
+      description: "تنسيقات خاصة للمؤتمرات والحفلات وافتتاح المحلات",
+      icon: "event", sort: 5,
+    },
+    {
+      slug: "floral-decor", name: "الديكور الزهري", nameEn: "Floral Decor",
+      description: "لوحات وإطارات وديكورات من الورود الجافة والمحفوظة",
+      icon: "decor", sort: 6,
+    },
+  ];
 
+  const catMap: Map<string, string> = new Map(); // name → id
+  for (const cat of categoryDefs) {
+    const r = await client.query(
+      `INSERT INTO categories
+         (org_id, name, name_en, slug, description, icon, sort_order, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,true)
+       ON CONFLICT (org_id, slug) DO NOTHING
+       RETURNING id`,
+      [orgId, cat.name, cat.nameEn, cat.slug, cat.description, cat.icon, cat.sort]
+    );
+    let catId: string | null = r.rows[0]?.id ?? null;
+    if (!catId) {
+      const ex = await client.query(
+        `SELECT id FROM categories WHERE org_id=$1 AND slug=$2`, [orgId, cat.slug]
+      );
+      catId = ex.rows[0]?.id ?? null;
+    }
+    if (catId) catMap.set(cat.name, catId);
+  }
+
+  // ── [D] services — 12 services ───────────────────────────────────────────────
+  const serviceDefs = [
+    {
+      slug: "bouquet-red-24",
+      name: "بوكيه ورد أحمر رومانسي 24 وردة",
+      nameEn: "Romantic Red Rose Bouquet 24 Stems",
+      category: "باقات الورود",
+      price: 280, duration: 30,
+      shortDesc: "باقة من 24 وردة حمراء طازجة مع ورق تغليف فاخر وشريط ساتان",
+      desc: "باقة ورد أحمر رومانسية تضم 24 وردة هولندية طازجة من الدرجة الأولى. تُعبّأ بورق تغليف شفاف فاخر مع شريط ساتان أحمر وكارت إهداء شخصي. مثالية لأعياد الميلاد والذكرى السنوية وإظهار المشاعر الصادقة.",
+    },
+    {
+      slug: "bouquet-mixed-seasonal",
+      name: "بوكيه ورد مختلط موسمي",
+      nameEn: "Mixed Seasonal Bouquet",
+      category: "باقات الورود",
+      price: 180, duration: 25,
+      shortDesc: "مزيج مبهج من أجمل الزهور الموسمية بألوان زاهية",
+      desc: "باقة زهور موسمية مبهجة تجمع بين أفضل أصناف الزهور المتوفرة في الموسم من ورود وقرنفل وجبسوفيلا. تُصمم يدوياً من قبل خبراء التنسيق بألوان منسجمة تناسب كل الأذواق. مثالية كهدية يومية أو تعبير عن الامتنان.",
+    },
+    {
+      slug: "wedding-entrance-arch",
+      name: "تنسيق كوش مدخل زفاف",
+      nameEn: "Wedding Entrance Arch Floral Design",
+      category: "تنسيقات الأعراس",
+      price: 3500, duration: 240,
+      shortDesc: "كوش زفاف ملكي بالورد الأبيض والأخضر مع إضاءة دافئة",
+      desc: "كوش زفاف ملكي للمدخل يتضمن قوساً كبيراً من الورود الطبيعية البيضاء والخضراء مع أوراق نباتية منسجمة. يُنفذ بإضاءة LED دافئة تعزز الجمال وتمنح صوراً لا تُنسى. يشمل التركيب والإزالة بعد الحفل.",
+    },
+    {
+      slug: "bridal-bouquet-crown",
+      name: "بوكيه عروس مع تاج ورد طبيعي",
+      nameEn: "Bridal Bouquet with Natural Flower Crown",
+      category: "تنسيقات الأعراس",
+      price: 650, duration: 60,
+      shortDesc: "بوكيه عروس أنيق مع تاج ورد طبيعي يتناسق مع فستان الزفاف",
+      desc: "بوكيه عروس بيد يصمم خصيصاً وفق لون وطراز فستان الزفاف من ورود وفاوانيا وأوركيد فاخرة. يرافقه تاج ورد طبيعي يُحاك يدوياً من ورود صغيرة وأوراق خضراء. يُقدم في صندوق هدية فاخر مع ضمان الطازجية.",
+    },
+    {
+      slug: "wedding-table-arrangement",
+      name: "تنسيق طاولات حفل زفاف (لكل طاولة)",
+      nameEn: "Wedding Table Floral Arrangement Per Table",
+      category: "تنسيقات الأعراس",
+      price: 450, duration: 45,
+      shortDesc: "تنسيق زهور احترافي لطاولة واحدة مع مزهرية كريستال",
+      desc: "تنسيق زهري احترافي لطاولة ضيوف واحدة يشمل مزهرية كريستال مع ورود وفراشات خضراء ومتممات زهرية أنيقة. يُصمم بتناسق تام مع باقي تنسيقات القاعة ليعطي صورة متكاملة وجمالية. السعر للطاولة الواحدة مع إمكانية الخصم عند الطلب الجماعي.",
+    },
+    {
+      slug: "orchid-gift-box",
+      name: "صندوق هدية فاخر مع أوركيد",
+      nameEn: "Luxury Gift Box with Orchid",
+      category: "الهدايا والصناديق",
+      price: 480, duration: 20,
+      shortDesc: "صندوق هدية راقٍ يضم وردة أوركيد فاخرة مع شوكولاتة بلجيكية وكارت شخصي",
+      desc: "صندوق هدية فاخر يحتوي على وردة أوركيد فالينوبسيس تايلاندية أصيلة في قصرة أنيقة مع علبة شوكولاتة بلجيكية فاخرة. يُغلف بورق الكرافت الفاخر ويرافقه كارت إهداء شخصي يُكتب باليد. هدية لا تُنسى لكل مناسبة.",
+    },
+    {
+      slug: "preserved-flowers-box",
+      name: "صندوق ورد دائم Preserved Flowers",
+      nameEn: "Preserved Flowers Luxury Box",
+      category: "الهدايا والصناديق",
+      price: 580, duration: 20,
+      shortDesc: "ورود محفوظة طبيعية تدوم لسنوات بدون ماء داخل صندوق هدية فاخر",
+      desc: "ورود طبيعية محفوظة بتقنية إيتيرنا الياباني تدوم من سنة إلى ثلاث سنوات بدون ماء أو رعاية. تُوضع في صندوق هدية مخملي أسود أو أبيض حسب الطلب وتشكيلة ألوان متعددة. الخيار المثالي لمن يريد لفتة رومانسية دائمة.",
+    },
+    {
+      slug: "ficus-ceramic-pot",
+      name: "نبات فيكس داخلي مع وعاء خزفي",
+      nameEn: "Indoor Ficus with Ceramic Pot",
+      category: "النباتات الطبيعية",
+      price: 220, duration: 15,
+      shortDesc: "نبات فيكس صحي ومُعتنى به مع وعاء خزفي أنيق وتعليمات العناية",
+      desc: "نبات فيكس داخلي صحي يُعتنى به بشكل احترافي في وعاء خزفي أبيض أو بيج أنيق. يأتي مع كارت عناية مكتوب يوضح احتياجات الريّ والإضاءة والتسميد. هدية مثالية للمنازل والمكاتب والاستقبالات الراقية.",
+    },
+    {
+      slug: "succulent-set-3",
+      name: "نبات سكولنت مجموعة 3 قطع",
+      nameEn: "Succulent Set 3 Pcs",
+      category: "النباتات الطبيعية",
+      price: 150, duration: 15,
+      shortDesc: "ثلاثة نباتات سكولنت متنوعة في أوعية صغيرة مثالية كهدية مكتبية",
+      desc: "مجموعة ثلاثة نباتات سكولنت متنوعة الأشكال والألوان في أوعية سيراميك صغيرة تناسب المكاتب والطاولات. تحتاج حداً أدنى من الرعاية وتحمل درجات الحرارة العالية. هدية مكتبية عملية وجمالية لا تحتاج اهتماماً يومياً.",
+    },
+    {
+      slug: "conference-table-arrangement",
+      name: "تنسيق طاولة مؤتمر أو حفل",
+      nameEn: "Conference Table Floral Arrangement",
+      category: "تنسيقات المناسبات",
+      price: 320, duration: 30,
+      shortDesc: "تنسيق احترافي لطاولة مؤتمر أو حفل شركات مع الإزالة بعد الفعالية",
+      desc: "تنسيق زهري احترافي لطاولات المؤتمرات والفعاليات الشركاتية يعكس هوية المنشأة وراقيّتها. يشمل الزهور الطازجة والأوعية الزجاجية الشفافة مع الإعداد والإزالة بعد الفعالية. متوفر بأحجام مختلفة ويمكن التخصيص حسب ألوان الشركة.",
+    },
+    {
+      slug: "shop-opening-decor",
+      name: "زينة افتتاح محل تجاري",
+      nameEn: "Commercial Shop Opening Floral Package",
+      category: "تنسيقات المناسبات",
+      price: 1800, duration: 180,
+      shortDesc: "حزمة زهور كاملة لافتتاح المحلات تشمل الكوش والطاولات والمدخل",
+      desc: "حزمة تنسيق زهري شاملة لافتتاح المحلات التجارية تضم كوش مدخل وتنسيقات طاولات العرض وتزيين الواجهة بالزهور الطازجة. تُعطي انطباعاً أول لا يُنسى للعملاء وتعزز المصداقية التجارية. تشمل الإعداد والإشراف طوال فترة الافتتاح.",
+    },
+    {
+      slug: "dried-flowers-wall-frame",
+      name: "لوحة ورد جاف للجدار",
+      nameEn: "Dried Flower Wall Art Frame",
+      category: "الديكور الزهري",
+      price: 380, duration: 45,
+      shortDesc: "لوحة فنية من الورود الجافة المحفوظة بإطار خشبي للتعليق على الجدار",
+      desc: "لوحة فنية يدوية الصنع من الورود الجافة والمحفوظة المرتبة في تصميم جمالي داخل إطار خشبي عصري. تدوم سنوات عدة دون أن تفقد جمالها وتُعدّ قطعة ديكور فريدة لأي منزل أو مكتب. متوفرة بأحجام متعددة وألوان قابلة للتخصيص.",
+    },
+  ];
+
+  for (const svc of serviceDefs) {
+    const catId = catMap.get(svc.category) ?? null;
+    await client.query(
+      `INSERT INTO services
+         (org_id, category_id, name, name_en, slug, short_description, description,
+          base_price, duration_minutes, status, offering_type,
+          is_bookable, is_visible_in_pos, is_visible_online, is_demo)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'active','service',true,true,true,true)
+       ON CONFLICT (org_id, slug) DO NOTHING`,
+      [orgId, catId, svc.name, svc.nameEn, svc.slug,
+       svc.shortDesc, svc.desc, fmt(svc.price), svc.duration]
+    );
+  }
+
+  // ── [E] event_package_templates — 5 packages ─────────────────────────────────
+  // type values (CHECK constraint): kiosk|reception_table|entrance|wedding|newborn|custom
+  const packageDefs = [
+    {
+      name: "باقة الزفاف الملكي الكامل", type: "wedding", workers: 8,
+      description: "باقة شاملة تغطي كامل تنسيق زهور حفل الزفاف من الكوش إلى طاولات الضيوف وبوكيه العروس والمداخل وكل التفاصيل الزهرية الاحتفالية.",
+      setupNotes: "يبدأ الإعداد قبل 6 ساعات من الحفل — فريق 8 أشخاص — يشمل التركيب والإشراف والإزالة الكاملة بعد الحفل.",
+    },
+    {
+      name: "باقة طاولة الاستقبال", type: "reception_table", workers: 3,
+      description: "تنسيق راقٍ لطاولة الاستقبال والتسجيل مع ورود طازجة وشموع وبطاقات ترحيب تعكس هوية المناسبة وتستقبل الضيوف بأسلوب فاخر.",
+      setupNotes: "إعداد خلال ساعة — يشمل صيانة الزهور وتجديدها إذا تجاوزت الفعالية 8 ساعات.",
+    },
+    {
+      name: "باقة كوش المدخل الفاخر", type: "entrance", workers: 4,
+      description: "كوش زفاف كامل للمدخل بالورد الطبيعي الأبيض والأخضر مع قوسين جانبيين وممر من الورود يمتد لمسافة 3 أمتار على جانبي المدخل.",
+      setupNotes: "إعداد خلال 3 ساعات — الارتفاع الأقصى 4 أمتار — يحتاج تصريح مسبق من إدارة القاعة.",
+    },
+    {
+      name: "باقة استقبال مولود", type: "newborn", workers: 2,
+      description: "تنسيق زهور احتفالي دافئ لاستقبال المولود الجديد مع بالونات وورود وردية أو زرقاء وهدايا احتفالية مناسبة للأم والمولود.",
+      setupNotes: "إعداد خلال 45 دقيقة — مناسب للمستشفيات والبيوت — يراعي متطلبات بيئة النظافة.",
+    },
+    {
+      name: "باقة مخصصة حسب الطلب", type: "custom", workers: 2,
+      description: "نصمم معك باقتك المثالية حسب ميزانيتك وذوقك وطبيعة المناسبة سواء كانت عرساً أو خطوبة أو حفلاً أو تكريماً أو أي فعالية خاصة.",
+      setupNotes: "يتطلب اجتماع تصميم مع خبير التنسيق قبل 48 ساعة على الأقل من موعد الفعالية.",
+    },
+  ];
+
+  const templateIds: string[] = [];
+  const templateNames: string[] = [];
+  for (const pkg of packageDefs) {
+    const r = await client.query(
+      `INSERT INTO event_package_templates
+         (org_id, name, type, description, worker_count, setup_notes, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,true)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [orgId, pkg.name, pkg.type, pkg.description, pkg.workers, pkg.setupNotes]
+    );
+    if (r.rows[0]) {
+      templateIds.push(r.rows[0].id);
+      templateNames.push(pkg.name);
+    }
+  }
+
+  // ── [F] event_package_template_items ─────────────────────────────────────────
+  // item_type CHECK: asset|consumable_natural|consumable_product|service_fee
+  // Resolve variant IDs for items
+  const roseRedId    = variantMap.get("rose:red")       ?? variantIds[0] ?? null;
+  const roseWhiteId  = variantMap.get("rose:white")     ?? variantIds[1] ?? null;
+  const rosePinkId   = variantMap.get("rose:pink")      ?? variantIds[2] ?? null;
+  const lilyWhiteId  = variantMap.get("lily:white")     ?? variantIds[3] ?? null;
+  const orchidPurpId = variantMap.get("orchid:purple")  ?? variantIds[4] ?? null;
+  const orchidWhiteId= variantMap.get("orchid:white")   ?? variantIds[5] ?? null;
+  const tulipRedId   = variantMap.get("tulip:red")      ?? variantIds[6] ?? null;
+  const gypsophilaId = variantMap.get("gypsophila:white") ?? variantIds[9] ?? null;
+  const peonyPinkId  = variantMap.get("peony:pink")     ?? variantIds[11] ?? null;
+
+  type PkgItem = {
+    itemType: string; variantId: string | null;
+    description: string; qty: number; unit: string; costEstimate: number;
+  };
+
+  const packageItems: PkgItem[][] = [
+    // [0] wedding — 5 items
+    [
+      { itemType: "consumable_natural", variantId: roseWhiteId,   description: "ورود بيضاء للكوش الرئيسي",        qty: 200, unit: "ساق",  costEstimate: 6  },
+      { itemType: "consumable_natural", variantId: lilyWhiteId,   description: "زنبق أبيض لمداخل القاعة",          qty: 60,  unit: "ساق",  costEstimate: 12 },
+      { itemType: "consumable_natural", variantId: gypsophilaId,  description: "جبسوفيلا لتكملة التنسيقات",       qty: 80,  unit: "حزمة", costEstimate: 15 },
+      { itemType: "consumable_natural", variantId: orchidWhiteId, description: "أوركيد أبيض لطاولات الشرف",       qty: 20,  unit: "ساق",  costEstimate: 40 },
+      { itemType: "service_fee",        variantId: null,          description: "رسوم التركيب والإشراف والإزالة",  qty: 1,   unit: "باقة", costEstimate: 1200 },
+    ],
+    // [1] reception_table — 3 items
+    [
+      { itemType: "consumable_natural", variantId: rosePinkId,    description: "ورود وردية لطاولة الاستقبال",      qty: 30,  unit: "ساق",  costEstimate: 9  },
+      { itemType: "consumable_natural", variantId: gypsophilaId,  description: "جبسوفيلا لتكملة الطاولة",         qty: 20,  unit: "حزمة", costEstimate: 15 },
+      { itemType: "service_fee",        variantId: null,          description: "رسوم الإعداد والصيانة",            qty: 1,   unit: "خدمة", costEstimate: 200 },
+    ],
+    // [2] entrance arch — 4 items
+    [
+      { itemType: "consumable_natural", variantId: roseWhiteId,   description: "ورود بيضاء للقوس الرئيسي",        qty: 150, unit: "ساق",  costEstimate: 6  },
+      { itemType: "consumable_natural", variantId: lilyWhiteId,   description: "زنبق أبيض للقوسين الجانبيين",     qty: 40,  unit: "ساق",  costEstimate: 12 },
+      { itemType: "consumable_natural", variantId: gypsophilaId,  description: "جبسوفيلا بيضاء للتكملة",          qty: 50,  unit: "حزمة", costEstimate: 15 },
+      { itemType: "service_fee",        variantId: null,          description: "رسوم التركيب والإزالة",            qty: 1,   unit: "خدمة", costEstimate: 800 },
+    ],
+    // [3] newborn — 2 items
+    [
+      { itemType: "consumable_natural", variantId: rosePinkId,    description: "ورود وردية لتنسيق استقبال المولود", qty: 30,  unit: "ساق",  costEstimate: 9  },
+      { itemType: "consumable_product", variantId: null,          description: "بالونات ولوازم احتفالية",          qty: 1,   unit: "طقم",  costEstimate: 50 },
+    ],
+    // [4] custom — 2 items
+    [
+      { itemType: "consumable_natural", variantId: roseRedId,     description: "ورود حسب الطلب والتصميم المتفق عليه", qty: 50, unit: "ساق",  costEstimate: 8  },
+      { itemType: "service_fee",        variantId: null,          description: "رسوم التصميم والتنفيذ المخصص",    qty: 1,   unit: "خدمة", costEstimate: 300 },
+    ],
+  ];
+
+  for (let ti = 0; ti < templateIds.length; ti++) {
+    const tId = templateIds[ti];
+    const items = packageItems[ti] ?? [];
+    for (let ii = 0; ii < items.length; ii++) {
+      const it = items[ii];
+      await client.query(
+        `INSERT INTO event_package_template_items
+           (template_id, org_id, item_type, variant_id, description,
+            quantity, unit, unit_cost_estimate, sort_order)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+         ON CONFLICT DO NOTHING`,
+        [tId, orgId, it.itemType, it.variantId, it.description,
+         fmt(it.qty), it.unit, fmt(it.costEstimate), ii + 1]
+      );
+    }
+  }
+
+  // ── [H] decor_assets — 10 assets ─────────────────────────────────────────────
+  // category CHECK: artificial_flowers|stands|backdrops|vases|holders|decor|kiosk_equipment|other
+  // status CHECK:   available|reserved|in_use|returned|maintenance|damaged
+  const decorDefs = [
+    { name: "ثلاجة حفظ الزهور 6 أرفف",           category: "kiosk_equipment", status: "available", cost: 8500,  code: "EQUIP-001", location: "مستودع الزهور", notes: "ثلاجة احترافية لحفظ الزهور بين 2-8 درجات مئوية — سعة 200 باقة" },
+    { name: "طاولة تنسيق استانلس ستيل",           category: "other",          status: "available", cost: 3200,  code: "FURN-001",  location: "ورشة التنسيق",  notes: "طاولة عمل استانلس ستيل مقاومة للرطوبة بمقاس 180×80 سم" },
+    { name: "حامل كوش زهور قابل للتعديل 3م",      category: "stands",         status: "available", cost: 4500,  code: "DISP-001",  location: "المستودع",      notes: "حامل معدني قابل للتعديل من 1.5 إلى 3 أمتار مع قاعدة مثبتة" },
+    { name: "رف معدني للباقات 5 طوابق",           category: "stands",         status: "available", cost: 1800,  code: "DISP-002",  location: "صالة العرض",    notes: "رف معدني خفيف الوزن لعرض الباقات المتنوعة في صالة العرض" },
+    { name: "قاعدة سيلندر كريستال كبيرة",         category: "vases",          status: "available", cost: 950,   code: "DECO-001",  location: "صالة العرض",    notes: "قاعدة كريستال شفاف بارتفاع 60 سم تستخدم لتنسيقات المدخل الفاخرة" },
+    { name: "إطار صور ورد جاف 60×80cm",           category: "decor",          status: "available", cost: 1200,  code: "DECO-002",  location: "المعرض",       notes: "إطار خشبي أبيض بزهور جافة محفوظة — قطعة عرض نموذجية للبيع" },
+    { name: "كوش ذهبي زفاف فاخر",                 category: "backdrops",      status: "available", cost: 12000, code: "BACK-001",  location: "المستودع",      notes: "كوش كامل مع إطار ذهبي وإضاءة LED قابل للتعديل في الأحجام" },
+    { name: "طاولة عرض زجاجية",                   category: "other",          status: "available", cost: 2200,  code: "FURN-002",  location: "صالة العرض",    notes: "طاولة عرض زجاجية شفافة مع إضاءة داخلية لعرض الهدايا والصناديق" },
+    { name: "حاملات شموع ذهبية (طقم 10)",         category: "holders",        status: "available", cost: 1500,  code: "HOLD-001",  location: "المستودع",      notes: "طقم 10 حاملات شموع ذهبية بأحجام متدرجة لتنسيقات الطاولات" },
+    { name: "ديكور مدخل ورود صناعية فاخرة",       category: "artificial_flowers", status: "available", cost: 3800, code: "ARTF-001", location: "مستودع الأصول", notes: "ديكور مدخل كامل من الورود الصناعية عالية الجودة يُستخدم للعروض والمعارض" },
+  ];
+
+  for (const a of decorDefs) {
+    await client.query(
+      `INSERT INTO decor_assets
+         (org_id, name, category, code, location, status, purchase_cost, notes, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true)
+       ON CONFLICT DO NOTHING`,
+      [orgId, a.name, a.category, a.code, a.location, a.status, fmt(a.cost), a.notes]
+    );
+  }
+
+  // ── Service orders — 20 flower orders ────────────────────────────────────────
+  const soStatuses = ["closed", "closed", "scheduled", "confirmed", "cancelled"];
   for (let i = 0; i < 20; i++) {
     const cust = pick(customers);
     const total = rand(150, 800) * 1.15;
-
     await client.query(
       `INSERT INTO service_orders
          (org_id, customer_id, customer_name, customer_phone,
@@ -97,7 +556,7 @@ export async function seedFlowerVertical(client: any, orgId: string) {
       [
         orgId, cust.id, cust.name, cust.phone,
         `FO-${rand(100000, 999999)}`,
-        pick(statuses),
+        pick(soStatuses),
         iso(randomDate(60)), fmt(total),
       ]
     );
@@ -2096,7 +2555,11 @@ export async function seedEventsDeepVertical(client: any, orgId: string) {
 // suppliers, inventory_products, stock_movements, purchase_orders,
 // purchase_order_items
 
-export async function seedInventoryVertical(client: any, orgId: string, productPrefix = "منتج") {
+export async function seedInventoryVertical(
+  client: any,
+  orgId: string,
+  productPrefixOrProducts: string | InventoryProductInput[] = "منتج"
+) {
   // 1. suppliers
   const supplierDefs = [
     { name: "شركة الإمداد السعودية",    code: `SUP-${rand(100,999)}`, contact: "محمد المطيري",  phone: "+966500040001", city: "الرياض"  },
@@ -2124,40 +2587,62 @@ export async function seedInventoryVertical(client: any, orgId: string, productP
     }
   }
 
-  // 2. inventory_products (15 products)
-  const productDefs = [
-    { name: `${productPrefix} أ`,    category: "مواد خام",     unit: "كيلوغرام", cost: rand(10,  50),  sell: rand(20, 80)  },
-    { name: `${productPrefix} ب`,    category: "مواد خام",     unit: "لتر",       cost: rand(5,   30),  sell: rand(10, 50)  },
-    { name: `${productPrefix} ج`,    category: "عبوات",        unit: "قطعة",      cost: rand(2,   10),  sell: rand(5,  20)  },
-    { name: `${productPrefix} د`,    category: "مستلزمات",     unit: "علبة",      cost: rand(15,  60),  sell: rand(30, 100) },
-    { name: `${productPrefix} هـ`,   category: "مستلزمات",     unit: "قطعة",      cost: rand(8,   40),  sell: rand(15, 70)  },
-    { name: `${productPrefix} و`,    category: "معدات",        unit: "قطعة",      cost: rand(100, 500), sell: rand(200,800) },
-    { name: `${productPrefix} ز`,    category: "كيماويات",     unit: "لتر",       cost: rand(20,  80),  sell: rand(40,120)  },
-    { name: `${productPrefix} ح`,    category: "مواد خام",     unit: "كيس",       cost: rand(30,  100), sell: rand(60,180)  },
-    { name: `${productPrefix} ط`,    category: "مستلزمات",     unit: "رزمة",      cost: rand(5,   25),  sell: rand(10, 45)  },
-    { name: `${productPrefix} ي`,    category: "عبوات",        unit: "كرتون",     cost: rand(50,  200), sell: rand(100,350) },
-    { name: `${productPrefix} ك`,    category: "كيماويات",     unit: "براميل",    cost: rand(150, 600), sell: rand(300,900) },
-    { name: `${productPrefix} ل`,    category: "مواد خام",     unit: "كيلوغرام", cost: rand(10,  40),  sell: rand(20, 70)  },
-    { name: `${productPrefix} م`,    category: "معدات",        unit: "قطعة",      cost: rand(200, 800), sell: rand(400,1200)},
-    { name: `${productPrefix} ن`,    category: "مستلزمات",     unit: "علبة",      cost: rand(10,  50),  sell: rand(20, 80)  },
-    { name: `${productPrefix} س`,    category: "عبوات",        unit: "قطعة",      cost: rand(3,   15),  sell: rand(7,  25)  },
-  ];
+  // 2. inventory_products — use custom list if provided, otherwise generate generic ones
+  let productIds: string[] = [];
 
-  const productIds: string[] = [];
-  for (let i = 0; i < productDefs.length; i++) {
-    const p = productDefs[i];
-    const qty = rand(10, 200);
-    const sku  = `SKU-${rand(10000, 99999)}`;
-    const r = await client.query(
-      `INSERT INTO inventory_products
-         (org_id, name, sku, category, unit, unit_cost, cost_price, selling_price,
-          current_stock, min_stock, is_active)
-       VALUES ($1,$2,$3,$4,$5,$6,$6,$7,$8,5,true)
-       ON CONFLICT DO NOTHING
-       RETURNING id`,
-      [orgId, p.name, sku, p.category, p.unit, fmt(p.cost), fmt(p.sell), qty]
-    );
-    if (r.rows[0]) productIds.push(r.rows[0].id);
+  if (Array.isArray(productPrefixOrProducts)) {
+    // Custom product list provided (e.g., flower_shop)
+    for (const p of productPrefixOrProducts) {
+      const sku = p.sku ?? `SKU-${rand(10000, 99999)}`;
+      const r = await client.query(
+        `INSERT INTO inventory_products
+           (org_id, name, name_en, sku, category, unit,
+            unit_cost, cost_price, selling_price,
+            current_stock, min_stock, max_stock, notes, is_active)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8,$9,$10,$11,$12,true)
+         ON CONFLICT DO NOTHING
+         RETURNING id`,
+        [orgId, p.name, p.nameEn ?? null, sku, p.category, p.unit,
+         fmt(p.unitCost), fmt(p.sellingPrice),
+         p.stock, p.minStock, p.maxStock ?? null, p.notes ?? null]
+      );
+      if (r.rows[0]) productIds.push(r.rows[0].id);
+    }
+  } else {
+    // Generic prefix-based product list (retail, laundry, etc.)
+    const productPrefix = productPrefixOrProducts as string;
+    const genericDefs = [
+      { name: `${productPrefix} أ`,    category: "مواد خام",     unit: "كيلوغرام", cost: rand(10,  50),  sell: rand(20, 80)  },
+      { name: `${productPrefix} ب`,    category: "مواد خام",     unit: "لتر",       cost: rand(5,   30),  sell: rand(10, 50)  },
+      { name: `${productPrefix} ج`,    category: "عبوات",        unit: "قطعة",      cost: rand(2,   10),  sell: rand(5,  20)  },
+      { name: `${productPrefix} د`,    category: "مستلزمات",     unit: "علبة",      cost: rand(15,  60),  sell: rand(30, 100) },
+      { name: `${productPrefix} هـ`,   category: "مستلزمات",     unit: "قطعة",      cost: rand(8,   40),  sell: rand(15, 70)  },
+      { name: `${productPrefix} و`,    category: "معدات",        unit: "قطعة",      cost: rand(100, 500), sell: rand(200,800) },
+      { name: `${productPrefix} ز`,    category: "كيماويات",     unit: "لتر",       cost: rand(20,  80),  sell: rand(40,120)  },
+      { name: `${productPrefix} ح`,    category: "مواد خام",     unit: "كيس",       cost: rand(30,  100), sell: rand(60,180)  },
+      { name: `${productPrefix} ط`,    category: "مستلزمات",     unit: "رزمة",      cost: rand(5,   25),  sell: rand(10, 45)  },
+      { name: `${productPrefix} ي`,    category: "عبوات",        unit: "كرتون",     cost: rand(50,  200), sell: rand(100,350) },
+      { name: `${productPrefix} ك`,    category: "كيماويات",     unit: "براميل",    cost: rand(150, 600), sell: rand(300,900) },
+      { name: `${productPrefix} ل`,    category: "مواد خام",     unit: "كيلوغرام", cost: rand(10,  40),  sell: rand(20, 70)  },
+      { name: `${productPrefix} م`,    category: "معدات",        unit: "قطعة",      cost: rand(200, 800), sell: rand(400,1200)},
+      { name: `${productPrefix} ن`,    category: "مستلزمات",     unit: "علبة",      cost: rand(10,  50),  sell: rand(20, 80)  },
+      { name: `${productPrefix} س`,    category: "عبوات",        unit: "قطعة",      cost: rand(3,   15),  sell: rand(7,  25)  },
+    ];
+
+    for (const p of genericDefs) {
+      const qty = rand(10, 200);
+      const sku  = `SKU-${rand(10000, 99999)}`;
+      const r = await client.query(
+        `INSERT INTO inventory_products
+           (org_id, name, sku, category, unit, unit_cost, cost_price, selling_price,
+            current_stock, min_stock, is_active)
+         VALUES ($1,$2,$3,$4,$5,$6,$6,$7,$8,5,true)
+         ON CONFLICT DO NOTHING
+         RETURNING id`,
+        [orgId, p.name, sku, p.category, p.unit, fmt(p.cost), fmt(p.sell), qty]
+      );
+      if (r.rows[0]) productIds.push(r.rows[0].id);
+    }
   }
 
   // 3. stock_movements (10 movements)
@@ -2444,7 +2929,7 @@ export async function seedServiceOrdersVertical(
 type VerticalFn = (client: any, orgId: string) => Promise<void>;
 
 const VERTICAL_MAP: Record<string, VerticalFn> = {
-  flower_shop:      async (c, o) => { await seedFlowerVertical(c, o); await seedInventoryVertical(c, o, "مستلزمات زهور"); await seedEventsDeepVertical(c, o); },
+  flower_shop:      async (c, o) => { await seedFlowerVertical(c, o); await seedInventoryVertical(c, o, FLOWER_SHOP_PRODUCTS); await seedEventsDeepVertical(c, o); },
   hotel:            async (c, o) => { await seedHotelVertical(c, o); await seedHotelDeepVertical(c, o); },
   car_rental:       async (c, o) => { await seedCarRentalVertical(c, o); await seedCarRentalDeepVertical(c, o); },
   salon:            seedSalonVertical,
