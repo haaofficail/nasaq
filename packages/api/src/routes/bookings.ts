@@ -1023,7 +1023,6 @@ bookingsRouter.patch("/:id/status", async (c) => {
     // ── Workflow State Machine Guard ──
     if (
       newStatus !== "cancelled" &&
-      newStatus !== "refunded" &&
       newStatus !== "no_show" &&
       existing.status !== newStatus
     ) {
@@ -1331,9 +1330,9 @@ bookingsRouter.patch("/:id/reschedule", async (c) => {
       };
       const reasonLabel = REASONS[body.reason] ?? body.reason;
       const prevDate = existing.eventDate ? new Date(existing.eventDate).toISOString() : "—";
-      const logLine = \`[تأجيل \${new Date().toISOString().slice(0, 10)}] من: \${prevDate} → إلى: \${body.eventDate} — السبب: \${reasonLabel}\${body.notes ? \` — \${body.notes}\` : ""}\`;
+      const logLine = `[تأجيل ${new Date().toISOString().slice(0, 10)}] من: ${prevDate} → إلى: ${body.eventDate} — السبب: ${reasonLabel}${body.notes ? ` — ${body.notes}` : ""}`;
       const updatedNotes = existing.internalNotes
-        ? \`\${existing.internalNotes}\\n\${logLine}\`
+        ? `${existing.internalNotes}\n${logLine}`
         : logLine;
 
       const updates: Partial<typeof bookings.$inferInsert> = {
