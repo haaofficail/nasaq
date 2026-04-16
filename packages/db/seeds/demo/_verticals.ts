@@ -32,11 +32,11 @@ export async function seedFlowerVertical(client: any, orgId: string) {
 
   // 1. Flower variants (global master table — no org_id, no service_id)
   const flowerVariants = [
-    { type: "rose",      color: "red",    origin: "netherlands",    grade: "A", size: "medium", nameAr: "ورد روز أحمر", nameEn: "Red Rose",      price: 8  },
-    { type: "rose",      color: "white",  origin: "kenyan",   grade: "A", size: "medium", nameAr: "ورد أبيض",     nameEn: "White Rose",    price: 6  },
-    { type: "lily",      color: "white",  origin: "netherlands",    grade: "A", size: "large",  nameAr: "ليلى بيضاء",   nameEn: "White Lily",    price: 12 },
-    { type: "sunflower", color: "yellow", origin: "other",    grade: "B", size: "large",  nameAr: "زنبق أصفر",    nameEn: "Sunflower",     price: 5  },
-    { type: "orchid",    color: "purple", origin: "thailand", grade: "A", size: "small",  nameAr: "أوركيد بنفسجي",nameEn: "Purple Orchid", price: 35 },
+    { type: "rose",      color: "red",    origin: "netherlands",    grade: "grade_a", size: "medium", nameAr: "ورد روز أحمر", nameEn: "Red Rose",      price: 8  },
+    { type: "rose",      color: "white",  origin: "kenya",   grade: "grade_a", size: "medium", nameAr: "ورد أبيض",     nameEn: "White Rose",    price: 6  },
+    { type: "lily",      color: "white",  origin: "netherlands",    grade: "grade_a", size: "large",  nameAr: "ليلى بيضاء",   nameEn: "White Lily",    price: 12 },
+    { type: "sunflower", color: "yellow", origin: "other",    grade: "grade_b", size: "large",  nameAr: "زنبق أصفر",    nameEn: "Sunflower",     price: 5  },
+    { type: "orchid",    color: "purple", origin: "thailand", grade: "grade_a", size: "small",  nameAr: "أوركيد بنفسجي",nameEn: "Purple Orchid", price: 35 },
   ];
 
   const variantIds: string[] = [];
