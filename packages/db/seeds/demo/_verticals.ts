@@ -254,43 +254,24 @@ export async function seedFlowerVertical(client: any, orgId: string) {
     },
   ];
 
-  const catMap: Map<string, string> = new Map(); // name → id
+  // UPDATE existing categories by name (createCatalog already inserted them with random slugs)
+  // Never INSERT — would create duplicates
+  const catMap: Map<string, string> = new Map();
   for (const cat of categoryDefs) {
-    const r = await client.query(
-      `INSERT INTO categories
-         (org_id, name, name_en, slug, description, icon, sort_order, is_active)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,true)
-       ON CONFLICT (org_id, slug) DO UPDATE
-         SET description = EXCLUDED.description,
-             name_en     = EXCLUDED.name_en,
-             icon        = EXCLUDED.icon
-       RETURNING id`,
-      [orgId, cat.name, cat.nameEn, cat.slug, cat.description, cat.icon, cat.sort]
-    );
-    let catId: string | null = r.rows[0]?.id ?? null;
-    if (!catId) {
-      const ex = await client.query(
-        `SELECT id FROM categories WHERE org_id=$1 AND slug=$2`, [orgId, cat.slug]
-      );
-      catId = ex.rows[0]?.id ?? null;
-    }
-    // Always patch ALL categories with this name (including auto-slug ones from createCatalog)
     await client.query(
       `UPDATE categories
        SET description = $1,
-           name_en     = COALESCE(name_en, $2),
-           icon        = COALESCE(icon, $3)
-       WHERE org_id = $4 AND name = $5 AND (description IS NULL OR description = '')`,
-      [cat.description, cat.nameEn, cat.icon, orgId, cat.name]
+           name_en     = COALESCE(NULLIF(name_en,''), $2),
+           icon        = COALESCE(NULLIF(icon,''), $3),
+           sort_order  = $4
+       WHERE org_id = $5 AND name = $6`,
+      [cat.description, cat.nameEn, cat.icon, cat.sort, orgId, cat.name]
     );
-    // Fall back to fetching by name if catId still null
-    if (!catId) {
-      const byName = await client.query(
-        `SELECT id FROM categories WHERE org_id=$1 AND name=$2 LIMIT 1`, [orgId, cat.name]
-      );
-      catId = byName.rows[0]?.id ?? null;
-    }
-    if (catId) catMap.set(cat.name, catId);
+    const r = await client.query(
+      `SELECT id FROM categories WHERE org_id=$1 AND name=$2 LIMIT 1`,
+      [orgId, cat.name]
+    );
+    if (r.rows[0]) catMap.set(cat.name, r.rows[0].id);
   }
 
   // ── [D] services — 12 services ───────────────────────────────────────────────
@@ -405,38 +386,18 @@ export async function seedFlowerVertical(client: any, orgId: string) {
     },
   ];
 
+  // UPDATE existing services by name (createCatalog already inserted them with random slugs)
+  // Never INSERT — would create duplicates
   for (const svc of serviceDefs) {
     const catId = catMap.get(svc.category) ?? null;
-    // Insert with clean slug (ON CONFLICT DO NOTHING for the clean slug)
-    await client.query(
-      `INSERT INTO services
-         (org_id, category_id, name, name_en, slug, short_description, description,
-          base_price, duration_minutes, status, offering_type,
-          is_bookable, is_visible_in_pos, is_visible_online, is_demo)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'active','service',true,true,true,true)
-       ON CONFLICT (org_id, slug) DO UPDATE
-         SET short_description = EXCLUDED.short_description,
-             description       = EXCLUDED.description,
-             name_en           = EXCLUDED.name_en,
-             category_id       = COALESCE(EXCLUDED.category_id, services.category_id),
-             base_price        = EXCLUDED.base_price,
-             duration_minutes  = EXCLUDED.duration_minutes,
-             status            = 'active'`,
-      [orgId, catId, svc.name, svc.nameEn, svc.slug,
-       svc.shortDesc, svc.desc, fmt(svc.price), svc.duration]
-    );
-    // Also update any existing service with the same name (created by createCatalog with auto-slug)
-    // to ensure descriptions are never empty
     await client.query(
       `UPDATE services
        SET short_description = $1,
            description       = $2,
-           name_en           = COALESCE(name_en, $3),
+           name_en           = COALESCE(NULLIF(name_en,''), $3),
            category_id       = COALESCE(category_id, $4),
            status            = 'active'
-       WHERE org_id = $5
-         AND name   = $6
-         AND (short_description IS NULL OR description IS NULL)`,
+       WHERE org_id = $5 AND name = $6`,
       [svc.shortDesc, svc.desc, svc.nameEn, catId, orgId, svc.name]
     );
   }
@@ -471,6 +432,14 @@ export async function seedFlowerVertical(client: any, orgId: string) {
     },
   ];
 
+  // Delete old generic packages inserted by previous seed runs before inserting new ones
+  const newPkgNames = packageDefs.map(p => p.name);
+  await client.query(
+    `DELETE FROM event_package_templates
+     WHERE org_id = $1 AND name NOT IN (${newPkgNames.map((_,i) => `$${i+2}`).join(',')})`,
+    [orgId, ...newPkgNames]
+  );
+
   const templateIds: string[] = [];
   const templateNames: string[] = [];
   for (const pkg of packageDefs) {
@@ -485,6 +454,12 @@ export async function seedFlowerVertical(client: any, orgId: string) {
     if (r.rows[0]) {
       templateIds.push(r.rows[0].id);
       templateNames.push(pkg.name);
+    } else {
+      const ex = await client.query(
+        `SELECT id FROM event_package_templates WHERE org_id=$1 AND name=$2 LIMIT 1`,
+        [orgId, pkg.name]
+      );
+      if (ex.rows[0]) { templateIds.push(ex.rows[0].id); templateNames.push(pkg.name); }
     }
   }
 
