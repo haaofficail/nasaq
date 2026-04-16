@@ -2243,7 +2243,7 @@ export async function seedFinancialLayer(client: any, orgId: string) {
     // Create a bank account for non-POS orgs
     const created = await client.query(
       `INSERT INTO treasury_accounts (org_id, name, type)
-       VALUES ($1, 'الحساب البنكي الرئيسي', 'bank')
+       VALUES ($1, 'الحساب البنكي الرئيسي', 'bank_account')
        ON CONFLICT DO NOTHING
        RETURNING id, current_balance`,
       [orgId]
