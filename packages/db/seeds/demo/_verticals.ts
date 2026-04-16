@@ -81,35 +81,24 @@ export async function seedFlowerVertical(client: any, orgId: string) {
     );
   }
 
-  // 3. Flower orders
-  const statuses = ["new", "confirmed", "in_preparation", "ready", "delivered", "delivered", "cancelled"];
-  // Valid values per chk_flower_orders_payment_status: unpaid|paid|partially_paid|refunded
-  const payStatuses = ["paid", "paid", "paid", "unpaid", "unpaid"];
+  // 3. Flower service orders (using service_orders — flower_orders table not available)
+  const statuses = ["closed", "closed", "scheduled", "confirmed", "cancelled"];
 
   for (let i = 0; i < 20; i++) {
     const cust = pick(customers);
-    const orderDate = randomDate(60);
-    const subtotal = rand(150, 800);
-    const vatAmount = subtotal * 0.15;
-    const total = subtotal + vatAmount;
-    const payStatus = pick(payStatuses);
-    const paidAmount = payStatus === "paid" ? total : 0;
+    const total = rand(150, 800) * 1.15;
 
     await client.query(
-      `INSERT INTO flower_orders
+      `INSERT INTO service_orders
          (org_id, customer_id, customer_name, customer_phone,
-          order_number, status, payment_status, paid_amount,
-          delivery_date, subtotal, vat_amount, total,
-          delivery_type, items)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pickup',$13)
+          order_number, type, order_kind, status, event_date, total_amount)
+       VALUES ($1,$2,$3,$4,$5,'custom_arrangement','booking',$6,$7,$8)
        ON CONFLICT DO NOTHING`,
       [
         orgId, cust.id, cust.name, cust.phone,
-        `FO-2026-${rand(1000, 9999)}`,
-        pick(statuses), payStatus, fmt(paidAmount),
-        iso(new Date(orderDate.getTime() + rand(1, 5) * 86400000)),
-        fmt(subtotal), fmt(vatAmount), fmt(total),
-        JSON.stringify([{ name: "باقة زهور", qty: 1, price: subtotal }]),
+        `FO-${rand(100000, 999999)}`,
+        pick(statuses),
+        iso(randomDate(60)), fmt(total),
       ]
     );
   }
