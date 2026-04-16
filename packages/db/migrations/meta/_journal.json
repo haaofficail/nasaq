@@ -43,6 +43,13 @@
       "when": 1774796626247,
       "tag": "0005_neat_talon",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1776326035881,
+      "tag": "0006_typical_lord_tyger",
+      "breakpoints": true
     }
   ]
 }

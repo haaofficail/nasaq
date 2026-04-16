@@ -19,6 +19,7 @@ interface DataTableProps<T> {
   addLabel?: string;
   onFilter?: () => void;
   keyExtractor?: (row: T) => string;
+  renderRow?: (row: T, index: number) => React.ReactNode;
   loading?: boolean;
   emptyText?: string;
   selectable?: boolean;
@@ -36,6 +37,7 @@ export function DataTable<T extends Record<string, any>>({
   onAdd,
   addLabel = "إضافة",
   onFilter,
+  keyExtractor,
   renderRow,
   loading,
   emptyText = "لا توجد بيانات",

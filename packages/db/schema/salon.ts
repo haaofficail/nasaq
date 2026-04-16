@@ -98,6 +98,9 @@ export const clientBeautyProfiles = pgTable("client_beauty_profiles", {
   // آخر فورمولا (اختصار سريع للرجوع)
   lastFormula:   text("last_formula"),
 
+  // Data flexibility for Universal Engine (Contextual View Engine)
+  metadata:      jsonb("metadata").default({}),
+
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 }, (t) => ({
@@ -136,6 +139,9 @@ export const visitNotes = pgTable("visit_notes", {
   // صور
   beforePhotoUrl: text("before_photo_url"),
   afterPhotoUrl:  text("after_photo_url"),
+
+  // Data flexibility for Universal Engine (Contextual View Engine)
+  customFields:   jsonb("custom_fields").default({}),
 
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

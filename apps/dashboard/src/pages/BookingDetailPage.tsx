@@ -10,6 +10,7 @@ import { Button, Modal, Input, Select, confirmDialog } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { fmtDate } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
+import { getMatrixForBusiness } from "@/lib/businessViewMatrix";
 
 const statusConfig: Record<string, { label: string; cls: string }> = {
   pending: { label: "بانتظار التأكيد", cls: "bg-amber-50 text-amber-600" },
@@ -39,6 +40,7 @@ const PAY_METHODS = [
 export function BookingDetailPage() {
   const { id } = useParams();
   const biz = useBusiness();
+  const matrix = getMatrixForBusiness(biz.key);
   const [showPayment, setShowPayment] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -111,28 +113,33 @@ export function BookingDetailPage() {
 
   const openVisitNote = () => {
     const existing = existingNoteRes?.data?.[0];
-    setVn({
-      formula:        existing?.formula        || "",
-      productsUsed:   existing?.productsUsed   || "",
-      technique:      existing?.technique      || "",
-      resultNotes:    existing?.resultNotes    || "",
-      privateNotes:   existing?.privateNotes   || "",
-      nextVisitIn:    existing?.nextVisitIn    ? String(existing.nextVisitIn) : "",
+    const newVn: any = {};
+    matrix.visitNoteFields.forEach(f => {
+      newVn[f.key] = existing?.[f.key] || existing?.customFields?.[f.key] || "";
     });
+    newVn.nextVisitIn = existing?.nextVisitIn ? String(existing.nextVisitIn) : "";
+    newVn.privateNotes = existing?.privateNotes || "";
+    setVn(newVn);
     setShowVisitNote(true);
   };
 
   const handleSaveVisitNote = async () => {
     if (!booking) return;
-    await saveVisitNote({
-      customerId:   booking.customerId,
-      formula:      vn.formula || null,
-      productsUsed: vn.productsUsed || null,
-      technique:    vn.technique || null,
-      resultNotes:  vn.resultNotes || null,
+    const payload: any = {
+      customerId: booking.customerId,
+      nextVisitIn: vn.nextVisitIn ? parseInt(vn.nextVisitIn) : null,
       privateNotes: vn.privateNotes || null,
-      nextVisitIn:  vn.nextVisitIn ? parseInt(vn.nextVisitIn) : null,
+      customFields: {}
+    };
+    matrix.visitNoteFields.forEach(f => {
+      if (['formula', 'productsUsed', 'technique', 'resultNotes', 'privateNotes'].includes(f.key)) {
+         payload[f.key] = vn[f.key] || null;
+      } else {
+         payload.customFields[f.key] = vn[f.key] || null;
+      }
     });
+    
+    await saveVisitNote(payload);
     setShowVisitNote(false);
     refetch();
   };
@@ -371,66 +378,63 @@ export function BookingDetailPage() {
             )}
           </div>
 
-          {/* Visit Note — صالونات وسبا فقط */}
-          {["salon","barber","spa","fitness"].includes(biz.key) && (booking.status === "completed" || booking.status === "in_progress") && (
+          {/* Visit Note — Dynamic Engine */}
+          {matrix.visitNoteFields.length > 0 && (booking.status === "completed" || booking.status === "in_progress") && (
             <div className="bg-white rounded-xl border border-gray-200 p-5">
               <div className="flex items-center justify-between mb-2">
-                <h3 className="font-semibold text-gray-900 text-sm">ملاحظات الزيارة</h3>
+                <h3 className="font-semibold text-gray-900 text-sm">التفاصيل والتنفيذ</h3>
                 <button onClick={openVisitNote} className="text-xs text-brand-500 hover:underline flex items-center gap-1">
-                  <FileText className="w-3.5 h-3.5" /> {existingNoteRes?.data?.[0] ? "تعديل" : "إضافة"}
+                  <FileText className="w-3.5 h-3.5" /> {existingNoteRes?.data?.[0] ? "تعديل" : "إضافة تقرير"}
                 </button>
               </div>
-              {existingNoteRes?.data?.[0]?.formula ? (
+              {existingNoteRes?.data?.[0]?.formula || existingNoteRes?.data?.[0]?.customFields?.formula || existingNoteRes?.data?.[0]?.customFields?.focusAreas || existingNoteRes?.data?.[0]?.customFields?.styleUsed ? (
                 <p className="text-xs font-mono bg-gray-50 rounded-lg px-2 py-1.5 text-gray-700">
-                  {existingNoteRes.data[0].formula}
+                  {existingNoteRes.data[0].formula || existingNoteRes.data[0].customFields?.formula || existingNoteRes.data[0].customFields?.focusAreas || existingNoteRes.data[0].customFields?.styleUsed}
                 </p>
               ) : (
-                <p className="text-xs text-gray-300">لم تُسجَّل ملاحظات بعد</p>
+                <p className="text-xs text-gray-300">لم تُسجَّل التقارير بعد</p>
               )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Visit Note Modal */}
-      <Modal open={showVisitNote} onClose={() => setShowVisitNote(false)} title="ملاحظات الزيارة" size="md"
+      {/* Visit Note Modal Dynamic */}
+      <Modal open={showVisitNote} onClose={() => setShowVisitNote(false)} title="تقرير التنفيذ" size="md"
         footer={<><Button variant="secondary" onClick={() => setShowVisitNote(false)}>إلغاء</Button><Button onClick={handleSaveVisitNote} loading={savingNote}>حفظ</Button></>}>
         <div className="space-y-4">
-          <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">الفورمولا (صبغة، علاج، إلخ)</label>
-            <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono"
-              value={vn.formula || ""} onChange={e => setVn(v => ({ ...v, formula: e.target.value }))}
-              placeholder="لوريال 7.1 + أوكسيجين 20 | 1:1 | 35 دقيقة" />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">المنتجات المستخدمة</label>
-            <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
-              value={vn.productsUsed || ""} onChange={e => setVn(v => ({ ...v, productsUsed: e.target.value }))}
-              placeholder="لوريال 7.1، أوكسيجين 20، ماسك البروتين" />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">الأسلوب المستخدم</label>
-            <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
-              value={vn.technique || ""} onChange={e => setVn(v => ({ ...v, technique: e.target.value }))}
-              placeholder="بالياج من المنتصف، قصة لاير" />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">ملاحظات النتيجة</label>
-            <textarea className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none" rows={2}
-              value={vn.resultNotes || ""} onChange={e => setVn(v => ({ ...v, resultNotes: e.target.value }))}
-              placeholder="النتيجة رائعة، العميلة سعيدة جداً" />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">ملاحظات داخلية</label>
-            <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
-              value={vn.privateNotes || ""} onChange={e => setVn(v => ({ ...v, privateNotes: e.target.value }))}
-              placeholder="لا تظهر للعميل" />
-          </div>
-          <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1">الزيارة القادمة بعد (أسابيع)</label>
+          {matrix.visitNoteFields.map(f => (
+            <div key={f.key}>
+              <label className="text-xs font-medium text-gray-500 block mb-1">{f.label}</label>
+              {f.type === "textarea" ? (
+                <textarea className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none" rows={2}
+                  value={vn[f.key] || ""} onChange={e => setVn(v => ({ ...v, [f.key]: e.target.value }))}
+                  placeholder={f.placeholder} />
+              ) : f.type === "select" ? (
+                <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white"
+                  value={vn[f.key] || ""} onChange={e => setVn(v => ({ ...v, [f.key]: e.target.value }))}>
+                  <option value="">—</option>
+                  {f.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              ) : (
+                <input type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono"
+                  value={vn[f.key] || ""} onChange={e => setVn(v => ({ ...v, [f.key]: e.target.value }))}
+                  placeholder={f.placeholder} />
+              )}
+            </div>
+          ))}
+
+          <div className="pt-3 border-t border-gray-100">
+            <label className="text-xs font-medium text-gray-500 block mb-1">توصيات إضافية - الزيارة القادمة بعد (أسابيع)</label>
             <input type="number" min="1" max="52" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
               value={vn.nextVisitIn || ""} onChange={e => setVn(v => ({ ...v, nextVisitIn: e.target.value }))}
               placeholder="6" />
+          </div>
+          <div>
+            <label className="text-xs font-medium text-gray-500 block mb-1">ملاحظات داخلية للطاقم (لا تظهر للعميل)</label>
+            <input type="text" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+              value={vn.privateNotes || ""} onChange={e => setVn(v => ({ ...v, privateNotes: e.target.value }))}
+              placeholder="ملاحظات تشغيلية" />
           </div>
         </div>
       </Modal>
