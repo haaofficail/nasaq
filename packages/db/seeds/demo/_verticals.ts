@@ -1352,33 +1352,1122 @@ async function seedLogisticsVertical(client: any, orgId: string) {
   }
 }
 
+// ─── A) FOOD DEEP VERTICAL ────────────────────────────────────────────────────
+// Adds restaurant_sections, enriches restaurant_tables, table_reservations,
+// menu_modifier_groups, menu_modifiers
+
+export async function seedFoodDeepVertical(client: any, orgId: string, businessType: string) {
+  const customers = await getOrgCustomers(client, orgId);
+  if (!customers.length) return;
+
+  // 1. restaurant_sections (unique on org_id, name)
+  const sectionDefs = businessType === "cafe"
+    ? [
+        { name: "الصالة الرئيسية", nameEn: "Main Hall",    capacity: 30 },
+        { name: "ركن VIP",        nameEn: "VIP Corner",    capacity: 12 },
+      ]
+    : [
+        { name: "القاعة الرئيسية", nameEn: "Main Hall",    capacity: 60 },
+        { name: "قاعة VIP",       nameEn: "VIP Hall",      capacity: 20 },
+      ];
+
+  const sectionIds: string[] = [];
+  for (let i = 0; i < sectionDefs.length; i++) {
+    const sd = sectionDefs[i];
+    const r = await client.query(
+      `INSERT INTO restaurant_sections (org_id, name, name_en, capacity, sort_order)
+       VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT (org_id, name) DO NOTHING
+       RETURNING id`,
+      [orgId, sd.name, sd.nameEn, sd.capacity, i + 1]
+    );
+    if (r.rows[0]) {
+      sectionIds.push(r.rows[0].id);
+    } else {
+      const ex = await client.query(
+        `SELECT id FROM restaurant_sections WHERE org_id=$1 AND name=$2 LIMIT 1`,
+        [orgId, sd.name]
+      );
+      if (ex.rows[0]) sectionIds.push(ex.rows[0].id);
+    }
+  }
+
+  // 2. Additional restaurant_tables linked to sections (section column = section name text)
+  const sectionNames = sectionDefs.map(s => s.name);
+  for (let t = 11; t <= 18; t++) {
+    const sectionName = sectionNames[t % sectionNames.length];
+    await client.query(
+      `INSERT INTO restaurant_tables (org_id, number, section, capacity, status, sort_order)
+       VALUES ($1,$2,$3,$4,'available',$5)
+       ON CONFLICT (org_id, number) DO NOTHING`,
+      [orgId, String(t), sectionName, pick([2, 4, 6]), t]
+    );
+  }
+
+  // 3. Fetch existing menu items to add modifier groups
+  const itemsRes = await client.query(
+    `SELECT id FROM menu_items WHERE org_id=$1 AND is_active=true LIMIT 5`,
+    [orgId]
+  );
+  for (const item of itemsRes.rows) {
+    const grpRes = await client.query(
+      `INSERT INTO menu_modifier_groups
+         (org_id, menu_item_id, name, selection_type, is_required, min_select, max_select, sort_order)
+       VALUES ($1,$2,'الحجم','single',false,0,1,1)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [orgId, item.id]
+    );
+    if (!grpRes.rows[0]) continue;
+    const grpId = grpRes.rows[0].id;
+    const mods = [
+      { name: "صغير",  delta: -5  },
+      { name: "وسط",   delta: 0   },
+      { name: "كبير",  delta: 8   },
+    ];
+    for (let mi = 0; mi < mods.length; mi++) {
+      await client.query(
+        `INSERT INTO menu_modifiers (org_id, group_id, name, price_delta, is_default, sort_order)
+         VALUES ($1,$2,$3,$4,$5,$6)
+         ON CONFLICT DO NOTHING`,
+        [orgId, grpId, mods[mi].name, fmt(mods[mi].delta), mi === 1, mi + 1]
+      );
+    }
+  }
+
+  // 4. table_reservations
+  const tableRes = await client.query(
+    `SELECT id FROM restaurant_tables WHERE org_id=$1 LIMIT 8`, [orgId]
+  );
+  const tableIds = tableRes.rows.map((r: any) => r.id);
+  if (!tableIds.length) return;
+
+  const resStatuses = ["confirmed", "confirmed", "seated", "completed", "cancelled", "no_show"];
+  for (let i = 0; i < 15; i++) {
+    const cust = pick(customers);
+    const resDate = randomDate(30);
+    await client.query(
+      `INSERT INTO table_reservations
+         (org_id, customer_id, reservation_number, status, table_id,
+          covers, section, reserved_at, duration_minutes, source)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,90,'dashboard')
+       ON CONFLICT DO NOTHING`,
+      [
+        orgId, cust.id,
+        `TR-${rand(100000, 999999)}`,
+        pick(resStatuses),
+        pick(tableIds),
+        rand(1, 6),
+        pick(sectionNames),
+        iso(resDate),
+      ]
+    );
+  }
+}
+
+// ─── B) HOTEL DEEP VERTICAL ───────────────────────────────────────────────────
+// room_units already created in seedHotelVertical.
+// This adds: hotel_seasonal_pricing + housekeeping_logs
+
+export async function seedHotelDeepVertical(client: any, orgId: string) {
+  // Fetch existing room_types and room_units created by seedHotelVertical
+  const rtRes = await client.query(
+    `SELECT id FROM room_types WHERE org_id=$1 LIMIT 4`, [orgId]
+  );
+  const roomTypeIds = rtRes.rows.map((r: any) => r.id);
+
+  const ruRes = await client.query(
+    `SELECT id FROM room_units WHERE org_id=$1 LIMIT 12`, [orgId]
+  );
+  const roomUnitIds = ruRes.rows.map((r: any) => r.id);
+
+  if (!roomTypeIds.length || !roomUnitIds.length) return;
+
+  // 1. Seasonal pricing (2 seasons)
+  const seasons = [
+    { name: "موسم الذروة — الصيف",  startM: "06-01", endM: "08-31", multiplier: 1.3 },
+    { name: "موسم الحج والرمضان",  startM: "03-01", endM: "04-30", multiplier: 1.5 },
+  ];
+
+  const now = new Date();
+  const year = now.getFullYear();
+
+  for (const s of seasons) {
+    for (const rtId of roomTypeIds.slice(0, 2)) {
+      // Get the base price for this room type
+      const priceRes = await client.query(
+        `SELECT price_per_night FROM room_types WHERE id=$1`, [rtId]
+      );
+      const basePrice = parseFloat(priceRes.rows[0]?.price_per_night || "500");
+      const seasonPrice = Math.round(basePrice * s.multiplier);
+
+      await client.query(
+        `INSERT INTO hotel_seasonal_pricing
+           (org_id, room_type_id, name, start_date, end_date, price_per_night)
+         VALUES ($1,$2,$3,$4,$5,$6)
+         ON CONFLICT DO NOTHING`,
+        [
+          orgId, rtId, s.name,
+          `${year}-${s.startM}`,
+          `${year}-${s.endM}`,
+          fmt(seasonPrice),
+        ]
+      );
+    }
+  }
+
+  // 2. Housekeeping logs
+  // task_type: 'cleaning'|'inspection'|'maintenance' (free text)
+  // status: pending|in_progress|completed|inspected|issue_reported
+  const taskTypes = ["cleaning", "deep_cleaning", "inspection", "turndown"];
+  const hkStatuses = ["completed", "completed", "in_progress", "pending", "inspected"];
+
+  for (let i = 0; i < 10; i++) {
+    const ruId = pick(roomUnitIds);
+    await client.query(
+      `INSERT INTO housekeeping_logs
+         (org_id, room_unit_id, task_type, priority, status, scheduled_at)
+       VALUES ($1,$2,$3,'normal',$4,$5)
+       ON CONFLICT DO NOTHING`,
+      [
+        orgId, ruId,
+        pick(taskTypes),
+        pick(hkStatuses),
+        iso(randomDate(14)),
+      ]
+    );
+  }
+}
+
+// ─── C) CAR RENTAL DEEP VERTICAL ─────────────────────────────────────────────
+// Adds vehicle_categories, vehicle_units, vehicle_inspections
+
+export async function seedCarRentalDeepVertical(client: any, orgId: string) {
+  // 1. vehicle_categories
+  const catDefs = [
+    { name: "اقتصادية",  nameEn: "Economy",  priceDay: 120,  priceWeek: 700,  priceMonth: 2500, deposit: 500  },
+    { name: "فاخرة",     nameEn: "Luxury",   priceDay: 750,  priceWeek: 4500, priceMonth: 16000,deposit: 3000 },
+    { name: "دفع رباعي", nameEn: "SUV 4x4",  priceDay: 380,  priceWeek: 2300, priceMonth: 8000, deposit: 1500 },
+  ];
+
+  const catIds: string[] = [];
+  for (const c of catDefs) {
+    const r = await client.query(
+      `INSERT INTO vehicle_categories
+         (org_id, name, name_en, price_per_day, price_per_week, price_per_month,
+          deposit_amount, insurance_included, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,true,true)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [orgId, c.name, c.nameEn, fmt(c.priceDay), fmt(c.priceWeek), fmt(c.priceMonth), fmt(c.deposit)]
+    );
+    if (r.rows[0]) catIds.push(r.rows[0].id);
+  }
+  if (!catIds.length) return;
+
+  // 2. vehicle_units
+  // status: available|reserved|rented|maintenance|inspection|out_of_service
+  const vehicleDefs = [
+    { make: "Toyota",  model: "Yaris",     year: 2024, color: "white",  plate: `ABC-${rand(1000,9999)}`, catIdx: 0, status: "available"  },
+    { make: "Toyota",  model: "Corolla",   year: 2023, color: "silver", plate: `DEF-${rand(1000,9999)}`, catIdx: 0, status: "rented"      },
+    { make: "Toyota",  model: "Camry",     year: 2024, color: "black",  plate: `GHI-${rand(1000,9999)}`, catIdx: 0, status: "available"  },
+    { make: "Lexus",   model: "ES350",     year: 2024, color: "black",  plate: `JKL-${rand(1000,9999)}`, catIdx: 1, status: "available"  },
+    { make: "BMW",     model: "7 Series",  year: 2023, color: "white",  plate: `MNO-${rand(1000,9999)}`, catIdx: 1, status: "reserved"   },
+    { make: "Toyota",  model: "Prado",     year: 2023, color: "silver", plate: `PQR-${rand(1000,9999)}`, catIdx: 2, status: "available"  },
+    { make: "Nissan",  model: "Patrol",    year: 2024, color: "white",  plate: `STU-${rand(1000,9999)}`, catIdx: 2, status: "rented"      },
+    { make: "Ford",    model: "Explorer",  year: 2023, color: "grey",   plate: `VWX-${rand(1000,9999)}`, catIdx: 2, status: "maintenance" },
+  ];
+
+  const vehicleUnitIds: string[] = [];
+  for (const v of vehicleDefs) {
+    const catId = catIds[v.catIdx % catIds.length];
+    const r = await client.query(
+      `INSERT INTO vehicle_units
+         (org_id, category_id, make, model, year, color, plate_number,
+          mileage, status, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9::vehicle_status,true)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [
+        orgId, catId, v.make, v.model, v.year, v.color, v.plate,
+        rand(5000, 80000), v.status,
+      ]
+    );
+    if (r.rows[0]) vehicleUnitIds.push(r.rows[0].id);
+  }
+  if (!vehicleUnitIds.length) return;
+
+  // 3. vehicle_inspections
+  // inspection_type: pre_rental|post_rental|routine|damage
+  const inspTypes: string[] = ["pre_rental", "post_rental", "routine", "pre_rental", "post_rental", "routine"];
+  for (let i = 0; i < 6; i++) {
+    const vuId = vehicleUnitIds[i % vehicleUnitIds.length];
+    await client.query(
+      `INSERT INTO vehicle_inspections
+         (org_id, vehicle_unit_id, inspection_type, inspected_at,
+          mileage_at_inspection, fuel_level,
+          exterior_condition, interior_condition, tires_condition, has_damage)
+       VALUES ($1,$2,$3,$4,$5,$6,'good','good','good',false)
+       ON CONFLICT DO NOTHING`,
+      [
+        orgId, vuId,
+        inspTypes[i] as string,
+        iso(randomDate(30)),
+        rand(5000, 80000),
+        pick(["full", "3/4", "1/2", "1/4"]),
+      ]
+    );
+  }
+}
+
+// ─── D) SCHOOL DEEP VERTICAL ──────────────────────────────────────────────────
+// school_semesters, grade_levels, subjects, teacher_profiles,
+// school_timetable, school_violation_categories, school_violations
+
+export async function seedSchoolDeepVertical(client: any, orgId: string) {
+  // 1. school_semesters (unique on org_id, year_label, semester_number)
+  const semesterDefs = [
+    { yearLabel: "1446-1447", semNum: 1, label: "الفصل الأول", startDate: "2024-09-01", endDate: "2025-01-15", isActive: false },
+    { yearLabel: "1446-1447", semNum: 2, label: "الفصل الثاني", startDate: "2025-01-20", endDate: "2025-05-30", isActive: true  },
+  ];
+  const semesterIds: string[] = [];
+  for (const s of semesterDefs) {
+    const r = await client.query(
+      `INSERT INTO school_semesters
+         (org_id, year_label, semester_number, label, start_date, end_date, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7)
+       ON CONFLICT (org_id, year_label, semester_number) DO NOTHING
+       RETURNING id`,
+      [orgId, s.yearLabel, s.semNum, s.label, s.startDate, s.endDate, s.isActive]
+    );
+    if (r.rows[0]) {
+      semesterIds.push(r.rows[0].id);
+    } else {
+      const ex = await client.query(
+        `SELECT id FROM school_semesters WHERE org_id=$1 AND year_label=$2 AND semester_number=$3`,
+        [orgId, s.yearLabel, s.semNum]
+      );
+      if (ex.rows[0]) semesterIds.push(ex.rows[0].id);
+    }
+  }
+
+  // 2. grade_levels (unique on org_id, name)
+  const gradeDefs = [
+    { code: "G4", name: "الصف الرابع",  stage: "ابتدائي" },
+    { code: "G5", name: "الصف الخامس",  stage: "ابتدائي" },
+    { code: "G6", name: "الصف السادس",  stage: "ابتدائي" },
+  ];
+  const gradeLevelIds: string[] = [];
+  for (let i = 0; i < gradeDefs.length; i++) {
+    const g = gradeDefs[i];
+    const r = await client.query(
+      `INSERT INTO grade_levels (org_id, code, name, stage, sort_order, is_active)
+       VALUES ($1,$2,$3,$4,$5,true)
+       ON CONFLICT (org_id, name) DO NOTHING
+       RETURNING id`,
+      [orgId, g.code, g.name, g.stage, i + 1]
+    );
+    if (r.rows[0]) {
+      gradeLevelIds.push(r.rows[0].id);
+    } else {
+      const ex = await client.query(
+        `SELECT id FROM grade_levels WHERE org_id=$1 AND name=$2`, [orgId, g.name]
+      );
+      if (ex.rows[0]) gradeLevelIds.push(ex.rows[0].id);
+    }
+  }
+
+  // 3. subjects (unique on org_id, name)
+  const subjectDefs = [
+    { code: "MATH", name: "الرياضيات",   type: "core"     },
+    { code: "ARB",  name: "اللغة العربية", type: "core"   },
+    { code: "ENG",  name: "اللغة الإنجليزية", type: "core" },
+    { code: "SCI",  name: "العلوم",       type: "core"     },
+    { code: "SOC",  name: "الدراسات الاجتماعية", type: "core" },
+    { code: "ISL",  name: "التربية الإسلامية", type: "core" },
+    { code: "ART",  name: "التربية الفنية", type: "elective" },
+    { code: "PE",   name: "التربية البدنية", type: "elective" },
+  ];
+  const subjectIds: string[] = [];
+  for (let i = 0; i < subjectDefs.length; i++) {
+    const s = subjectDefs[i];
+    const r = await client.query(
+      `INSERT INTO subjects (org_id, code, name, type, sort_order, is_active)
+       VALUES ($1,$2,$3,$4,$5,true)
+       ON CONFLICT (org_id, name) DO NOTHING
+       RETURNING id`,
+      [orgId, s.code, s.name, s.type, i + 1]
+    );
+    if (r.rows[0]) {
+      subjectIds.push(r.rows[0].id);
+    } else {
+      const ex = await client.query(
+        `SELECT id FROM subjects WHERE org_id=$1 AND name=$2`, [orgId, s.name]
+      );
+      if (ex.rows[0]) subjectIds.push(ex.rows[0].id);
+    }
+  }
+
+  // 4. teacher_profiles (no FK to hr_employees required — standalone)
+  const teacherDefs = [
+    { name: "أحمد عبدالله السالم",   subject: "الرياضيات",   phone: "+966500020001" },
+    { name: "منيرة سالم الحربي",     subject: "اللغة العربية", phone: "+966500020002" },
+    { name: "خالد محمد الزهراني",   subject: "العلوم",       phone: "+966500020003" },
+    { name: "هدى عبدالرحمن العمري", subject: "اللغة الإنجليزية", phone: "+966500020004" },
+  ];
+  const teacherIds: string[] = [];
+  for (let i = 0; i < teacherDefs.length; i++) {
+    const t = teacherDefs[i];
+    const r = await client.query(
+      `INSERT INTO teacher_profiles
+         (org_id, full_name, employee_number, subject, phone, gender, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,true)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [
+        orgId, t.name,
+        `T-${String(rand(1000, 9999))}`,
+        t.subject, t.phone,
+        i % 2 === 0 ? "male" : "female",
+      ]
+    );
+    if (r.rows[0]) teacherIds.push(r.rows[0].id);
+  }
+
+  // 5. school_timetable (unique on org_id, class_room_id, day_of_week, period_number)
+  const classRoomRes = await client.query(
+    `SELECT id FROM class_rooms WHERE org_id=$1 LIMIT 3`, [orgId]
+  );
+  const classRoomIds = classRoomRes.rows.map((r: any) => r.id);
+  if (classRoomIds.length && teacherIds.length && subjectIds.length) {
+    const periods = [
+      { day: 0, period: 1, start: "07:30", end: "08:15" },
+      { day: 0, period: 2, start: "08:20", end: "09:05" },
+      { day: 1, period: 1, start: "07:30", end: "08:15" },
+      { day: 1, period: 2, start: "08:20", end: "09:05" },
+      { day: 2, period: 1, start: "07:30", end: "08:15" },
+      { day: 2, period: 2, start: "08:20", end: "09:05" },
+      { day: 3, period: 1, start: "07:30", end: "08:15" },
+      { day: 3, period: 2, start: "08:20", end: "09:05" },
+      { day: 4, period: 1, start: "07:30", end: "08:15" },
+      { day: 4, period: 2, start: "08:20", end: "09:05" },
+    ];
+    for (let i = 0; i < periods.length; i++) {
+      const p = periods[i];
+      const crId = classRoomIds[i % classRoomIds.length];
+      const tchId = teacherIds.length ? teacherIds[i % teacherIds.length] : null;
+      const subName = subjectDefs[i % subjectDefs.length]?.name ?? "الرياضيات";
+      await client.query(
+        `INSERT INTO school_timetable
+           (org_id, class_room_id, day_of_week, period_number, subject, teacher_id, start_time, end_time)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+         ON CONFLICT (org_id, class_room_id, day_of_week, period_number) DO NOTHING`,
+        [orgId, crId, p.day, p.period, subName, tchId, p.start, p.end]
+      );
+    }
+  }
+
+  // 6. school_violation_categories
+  const violCatDefs = [
+    { name: "غياب بدون عذر",         severity: "medium", degree: "1", color: "#f59e0b" },
+    { name: "تأخر عن الحصة",          severity: "low",    degree: "1", color: "#6b7280" },
+    { name: "سلوك مخالف للنظام",     severity: "high",   degree: "2", color: "#ef4444" },
+  ];
+  const violCatIds: string[] = [];
+  for (const vc of violCatDefs) {
+    const r = await client.query(
+      `INSERT INTO school_violation_categories
+         (org_id, name, severity, default_degree, color, is_active)
+       VALUES ($1,$2,$3,$4,$5,true)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [orgId, vc.name, vc.severity, vc.degree, vc.color]
+    );
+    if (r.rows[0]) violCatIds.push(r.rows[0].id);
+  }
+
+  // 7. school_violations (need student_ids)
+  const studentRes = await client.query(
+    `SELECT id FROM students WHERE org_id=$1 LIMIT 10`, [orgId]
+  );
+  const studentIds = studentRes.rows.map((r: any) => r.id);
+  if (studentIds.length && violCatIds.length) {
+    for (let i = 0; i < 5; i++) {
+      const catId = violCatIds.length ? pick(violCatIds) : null;
+      await client.query(
+        `INSERT INTO school_violations
+           (org_id, student_id, category_id, description, degree, violation_date, status)
+         VALUES ($1,$2,$3,$4,$5,$6,'open')
+         ON CONFLICT DO NOTHING`,
+        [
+          orgId, pick(studentIds), catId,
+          pick(["غياب بدون إذن", "تأخر متكرر", "إخلال بالنظام", "عدم الاستعداد للدرس"]),
+          pick(["1", "1", "2"]),
+          randomDate(30).toISOString().slice(0, 10),
+        ]
+      );
+    }
+  }
+}
+
+// ─── E) CONSTRUCTION DEEP VERTICAL ───────────────────────────────────────────
+// Creates property_construction record + phases, costs, daily_logs,
+// payments, change_orders
+
+export async function seedConstructionDeepVertical(client: any, orgId: string) {
+  // First create a property_construction record
+  const statuses = ["foundation", "structure", "finishing"];
+  const projTypes = ["new_build", "renovation"];
+  const contractTypes = ["lump_sum", "cost_plus"];
+
+  const totalBudget = rand(500000, 3000000);
+  const contractAmount = Math.round(totalBudget * 0.95);
+
+  const pcRes = await client.query(
+    `INSERT INTO property_construction
+       (org_id, project_name, project_type, contractor_name, contractor_phone,
+        total_budget, contract_amount, contract_type, status,
+        overall_progress, estimated_completion_date)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+     ON CONFLICT DO NOTHING
+     RETURNING id`,
+    [
+      orgId,
+      `مشروع إنشاء ${rand(1000, 9999)}`,
+      pick(projTypes),
+      "شركة الإنشاءات المتكاملة",
+      "+966500030001",
+      fmt(totalBudget),
+      fmt(contractAmount),
+      pick(contractTypes),
+      pick(statuses),
+      rand(20, 80),
+      new Date(Date.now() + rand(90, 365) * 86400000).toISOString().slice(0, 10),
+    ]
+  );
+  if (!pcRes.rows[0]) {
+    // Already exists — fetch it
+    const ex = await client.query(
+      `SELECT id FROM property_construction WHERE org_id=$1 LIMIT 1`, [orgId]
+    );
+    if (!ex.rows[0]) return;
+  }
+  const constructionId = pcRes.rows[0]?.id ?? (await client.query(
+    `SELECT id FROM property_construction WHERE org_id=$1 LIMIT 1`, [orgId]
+  )).rows[0]?.id;
+  if (!constructionId) return;
+
+  // 1. construction_phases (4 phases)
+  // phase_status: not_started|in_progress|completed|on_hold|delayed
+  const phaseDefs = [
+    { name: "التصميم والتخطيط", status: "completed",  progress: 100, orderIdx: 0, estCost: rand(20000,  60000)  },
+    { name: "التأسيس والحفر",   status: "completed",  progress: 100, orderIdx: 1, estCost: rand(80000,  200000) },
+    { name: "البناء الهيكلي",   status: "in_progress",progress: 65,  orderIdx: 2, estCost: rand(200000, 600000) },
+    { name: "التشطيب الداخلي",  status: "not_started",progress: 0,   orderIdx: 3, estCost: rand(100000, 400000) },
+  ];
+
+  const phaseIds: string[] = [];
+  for (const ph of phaseDefs) {
+    const now = new Date();
+    const planStart = new Date(now.getTime() - rand(90, 180) * 86400000);
+    const planEnd   = new Date(planStart.getTime() + rand(30, 90) * 86400000);
+
+    const r = await client.query(
+      `INSERT INTO construction_phases
+         (org_id, construction_id, name, order_index, status, progress,
+          planned_start_date, planned_end_date, estimated_cost)
+       VALUES ($1,$2,$3,$4,$5::phase_status,$6,$7,$8,$9)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [
+        orgId, constructionId,
+        ph.name, ph.orderIdx, ph.status, ph.progress,
+        planStart.toISOString().slice(0, 10),
+        planEnd.toISOString().slice(0, 10),
+        fmt(ph.estCost),
+      ]
+    );
+    if (r.rows[0]) phaseIds.push(r.rows[0].id);
+  }
+
+  // 2. construction_costs (8 costs)
+  const costCategories = ["materials", "labor", "equipment", "subcontractors", "permits"];
+  const costDefs = [
+    { desc: "حديد تسليح",           cat: "materials",      amount: rand(50000,  150000) },
+    { desc: "خرسانة جاهزة",         cat: "materials",      amount: rand(30000,   80000) },
+    { desc: "أعمال الحفر والجرف",    cat: "labor",          amount: rand(20000,   60000) },
+    { desc: "رافعة شوكية — إيجار",   cat: "equipment",      amount: rand(15000,   40000) },
+    { desc: "أعمال كهرباء",          cat: "subcontractors", amount: rand(25000,   70000) },
+    { desc: "أعمال السباكة",          cat: "subcontractors", amount: rand(20000,   55000) },
+    { desc: "رسوم رخصة البناء",      cat: "permits",        amount: rand(5000,    15000) },
+    { desc: "مواد تشطيب (بلاط)",     cat: "materials",      amount: rand(40000,  100000) },
+  ];
+
+  for (let i = 0; i < costDefs.length; i++) {
+    const c = costDefs[i];
+    const phaseId = phaseIds.length ? phaseIds[i % phaseIds.length] : null;
+    const vat = Math.round(c.amount * 0.15);
+    await client.query(
+      `INSERT INTO construction_costs
+         (org_id, construction_id, phase_id, cost_date, category, description,
+          total_amount, vat_amount, payment_status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       ON CONFLICT DO NOTHING`,
+      [
+        orgId, constructionId, phaseId,
+        randomDate(60).toISOString().slice(0, 10),
+        c.cat, c.desc,
+        fmt(c.amount), fmt(vat),
+        pick(["paid", "paid", "pending"]),
+      ]
+    );
+  }
+
+  // 3. construction_daily_logs (10 logs)
+  const weathers = ["صافٍ", "غائم جزئياً", "رياح خفيفة", "حار وجاف"];
+  for (let i = 0; i < 10; i++) {
+    await client.query(
+      `INSERT INTO construction_daily_logs
+         (org_id, construction_id, log_date, weather, temperature,
+          workers_count, supervisor_present, work_description, logged_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       ON CONFLICT DO NOTHING`,
+      [
+        orgId, constructionId,
+        randomDate(30).toISOString().slice(0, 10),
+        pick(weathers),
+        rand(28, 45),
+        rand(5, 30),
+        Math.random() > 0.3,
+        pick([
+          "أعمال الصبة الخرسانية للطابق الثاني",
+          "تركيب حديد التسليح للجدران",
+          "أعمال البناء بالطوب",
+          "تنظيف الموقع وترتيب المواد",
+          "أعمال الكهرباء والسباكة المخفية",
+        ]),
+        "مشرف الموقع",
+      ]
+    );
+  }
+
+  // 4. construction_payments (4 payments)
+  const payStatuses = ["paid", "paid", "approved", "draft"];
+  for (let i = 0; i < 4; i++) {
+    const gross = Math.round(contractAmount * [0.1, 0.2, 0.3, 0.25][i]);
+    const retention = Math.round(gross * 0.1);
+    const net = gross - retention;
+    await client.query(
+      `INSERT INTO construction_payments
+         (org_id, construction_id, payment_number, gross_amount, retention_deducted,
+          net_payable, status, completion_percentage)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+       ON CONFLICT DO NOTHING`,
+      [
+        orgId, constructionId, i + 1,
+        fmt(gross), fmt(retention), fmt(net),
+        payStatuses[i],
+        [10, 20, 30, 25][i],
+      ]
+    );
+  }
+
+  // 5. construction_change_orders (2 orders)
+  const coStatuses = ["approved", "proposed"];
+  for (let i = 0; i < 2; i++) {
+    await client.query(
+      `INSERT INTO construction_change_orders
+         (org_id, construction_id, change_order_number, title, description,
+          reason, cost_impact, time_impact, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       ON CONFLICT DO NOTHING`,
+      [
+        orgId, constructionId,
+        `CO-${rand(100, 999)}`,
+        pick(["تعديل مخطط الطابق الثالث", "إضافة مواقف إضافية", "تغيير نوع التشطيب"]),
+        "تعديل بناءً على طلب المالك",
+        "owner_request",
+        fmt(rand(10000, 80000)),
+        rand(7, 30),
+        coStatuses[i],
+      ]
+    );
+  }
+}
+
+// ─── F) EVENTS DEEP VERTICAL ──────────────────────────────────────────────────
+// event_package_templates, event_package_template_items, decor_assets,
+// decor_asset_reservations (need service_orders)
+
+export async function seedEventsDeepVertical(client: any, orgId: string) {
+  const customers = await getOrgCustomers(client, orgId);
+  if (!customers.length) return;
+
+  // 1. decor_assets
+  // category: artificial_flowers|stands|backdrops|vases|holders|decor|kiosk_equipment|other
+  // status: available|reserved|in_use|returned|maintenance|damaged
+  const assetDefs = [
+    { name: "كوش ذهبي فاخر",          category: "stands",            cost: 3500,  status: "available" },
+    { name: "خلفية بالون ورد أبيض",   category: "backdrops",         cost: 1800,  status: "available" },
+    { name: "طاولة استقبال مع زهور",  category: "stands",            cost: 2200,  status: "in_use"    },
+    { name: "مزهريات كريستال (طقم)",  category: "vases",             cost: 1200,  status: "available" },
+    { name: "حاملات شموع ذهبية (10)", category: "holders",           cost: 800,   status: "available" },
+    { name: "ديكور مدخل ورود صناعية", category: "artificial_flowers", cost: 2500, status: "reserved"  },
+  ];
+
+  const assetIds: string[] = [];
+  for (const a of assetDefs) {
+    const r = await client.query(
+      `INSERT INTO decor_assets
+         (org_id, name, category, status, purchase_cost, is_active)
+       VALUES ($1,$2,$3,$4,$5,true)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [orgId, a.name, a.category, a.status, fmt(a.cost)]
+    );
+    if (r.rows[0]) assetIds.push(r.rows[0].id);
+  }
+
+  // 2. event_package_templates
+  // type: kiosk|reception_table|entrance|wedding|newborn|custom
+  const templateDefs = [
+    { name: "باقة أساسية",     type: "custom",   workers: 2 },
+    { name: "باقة بريميوم",    type: "wedding",  workers: 4 },
+    { name: "باقة VIP فاخرة", type: "wedding",  workers: 6 },
+  ];
+
+  const templateIds: string[] = [];
+  for (const t of templateDefs) {
+    const r = await client.query(
+      `INSERT INTO event_package_templates
+         (org_id, name, type, worker_count, is_active)
+       VALUES ($1,$2,$3,$4,true)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [orgId, t.name, t.type, t.workers]
+    );
+    if (r.rows[0]) templateIds.push(r.rows[0].id);
+  }
+
+  // 3. event_package_template_items
+  // item_type: asset|consumable_natural|consumable_product|service_fee
+  for (let ti = 0; ti < templateIds.length; ti++) {
+    const tId = templateIds[ti];
+    const items = [
+      { desc: "كوش رئيسي",     type: "asset",              qty: 1,  cost: 3500, assetId: assetIds[0] ?? null },
+      { desc: "ورود طازجة",    type: "consumable_natural",  qty: 50, cost: 10,   assetId: null },
+      { desc: "رسوم التركيب", type: "service_fee",          qty: 1,  cost: 500,  assetId: null },
+    ];
+    for (let ii = 0; ii < items.length; ii++) {
+      const it = items[ii];
+      await client.query(
+        `INSERT INTO event_package_template_items
+           (template_id, org_id, item_type, asset_id, description, quantity, unit, unit_cost_estimate, sort_order)
+         VALUES ($1,$2,$3,$4,$5,$6,'قطعة',$7,$8)
+         ON CONFLICT DO NOTHING`,
+        [tId, orgId, it.type, it.assetId, it.desc, fmt(it.qty), fmt(it.cost), ii + 1]
+      );
+    }
+  }
+
+  // 4. decor_asset_reservations (need service_order_id)
+  if (assetIds.length >= 2) {
+    // Fetch existing service_orders for this org
+    const soRes = await client.query(
+      `SELECT id FROM service_orders WHERE org_id=$1 LIMIT 4`, [orgId]
+    );
+    for (let i = 0; i < Math.min(4, soRes.rows.length); i++) {
+      const soId = soRes.rows[i].id;
+      const assetId = assetIds[i % assetIds.length];
+      const fromDate = randomDate(30);
+      const toDate = new Date(fromDate.getTime() + rand(1, 3) * 86400000);
+      await client.query(
+        `INSERT INTO decor_asset_reservations
+           (asset_id, service_order_id, org_id, reserved_from, reserved_to, status)
+         VALUES ($1,$2,$3,$4,$5,'reserved')
+         ON CONFLICT DO NOTHING`,
+        [assetId, soId, orgId, iso(fromDate), iso(toDate)]
+      );
+    }
+  }
+}
+
+// ─── G) INVENTORY VERTICAL ────────────────────────────────────────────────────
+// suppliers, inventory_products, stock_movements, purchase_orders,
+// purchase_order_items
+
+export async function seedInventoryVertical(client: any, orgId: string, productPrefix = "منتج") {
+  // 1. suppliers
+  const supplierDefs = [
+    { name: "شركة الإمداد السعودية",    code: `SUP-${rand(100,999)}`, contact: "محمد المطيري",  phone: "+966500040001", city: "الرياض"  },
+    { name: "مورد الخليج المتحد",       code: `SUP-${rand(100,999)}`, contact: "خالد الزهراني", phone: "+966500040002", city: "جدة"     },
+    { name: "مستودعات النهضة الحديثة", code: `SUP-${rand(100,999)}`, contact: "سعد العتيبي",   phone: "+966500040003", city: "الدمام"  },
+  ];
+
+  const supplierIds: string[] = [];
+  for (const s of supplierDefs) {
+    const r = await client.query(
+      `INSERT INTO suppliers
+         (org_id, name, code, contact_name, phone, city, currency, status, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,'SAR','active',true)
+       ON CONFLICT (org_id, code) DO NOTHING
+       RETURNING id`,
+      [orgId, s.name, s.code, s.contact, s.phone, s.city]
+    );
+    if (r.rows[0]) {
+      supplierIds.push(r.rows[0].id);
+    } else {
+      const ex = await client.query(
+        `SELECT id FROM suppliers WHERE org_id=$1 AND code=$2`, [orgId, s.code]
+      );
+      if (ex.rows[0]) supplierIds.push(ex.rows[0].id);
+    }
+  }
+
+  // 2. inventory_products (15 products)
+  const productDefs = [
+    { name: `${productPrefix} أ`,    category: "مواد خام",     unit: "كيلوغرام", cost: rand(10,  50),  sell: rand(20, 80)  },
+    { name: `${productPrefix} ب`,    category: "مواد خام",     unit: "لتر",       cost: rand(5,   30),  sell: rand(10, 50)  },
+    { name: `${productPrefix} ج`,    category: "عبوات",        unit: "قطعة",      cost: rand(2,   10),  sell: rand(5,  20)  },
+    { name: `${productPrefix} د`,    category: "مستلزمات",     unit: "علبة",      cost: rand(15,  60),  sell: rand(30, 100) },
+    { name: `${productPrefix} هـ`,   category: "مستلزمات",     unit: "قطعة",      cost: rand(8,   40),  sell: rand(15, 70)  },
+    { name: `${productPrefix} و`,    category: "معدات",        unit: "قطعة",      cost: rand(100, 500), sell: rand(200,800) },
+    { name: `${productPrefix} ز`,    category: "كيماويات",     unit: "لتر",       cost: rand(20,  80),  sell: rand(40,120)  },
+    { name: `${productPrefix} ح`,    category: "مواد خام",     unit: "كيس",       cost: rand(30,  100), sell: rand(60,180)  },
+    { name: `${productPrefix} ط`,    category: "مستلزمات",     unit: "رزمة",      cost: rand(5,   25),  sell: rand(10, 45)  },
+    { name: `${productPrefix} ي`,    category: "عبوات",        unit: "كرتون",     cost: rand(50,  200), sell: rand(100,350) },
+    { name: `${productPrefix} ك`,    category: "كيماويات",     unit: "براميل",    cost: rand(150, 600), sell: rand(300,900) },
+    { name: `${productPrefix} ل`,    category: "مواد خام",     unit: "كيلوغرام", cost: rand(10,  40),  sell: rand(20, 70)  },
+    { name: `${productPrefix} م`,    category: "معدات",        unit: "قطعة",      cost: rand(200, 800), sell: rand(400,1200)},
+    { name: `${productPrefix} ن`,    category: "مستلزمات",     unit: "علبة",      cost: rand(10,  50),  sell: rand(20, 80)  },
+    { name: `${productPrefix} س`,    category: "عبوات",        unit: "قطعة",      cost: rand(3,   15),  sell: rand(7,  25)  },
+  ];
+
+  const productIds: string[] = [];
+  for (let i = 0; i < productDefs.length; i++) {
+    const p = productDefs[i];
+    const qty = rand(10, 200);
+    const sku  = `SKU-${rand(10000, 99999)}`;
+    const r = await client.query(
+      `INSERT INTO inventory_products
+         (org_id, name, sku, category, unit, unit_cost, cost_price, selling_price,
+          current_stock, min_stock, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$6,$7,$8,5,true)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [orgId, p.name, sku, p.category, p.unit, fmt(p.cost), fmt(p.sell), qty]
+    );
+    if (r.rows[0]) productIds.push(r.rows[0].id);
+  }
+
+  // 3. stock_movements (10 movements)
+  // type: in|out|adjustment|transfer
+  const movTypes = ["in", "in", "in", "out", "out", "adjustment"];
+  for (let i = 0; i < 10; i++) {
+    if (!productIds.length) break;
+    const prodId = pick(productIds);
+    await client.query(
+      `INSERT INTO stock_movements
+         (org_id, product_id, type, quantity, notes)
+       VALUES ($1,$2,$3,$4,$5)
+       ON CONFLICT DO NOTHING`,
+      [
+        orgId, prodId,
+        pick(movTypes),
+        rand(1, 50),
+        pick(["استلام من المورد", "بيع للعميل", "تعديل جرد", "مرتجع من العميل"]),
+      ]
+    );
+  }
+
+  // 4. purchase_orders (3 orders) — need a user_id for created_by
+  const userRes = await client.query(
+    `SELECT id FROM users WHERE org_id=$1 LIMIT 1`, [orgId]
+  );
+  const userId = userRes.rows[0]?.id;
+  if (!userId || !supplierIds.length) return;
+
+  for (let i = 0; i < 3; i++) {
+    const supId = supplierIds[i % supplierIds.length];
+    const subtotal = rand(5000, 30000);
+    const vat = Math.round(subtotal * 0.15);
+    const total = subtotal + vat;
+    const poStatus = ["received", "partially_received", "draft"][i];
+
+    const poRes = await client.query(
+      `INSERT INTO purchase_orders
+         (org_id, supplier_id, po_number, order_date, subtotal, vat_amount, total_amount,
+          status, created_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8::po_status,$9)
+       ON CONFLICT (org_id, po_number) DO NOTHING
+       RETURNING id`,
+      [
+        orgId, supId,
+        `PO-${rand(10000, 99999)}`,
+        iso(randomDate(60)),
+        fmt(subtotal), fmt(vat), fmt(total),
+        poStatus, userId,
+      ]
+    );
+    if (!poRes.rows[0]) continue;
+    const poId = poRes.rows[0].id;
+
+    // PO items (2–3 per order)
+    for (let j = 0; j < rand(2, 3); j++) {
+      const prodId = productIds.length ? pick(productIds) : null;
+      const qty = rand(5, 50);
+      const unitPrice = rand(10, 200);
+      const lineTotal = qty * unitPrice;
+      await client.query(
+        `INSERT INTO purchase_order_items
+           (po_id, org_id, item_name, ordered_quantity, received_quantity, unit_price, total_price)
+         VALUES ($1,$2,$3,$4,$4,$5,$6)
+         ON CONFLICT DO NOTHING`,
+        [poId, orgId, `صنف ${j + 1}`, qty, fmt(unitPrice), fmt(lineTotal)]
+      );
+    }
+  }
+}
+
+// ─── H) FINANCIAL LAYER ───────────────────────────────────────────────────────
+// treasury_transactions, hr_payroll + hr_payroll_items, hr_leaves,
+// customer_interactions
+
+export async function seedFinancialLayer(client: any, orgId: string) {
+  // 1. treasury_transactions — need treasury_account_id
+  const taRes = await client.query(
+    `SELECT id, current_balance FROM treasury_accounts WHERE org_id=$1 AND is_active=true LIMIT 1`,
+    [orgId]
+  );
+  if (taRes.rows[0]) {
+    const taId = taRes.rows[0].id;
+    let runningBalance = parseFloat(taRes.rows[0].current_balance || "0");
+
+    // transaction_type: receipt|payment|transfer_in|transfer_out|opening|closing|adjustment
+    // source_type: booking|invoice|expense|pos|transfer|payroll|manual
+    const txDefs = [
+      { type: "receipt",  src: "booking", desc: "استلام دفعة حجز", amount: rand(500,  3000) },
+      { type: "receipt",  src: "booking", desc: "دفعة عميل نقداً", amount: rand(200,  1500) },
+      { type: "receipt",  src: "invoice", desc: "سداد فاتورة",     amount: rand(800,  5000) },
+      { type: "payment",  src: "expense", desc: "دفع إيجار",        amount: rand(2000, 8000) },
+      { type: "payment",  src: "expense", desc: "مصاريف تشغيلية",  amount: rand(300,  2000) },
+      { type: "receipt",  src: "pos",     desc: "إيراد نقطة بيع",  amount: rand(100,  800)  },
+      { type: "payment",  src: "payroll", desc: "صرف رواتب",       amount: rand(5000, 20000)},
+      { type: "receipt",  src: "booking", desc: "عربون حجز",       amount: rand(500,  2000) },
+      { type: "payment",  src: "expense", desc: "مشتريات",         amount: rand(1000, 5000) },
+      { type: "receipt",  src: "manual",  desc: "تحويل وارد",      amount: rand(3000, 10000)},
+    ];
+
+    for (const tx of txDefs) {
+      const delta = tx.type === "receipt" || tx.type === "transfer_in"
+        ? tx.amount : -tx.amount;
+      runningBalance += delta;
+      if (runningBalance < 0) runningBalance = 0;
+
+      await client.query(
+        `INSERT INTO treasury_transactions
+           (org_id, treasury_account_id, transaction_type, amount, balance_after,
+            description, source_type, voucher_number)
+         VALUES ($1,$2,$3::treasury_transaction_type,$4,$5,$6,$7::treasury_source_type,$8)
+         ON CONFLICT DO NOTHING`,
+        [
+          orgId, taId, tx.type, fmt(tx.amount), fmt(runningBalance),
+          tx.desc, tx.src,
+          `VCH-${rand(10000, 99999)}`,
+        ]
+      );
+    }
+  }
+
+  // 2. hr_payroll + hr_payroll_items
+  const empRes = await client.query(
+    `SELECT id, full_name, basic_salary, housing_allowance, transport_allowance
+     FROM hr_employees WHERE org_id=$1 AND status='active' LIMIT 5`,
+    [orgId]
+  );
+  if (empRes.rows.length > 0) {
+    const payrollMonth = "2026-03";
+    const payrollDate  = "2026-03-31";
+
+    let totalBasic  = 0;
+    let totalAllows = 0;
+    let totalNet    = 0;
+
+    const payrollRes = await client.query(
+      `INSERT INTO hr_payroll
+         (org_id, payroll_number, payroll_month, payroll_date, status)
+       VALUES ($1,$2,$3,$4,'paid')
+       ON CONFLICT (org_id, payroll_number) DO NOTHING
+       RETURNING id`,
+      [orgId, `PAY-${rand(10000, 99999)}`, payrollMonth, payrollDate]
+    );
+
+    if (payrollRes.rows[0]) {
+      const payrollId = payrollRes.rows[0].id;
+      for (const emp of empRes.rows) {
+        const basic     = parseFloat(emp.basic_salary      || "3000");
+        const housing   = parseFloat(emp.housing_allowance  || "500");
+        const transport = parseFloat(emp.transport_allowance || "300");
+        const net = basic + housing + transport;
+
+        totalBasic  += basic;
+        totalAllows += housing + transport;
+        totalNet    += net;
+
+        await client.query(
+          `INSERT INTO hr_payroll_items
+             (org_id, payroll_id, employee_id, basic_salary, housing_allowance,
+              transport_allowance, net_salary, working_days, status)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,26,'included')
+           ON CONFLICT DO NOTHING`,
+          [
+            orgId, payrollId, emp.id,
+            fmt(basic), fmt(housing), fmt(transport), fmt(net),
+          ]
+        );
+      }
+
+      // Update payroll totals
+      await client.query(
+        `UPDATE hr_payroll
+         SET total_basic=$2, total_allowances=$3, total_net=$4
+         WHERE id=$1`,
+        [payrollId, fmt(totalBasic), fmt(totalAllows), fmt(totalNet)]
+      );
+    }
+  }
+
+  // 3. hr_leaves
+  if (empRes.rows.length > 0) {
+    const leaveTypes = ["annual", "sick", "emergency", "unpaid"];
+    for (let i = 0; i < Math.min(3, empRes.rows.length); i++) {
+      const emp = empRes.rows[i];
+      const startDate = randomDate(30);
+      const days = rand(2, 7);
+      const endDate = new Date(startDate.getTime() + days * 86400000);
+      await client.query(
+        `INSERT INTO hr_leaves
+           (org_id, employee_id, leave_type, start_date, end_date, days_count, status)
+         VALUES ($1,$2,$3,$4,$5,$6,'approved')
+         ON CONFLICT DO NOTHING`,
+        [
+          orgId, emp.id,
+          pick(leaveTypes),
+          startDate.toISOString().slice(0, 10),
+          endDate.toISOString().slice(0, 10),
+          days,
+        ]
+      );
+    }
+  }
+
+  // 4. customer_interactions (5 per org)
+  // interaction_type: call|whatsapp|sms|email|note|meeting
+  const customers = await getOrgCustomers(client, orgId);
+  if (customers.length > 0) {
+    const intTypes: string[] = ["call", "whatsapp", "email", "note", "meeting"];
+    const subjects = [
+      "استفسار عن الخدمات",
+      "متابعة طلب",
+      "شكوى وحلها",
+      "عرض ترقية",
+      "تأكيد موعد",
+    ];
+    for (let i = 0; i < 5; i++) {
+      const cust = pick(customers);
+      await client.query(
+        `INSERT INTO customer_interactions
+           (customer_id, type, subject, content)
+         VALUES ($1,$2,$3,$4)
+         ON CONFLICT DO NOTHING`,
+        [
+          cust.id,
+          intTypes[i % intTypes.length],
+          subjects[i % subjects.length],
+          pick(["تم التواصل بنجاح", "في انتظار رد العميل", "تمت معالجة الطلب"]),
+        ]
+      );
+    }
+  }
+}
+
+// ─── I) SERVICE ORDERS HELPER ─────────────────────────────────────────────────
+// Simple helper for orgs that primarily use service_orders
+
+export async function seedServiceOrdersVertical(
+  client: any, orgId: string, prefix: string, count: number
+) {
+  const customers = await getOrgCustomers(client, orgId);
+  const services = await getOrgServices(client, orgId);
+  if (!customers.length) return;
+
+  const statuses = ["closed", "closed", "closed", "scheduled", "cancelled", "confirmed"];
+  const orderTypes = ["custom_arrangement", "field_execution", "kiosk"];
+  const orderKinds = ["booking", "sale", "project"];
+
+  for (let i = 0; i < count; i++) {
+    const cust = pick(customers);
+    const svc  = services.length ? pick(services) : null;
+    const total = svc ? Number(svc.base_price) * 1.15 : rand(100, 5000) * 1.15;
+
+    await client.query(
+      `INSERT INTO service_orders
+         (org_id, customer_id, customer_name, customer_phone,
+          order_number, type, order_kind, status, service_id, event_date, total_amount)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+       ON CONFLICT DO NOTHING`,
+      [
+        orgId, cust.id, cust.name, cust.phone,
+        `${prefix}-${rand(100000, 999999)}`,
+        pick(orderTypes), pick(orderKinds),
+        pick(statuses),
+        svc?.id ?? null,
+        iso(randomDate(60)), fmt(total),
+      ]
+    );
+  }
+}
+
 // ─── Dispatcher ──────────────────────────────────────────────────────────────
 
-const VERTICAL_MAP: Record<string, (client: any, orgId: string) => Promise<void>> = {
+type VerticalFn = (client: any, orgId: string) => Promise<void>;
+
+const VERTICAL_MAP: Record<string, VerticalFn> = {
   flower_shop:      seedFlowerVertical,
-  hotel:            seedHotelVertical,
-  car_rental:       seedCarRentalVertical,
+  hotel:            async (c, o) => { await seedHotelVertical(c, o); await seedHotelDeepVertical(c, o); },
+  car_rental:       async (c, o) => { await seedCarRentalVertical(c, o); await seedCarRentalDeepVertical(c, o); },
   salon:            seedSalonVertical,
   barber:           seedBarberVertical,
   spa:              seedSpaVertical,
   fitness:          seedSalonVertical,
-  school:           seedSchoolVertical,
-  education:        seedSchoolVertical,
+  school:           async (c, o) => { await seedSchoolVertical(c, o); await seedSchoolDeepVertical(c, o); },
+  education:        async (c, o) => { await seedSchoolVertical(c, o); await seedSchoolDeepVertical(c, o); },
   medical:          seedMedicalVertical,
   maintenance:      seedMaintenanceVertical,
   workshop:         seedMaintenanceVertical,
-  events:           seedEventsVertical,
-  event_organizer:  seedEventsVertical,
-  events_vendor:    seedEventsVertical,
-  photography:      seedEventsVertical,
-  restaurant:       seedFoodVertical,
-  cafe:             seedFoodVertical,
-  bakery:           seedFoodVertical,
-  catering:         seedFoodVertical,
+  events:           async (c, o) => { await seedEventsVertical(c, o); await seedEventsDeepVertical(c, o); },
+  event_organizer:  async (c, o) => { await seedEventsVertical(c, o); await seedEventsDeepVertical(c, o); },
+  events_vendor:    async (c, o) => { await seedEventsVertical(c, o); await seedEventsDeepVertical(c, o); },
+  photography:      async (c, o) => { await seedEventsVertical(c, o); await seedEventsDeepVertical(c, o); },
+  restaurant:       async (c, o) => { await seedFoodVertical(c, o); await seedFoodDeepVertical(c, o, "restaurant"); },
+  cafe:             async (c, o) => { await seedFoodVertical(c, o); await seedFoodDeepVertical(c, o, "cafe"); },
+  bakery:           async (c, o) => { await seedFoodVertical(c, o); await seedFoodDeepVertical(c, o, "bakery"); },
+  catering:         async (c, o) => { await seedFoodVertical(c, o); await seedFoodDeepVertical(c, o, "catering"); },
   rental:           seedRentalVertical,
   real_estate:      seedRealEstateVertical,
-  construction:     seedConstructionVertical,
+  construction:     async (c, o) => { await seedConstructionVertical(c, o); await seedConstructionDeepVertical(c, o); },
   logistics:        seedLogisticsVertical,
+  // New verticals
+  retail:           async (c, o) => { await seedInventoryVertical(c, o, "بضاعة"); await seedServiceOrdersVertical(c, o, "RET", 15); },
+  store:            async (c, o) => { await seedInventoryVertical(c, o, "سلعة"); await seedServiceOrdersVertical(c, o, "STR", 15); },
+  printing:         async (c, o) => { await seedInventoryVertical(c, o, "مادة طباعة"); await seedServiceOrdersVertical(c, o, "PRN", 20); },
+  digital_services: async (c, o) => { await seedServiceOrdersVertical(c, o, "DIG", 20); await seedFinancialLayer(c, o); },
+  marketing:        async (c, o) => { await seedServiceOrdersVertical(c, o, "MKT", 20); await seedFinancialLayer(c, o); },
+  agency:           async (c, o) => { await seedServiceOrdersVertical(c, o, "AGN", 20); await seedFinancialLayer(c, o); },
+  technology:       async (c, o) => { await seedServiceOrdersVertical(c, o, "TEC", 20); await seedFinancialLayer(c, o); },
+  laundry:          async (c, o) => { await seedInventoryVertical(c, o, "مواد تنظيف"); await seedServiceOrdersVertical(c, o, "LAU", 20); },
+  services:         async (c, o) => { await seedServiceOrdersVertical(c, o, "SVC", 20); },
+  general:          async (c, o) => { await seedServiceOrdersVertical(c, o, "GEN", 15); },
 };
 
 export async function seedVertical(client: any, orgId: string, businessType: string) {
@@ -1390,5 +2479,11 @@ export async function seedVertical(client: any, orgId: string, businessType: str
       // Don't fail the whole seed if a vertical has a schema issue
       console.warn(`    [vertical:${businessType}] warning: ${err.message}`);
     }
+  }
+  // Always run financial layer for every org (idempotent)
+  try {
+    await seedFinancialLayer(client, orgId);
+  } catch (err: any) {
+    console.warn(`    [financial-layer:${businessType}] warning: ${err.message}`);
   }
 }

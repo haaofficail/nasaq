@@ -110,6 +110,41 @@ async function run() {
           "contract_payments",       // contracts vertical
           "contracts",               // contracts vertical
           "rental_assets",           // rental vertical
+
+          // ── New deep vertical tables (child before parent order) ──────────
+          "decor_asset_reservations",    // asset_id → decor_assets (CASCADE)
+          "event_package_template_items",// template_id → event_package_templates (CASCADE)
+          "event_package_templates",     // org_id CASCADE
+          "decor_assets",                // org_id CASCADE
+          "vehicle_inspections",         // vehicle_unit_id → vehicle_units (CASCADE)
+          "vehicle_units",               // category_id → vehicle_categories (CASCADE)
+          "vehicle_categories",          // org_id CASCADE
+          "housekeeping_logs",           // room_unit_id → room_units (CASCADE)
+          "hotel_seasonal_pricing",      // room_type_id → room_types (CASCADE)
+          "construction_change_orders",  // construction_id → property_construction (CASCADE)
+          "construction_payments",       // construction_id → property_construction (CASCADE)
+          "construction_daily_logs",     // construction_id → property_construction (CASCADE)
+          "construction_costs",          // construction_id → property_construction (CASCADE)
+          "construction_phases",         // construction_id → property_construction (CASCADE)
+          "property_construction",       // org_id CASCADE
+          "school_violations",           // student_id → students (CASCADE)
+          "school_violation_categories", // org_id CASCADE
+          "school_timetable",            // class_room_id → class_rooms (CASCADE)
+          "teacher_profiles",            // org_id CASCADE
+          "grade_levels",                // org_id CASCADE
+          "school_semesters",            // org_id CASCADE
+          "menu_modifier_groups",        // menu_item_id → menu_items (CASCADE)
+          "table_reservations",          // org_id CASCADE
+          "restaurant_sections",         // org_id CASCADE
+          "treasury_transactions",       // org_id CASCADE
+          "hr_payroll_items",            // payroll_id → hr_payroll (CASCADE)
+          "hr_payroll",                  // org_id CASCADE
+          "hr_leaves",                   // org_id CASCADE
+          "purchase_order_items",        // po_id → purchase_orders (CASCADE)
+          "purchase_orders",             // org_id CASCADE
+          "stock_movements",             // org_id CASCADE
+          "inventory_products",          // org_id CASCADE
+          "suppliers",                   // org_id CASCADE
         ];
         for (const tbl of preTables) {
           await safeDelete(tbl);
