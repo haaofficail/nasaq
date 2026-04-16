@@ -269,25 +269,26 @@ export async function seedFlowerVertical(client: any, orgId: string) {
     );
     let catId: string | null = r.rows[0]?.id ?? null;
     if (!catId) {
-      // Fetch by slug (may have been inserted previously)
       const ex = await client.query(
         `SELECT id FROM categories WHERE org_id=$1 AND slug=$2`, [orgId, cat.slug]
       );
       catId = ex.rows[0]?.id ?? null;
     }
-    // Also update existing category created by createCatalog (auto-slug, no description)
+    // Always patch ALL categories with this name (including auto-slug ones from createCatalog)
+    await client.query(
+      `UPDATE categories
+       SET description = $1,
+           name_en     = COALESCE(name_en, $2),
+           icon        = COALESCE(icon, $3)
+       WHERE org_id = $4 AND name = $5 AND (description IS NULL OR description = '')`,
+      [cat.description, cat.nameEn, cat.icon, orgId, cat.name]
+    );
+    // Fall back to fetching by name if catId still null
     if (!catId) {
       const byName = await client.query(
         `SELECT id FROM categories WHERE org_id=$1 AND name=$2 LIMIT 1`, [orgId, cat.name]
       );
       catId = byName.rows[0]?.id ?? null;
-      if (catId) {
-        await client.query(
-          `UPDATE categories SET description=$1, name_en=COALESCE(name_en,$2), icon=COALESCE(icon,$3)
-           WHERE id=$4`,
-          [cat.description, cat.nameEn, cat.icon, catId]
-        );
-      }
     }
     if (catId) catMap.set(cat.name, catId);
   }
