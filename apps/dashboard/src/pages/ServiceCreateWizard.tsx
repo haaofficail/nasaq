@@ -35,7 +35,7 @@ function parseDur(mins: number): { v: string; u: DurationUnit } {
   return { v: String(mins), u: "minute" };
 }
 
-const SERVICE_TYPES: { value: string; label: string; desc: string; icon: React.ElementType }[] = [
+const DEFAULT_SERVICE_TYPES: { value: string; label: string; desc: string; icon: React.ElementType }[] = [
   { value: "appointment",      label: "حجز موعد",      desc: "العميل يحجز وقت محدد", icon: CalendarCheck },
   { value: "execution",        label: "تنفيذ وصيانة",  desc: "تنفيذ عمل ميداني",    icon: Wrench },
   { value: "field_service",    label: "خدمة ميدانية",  desc: "زيارة في موقع العميل", icon: MapPin },
@@ -48,6 +48,18 @@ const SERVICE_TYPES: { value: string; label: string; desc: string; icon: React.E
   { value: "add_on",           label: "خيار إضافي",    desc: "يُضاف على خدمة",      icon: Plus },
   { value: "project",          label: "مشروع",          desc: "عمل طويل المدى",      icon: FileText },
 ];
+
+const FLOWER_SHOP_TYPES = [
+  { value: "product",          label: "باقات الورد والهدايا",  desc: "باقات جاهزة، تغليف، فازات تباع للعميل مباشرة", icon: Package },
+  { value: "event_rental",     label: "تأجير الكوش والاستقبالات", desc: "تجهيز وتأجير الكوش، طاولات الاستقبال، والمداخل", icon: Star },
+  { value: "execution",        label: "تنسيق موقع وحفلات",   desc: "فريق المنسقين يجهز ورد طبيعي أو صناعي في القاعة", icon: Wrench },
+  { value: "product_shipping", label: "باقات وشحنات توصيل",     desc: "باقات مخصصة للإهداء وتوصيل المناسبات",          icon: Truck },
+  { value: "package",          label: "عروض مجمّعة (توفير)",   desc: "باقة (ورد + شوكولاتة + كرت) بسعر موحد وحصري", icon: Gift },
+];
+
+const BUSINESS_CUSTOM_TYPES: Record<string, typeof DEFAULT_SERVICE_TYPES> = {
+  flower_shop: FLOWER_SHOP_TYPES,
+};
 
 const NEEDS_TIMING = new Set(["appointment", "execution", "field_service", "rental", "event_rental", "project", "food_order"]);
 const NEEDS_CAPACITY = new Set(["event_rental", "package", "food_order", "rental"]);
@@ -137,7 +149,21 @@ const BUSINESS_DEFAULT_SERVICE_TYPE: Record<string, string> = {
   bakery: "food_order", catering: "food_order", rental: "rental", car_rental: "rental",
   hotel: "rental", real_estate: "rental", events: "event_rental", event_organizer: "event_rental",
   workshop: "execution", maintenance: "execution", logistics: "field_service", construction: "project",
-  retail: "product", flower_shop: "field_service", school: "product",
+  retail: "product", flower_shop: "product", school: "product",
+};
+
+const SERVICE_TYPE_PLACEHOLDERS: Record<string, string> = {
+  appointment: "مثال: جلسة ليزر، مساج سويدي...",
+  execution: "مثال: صيانة مكيف، تركيب لوحات...",
+  field_service: "مثال: تنظيف منزلي، تنسيق حدائق...",
+  rental: "مثال: تأجير معدات، تأجير سيارة...",
+  event_rental: "مثال: قاعة أفراح، خيمة مناسبات...",
+  product: "مثال: باقة ورد جوري، عطر، منتج تغليف...",
+  product_shipping: "مثال: بوكس هدايا، منتج جاهز...",
+  food_order: "مثال: كيكة زفاف، بوكس قهوة...",
+  package: "مثال: باقة العروس، باقة التوفير...",
+  project: "مثال: تصميم ديكور، حملة تسويقية...",
+  add_on: "مثال: تغليف فاخر، إضافة كرت هدية..."
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -268,8 +294,30 @@ export function ServiceCreateWizard() {
   const [questionPickerIdx, setQuestionPickerIdx] = useState<number | null>(null);
 
   // ── Derived ────────────────────────────────────────────────────────────────
+  const user = useMemo(() => {
+    try { return JSON.parse(localStorage.getItem("nasaq_user") || "{}"); } catch { return {}; }
+  }, []);
+  const isFlowerShop = user?.businessType === "flower_shop";
+  const availableTypes = BUSINESS_CUSTOM_TYPES[user?.businessType || ""] || DEFAULT_SERVICE_TYPES;
+
   const needsTiming = NEEDS_TIMING.has(form.serviceType);
-  const typeConfig = TYPE_CONFIG[form.serviceType] || DEFAULT_TYPE_CONFIG;
+  
+  // Apply dynamic overrides based on business type
+  const baseTypeConfig = TYPE_CONFIG[form.serviceType] || DEFAULT_TYPE_CONFIG;
+  const typeConfig = useMemo(() => {
+    const conf = { ...baseTypeConfig };
+    if (isFlowerShop) {
+      if (form.serviceType === "product") {
+        conf.componentTitle = "الورد ومواد التغليف";
+        conf.componentDesc = "الفازات، أنواع الورد، وشرائط التغليف المستخدمة";
+      } else if (form.serviceType === "event_rental" || form.serviceType === "execution") {
+        conf.componentTitle = "المواد والمعدات والأزهار";
+        conf.componentDesc = "الورد الصناعي، الهياكل المعدنية، ومعدات الإضاءة";
+      }
+    }
+    return conf;
+  }, [baseTypeConfig, isFlowerShop, form.serviceType]);
+  
   const isExecutionMode = form.serviceMode === "execution";
   const canToggleMode = EXECUTION_TYPES.has(form.serviceType) || ["appointment", "execution", "field_service", "project"].includes(form.serviceType);
 
@@ -285,20 +333,15 @@ export function ServiceCreateWizard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.serviceType]);
 
-  // ── Auto-select type ───────────────────────────────────────────────────────
+  // ── Always start at Step 0 (Type Picker) unless passed via URL ───────
   useEffect(() => {
     if (typeFromUrl) {
       setForm(f => ({ ...f, serviceType: typeFromUrl }));
+      setStep(1);
     } else {
-      try {
-        const user = JSON.parse(localStorage.getItem("nasaq_user") || "{}");
-        const bt: string = user?.businessType ?? "";
-        const defaultType = BUSINESS_DEFAULT_SERVICE_TYPE[bt];
-        if (defaultType) setForm(f => ({ ...f, serviceType: defaultType }));
-      } catch { /* ignore */ }
+      setStep(0);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [typeFromUrl]);
 
   // ── Load reference data ────────────────────────────────────────────────────
   useEffect(() => {
@@ -494,7 +537,7 @@ export function ServiceCreateWizard() {
   };
 
   // ── Summary helpers ────────────────────────────────────────────────────────
-  const selType = SERVICE_TYPES.find(t => t.value === form.serviceType);
+  const selType = availableTypes.find(t => t.value === form.serviceType) || DEFAULT_SERVICE_TYPES.find(t => t.value === form.serviceType);
   const categoryName = categories.find((c: any) => c.id === form.categoryId)?.name;
 
   const formatPrice = (p: string) => {
@@ -591,7 +634,7 @@ export function ServiceCreateWizard() {
             </div>
             {errors.serviceType && <Err msg={errors.serviceType} />}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {SERVICE_TYPES.map(t => {
+              {availableTypes.map(t => {
                 const Icon = t.icon;
                 const active = form.serviceType === t.value;
                 return (
@@ -688,9 +731,9 @@ export function ServiceCreateWizard() {
 
               {/* Name */}
               <div>
-                <label className="text-xs font-medium text-gray-700 block mb-1.5">اسم الخدمة <span className="text-red-400">*</span></label>
+                <label className="text-xs font-medium text-gray-700 block mb-1.5">اسم الخدمة / المنتج <span className="text-red-400">*</span></label>
                 <input autoFocus value={form.name} onChange={upd("name")}
-                  placeholder="مثال: تنسيق حدائق منزلية"
+                  placeholder={SERVICE_TYPE_PLACEHOLDERS[form.serviceType] || "مثال: اكتب الاسم هنا..."}
                   className={clsx(iCls, errors.name && "border-red-300")} />
                 <Err msg={errors.name} />
               </div>
@@ -1027,8 +1070,8 @@ export function ServiceCreateWizard() {
                     <Package className="w-4 h-4 text-indigo-500" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-gray-900">مقدمو الخدمة</h3>
-                    <p className="text-[11px] text-gray-400">الموظفون المؤهلون لتقديم هذه الخدمة</p>
+                    <h3 className="text-sm font-bold text-gray-900">{isFlowerShop ? "المنسقون وفريق العمل" : "مقدمو الخدمة"}</h3>
+                    <p className="text-[11px] text-gray-400">{isFlowerShop ? "المنسقين والمؤهلين لتجهيز وتصميم هذا العمل" : "الموظفون المؤهلون لتقديم هذه الخدمة"}</p>
                   </div>
                 </div>
                 {pendingStaffIds.length > 0 && (
@@ -1092,7 +1135,7 @@ export function ServiceCreateWizard() {
                             onClick={() => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, sourceType: t, inventoryItemId: "", name: "" } : x))}
                             className={clsx("px-3 py-1 rounded-md text-xs font-medium transition-all",
                               c.sourceType === t ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
-                            )}>{t === "manual" ? "يدوي" : "مخزون"}</button>
+                            )}>{t === "manual" ? "إدخال يدوي" : (isFlowerShop ? "من مستودع الورد" : "مخزون")}</button>
                         ))}
                       </div>
                       <button onClick={() => setComponentDrafts(d => d.filter((_, j) => j !== i))} className="p-1 text-gray-300 hover:text-red-500">
@@ -1461,7 +1504,7 @@ export function ServiceCreateWizard() {
               <button onClick={save} disabled={saving}
                 className="flex items-center gap-1.5 px-6 py-2 rounded-xl bg-brand-500 text-white text-sm font-bold hover:bg-brand-600 disabled:opacity-50 transition-colors shadow-sm">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                إنشاء الخدمة
+                {isFlowerShop && form.serviceType === "product" ? "اعتماد وإضافة للمتجر" : "إنشاء وحفظ"}
               </button>
             )}
           </div>

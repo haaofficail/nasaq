@@ -278,18 +278,18 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     ],
   },
 
-  // 4. المشاريع والأصول — feature_projects (floral)
+  // 4. المشاريع والأصول -> إدارة الكوش والتجهيزات (floral)
   {
     id: "specialty_flower_projects",
-    label: "المشاريع والأصول",
+    label: "إدارة الكوش والتجهيزات",
     requiredCapabilities: ["floral"],
     anyCapability: [],
     allowedBusinessTypes: ["flower_shop"],
     allowedOperatingProfiles: [],
     items: [
-      { name: "المشاريع الميدانية", href: "/dashboard/flower-service-orders", icon: Briefcase, requiredCapabilities: ["floral"] },
-      { name: "المعدات والأدوات",  href: "/dashboard/flower-assets",         icon: Archive,   requiredCapabilities: ["floral"] },
-      { name: "الموردون",           href: "/dashboard/flower-suppliers",      icon: Truck,     requiredCapabilities: ["floral"] },
+      { name: "أوامر تجهيز القاعات", href: "/dashboard/flower-service-orders", icon: Briefcase, requiredCapabilities: ["floral"] },
+      { name: "هياكل وأصول الكوش",  href: "/dashboard/flower-assets",         icon: Archive,   requiredCapabilities: ["floral"] },
+      { name: "مزارع وموردو الورد",   href: "/dashboard/flower-suppliers",      icon: Truck,     requiredCapabilities: ["floral"] },
     ],
   },
 
