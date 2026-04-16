@@ -1155,7 +1155,7 @@ async function seedRealEstateVertical(client: any, orgId: string) {
           start_date, end_date, contract_type, rent_amount, payment_frequency,
           deposit_amount, deposit_status,
           ejar_status, auto_renew, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,'annual',$8,'monthly',$9,'collected',$10,true,$11)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'annual',$8,'monthly',$9,'paid',$10,true,$11)
        ON CONFLICT DO NOTHING
        RETURNING id`,
       [
