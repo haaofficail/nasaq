@@ -260,16 +260,34 @@ export async function seedFlowerVertical(client: any, orgId: string) {
       `INSERT INTO categories
          (org_id, name, name_en, slug, description, icon, sort_order, is_active)
        VALUES ($1,$2,$3,$4,$5,$6,$7,true)
-       ON CONFLICT (org_id, slug) DO NOTHING
+       ON CONFLICT (org_id, slug) DO UPDATE
+         SET description = EXCLUDED.description,
+             name_en     = EXCLUDED.name_en,
+             icon        = EXCLUDED.icon
        RETURNING id`,
       [orgId, cat.name, cat.nameEn, cat.slug, cat.description, cat.icon, cat.sort]
     );
     let catId: string | null = r.rows[0]?.id ?? null;
     if (!catId) {
+      // Fetch by slug (may have been inserted previously)
       const ex = await client.query(
         `SELECT id FROM categories WHERE org_id=$1 AND slug=$2`, [orgId, cat.slug]
       );
       catId = ex.rows[0]?.id ?? null;
+    }
+    // Also update existing category created by createCatalog (auto-slug, no description)
+    if (!catId) {
+      const byName = await client.query(
+        `SELECT id FROM categories WHERE org_id=$1 AND name=$2 LIMIT 1`, [orgId, cat.name]
+      );
+      catId = byName.rows[0]?.id ?? null;
+      if (catId) {
+        await client.query(
+          `UPDATE categories SET description=$1, name_en=COALESCE(name_en,$2), icon=COALESCE(icon,$3)
+           WHERE id=$4`,
+          [cat.description, cat.nameEn, cat.icon, catId]
+        );
+      }
     }
     if (catId) catMap.set(cat.name, catId);
   }
@@ -388,15 +406,37 @@ export async function seedFlowerVertical(client: any, orgId: string) {
 
   for (const svc of serviceDefs) {
     const catId = catMap.get(svc.category) ?? null;
+    // Insert with clean slug (ON CONFLICT DO NOTHING for the clean slug)
     await client.query(
       `INSERT INTO services
          (org_id, category_id, name, name_en, slug, short_description, description,
           base_price, duration_minutes, status, offering_type,
           is_bookable, is_visible_in_pos, is_visible_online, is_demo)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'active','service',true,true,true,true)
-       ON CONFLICT (org_id, slug) DO NOTHING`,
+       ON CONFLICT (org_id, slug) DO UPDATE
+         SET short_description = EXCLUDED.short_description,
+             description       = EXCLUDED.description,
+             name_en           = EXCLUDED.name_en,
+             category_id       = COALESCE(EXCLUDED.category_id, services.category_id),
+             base_price        = EXCLUDED.base_price,
+             duration_minutes  = EXCLUDED.duration_minutes,
+             status            = 'active'`,
       [orgId, catId, svc.name, svc.nameEn, svc.slug,
        svc.shortDesc, svc.desc, fmt(svc.price), svc.duration]
+    );
+    // Also update any existing service with the same name (created by createCatalog with auto-slug)
+    // to ensure descriptions are never empty
+    await client.query(
+      `UPDATE services
+       SET short_description = $1,
+           description       = $2,
+           name_en           = COALESCE(name_en, $3),
+           category_id       = COALESCE(category_id, $4),
+           status            = 'active'
+       WHERE org_id = $5
+         AND name   = $6
+         AND (short_description IS NULL OR description IS NULL)`,
+      [svc.shortDesc, svc.desc, svc.nameEn, catId, orgId, svc.name]
     );
   }
 
