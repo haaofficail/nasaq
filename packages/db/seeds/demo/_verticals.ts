@@ -2945,7 +2945,7 @@ export async function seedServiceOrdersVertical(
 type VerticalFn = (client: any, orgId: string) => Promise<void>;
 
 const VERTICAL_MAP: Record<string, VerticalFn> = {
-  flower_shop:      async (c, o) => { await seedFlowerVertical(c, o); await seedInventoryVertical(c, o, FLOWER_SHOP_PRODUCTS); await seedEventsDeepVertical(c, o); },
+  flower_shop:      async (c, o) => { await seedFlowerVertical(c, o); await seedInventoryVertical(c, o, FLOWER_SHOP_PRODUCTS); },
   hotel:            async (c, o) => { await seedHotelVertical(c, o); await seedHotelDeepVertical(c, o); },
   car_rental:       async (c, o) => { await seedCarRentalVertical(c, o); await seedCarRentalDeepVertical(c, o); },
   salon:            seedSalonVertical,
