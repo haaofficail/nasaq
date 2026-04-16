@@ -32,29 +32,29 @@ export async function seedFlowerVertical(client: any, orgId: string) {
 
   // 1. Flower variants (global master table — no org_id, no service_id)
   const flowerVariants = [
-    { type: "rose",      color: "red",    origin: "netherlands",    grade: "grade_a", size: "medium", nameAr: "ورد روز أحمر", nameEn: "Red Rose",      price: 8  },
-    { type: "rose",      color: "white",  origin: "kenya",   grade: "grade_a", size: "medium", nameAr: "ورد أبيض",     nameEn: "White Rose",    price: 6  },
-    { type: "lily",      color: "white",  origin: "netherlands",    grade: "grade_a", size: "large",  nameAr: "ليلى بيضاء",   nameEn: "White Lily",    price: 12 },
-    { type: "sunflower", color: "yellow", origin: "other",    grade: "grade_b", size: "large",  nameAr: "زنبق أصفر",    nameEn: "Sunflower",     price: 5  },
-    { type: "orchid",    color: "purple", origin: "thailand", grade: "grade_a", size: "small",  nameAr: "أوركيد بنفسجي",nameEn: "Purple Orchid", price: 35 },
+    { type: "rose",      color: "red",    origin: "netherlands", grade: "grade_a", size: "medium", bloom: "semi_open", nameAr: "ورد روز أحمر",   nameEn: "Red Rose",      price: 8  },
+    { type: "rose",      color: "white",  origin: "kenya",       grade: "grade_a", size: "medium", bloom: "bud",       nameAr: "ورد أبيض",        nameEn: "White Rose",    price: 6  },
+    { type: "lily",      color: "white",  origin: "netherlands", grade: "grade_a", size: "large",  bloom: "open",      nameAr: "ليلى بيضاء",      nameEn: "White Lily",    price: 12 },
+    { type: "sunflower", color: "yellow", origin: "other",       grade: "grade_b", size: "large",  bloom: "full_bloom",nameAr: "زنبق أصفر",       nameEn: "Sunflower",     price: 5  },
+    { type: "orchid",    color: "purple", origin: "thailand",    grade: "grade_a", size: "small",  bloom: "semi_open", nameAr: "أوركيد بنفسجي",   nameEn: "Purple Orchid", price: 35 },
   ];
 
   const variantIds: string[] = [];
   for (const v of flowerVariants) {
     const r = await client.query(
       `INSERT INTO flower_variants
-         (flower_type, color, origin, grade, size, display_name_ar, display_name_en, base_price_per_stem, is_active)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true)
+         (flower_type, color, origin, grade, size, bloom_stage, display_name_ar, display_name_en, base_price_per_stem, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,true)
        ON CONFLICT DO NOTHING
        RETURNING id`,
-      [v.type, v.color, v.origin, v.grade, v.size, v.nameAr, v.nameEn, fmt(v.price)]
+      [v.type, v.color, v.origin, v.grade, v.size, v.bloom, v.nameAr, v.nameEn, fmt(v.price)]
     );
     if (r.rows[0]) variantIds.push(r.rows[0].id);
     else {
       // Already exists — fetch it
       const existing = await client.query(
-        `SELECT id FROM flower_variants WHERE flower_type=$1 AND color=$2 AND origin=$3 LIMIT 1`,
-        [v.type, v.color, v.origin]
+        `SELECT id FROM flower_variants WHERE flower_type=$1 AND color=$2 AND origin=$3 AND bloom_stage=$4 LIMIT 1`,
+        [v.type, v.color, v.origin, v.bloom]
       );
       if (existing.rows[0]) variantIds.push(existing.rows[0].id);
     }
