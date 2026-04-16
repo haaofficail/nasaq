@@ -991,6 +991,373 @@ async function seedRentalVertical(client: any, orgId: string) {
   }
 }
 
+// ─── REAL ESTATE ─────────────────────────────────────────────────────────────
+// Tables: properties → property_units → tenants → lease_contracts →
+//         lease_invoices → lease_payments → property_expenses → property_maintenance
+
+async function seedRealEstateVertical(client: any, orgId: string) {
+  const customers = await getOrgCustomers(client, orgId);
+  if (!customers.length) return;
+
+  // ── 1. Properties ─────────────────────────────────────────────────────────
+  const propertyDefs = [
+    {
+      name: "برج الياسمين السكني",     type: "residential",  city: "الرياض",  district: "العليا",
+      totalUnits: 12, totalFloors: 6, buildYear: 2018,
+      plotArea: 600, builtArea: 3200, ownerName: "شركة التطوير العقاري السعودية",
+      deedNumber: `700${rand(1000000, 9999999)}`, licenseNumber: `RIC-${rand(10000,99999)}`,
+    },
+    {
+      name: "مجمع النخيل التجاري",      type: "commercial",   city: "الرياض",  district: "الملقا",
+      totalUnits: 8, totalFloors: 4, buildYear: 2020,
+      plotArea: 1200, builtArea: 4800, ownerName: "مؤسسة النخيل للاستثمار",
+      deedNumber: `700${rand(1000000, 9999999)}`, licenseNumber: `RIC-${rand(10000,99999)}`,
+    },
+    {
+      name: "فلل حي السفارات",          type: "residential",  city: "الرياض",  district: "السفارات",
+      totalUnits: 4, totalFloors: 2, buildYear: 2015,
+      plotArea: 2000, builtArea: 1600, ownerName: "عمر ياسين النجدي",
+      deedNumber: `700${rand(1000000, 9999999)}`, licenseNumber: `RIC-${rand(10000,99999)}`,
+    },
+  ];
+
+  const propertyIds: string[] = [];
+  for (const p of propertyDefs) {
+    const r = await client.query(
+      `INSERT INTO properties
+         (org_id, name, type, city, district, total_units, total_floors, build_year,
+          plot_area_sqm, built_area_sqm, owner_name, deed_number, license_number,
+          disposal_status, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,'free',true)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [
+        orgId, p.name, p.type, p.city, p.district,
+        p.totalUnits, p.totalFloors, p.buildYear,
+        fmt(p.plotArea), fmt(p.builtArea),
+        p.ownerName, p.deedNumber, p.licenseNumber,
+      ]
+    );
+    if (r.rows[0]) propertyIds.push(r.rows[0].id);
+  }
+  if (!propertyIds.length) return;
+
+  // ── 2. Property Units ──────────────────────────────────────────────────────
+  const unitDefs = [
+    // برج الياسمين — 12 شقة
+    ...Array.from({ length: 12 }, (_, i) => ({
+      propIdx: 0,
+      unitNumber: `${Math.floor(i / 3) + 1}0${(i % 3) + 1}`,
+      floor: Math.floor(i / 3) + 1,
+      type: "apartment" as const,
+      areaSqm: [100, 120, 140, 160][i % 4],
+      bedrooms: [2, 2, 3, 3][i % 4],
+      bathrooms: [1, 2, 2, 3][i % 4],
+      monthlyRent: [3500, 4000, 4800, 5500][i % 4],
+      status: i < 9 ? "occupied" : "vacant",
+    })),
+    // مجمع النخيل — 8 مكاتب
+    ...Array.from({ length: 8 }, (_, i) => ({
+      propIdx: 1,
+      unitNumber: `${Math.floor(i / 2) + 1}0${(i % 2) + 1}`,
+      floor: Math.floor(i / 2) + 1,
+      type: "office" as const,
+      areaSqm: [80, 120, 160, 200][i % 4],
+      bedrooms: 0, bathrooms: 1,
+      monthlyRent: [5000, 6500, 8000, 10000][i % 4],
+      status: i < 6 ? "occupied" : "vacant",
+    })),
+    // فلل السفارات — 4 فلل
+    ...Array.from({ length: 4 }, (_, i) => ({
+      propIdx: 2,
+      unitNumber: `VILLA-${i + 1}`,
+      floor: 1,
+      type: "villa" as const,
+      areaSqm: [350, 400, 450, 500][i],
+      bedrooms: [4, 4, 5, 5][i],
+      bathrooms: [3, 3, 4, 4][i],
+      monthlyRent: [12000, 13000, 15000, 18000][i],
+      status: i < 3 ? "occupied" : "vacant",
+    })),
+  ];
+
+  const unitIds: string[] = [];
+  for (const u of unitDefs) {
+    const propId = propertyIds[u.propIdx];
+    if (!propId) continue;
+    const r = await client.query(
+      `INSERT INTO property_units
+         (org_id, property_id, unit_number, floor, type, area_sqm, bedrooms, bathrooms,
+          monthly_rent, yearly_rent, deposit_amount, status, furnishing, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'unfurnished',true)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [
+        orgId, propId, u.unitNumber, u.floor, u.type,
+        fmt(u.areaSqm), u.bedrooms, u.bathrooms,
+        fmt(u.monthlyRent), fmt(u.monthlyRent * 12), fmt(u.monthlyRent),
+        u.status,
+      ]
+    );
+    if (r.rows[0]) unitIds.push(r.rows[0].id);
+  }
+
+  // ── 3. Tenants ─────────────────────────────────────────────────────────────
+  const nationalities = ["SA", "SA", "SA", "EG", "JO", "SY", "PK", "BD"];
+  const tenantIds: string[] = [];
+  const tenantCustomers = customers.slice(0, 15);
+  for (const cust of tenantCustomers) {
+    const natl = pick(nationalities);
+    const isSaudi = natl === "SA";
+    const r = await client.query(
+      `INSERT INTO tenants
+         (org_id, customer_id, national_id, nationality, is_active)
+       VALUES ($1,$2,$3,$4,true)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [
+        orgId, cust.id,
+        isSaudi ? `1${rand(100000000, 999999999)}` : null,
+        natl,
+      ]
+    );
+    if (r.rows[0]) tenantIds.push(r.rows[0].id);
+  }
+  if (!tenantIds.length) return;
+
+  // ── 4. Lease Contracts + Invoices + Payments ───────────────────────────────
+  const occupiedUnits = unitDefs
+    .map((u, i) => ({ ...u, id: unitIds[i] }))
+    .filter(u => u.status === "occupied" && u.id);
+
+  let contractNum = 1001;
+  let invoiceNum  = 2001;
+  let receiptNum  = 3001;
+
+  for (let i = 0; i < Math.min(occupiedUnits.length, tenantIds.length); i++) {
+    const unit     = occupiedUnits[i];
+    const tenantId = tenantIds[i % tenantIds.length];
+    const propId   = propertyIds[unit.propIdx] ?? propertyIds[0];
+
+    const startMonthsAgo = rand(3, 18);
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - startMonthsAgo);
+    const endDate = new Date(startDate);
+    endDate.setFullYear(endDate.getFullYear() + 1);
+
+    const isPast   = endDate < new Date();
+    const status   = isPast ? "expired" : "active";
+    const ejarStatus = Math.random() > 0.3 ? "documented" : "pending";
+
+    const contractRes = await client.query(
+      `INSERT INTO lease_contracts
+         (org_id, contract_number, property_id, unit_id, tenant_id,
+          start_date, end_date, contract_type, rent_amount, payment_frequency,
+          deposit_amount, deposit_status,
+          ejar_status, auto_renew, status)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'annual',$8,'monthly',$9,'collected',$10,true,$11)
+       ON CONFLICT DO NOTHING
+       RETURNING id`,
+      [
+        orgId,
+        `LC-2025-${String(contractNum++).padStart(4,"0")}`,
+        propId, unit.id, tenantId,
+        startDate.toISOString().split("T")[0],
+        endDate.toISOString().split("T")[0],
+        fmt(unit.monthlyRent),
+        fmt(unit.monthlyRent),
+        ejarStatus,
+        status,
+      ]
+    );
+    if (!contractRes.rows[0]) continue;
+    const contractId = contractRes.rows[0].id;
+
+    // Monthly invoices for past months
+    const monthsElapsed = Math.min(startMonthsAgo, 12);
+    for (let m = 0; m < monthsElapsed; m++) {
+      const periodStart = new Date(startDate);
+      periodStart.setMonth(periodStart.getMonth() + m);
+      const periodEnd = new Date(periodStart);
+      periodEnd.setMonth(periodEnd.getMonth() + 1);
+      periodEnd.setDate(0);
+
+      const dueDate = new Date(periodStart);
+      const isPaid  = periodEnd < new Date();
+      const invStatus = isPaid ? "paid" : (dueDate < new Date() ? "overdue" : "pending");
+      const rent = unit.monthlyRent;
+      const vat  = 0; // residential = 0% VAT in KSA
+
+      const invRes = await client.query(
+        `INSERT INTO lease_invoices
+           (org_id, contract_id, invoice_number, period_start, period_end, period_label,
+            rent_amount, subtotal, vat_rate, vat_amount, total_amount,
+            status, due_date, paid_at, paid_amount)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$7,$8,$9,$7,$10,$11,$12,$13)
+         ON CONFLICT DO NOTHING
+         RETURNING id`,
+        [
+          orgId, contractId,
+          `LI-2026-${String(invoiceNum++).padStart(4,"0")}`,
+          periodStart.toISOString().split("T")[0],
+          periodEnd.toISOString().split("T")[0],
+          `إيجار ${periodStart.toLocaleDateString("ar-SA", { month: "long", year: "numeric" })}`,
+          fmt(rent),
+          fmt(vat), fmt(rent * vat / 100), invStatus,
+          dueDate.toISOString().split("T")[0],
+          isPaid ? periodEnd.toISOString() : null,
+          isPaid ? fmt(rent) : "0.00",
+        ]
+      );
+
+      // Payment record for paid invoices
+      if (isPaid && invRes.rows[0]) {
+        const methods = ["bank_transfer", "bank_transfer", "cash", "cheque"];
+        await client.query(
+          `INSERT INTO lease_payments
+             (org_id, invoice_id, contract_id, receipt_number, amount, method,
+              paid_at, received_by, is_reconciled)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,true)
+           ON CONFLICT DO NOTHING`,
+          [
+            orgId, invRes.rows[0].id, contractId,
+            `RCP-${String(receiptNum++).padStart(5,"0")}`,
+            fmt(rent), pick(methods),
+            periodEnd.toISOString(),
+            "المدير المالي",
+          ]
+        );
+      }
+    }
+  }
+
+  // ── 5. Property Expenses ───────────────────────────────────────────────────
+  let expNum = 5001;
+  const expCategories = [
+    { category: "maintenance",   desc: "صيانة المصاعد الدورية",        amount: rand(800,  2000) },
+    { category: "cleaning",      desc: "نظافة وتنظيف المبنى",           amount: rand(500,  1200) },
+    { category: "security",      desc: "خدمات الأمن والحراسة",          amount: rand(1500, 3000) },
+    { category: "utilities",     desc: "فاتورة الكهرباء المشتركة",      amount: rand(300,  800)  },
+    { category: "insurance",     desc: "تأمين العقار السنوي",           amount: rand(2000, 5000) },
+    { category: "management_fee",desc: "رسوم إدارة العقار الشهرية",     amount: rand(1000, 2500) },
+  ];
+  for (const exp of expCategories) {
+    for (const propId of propertyIds) {
+      await client.query(
+        `INSERT INTO property_expenses
+           (org_id, property_id, expense_number, category, description, amount, paid_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7)
+         ON CONFLICT DO NOTHING`,
+        [
+          orgId, propId,
+          `EXP-${String(expNum++).padStart(5,"0")}`,
+          exp.category, exp.desc, fmt(exp.amount),
+          randomDate(60).toISOString().split("T")[0],
+        ]
+      );
+    }
+  }
+
+  // ── 6. Property Maintenance Requests ──────────────────────────────────────
+  let ticketNum = 6001;
+  const maintenanceDefs = [
+    { category: "plumbing",    priority: "high",   title: "تسريب مياه في وحدة 101",   status: "completed"   },
+    { category: "electrical",  priority: "urgent", title: "انقطاع الكهرباء جزئياً",   status: "in_progress" },
+    { category: "ac_heating",  priority: "normal", title: "صيانة مكيف مركزي",          status: "assigned"    },
+    { category: "painting",    priority: "low",    title: "دهانات وإعادة تشطيب شقة",  status: "reported"    },
+    { category: "general",     priority: "normal", title: "تنظيف خزانات المياه",       status: "completed"   },
+    { category: "elevator",    priority: "urgent", title: "صيانة دورية للمصعد",        status: "completed"   },
+  ];
+  for (const m of maintenanceDefs) {
+    await client.query(
+      `INSERT INTO property_maintenance
+         (org_id, property_id, ticket_number, title, category, priority, status, reported_by)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,'tenant')
+       ON CONFLICT DO NOTHING`,
+      [
+        orgId, pick(propertyIds),
+        `TKT-${String(ticketNum++).padStart(5,"0")}`,
+        m.title, m.category, m.priority, m.status,
+      ]
+    );
+  }
+}
+
+// ─── CONSTRUCTION / LOGISTICS — Field Work Orders ────────────────────────────
+// Uses work_orders table: order_number + item_name + problem_description required
+
+let woSeq = 8001;
+function nextWoNumber(prefix = "WO"): string {
+  return `${prefix}-2026-${String(woSeq++).padStart(4,"0")}`;
+}
+
+async function seedConstructionVertical(client: any, orgId: string) {
+  const customers = await getOrgCustomers(client, orgId);
+  if (!customers.length) return;
+
+  const workOrderDefs = [
+    { itemName: "سور حدودي — مشروع الملقا",      problem: "إنشاء سور حدودي جديد وفق المخططات المعتمدة",   category: "installation", status: "in_progress", cost: rand(25000, 80000) },
+    { itemName: "أساسات مبنى سكني",               problem: "صبة أساسات وحفر وتسليح وفق التصميم الإنشائي",  category: "installation", status: "received",    cost: rand(40000, 120000) },
+    { itemName: "تشطيب داخلي — مجمع تجاري",       problem: "أعمال تشطيب كاملة: بلاط وجبصبورد ودهانات",     category: "service",      status: "delivered",   cost: rand(60000, 200000) },
+    { itemName: "سقف معدني — مستودع صناعي",        problem: "توريد وتركيب سقف معدني عازل للمستودع",         category: "installation", status: "delivered",   cost: rand(30000, 90000) },
+    { itemName: "مبنى حكومي — إصلاح هيكلي",       problem: "إصلاح تشققات وتدعيم هيكل المبنى",              category: "repair",       status: "received",    cost: rand(15000, 50000) },
+    { itemName: "خزان سطحي — عزل مائي",            problem: "أعمال عزل مائي شامل للخزان والأسطح",           category: "maintenance",  status: "in_progress", cost: rand(8000, 25000)  },
+    { itemName: "حديقة مشروع سكني",                problem: "لاندسكيب وتنسيق موارد مائية وزراعة",           category: "service",      status: "delivered",   cost: rand(20000, 60000) },
+    { itemName: "أبواب ألمنيوم — مجمع تجاري",      problem: "توريد وتركيب أبواب ونوافذ ألمنيوم مقاومة للحرارة", category: "installation", status: "delivered", cost: rand(15000, 45000) },
+  ];
+
+  for (const wo of workOrderDefs) {
+    const cust = pick(customers);
+    await client.query(
+      `INSERT INTO work_orders
+         (org_id, order_number, customer_id, customer_name, item_name, problem_description,
+          category, status, estimated_cost, payment_status, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'unpaid',true)
+       ON CONFLICT DO NOTHING`,
+      [
+        orgId, nextWoNumber("CO"),
+        cust.id, cust.name,
+        wo.itemName, wo.problem,
+        wo.category, wo.status,
+        fmt(wo.cost),
+      ]
+    );
+  }
+}
+
+async function seedLogisticsVertical(client: any, orgId: string) {
+  const customers = await getOrgCustomers(client, orgId);
+  if (!customers.length) return;
+
+  const workOrderDefs = [
+    { itemName: "شحنة بضائع — الرياض → جدة",       problem: "توصيل شحنة بضائع 3 طن في غضون 24 ساعة",        category: "service",      status: "delivered",   cost: rand(800,  3000)  },
+    { itemName: "أثاث مكتبي — برج الفيصلية",        problem: "فك ونقل وتركيب أثاث مكتبي كامل للطابق الثامن", category: "service",      status: "in_progress", cost: rand(2500, 8000)  },
+    { itemName: "مستلزمات مطعم — جدة",              problem: "توصيل شحنة مواد غذائية مبردة لفرع جدة",         category: "service",      status: "delivered",   cost: rand(600,  2000)  },
+    { itemName: "شحنة دولية — دبي",                  problem: "شحن ومتابعة تخليص جمارك لحاوية 20 قدم",         category: "other",        status: "received",    cost: rand(5000, 15000) },
+    { itemName: "منتجات صيدلية — 12 نقطة",          problem: "توزيع منتجات طبية على 12 فرع صيدلية في الرياض",  category: "service",      status: "delivered",   cost: rand(1200, 4000)  },
+    { itemName: "وحدات موسمية — مستودع",             problem: "تخزين وجرد 500 وحدة بضاعة موسمية",              category: "other",        status: "delivered",   cost: rand(3000, 9000)  },
+    { itemName: "معدات ثقيلة — موقع إنشاء",          problem: "نقل رافعة ومعدات حفر من الدمام للرياض",          category: "other",        status: "in_progress", cost: rand(4000, 12000) },
+  ];
+
+  for (const wo of workOrderDefs) {
+    const cust = pick(customers);
+    await client.query(
+      `INSERT INTO work_orders
+         (org_id, order_number, customer_id, customer_name, item_name, problem_description,
+          category, status, estimated_cost, payment_status, is_active)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'unpaid',true)
+       ON CONFLICT DO NOTHING`,
+      [
+        orgId, nextWoNumber("LG"),
+        cust.id, cust.name,
+        wo.itemName, wo.problem,
+        wo.category, wo.status,
+        fmt(wo.cost),
+      ]
+    );
+  }
+}
+
 // ─── Dispatcher ──────────────────────────────────────────────────────────────
 
 const VERTICAL_MAP: Record<string, (client: any, orgId: string) => Promise<void>> = {
@@ -1015,6 +1382,9 @@ const VERTICAL_MAP: Record<string, (client: any, orgId: string) => Promise<void>
   bakery:           seedFoodVertical,
   catering:         seedFoodVertical,
   rental:           seedRentalVertical,
+  real_estate:      seedRealEstateVertical,
+  construction:     seedConstructionVertical,
+  logistics:        seedLogisticsVertical,
 };
 
 export async function seedVertical(client: any, orgId: string, businessType: string) {

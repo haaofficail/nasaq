@@ -24,7 +24,18 @@ import { decryptString } from "../lib/encryption";
 import { log } from "../lib/logger";
 import { salonLog } from "../lib/salon-logger";
 import { shadowWriteBookingOnCreate, shadowWriteBookingStatus } from "../lib/canonical-shadow";
-import { getWorkflowStagesForOrg, canTransition } from "../lib/workflow-engine";
+import {
+  getWorkflowStagesForOrg, canTransition,
+  resolveWorkflowExecutionMode,
+  TRUE_TERMINAL_STATUSES, GUARDED_TERMINAL_STATUSES,
+} from "../lib/workflow-engine";
+import {
+  getBookingTimeline,
+  getBookingSlaState,
+  runPostTransitionAutomations,
+  recordBlockedTransitionEvent,
+  listOperationalAlerts,
+} from "../lib/booking-ops";
 import type { AuthUser } from "../middleware/auth";
 
 export const bookingsRouter = new Hono<{ Variables: { user: AuthUser | null; orgId: string; locationFilter: string[] | null; requestId: string } }>();
@@ -255,6 +266,19 @@ bookingsRouter.get("/check-availability", async (c) => {
     .limit(5);
 
   return c.json({ available: conflicts.length === 0, conflicts: conflicts.map(r => r.bookingNumber) });
+});
+
+// ============================================================
+// GET /bookings/alerts — Operational alerts for the org
+// MUST be registered before /:id to avoid route collision
+// ============================================================
+bookingsRouter.get("/alerts", async (c) => {
+  const orgId = getOrgId(c);
+  const limitParam = c.req.query("limit");
+  const limit = limitParam ? Math.min(parseInt(limitParam, 10) || 50, 200) : 50;
+
+  const alerts = await listOperationalAlerts(orgId, limit);
+  return c.json({ data: alerts, count: alerts.length });
 });
 
 // GET /bookings/calendar — alias for /calendar/events (accepts month=YYYY-MM or from/to)
@@ -986,14 +1010,15 @@ bookingsRouter.post("/", async (c) => {
 // ============================================================
 
 const updateStatusSchema = z.object({
-  // Accepts all valid status values (was 5, now all 10 — backward-compatible)
   status: z.enum([
     "pending", "confirmed", "deposit_paid", "fully_confirmed",
     "preparing", "in_progress", "completed", "reviewed",
     "cancelled", "no_show",
   ]),
   reason: z.string().optional(),
-  // force: privileged bypass of workflow stage enforcement (logged, never silent)
+  // force: bypass workflow guards for TRUE_TERMINAL / GUARDED_TERMINAL states
+  // Requires bookings.force_transition permission — enforced server-side
+  // reason becomes MANDATORY when force=true
   force:  z.boolean().optional().default(false),
 });
 
@@ -1003,7 +1028,10 @@ bookingsRouter.patch("/:id/status", async (c) => {
   const requestId = c.get("requestId");
   const id = c.req.param("id");
   const { status: newStatus, reason, force } = updateStatusSchema.parse(await c.req.json());
-  const actorType = c.get("user")?.type ?? "staff";
+  const actorUser  = c.get("user");
+  const actorType  = actorUser?.type ?? "staff";
+  // bookings.force_transition is owner-only permission — enforced here, not in client
+  const canForce   = actorUser?.dotPermissions?.includes("bookings.force_transition") ?? false;
 
   log.info({
     orgId,
@@ -1019,18 +1047,28 @@ bookingsRouter.patch("/:id/status", async (c) => {
     },
   }, "[guardrails] bookings.status.update (legacy write path)");
 
-  // Load pipeline stages once outside the transaction — used by canTransition (pure, no extra query in tx)
-  const workflowStages = await getWorkflowStagesForOrg(orgId);
-  const envStrict = process.env.WORKFLOW_STRICT_MODE === "true";
-  const isPrivilegedActor = actorType === "owner" || actorType === "super_admin";
-  const workflowMode = workflowStages.filter((s) => s.mappedStatus).length === 0
-    ? "legacy" as const
-    : envStrict ? "strict" as const : "soft" as const;
+  // ── Workflow mode resolution (centralized, deterministic) ──────────────────
+  // Stages loaded once outside transaction — canTransition is pure, no extra DB in tx
+  const workflowStages   = await getWorkflowStagesForOrg(orgId);
+  const { mode: workflowMode, configState, reason: modeReason } = resolveWorkflowExecutionMode(workflowStages);
+
+  // force + reason validation (server-side, cannot be bypassed by client)
+  if (force) {
+    if (!canForce) {
+      return c.json({ error: "غير مصرح: تجاوز مسار الحجز يتطلب صلاحية bookings.force_transition" }, 403);
+    }
+    if (!reason || reason.trim().length < 3) {
+      return c.json({ error: "السبب إلزامي عند استخدام التجاوز الإداري (force)" }, 400);
+    }
+  }
 
   // P0-1 fix: wrap read+write in a transaction with FOR UPDATE to prevent TOCTOU
   // P0-2 fix: supply deduction is INSIDE this transaction — atomic with status change (no silent failures)
   // P0-3 fix: un-completing a booking reverses supply consumptions before re-deducting is possible
   // Workflow errors thrown inside the tx bubble up as 422 (caught below)
+  // Captured outside transaction so the blocked-event writer can access it on 422
+  let capturedFromStatus: string | null = null;
+
   let statusTx;
   try {
     statusTx = await db.transaction(async (tx) => {
@@ -1039,27 +1077,71 @@ bookingsRouter.patch("/:id/status", async (c) => {
       .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)))
       .for("update");
     if (!existing) return null;
+    capturedFromStatus = existing.status;
 
-    // ── Workflow State Machine Guard (uses pre-loaded stages — no extra DB round-trip) ──
+    // ── Workflow State Machine Guard (pure check, no extra DB round-trip) ──────
     if (existing.status !== newStatus) {
       const result = canTransition(existing.status, newStatus, workflowStages, workflowMode);
 
       if (result.warning) {
         log.warn(
-          { orgId, bookingId: id, requestId, fromStatus: existing.status, toStatus: newStatus, warning: result.warning, mode: result.mode },
+          { orgId, bookingId: id, requestId, fromStatus: existing.status, toStatus: newStatus,
+            warning: result.warning, mode: result.mode, configState },
           "[workflow] soft transition violation — proceeding",
         );
       }
 
       if (!result.allowed) {
-        // Privileged force-bypass: owner/super_admin can override with force:true (always logged)
-        if (force && isPrivilegedActor) {
+        // requiresForce=true: can be overridden by force + bookings.force_transition permission
+        // requiresForce=false: hard block (non-skippable stage) — force doesn't help
+        if (result.requiresForce && force && canForce) {
+          // Forced transition — audit trail + timeline event (both mandatory)
+          insertAuditLog({
+            orgId, userId: actingUserId,
+            action:     "force_transition",
+            resource:   "booking",
+            resourceId: id,
+            oldValue:   { status: existing.status },
+            newValue:   { status: newStatus },
+            metadata: {
+              forced:       true,
+              triggerType:  "forced",
+              actorType,
+              configState,
+              workflowMode,
+              reason:       reason ?? null,
+              blockedBy:    result.blockedBy ?? null,
+              modeReason,
+            },
+          });
+          // Also write forced_transition to bookingEvents for timeline visibility
+          // (this runs inside the tx — if tx rolls back, event rolls back too — intentional)
+          await tx.insert(bookingEvents).values({
+            orgId,
+            bookingId: id,
+            userId: actingUserId,
+            eventType: "forced_transition",
+            fromStatus: existing.status,
+            toStatus: newStatus,
+            metadata: {
+              forced: true,
+              reason: reason ?? null,
+              actorType,
+              workflowMode,
+              configState,
+            },
+          });
           log.warn(
-            { orgId, bookingId: id, requestId, actorType, fromStatus: existing.status, toStatus: newStatus, blockedBy: result.blockedBy },
-            "[workflow] forced transition override by privileged actor",
+            { orgId, bookingId: id, requestId, actorType, actorId: actingUserId,
+              fromStatus: existing.status, toStatus: newStatus, reason },
+            "[workflow] FORCED transition by privileged actor — audit logged",
           );
         } else {
-          throw Object.assign(new Error(result.error ?? "WORKFLOW_TRANSITION_BLOCKED"), { status: 422, blockedBy: result.blockedBy });
+          const httpErr = Object.assign(
+            new Error(result.error ?? "WORKFLOW_TRANSITION_BLOCKED"),
+            { status: 422, blockedBy: result.blockedBy ?? null, requiresForce: result.requiresForce ?? false },
+          );
+          throw httpErr;
         }
       }
     }
@@ -1193,7 +1275,25 @@ bookingsRouter.patch("/:id/status", async (c) => {
     }); // end db.transaction
   } catch (err: any) {
     if (err?.status === 422) {
-      return c.json({ error: err.message, blockedBy: err.blockedBy ?? null }, 422);
+      // Record blocked event for timeline visibility (fire-and-forget, outside rolled-back tx)
+      if (capturedFromStatus) {
+        recordBlockedTransitionEvent({
+          orgId,
+          bookingId:       id,
+          userId:          actingUserId,
+          fromStatus:      capturedFromStatus,
+          attemptedStatus: newStatus,
+          reason:          err.message ?? "WORKFLOW_TRANSITION_BLOCKED",
+          blockedBy:       err.blockedBy ?? null,
+          requiresForce:   err.requiresForce ?? false,
+          workflowMode,
+        });
+      }
+      return c.json({
+        error:        err.message,
+        blockedBy:    err.blockedBy    ?? null,
+        requiresForce: err.requiresForce ?? false,
+      }, 422);
     }
     throw err;
   }
@@ -1201,7 +1301,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
   if (!statusTx) return c.json({ error: "الحجز غير موجود" }, 404);
   const { fromStatus, updated } = statusTx;
 
-  // Booking event — status change
+  // Booking event — status change (enriched with workflow context for timeline)
   db.insert(bookingEvents).values({
     orgId,
     bookingId: id,
@@ -1209,10 +1309,41 @@ bookingsRouter.patch("/:id/status", async (c) => {
     eventType: "status_changed",
     fromStatus: fromStatus as string,
     toStatus: newStatus,
-    metadata: reason ? { reason } : {},
+    metadata: {
+      ...(reason ? { reason } : {}),
+      workflowMode,
+      configState,
+      forced: force && canForce,
+    },
   }).catch(() => {});
 
-  insertAuditLog({ orgId, userId: actingUserId, action: "updated", resource: "booking", resourceId: id, metadata: { status: newStatus } });
+  // Automation hooks — fire-and-forget, never blocks response
+  runPostTransitionAutomations({
+    orgId,
+    bookingId: id,
+    userId: actingUserId,
+    fromStatus: fromStatus as string,
+    toStatus: newStatus,
+    forced: force && canForce,
+    workflowMode,
+    configState,
+  });
+
+  insertAuditLog({
+    orgId, userId: actingUserId,
+    action:     "updated",
+    resource:   "booking",
+    resourceId: id,
+    oldValue:   { status: fromStatus },
+    newValue:   { status: newStatus },
+    metadata: {
+      triggerType:  "manual",
+      forced:       false,
+      workflowMode,
+      configState,
+      reason:       reason ?? null,
+    },
+  });
 
   // ── Phase 3: Canonical shadow status sync (fire-and-forget, never throws) ─
   if (ENABLE_CANONICAL_SHADOW_WRITE) {
@@ -1411,6 +1542,49 @@ bookingsRouter.get("/:id/events", async (c) => {
     .orderBy(asc(bookingEvents.createdAt));
 
   return c.json({ data: events });
+});
+
+// ============================================================
+// GET /bookings/:id/timeline — Workflow Operations Timeline
+// Read model built on booking_events — org-boundary enforced
+// ============================================================
+bookingsRouter.get("/:id/timeline", async (c) => {
+  const orgId = getOrgId(c);
+  const id    = c.req.param("id");
+
+  // Verify the booking belongs to this org before returning timeline
+  const [booking] = await db
+    .select({
+      id:        bookings.id,
+      status:    bookings.status,
+      createdAt: bookings.createdAt,
+      updatedAt: bookings.updatedAt,
+    })
+    .from(bookings)
+    .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)));
+
+  if (!booking) return c.json({ error: "الحجز غير موجود" }, 404);
+
+  const timeline = await getBookingTimeline(id, orgId);
+
+  // Compute SLA state from workflow stages + timeline
+  const workflowStages = await getWorkflowStagesForOrg(orgId);
+
+  // Find when the booking last entered its current status
+  const lastStatusEntry = [...timeline]
+    .reverse()
+    .find((e) => e.eventType === "status_changed" && e.toStatus === booking.status);
+
+  const sla = getBookingSlaState({
+    bookingId:       booking.id,
+    currentStatus:   booking.status,
+    createdAt:       booking.createdAt,
+    updatedAt:       booking.updatedAt,
+    stages:          workflowStages,
+    statusEnteredAt: lastStatusEntry?.createdAt ?? null,
+  });
+
+  return c.json({ data: timeline, sla });
 });
 
 // ============================================================

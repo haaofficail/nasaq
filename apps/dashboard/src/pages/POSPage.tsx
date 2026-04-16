@@ -935,7 +935,7 @@ export function POSPage() {
       // Auto-complete the linked booking if it exists
       if (linkedBookingId) {
         try {
-          await bookingsApi.updateStatus(linkedBookingId, "completed", "تم إنهاء إجراءات الدفع من نقاط البيع (POS)");
+          await bookingsApi.updateStatus(linkedBookingId, "completed", { reason: "تم إنهاء إجراءات الدفع من نقاط البيع (POS)" });
         } catch (e) {
           console.error("فشل تغيير حالة الحجز:", e);
         }

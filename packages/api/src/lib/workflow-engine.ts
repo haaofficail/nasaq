@@ -4,20 +4,27 @@
 // التصميم:
 //   - Pure core logic (canTransition) — لا DB، قابل للاختبار
 //   - DB loaders مستقلة (getWorkflowStagesForOrg)
-//   - validateTransition = loader + pure check + logging
-//   - Soft mode افتراضي — strict mode عبر env أو خيار صريح
+//   - resolveWorkflowExecutionMode — مركزي، deterministic، مختبر
+//   - getOrgWorkflowConfigState — يصنّف المنشأة: workflow-ready / legacy / invalid
+//   - Soft mode افتراضي؛ strict فقط على workflow-ready + env مفعّل
 //   - Legacy fallback دائم عند غياب مراحل مُهيأة
 //
-// الوضع الحالي:
-//   - soft validation مُفعّل لكل المنشآت
-//   - strict validation يُفعَّل بـ WORKFLOW_STRICT_MODE=true
-//     أو بتمرير opts.strict = true في مسارات محددة
-//   - auto-transitions: hook جاهز، ينتظر ربط إشعارات كامل
+// قواعد الانتقال:
+//   - TRUE_TERMINAL (cancelled, no_show): لا يمكن الخروج منها إطلاقاً
+//   - GUARDED_STATES (completed, reviewed): الرجوع منها يتطلب force
+//   - forward skip لمرحلة isSkippable=false: strict→مرفوض / soft→تحذير
+//   - backward (غير terminal): مسموح دائماً
+//   - terminal destination: مسموح دائماً (إلغاء/no_show من أي حالة)
+//
+// أمان force:
+//   - force لا يُقيَّم هنا — canTransition يُرجع requiresForce كإشارة
+//   - الـ route هو المسؤول عن التحقق من bookings.force_transition permission
+//   - هذا يفصل منطق الانتقال عن منطق الصلاحيات (separation of concerns)
 // ============================================================
 
 import { db } from "@nasaq/db/client";
 import { bookingPipelineStages } from "@nasaq/db/schema";
-import { eq, and, isNotNull, asc } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import { log } from "./logger";
 
 // ── Types ─────────────────────────────────────────────────────
@@ -28,6 +35,12 @@ export type BookingStatus =
   | "cancelled" | "no_show";
 
 export type WorkflowMode = "strict" | "soft" | "legacy";
+
+/** حالة إعداد الـ workflow لمنشأة معينة */
+export type OrgWorkflowConfigState =
+  | "workflow-ready"   // stages موجودة ومكتملة وبدون تكرار
+  | "legacy-compatible" // لا stages أو stages بدون mappedStatus
+  | "invalid-config";  // stages بها تكرار في mappedStatus
 
 export interface WorkflowStage {
   id:                     string;
@@ -41,18 +54,27 @@ export interface WorkflowStage {
 }
 
 export interface TransitionResult {
-  allowed:    boolean;
-  mode:       WorkflowMode;
-  warning?:   string;  // set in soft mode when violation detected but allowed through
-  error?:     string;  // set when not allowed
-  blockedBy?: string;  // stage name blocking the transition
+  allowed:               boolean;
+  requiresForce?:        boolean;  // true = blocked but can be overridden with force + permission
+  mode:                  WorkflowMode;
+  warning?:              string;   // soft mode violation that was allowed through
+  error?:                string;   // block reason (shown to user)
+  blockedBy?:            string;   // stage name that blocked the transition
+  resolvedCurrentStage?: WorkflowStage | null;
+  resolvedTargetStage?:  WorkflowStage | null;
+}
+
+export interface WorkflowExecutionMode {
+  mode:        WorkflowMode;
+  configState: OrgWorkflowConfigState;
+  reason:      string;  // human-readable explanation for logging/debugging
 }
 
 // ── Constants ─────────────────────────────────────────────────
 
 /**
  * Fallback order used when no pipeline stages have mappedStatus configured.
- * Terminal statuses (cancelled, no_show) use 99 — reachable from any state.
+ * Terminal statuses (cancelled, no_show) use 99 — reachable from any state as destination.
  */
 export const FALLBACK_STATUS_ORDER: Record<string, number> = {
   pending:          1,
@@ -67,13 +89,29 @@ export const FALLBACK_STATUS_ORDER: Record<string, number> = {
   no_show:          99,
 };
 
-export const TERMINAL_STATUSES = new Set<string>(["cancelled", "no_show"]);
+/**
+ * True terminal statuses — cannot be LEFT without force + bookings.force_transition permission.
+ * These represent final states where no further action is expected.
+ */
+export const TRUE_TERMINAL_STATUSES = new Set<string>(["cancelled", "no_show"]);
+
+/**
+ * Guarded states — can be entered freely, but LEAVING them requires force.
+ * These represent completed workflows that should not be silently reversed.
+ */
+export const GUARDED_TERMINAL_STATUSES = new Set<string>(["completed", "reviewed"]);
+
+/**
+ * All terminal-like statuses (for destination — always allowed as target from non-terminal sources).
+ * @deprecated Use TRUE_TERMINAL_STATUSES for source checks
+ */
+export const TERMINAL_STATUSES = TRUE_TERMINAL_STATUSES;
 
 // ── Pure Core Logic (no DB, fully testable) ───────────────────
 
 /**
  * Finds the pipeline stage that maps to a given status value.
- * Returns null if none found (triggers fallback logic).
+ * Returns null if none found (triggers fallback logic in callers).
  */
 export function resolveCurrentStage(
   stages: WorkflowStage[],
@@ -83,48 +121,78 @@ export function resolveCurrentStage(
 }
 
 /**
- * Pure transition check. No DB calls.
+ * Pure transition check. No DB calls. Fully testable.
  *
- * Rules (in priority order):
- *   1. Terminal statuses (cancelled, no_show) → always allowed
- *   2. No mapped stages found → legacy mode, always allowed
- *   3. Backwards transition (lower sortOrder) → allowed (status correction)
- *   4. Non-skippable stage being skipped:
- *      - strict mode  → blocked (error)
- *      - soft mode    → allowed with warning
- *      - legacy mode  → allowed (no check)
+ * Rules (evaluated in this order):
+ *   0. Same status → trivially allowed (no-op)
+ *   1. fromStatus is TRUE_TERMINAL → requiresForce (blocked unless force+permission)
+ *   2. toStatus is TRUE_TERMINAL → always allowed (cancellation/no_show from any non-terminal state)
+ *   3. No mapped stages → legacy mode, always allowed
+ *   4. fromStatus is GUARDED_TERMINAL → requiresForce (backwards from completed/reviewed)
+ *   5. toOrder <= fromOrder (other backwards) → allowed (correction)
+ *   6. Forward: check for non-skippable skipped stages
+ *      - strict → blocked
+ *      - soft → warning but allowed
+ *      - legacy → allowed
  */
 export function canTransition(
   fromStatus: string,
-  toStatus: string,
-  stages: WorkflowStage[],
-  mode: WorkflowMode,
+  toStatus:   string,
+  stages:     WorkflowStage[],
+  mode:       WorkflowMode,
 ): TransitionResult {
-  // Rule 1: terminal is always allowed
-  if (TERMINAL_STATUSES.has(toStatus)) {
-    return { allowed: true, mode };
-  }
-
-  // Determine effective sortOrders
   const mappedStages = stages.filter((s) => s.mappedStatus !== null);
+  const fromStage = resolveCurrentStage(mappedStages, fromStatus) ?? null;
+  const toStage   = resolveCurrentStage(mappedStages, toStatus) ?? null;
 
-  if (mappedStages.length === 0) {
-    // Rule 2: no pipeline configured → legacy mode
-    return { allowed: true, mode: "legacy" };
+  // Rule 0: no-op
+  if (fromStatus === toStatus) {
+    return { allowed: true, mode, resolvedCurrentStage: fromStage, resolvedTargetStage: toStage };
   }
 
-  const fromStage = mappedStages.find((s) => s.mappedStatus === fromStatus);
-  const toStage   = mappedStages.find((s) => s.mappedStatus === toStatus);
+  // Rule 1: cannot leave a TRUE_TERMINAL without force
+  if (TRUE_TERMINAL_STATUSES.has(fromStatus)) {
+    return {
+      allowed:              false,
+      requiresForce:        true,
+      mode,
+      error:                `الحجز في حالة نهائية (${fromStatus}) — يتطلب صلاحية التجاوز للتغيير`,
+      resolvedCurrentStage: fromStage,
+      resolvedTargetStage:  toStage,
+    };
+  }
+
+  // Rule 2: going TO a true terminal is always allowed
+  if (TRUE_TERMINAL_STATUSES.has(toStatus)) {
+    return { allowed: true, mode, resolvedCurrentStage: fromStage, resolvedTargetStage: toStage };
+  }
+
+  // Rule 3: no mapped stages → legacy mode
+  if (mappedStages.length === 0) {
+    return { allowed: true, mode: "legacy", resolvedCurrentStage: null, resolvedTargetStage: null };
+  }
 
   const fromOrder = fromStage?.sortOrder ?? (FALLBACK_STATUS_ORDER[fromStatus] ?? 0);
   const toOrder   = toStage?.sortOrder   ?? (FALLBACK_STATUS_ORDER[toStatus]   ?? 999);
 
-  // Rule 3: backwards transition (correction) → always allowed
-  if (toOrder <= fromOrder) {
-    return { allowed: true, mode };
+  // Rule 4: GUARDED_TERMINAL backwards → requiresForce
+  if (GUARDED_TERMINAL_STATUSES.has(fromStatus) && toOrder < fromOrder) {
+    return {
+      allowed:              false,
+      requiresForce:        true,
+      mode,
+      error:                `الرجوع من حالة "${fromStatus}" يتطلب صلاحية التجاوز الإدارية`,
+      resolvedCurrentStage: fromStage,
+      resolvedTargetStage:  toStage,
+    };
   }
 
-  // Rule 4: check for non-skippable stages between from and to
+  // Rule 5: other backwards transitions (corrections) — always allowed
+  if (toOrder <= fromOrder) {
+    return { allowed: true, mode, resolvedCurrentStage: fromStage, resolvedTargetStage: toStage };
+  }
+
+  // Rule 6: forward — check non-skippable skipped stages
   const blockedStage = mappedStages.find(
     (s) =>
       !s.isSkippable &&
@@ -137,28 +205,34 @@ export function canTransition(
   if (blockedStage) {
     if (mode === "strict") {
       return {
-        allowed:    false,
-        mode:       "strict",
-        error:      `لا يمكن تخطي المرحلة الإلزامية: ${blockedStage.name}`,
-        blockedBy:  blockedStage.name,
+        allowed:              false,
+        requiresForce:        false, // non-skippable stages cannot be overridden even with force
+        mode:                 "strict",
+        error:                `لا يمكن تخطي المرحلة الإلزامية: ${blockedStage.name}`,
+        blockedBy:            blockedStage.name,
+        resolvedCurrentStage: fromStage,
+        resolvedTargetStage:  toStage,
       };
     }
-    // soft mode: allow but warn
+    // soft: allow but warn
     return {
-      allowed: true,
-      mode:    "soft",
-      warning: `تجاوز مرحلة إلزامية: ${blockedStage.name} (soft mode)`,
+      allowed:              true,
+      mode:                 "soft",
+      warning:              `تجاوز مرحلة إلزامية: ${blockedStage.name} (soft mode)`,
+      blockedBy:            blockedStage.name,
+      resolvedCurrentStage: fromStage,
+      resolvedTargetStage:  toStage,
     };
   }
 
-  return { allowed: true, mode };
+  return { allowed: true, mode, resolvedCurrentStage: fromStage, resolvedTargetStage: toStage };
 }
 
 // ── DB Loaders ────────────────────────────────────────────────
 
 /**
  * Loads pipeline stages for an org, sorted by sortOrder.
- * Returns empty array if none exist (triggers legacy fallback in canTransition).
+ * Returns empty array if none configured (legacy fallback in canTransition).
  */
 export async function getWorkflowStagesForOrg(
   orgId: string,
@@ -175,95 +249,82 @@ export async function getWorkflowStagesForOrg(
     sortOrder:              r.sortOrder,
     mappedStatus:           r.mappedStatus ?? null,
     isSkippable:            r.isSkippable ?? true,
-    isTerminal:             r.isTerminal ?? false,
+    isTerminal:             r.isTerminal  ?? false,
     autoTransitionCondition: (r.autoTransitionCondition as Record<string, string> | null) ?? null,
     notificationTemplate:   r.notificationTemplate ?? null,
   }));
 }
 
-// ── Composed Validator (DB + pure logic + logging) ────────────
-
-interface ValidateOpts {
-  strict?:     boolean;  // override env-based mode
-  force?:      boolean;  // privileged bypass (logs warning, always allowed)
-  actorType?:  string;   // "owner" | "manager" | "staff" | etc.
-  requestId?:  string;
-  bookingId?:  string;
-}
+// ── Config State Detection ────────────────────────────────────
 
 /**
- * Full transition validation.
- * Loads stages, determines mode, runs pure check, logs outcome.
- * Never throws — returns TransitionResult with allowed:false on block.
+ * Classifies an org's workflow configuration:
+ *
+ * "workflow-ready"    — has stages with mappedStatus, no duplicates
+ * "legacy-compatible" — no stages or no stages with mappedStatus
+ * "invalid-config"    — duplicate mappedStatus values for the same org
+ *
+ * Used by resolveWorkflowExecutionMode to prevent strict mode on broken configs.
  */
-export async function validateTransition(
-  orgId:      string,
-  fromStatus: string,
-  toStatus:   string,
-  opts:       ValidateOpts = {},
-): Promise<TransitionResult> {
-  const stages = await getWorkflowStagesForOrg(orgId);
+export function getOrgWorkflowConfigState(
+  stages: WorkflowStage[],
+): OrgWorkflowConfigState {
+  const mapped = stages.filter((s) => s.mappedStatus !== null);
 
-  // Determine enforcement mode
-  const envStrict = process.env.WORKFLOW_STRICT_MODE === "true";
-  const useStrict = opts.strict ?? envStrict;
-  const mode: WorkflowMode =
-    stages.filter((s) => s.mappedStatus).length === 0
-      ? "legacy"
-      : useStrict
-      ? "strict"
-      : "soft";
+  if (mapped.length === 0) return "legacy-compatible";
 
-  const result = canTransition(fromStatus, toStatus, stages, mode);
-
-  // Privileged force-bypass
-  if (!result.allowed && opts.force) {
-    log.warn(
-      {
-        orgId,
-        bookingId:  opts.bookingId,
-        requestId:  opts.requestId,
-        actorType:  opts.actorType,
-        fromStatus,
-        toStatus,
-        blockedBy:  result.blockedBy,
-      },
-      "[workflow] forced transition override by privileged actor",
-    );
-    return { allowed: true, mode, warning: result.error };
+  // Check for duplicate mappedStatus values
+  const seen = new Set<string>();
+  for (const s of mapped) {
+    if (seen.has(s.mappedStatus!)) {
+      log.warn(
+        { mappedStatus: s.mappedStatus, stageId: s.id },
+        "[workflow] duplicate mappedStatus detected — org classified as invalid-config",
+      );
+      return "invalid-config";
+    }
+    seen.add(s.mappedStatus!);
   }
 
-  if (result.warning) {
-    log.warn(
-      {
-        orgId,
-        bookingId:  opts.bookingId,
-        requestId:  opts.requestId,
-        fromStatus,
-        toStatus,
-        warning:    result.warning,
-        mode:       result.mode,
-      },
-      "[workflow] soft transition violation — allowed through",
-    );
+  return "workflow-ready";
+}
+
+// ── Centralized Mode Resolution ───────────────────────────────
+
+/**
+ * Determines the effective workflow execution mode for an org.
+ * Centralizes all mode-decision logic — single source of truth.
+ *
+ * Decision table:
+ *   invalid-config + any env   → soft (never strict on broken data)
+ *   legacy-compatible + any    → legacy
+ *   workflow-ready + strict env → strict
+ *   workflow-ready + soft env   → soft
+ */
+export function resolveWorkflowExecutionMode(
+  stages: WorkflowStage[],
+): WorkflowExecutionMode {
+  const configState = getOrgWorkflowConfigState(stages);
+  const envStrict   = process.env.WORKFLOW_STRICT_MODE === "true";
+
+  if (configState === "invalid-config") {
+    log.warn({}, "[workflow] invalid-config detected — downgrading to soft mode");
+    return { mode: "soft", configState, reason: "invalid pipeline config — strict mode refused" };
   }
 
-  if (!result.allowed) {
-    log.info(
-      {
-        orgId,
-        bookingId:  opts.bookingId,
-        requestId:  opts.requestId,
-        fromStatus,
-        toStatus,
-        blockedBy:  result.blockedBy,
-        mode:       result.mode,
-      },
-      "[workflow] transition blocked",
-    );
+  if (configState === "legacy-compatible") {
+    return { mode: "legacy", configState, reason: "no mapped stages configured" };
   }
 
-  return result;
+  // workflow-ready
+  const mode = envStrict ? "strict" : "soft";
+  return {
+    mode,
+    configState,
+    reason: envStrict
+      ? "WORKFLOW_STRICT_MODE=true and org is workflow-ready"
+      : "soft mode (default) — set WORKFLOW_STRICT_MODE=true to enforce",
+  };
 }
 
 // ── Auto-Transition Hook ──────────────────────────────────────
@@ -271,13 +332,19 @@ export async function validateTransition(
 /**
  * Evaluates whether a trigger event should fire an automatic status transition.
  *
- * Each stage can have autoTransitionCondition:
+ * Each stage can have autoTransitionCondition JSON:
  *   { "trigger": "payment_completed", "targetMappedStatus": "fully_confirmed" }
  *
- * Returns the target status string if a transition should fire, null otherwise.
+ * Returns the target status if auto-transition applies, null otherwise.
  *
- * NOTE: calling code is responsible for actually executing the transition.
- * This function is pure evaluation — no writes.
+ * SAFETY: This function only evaluates — no writes happen here.
+ * Calling code is responsible for executing the transition with proper validation.
+ *
+ * Currently wired for:
+ *   - payment_completed → targetMappedStatus (configurable per stage)
+ *
+ * TODO: Wire to messaging-engine.ts for notification dispatch on auto-transition.
+ * TODO: Add circuit-breaker for preventing auto-transition loops.
  */
 export async function evaluateAutoTransitions(
   orgId:         string,
@@ -291,19 +358,22 @@ export async function evaluateAutoTransitions(
 
   const cond = currentStage.autoTransitionCondition;
   if (cond.trigger === trigger && cond.targetMappedStatus) {
+    // Safety: never auto-transition FROM a true terminal
+    if (TRUE_TERMINAL_STATUSES.has(currentStatus)) return null;
     return cond.targetMappedStatus;
   }
 
   return null;
 }
 
-// ── Notification Hook (placeholder) ──────────────────────────
+// ── Stage Notification Hook ───────────────────────────────────
 
 /**
- * Returns the notification template configured for the target stage.
+ * Returns the notification template configured for the target stage entry.
  * Returns null if none configured or stages not mapped.
  *
- * Hook is ready — connect to messaging-engine.ts when templates are wired up.
+ * TODO: Wire to messaging-engine.ts fireBookingEvent when templates are mapped.
+ * Current state: returns template text, caller decides how to use it.
  */
 export async function getStageEntryTemplate(
   orgId:        string,

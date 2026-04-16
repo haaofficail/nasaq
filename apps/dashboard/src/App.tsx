@@ -358,8 +358,8 @@ export default function App() {
           <Route path="reports/subscriptions" element={<SubscriptionsReportPage />} />
           <Route path="reports/visitors" element={<VisitorsReportPage />} />
           <Route path="reports/peak-times" element={<PeakTimesReportPage />} />
-          <Route path="treasury" element={<TreasuryPage />} />
-          <Route path="accounting" element={<AccountingPage />} />
+          <Route path="treasury" element={<ProtectedRoute permission="finance.invoices"><TreasuryPage /></ProtectedRoute>} />
+          <Route path="accounting" element={<ProtectedRoute anyPermission={["finance.reports", "finance.invoices"]}><AccountingPage /></ProtectedRoute>} />
           <Route path="accounting/journal-entries" element={<JournalEntriesPage />} />
           <Route path="accounting/periods" element={<AccountingPeriodsPage />} />
           <Route path="accounting/fixed-assets" element={<FixedAssetsPage />} />
@@ -402,7 +402,7 @@ export default function App() {
           <Route path="settings/profile" element={<ProfileSettingsPage />} />
           <Route path="account" element={<AccountPage />} />
           <Route path="settings/website" element={<WebsiteSettingsPage />} />
-          <Route path="settings/audit-log" element={<AuditLogPage />} />
+          <Route path="settings/audit-log" element={<ProtectedRoute permission="settings.org"><AuditLogPage /></ProtectedRoute>} />
           <Route path="settings/legal" element={<LegalSettingsPage />} />
           <Route path="subscription" element={<SubscriptionPage />} />
           <Route path="billing" element={<BillingPage />} />
@@ -484,7 +484,7 @@ export default function App() {
           <Route path="reminders" element={<RemindersPage />} />
           <Route path="support" element={<SupportPage />} />
           <Route path="guide" element={<GuidePage />} />
-          <Route path="payments" element={<PaymentsPage />} />
+          <Route path="payments" element={<ProtectedRoute permission="finance.invoices"><PaymentsPage /></ProtectedRoute>} />
 
           {/* ── Old school routes → redirect to /school/* ── */}
           <Route path="school/day-monitor"         element={<Navigate to="/school/day-monitor" replace />} />
@@ -505,15 +505,9 @@ export default function App() {
 
           {/* ── Redirects from old routes ── */}
           <Route path="employees"          element={<Navigate to="/dashboard/team" replace />} />
-          <Route path="settings/profile"   element={<Navigate to="/dashboard/settings" replace />} />
-          <Route path="settings/website"   element={<Navigate to="/dashboard/website?tab=settings" replace />} />
           <Route path="customization"      element={<Navigate to="/dashboard/settings" replace />} />
           <Route path="platform"           element={<Navigate to="/dashboard/settings" replace />} />
-          <Route path="settings/booking"   element={<Navigate to="/dashboard/settings?tab=booking" replace />} />
-          <Route path="settings/audit-log" element={<Navigate to="/dashboard/settings?tab=audit" replace />} />
           <Route path="revenue"            element={<Navigate to="/dashboard/finance" replace />} />
-          <Route path="automation"         element={<Navigate to="/dashboard/marketing" replace />} />
-          <Route path="messaging"          element={<Navigate to="/dashboard/marketing?tab=messaging" replace />} />
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>

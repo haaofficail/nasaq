@@ -6,6 +6,7 @@ export type SystemRole = "owner" | "manager" | "provider" | "employee" | "recept
 
 export const ALL_PERMISSIONS = [
   "bookings.view", "bookings.create", "bookings.update", "bookings.cancel", "bookings.view_all", "bookings.assign",
+  "bookings.force_transition", // تجاوز قواعد workflow للمراحل المحمية — للمالك فقط
   "orders.view", "orders.create", "orders.update", "orders.cancel", "orders.view_all",
   "finance.invoices", "finance.reports", "finance.commissions", "finance.salaries", "finance.expenses", "finance.payment_gateway",
   "team.view", "team.add", "team.remove", "team.edit", "team.schedules", "team.attendance", "team.permissions",
@@ -32,7 +33,7 @@ export const ALL_PERMISSIONS = [
 ] as const;
 
 export const PERMISSION_GROUPS: Record<string, { label: string; permissions: string[] }> = {
-  bookings:  { label: "الحجوزات",          permissions: ["bookings.view", "bookings.create", "bookings.update", "bookings.cancel", "bookings.view_all", "bookings.assign"] },
+  bookings:  { label: "الحجوزات",          permissions: ["bookings.view", "bookings.create", "bookings.update", "bookings.cancel", "bookings.view_all", "bookings.assign", "bookings.force_transition"] },
   orders:    { label: "الطلبات",            permissions: ["orders.view", "orders.create", "orders.update", "orders.cancel", "orders.view_all"] },
   finance:   { label: "المالية",            permissions: ["finance.invoices", "finance.reports", "finance.commissions", "finance.salaries", "finance.expenses", "finance.payment_gateway"] },
   team:      { label: "الفريق",             permissions: ["team.view", "team.add", "team.remove", "team.edit", "team.schedules", "team.attendance", "team.permissions"] },
@@ -62,6 +63,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: str
 export const PERMISSION_LABELS: Record<string, string> = {
   "bookings.view": "عرض الحجوزات", "bookings.create": "اضافة حجز", "bookings.update": "تعديل حجز",
   "bookings.cancel": "الغاء حجز", "bookings.view_all": "عرض جميع الحجوزات", "bookings.assign": "تعيين موظف للحجز",
+  "bookings.force_transition": "تجاوز قواعد مسار الحجز (مالك فقط)",
   "orders.view": "عرض الطلبات", "orders.create": "اضافة طلب", "orders.update": "تعديل طلب",
   "orders.cancel": "الغاء طلب", "orders.view_all": "عرض جميع الطلبات",
   "finance.invoices": "الفواتير", "finance.reports": "التقارير المالية", "finance.commissions": "العمولات",

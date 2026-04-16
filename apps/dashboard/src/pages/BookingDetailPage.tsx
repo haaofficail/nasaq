@@ -63,9 +63,13 @@ export function BookingDetailPage() {
   const [vn, setVn] = useState<Record<string, string>>({});
   const [generatingLink, setGeneratingLink] = useState(false);
 
+  const [statusError, setStatusError] = useState<string | null>(null);
+
   const { data: res, loading, error, refetch } = useApi(() => bookingsApi.get(id!), [id]);
   const { data: eventsRes, refetch: refetchEvents } = useApi(() => bookingsApi.events(id!), [id]);
-  const { mutate: updateStatus } = useMutation(({ status, reason }: any) => bookingsApi.updateStatus(id!, status, reason));
+  const { data: timelineRes, refetch: refetchTimeline } = useApi(() => bookingsApi.timeline(id!), [id]);
+  const { mutate: updateStatus } = useMutation((opts: { status: string; reason?: string; force?: boolean }) =>
+    bookingsApi.updateStatus(id!, opts.status, { reason: opts.reason, force: opts.force }));
   const { mutate: addPayment, loading: paymentLoading } = useMutation((data: any) => bookingsApi.addPayment(id!, data));
   const { mutate: reschedule, loading: rescheduling } = useMutation((data: any) => bookingsApi.reschedule(id!, data));
   const { mutate: saveVisitNote, loading: savingNote } = useMutation((data: any) => salonApi.saveVisitNote(id!, data));
@@ -77,17 +81,33 @@ export function BookingDetailPage() {
 
   const handleStatusChange = async (status: string) => {
     if (status === "cancelled") { setShowCancelConfirm(true); return; }
-    await updateStatus({ status });
-    if (status === "confirmed" || status === "completed") hapticSuccess();
-    refetch();
-    refetchEvents();
+    setStatusError(null);
+    try {
+      await updateStatus({ status });
+      if (status === "confirmed" || status === "completed") hapticSuccess();
+      refetch();
+      refetchEvents();
+      refetchTimeline();
+    } catch (err: any) {
+      const msg = err?.response?.data?.error ?? err?.message ?? "حدث خطأ في تغيير الحالة";
+      setStatusError(msg);
+      toast.error(msg);
+    }
   };
 
   const doCancelBooking = async () => {
     setShowCancelConfirm(false);
-    await updateStatus({ status: "cancelled" });
-    refetch();
-    refetchEvents();
+    setStatusError(null);
+    try {
+      await updateStatus({ status: "cancelled" });
+      refetch();
+      refetchEvents();
+      refetchTimeline();
+    } catch (err: any) {
+      const msg = err?.response?.data?.error ?? err?.message ?? "حدث خطأ في الإلغاء";
+      setStatusError(msg);
+      toast.error(msg);
+    }
   };
 
   const handleAddPayment = async () => {
@@ -100,6 +120,7 @@ export function BookingDetailPage() {
 
   const handleCompleteBooking = async () => {
     setCompleting(true);
+    setStatusError(null);
     try {
       if (completePayAmount && parseFloat(completePayAmount) > 0) {
         await addPayment({ amount: parseFloat(completePayAmount), method: completePayMethod, type: "payment" });
@@ -109,6 +130,11 @@ export function BookingDetailPage() {
       setShowComplete(false);
       refetch();
       refetchEvents();
+      refetchTimeline();
+    } catch (err: any) {
+      const msg = err?.response?.data?.error ?? err?.message ?? "حدث خطأ في إكمال الحجز";
+      setStatusError(msg);
+      toast.error(msg);
     } finally {
       setCompleting(false);
     }
@@ -165,12 +191,35 @@ export function BookingDetailPage() {
   const total = Number(booking.totalAmount || 0);
   const remaining = total - paid;
 
+  const sla        = timelineRes?.sla;
+  const timeline   = timelineRes?.data ?? [];
+  const isStale    = sla?.isStale === true;
+  const workflowMode = timeline.find((e: any) => e.workflowMode)?.workflowMode ?? null;
+
+  // آخر سبب حجب (أحدث status_blocked event)
+  const lastBlocked = [...timeline].reverse().find((e: any) => e.eventType === "status_blocked");
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Link to="/bookings" className="p-2 rounded-lg hover:bg-gray-100"><ArrowRight className="w-5 h-5 text-gray-400" /></Link>
-        <div className="flex-1"><h1 className="text-2xl font-bold text-gray-900">{biz.terminology.booking} #{booking.bookingNumber || id?.substring(0, 8)}</h1><p className="text-sm text-gray-500">{booking.customerName || booking.customer?.name}</p></div>
-        <span className={clsx("px-3 py-1 rounded-full text-xs font-medium", sc.cls)}>{sc.label}</span>
+        <div className="flex-1">
+          <h1 className="text-2xl font-bold text-gray-900">{biz.terminology.booking} #{booking.bookingNumber || id?.substring(0, 8)}</h1>
+          <p className="text-sm text-gray-500">{booking.customerName || booking.customer?.name}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {isStale && (
+            <span className="flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-50 text-amber-600 border border-amber-100">
+              <Clock className="w-3 h-3" /> متأخر
+            </span>
+          )}
+          {workflowMode && workflowMode !== "legacy" && (
+            <span className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-gray-50 text-gray-400 border border-gray-100">
+              {workflowMode}
+            </span>
+          )}
+          <span className={clsx("px-3 py-1 rounded-full text-xs font-medium", sc.cls)}>{sc.label}</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -340,6 +389,12 @@ export function BookingDetailPage() {
         <div className="space-y-4">
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="font-semibold text-gray-900 mb-3">إجراءات</h3>
+            {statusError && (
+              <div className="flex items-start gap-2 p-3 mb-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{statusError}</span>
+              </div>
+            )}
             <div className="space-y-2">
               {booking.status === "pending" && <button onClick={() => handleStatusChange("confirmed")} className="w-full bg-blue-500 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-blue-600">تأكيد الحجز</button>}
               {booking.status === "confirmed" && <button onClick={() => handleStatusChange("in_progress")} className="w-full bg-purple-500 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-purple-600">بدء التنفيذ</button>}
@@ -380,6 +435,78 @@ export function BookingDetailPage() {
               </a>
             )}
           </div>
+
+          {/* Operational Panel: SLA + Last Block + Timeline */}
+          {timeline.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <History className="w-4 h-4 text-gray-400" />
+                السجل التشغيلي
+              </h3>
+
+              {/* SLA strip */}
+              {sla && !sla.isStale && sla.thresholdSource !== "no_threshold" && (
+                <div className="mb-3 flex items-center gap-2 text-xs text-gray-400">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>وقت الحالة: {Math.round(sla.timeInCurrentStatusMs / 3600000)} ساعة من أصل {Math.round(sla.stalenessThresholdMs / 3600000)}</span>
+                </div>
+              )}
+              {sla?.isStale && (
+                <div className="mb-3 flex items-center gap-2 px-3 py-2 bg-amber-50 border border-amber-100 rounded-lg text-xs text-amber-600">
+                  <Clock className="w-3.5 h-3.5 shrink-0" />
+                  <span>الحجز في هذه الحالة أطول من المتوقع ({Math.round(sla.timeInCurrentStatusMs / 3600000)} ساعة)</span>
+                </div>
+              )}
+
+              {/* Last block warning */}
+              {lastBlocked && (
+                <div className="mb-3 flex items-start gap-2 px-3 py-2 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600">
+                  <XCircle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                  <span>آخر حجب: {(lastBlocked.metadata as any)?.blockReason ?? lastBlocked.reason ?? "انتهاك قواعد الـ workflow"}</span>
+                </div>
+              )}
+
+              {/* Compact timeline — last 6 events, newest first */}
+              <div className="space-y-2">
+                {[...timeline].reverse().slice(0, 6).map((ev: any) => {
+                  const typeLabel: Record<string, string> = {
+                    status_changed:       "تغيير الحالة",
+                    forced_transition:    "تجاوز إداري",
+                    status_blocked:       "حجب الانتقال",
+                    automation_triggered: "تشغيل تلقائي",
+                    payment_received:     "دفعة مسجّلة",
+                    rescheduled:          "تأجيل",
+                    assigned:             "تعيين موظف",
+                    created:              "إنشاء الحجز",
+                    note_added:           "ملاحظة",
+                    refunded:             "استرداد",
+                    warning_emitted:      "تحذير",
+                    cancelled:            "إلغاء",
+                  };
+                  const dotColor: Record<string, string> = {
+                    forced_transition: "bg-red-400",
+                    status_blocked:    "bg-amber-400",
+                    automation_triggered: "bg-brand-400",
+                    payment_received:  "bg-green-400",
+                  };
+                  return (
+                    <div key={ev.id} className="flex items-start gap-2 text-xs">
+                      <span className={clsx("mt-1.5 w-1.5 h-1.5 rounded-full shrink-0", dotColor[ev.eventType] ?? "bg-gray-300")} />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-gray-700">{typeLabel[ev.eventType] ?? ev.eventType}</span>
+                        {ev.toStatus && ev.eventType === "status_changed" && (
+                          <span className="text-gray-400"> → {statusConfig[ev.toStatus]?.label ?? ev.toStatus}</span>
+                        )}
+                        {ev.forced && <span className="mr-1 text-red-400">(مُجاز)</span>}
+                        {ev.actorName && <span className="text-gray-400"> — {ev.actorName}</span>}
+                      </div>
+                      <span className="text-gray-300 shrink-0">{new Date(ev.createdAt).toLocaleString("ar", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Dynamic Booking Fields Display */}
           {customBookingFields.length > 0 && booking.customFields && Object.keys(booking.customFields).length > 0 && (

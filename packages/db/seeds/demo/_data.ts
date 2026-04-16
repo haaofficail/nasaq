@@ -850,4 +850,34 @@ export const ALL_ORGS: OrgConfig[] = [
     ],
   },
 
+  // ═══════════════════════════════════════════════════════
+  // 34. GENERAL — منشأة عامة (نموذج افتراضي)
+  // ═══════════════════════════════════════════════════════
+  {
+    slug: "demo-general",
+    name: "مؤسسة الريادة للخدمات",
+    businessType: "general",
+    city: "الرياض",
+    phone: "+966500000134",
+    email: "demo-general@tarmizos.sa",
+    ownerName: "عبدالله ناصر الحربي",
+    tagline: "خدمات متنوعة بجودة عالية",
+    description: "مؤسسة عامة تقدم خدمات متكاملة للأفراد والشركات، تجمع بين المرونة والاحترافية.",
+    vatNumber: "310099887700003",
+    crNumber: "1010998877",
+    enabledCapabilities: ["bookings","customers","catalog","media","accounting","website"],
+    hasPos: false,
+    categories: ["استشارات","خدمات إدارية","خدمات تقنية","تدريب وتطوير"],
+    services: [
+      { category: "استشارات",       name: "استشارة أعمال (ساعة)",             price: 500,  duration: 60  },
+      { category: "استشارات",       name: "دراسة جدوى مشروع",                  price: 3500, duration: 480 },
+      { category: "خدمات إدارية",   name: "معالجة وتوثيق عقد تجاري",           price: 800,  duration: 120 },
+      { category: "خدمات إدارية",   name: "تأسيس شركة (خدمة كاملة)",           price: 4500, duration: 1440 },
+      { category: "خدمات تقنية",    name: "إعداد منظومة ERP أساسية",            price: 8000, duration: 2880 },
+      { category: "خدمات تقنية",    name: "برمجة موقع إلكتروني مؤسسي",          price: 6000, duration: 4320 },
+      { category: "تدريب وتطوير",   name: "برنامج تدريبي (يوم كامل)",            price: 1200, duration: 480  },
+      { category: "تدريب وتطوير",   name: "ورشة عمل جماعية (10 أشخاص)",         price: 3000, duration: 240  },
+    ],
+  },
+
 ];

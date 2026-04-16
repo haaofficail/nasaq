@@ -230,7 +230,7 @@ export function BookingsPage() {
     if (!cancelModal) return;
     setActionLoading(cancelModal + "_cancel");
     try {
-      await bookingsApi.updateStatus(cancelModal, "cancelled", cancelReason || undefined);
+      await bookingsApi.updateStatus(cancelModal, "cancelled", cancelReason ? { reason: cancelReason } : undefined);
       toast.success("تم إلغاء الموعد");
       refetch();
     } catch { toast.error("فشل الإلغاء"); }

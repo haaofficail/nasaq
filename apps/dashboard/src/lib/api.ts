@@ -190,8 +190,8 @@ export const bookingsApi = {
   },
   get: (id: string) => api.get<{ data: any }>(`/bookings/${id}`),
   create: (data: any) => api.post<{ data: any }>("/bookings", data),
-  updateStatus: (id: string, status: string, reason?: string) =>
-    api.patch(`/bookings/${id}/status`, { status, reason }),
+  updateStatus: (id: string, status: string, opts?: { reason?: string; force?: boolean }) =>
+    api.patch(`/bookings/${id}/status`, { status, reason: opts?.reason, force: opts?.force }),
   reschedule: (id: string, data: { eventDate: string; eventEndDate?: string; assignedUserId?: string | null; reason?: string; notes?: string }) =>
     api.patch<{ data: any }>(`/bookings/${id}/reschedule`, data),
   addPayment: (id: string, data: any) => api.post(`/bookings/${id}/payments`, data),
@@ -204,6 +204,10 @@ export const bookingsApi = {
   trend: (months?: number) => api.get<{ data: any[] }>(`/bookings/stats/trend?months=${months || 6}`),
   growth: (period?: string) => api.get<{ data: any }>(`/bookings/stats/growth?period=${period || "month"}`),
   events: (id: string) => api.get<{ data: any[] }>(`/bookings/${id}/events`),
+  /** التسلسل الزمني التشغيلي + حالة SLA للحجز */
+  timeline: (id: string) => api.get<{ data: any[]; sla: any }>(`/bookings/${id}/timeline`),
+  /** التنبيهات التشغيلية للمنشأة (stale / blocked / repeated forced) */
+  alerts: (limit?: number) => api.get<{ data: any[]; count: number }>(`/bookings/alerts${limit ? `?limit=${limit}` : ""}`),
   createPaymentLink: (id: string) => api.post<{ data: { transactionUrl: string | null; paymentId: string } }>(`/billing/booking-payment`, { bookingId: id }),
 };
 
