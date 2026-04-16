@@ -2433,7 +2433,7 @@ export async function seedServiceOrdersVertical(
 type VerticalFn = (client: any, orgId: string) => Promise<void>;
 
 const VERTICAL_MAP: Record<string, VerticalFn> = {
-  flower_shop:      seedFlowerVertical,
+  flower_shop:      async (c, o) => { await seedFlowerVertical(c, o); await seedInventoryVertical(c, o, "مستلزمات زهور"); await seedEventsDeepVertical(c, o); },
   hotel:            async (c, o) => { await seedHotelVertical(c, o); await seedHotelDeepVertical(c, o); },
   car_rental:       async (c, o) => { await seedCarRentalVertical(c, o); await seedCarRentalDeepVertical(c, o); },
   salon:            seedSalonVertical,
@@ -2461,10 +2461,10 @@ const VERTICAL_MAP: Record<string, VerticalFn> = {
   retail:           async (c, o) => { await seedInventoryVertical(c, o, "بضاعة"); await seedServiceOrdersVertical(c, o, "RET", 15); },
   store:            async (c, o) => { await seedInventoryVertical(c, o, "سلعة"); await seedServiceOrdersVertical(c, o, "STR", 15); },
   printing:         async (c, o) => { await seedInventoryVertical(c, o, "مادة طباعة"); await seedServiceOrdersVertical(c, o, "PRN", 20); },
-  digital_services: async (c, o) => { await seedServiceOrdersVertical(c, o, "DIG", 20); await seedFinancialLayer(c, o); },
-  marketing:        async (c, o) => { await seedServiceOrdersVertical(c, o, "MKT", 20); await seedFinancialLayer(c, o); },
-  agency:           async (c, o) => { await seedServiceOrdersVertical(c, o, "AGN", 20); await seedFinancialLayer(c, o); },
-  technology:       async (c, o) => { await seedServiceOrdersVertical(c, o, "TEC", 20); await seedFinancialLayer(c, o); },
+  digital_services: async (c, o) => { await seedServiceOrdersVertical(c, o, "DIG", 20); },
+  marketing:        async (c, o) => { await seedServiceOrdersVertical(c, o, "MKT", 20); },
+  agency:           async (c, o) => { await seedServiceOrdersVertical(c, o, "AGN", 20); },
+  technology:       async (c, o) => { await seedServiceOrdersVertical(c, o, "TEC", 20); },
   laundry:          async (c, o) => { await seedInventoryVertical(c, o, "مواد تنظيف"); await seedServiceOrdersVertical(c, o, "LAU", 20); },
   services:         async (c, o) => { await seedServiceOrdersVertical(c, o, "SVC", 20); },
   general:          async (c, o) => { await seedServiceOrdersVertical(c, o, "GEN", 15); },
@@ -2479,11 +2479,5 @@ export async function seedVertical(client: any, orgId: string, businessType: str
       // Don't fail the whole seed if a vertical has a schema issue
       console.warn(`    [vertical:${businessType}] warning: ${err.message}`);
     }
-  }
-  // Always run financial layer for every org (idempotent)
-  try {
-    await seedFinancialLayer(client, orgId);
-  } catch (err: any) {
-    console.warn(`    [financial-layer:${businessType}] warning: ${err.message}`);
   }
 }

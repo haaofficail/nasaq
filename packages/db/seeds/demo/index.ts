@@ -35,7 +35,7 @@ import {
   createCustomers, createBookings, createPosTransactions,
   createExpenses, seedChartOfAccounts, seedP1Infrastructure,
 } from "./_shared";
-import { seedVertical } from "./_verticals";
+import { seedVertical, seedFinancialLayer } from "./_verticals";
 
 // ─── CLI args ────────────────────────────────────────────────────────────────
 
@@ -242,9 +242,17 @@ async function run() {
         await seedVertical(client, orgId, cfg.businessType);
 
         // P1 Infrastructure: shifts, HR, cashier shifts, service_staff, booking_assignments, pos_quick_items
+        // NOTE: treasury_accounts are created here — must run before seedFinancialLayer
         await seedP1Infrastructure(
           client, orgId, staffIds, serviceIds, cfg.hasPos, cfg.businessType
         );
+
+        // Financial layer: requires treasury_accounts (created above in P1)
+        try {
+          await seedFinancialLayer(client, orgId);
+        } catch (err: any) {
+          console.warn(`    [financial-layer:${cfg.businessType}] warning: ${err.message}`);
+        }
 
         await client.query("COMMIT");
         console.log(`  → OK (orgId: ${orgId})`);
