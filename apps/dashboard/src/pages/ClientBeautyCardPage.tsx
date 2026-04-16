@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { salonApi, customersApi } from "@/lib/api";
+import { salonApi, customersApi, settingsApi } from "@/lib/api";
 import { useBusiness } from "@/hooks/useBusiness";
 import {
   ArrowRight, Sparkles, AlertTriangle, Heart, User,
@@ -99,13 +99,35 @@ export function ClientBeautyCardPage() {
   const profile   = beautyRes?.data?.profile || {};
   const visits    = beautyRes?.data?.recentVisits || [];
 
+  const { data: orgProfileRes, loading: orgLoading } = useApi(() => settingsApi.profile(), []);
+  const orgSettings = orgProfileRes?.data?.settings || {};
+  const customFields = orgSettings.customerFields || [];
+
+  // Merge the static matrix with the dynamic customFields from settings
+  const finalSections = [...matrix.sections];
+  if (customFields.length > 0) {
+    finalSections.push({
+      id: "org_custom_fields",
+      title: "بيانات إضافية مخصصة",
+      iconName: "Sparkles",
+      colorClass: "bg-brand-50 text-brand-600",
+      fields: customFields.map((f: any) => ({
+        key: f.key,
+        label: f.label,
+        type: f.type,
+        options: f.options
+      }))
+    });
+  }
+
+
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [draft, setDraft] = useState<Record<string, any>>({});
   const { mutate: saveProfile } = useMutation((data: any) => salonApi.saveBeautyProfile(customerId!, data));
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const startEdit = (sectionId: string) => {
-    const sec = matrix.sections.find(s => s.id === sectionId);
+    const sec = finalSections.find(s => s.id === sectionId);
     if (!sec) return;
     const newDraft: Record<string, any> = {};
     sec.fields.forEach(f => {
@@ -117,7 +139,7 @@ export function ClientBeautyCardPage() {
 
   const save = async (sectionId: string) => {
     setSaveError(null);
-    const sec = matrix.sections.find(s => s.id === sectionId);
+    const sec = finalSections.find(s => s.id === sectionId);
     if (!sec) return;
 
     // Distinguish legacy columns vs JSONB metadata
@@ -140,7 +162,7 @@ export function ClientBeautyCardPage() {
     setEditingSection(null);
   };
 
-  if (customerLoading || beautyLoading) {
+  if (customerLoading || beautyLoading || orgLoading) {
     return (
       <div className="flex items-center justify-center h-64">
         <Loader2 className="w-7 h-7 animate-spin text-brand-500" />
@@ -172,7 +194,7 @@ export function ClientBeautyCardPage() {
       )}
 
       {/* Dynamic Sections */}
-      {matrix.sections.map(sec => (
+      {finalSections.map(sec => (
         <Section
           key={sec.id}
           section={sec}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowRight, CalendarCheck, MapPin, Phone, User, Banknote, Clock, CheckCircle, XCircle, Plus, Loader2, AlertCircle, CalendarClock, FileText, Sparkles, History, Link2, PlusCircle, RefreshCw, RotateCcw, UserCheck, UserCircle } from "lucide-react";
 import { clsx } from "clsx";
-import { bookingsApi, salonApi } from "@/lib/api";
+import { bookingsApi, salonApi, settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { useBusiness } from "@/hooks/useBusiness";
 import { success as hapticSuccess } from "@/lib/haptics";
@@ -41,6 +41,9 @@ export function BookingDetailPage() {
   const { id } = useParams();
   const biz = useBusiness();
   const matrix = getMatrixForBusiness(biz.key);
+  const { data: orgProfileRes } = useApi(() => settingsApi.profile(), []);
+  const orgSettings = orgProfileRes?.data?.settings || {};
+  const customBookingFields = orgSettings.bookingFields || [];
   const [showPayment, setShowPayment] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
@@ -377,6 +380,28 @@ export function BookingDetailPage() {
               </a>
             )}
           </div>
+
+          {/* Dynamic Booking Fields Display */}
+          {customBookingFields.length > 0 && booking.customFields && Object.keys(booking.customFields).length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 p-5 mt-4">
+              <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-brand-500" />
+                تفاصيل إضافية
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {customBookingFields.map((f: any) => {
+                  const val = booking.customFields[f.key];
+                  if (val === undefined || val === null || val === "") return null;
+                  return (
+                    <div key={f.key}>
+                      <span className="text-[11px] font-medium text-gray-400 block mb-0.5">{f.label}</span>
+                      <span className="text-[13px] font-semibold text-gray-900">{typeof val === "boolean" ? (val ? "نعم" : "لا") : val}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Visit Note — Dynamic Engine */}
           {matrix.visitNoteFields.length > 0 && (booking.status === "completed" || booking.status === "in_progress") && (

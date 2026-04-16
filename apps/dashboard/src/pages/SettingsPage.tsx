@@ -7,6 +7,7 @@ import { confirmDialog } from "@/components/ui";
 import { settingsApi, financeApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Input, Select, Modal } from "@/components/ui";
+import { SystemFieldsBuilder, CustomFieldDef } from "@/components/settings/SystemFieldsBuilder";
 import { SAUDI_CITIES, BUSINESS_TYPE_LIST } from "@/lib/constants";
 import { fmtDate } from "@/lib/utils";
 
@@ -45,6 +46,7 @@ const tabs = [
   { label: "الاشتراك",      icon: CreditCard },
   { label: "الهوية البصرية", icon: Palette },
   { label: "بوابة الدفع",   icon: Wallet },
+  { label: "الحقول المخصصة", icon: Eye },
   { label: "الامتثال والأنظمة", icon: Scale, href: "/dashboard/settings/legal" },
 ];
 
@@ -893,6 +895,32 @@ export function SettingsPage() {
               <li>الصق المفاتيح أعلاه وفعّل بوابة الدفع</li>
               <li>عملاؤك الآن يقدرون يدفعون من صفحة تتبع الحجز مباشرة</li>
             </ol>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tab 5: Form Builder ── */}
+      {activeTab === 5 && (
+        <div className="space-y-4">
+          <SystemFieldsBuilder
+            title="تخصيص حقول العملاء"
+            description="إضافة حقول إضافية لملت العميل (رقم اللوحة، مقاس..)"
+            fields={f.settings?.customerFields || []}
+            onChange={(fields) => setForm({ ...f, settings: { ...f.settings, customerFields: fields } })}
+          />
+          <SystemFieldsBuilder
+            title="تخصيص حقول الحجوزات (الزيارات)"
+            description="حقول إضافية لنموذج الحجز المخصص"
+            fields={f.settings?.bookingFields || []}
+            onChange={(fields) => setForm({ ...f, settings: { ...f.settings, bookingFields: fields } })}
+          />
+          <div className="flex items-center gap-3 mt-4">
+            <Button onClick={handleSaveProfile} loading={saving}>حفظ الحقول الديناميكية</Button>
+            {saved && (
+              <span className="flex items-center gap-1.5 text-sm text-emerald-600 font-medium">
+                <CheckCircle2 className="w-4 h-4" /> تم الحفظ بنجاح
+              </span>
+            )}
           </div>
         </div>
       )}
