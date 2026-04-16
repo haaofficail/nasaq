@@ -24,6 +24,7 @@ import { decryptString } from "../lib/encryption";
 import { log } from "../lib/logger";
 import { salonLog } from "../lib/salon-logger";
 import { shadowWriteBookingOnCreate, shadowWriteBookingStatus } from "../lib/canonical-shadow";
+import { getWorkflowStagesForOrg, canTransition } from "../lib/workflow-engine";
 import type { AuthUser } from "../middleware/auth";
 
 export const bookingsRouter = new Hono<{ Variables: { user: AuthUser | null; orgId: string; locationFilter: string[] | null; requestId: string } }>();
@@ -985,8 +986,15 @@ bookingsRouter.post("/", async (c) => {
 // ============================================================
 
 const updateStatusSchema = z.object({
-  status: z.enum(["pending", "confirmed", "cancelled", "no_show", "completed"]),
+  // Accepts all valid status values (was 5, now all 10 — backward-compatible)
+  status: z.enum([
+    "pending", "confirmed", "deposit_paid", "fully_confirmed",
+    "preparing", "in_progress", "completed", "reviewed",
+    "cancelled", "no_show",
+  ]),
   reason: z.string().optional(),
+  // force: privileged bypass of workflow stage enforcement (logged, never silent)
+  force:  z.boolean().optional().default(false),
 });
 
 bookingsRouter.patch("/:id/status", async (c) => {
@@ -994,7 +1002,8 @@ bookingsRouter.patch("/:id/status", async (c) => {
   const actingUserId = getUserId(c);
   const requestId = c.get("requestId");
   const id = c.req.param("id");
-  const { status: newStatus, reason } = updateStatusSchema.parse(await c.req.json());
+  const { status: newStatus, reason, force } = updateStatusSchema.parse(await c.req.json());
+  const actorType = c.get("user")?.type ?? "staff";
 
   log.info({
     orgId,
@@ -1010,48 +1019,47 @@ bookingsRouter.patch("/:id/status", async (c) => {
     },
   }, "[guardrails] bookings.status.update (legacy write path)");
 
+  // Load pipeline stages once outside the transaction — used by canTransition (pure, no extra query in tx)
+  const workflowStages = await getWorkflowStagesForOrg(orgId);
+  const envStrict = process.env.WORKFLOW_STRICT_MODE === "true";
+  const isPrivilegedActor = actorType === "owner" || actorType === "super_admin";
+  const workflowMode = workflowStages.filter((s) => s.mappedStatus).length === 0
+    ? "legacy" as const
+    : envStrict ? "strict" as const : "soft" as const;
+
   // P0-1 fix: wrap read+write in a transaction with FOR UPDATE to prevent TOCTOU
   // P0-2 fix: supply deduction is INSIDE this transaction — atomic with status change (no silent failures)
   // P0-3 fix: un-completing a booking reverses supply consumptions before re-deducting is possible
-  const statusTx = await db.transaction(async (tx) => {
+  // Workflow errors thrown inside the tx bubble up as 422 (caught below)
+  let statusTx;
+  try {
+    statusTx = await db.transaction(async (tx) => {
     const [existing] = await tx.select({ status: bookings.status })
       .from(bookings)
       .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)))
       .for("update");
     if (!existing) return null;
 
-    // ── Workflow State Machine Guard ──
-    if (
-      newStatus !== "cancelled" &&
-      newStatus !== "no_show" &&
-      existing.status !== newStatus
-    ) {
-      const dbStages = await tx.select({
-        mappedStatus: bookingPipelineStages.mappedStatus,
-        sortOrder: bookingPipelineStages.sortOrder,
-        isSkippable: bookingPipelineStages.isSkippable,
-      })
-      .from(bookingPipelineStages)
-      .where(and(eq(bookingPipelineStages.orgId, orgId), sql`mapped_status IS NOT NULL`))
-      .orderBy(asc(bookingPipelineStages.sortOrder));
+    // ── Workflow State Machine Guard (uses pre-loaded stages — no extra DB round-trip) ──
+    if (existing.status !== newStatus) {
+      const result = canTransition(existing.status, newStatus, workflowStages, workflowMode);
 
-      if (dbStages.length > 0) {
-        const fromStage = dbStages.find((s) => s.mappedStatus === existing.status);
-        const toStage = dbStages.find((s) => s.mappedStatus === newStatus);
+      if (result.warning) {
+        log.warn(
+          { orgId, bookingId: id, requestId, fromStatus: existing.status, toStatus: newStatus, warning: result.warning, mode: result.mode },
+          "[workflow] soft transition violation — proceeding",
+        );
+      }
 
-        if (fromStage && toStage) {
-          if (toStage.sortOrder < fromStage.sortOrder) {
-            return { error: "لا يمكن التراجع لمرحلة سابقة في مسار الحجز." };
-          }
-
-          const skippedStages = dbStages.filter(
-            (s) => s.sortOrder > fromStage.sortOrder && s.sortOrder < toStage.sortOrder
+      if (!result.allowed) {
+        // Privileged force-bypass: owner/super_admin can override with force:true (always logged)
+        if (force && isPrivilegedActor) {
+          log.warn(
+            { orgId, bookingId: id, requestId, actorType, fromStatus: existing.status, toStatus: newStatus, blockedBy: result.blockedBy },
+            "[workflow] forced transition override by privileged actor",
           );
-
-          const mandatorySkipped = skippedStages.find((s) => s.isSkippable === false);
-          if (mandatorySkipped) {
-            return { error: `الحماية مفعّلة: لا يمكن تجاوز المرحلة الإجبارية` };
-          }
+        } else {
+          throw Object.assign(new Error(result.error ?? "WORKFLOW_TRANSITION_BLOCKED"), { status: 422, blockedBy: result.blockedBy });
         }
       }
     }
@@ -1182,10 +1190,15 @@ bookingsRouter.patch("/:id/status", async (c) => {
     }
 
     return { fromStatus: existing.status, updated: upd };
-  });
+    }); // end db.transaction
+  } catch (err: any) {
+    if (err?.status === 422) {
+      return c.json({ error: err.message, blockedBy: err.blockedBy ?? null }, 422);
+    }
+    throw err;
+  }
 
   if (!statusTx) return c.json({ error: "الحجز غير موجود" }, 404);
-  if ("error" in statusTx) return c.json({ error: statusTx.error }, 422);
   const { fromStatus, updated } = statusTx;
 
   // Booking event — status change

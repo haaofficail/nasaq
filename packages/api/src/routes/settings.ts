@@ -355,13 +355,13 @@ settingsRouter.post("/onboard", async (c) => {
     await tx.insert(roles).values(defaultRoles.map((r) => ({ orgId: org.id, ...r })));
 
     const defaultStages = [
-      { name: "طلب جديد", color: "#9E9E9E", sortOrder: 1, isDefault: true },
-      { name: "تأكيد أولي", color: "#FF9800", sortOrder: 2 },
-      { name: "عربون مدفوع", color: "#2196F3", sortOrder: 3 },
-      { name: "تأكيد نهائي", color: "#4CAF50", sortOrder: 4 },
-      { name: "قيد التجهيز", color: "#9C27B0", sortOrder: 5 },
-      { name: "مكتمل", color: "#4CAF50", sortOrder: 7, isTerminal: true },
-      { name: "ملغي", color: "#F44336", sortOrder: 8, isTerminal: true },
+      { name: "طلب جديد",    color: "#9E9E9E", sortOrder: 1, isDefault: true, mappedStatus: "pending" },
+      { name: "تأكيد أولي",  color: "#FF9800", sortOrder: 2, mappedStatus: "confirmed" },
+      { name: "عربون مدفوع", color: "#2196F3", sortOrder: 3, mappedStatus: "deposit_paid" },
+      { name: "تأكيد نهائي", color: "#4CAF50", sortOrder: 4, mappedStatus: "fully_confirmed" },
+      { name: "قيد التجهيز", color: "#9C27B0", sortOrder: 5, mappedStatus: "preparing" },
+      { name: "مكتمل",       color: "#4CAF50", sortOrder: 7, isTerminal: true, mappedStatus: "completed" },
+      { name: "ملغي",        color: "#F44336", sortOrder: 8, isTerminal: true, mappedStatus: "cancelled" },
     ];
     await tx.insert(bookingPipelineStages).values(defaultStages.map((s) => ({ orgId: org.id, ...s })));
 

@@ -173,14 +173,14 @@ authRouter.post("/register", async (c) => {
       { orgId: org.id, name: "محاسب", nameEn: "Accountant", isSystem: true },
     ]);
 
-    // Default booking pipeline stages
+    // Default booking pipeline stages (mappedStatus links to booking_status enum)
     await tx.insert(bookingPipelineStages).values([
-      { orgId: org.id, name: "طلب جديد", color: "#9E9E9E", sortOrder: 1, isDefault: true },
-      { orgId: org.id, name: "تأكيد أولي", color: "#FF9800", sortOrder: 2 },
-      { orgId: org.id, name: "عربون مدفوع", color: "#2196F3", sortOrder: 3 },
-      { orgId: org.id, name: "تأكيد نهائي", color: "#4CAF50", sortOrder: 4 },
-      { orgId: org.id, name: "مكتمل", color: "#4CAF50", sortOrder: 5, isTerminal: true },
-      { orgId: org.id, name: "ملغي", color: "#F44336", sortOrder: 6, isTerminal: true },
+      { orgId: org.id, name: "طلب جديد",    color: "#9E9E9E", sortOrder: 1, isDefault: true, mappedStatus: "pending" },
+      { orgId: org.id, name: "تأكيد أولي",  color: "#FF9800", sortOrder: 2, mappedStatus: "confirmed" },
+      { orgId: org.id, name: "عربون مدفوع", color: "#2196F3", sortOrder: 3, mappedStatus: "deposit_paid" },
+      { orgId: org.id, name: "تأكيد نهائي", color: "#4CAF50", sortOrder: 4, mappedStatus: "fully_confirmed" },
+      { orgId: org.id, name: "مكتمل",       color: "#4CAF50", sortOrder: 5, isTerminal: true, mappedStatus: "completed" },
+      { orgId: org.id, name: "ملغي",        color: "#F44336", sortOrder: 6, isTerminal: true, mappedStatus: "cancelled" },
     ]);
 
     return { org, owner };
