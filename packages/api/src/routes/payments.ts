@@ -63,12 +63,18 @@ paymentsRouter.patch("/settings", requirePermission("finance", "manage"), async 
 // MERCHANT — استرداد دفعة
 // ============================================================
 
+const refundSchema = z.object({
+  amount: z.number().positive("المبلغ يجب أن يكون موجباً").optional(),
+  reason: z.string().max(500).optional(),
+});
+
 /** POST /payments/transactions/:id/refund */
 paymentsRouter.post("/transactions/:id/refund", requirePermission("finance", "manage"), async (c) => {
   const orgId = getOrgId(c);
   const id    = c.req.param("id")!;
-  const body  = await c.req.json().catch(() => ({}));
-  const refundAmount = body.amount ? Number(body.amount) : undefined;
+  const body  = refundSchema.safeParse(await c.req.json().catch(() => ({})));
+  if (!body.success) return c.json({ error: body.error.errors[0]?.message ?? "بيانات غير صحيحة" }, 400);
+  const refundAmount = body.data.amount;
 
   const [tx] = await db.select().from(paymentTransactions)
     .where(and(eq(paymentTransactions.id, id), eq(paymentTransactions.orgId, orgId))).limit(1);
@@ -78,14 +84,26 @@ paymentsRouter.post("/transactions/:id/refund", requirePermission("finance", "ma
   if (!tx.moyasarId) return c.json({ error: "لا يوجد معرّف Moyasar للمعاملة" }, 400);
 
   try {
+    // 1. Optimistic lock: only proceed if still "paid" — prevents double-refund
+    const locked = await db.update(paymentTransactions)
+      .set({ updatedAt: new Date() })
+      .where(and(eq(paymentTransactions.id, id), eq(paymentTransactions.status, "paid")))
+      .returning({ id: paymentTransactions.id });
+    if (locked.length === 0) return c.json({ error: "المعاملة قيد المعالجة أو تم استردادها مسبقاً" }, 409);
+
+    // 2. Execute refund at Moyasar
     const halala = refundAmount ? sarToHalala(refundAmount) : undefined;
     await refundPayment(tx.moyasarId, halala);
 
+    // 3. Confirm refund in DB — if this fails, log for manual reconciliation
     await db.update(paymentTransactions)
       .set({ status: "refunded", updatedAt: new Date() })
-      .where(eq(paymentTransactions.id, id));
+      .where(eq(paymentTransactions.id, id))
+      .catch((err) => {
+        console.error(`[refund] CRITICAL: Moyasar refund succeeded but DB update failed for tx ${id}:`, err);
+      });
 
-    // تحديث الفاتورة المرتبطة
+    // 4. Update linked invoice
     if (tx.invoiceId) {
       await db.update(invoices)
         .set({ status: "refunded", updatedAt: new Date() })

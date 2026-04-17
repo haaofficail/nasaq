@@ -179,7 +179,7 @@ router.post("/teachers/:id/invite", requirePerm("school.students.write"), async 
   if (teacher.email) {
     sentEmail = await sendEmail({
       to:      teacher.email,
-      subject: `دعوة الدخول إلى منصة نسق — ${orgName}`,
+      subject: `دعوة الدخول إلى منصة ترميز OS — ${orgName}`,
       html:    buildEmailHtml({
         orgName,
         title: `مرحباً ${teacher.fullName}، تمت دعوتك كمعلم في ${orgName}`,

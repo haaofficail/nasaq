@@ -5,6 +5,6 @@ export class CloudflareR2Provider extends IntegrationProvider {
     // TODO: implement actual R2 API call
     const key = this.credentials.access_key_id ?? this.credentials.api_key;
     if (!key) return { ok: false, message: "مفتاح الوصول مطلوب" };
-    return { ok: true, message: "تم حفظ الإعدادات" };
+    return { ok: true, message: "تم حفظ الإعدادات (التحقق الفعلي قيد التطوير)" };
   }
 }

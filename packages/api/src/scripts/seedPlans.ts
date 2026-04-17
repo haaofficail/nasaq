@@ -48,7 +48,7 @@ const PLAN_ADDONS = [
 const RESOURCE_ADDONS = [
   { code: "extra_branch",    name_ar: "فرع إضافي",       price_monthly: null, price_yearly: "990", unit_ar: "فرع",     quantity: 1  },
   { code: "extra_employees", name_ar: "25 موظف إضافي",   price_monthly: null, price_yearly: "690", unit_ar: "25 موظف", quantity: 25 },
-  { code: "hide_branding",   name_ar: "إخفاء علامة نسق", price_monthly: null, price_yearly: "490", unit_ar: "منشأة",   quantity: 1  },
+  { code: "hide_branding",   name_ar: "إخفاء علامة ترميز", price_monthly: null, price_yearly: "490", unit_ar: "منشأة",   quantity: 1  },
 ];
 
 async function seed() {

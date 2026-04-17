@@ -809,23 +809,31 @@ messagingRouter.post("/send-bulk", async (c) => {
   let sent = 0;
   let failed = 0;
 
-  // إرسال فعلي لكل رقم
-  await Promise.all(
-    phones.map(async (phone) => {
-      const ok = ch === "sms"
-        ? await sendSms(phone, message)
-        : await sendWhatsApp(phone, message);
+  // إرسال فعلي لكل رقم (تسلسلي لتجنب deadlock على DB + ضغط على الشبكة)
+  const logs: Array<[string, string, string, string, string, string]> = [];
 
-      const status = ok ? "sent" : "failed";
-      if (ok) sent++; else failed++;
+  for (const phone of phones) {
+    const ok = ch === "sms"
+      ? await sendSms(phone, message)
+      : await sendWhatsApp(phone, message);
 
-      await pool.query(
-        `INSERT INTO message_logs (org_id, channel, recipient_phone, message_text, status, category)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [orgId, ch, phone, message, status, category || "bulk"]
-      ).catch(() => {});
-    }),
-  );
+    const status = ok ? "sent" : "failed";
+    if (ok) sent++; else failed++;
+    logs.push([orgId, ch, phone, message, status, category || "bulk"]);
+  }
+
+  // batch insert واحد بعد انتهاء الإرسال
+  if (logs.length > 0) {
+    const values = logs.map((_, i) => {
+      const base = i * 6;
+      return `($${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6})`;
+    }).join(", ");
+    const params = logs.flat();
+    await pool.query(
+      `INSERT INTO message_logs (org_id, channel, recipient_phone, message_text, status, category) VALUES ${values}`,
+      params
+    ).catch(() => {});
+  }
 
   insertAuditLog({
     orgId, userId: getUserId(c),

@@ -5,6 +5,6 @@ export class FCMProvider extends IntegrationProvider {
     // TODO: implement actual API call
     const key = this.credentials.server_key;
     if (!key) return { ok: false, message: "مفتاح السيرفر مطلوب" };
-    return { ok: true, message: "تم حفظ الإعدادات" };
+    return { ok: true, message: "تم حفظ الإعدادات (التحقق الفعلي قيد التطوير)" };
   }
 }

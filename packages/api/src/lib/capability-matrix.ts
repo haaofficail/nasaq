@@ -302,12 +302,12 @@ const ADDONS: Capability[] = [
 const PAYMENTS: Capability[] = [
   {
     key: "payment_gateway_nasaq",
-    label: "بوابة نسق للدفع",
+    label: "بوابة ترميز للدفع",
     category: "payment",
     engine: "platform",
     routes: ["/payments/initiate", "/payments/settings"],
     pages: ["/dashboard/payments"],
-    description: "الدفع عبر بوابة نسق المركزية (Moyasar Facilitator)",
+    description: "الدفع عبر بوابة ترميز المركزية (Moyasar Facilitator)",
   },
   {
     key: "payment_gateway_own",

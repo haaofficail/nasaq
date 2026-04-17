@@ -22,7 +22,7 @@ export const E = {
   AUTH_NO_TOKEN:      { code: "AUTH_NO_TOKEN",      msg: "غير مصرح — لا يوجد رمز دخول" },
   AUTH_EXPIRED:       { code: "AUTH_EXPIRED",       msg: "الجلسة منتهية أو منتهية الصلاحية" },
   AUTH_NO_USER:       { code: "AUTH_NO_USER",       msg: "المستخدم غير موجود" },
-  AUTH_NOT_STAFF:     { code: "AUTH_NOT_STAFF",     msg: "غير مصرح — يلزم عضوية في فريق نسق" },
+  AUTH_NOT_STAFF:     { code: "AUTH_NOT_STAFF",     msg: "غير مصرح — يلزم عضوية في فريق ترميز" },
   AUTH_SUPER_ONLY:    { code: "AUTH_SUPER_ONLY",    msg: "هذا الإجراء يتطلب صلاحية سوبر أدمن" },
   AUTH_ROLE_NOT_ALLOWED: { code: "AUTH_ROLE_NOT_ALLOWED", msg: "دورك الحالي لا يملك صلاحية هذا الإجراء" },
   AUTH_NO_ADMIN:      { code: "AUTH_NO_ADMIN",      msg: "بيانات المدير غير موجودة" },

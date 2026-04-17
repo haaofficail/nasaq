@@ -886,9 +886,9 @@ export async function postPeriodClosingEntries(
   // ── الخطوة 1: إقفال الإيرادات إلى ملخص الدخل ──────────────
   // الإيرادات طبيعتها دائنة — لإقفالها نُعكسها: مدين إيراد / دائن ملخص الدخل
   if (revenues.length > 0) {
-    const totalRevenue = revenues.reduce((s: number, r: any) => s + parseFloat(r.net_balance), 0);
+    const totalRevenue = revenues.reduce((s: number, r: { id: string; net_balance: string }) => s + parseFloat(r.net_balance), 0);
     const revenueLines: JournalLineInput[] = [
-      ...revenues.map((r: any) => ({
+      ...revenues.map((r: { id: string; net_balance: string }) => ({
         accountId: r.id,
         debit: parseFloat(r.net_balance),
         description: "إقفال إيراد",
@@ -914,14 +914,14 @@ export async function postPeriodClosingEntries(
   // ── الخطوة 2: إقفال المصروفات إلى ملخص الدخل ───────────────
   // المصروفات طبيعتها مدينة — لإقفالها نُعكسها: دائن مصروف / مدين ملخص الدخل
   if (expenses.length > 0) {
-    const totalExpense = expenses.reduce((s: number, r: any) => s + parseFloat(r.net_balance), 0);
+    const totalExpense = expenses.reduce((s: number, r: { id: string; net_balance: string }) => s + parseFloat(r.net_balance), 0);
     const expenseLines: JournalLineInput[] = [
       {
         accountId: systemAccounts.INCOME_SUMMARY,
         debit: totalExpense,
         description: "إجمالي المصروفات المُقفلة",
       },
-      ...expenses.map((r: any) => ({
+      ...expenses.map((r: { id: string; net_balance: string }) => ({
         accountId: r.id,
         credit: parseFloat(r.net_balance),
         description: "إقفال مصروف",
@@ -940,8 +940,8 @@ export async function postPeriodClosingEntries(
   }
 
   // ── الخطوة 3: إقفال ملخص الدخل إلى الأرباح المبقاة ─────────
-  const totalRevenue = revenues.reduce((s: number, r: any) => s + parseFloat(r.net_balance), 0);
-  const totalExpense = expenses.reduce((s: number, r: any) => s + parseFloat(r.net_balance), 0);
+  const totalRevenue = revenues.reduce((s: number, r: { id: string; net_balance: string }) => s + parseFloat(r.net_balance), 0);
+  const totalExpense = expenses.reduce((s: number, r: { id: string; net_balance: string }) => s + parseFloat(r.net_balance), 0);
   const netIncome = totalRevenue - totalExpense;
 
   if (Math.abs(netIncome) > 0.005) {

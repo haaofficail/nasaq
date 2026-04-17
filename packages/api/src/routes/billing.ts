@@ -99,7 +99,7 @@ billingRouter.post("/renew", async (c) => {
     body: JSON.stringify({
       amount:       amountHalala,
       currency:     "SAR",
-      description:  `اشتراك نسق — باقة ${planInfo.label} (${billingCycle === "yearly" ? "سنوي" : "شهري"})`,
+      description:  `اشتراك ترميز OS — باقة ${planInfo.label} (${billingCycle === "yearly" ? "سنوي" : "شهري"})`,
       callback_url: `${process.env.DASHBOARD_URL}/billing/confirm`,
       metadata: {
         orgId,
@@ -486,7 +486,7 @@ async function createSubscriptionInvoice(params: {
     invoiceType:    "simplified",
     uuid:           invoiceUuid,
     status:         "paid",
-    sellerName:     "شركة نسق للبرمجيات",
+    sellerName:     "شركة ترميز للبرمجيات",
     sellerVatNumber: process.env.NASAQ_VAT_NUMBER ?? "",
     buyerName:      org.name,
     buyerVatNumber: org.vatNumber ?? null,
@@ -496,7 +496,7 @@ async function createSubscriptionInvoice(params: {
     vatAmount:      String(vatAmount),
     totalAmount:    String(params.amount),
     paidAmount:     String(params.amount),
-    notes:          `اشتراك نسق — باقة ${planLabels[params.plan] ?? params.plan} (${params.billingCycle === "yearly" ? "سنوي" : "شهري"}) — حتى ${params.endsAt.toISOString().split("T")[0]}`,
+    notes:          `اشتراك ترميز OS — باقة ${planLabels[params.plan] ?? params.plan} (${params.billingCycle === "yearly" ? "سنوي" : "شهري"}) — حتى ${params.endsAt.toISOString().split("T")[0]}`,
     paidAt:         new Date(),
     issueDate:      new Date(),
   });

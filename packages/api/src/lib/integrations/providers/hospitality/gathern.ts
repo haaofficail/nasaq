@@ -5,6 +5,6 @@ export class GathernProvider extends IntegrationProvider {
     // Gathern supports both iCal sync and API key
     const key = this.credentials.api_key ?? this.credentials.ical_url;
     if (!key) return { ok: false, message: "مفتاح API أو رابط iCal مطلوب" };
-    return { ok: true, message: "تم حفظ الإعدادات" };
+    return { ok: true, message: "تم حفظ الإعدادات (التحقق الفعلي قيد التطوير)" };
   }
 }

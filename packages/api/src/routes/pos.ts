@@ -428,7 +428,7 @@ posRouter.post("/sale", async (c) => {
     invoice = await createPOSInvoice({
       orgId,
       transactionId: tx.id,
-      sellerName: orgRow?.name || "نسق",
+      sellerName: orgRow?.name || "ترميز OS",
       sellerVat: (orgRow as any)?.vatNumber || "",
       buyerName: body.customerName || "زائر",
       buyerPhone: body.customerPhone || null,
@@ -536,7 +536,7 @@ posRouter.post("/sale/split", async (c) => {
   const parentInvoice = await createPOSInvoice({
     orgId,
     transactionId: parentTx.id,
-    sellerName: orgRow?.name || "نسق",
+    sellerName: orgRow?.name || "ترميز OS",
     sellerVat: (orgRow as any)?.vatNumber || "",
     buyerName: "فاتورة مقسّمة",
     buyerPhone: null,
@@ -587,7 +587,7 @@ posRouter.post("/sale/split", async (c) => {
     const childInvoice = await createPOSInvoice({
       orgId,
       transactionId: childTx.id,
-      sellerName: orgRow?.name || "نسق",
+      sellerName: orgRow?.name || "ترميز OS",
       sellerVat: (orgRow as any)?.vatNumber || "",
       buyerName: part.customerName || `الجزء ${i + 1}`,
       buyerPhone: part.customerPhone || null,

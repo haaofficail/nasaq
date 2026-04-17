@@ -403,7 +403,7 @@ async function checkInactiveStaff(): Promise<Omit<DiagnosticCheck, "id" | "categ
        AND (last_login_at IS NULL OR last_login_at < $1)`, [cutoff]
   );
   const n = parseInt(rows[0].cnt);
-  if (n > 0) return { status: "warn", message: `${n} عضو فريق نسق لم يسجّل دخولاً منذ 90+ يوماً`, value: n };
+  if (n > 0) return { status: "warn", message: `${n} عضو فريق ترميز لم يسجّل دخولاً منذ 90+ يوماً`, value: n };
   return { status: "ok", message: "كل أعضاء الفريق نشطون" };
 }
 

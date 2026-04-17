@@ -886,7 +886,7 @@ export const INTEGRATION_REGISTRY: IntegrationEntry[] = [
     name: "Zapier",
     nameEn: "Zapier",
     category: "automation",
-    description: "ربط نسق بأكثر من 5000 تطبيق عبر Zapier",
+    description: "ربط ترميز OS بأكثر من 5000 تطبيق عبر Zapier",
     region: "global",
     logo: "zapier",
     fields: [

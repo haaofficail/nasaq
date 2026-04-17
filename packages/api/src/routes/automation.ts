@@ -354,7 +354,7 @@ automationRouter.post("/whatsapp-templates/:id/test", async (c) => {
     "{{booking_date}}": new Date().toLocaleDateString("ar-SA"),
     "{{booking_time}}": "10:00 ص",
     "{{amount}}": "100",
-    "{{business_name}}": "نسق",
+    "{{business_name}}": "ترميز OS",
   };
   let message = template.message_body as string;
   for (const [variable, value] of Object.entries(sampleVars)) {
@@ -472,7 +472,7 @@ automationRouter.post("/whatsapp-connection/test-send", async (c) => {
   const row = conn.rows[0];
   if (!row) return c.json({ error: "لا يوجد اتصال مُهيأ" }, 400);
 
-  const testMsg = message || "مرحباً من نسق — هذه رسالة تجريبية";
+  const testMsg = message || "مرحباً من ترميز OS — هذه رسالة تجريبية";
   let delivered = false;
 
   if (row.mode === "api" && row.api_phone_id && row.api_access_token) {

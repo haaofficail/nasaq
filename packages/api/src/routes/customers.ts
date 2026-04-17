@@ -111,6 +111,8 @@ customersRouter.get("/:id", async (c) => {
     .where(and(eq(customers.id, id), eq(customers.orgId, orgId)));
   if (!customer) return c.json({ error: "العميل غير موجود" }, 404);
 
+  // tenant-safe: customer already verified to belong to orgId above —
+  // contacts/interactions inherit org scope via customerId FK
   const [contacts, recentInteractions] = await Promise.all([
     db.select().from(customerContacts).where(eq(customerContacts.customerId, id)),
     db.select().from(customerInteractions)

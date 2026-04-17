@@ -41,6 +41,11 @@ export const authRouter = new Hono<{ Variables: { user: AuthUser | null; orgId: 
 
 const MAX_IP_ENTRIES = 10_000; // prevent unbounded growth
 const ipHits = new Map<string, { count: number; resetAt: number }>();
+// WARN: in-memory rate limiter only works on single-instance deployments.
+// For multi-instance (PM2 cluster / horizontal scaling), replace with Redis.
+if (process.env.NODE_ENV === "production" && Number(process.env.PM2_INSTANCES ?? 1) > 1) {
+  console.warn("[auth] WARNING: IP rate limiter is in-memory — ineffective with multiple PM2 instances. Use Redis.");
+}
 
 function checkIpRateLimit(ip: string, maxPerWindow: number, windowMs: number): boolean {
   const now = Date.now();
@@ -62,13 +67,23 @@ function checkIpRateLimit(ip: string, maxPerWindow: number, windowMs: number): b
   return entry.count <= maxPerWindow;
 }
 
-// Prune expired entries every 10 minutes
+// Prune expired IP entries every 10 minutes
 setInterval(() => {
   const now = Date.now();
   for (const [key, val] of ipHits.entries()) {
     if (val.resetAt < now) ipHits.delete(key);
   }
 }, 10 * 60 * 1000);
+
+// Cleanup expired OTPs and sessions every hour
+setInterval(async () => {
+  try {
+    await pool.query(`DELETE FROM otp_codes WHERE expires_at < NOW()`);
+    await pool.query(`DELETE FROM sessions WHERE expires_at < NOW()`);
+  } catch {
+    // non-critical — next run will catch it
+  }
+}, 60 * 60 * 1000);
 
 // ============================================================
 // POST /auth/register — تسجيل نشاط تجاري جديد
@@ -186,21 +201,41 @@ authRouter.post("/register", async (c) => {
     return { org, owner };
   });
 
-  // Seed chart of accounts for new org (fire and forget — never throws)
-  seedChartOfAccounts(result.org.id).catch(console.error);
+  // Seed chart of accounts — retry up to 3 times before giving up
+  (async () => {
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await seedChartOfAccounts(result.org.id);
+        return;
+      } catch (err) {
+        if (attempt === 3) console.error(`[seedChartOfAccounts] failed after 3 attempts for org ${result.org.id}:`, err);
+        else await new Promise(r => setTimeout(r, attempt * 1000));
+      }
+    }
+  })();
 
-  // Auto-create free trial subscription + update org plan fields (fire and forget)
-  const trialEnd = new Date(Date.now() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000);
-  pool.query(
-    `INSERT INTO subscriptions (org_id, plan_key, plan_name, plan_price, start_date, end_date, status, subscription_number)
-     VALUES ($1, 'free', 'مجاني', 0, NOW(), $2::timestamptz, 'active', 'SUB-' || substring(gen_random_uuid()::text, 1, 8))
-     ON CONFLICT DO NOTHING`,
-    [result.org.id, trialEnd.toISOString()]
-  ).catch(console.error);
-  pool.query(
-    `UPDATE organizations SET current_plan_code='free', is_trial=true, trial_started_at=NOW() WHERE id=$1`,
-    [result.org.id]
-  ).catch(console.error);
+  // Auto-create free trial subscription + update org plan fields — retry up to 3 times
+  (async () => {
+    const trialEnd = new Date(Date.now() + DEFAULT_TRIAL_DAYS * 24 * 60 * 60 * 1000);
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        await pool.query(
+          `INSERT INTO subscriptions (org_id, plan_key, plan_name, plan_price, start_date, end_date, status, subscription_number)
+           VALUES ($1, 'free', 'مجاني', 0, NOW(), $2::timestamptz, 'active', 'SUB-' || substring(gen_random_uuid()::text, 1, 8))
+           ON CONFLICT DO NOTHING`,
+          [result.org.id, trialEnd.toISOString()]
+        );
+        await pool.query(
+          `UPDATE organizations SET current_plan_code='free', is_trial=true, trial_started_at=NOW() WHERE id=$1`,
+          [result.org.id]
+        );
+        return;
+      } catch (err) {
+        if (attempt === 3) console.error(`[subscription-init] failed after 3 attempts for org ${result.org.id}:`, err);
+        else await new Promise(r => setTimeout(r, attempt * 1000));
+      }
+    }
+  })();
 
   // Email-only registration → create session immediately (password already verified)
   if (!normalizedPhone && email && password) {

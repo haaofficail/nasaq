@@ -129,7 +129,7 @@ export function CommandPalette() {
             <kbd className="font-sans px-1 rounded bg-gray-200">↓</kbd>
             <span>للتنقل</span>
           </div>
-          <span>نسق الذكي</span>
+          <span>ترميز الذكي</span>
         </div>
       </div>
     </>

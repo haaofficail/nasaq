@@ -10,8 +10,9 @@ type ApiState<T> = {
 /**
  * Hook for fetching data from API
  * Usage: const { data, loading, error, refetch } = useApi(() => servicesApi.list())
+ * Shows toast.error on failure unless silent: true is passed.
  */
-export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []) {
+export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = [], options?: { silent?: boolean }) {
   const [state, setState] = useState<ApiState<T>>({ data: null, loading: true, error: null });
   const isMounted = useRef(true);
 
@@ -26,7 +27,11 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []) {
       const result = await fetcher();
       if (isMounted.current) setState({ data: result, loading: false, error: null });
     } catch (err: unknown) {
-      if (isMounted.current) setState({ data: null, loading: false, error: err instanceof Error ? err.message : "حدث خطأ" });
+      const msg = err instanceof Error ? err.message : "حدث خطأ";
+      if (isMounted.current) {
+        setState({ data: null, loading: false, error: msg });
+        if (!options?.silent) toast.error(msg);
+      }
     }
   }, deps);
 

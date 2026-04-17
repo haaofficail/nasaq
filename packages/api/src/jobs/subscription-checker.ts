@@ -47,7 +47,7 @@ export async function checkSubscriptions(): Promise<void> {
       `, [
         org.id,
         org.phone,
-        `مرحباً، اشتراككم في نسق قد انتهى. يرجى تجديد الاشتراك خلال ${GRACE_PERIOD_DAYS} أيام للاستمرار في الخدمة.`,
+        `مرحباً، اشتراككم في ترميز OS قد انتهى. يرجى تجديد الاشتراك خلال ${GRACE_PERIOD_DAYS} أيام للاستمرار في الخدمة.`,
       ]).catch((err) => log.warn({ err, orgId: org.id }, "[subscription-checker] notify failed"));
     }
   }
