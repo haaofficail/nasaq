@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
-  ArrowRight, ChevronLeft, Send, Printer, FileText, CreditCard,
+  Send, Printer, FileText, CreditCard,
   XCircle, AlertCircle, Clock, CheckCircle2, AlertTriangle,
   Plus, RotateCcw, Receipt, Eye, RefreshCw,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { financeApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { Button, Modal, Input, Select } from "@/components/ui";
+import { Button, Modal, Input, Select, Breadcrumb } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { fmtDate } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
@@ -403,13 +403,10 @@ export function InvoiceDetailPage() {
     <div className="space-y-5">
 
       {/* breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-400">
-        <Link to="/invoices" className="hover:text-brand-500 transition-colors flex items-center gap-1">
-          <ArrowRight className="w-4 h-4" /> الفواتير
-        </Link>
-        <ChevronLeft className="w-3 h-3" />
-        <span className="text-gray-700 font-medium font-mono">{inv.invoiceNumber}</span>
-      </div>
+      <Breadcrumb items={[
+        { label: "الفواتير", href: "/dashboard/invoices" },
+        { label: `فاتورة #${inv?.invoiceNumber || id?.slice(0,8)}` },
+      ]} />
 
       {/* ── header ──────────────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5">

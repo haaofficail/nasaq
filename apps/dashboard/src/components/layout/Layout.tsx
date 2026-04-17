@@ -2,7 +2,7 @@ import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { Outlet, NavLink, useLocation, useNavigate, Navigate } from "react-router-dom";
 import {
   ChevronLeft, ChevronRight, Bell, Search, Plus, LogOut, Menu, X, User, WifiOff,
-  CheckCheck, ExternalLink, Clock,
+  CheckCheck, ExternalLink, Clock, Calendar, FileText, UserPlus, ShoppingCart,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { authApi, orgSubscriptionApi } from "@/lib/api";
@@ -92,13 +92,16 @@ export function Layout() {
   const sub = subRes?.data;
 
   const { alerts, unread, markRead, readAll } = useAlerts();
-  const [bellOpen, setBellOpen] = useState(false);
-  const bellRef = useRef<HTMLDivElement>(null);
+  const [bellOpen,    setBellOpen]    = useState(false);
+  const [quickOpen,   setQuickOpen]   = useState(false);
+  const bellRef  = useRef<HTMLDivElement>(null);
+  const quickRef = useRef<HTMLDivElement>(null);
 
-  // Close bell dropdown on outside click
+  // Close bell / quick-actions dropdowns on outside click
   useEffect(() => {
     const handler = (e: MouseEvent) => {
-      if (bellRef.current && !bellRef.current.contains(e.target as Node)) setBellOpen(false);
+      if (bellRef.current  && !bellRef.current.contains(e.target as Node))  setBellOpen(false);
+      if (quickRef.current && !quickRef.current.contains(e.target as Node)) setQuickOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -420,6 +423,40 @@ export function Layout() {
               <Search className="w-4 h-4 text-gray-400 shrink-0" />
               <input type="text" placeholder="بحث..." className="bg-transparent border-none outline-none text-sm text-gray-600 placeholder-gray-400 w-full" />
             </div>
+
+            {/* Quick Actions — إجراءات سريعة */}
+            <div ref={quickRef} className="relative">
+              <button
+                onClick={() => setQuickOpen(o => !o)}
+                className="w-9 h-9 flex items-center justify-center rounded-xl bg-brand-500 hover:bg-brand-600 text-white transition-colors shadow-sm"
+                title="إجراءات سريعة"
+              >
+                <Plus className="w-4 h-4" />
+              </button>
+              {quickOpen && (
+                <div className="absolute left-0 top-11 w-52 bg-white border border-gray-100 rounded-2xl shadow-xl z-[200] overflow-hidden" dir="rtl">
+                  <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50">
+                    إجراءات سريعة
+                  </div>
+                  {[
+                    { label: "حجز جديد",    icon: Calendar,     path: "/dashboard/bookings" },
+                    { label: "فاتورة جديدة", icon: FileText,     path: "/dashboard/invoices" },
+                    { label: "عميل جديد",   icon: UserPlus,     path: "/dashboard/customers" },
+                    { label: "طلب جديد",    icon: ShoppingCart, path: "/dashboard/orders" },
+                  ].map(item => (
+                    <button
+                      key={item.path}
+                      onClick={() => { navigate(item.path); setQuickOpen(false); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-brand-50 hover:text-brand-700 transition-colors text-right"
+                    >
+                      <item.icon className="w-4 h-4 text-gray-400" />
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* Bell — real-time alerts */}
             <div ref={bellRef} className="relative">
               <button

@@ -138,20 +138,6 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     ],
   },
 
-  // ── أدوات إضافية ──────────────────────────────────────────
-  {
-    id: "system",
-    label: "أدوات إضافية",
-    requiredCapabilities: [],
-    anyCapability: [],
-    allowedBusinessTypes: [],
-    allowedOperatingProfiles: [],
-    items: [
-      { name: "ملصقات المنتجات",  href: "/dashboard/barcode-labels", icon: ScanBarcode,   requiredCapabilities: [] },
-      { name: "ربط التطبيقات",    href: "/dashboard/integrations", icon: Plug,       requiredCapabilities: [], requiredPlan: "pro" },
-    ],
-  },
-
   // ── الموارد البشرية ─────────────────────────────────────────
   {
     id: "hr",
@@ -209,6 +195,20 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedOperatingProfiles: [],
     items: [
       { name: "التقارير",          href: "/dashboard/reports",   icon: BarChart3,      requiredCapabilities: [], requiredPlan: "basic", excludedBusinessTypes: ["flower_shop"] },
+    ],
+  },
+
+  // ── أدوات إضافية ──────────────────────────────────────────
+  {
+    id: "system",
+    label: "أدوات إضافية",
+    requiredCapabilities: [],
+    anyCapability: [],
+    allowedBusinessTypes: [],
+    allowedOperatingProfiles: [],
+    items: [
+      { name: "ملصقات المنتجات",  href: "/dashboard/barcode-labels", icon: ScanBarcode,   requiredCapabilities: [] },
+      { name: "ربط التطبيقات",    href: "/dashboard/integrations", icon: Plug,       requiredCapabilities: [], requiredPlan: "pro" },
     ],
   },
 

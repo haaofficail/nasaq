@@ -24,6 +24,7 @@ const STATUS_COLORS: Record<string, string> = {
 export function CollectionReportPage() {
   const [dateFrom, setDateFrom] = useState(monthStart());
   const [dateTo, setDateTo] = useState(today());
+  const [ageFilter, setAgeFilter] = useState("");
 
   const params = { dateFrom, dateTo };
   const { data: res, loading, refetch } = useApi(() => financeApi.collectionReport(params), [dateFrom, dateTo]);
@@ -31,6 +32,19 @@ export function CollectionReportPage() {
   const summary = report?.summary || {};
   const byStatus: any[] = report?.byStatus || [];
   const overdueInvoices: any[] = report?.overdueInvoices || [];
+
+  const filteredOverdue = ageFilter
+    ? overdueInvoices.filter((inv: any) => {
+        const days = inv.due_date
+          ? Math.floor((Date.now() - new Date(inv.due_date).getTime()) / 86400000)
+          : 0;
+        if (ageFilter === "30")  return days >= 0  && days <= 30;
+        if (ageFilter === "60")  return days >= 31 && days <= 60;
+        if (ageFilter === "90")  return days >= 61 && days <= 90;
+        if (ageFilter === "90+") return days > 90;
+        return true;
+      })
+    : overdueInvoices;
 
   const exportCsv = () => {
     const header = "رقم الفاتورة,اسم العميل,الجوال,الإجمالي,المدفوع,المتبقي,تاريخ الاستحقاق\n";
@@ -65,6 +79,17 @@ export function CollectionReportPage() {
             <label className="block text-xs font-medium text-gray-500 mb-1.5">إلى تاريخ</label>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
               className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">عمر الفاتورة</label>
+            <select value={ageFilter} onChange={e => setAgeFilter(e.target.value)}
+              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 bg-white">
+              <option value="">الكل</option>
+              <option value="30">0 - 30 يوم</option>
+              <option value="60">31 - 60 يوم</option>
+              <option value="90">61 - 90 يوم</option>
+              <option value="90+">أكثر من 90 يوم</option>
+            </select>
           </div>
           <div className="flex gap-2 mr-auto">
             <button onClick={refetch}
@@ -139,9 +164,9 @@ export function CollectionReportPage() {
             <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-500" />
               <h2 className="font-semibold text-gray-900 text-sm">الفواتير غير المحصّلة</h2>
-              <span className="text-xs text-gray-400 mr-auto">{overdueInvoices.length} فاتورة</span>
+              <span className="text-xs text-gray-400 mr-auto">{filteredOverdue.length} فاتورة</span>
             </div>
-            {overdueInvoices.length === 0 ? (
+            {filteredOverdue.length === 0 ? (
               <div className="text-center py-10">
                 <TrendingUp className="w-10 h-10 text-emerald-200 mx-auto mb-3" />
                 <p className="text-gray-400 text-sm">جميع الفواتير محصّلة</p>
@@ -151,13 +176,13 @@ export function CollectionReportPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50/50">
-                      {["رقم الفاتورة", "العميل", "الجوال", "الإجمالي", "المدفوع", "المتبقي", "تاريخ الاستحقاق"].map(h => (
+                      {["رقم الفاتورة", "العميل", "الجوال", "الإجمالي", "المدفوع", "المتبقي", "تاريخ الاستحقاق", "الإجراء"].map(h => (
                         <th key={h} className="text-right px-4 py-3 text-xs font-semibold text-gray-400 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {overdueInvoices.map((inv: any) => {
+                    {filteredOverdue.map((inv: any) => {
                       const remaining = Number(inv.total_amount) - Number(inv.paid_amount || 0);
                       const isOverdue = inv.due_date && new Date(inv.due_date) < new Date();
                       return (
@@ -175,6 +200,16 @@ export function CollectionReportPage() {
                           <td className={clsx("px-4 py-3 text-xs whitespace-nowrap", isOverdue ? "text-red-500 font-medium" : "text-gray-400")}>
                             {inv.due_date ? fmtDate(inv.due_date) : "—"}
                             {isOverdue && <span className="mr-1 text-red-400">(متأخر)</span>}
+                          </td>
+                          <td className="px-4 py-3">
+                            <button
+                              onClick={() => window.open(`https://wa.me/${inv.buyer_phone?.replace(/\D/g,"")}?text=${encodeURIComponent(`مرحباً ${inv.buyer_name}، تذكير بفاتورة رقم ${inv.invoice_number} بمبلغ ${Number(inv.total_amount).toLocaleString("en-US")} ر.س`)}`, "_blank")}
+                              className="px-2.5 py-1 text-xs bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors"
+                              title="إرسال تذكير واتساب"
+                              disabled={!inv.buyer_phone}
+                            >
+                              تذكير
+                            </button>
                           </td>
                         </tr>
                       );

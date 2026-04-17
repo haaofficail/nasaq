@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
+import { Link } from "react-router-dom";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { flowerBuilderApi, teamApi } from "@/lib/api";
 import {
   Truck, Phone, MapPin, Clock, MessageSquare, CheckCircle2,
   AlertTriangle, Package, Loader2, X, User, ChevronDown, ChevronUp,
-  RefreshCw, Gift, Search,
+  RefreshCw, Gift, Search, ArrowLeft,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { fmtDate } from "@/lib/utils";
@@ -791,6 +792,17 @@ export function FlowerDeliveryPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* الخطوة التالية */}
+      <div className="bg-brand-50 border border-brand-100 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-brand-700">الخطوة التالية</p>
+          <p className="text-xs text-brand-500 mt-0.5">بعد التسليم — راجع مستوى المخزون</p>
+        </div>
+        <Link to="/dashboard/flower-inventory" className="flex items-center gap-2 bg-brand-500 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-brand-600 transition-colors">
+          المخزون <ArrowLeft className="w-4 h-4" />
+        </Link>
       </div>
     </div>
   );

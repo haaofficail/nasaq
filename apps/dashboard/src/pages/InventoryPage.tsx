@@ -572,10 +572,15 @@ function ConsumablesTab() {
                   </td>
                   <td className="py-3.5 px-4 text-xs text-gray-500 hidden sm:table-cell">{p.category || "—"}</td>
                   <td className="py-3.5 px-4">
-                    <span className={clsx("font-semibold tabular-nums", p.is_low_stock ? "text-red-600" : "text-gray-900")}>
-                      {parseFloat(p.current_stock).toLocaleString("en-US")}
-                    </span>
-                    <span className="text-xs text-gray-400 mr-1">{p.unit}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className={clsx("font-semibold tabular-nums", p.is_low_stock ? "text-red-600" : "text-gray-900")}>
+                        {parseFloat(p.current_stock).toLocaleString("en-US")}
+                      </span>
+                      <span className="text-xs text-gray-400">{p.unit}</span>
+                      {p.is_low_stock && (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-red-50 text-red-600 rounded-full font-semibold">مخزون منخفض</span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3.5 px-4 text-xs text-gray-500 hidden md:table-cell">{parseFloat(p.min_stock).toLocaleString("en-US")} {p.unit}</td>
                   <td className="py-3.5 px-4 text-xs text-gray-500 hidden lg:table-cell">{parseFloat(p.unit_cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س</td>

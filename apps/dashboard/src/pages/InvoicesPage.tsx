@@ -26,15 +26,6 @@ const SOURCE_BADGE: Record<string, { label: string; color: string }> = {
   manual:   { label: "يدوي",    color: "bg-gray-100 text-gray-500 border-gray-200" },
 };
 
-const TABS = [
-  { key: "all",            label: "الكل" },
-  { key: "issued",         label: "بانتظار الدفع" },
-  { key: "paid",           label: "تم الدفع" },
-  { key: "partially_paid", label: "مدفوع جزئياً" },
-  { key: "overdue",        label: "متأخرة" },
-  { key: "cancelled",      label: "ملغى" },
-  { key: "draft",          label: "مسودة" },
-];
 
 function fmt(n: any) {
   return Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -44,7 +35,7 @@ function fmtDate(d: string) {
 }
 
 export function InvoicesPage() {
-  const [tab, setTab]                 = useState("all");
+  const [statusFilter, setStatusFilter] = useState("");
   const [search, setSearch]           = useState("");
   const [showModal, setShowModal]     = useState(false);
   const [viewInvoice, setViewInvoice] = useState<any>(null);
@@ -57,10 +48,10 @@ export function InvoicesPage() {
   const { context: orgCtx } = useOrgContext();
 
   const params: Record<string, string> = {};
-  if (tab !== "all") params.status = tab;
-  if (search)        params.q      = search;
+  if (statusFilter) params.status = statusFilter;
+  if (search)       params.q      = search;
 
-  const { data: res, loading, refetch }  = useApi(() => financeApi.invoices(params), [tab, search]);
+  const { data: res, loading, refetch }  = useApi(() => financeApi.invoices(params), [statusFilter, search]);
   const { data: statsRes }               = useApi(() => financeApi.invoiceStats(), []);
   const { data: paymentsRes, refetch: refetchPayments } = useApi(
     () => viewInvoice ? financeApi.invoicePayments(viewInvoice.id) : Promise.resolve({ data: [] }),
@@ -176,15 +167,19 @@ export function InvoicesPage() {
             onChange={e => setSearch(e.target.value)}
           />
         </div>
-        <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
-          {TABS.map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)}
-              className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-                tab === t.key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700")}>
-              {t.label}
-            </button>
-          ))}
-        </div>
+        <select
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+          className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 outline-none focus:border-brand-400 bg-white"
+        >
+          <option value="">كل الفواتير</option>
+          <option value="issued">بانتظار الدفع</option>
+          <option value="paid">مدفوعة</option>
+          <option value="partially_paid">مدفوعة جزئياً</option>
+          <option value="overdue">متأخرة</option>
+          <option value="draft">مسودة</option>
+          <option value="cancelled">ملغاة</option>
+        </select>
       </div>
 
       {/* Table */}

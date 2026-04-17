@@ -10,6 +10,7 @@ import { clsx } from "clsx";
 import { bookingsApi, customersApi, servicesApi, websiteApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { useBusiness } from "@/hooks/useBusiness";
+import { useOrgContext } from "@/hooks/useOrgContext";
 import { PageHeader } from "@/components/ui";
 
 const TABS = [
@@ -86,6 +87,7 @@ function MiniBar({ value, max, color = "bg-brand-400" }: { value: number; max: n
 
 export function ReportsPage() {
   const biz = useBusiness();
+  const { context } = useOrgContext();
   const [tab, setTab]         = useState("overview");
   const [period, setPeriod]   = useState("month");
   const [customRange, setCustomRange] = useState(false);
@@ -216,6 +218,17 @@ export function ReportsPage() {
           </div>
         }
       />
+
+      {context?.businessType && ["restaurant","food_court","cafe"].includes(context.businessType) && (
+        <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-sm text-amber-700">
+          تقارير المطاعم: بعض التقارير مبنية على الحجوزات — استخدم تقرير المبيعات اليومية للحصول على صورة كاملة
+        </div>
+      )}
+      {context?.businessType && ["flower_shop"].includes(context.businessType) && (
+        <div className="bg-purple-50 border border-purple-100 rounded-2xl p-4 text-sm text-purple-700">
+          تقارير محلات الورود: راجع تقرير الهدر وتقرير المخزون بشكل يومي للتحكم في التكاليف
+        </div>
+      )}
 
       {customRange && (
         <div className="flex gap-2 items-center flex-wrap bg-white border border-gray-100 rounded-2xl p-3">

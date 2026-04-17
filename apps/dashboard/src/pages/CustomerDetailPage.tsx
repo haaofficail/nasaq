@@ -1,16 +1,16 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
-  ArrowRight, User, Phone, Mail, Building2, Star, CalendarCheck,
+  User, Phone, Mail, Building2, Star, CalendarCheck,
   Banknote, MessageSquare, Plus, AlertCircle, Clock, FileText,
-  CheckCircle2, XCircle, AlertTriangle, Send, ChevronLeft,
+  CheckCircle2, XCircle, AlertTriangle, Send,
   CalendarDays, Hash, MapPin, Receipt, History, StickyNote, Pencil, Save,
 } from "lucide-react";
 import { clsx } from "clsx";
 import { customersApi, bookingsApi, auditLogApi, financeApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { useBusiness } from "@/hooks/useBusiness";
-import { Button, Modal, TextArea, Select, Input } from "@/components/ui";
+import { Button, Modal, TextArea, Select, Input, Breadcrumb } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { fmtDate } from "@/lib/utils";
 import { toast } from "@/hooks/useToast";
@@ -184,13 +184,10 @@ export function CustomerDetailPage() {
     <div className="space-y-5">
 
       {/* ── breadcrumb ─────────────────────────────────────── */}
-      <div className="flex items-center gap-2 text-sm text-gray-400">
-        <Link to="/customers" className="hover:text-brand-500 transition-colors flex items-center gap-1">
-          <ArrowRight className="w-4 h-4" /> {biz.terminology.clients}
-        </Link>
-        <ChevronLeft className="w-3 h-3" />
-        <span className="text-gray-700 font-medium">{customer.name}</span>
-      </div>
+      <Breadcrumb items={[
+        { label: "العملاء", href: "/dashboard/customers" },
+        { label: customer?.name || "تفاصيل العميل" },
+      ]} />
 
       {/* ── customer hero ───────────────────────────────────── */}
       <div className="bg-white rounded-2xl border border-gray-100">

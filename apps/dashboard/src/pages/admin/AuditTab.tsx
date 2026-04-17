@@ -72,6 +72,7 @@ function AuditTab() {
                 <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">النوع</th>
                 <th className="text-right px-4 py-3 font-semibold hidden lg:table-cell">الـ ID</th>
                 <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">الـ IP</th>
+                <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">المنفذ</th>
                 <th className="text-right px-4 py-3 font-semibold">التاريخ</th>
               </tr>
             </thead>
@@ -82,6 +83,7 @@ function AuditTab() {
                   <td className="px-4 py-3 text-xs text-gray-500 hidden sm:table-cell">{r.targetType}</td>
                   <td className="px-4 py-3 font-mono text-[10px] text-gray-300 hidden lg:table-cell truncate max-w-24">{r.targetId || "—"}</td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-400 hidden md:table-cell">{r.ip || "—"}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500 hidden sm:table-cell">{r.adminName || r.userId?.slice(0, 8) || "—"}</td>
                   <td className="px-4 py-3 text-xs text-gray-400">{r.createdAt ? new Date(r.createdAt).toLocaleString("ar") : "—"}</td>
                 </tr>
               ))}

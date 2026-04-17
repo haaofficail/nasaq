@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { useApi, useMutation } from "@/hooks/useApi";
-import { ChefHat, Clock, CheckCircle2, Truck, RefreshCw, Package, AlarmClock } from "lucide-react";
+import { ChefHat, Clock, CheckCircle2, Truck, RefreshCw, Package, AlarmClock, ArrowLeft } from "lucide-react";
 import { clsx } from "clsx";
 import { kitchenApi } from "@/lib/api";
 import { SkeletonRows } from "@/components/ui/Skeleton";
@@ -153,6 +154,17 @@ export function KitchenPage() {
           )}
         </div>
       )}
+
+      {/* الخطوة التالية */}
+      <div className="bg-brand-50 border border-brand-100 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-brand-700">الخطوة التالية</p>
+          <p className="text-xs text-brand-500 mt-0.5">الطلبات الجاهزة — عيّن مندوب التوصيل</p>
+        </div>
+        <Link to="/dashboard/delivery" className="flex items-center gap-2 bg-brand-500 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-brand-600 transition-colors">
+          التوصيل <ArrowLeft className="w-4 h-4" />
+        </Link>
+      </div>
     </div>
   );
 }

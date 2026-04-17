@@ -45,9 +45,11 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  /** Pre-fill from a specific booking — auto-switches to booking source and imports on open */
+  bookingId?: string;
 }
 
-export function CreateInvoiceModal({ open, onClose, onSuccess }: Props) {
+export function CreateInvoiceModal({ open, onClose, onSuccess, bookingId: initialBookingId }: Props) {
   const [sourceType, setSourceType] = useState<"manual" | "booking">("manual");
   const [invoiceType, setInvoiceType] = useState("simplified");
   const [sellerName, setSellerName] = useState("");
@@ -96,6 +98,16 @@ export function CreateInvoiceModal({ open, onClose, onSuccess }: Props) {
       setSellerVat(orgProfile.vatNumber || "");
     }
   }, [open, orgProfile]);
+
+  // Auto-import from booking when bookingId prop provided
+  useEffect(() => {
+    if (!open || !initialBookingId) return;
+    setSourceType("booking");
+    bookingsApi.get(initialBookingId).then((res: any) => {
+      if (res?.data) importFromBooking(res.data);
+    }).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initialBookingId]);
 
   // Reset when modal closes
   useEffect(() => {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { Modal, Input, Select, TextArea, Button } from "../ui";
-import { bookingsApi, customersApi, servicesApi, settingsApi } from "@/lib/api";
+import { bookingsApi, customersApi, financeApi, treasuryApi, servicesApi, settingsApi } from "@/lib/api";
 import { Plus, Trash2, CalendarCheck, MapPin, Package, Truck, Users, Home, Tent, Moon, CreditCard, Banknote, ChevronRight, Search, Check } from "lucide-react";
 import { clsx } from "clsx";
 import { VAT_RATE } from "@/lib/constants";
@@ -77,7 +77,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
   // Core booking state
   const [customerId,    setCustomerId]    = useState(defaultCustomerId ?? "");
   const [eventDate,     setEventDate]     = useState(initialDate ?? "");
-  const [eventTime,     setEventTime]     = useState("15:00");
+  const [eventTime,     setEventTime]     = useState("09:00");
   const [eventEndDate,  setEventEndDate]  = useState("");
   const [eventEndTime,  setEventEndTime]  = useState("12:00");
   const [locationId,    setLocationId]    = useState("");
@@ -317,11 +317,57 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
         questionAnswers: buildQuestionAnswers(),
         items: validItems.map(i => ({ serviceId: i.serviceId, quantity: i.quantity, addons: i.addons, unitPrice: i.customPrice ? parseFloat(i.customPrice) : undefined })),
       });
-      // Add payment if not "later" and amount > 0
+
+      const bookingId = res?.data?.id;
       const paid = parseFloat(payAmount);
-      if (payMethod !== "later" && paid > 0 && res?.data?.id) {
-        await bookingsApi.addPayment(res.data.id, { amount: paid, method: payMethod, type: "payment" }).catch(() => {});
+      const hasPaid = payMethod !== "later" && paid > 0 && bookingId;
+
+      // تسجيل الدفعة على الحجز
+      if (hasPaid) {
+        await bookingsApi.addPayment(bookingId, { amount: paid, method: payMethod, type: "payment" }).catch(() => {});
       }
+
+      // إنشاء فاتورة مرتبطة بالحجز تلقائياً
+      if (bookingId) {
+        const customerLabel = customers.find(c => c.value === customerId)?.label ?? "";
+        const buyerName = customerLabel.includes(" — ") ? customerLabel.split(" — ")[0] : customerLabel;
+        const invoiceItems = validItems.map(i => {
+          const svc = services.find(s => s.id === i.serviceId);
+          const unitPrice = i.customPrice ? parseFloat(i.customPrice) : parseFloat(svc?.basePrice ?? "0");
+          return {
+            description: svc?.name ?? "خدمة",
+            quantity:    String(i.quantity),
+            unitPrice:   String(unitPrice),
+            vatRate:     "15",
+          };
+        });
+        const invoice = await financeApi.createInvoice({
+          bookingId,
+          buyerName:   buyerName || undefined,
+          buyerPhone:  undefined,
+          source:      "booking",
+          items:       invoiceItems,
+          paidAmount:  hasPaid ? paid : 0,
+          paymentMethod: hasPaid ? payMethod : undefined,
+        }).catch(() => null);
+
+        // تسجيل الإيصال في الصندوق إذا كان هناك دفع فعلي
+        if (invoice?.data?.id && hasPaid) {
+          const accountsRes = await treasuryApi.accounts({ type: "cash" }).catch(() => null);
+          const cashAccountId = accountsRes?.data?.[0]?.id;
+          if (cashAccountId) {
+            await treasuryApi.receipt({
+              accountId:   cashAccountId,
+              amount:      paid,
+              method:      payMethod,
+              description: `دفعة حجز — ${buyerName || "عميل"}`,
+              referenceId: invoice.data.id,
+              category:    "booking_payment",
+            }).catch(() => {});
+          }
+        }
+      }
+
       onSuccess?.();
       onClose();
       reset();

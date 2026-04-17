@@ -693,6 +693,17 @@ export function FlowerOrdersPage() {
         )}
       </div>
 
+      {/* الخطوة التالية */}
+      <div className="bg-brand-50 border border-brand-100 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <p className="text-sm font-semibold text-brand-700">الخطوة التالية</p>
+          <p className="text-xs text-brand-500 mt-0.5">بعد تأكيد الطلبات — تابع حالة التسليم</p>
+        </div>
+        <Link to="/dashboard/flower-delivery" className="flex items-center gap-2 bg-brand-500 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-brand-600 transition-colors">
+          متابعة التسليم <ArrowLeft className="w-4 h-4" />
+        </Link>
+      </div>
+
       {/* ─── Create Order Modal ────────────────────────────────────────────── */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowCreateModal(false)}>

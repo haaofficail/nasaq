@@ -5,6 +5,7 @@ import { lockBodyScroll, unlockBodyScroll } from "@/lib/body-lock";
 import { normalizeNumeric, normalizePhone } from "@/lib/normalize-input";
 
 // ── New design system components ──────────────────────────────
+export { Breadcrumb }     from "./Breadcrumb";
 export { TimePicker }     from "./TimePicker";
 export { Calendar }       from "./Calendar";
 export { StatusBadge }    from "./StatusBadge";

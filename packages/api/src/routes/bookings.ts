@@ -11,7 +11,7 @@ import {
   bookingEvents, bookingConsumptions, paymentGatewayConfigs, users,
   bookingRecords, bookingLines, bookingLineAddons, bookingTimelineEvents,
   bookingRecordAssignments, bookingRecordCommissions, bookingRecordConsumptions, bookingPaymentLinks,
-  bookingPipelineStages,
+  bookingPipelineStages, invoices,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, generateBookingNumber } from "../lib/helpers";
 import { postCashSale, postDepositReceived, postRefund, isAccountingEnabled } from "../lib/posting-engine";
@@ -349,7 +349,7 @@ bookingsRouter.get("/:id", async (c) => {
       .where(and(eq(bookingRecords.bookingRef, id), eq(bookingRecords.orgId, orgId)));
 
     if (canonicalRecord) {
-      const [lines, timelineEvents, canonicalCustomer, canonicalLocation, paymentLinks] = await Promise.all([
+      const [lines, timelineEvents, canonicalCustomer, canonicalLocation, paymentLinks, canonicalInvoice] = await Promise.all([
         db.select().from(bookingLines).where(eq(bookingLines.bookingRecordId, canonicalRecord.id)),
         db.select().from(bookingTimelineEvents)
           .where(eq(bookingTimelineEvents.bookingRecordId, canonicalRecord.id))
@@ -361,6 +361,12 @@ bookingsRouter.get("/:id", async (c) => {
         db.select({ paymentId: bookingPaymentLinks.paymentId })
           .from(bookingPaymentLinks)
           .where(eq(bookingPaymentLinks.bookingRecordId, canonicalRecord.id)),
+        db.select({ id: invoices.id, invoiceNumber: invoices.invoiceNumber, status: invoices.status })
+          .from(invoices)
+          .where(and(eq(invoices.bookingId, id), eq(invoices.orgId, orgId)))
+          .orderBy(desc(invoices.issueDate))
+          .limit(1)
+          .then(r => r[0] ?? null),
       ]);
 
       const canonicalAddons = lines.length > 0
@@ -436,6 +442,9 @@ bookingsRouter.get("/:id", async (c) => {
           reviewText:         canonicalRecord.reviewText ?? null,
           createdAt:          canonicalRecord.createdAt,
           updatedAt:          canonicalRecord.updatedAt,
+          // Computed invoice state (derived from invoices table — no stored column)
+          invoiceStatus: canonicalInvoice ? "invoiced" : "not_invoiced",
+          invoiceId:     canonicalInvoice?.id ?? null,
           // Relations
           customer:  canonicalCustomer,
           location:  canonicalLocation,
@@ -455,13 +464,20 @@ bookingsRouter.get("/:id", async (c) => {
   if (!booking) return c.json({ error: "الحجز غير موجود" }, 404);
 
   // Load related data in parallel
-  const [customer, location, items, bookingPayments] = await Promise.all([
+  const [customer, location, items, bookingPayments, bookingInvoice] = await Promise.all([
     db.select().from(customers).where(eq(customers.id, booking.customerId)).then(r => r[0]),
     booking.locationId
       ? db.select().from(locations).where(eq(locations.id, booking.locationId)).then(r => r[0])
       : null,
     db.select().from(bookingItems).where(eq(bookingItems.bookingId, id)),
     db.select().from(payments).where(eq(payments.bookingId, id)).orderBy(desc(payments.createdAt)),
+    // Computed invoice state — derived from invoices table, no stored column needed
+    db.select({ id: invoices.id, invoiceNumber: invoices.invoiceNumber, status: invoices.status })
+      .from(invoices)
+      .where(and(eq(invoices.bookingId, id), eq(invoices.orgId, orgId)))
+      .orderBy(desc(invoices.issueDate))
+      .limit(1)
+      .then(r => r[0] ?? null),
   ]);
 
   // Fetch all addons in a single query instead of N per-item queries (Q1)

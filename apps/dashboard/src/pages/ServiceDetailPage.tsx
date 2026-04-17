@@ -3,8 +3,8 @@ import { toast } from "@/hooks/useToast";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowRight, Pencil, Trash2, Package, Star, CalendarCheck, Banknote,
-  Loader2, AlertCircle, Copy, Eye, Plus, ChevronUp, ChevronDown, Save, HelpCircle, Settings2,
-  Boxes, Wrench, FlaskConical, TrendingUp, Users, Layers, AlignLeft, ClipboardList,
+  Loader2, AlertCircle, Copy, Eye, Plus, ChevronUp, ChevronDown, Save, HelpCircle,
+  Boxes, Wrench, FlaskConical, Users, Layers, AlignLeft, ClipboardList,
   Check, X, ShoppingCart, AlertTriangle,
 } from "lucide-react";
 import { clsx } from "clsx";
@@ -16,7 +16,7 @@ import { Modal, Input, TextArea, Select, Button, Toggle, confirmDialog } from "@
 import { PageSkeleton } from "@/components/ui/Skeleton";
 import { fmtDate } from "@/lib/utils";
 
-type Tab = "info" | "questions" | "booking-settings" | "components" | "requirements" | "recipes" | "staff";
+type Tab = "basics" | "questions" | "materials" | "staff";
 type ReqType = "employee" | "asset" | "text";
 
 const QUESTION_TYPES = [
@@ -44,7 +44,7 @@ export function ServiceDetailPage() {
   const navigate = useNavigate();
   const biz = useBusiness();
   const isBeauty = BEAUTY_TYPES.has(biz.key);
-  const [activeTab, setActiveTab] = useState<Tab>("info");
+  const [activeTab, setActiveTab] = useState<Tab>("basics");
   const [showBooking, setShowBooking] = useState(false);
 
   const { data: res, loading, error, refetch } = useApi(() => servicesApi.get(id!), [id]);
@@ -321,13 +321,10 @@ export function ServiceDetailPage() {
   const executionReady: boolean = isExecService ? Boolean(service.executionReady) : true;
 
   const tabs: { key: Tab; label: string; icon: any; badge?: number }[] = [
-    { key: "info", label: "معلومات الخدمة", icon: Package },
-    { key: "components", label: "المكونات والتكاليف", icon: Boxes },
-    { key: "requirements", label: "المتطلبات", icon: ClipboardList, badge: requirements.length || undefined },
-    ...(isBeauty ? [{ key: "recipes" as Tab, label: "وصفة المستلزمات", icon: FlaskConical, badge: recipes.length || undefined }] : []),
+    { key: "basics", label: "الأساسيات", icon: Package },
+    { key: "questions", label: "أسئلة مخصصة", icon: HelpCircle, badge: questions.length || undefined },
     { key: "staff", label: "الموظفون", icon: Users, badge: serviceStaff.length || undefined },
-    { key: "questions", label: "أسئلة مخصصة", icon: HelpCircle },
-    { key: "booking-settings", label: "إعدادات الحجز", icon: Settings2 },
+    { key: "materials", label: "المكونات والوصفات", icon: Boxes, badge: (components.length + requirements.length + (isBeauty ? recipes.length : 0)) || undefined },
   ];
 
   return (
@@ -373,7 +370,7 @@ export function ServiceDetailPage() {
             </p>
           </div>
           <button
-            onClick={() => setActiveTab("components")}
+            onClick={() => setActiveTab("materials")}
             className="mr-auto shrink-0 text-xs font-medium text-amber-700 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors"
           >
             إكمال الخدمة
@@ -401,8 +398,8 @@ export function ServiceDetailPage() {
         ))}
       </div>
 
-      {/* Tab: Info */}
-      {activeTab === "info" && (
+      {/* Tab: Basics (info + booking settings) */}
+      {activeTab === "basics" && (
         <div className="space-y-4">
           {/* Service details */}
           <div className="bg-white rounded-xl border border-gray-200 p-6">
@@ -512,6 +509,72 @@ export function ServiceDetailPage() {
               <div className="flex items-center justify-between py-2.5"><span className="text-gray-400">تاريخ الإنشاء</span><span className="text-gray-700">{service.createdAt ? fmtDate(service.createdAt) : "—"}</span></div>
             </div>
           </div>
+
+          {/* Booking settings — merged into Basics tab */}
+          {bsForm && (
+            <div className="bg-white rounded-xl border border-gray-200 p-6 max-w-xl">
+              <h3 className="font-semibold text-gray-900 mb-4">إعدادات الحجز</h3>
+              <div className="space-y-5">
+                <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">السماح بالحجز المتأخر</p>
+                    <p className="text-xs text-gray-400 mt-0.5">قبول الحجوزات في نفس اليوم</p>
+                  </div>
+                  <Toggle checked={bsForm.allowLateBooking} onChange={(v) => setBsForm({ ...bsForm, allowLateBooking: v })} />
+                </div>
+                <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">حجز يوم كامل</p>
+                    <p className="text-xs text-gray-400 mt-0.5">الخدمة تشغل اليوم بالكامل</p>
+                  </div>
+                  <Toggle checked={bsForm.fullDayBooking} onChange={(v) => setBsForm({ ...bsForm, fullDayBooking: v })} />
+                </div>
+                <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">السماح باختيار المزود</p>
+                    <p className="text-xs text-gray-400 mt-0.5">يختار العميل مزود الخدمة</p>
+                  </div>
+                  <Toggle checked={bsForm.allowProviderSelection} onChange={(v) => setBsForm({ ...bsForm, allowProviderSelection: v })} />
+                </div>
+                <div className="py-3 border-b border-gray-100">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">وقت الفاصل (دقيقة)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={bsForm.bufferMinutes}
+                    onChange={(e) => setBsForm({ ...bsForm, bufferMinutes: parseInt(e.target.value) || 0 })}
+                    className="w-32 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-500"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">فترة الراحة بين الحجوزات</p>
+                </div>
+                <div className="py-3 border-b border-gray-100">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">الحجوزات المتزامنة</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={bsForm.maxConcurrentBookings}
+                    onChange={(e) => setBsForm({ ...bsForm, maxConcurrentBookings: parseInt(e.target.value) || 1 })}
+                    className="w-32 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-500"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">أقصى عدد حجوزات في نفس الوقت</p>
+                </div>
+                <div className="py-3">
+                  <label className="block text-sm font-medium text-gray-900 mb-2">أيام الحجز المسبق</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={bsForm.advanceBookingDays}
+                    onChange={(e) => setBsForm({ ...bsForm, advanceBookingDays: parseInt(e.target.value) || 365 })}
+                    className="w-32 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-500"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">كم يوماً مسبقاً يمكن الحجز</p>
+                </div>
+              </div>
+              <div className="mt-6 pt-4 border-t border-gray-100">
+                <Button onClick={handleSaveBS} loading={bsSaving} icon={Save}>حفظ الإعدادات</Button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -558,73 +621,9 @@ export function ServiceDetailPage() {
         </div>
       )}
 
-      {/* Tab: Booking Settings */}
-      {activeTab === "booking-settings" && bsForm && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6 max-w-xl">
-          <div className="space-y-5">
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div>
-                <p className="font-medium text-gray-900 text-sm">السماح بالحجز المتأخر</p>
-                <p className="text-xs text-gray-400 mt-0.5">قبول الحجوزات في نفس اليوم</p>
-              </div>
-              <Toggle checked={bsForm.allowLateBooking} onChange={(v) => setBsForm({ ...bsForm, allowLateBooking: v })} />
-            </div>
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div>
-                <p className="font-medium text-gray-900 text-sm">حجز يوم كامل</p>
-                <p className="text-xs text-gray-400 mt-0.5">الخدمة تشغل اليوم بالكامل</p>
-              </div>
-              <Toggle checked={bsForm.fullDayBooking} onChange={(v) => setBsForm({ ...bsForm, fullDayBooking: v })} />
-            </div>
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div>
-                <p className="font-medium text-gray-900 text-sm">السماح باختيار المزود</p>
-                <p className="text-xs text-gray-400 mt-0.5">يختار العميل مزود الخدمة</p>
-              </div>
-              <Toggle checked={bsForm.allowProviderSelection} onChange={(v) => setBsForm({ ...bsForm, allowProviderSelection: v })} />
-            </div>
-            <div className="py-3 border-b border-gray-100">
-              <label className="block text-sm font-medium text-gray-900 mb-2">وقت الفاصل (دقيقة)</label>
-              <input
-                type="number"
-                min={0}
-                value={bsForm.bufferMinutes}
-                onChange={(e) => setBsForm({ ...bsForm, bufferMinutes: parseInt(e.target.value) || 0 })}
-                className="w-32 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-500"
-              />
-              <p className="text-xs text-gray-400 mt-1">فترة الراحة بين الحجوزات</p>
-            </div>
-            <div className="py-3 border-b border-gray-100">
-              <label className="block text-sm font-medium text-gray-900 mb-2">الحجوزات المتزامنة</label>
-              <input
-                type="number"
-                min={1}
-                value={bsForm.maxConcurrentBookings}
-                onChange={(e) => setBsForm({ ...bsForm, maxConcurrentBookings: parseInt(e.target.value) || 1 })}
-                className="w-32 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-500"
-              />
-              <p className="text-xs text-gray-400 mt-1">أقصى عدد حجوزات في نفس الوقت</p>
-            </div>
-            <div className="py-3">
-              <label className="block text-sm font-medium text-gray-900 mb-2">أيام الحجز المسبق</label>
-              <input
-                type="number"
-                min={1}
-                value={bsForm.advanceBookingDays}
-                onChange={(e) => setBsForm({ ...bsForm, advanceBookingDays: parseInt(e.target.value) || 365 })}
-                className="w-32 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-500"
-              />
-              <p className="text-xs text-gray-400 mt-1">كم يوماً مسبقاً يمكن الحجز</p>
-            </div>
-          </div>
-          <div className="mt-6 pt-4 border-t border-gray-100">
-            <Button onClick={handleSaveBS} loading={bsSaving} icon={Save}>حفظ الإعدادات</Button>
-          </div>
-        </div>
-      )}
 
-      {/* Tab: Components */}
-      {activeTab === "components" && (
+      {/* Tab: Materials (components + requirements + recipes) */}
+      {activeTab === "materials" && (
         <div className="space-y-4">
           {/* Header */}
           <div className="flex items-center justify-between">
@@ -726,11 +725,9 @@ export function ServiceDetailPage() {
               </table>
             </div>
           )}
-        </div>
-      )}
 
-      {/* Tab: Requirements */}
-      {activeTab === "requirements" && (() => {
+          {/* Requirements section — merged into Materials tab */}
+          {(() => {
         const empReqs = requirements.filter(r => r.requirementType === "employee");
         const assetReqs = requirements.filter(r => r.requirementType === "asset");
         const textReqs = requirements.filter(r => r.requirementType === "text");
@@ -851,12 +848,12 @@ export function ServiceDetailPage() {
         );
       })()}
 
-      {/* Tab: Supply Recipes */}
-      {activeTab === "recipes" && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">المستلزمات التي تُستهلك تلقائياً عند إتمام هذه الخدمة</p>
-          </div>
+          {/* Supply Recipes section — merged into Materials tab, beauty only */}
+          {isBeauty && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-gray-500">المستلزمات التي تُستهلك تلقائياً عند إتمام هذه الخدمة</p>
+            </div>
 
           {/* Add recipe row */}
           {supplies.length > 0 && (
@@ -944,6 +941,8 @@ export function ServiceDetailPage() {
                 </p>
               </div>
             </div>
+          )}
+          </div>
           )}
         </div>
       )}

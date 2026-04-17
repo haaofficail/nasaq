@@ -811,6 +811,18 @@ function AttendanceTab() {
           </div>
         )}
       </div>
+      {/* Next action — go to payroll */}
+      <div className="flex items-center justify-between p-4 bg-brand-50 border border-brand-100 rounded-2xl">
+        <div>
+          <p className="text-sm font-semibold text-brand-700">الخطوة التالية: إنشاء كشف الرواتب</p>
+          <p className="text-xs text-brand-500 mt-0.5">استخدم بيانات الحضور لاحتساب رواتب الموظفين تلقائياً</p>
+        </div>
+        <a href="?tab=payroll" className="flex items-center gap-1.5 text-sm font-medium text-brand-600 hover:text-brand-700 transition-colors whitespace-nowrap">
+          كشف الرواتب
+          <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </a>
+      </div>
+
       {showManualModal && (
         <ManualAttendanceModal
           employees={employees}
@@ -1394,7 +1406,7 @@ function ComplianceTab() {
       // hrApi.syncGOSI not available — GOSI sync requires official GOSI portal credentials
       toast.info("هذه الخاصية تتطلب ربط واجهة WPS الرسمية");
     } catch {
-      toast.error("تعذّر المزامنة مع GOSI — تحقق من بيانات الاعتماد");
+      toast.error("تعذّر المزامنة مع التأمينات — تحقق من بيانات الاعتماد");
     } finally {
       setSyncingGOSI(false);
       refetchGOSI();
@@ -1535,7 +1547,7 @@ function ComplianceTab() {
               onClick={syncGOSI}
               disabled={syncingGOSI}
               className="mt-3 w-full py-2 rounded-xl text-sm font-medium bg-brand-500 text-white hover:bg-brand-600 disabled:opacity-50 transition-colors">
-              {syncingGOSI ? "جاري المزامنة..." : "مزامنة GOSI"}
+              {syncingGOSI ? "جاري المزامنة..." : "مزامنة التأمينات"}
             </button>
           </>
         )}

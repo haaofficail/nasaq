@@ -116,16 +116,16 @@ export function PublicBookingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl" style={{ fontFamily: font }}>
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200 py-4 px-6 sticky top-0 z-10">
+      {/* Header — هوية ترميز OS الثابتة */}
+      <header className="py-4 px-6 sticky top-0 z-10" style={{ background: "linear-gradient(135deg, #5b9bd5 0%, #3d84c8 100%)" }}>
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold overflow-hidden" style={{ background: primaryColor }}>
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold overflow-hidden bg-white/20">
               {logo ? <img src={logo} className="w-full h-full object-cover" alt="" /> : (org?.name?.[0] || "ن")}
             </div>
-            <span className="font-bold text-gray-900">{org?.name}</span>
+            <span className="font-bold text-white">{org?.name}</span>
           </div>
-          {org?.phone && <a href={`tel:${org.phone}`} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700"><Phone className="w-4 h-4" />{org.phone}</a>}
+          {org?.phone && <a href={`tel:${org.phone}`} className="flex items-center gap-1.5 text-sm text-white/80 hover:text-white"><Phone className="w-4 h-4" />{org.phone}</a>}
         </div>
       </header>
 

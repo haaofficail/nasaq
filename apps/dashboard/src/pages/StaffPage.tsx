@@ -1,6 +1,7 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { toast } from "@/hooks/useToast";
-import { Users, Plus, Pencil, Trash2, AlertCircle, UserCheck, UserX, Shield, Search } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, AlertCircle, UserCheck, UserX, Shield, Search, ArrowLeft } from "lucide-react";
 import { clsx } from "clsx";
 import { staffApi, rolesApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
@@ -201,6 +202,17 @@ export function StaffPage() {
             </table>
           </div>
         )}
+      </div>
+
+      {/* الخطوة التالية */}
+      <div className="bg-brand-50 border border-brand-100 rounded-2xl p-4 flex items-center justify-between mt-4">
+        <div>
+          <p className="text-sm font-semibold text-brand-700">الخطوة التالية</p>
+          <p className="text-xs text-brand-500 mt-0.5">بعد إضافة الموظف — سجّل جدول الحضور</p>
+        </div>
+        <Link to="/dashboard/hr" className="flex items-center gap-2 bg-brand-500 text-white text-sm font-medium px-4 py-2 rounded-xl hover:bg-brand-600 transition-colors">
+          إدارة الحضور <ArrowLeft className="w-4 h-4" />
+        </Link>
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)}
