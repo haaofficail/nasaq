@@ -58,3 +58,11 @@
 - تحقق يدوي من المسار كاملاً: frontend → API → DB → response
 - تحقق من orgId في DB مباشرة
 - تحقق من سلوك الفشل (TOCTOU): ماذا لو فشل الاستدعاء الثاني؟
+
+## 8. Payment Zone — منطقة الدفع (bookings, invoices, treasury, payments)
+
+قواعد إضافية صارمة لكل ملف في هذه المنطقة:
+- كل تعديل على ملف يتطلب **ACK صريح من المستخدم قبل str_replace**
+- كل ادعاء اكتمال يتطلب عرض **diff فعلي + ناتج integration test**
+- "typecheck passes" ليست verification — شغّل integration test
+- إذا احتاج التغيير ملفين أو أكثر → قسّمه إلى commits متسلسلة منفصلة
