@@ -43,8 +43,8 @@ function SmartAlertsBanner({ businessType }: { businessType: string }) {
     msg: `يومك مزدحم — ${todayCount} حجوزات اليوم`,
     sub: "تأكد من جاهزية فريقك والمستلزمات",
     href: "/dashboard/bookings",
-    color: "bg-amber-50 border-amber-100",
-    iconColor: "text-amber-500",
+    color: "bg-warning-soft border-warning-soft",
+    iconColor: "text-warning",
   });
 
   if (lowStock.length > 0) alerts.push({
@@ -52,8 +52,8 @@ function SmartAlertsBanner({ businessType }: { businessType: string }) {
     msg: `${lowStock.length === 1 ? "مادة قاربت على النفاد" : `${lowStock.length} مواد قاربت على النفاد`}`,
     sub: lowStock.slice(0, 2).map((p: any) => p.name).join("، ") + (lowStock.length > 2 ? " وأخرى..." : ""),
     href: "/dashboard/inventory?tab=consumables",
-    color: "bg-red-50 border-red-100",
-    iconColor: "text-red-500",
+    color: "bg-danger-soft border-danger-soft",
+    iconColor: "text-danger",
   });
 
   if (alerts.length === 0) return null;
@@ -66,10 +66,10 @@ function SmartAlertsBanner({ businessType }: { businessType: string }) {
           <div className={clsx("flex items-center gap-3 px-4 py-3 rounded-2xl border text-sm", a.color)}>
             <div className={clsx("shrink-0", a.iconColor)}><Icon className="w-4 h-4" /></div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-gray-900">{a.msg}</p>
-              {a.sub && <p className="text-xs text-gray-500 mt-0.5">{a.sub}</p>}
+              <p className="font-semibold text-[var(--text-1)]">{a.msg}</p>
+              {a.sub && <p className="text-xs text-[var(--text-2)] mt-0.5">{a.sub}</p>}
             </div>
-            {a.href && <ArrowLeft className="w-4 h-4 text-gray-400 shrink-0" />}
+            {a.href && <ArrowLeft className="w-4 h-4 text-[var(--text-3)] shrink-0" />}
           </div>
         );
         return a.href
@@ -94,16 +94,16 @@ function FlowerOpsPanel() {
       label: "طلبات نشطة",
       value: Number(stats.pending ?? 0) + Number(stats.confirmed ?? 0) + Number(stats.preparing ?? 0),
       href: "/dashboard/flower-orders",
-      color: "text-blue-600",
-      bg: "bg-blue-50",
+      color: "text-brand-600",
+      bg: "bg-brand-soft",
       icon: Package,
     },
     {
       label: "جاهز للتسليم",
       value: Number(stats.ready ?? 0),
       href: "/dashboard/flower-orders",
-      color: "text-emerald-600",
-      bg: "bg-emerald-50",
+      color: "text-success",
+      bg: "bg-success-soft",
       icon: CheckCircle2,
     },
     {
@@ -119,8 +119,8 @@ function FlowerOpsPanel() {
       // serviceOrdersApi.stats() may return in_progress or active depending on version
       value: Number(serviceStats.in_progress ?? serviceStats.active ?? 0),
       href: "/dashboard/flower-service-orders",
-      color: "text-violet-600",
-      bg: "bg-violet-50",
+      color: "text-lavender",
+      bg: "bg-lavender-soft",
       icon: Clock,
     },
   ];
@@ -129,7 +129,7 @@ function FlowerOpsPanel() {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[0, 1, 2, 3].map(i => (
-          <div key={i} className="h-20 bg-[#f1f5f9] rounded-2xl animate-pulse" />
+          <div key={i} className="h-20 bg-[var(--surface-3)] rounded-2xl animate-pulse" />
         ))}
       </div>
     );
@@ -143,14 +143,14 @@ function FlowerOpsPanel() {
           <Link
             key={p.label}
             to={p.href}
-            className="group bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all"
+            className="group bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-4 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-token-md transition-all"
           >
             <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0", p.bg)}>
               <Icon className={clsx("w-5 h-5", p.color)} />
             </div>
             <div className="min-w-0">
               <p className={clsx("text-xl font-bold tabular-nums", p.color)}>{p.value}</p>
-              <p className="text-[11px] text-gray-400 truncate">{p.label}</p>
+              <p className="text-[11px] text-[var(--text-3)] truncate">{p.label}</p>
             </div>
           </Link>
         );
@@ -207,11 +207,11 @@ function WelcomeView({ orgName, businessType, orgId }: { orgName: string; busine
     <div className="min-h-[70vh] flex flex-col items-center justify-center text-center px-4 gap-8">
       {/* Greeting */}
       <div className="space-y-2">
-        <p className="text-sm text-gray-400 font-medium">مرحباً بك في {platformName}</p>
-        <h1 className="text-2xl font-bold text-gray-900">
+        <p className="text-sm text-[var(--text-3)] font-medium">مرحباً بك في {platformName}</p>
+        <h1 className="text-2xl font-bold text-[var(--text-1)]">
           {orgName ? `أهلاً، ${orgName}` : `ابدأ رحلتك مع ${platformName}`}
         </h1>
-        <p className="text-sm text-gray-500 max-w-sm mx-auto">
+        <p className="text-sm text-[var(--text-2)] max-w-sm mx-auto">
           كل شيء جاهز — خطوة واحدة تفصلك عن تشغيل منشأتك
         </p>
       </div>
@@ -236,7 +236,7 @@ function WelcomeView({ orgName, businessType, orgId }: { orgName: string; busine
           <Link
             key={s.href}
             to={s.href}
-            className="flex items-center gap-1.5 bg-white border border-[#eef2f6] hover:border-brand-300 hover:bg-brand-50 text-gray-700 hover:text-brand-700 text-sm font-medium rounded-xl px-4 py-2.5 transition-all"
+            className="flex items-center gap-1.5 bg-[var(--surface)] border border-[var(--border)] hover:border-brand-300 hover:bg-brand-50 text-[var(--text-1)] hover:text-brand-700 text-sm font-medium rounded-xl px-4 py-2.5 transition-all"
           >
             {s.label}
           </Link>
@@ -246,7 +246,7 @@ function WelcomeView({ orgName, businessType, orgId }: { orgName: string; busine
       {/* Skip to dashboard */}
       <button
         onClick={() => navigate("/dashboard", { replace: true })}
-        className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+        className="flex items-center gap-1 text-xs text-[var(--text-3)] hover:text-[var(--text-2)] transition-colors"
       >
         <span>تخطي إلى الداشبورد</span>
         <ArrowLeft className="w-3.5 h-3.5" />
@@ -262,12 +262,12 @@ function ActiveDashboardHeader({ orgName, businessType }: { orgName: string; bus
   const Icon = action.icon;
 
   return (
-    <div className="flex items-center justify-between bg-white border border-[#eef2f6] rounded-2xl px-5 py-[6px] mb-1">
+    <div className="flex items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-2xl px-5 py-[6px] mb-1">
       <div>
-        <p className="text-sm font-semibold text-gray-900">
+        <p className="text-sm font-semibold text-[var(--text-1)]">
           {orgName || "مرحباً"}
         </p>
-        <p className="text-xs text-gray-400">ماذا تريد أن تفعل اليوم؟</p>
+        <p className="text-xs text-[var(--text-3)]">ماذا تريد أن تفعل اليوم؟</p>
       </div>
       <Link
         to={action.href}
@@ -330,10 +330,10 @@ export function DashboardPage() {
       <div className="space-y-5 animate-pulse">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
-            <div className="h-6 bg-[#f1f5f9] rounded-lg w-48" />
-            <div className="h-4 bg-[#f1f5f9] rounded-lg w-64" />
+            <div className="h-6 bg-[var(--surface-3)] rounded-lg w-48" />
+            <div className="h-4 bg-[var(--surface-3)] rounded-lg w-64" />
           </div>
-          <div className="h-10 bg-[#f1f5f9] rounded-xl w-32" />
+          <div className="h-10 bg-[var(--surface-3)] rounded-xl w-32" />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[0, 1, 2, 3].map((i) => (
@@ -374,20 +374,20 @@ export function DashboardPage() {
 
       {/* Public page quick access */}
       {orgSlug && (
-        <div className="flex items-center justify-between bg-white border border-[#eef2f6] rounded-2xl px-5 py-[6px]">
+        <div className="flex items-center justify-between bg-[var(--surface)] border border-[var(--border)] rounded-2xl px-5 py-[6px]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
               <QrCode className="w-4 h-4 text-brand-500" />
             </div>
             <div>
-              <p className="text-sm font-semibold text-gray-900">صفحتك العامة</p>
-              <p className="text-xs text-gray-400 font-mono">tarmizos.com/s/{orgSlug}</p>
+              <p className="text-sm font-semibold text-[var(--text-1)]">صفحتك العامة</p>
+              <p className="text-xs text-[var(--text-3)] font-mono">tarmizos.com/s/{orgSlug}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <Link
               to="/dashboard/storefront?tab=qr"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-xs hover:bg-[#f8fafc] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-[var(--text-2)] text-xs hover:bg-[var(--surface-2)] transition-colors"
             >
               <QrCode className="w-3.5 h-3.5" /> باركود QR
             </Link>
@@ -395,7 +395,7 @@ export function DashboardPage() {
               href={`/s/${orgSlug}/print`}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-xs hover:bg-[#f8fafc] transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-[var(--text-2)] text-xs hover:bg-[var(--surface-2)] transition-colors"
             >
               <Printer className="w-3.5 h-3.5" /> طباعة
             </a>

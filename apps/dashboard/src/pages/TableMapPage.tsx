@@ -7,10 +7,10 @@ import { confirmDialog } from "@/components/ui";
 import { toast } from "@/hooks/useToast";
 
 const STATUS_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  available: { label: "متاحة",    color: "text-emerald-600", bg: "bg-emerald-50",  border: "border-emerald-200" },
-  occupied:  { label: "مشغولة",   color: "text-red-600",     bg: "bg-red-50",      border: "border-red-200" },
-  reserved:  { label: "محجوزة",   color: "text-amber-600",   bg: "bg-amber-50",    border: "border-amber-200" },
-  cleaning:  { label: "تنظيف",    color: "text-blue-600",    bg: "bg-blue-50",     border: "border-blue-200" },
+  available: { label: "متاحة",    color: "text-success",  bg: "bg-success-soft",  border: "border-success-soft" },
+  occupied:  { label: "مشغولة",   color: "text-danger",   bg: "bg-danger-soft",   border: "border-danger-soft" },
+  reserved:  { label: "محجوزة",   color: "text-warning",  bg: "bg-warning-soft",  border: "border-warning-soft" },
+  cleaning:  { label: "تنظيف",    color: "text-sky",      bg: "bg-sky-soft",      border: "border-sky-soft" },
 };
 
 type Table = {
@@ -36,25 +36,25 @@ function TableCard({ table, onAction }: { table: Table; onAction: (t: Table) => 
         <span className={clsx("text-xs font-bold px-2 py-0.5 rounded-full", meta.bg, meta.color, "border", meta.border)}>
           {meta.label}
         </span>
-        <span className="text-xs text-gray-400">{table.capacity} <Users className="w-3 h-3 inline" /></span>
+        <span className="text-xs text-[var(--text-3)]">{table.capacity} <Users className="w-3 h-3 inline" /></span>
       </div>
 
       <div className="flex flex-col items-center gap-1">
         <Armchair className={clsx("w-8 h-8", meta.color)} />
-        <p className="font-bold text-gray-900 text-lg">{table.number}</p>
-        {table.section && <p className="text-xs text-gray-400">{table.section}</p>}
+        <p className="font-bold text-[var(--text-1)] text-lg">{table.number}</p>
+        {table.section && <p className="text-xs text-[var(--text-3)]">{table.section}</p>}
       </div>
 
       <div className="h-5">
         {table.status === "occupied" && elapsed !== null && (
           <span className={clsx("text-xs font-semibold flex items-center gap-1",
-            elapsed >= 90 ? "text-red-500" : elapsed >= 45 ? "text-amber-500" : "text-emerald-600"
+            elapsed >= 90 ? "text-danger" : elapsed >= 45 ? "text-warning" : "text-success"
           )}>
             <Clock className="w-3 h-3" /> {elapsed} د
           </span>
         )}
         {table.status === "occupied" && table.guests && (
-          <span className="text-xs text-gray-500">{table.guests} ضيف</span>
+          <span className="text-xs text-[var(--text-2)]">{table.guests} ضيف</span>
         )}
       </div>
     </button>
@@ -137,10 +137,10 @@ export function TableMapPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-xl font-bold text-[var(--text-1)] flex items-center gap-2">
             <Armchair className="w-5 h-5 text-brand-500" /> خريطة الطاولات
           </h1>
-          <p className="text-sm text-gray-400 mt-0.5">{tables.length} طاولة</p>
+          <p className="text-sm text-[var(--text-3)] mt-0.5">{tables.length} طاولة</p>
         </div>
         <button
           onClick={() => setShowAddModal(true)}
@@ -159,7 +159,7 @@ export function TableMapPage() {
               <Armchair className={clsx("w-5 h-5", meta.color)} />
               <div>
                 <p className={clsx("text-lg font-bold tabular-nums", meta.color)}>{count}</p>
-                <p className="text-xs text-gray-500">{meta.label}</p>
+                <p className="text-xs text-[var(--text-2)]">{meta.label}</p>
               </div>
             </div>
           );
@@ -174,7 +174,7 @@ export function TableMapPage() {
               key={s}
               onClick={() => setSectionFilter(s)}
               className={clsx("px-4 py-1.5 rounded-xl text-sm font-medium border transition-colors",
-                sectionFilter === s ? "bg-brand-500 text-white border-brand-500" : "border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]"
+                sectionFilter === s ? "bg-brand-500 text-white border-brand-500" : "border-[var(--border)] text-[var(--text-2)] hover:bg-[var(--surface-2)]"
               )}
             >
               {s === "all" ? "الكل" : s}
@@ -185,9 +185,9 @@ export function TableMapPage() {
 
       {/* Table grid */}
       {tables.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16">
-          <Armchair className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-          <p className="text-gray-400 mb-4">لا توجد طاولات — أضف طاولة للبدء</p>
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] text-center py-16">
+          <Armchair className="w-10 h-10 text-[var(--text-3)] mx-auto mb-3" />
+          <p className="text-[var(--text-3)] mb-4">لا توجد طاولات — أضف طاولة للبدء</p>
           <button onClick={() => setShowAddModal(true)} className="bg-brand-500 text-white px-4 py-2 rounded-xl text-sm">
             إضافة طاولة
           </button>
@@ -203,27 +203,27 @@ export function TableMapPage() {
       {/* Table action modal */}
       {activeTable && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
-              <h3 className="font-bold text-gray-900">طاولة {activeTable.number}</h3>
-              <button onClick={() => setActiveTable(null)}><X className="w-5 h-5 text-gray-400" /></button>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-sm shadow-token-xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+              <h3 className="font-bold text-[var(--text-1)]">طاولة {activeTable.number}</h3>
+              <button onClick={() => setActiveTable(null)}><X className="w-5 h-5 text-[var(--text-3)]" /></button>
             </div>
             <div className="p-5 space-y-3">
               {activeTable.status === "available" && (
                 <>
-                  <label className="text-sm text-gray-600">عدد الضيوف</label>
+                  <label className="text-sm text-[var(--text-2)]">عدد الضيوف</label>
                   <div className="flex items-center gap-3">
-                    <button onClick={() => setSeatGuests(g => Math.max(1, g - 1))} className="w-9 h-9 rounded-xl border border-[#eef2f6] text-gray-700 font-bold text-lg">−</button>
+                    <button onClick={() => setSeatGuests(g => Math.max(1, g - 1))} className="w-9 h-9 rounded-xl border border-[var(--border)] text-[var(--text-1)] font-bold text-lg">−</button>
                     <span className="text-lg font-bold tabular-nums w-8 text-center">{seatGuests}</span>
-                    <button onClick={() => setSeatGuests(g => Math.min(activeTable.capacity, g + 1))} className="w-9 h-9 rounded-xl border border-[#eef2f6] text-gray-700 font-bold text-lg">+</button>
+                    <button onClick={() => setSeatGuests(g => Math.min(activeTable.capacity, g + 1))} className="w-9 h-9 rounded-xl border border-[var(--border)] text-[var(--text-1)] font-bold text-lg">+</button>
                   </div>
-                  <button onClick={handleSeat} disabled={seatMut.loading} className="w-full bg-emerald-500 text-white py-2.5 rounded-xl font-medium text-sm hover:bg-emerald-600 disabled:opacity-60">
+                  <button onClick={handleSeat} disabled={seatMut.loading} className="w-full bg-success text-white py-2.5 rounded-xl font-medium text-sm hover:opacity-90 disabled:opacity-60">
                     تسكين الضيوف
                   </button>
                 </>
               )}
               {activeTable.status === "occupied" && (
-                <button onClick={handleClose} disabled={closeMut.loading} className="w-full bg-gray-800 text-white py-2.5 rounded-xl font-medium text-sm hover:bg-gray-900 disabled:opacity-60">
+                <button onClick={handleClose} disabled={closeMut.loading} className="w-full bg-[var(--text-1)] text-[var(--bg)] py-2.5 rounded-xl font-medium text-sm hover:opacity-90 disabled:opacity-60">
                   إغلاق الطاولة / تفريغها
                 </button>
               )}
@@ -235,7 +235,7 @@ export function TableMapPage() {
                   </button>
                 ))}
               </div>
-              <button onClick={handleDelete} className="w-full flex items-center justify-center gap-2 text-red-500 text-sm py-2 hover:bg-red-50 rounded-xl">
+              <button onClick={handleDelete} className="w-full flex items-center justify-center gap-2 text-danger text-sm py-2 hover:bg-danger-soft rounded-xl">
                 <Trash2 className="w-4 h-4" /> حذف الطاولة
               </button>
             </div>
@@ -246,31 +246,31 @@ export function TableMapPage() {
       {/* Add table modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
-              <h3 className="font-bold text-gray-900">إضافة طاولة</h3>
-              <button onClick={() => setShowAddModal(false)}><X className="w-5 h-5 text-gray-400" /></button>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-sm shadow-token-xl">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+              <h3 className="font-bold text-[var(--text-1)]">إضافة طاولة</h3>
+              <button onClick={() => setShowAddModal(false)}><X className="w-5 h-5 text-[var(--text-3)]" /></button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">رقم / اسم الطاولة *</label>
+                <label className="text-xs text-[var(--text-2)] mb-1 block">رقم / اسم الطاولة *</label>
                 <input
                   type="text"
                   value={newTable.number}
                   onChange={e => setNewTable(t => ({ ...t, number: e.target.value }))}
                   placeholder="مثال: 1 أو A3 أو VIP-1"
-                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
+                  className="w-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-1)] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">القسم (اختياري)</label>
+                <label className="text-xs text-[var(--text-2)] mb-1 block">القسم (اختياري)</label>
                 <input
                   type="text"
                   value={newTable.section}
                   onChange={e => setNewTable(t => ({ ...t, section: e.target.value }))}
                   placeholder="اختر أو اكتب اسم القسم"
                   list="section-presets"
-                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
+                  className="w-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-1)] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
                 />
                 <datalist id="section-presets">
                   <option value="داخلي" />
@@ -285,19 +285,19 @@ export function TableMapPage() {
                 </datalist>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">السعة (عدد الأشخاص)</label>
+                <label className="text-xs text-[var(--text-2)] mb-1 block">السعة (عدد الأشخاص)</label>
                 <input
                   type="number"
                   min={1}
                   max={50}
                   value={newTable.capacity}
                   onChange={e => setNewTable(t => ({ ...t, capacity: parseInt(e.target.value) || 4 }))}
-                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
+                  className="w-full border border-[var(--border)] bg-[var(--surface)] text-[var(--text-1)] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
                 />
               </div>
             </div>
             <div className="px-5 pb-5 flex justify-end gap-2">
-              <button onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600">إلغاء</button>
+              <button onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-xl border border-[var(--border)] text-sm text-[var(--text-2)]">إلغاء</button>
               <button onClick={handleCreate} disabled={createMut.loading || !newTable.number.trim()} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-500 text-white text-sm font-medium disabled:opacity-60">
                 <Check className="w-4 h-4" /> إضافة
               </button>

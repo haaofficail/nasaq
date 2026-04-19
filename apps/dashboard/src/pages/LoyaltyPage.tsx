@@ -43,7 +43,7 @@ function StampDots({ count, goal, size = "sm" }: { count: number; goal: number; 
             dim,
             i < filled
               ? "bg-brand-500 text-white shadow-sm shadow-brand-300/50"
-              : "bg-gray-100 text-gray-300 border border-[#eef2f6]"
+              : "bg-[var(--surface-3)] text-[var(--text-3)] border border-[var(--border)]"
           )}
         >
           {i < filled ? <Star className="w-2.5 h-2.5 fill-current" /> : null}
@@ -76,10 +76,10 @@ function LoyaltyCard({
     <div
       onClick={onSelect}
       className={clsx(
-        "bg-white rounded-2xl border cursor-pointer transition-all hover:shadow-sm group",
+        "bg-[var(--surface)] rounded-2xl border cursor-pointer transition-all hover:shadow-token-sm group",
         ready
           ? "border-brand-200 shadow-[0_0_0_2px_rgba(91,155,213,0.15)]"
-          : "border-[#eef2f6] hover:border-brand-100"
+          : "border-[var(--border)] hover:border-brand-100"
       )}
     >
       <div className="px-[10px] py-[6px]">
@@ -95,8 +95,8 @@ function LoyaltyCard({
 
           {/* Name + phone */}
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-gray-900 text-sm truncate">{card.customerName}</p>
-            <p className="text-xs text-gray-400 tabular-nums" dir="ltr">{card.customerPhone}</p>
+            <p className="font-semibold text-[var(--text-1)] text-sm truncate">{card.customerName}</p>
+            <p className="text-xs text-[var(--text-3)] tabular-nums" dir="ltr">{card.customerPhone}</p>
           </div>
 
           {/* Right: count + badge */}
@@ -107,15 +107,15 @@ function LoyaltyCard({
               </span>
             )}
             <div className="text-left">
-              <p className="text-sm font-bold text-gray-900 tabular-nums">{card.stampsCount}/{card.stampsGoal}</p>
-              <p className="text-[10px] text-gray-400 text-center">طابع</p>
+              <p className="text-sm font-bold text-[var(--text-1)] tabular-nums">{card.stampsCount}/{card.stampsGoal}</p>
+              <p className="text-[10px] text-[var(--text-3)] text-center">طابع</p>
             </div>
           </div>
         </div>
 
         {/* Progress + quick button */}
         <div className="mt-3 flex items-center gap-2">
-          <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+          <div className="flex-1 bg-[var(--surface-3)] rounded-full h-1.5">
             <div
               className={clsx("h-1.5 rounded-full transition-all", ready ? "bg-brand-500" : "bg-brand-300")}
               style={{ width: `${progress}%` }}
@@ -127,7 +127,7 @@ function LoyaltyCard({
             className={clsx(
               "w-7 h-7 rounded-lg flex items-center justify-center shrink-0 transition-all text-xs font-bold",
               ready
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                ? "bg-[var(--surface-3)] text-[var(--text-3)] cursor-not-allowed"
                 : "bg-brand-500 text-white hover:bg-brand-600 active:scale-95 shadow-sm shadow-brand-300/40"
             )}
             title="إضافة طابع سريع"
@@ -138,7 +138,7 @@ function LoyaltyCard({
 
         {/* Last stamp */}
         {card.lastStampAt && (
-          <p className="mt-1.5 text-[10px] text-gray-400 flex items-center gap-1">
+          <p className="mt-1.5 text-[10px] text-[var(--text-3)] flex items-center gap-1">
             <Clock className="w-2.5 h-2.5" /> {timeAgo(card.lastStampAt)}
           </p>
         )}
@@ -189,10 +189,10 @@ function DetailModal({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+      <div className="bg-[var(--surface)] rounded-2xl w-full max-w-sm shadow-token-xl overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-[#eef2f6]">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-[var(--border)]">
           <div className={clsx(
             "w-11 h-11 rounded-full flex items-center justify-center font-bold text-base shrink-0",
             ready ? "bg-brand-500 text-white" : "bg-brand-50 text-brand-600"
@@ -200,27 +200,27 @@ function DetailModal({
             {(customer.customerName || "ع")[0]}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-gray-900 truncate">{customer.customerName}</p>
-            <p className="text-xs text-gray-400 tabular-nums" dir="ltr">{customer.customerPhone}</p>
+            <p className="font-bold text-[var(--text-1)] truncate">{customer.customerName}</p>
+            <p className="text-xs text-[var(--text-3)] tabular-nums" dir="ltr">{customer.customerPhone}</p>
           </div>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+          <button onClick={onClose} className="text-[var(--text-3)] hover:text-[var(--text-2)] transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
         <div className="p-5 space-y-5">
           {/* Stamp visual */}
-          <div className="bg-gray-50 rounded-xl p-4">
+          <div className="bg-[var(--surface-2)] rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-sm font-semibold text-gray-700">الطوابع</p>
+              <p className="text-sm font-semibold text-[var(--text-1)]">الطوابع</p>
               <div className="flex items-center gap-1.5">
                 <span className="text-xl font-bold text-brand-600 tabular-nums">{customer.stampsCount}</span>
-                <span className="text-sm text-gray-400">/ {customer.stampsGoal}</span>
+                <span className="text-sm text-[var(--text-3)]">/ {customer.stampsGoal}</span>
               </div>
             </div>
             <StampDots count={customer.stampsCount} goal={customer.stampsGoal} size="lg" />
             {customer.lastStampAt && (
-              <p className="mt-3 text-xs text-gray-400 flex items-center gap-1">
+              <p className="mt-3 text-xs text-[var(--text-3)] flex items-center gap-1">
                 <Clock className="w-3 h-3" /> آخر طابع: {timeAgo(customer.lastStampAt)}
               </p>
             )}
@@ -228,15 +228,15 @@ function DetailModal({
 
           {/* Stats row */}
           <div className="grid grid-cols-2 gap-2">
-            <div className="bg-purple-50 rounded-xl p-3 text-center">
-              <p className="text-lg font-bold text-purple-600 tabular-nums">{customer.freeItemsRedeemed}</p>
-              <p className="text-xs text-purple-500">مكافآت مستبدلة</p>
+            <div className="bg-lavender-soft rounded-xl p-3 text-center">
+              <p className="text-lg font-bold text-lavender tabular-nums">{customer.freeItemsRedeemed}</p>
+              <p className="text-xs text-lavender">مكافآت مستبدلة</p>
             </div>
-            <div className={clsx("rounded-xl p-3 text-center", ready ? "bg-brand-50" : "bg-[#f8fafc]")}>
-              <p className={clsx("text-lg font-bold tabular-nums", ready ? "text-brand-600" : "text-gray-700")}>
+            <div className={clsx("rounded-xl p-3 text-center", ready ? "bg-brand-50" : "bg-[var(--surface-2)]")}>
+              <p className={clsx("text-lg font-bold tabular-nums", ready ? "text-brand-600" : "text-[var(--text-1)]")}>
                 {ready ? "جاهزة!" : remaining}
               </p>
-              <p className={clsx("text-xs", ready ? "text-brand-500" : "text-gray-400")}>
+              <p className={clsx("text-xs", ready ? "text-brand-500" : "text-[var(--text-3)]")}>
                 {ready ? "مكافأة جاهزة" : "طابع متبقي"}
               </p>
             </div>
@@ -257,10 +257,10 @@ function DetailModal({
           {/* Add stamps — always shown */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-gray-700">إضافة طوابع</p>
+              <p className="text-sm font-semibold text-[var(--text-1)]">إضافة طوابع</p>
               <button
                 onClick={() => setEditGoal(v => !v)}
-                className="text-xs text-gray-400 hover:text-brand-500 flex items-center gap-1 transition-colors"
+                className="text-xs text-[var(--text-3)] hover:text-brand-500 flex items-center gap-1 transition-colors"
               >
                 <Settings className="w-3 h-3" />
                 {editGoal ? "إخفاء الهدف" : "تعديل الهدف"}
@@ -268,17 +268,17 @@ function DetailModal({
             </div>
 
             {editGoal && (
-              <div className="bg-gray-50 rounded-xl p-3">
-                <p className="text-xs text-gray-500 mb-2">عدد الطوابع المطلوبة للمكافأة</p>
+              <div className="bg-[var(--surface-2)] rounded-xl p-3">
+                <p className="text-xs text-[var(--text-2)] mb-2">عدد الطوابع المطلوبة للمكافأة</p>
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setGoal(n => Math.max(3, n - 1))}
-                    className="w-8 h-8 rounded-lg border border-[#eef2f6] font-bold text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="w-8 h-8 rounded-lg border border-[var(--border)] font-bold text-[var(--text-1)] hover:bg-[var(--surface-3)] transition-colors"
                   >−</button>
-                  <span className="flex-1 text-center font-bold text-gray-900 tabular-nums">{goal}</span>
+                  <span className="flex-1 text-center font-bold text-[var(--text-1)] tabular-nums">{goal}</span>
                   <button
                     onClick={() => setGoal(n => Math.min(30, n + 1))}
-                    className="w-8 h-8 rounded-lg border border-[#eef2f6] font-bold text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="w-8 h-8 rounded-lg border border-[var(--border)] font-bold text-[var(--text-1)] hover:bg-[var(--surface-3)] transition-colors"
                   >+</button>
                 </div>
               </div>
@@ -287,12 +287,12 @@ function DetailModal({
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setCount(n => Math.max(1, n - 1))}
-                className="w-9 h-9 rounded-[10px] border border-[#eef2f6] font-bold text-xl text-gray-700 hover:bg-[#f8fafc] transition-colors flex items-center justify-center"
+                className="w-9 h-9 rounded-[10px] border border-[var(--border)] font-bold text-xl text-[var(--text-1)] hover:bg-[var(--surface-2)] transition-colors flex items-center justify-center"
               >−</button>
-              <span className="flex-1 text-center text-2xl font-bold text-gray-900 tabular-nums">{count}</span>
+              <span className="flex-1 text-center text-2xl font-bold text-[var(--text-1)] tabular-nums">{count}</span>
               <button
                 onClick={() => setCount(n => n + 1)}
-                className="w-9 h-9 rounded-[10px] border border-[#eef2f6] font-bold text-xl text-gray-700 hover:bg-[#f8fafc] transition-colors flex items-center justify-center"
+                className="w-9 h-9 rounded-[10px] border border-[var(--border)] font-bold text-xl text-[var(--text-1)] hover:bg-[var(--surface-2)] transition-colors flex items-center justify-center"
               >+</button>
             </div>
 
@@ -302,7 +302,7 @@ function DetailModal({
               className={clsx(
                 "w-full flex items-center justify-center gap-2 py-3 rounded-xl font-semibold text-sm transition-all disabled:opacity-60",
                 ready
-                  ? "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-[var(--surface-3)] text-[var(--text-2)] hover:bg-[var(--surface-2)]"
                   : "bg-brand-500 text-white hover:bg-brand-600 active:scale-[0.98] shadow-sm shadow-brand-300/40"
               )}
             >
@@ -336,48 +336,48 @@ function CustomerPicker({
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
-      <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
-          <h3 className="font-bold text-gray-900">اختر عميلاً</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+      <div className="bg-[var(--surface)] rounded-2xl w-full max-w-sm shadow-token-xl overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+          <h3 className="font-bold text-[var(--text-1)]">اختر عميلاً</h3>
+          <button onClick={onClose} className="text-[var(--text-3)] hover:text-[var(--text-2)] transition-colors">
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <div className="px-5 py-3 border-b border-gray-50">
+        <div className="px-5 py-3 border-b border-[var(--border)]">
           <div className="relative">
-            <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-3)] pointer-events-none" />
             <input
               autoFocus
               type="text"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="ابحث بالاسم أو الهاتف..."
-              className="w-full bg-[#f8fafc] border border-[#eef2f6] rounded-xl pr-9 pl-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50"
+              className="w-full bg-[var(--surface-2)] border border-[var(--border)] text-[var(--text-1)] rounded-xl pr-9 pl-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50"
             />
           </div>
         </div>
 
-        <div className="overflow-y-auto max-h-72 divide-y divide-gray-50">
+        <div className="overflow-y-auto max-h-72 divide-y divide-[var(--border)]">
           {customers.map(c => (
             <button
               key={c.id}
               onClick={() => onPick(c)}
-              className="w-full flex items-center gap-3 px-5 py-[6px] hover:bg-[#f8fafc] text-right transition-colors"
+              className="w-full flex items-center gap-3 px-5 py-[6px] hover:bg-[var(--surface-2)] text-right transition-colors"
             >
               <div className="w-9 h-9 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 font-bold text-sm shrink-0">
                 {(c.name || "ع")[0]}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{c.name}</p>
-                <p className="text-xs text-gray-400 tabular-nums" dir="ltr">{c.phone}</p>
+                <p className="text-sm font-medium text-[var(--text-1)] truncate">{c.name}</p>
+                <p className="text-xs text-[var(--text-3)] tabular-nums" dir="ltr">{c.phone}</p>
               </div>
-              <ChevronLeft className="w-4 h-4 text-gray-300" />
+              <ChevronLeft className="w-4 h-4 text-[var(--text-3)]" />
             </button>
           ))}
           {customers.length === 0 && (
             <div className="py-10 text-center">
-              <p className="text-sm text-gray-400">لا توجد نتائج</p>
+              <p className="text-sm text-[var(--text-3)]">لا توجد نتائج</p>
             </div>
           )}
         </div>
@@ -443,10 +443,10 @@ export function LoyaltyPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+          <h1 className="text-xl font-bold text-[var(--text-1)] flex items-center gap-2">
             <Gift className="w-5 h-5 text-brand-500" /> بطاقة الولاء
           </h1>
-          <p className="text-sm text-gray-400 mt-0.5">نظام الطوابع والمكافآت</p>
+          <p className="text-sm text-[var(--text-3)] mt-0.5">نظام الطوابع والمكافآت</p>
         </div>
         <button
           onClick={() => setShowPicker(true)}
@@ -460,27 +460,27 @@ export function LoyaltyPage() {
       <div className="grid grid-cols-4 gap-3">
         {[
           { label: "عميل",         value: stats.total,    icon: Users,   color: "text-brand-600",  bg: "bg-brand-50",   border: "border-brand-100" },
-          { label: "جاهز للاستبدال", value: stats.ready,  icon: Trophy,  color: "text-amber-600",  bg: "bg-amber-50",   border: "border-amber-100" },
-          { label: "مكافأة مستبدلة", value: stats.redeemed, icon: RotateCcw, color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-100" },
-          { label: "إجمالي الطوابع", value: stats.stamps, icon: Stamp,   color: "text-emerald-600", bg: "bg-emerald-50", border: "border-emerald-100" },
+          { label: "جاهز للاستبدال", value: stats.ready,  icon: Trophy,  color: "text-warning",   bg: "bg-warning-soft",  border: "border-warning-soft" },
+          { label: "مكافأة مستبدلة", value: stats.redeemed, icon: RotateCcw, color: "text-lavender", bg: "bg-lavender-soft", border: "border-lavender-soft" },
+          { label: "إجمالي الطوابع", value: stats.stamps, icon: Stamp,   color: "text-success",   bg: "bg-success-soft",  border: "border-success-soft" },
         ].map(({ label, value, icon: Icon, color, bg, border }) => (
           <div key={label} className={clsx("rounded-2xl border p-3 text-center", bg, border)}>
             <Icon className={clsx("w-4 h-4 mx-auto mb-1", color)} />
             <p className={clsx("text-lg font-bold tabular-nums leading-none", color)}>{value}</p>
-            <p className="text-[10px] text-gray-500 mt-1 leading-tight">{label}</p>
+            <p className="text-[10px] text-[var(--text-2)] mt-1 leading-tight">{label}</p>
           </div>
         ))}
       </div>
 
       {/* Search */}
       <div className="relative">
-        <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+        <Search className="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-3)] pointer-events-none" />
         <input
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="بحث باسم العميل أو رقم الهاتف..."
-          className="w-full bg-white border border-[#eef2f6] rounded-xl pr-9 pl-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
+          className="w-full bg-[var(--surface)] border border-[var(--border)] text-[var(--text-1)] rounded-xl pr-9 pl-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-[var(--text-3)]"
         />
       </div>
 
@@ -488,14 +488,14 @@ export function LoyaltyPage() {
       {loading ? (
         <SkeletonRows />
       ) : cards.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16 px-8">
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] text-center py-16 px-8">
           <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Gift className="w-8 h-8 text-brand-300" />
           </div>
-          <p className="font-semibold text-gray-700 mb-1">
+          <p className="font-semibold text-[var(--text-1)] mb-1">
             {search ? "لا توجد نتائج" : "لا توجد بطاقات ولاء بعد"}
           </p>
-          <p className="text-sm text-gray-400 mb-5">
+          <p className="text-sm text-[var(--text-3)] mb-5">
             {search ? "جرّب كلمة بحث مختلفة" : "ابدأ بإضافة طابع لأحد عملائك"}
           </p>
           {!search && (

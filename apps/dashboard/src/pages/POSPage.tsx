@@ -67,18 +67,18 @@ const PAYMENT_LABELS: Record<string, string> = {
 };
 
 const PAYMENT_COLORS: Record<string, string> = {
-  cash:          "bg-emerald-50 border-emerald-300 text-emerald-700",
+  cash:          "bg-success-soft border-success-soft text-success",
   card:          "bg-brand-50 border-brand-300 text-brand-700",
-  bank_transfer: "bg-violet-50 border-violet-300 text-violet-700",
+  bank_transfer: "bg-lavender-soft border-lavender-soft text-lavender",
 };
 
 const SPLIT_PART_COLORS = [
   "bg-brand-100 border-brand-300 text-brand-700",
-  "bg-violet-100 border-violet-300 text-violet-700",
-  "bg-emerald-100 border-emerald-300 text-emerald-700",
-  "bg-amber-100 border-amber-300 text-amber-700",
-  "bg-rose-100 border-rose-300 text-rose-700",
-  "bg-teal-100 border-teal-300 text-teal-700",
+  "bg-lavender-soft border-lavender-soft text-lavender",
+  "bg-success-soft border-success-soft text-success",
+  "bg-warning-soft border-warning-soft text-warning",
+  "bg-danger-soft border-danger-soft text-danger",
+  "bg-sky-soft border-sky-soft text-sky",
 ];
 
 const VAT_RATE = VAT_RATE_DECIMAL * 100; // e.g. 0.15 → 15
@@ -223,28 +223,28 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+      <div className="bg-[var(--surface)] rounded-2xl shadow-token-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2f6]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
           <div className="flex items-center gap-2">
             <SplitSquareHorizontal className="w-5 h-5 text-brand-500" />
-            <h2 className="font-bold text-gray-900">تقسيم الفاتورة</h2>
-            <span className="text-sm text-gray-400">— إجمالي {fmt(total)} ر.س</span>
+            <h2 className="font-bold text-[var(--text-1)]">تقسيم الفاتورة</h2>
+            <span className="text-sm text-[var(--text-3)]">— إجمالي {fmt(total)} ر.س</span>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-[#f1f5f9] rounded-xl text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="p-2 hover:bg-[var(--surface-2)] rounded-xl text-[var(--text-3)] hover:text-[var(--text-2)]">
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Mode selector */}
         <div className="px-6 pt-4">
-          <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
+          <div className="flex gap-1 bg-[var(--surface-3)] p-1 rounded-xl">
             {([["equal", "بالتساوي"], ["items", "بالبنود"], ["amount", "بالمبلغ"]] as const).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setMode(key)}
                 className={clsx("flex-1 py-2 rounded-lg text-sm font-medium transition-all",
-                  mode === key ? "bg-white text-brand-600 shadow-sm" : "text-gray-500 hover:text-gray-700")}
+                  mode === key ? "bg-[var(--surface)] text-brand-600 shadow-token-sm" : "text-[var(--text-2)] hover:text-[var(--text-1)]")}
               >
                 {label}
               </button>
@@ -258,9 +258,9 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
           {/* Equal mode: count picker */}
           {mode === "equal" && (
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-600">عدد الأشخاص:</span>
+              <span className="text-sm text-[var(--text-2)]">عدد الأشخاص:</span>
               <div className="flex items-center gap-2">
-                <button onClick={() => setCount(c => Math.max(2, c - 1))} className="w-8 h-8 rounded-lg border border-[#eef2f6] flex items-center justify-center hover:bg-[#f8fafc]">
+                <button onClick={() => setCount(c => Math.max(2, c - 1))} className="w-8 h-8 rounded-lg border border-[var(--border)] flex items-center justify-center hover:bg-[var(--surface-2)]">
                   <Minus className="w-3.5 h-3.5" />
                 </button>
                 <span className="w-8 text-center font-bold text-lg tabular-nums">{count}</span>
@@ -268,19 +268,19 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
                   <Plus className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <span className="text-sm text-gray-400">{fmt(+(total / count).toFixed(2))} ر.س / شخص</span>
+              <span className="text-sm text-[var(--text-3)]">{fmt(+(total / count).toFixed(2))} ر.س / شخص</span>
             </div>
           )}
 
           {/* Items mode: item assignment */}
           {mode === "items" && (
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">اختر الجزء لكل بند</p>
+              <p className="text-xs font-semibold text-[var(--text-2)] uppercase tracking-wider">اختر الجزء لكل بند</p>
               {cart.map(item => (
-                <div key={item.id} className="flex items-center justify-between bg-[#f8fafc] rounded-xl px-4 py-3">
+                <div key={item.id} className="flex items-center justify-between bg-[var(--surface-2)] rounded-xl px-4 py-3">
                   <div>
-                    <p className="text-sm font-medium text-gray-800">{item.name}</p>
-                    <p className="text-xs text-gray-400">{item.qty} × {fmt(item.price)} ر.س</p>
+                    <p className="text-sm font-medium text-[var(--text-1)]">{item.name}</p>
+                    <p className="text-xs text-[var(--text-3)]">{item.qty} × {fmt(item.price)} ر.س</p>
                   </div>
                   <div className="flex gap-1">
                     {parts.map((p, i) => (
@@ -289,7 +289,7 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
                         onClick={() => assignItem(item.id, i)}
                         className={clsx(
                           "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
-                          (itemAssignments[item.id] ?? 0) === i ? p.color : "border-[#eef2f6] text-gray-400 hover:bg-gray-100"
+                          (itemAssignments[item.id] ?? 0) === i ? p.color : "border-[var(--border)] text-[var(--text-3)] hover:bg-[var(--surface-3)]"
                         )}
                       >
                         {i + 1}
@@ -311,7 +311,7 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
           {mode === "amount" && (
             <div className={clsx(
               "flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium",
-              Math.abs(remaining) < 0.05 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+              Math.abs(remaining) < 0.05 ? "bg-success-soft text-success" : "bg-warning-soft text-warning"
             )}>
               <span>المتبقي</span>
               <span className="tabular-nums font-bold">{fmt(remaining)} ر.س</span>
@@ -382,7 +382,7 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
                           dir="ltr"
                         />
                         {part.payments.length > 1 && (
-                          <button onClick={() => removePartPayment(pi, payi)} className="p-1.5 hover:bg-white/60 rounded-lg text-red-400">
+                          <button onClick={() => removePartPayment(pi, payi)} className="p-1.5 hover:bg-danger-soft rounded-lg text-danger">
                             <X className="w-3.5 h-3.5" />
                           </button>
                         )}
@@ -395,7 +395,7 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
 
                   {/* Payment status indicator */}
                   {partPaid && mode !== "equal" && (
-                    <div className="flex items-center gap-1 text-xs text-emerald-700">
+                    <div className="flex items-center gap-1 text-xs text-success">
                       <CheckCircle2 className="w-3.5 h-3.5" /> مغطّى بالكامل
                     </div>
                   )}
@@ -412,8 +412,8 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-[#eef2f6] flex gap-3">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-[#eef2f6] text-sm font-medium text-gray-600 hover:bg-[#f8fafc]">
+        <div className="px-6 py-4 border-t border-[var(--border)] flex gap-3">
+          <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-[var(--border)] text-sm font-medium text-[var(--text-2)] hover:bg-[var(--surface-2)]">
             إلغاء
           </button>
           <button
@@ -454,7 +454,7 @@ function ReceiptModal({ result, orgName, onClose, hasNextPart, currentPart, tota
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
+      <div className="bg-[var(--surface)] rounded-2xl shadow-token-xl w-full max-w-sm">
         {/* Print area */}
         <div id="receipt-print" className="p-6 space-y-4">
           {/* Header */}
@@ -462,17 +462,17 @@ function ReceiptModal({ result, orgName, onClose, hasNextPart, currentPart, tota
             <div className="w-9 h-9 rounded-[10px] bg-brand-600 flex items-center justify-center mx-auto">
               <span className="text-white font-bold text-lg leading-none">ن</span>
             </div>
-            <h2 className="font-bold text-gray-900 text-base">{orgName}</h2>
+            <h2 className="font-bold text-[var(--text-1)] text-base">{orgName}</h2>
             {isSplit && (
-              <div className="text-xs bg-amber-50 text-amber-700 border border-amber-200 rounded-lg px-3 py-1.5 inline-block">
+              <div className="text-xs bg-warning-soft text-warning border border-warning-soft rounded-lg px-3 py-1.5 inline-block">
                 فاتورة مقسّمة — {splitLabel}
               </div>
             )}
           </div>
 
           {/* Invoice info */}
-          <div className="border-t border-b border-dashed border-[#eef2f6] py-3 space-y-1 text-xs text-gray-600">
-            <div className="flex justify-between"><span>رقم الفاتورة</span><span className="font-mono font-bold text-gray-900">{invoice?.invoiceNumber}</span></div>
+          <div className="border-t border-b border-dashed border-[var(--border)] py-3 space-y-1 text-xs text-[var(--text-2)]">
+            <div className="flex justify-between"><span>رقم الفاتورة</span><span className="font-mono font-bold text-[var(--text-1)]">{invoice?.invoiceNumber}</span></div>
             <div className="flex justify-between"><span>التاريخ</span><span className="tabular-nums">{invoice ? new Date(invoice.issueDate || invoice.createdAt).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { year: "numeric", month: "2-digit", day: "2-digit" }) : ""}</span></div>
             <div className="flex justify-between"><span>الوقت</span><span className="tabular-nums">{invoice ? new Date(invoice.issueDate || invoice.createdAt).toLocaleTimeString("ar-SA-u-ca-gregory-nu-latn", { hour: "2-digit", minute: "2-digit" }) : ""}</span></div>
             {transaction?.customer_name && transaction.customer_name !== "زائر" && (
@@ -484,30 +484,30 @@ function ReceiptModal({ result, orgName, onClose, hasNextPart, currentPart, tota
           <div className="space-y-1.5">
             {(transaction?.items || []).map((item: any, i: number) => (
               <div key={i} className="flex items-center justify-between text-sm">
-                <span className="text-gray-700 flex-1">{item.name}</span>
-                <span className="text-gray-400 text-xs mx-2">×{item.quantity}</span>
+                <span className="text-[var(--text-1)] flex-1">{item.name}</span>
+                <span className="text-[var(--text-3)] text-xs mx-2">×{item.quantity}</span>
                 <span className="tabular-nums font-medium">{fmt(item.price * item.quantity)}</span>
               </div>
             ))}
           </div>
 
           {/* Totals */}
-          <div className="border-t border-dashed border-[#eef2f6] pt-3 space-y-1.5 text-sm">
-            <div className="flex justify-between text-gray-500">
+          <div className="border-t border-dashed border-[var(--border)] pt-3 space-y-1.5 text-sm">
+            <div className="flex justify-between text-[var(--text-2)]">
               <span>المجموع</span>
               <span className="tabular-nums">{fmt(transaction?.subtotal)} ر.س</span>
             </div>
             {parseFloat(transaction?.discount_amount || "0") > 0 && (
-              <div className="flex justify-between text-red-500">
+              <div className="flex justify-between text-danger">
                 <span>الخصم</span>
                 <span className="tabular-nums">- {fmt(transaction?.discount_amount)} ر.س</span>
               </div>
             )}
-            <div className="flex justify-between text-gray-500">
+            <div className="flex justify-between text-[var(--text-2)]">
               <span>ضريبة ({VAT_RATE}%)</span>
               <span className="tabular-nums">{fmt(transaction?.tax_amount)} ر.س</span>
             </div>
-            <div className="flex justify-between font-bold text-base border-t border-[#eef2f6] pt-1.5">
+            <div className="flex justify-between font-bold text-base border-t border-[var(--border)] pt-1.5">
               <span>الإجمالي</span>
               <span className="tabular-nums text-brand-600">{fmt(transaction?.total_amount)} ر.س</span>
             </div>
@@ -516,13 +516,13 @@ function ReceiptModal({ result, orgName, onClose, hasNextPart, currentPart, tota
           {/* Payments */}
           <div className="space-y-1 text-sm">
             {payments.map((p: any, i: number) => (
-              <div key={i} className="flex justify-between text-gray-600">
+              <div key={i} className="flex justify-between text-[var(--text-2)]">
                 <span>{PAYMENT_LABELS[p.method] || p.method}</span>
                 <span className="tabular-nums">{fmt(p.amount)} ر.س</span>
               </div>
             ))}
             {parseFloat(transaction?.change_amount || "0") > 0 && (
-              <div className="flex justify-between font-medium text-emerald-600">
+              <div className="flex justify-between font-medium text-success">
                 <span>الباقي</span>
                 <span className="tabular-nums">{fmt(transaction?.change_amount)} ر.س</span>
               </div>
@@ -532,25 +532,25 @@ function ReceiptModal({ result, orgName, onClose, hasNextPart, currentPart, tota
           {/* QR */}
           {invoice?.qrCode && (
             <div className="text-center">
-              <p className="text-[10px] text-gray-300 break-all font-mono">{invoice.qrCode.slice(0, 40)}...</p>
-              <p className="text-[10px] text-gray-400 mt-1">QR — متوافق مع زاتكا</p>
+              <p className="text-[10px] text-[var(--text-3)] break-all font-mono">{invoice.qrCode.slice(0, 40)}...</p>
+              <p className="text-[10px] text-[var(--text-3)] mt-1">QR — متوافق مع زاتكا</p>
             </div>
           )}
 
           {/* Footer */}
-          <div className="text-center text-[10px] text-gray-300 border-t border-dashed border-[#eef2f6] pt-3">
+          <div className="text-center text-[10px] text-[var(--text-3)] border-t border-dashed border-[var(--border)] pt-3">
             شكراً لزيارتكم · ترميز OS — tarmizos.com
           </div>
         </div>
 
         {/* Part navigator */}
         {totalParts && totalParts > 1 && (
-          <div className="mx-6 mb-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center justify-between">
-            <span className="text-xs text-amber-700 font-semibold">
+          <div className="mx-6 mb-2 bg-warning-soft border border-warning-soft rounded-xl px-4 py-2.5 flex items-center justify-between">
+            <span className="text-xs text-warning font-semibold">
               إيصال الجزء {currentPart} من {totalParts}
             </span>
             {hasNextPart && (
-              <span className="text-xs text-amber-600">اضغط "التالي" للجزء التالي</span>
+              <span className="text-xs text-warning">اضغط "التالي" للجزء التالي</span>
             )}
           </div>
         )}
@@ -559,7 +559,7 @@ function ReceiptModal({ result, orgName, onClose, hasNextPart, currentPart, tota
         <div className="flex gap-2 px-6 pb-6">
           <button
             onClick={handlePrint}
-            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-gray-100 text-gray-700 text-sm font-medium hover:bg-gray-200 transition-colors"
+            className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[var(--surface-3)] text-[var(--text-1)] text-sm font-medium hover:bg-[var(--surface-2)] transition-colors"
           >
             <Printer className="w-4 h-4" /> طباعة
           </button>
@@ -607,16 +607,16 @@ function SalesLogTab() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
             { label: "المبيعات", value: `${fmt(stats.total_sales)} ر.س`, icon: TrendingUp, color: "text-brand-600", bg: "bg-brand-50" },
-            { label: "العمليات", value: String(stats.sales_count), icon: Receipt, color: "text-violet-600", bg: "bg-violet-50" },
-            { label: "المتوسط", value: `${fmt(stats.avg_sale)} ر.س`, icon: Tag, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "الاستردادات", value: `${fmt(stats.total_refunds)} ر.س`, icon: RotateCcw, color: "text-red-500", bg: "bg-red-50" },
+            { label: "العمليات", value: String(stats.sales_count), icon: Receipt, color: "text-lavender", bg: "bg-lavender-soft" },
+            { label: "المتوسط", value: `${fmt(stats.avg_sale)} ر.س`, icon: Tag, color: "text-success", bg: "bg-success-soft" },
+            { label: "الاستردادات", value: `${fmt(stats.total_refunds)} ر.س`, icon: RotateCcw, color: "text-danger", bg: "bg-danger-soft" },
           ].map(s => (
-            <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] px-4 py-3 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all">
+            <div key={s.label} className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] px-4 py-3 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-token-md transition-all">
               <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0", s.bg)}>
                 <s.icon className={clsx("w-4 h-4", s.color)} />
               </div>
               <div>
-                <p className="text-xs text-gray-400">{s.label}</p>
+                <p className="text-xs text-[var(--text-3)]">{s.label}</p>
                 <p className={clsx("text-sm font-bold tabular-nums", s.color)}>{s.value}</p>
               </div>
             </div>
@@ -626,15 +626,15 @@ function SalesLogTab() {
 
       {/* Payment breakdown */}
       {stats?.byMethod && Object.keys(stats.byMethod).length > 0 && (
-        <div className="bg-white rounded-2xl border border-[#eef2f6] px-5 py-4">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">توزيع طرق الدفع</p>
+        <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] px-5 py-4">
+          <p className="text-xs font-semibold text-[var(--text-2)] uppercase tracking-wider mb-3">توزيع طرق الدفع</p>
           <div className="flex gap-4 flex-wrap">
             {Object.entries(stats.byMethod as Record<string, number>).map(([method, amount]) => (
               <div key={method} className="flex items-center gap-2">
-                <span className={clsx("inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border", PAYMENT_COLORS[method] || "bg-gray-100 text-gray-600 border-[#eef2f6]")}>
+                <span className={clsx("inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border", PAYMENT_COLORS[method] || "bg-[var(--surface-3)] text-[var(--text-2)] border-[var(--border)]")}>
                   {PAYMENT_LABELS[method] || method}
                 </span>
-                <span className="text-sm font-bold tabular-nums text-gray-800">{fmt(amount)} ر.س</span>
+                <span className="text-sm font-bold tabular-nums text-[var(--text-1)]">{fmt(amount)} ر.س</span>
               </div>
             ))}
           </div>
@@ -642,24 +642,24 @@ function SalesLogTab() {
       )}
 
       {/* Transactions list */}
-      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
-        <div className="px-[10px] py-[6px] border-b border-[#eef2f6] flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900">مبيعات اليوم</h3>
+      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] overflow-hidden">
+        <div className="px-[10px] py-[6px] border-b border-[var(--border)] flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-[var(--text-1)]">مبيعات اليوم</h3>
           <button onClick={refetch} className="text-xs text-brand-500 hover:text-brand-700">تحديث</button>
         </div>
         {loading ? (
           <div className="p-5 space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-14 bg-[#f1f5f9] rounded-xl animate-pulse" />
+              <div key={i} className="h-14 bg-[var(--surface-3)] rounded-xl animate-pulse" />
             ))}
           </div>
         ) : transactions.length === 0 ? (
           <div className="py-12 text-center">
-            <Clock className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-            <p className="text-sm text-gray-400">لا توجد مبيعات اليوم بعد</p>
+            <Clock className="w-10 h-10 text-[var(--text-3)] mx-auto mb-3" />
+            <p className="text-sm text-[var(--text-3)]">لا توجد مبيعات اليوم بعد</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-[var(--border)]">
             {transactions.map(tx => {
               const payments: any[] = tx.payments || [];
               const methodLabel = payments.length === 1
@@ -671,34 +671,34 @@ function SalesLogTab() {
               return (
                 <div key={tx.id}>
                   <div
-                    className="flex items-center px-5 py-[6px] hover:bg-[#f8fafc]/50 cursor-pointer transition-colors"
+                    className="flex items-center px-5 py-[6px] hover:bg-[var(--surface-2)] cursor-pointer transition-colors"
                     onClick={() => setExpandedId(isExpanded ? null : tx.id)}
                   >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-gray-900">{tx.customer_name || "زائر"}</span>
+                        <span className="text-sm font-medium text-[var(--text-1)]">{tx.customer_name || "زائر"}</span>
                         {isSplit && (
-                          <span className="text-[10px] bg-amber-50 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded font-medium">مقسّمة</span>
+                          <span className="text-[10px] bg-warning-soft text-warning border border-warning-soft px-1.5 py-0.5 rounded font-medium">مقسّمة</span>
                         )}
                         {tx.status === "refunded" && (
-                          <span className="text-[10px] bg-red-50 text-red-500 border border-red-200 px-1.5 py-0.5 rounded font-medium">مستردة</span>
+                          <span className="text-[10px] bg-danger-soft text-danger border border-danger-soft px-1.5 py-0.5 rounded font-medium">مستردة</span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 mt-0.5">{fmtTime(tx.created_at)} · {methodLabel}</p>
+                      <p className="text-xs text-[var(--text-3)] mt-0.5">{fmtTime(tx.created_at)} · {methodLabel}</p>
                     </div>
                     <div className="text-right shrink-0 ml-4">
-                      <p className="text-sm font-bold tabular-nums text-gray-900">{fmt(tx.total_amount)} ر.س</p>
-                      <p className="text-xs text-gray-400 font-mono">{tx.transaction_number}</p>
+                      <p className="text-sm font-bold tabular-nums text-[var(--text-1)]">{fmt(tx.total_amount)} ر.س</p>
+                      <p className="text-xs text-[var(--text-3)] font-mono">{tx.transaction_number}</p>
                     </div>
-                    <ChevronDown className={clsx("w-4 h-4 text-gray-300 mr-3 transition-transform shrink-0", isExpanded && "rotate-180")} />
+                    <ChevronDown className={clsx("w-4 h-4 text-[var(--text-3)] mr-3 transition-transform shrink-0", isExpanded && "rotate-180")} />
                   </div>
 
                   {isExpanded && (
-                    <div className="px-5 pb-4 bg-gray-50/50">
+                    <div className="px-5 pb-4 bg-[var(--surface-2)]">
                       {/* Items */}
                       <div className="space-y-1 mb-3">
                         {(tx.items || []).map((item: any, i: number) => (
-                          <div key={i} className="flex justify-between text-xs text-gray-600">
+                          <div key={i} className="flex justify-between text-xs text-[var(--text-2)]">
                             <span>{item.name} × {item.quantity}</span>
                             <span className="tabular-nums">{fmt(item.price * item.quantity)} ر.س</span>
                           </div>
@@ -707,7 +707,7 @@ function SalesLogTab() {
                       {/* Payments */}
                       <div className="flex flex-wrap gap-2 mb-3">
                         {payments.map((p: any, i: number) => (
-                          <span key={i} className={clsx("text-xs px-2 py-1 rounded-lg border font-medium", PAYMENT_COLORS[p.method] || "bg-gray-100 text-gray-600 border-[#eef2f6]")}>
+                          <span key={i} className={clsx("text-xs px-2 py-1 rounded-lg border font-medium", PAYMENT_COLORS[p.method] || "bg-[var(--surface-3)] text-[var(--text-2)] border-[var(--border)]")}>
                             {PAYMENT_LABELS[p.method] || p.method}: {fmt(p.amount)} ر.س
                           </span>
                         ))}
@@ -716,7 +716,7 @@ function SalesLogTab() {
                         <button
                           onClick={(e) => { e.stopPropagation(); handleRefund(tx); }}
                           disabled={refundingId === tx.id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-danger-soft text-danger hover:bg-danger/10 rounded-xl text-xs font-medium transition-colors disabled:opacity-50"
                         >
                           <RotateCcw className="w-3.5 h-3.5" />
                           {refundingId === tx.id ? "جاري الاسترداد..." : "استرداد"}
@@ -1101,21 +1101,21 @@ export function POSPage() {
     <div className="flex flex-col h-[calc(100dvh-4rem)] overflow-hidden -m-4 md:-m-6">
 
       {/* Top bar */}
-      <div className="flex items-center justify-between px-5 py-2.5 bg-white border-b border-[#eef2f6] shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
+      <div className="flex items-center justify-between px-5 py-2.5 bg-[var(--surface)] border-b border-[var(--border)] shrink-0 shadow-token-xs">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-xl bg-brand-500 flex items-center justify-center shadow-sm shadow-brand-500/30">
               <Receipt className="w-3.5 h-3.5 text-white" />
             </div>
-            <h1 className="text-sm font-bold text-gray-900">نقطة البيع</h1>
+            <h1 className="text-sm font-bold text-[var(--text-1)]">نقطة البيع</h1>
           </div>
-          <div className="flex gap-0.5 bg-gray-100 p-0.5 rounded-xl">
+          <div className="flex gap-0.5 bg-[var(--surface-3)] p-0.5 rounded-xl">
             {([["pos", "الكاشير"], ["log", "سجل اليوم"]] as const).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => setActiveTab(key)}
                 className={clsx("px-4 py-1.5 rounded-[10px] text-xs font-semibold transition-all",
-                  activeTab === key ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700")}
+                  activeTab === key ? "bg-[var(--surface)] text-[var(--text-1)] shadow-token-sm" : "text-[var(--text-2)] hover:text-[var(--text-1)]")}
               >
                 {label}
               </button>
@@ -1125,14 +1125,14 @@ export function POSPage() {
 
         {/* Barcode input */}
         <div className="relative flex items-center">
-          <ScanBarcode className={`absolute right-3 w-4 h-4 ${barcodeLoading ? "text-brand-500 animate-pulse" : "text-gray-300"}`} />
+          <ScanBarcode className={`absolute right-3 w-4 h-4 ${barcodeLoading ? "text-brand-500 animate-pulse" : "text-[var(--text-3)]"}`} />
           <input
             ref={barcodeRef}
             value={barcodeInput}
             onChange={e => setBarcodeInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") handleBarcodeInput(barcodeInput); }}
             placeholder="امسح الباركود..."
-            className="pr-9 pl-3 py-2 text-xs border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 w-48 bg-[#f8fafc] placeholder:text-gray-300"
+            className="pr-9 pl-3 py-2 text-xs border border-[var(--border)] rounded-xl focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 w-48 bg-[var(--surface-2)] placeholder:text-[var(--text-3)]"
             dir="ltr"
           />
         </div>
@@ -1147,17 +1147,17 @@ export function POSPage() {
         <div className="flex flex-1 overflow-hidden">
 
           {/* ── LEFT: Catalog ── */}
-          <div className={clsx("flex-1 flex-col border-l border-[#eef2f6] min-w-0 bg-[#f8fafc]", mobileView === "catalog" ? "flex" : "hidden md:flex")}>
+          <div className={clsx("flex-1 flex-col border-l border-[var(--border)] min-w-0 bg-[var(--bg)]", mobileView === "catalog" ? "flex" : "hidden md:flex")}>
 
             {/* Category tabs */}
-            <div className="flex gap-1.5 px-4 py-3 bg-white border-b border-[#eef2f6] overflow-x-auto shrink-0 scrollbar-hide">
+            <div className="flex gap-1.5 px-4 py-3 bg-[var(--surface)] border-b border-[var(--border)] overflow-x-auto shrink-0 scrollbar-hide">
               <button
                 onClick={() => setActiveCat("all")}
                 className={clsx(
                   "px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0",
                   activeCat === "all"
                     ? "bg-brand-500 text-white shadow-sm shadow-brand-500/30"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    : "bg-[var(--surface-3)] text-[var(--text-2)] hover:bg-[var(--surface-2)]"
                 )}
               >
                 الكل
@@ -1170,7 +1170,7 @@ export function POSPage() {
                     "px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0",
                     activeCat === cat.id
                       ? "bg-brand-500 text-white shadow-sm shadow-brand-500/30"
-                      : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                      : "bg-[var(--surface-3)] text-[var(--text-2)] hover:bg-[var(--surface-2)]"
                   )}
                 >
                   {cat.name}
@@ -1179,11 +1179,11 @@ export function POSPage() {
             </div>
 
             {/* Search */}
-            <div className="px-[10px] py-[6px] bg-white border-b border-[#eef2f6] shrink-0">
+            <div className="px-[10px] py-[6px] bg-[var(--surface)] border-b border-[var(--border)] shrink-0">
               <div className="relative">
-                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
+                <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-3)] pointer-events-none" />
                 <input
-                  className="w-full bg-[#f8fafc] border border-[#eef2f6] rounded-2xl pr-9 pl-3 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
+                  className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-2xl pr-9 pl-3 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-[var(--text-3)]"
                   placeholder="بحث سريع..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
@@ -1196,13 +1196,13 @@ export function POSPage() {
               {effectiveLoading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {[...Array(12)].map((_, i) => (
-                    <div key={i} className="h-32 bg-[#f1f5f9] rounded-2xl animate-pulse" />
+                    <div key={i} className="h-32 bg-[var(--surface-3)] rounded-2xl animate-pulse" />
                   ))}
                 </div>
               ) : filteredServices.length === 0 ? (
                 <div className="h-48 flex flex-col items-center justify-center text-center">
-                  <Package className="w-10 h-10 text-gray-200 mb-2" />
-                  <p className="text-sm text-gray-400">لا توجد خدمات</p>
+                  <Package className="w-10 h-10 text-[var(--text-3)] mb-2" />
+                  <p className="text-sm text-[var(--text-3)]">لا توجد خدمات</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -1216,8 +1216,8 @@ export function POSPage() {
                         className={clsx(
                           "relative rounded-2xl border transition-all select-none overflow-hidden",
                           inCart
-                            ? "border-brand-300 bg-white shadow-[0_2px_12px_rgba(91,155,213,0.15)]"
-                            : "border-[#eef2f6] bg-white hover:border-[#c9ddef] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:-translate-y-px"
+                            ? "border-brand-300 bg-[var(--surface)] shadow-[0_2px_12px_rgba(91,155,213,0.15)]"
+                            : "border-[var(--border)] bg-[var(--surface)] hover:border-brand-200 hover:shadow-token-sm hover:-translate-y-px"
                         )}
                       >
                         {/* Full-card click zone */}
@@ -1228,7 +1228,7 @@ export function POSPage() {
                           {/* Icon */}
                           <div className={clsx(
                             "w-9 h-9 rounded-xl flex items-center justify-center mb-2.5 text-sm font-bold",
-                            inCart ? "bg-brand-50 text-brand-600" : "bg-gray-100 text-gray-500"
+                            inCart ? "bg-brand-50 text-brand-600" : "bg-[var(--surface-3)] text-[var(--text-2)]"
                           )}>
                             {initial}
                           </div>
@@ -1236,15 +1236,15 @@ export function POSPage() {
                           {/* Name */}
                           <p className={clsx(
                             "text-[13px] font-semibold leading-tight line-clamp-2 mb-1.5",
-                            inCart ? "text-brand-700" : "text-gray-800"
+                            inCart ? "text-brand-700" : "text-[var(--text-1)]"
                           )}>
                             {svc.name}
                           </p>
 
                           {/* Price */}
-                          <p className={clsx("text-sm font-bold tabular-nums", inCart ? "text-brand-600" : "text-gray-600")}>
+                          <p className={clsx("text-sm font-bold tabular-nums", inCart ? "text-brand-600" : "text-[var(--text-2)]")}>
                             {basePrice.toLocaleString("en-US", { minimumFractionDigits: 0 })}
-                            <span className="text-[11px] font-medium text-gray-400 mr-0.5">ر.س</span>
+                            <span className="text-[11px] font-medium text-[var(--text-3)] mr-0.5">ر.س</span>
                           </p>
                         </button>
 
@@ -1272,7 +1272,7 @@ export function POSPage() {
                           </div>
                         ) : (
                           <div className="absolute bottom-0 left-0 right-0 h-8 flex items-center justify-center">
-                            <Plus className="w-3.5 h-3.5 text-gray-300" />
+                            <Plus className="w-3.5 h-3.5 text-[var(--text-3)]" />
                           </div>
                         )}
                       </div>
@@ -1303,21 +1303,21 @@ export function POSPage() {
           )}
 
           {/* ── RIGHT: Cart + Payment ── */}
-          <div className={clsx("shrink-0 flex flex-col bg-white border-r border-[#eef2f6] w-full md:w-80 lg:w-[360px] shadow-[-4px_0_24px_0_rgba(0,0,0,0.04)]", mobileView === "cart" ? "flex" : "hidden md:flex")}>
+          <div className={clsx("shrink-0 flex flex-col bg-[var(--surface)] border-r border-[var(--border)] w-full md:w-80 lg:w-[360px] shadow-token-md", mobileView === "cart" ? "flex" : "hidden md:flex")}>
 
             {/* Cart header */}
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#eef2f6] shrink-0 bg-white">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--border)] shrink-0 bg-[var(--surface)]">
               <div className="flex items-center gap-2.5">
                 <button
                   onClick={() => setMobileView("catalog")}
-                  className="md:hidden p-1 -mr-1 text-gray-400 hover:text-gray-600"
+                  className="md:hidden p-1 -mr-1 text-[var(--text-3)] hover:text-[var(--text-2)]"
                   aria-label="العودة للكتالوج"
                 >
                   <X className="w-4 h-4" />
                 </button>
                 <div className="flex items-center gap-2">
                   <ShoppingCart className="w-4 h-4 text-brand-500" />
-                  <span className="font-bold text-gray-900 text-sm">السلة</span>
+                  <span className="font-bold text-[var(--text-1)] text-sm">السلة</span>
                   {cart.length > 0 && (
                     <span className="min-w-[20px] h-5 bg-brand-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center tabular-nums px-1">
                       {cart.reduce((s, c) => s + c.qty, 0)}
@@ -1326,18 +1326,18 @@ export function POSPage() {
                 </div>
               </div>
               {cart.length > 0 && (
-                <button onClick={clearAll} className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-red-500 transition-colors bg-[#f8fafc] hover:bg-red-50 px-2 py-1 rounded-lg">
+                <button onClick={clearAll} className="flex items-center gap-1 text-[11px] text-[var(--text-3)] hover:text-danger transition-colors bg-[var(--surface-2)] hover:bg-danger-soft px-2 py-1 rounded-lg">
                   <Trash2 className="w-3 h-3" /> مسح
                 </button>
               )}
             </div>
 
             {/* Customer picker — compact chip, expands on click */}
-            <div className="px-3 py-2 border-b border-[#eef2f6] shrink-0 relative">
+            <div className="px-3 py-2 border-b border-[var(--border)] shrink-0 relative">
               {!showCustomerInput && !customer ? (
                 <button
                   onClick={() => setShowCustomerInput(true)}
-                  className="flex items-center gap-1.5 text-[12px] text-gray-400 hover:text-brand-600 transition-colors py-1"
+                  className="flex items-center gap-1.5 text-[12px] text-[var(--text-3)] hover:text-brand-600 transition-colors py-1"
                 >
                   <Users className="w-3.5 h-3.5" />
                   <span>العميل: زائر</span>
@@ -1345,11 +1345,11 @@ export function POSPage() {
                 </button>
               ) : (
                 <div className="relative">
-                  <Users className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 pointer-events-none" />
+                  <Users className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[var(--text-3)] pointer-events-none" />
                   <input
                     className={clsx(
-                      "w-full bg-[#f8fafc] border rounded-xl pr-8 pl-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300 transition-all",
-                      customer ? "border-brand-300 bg-brand-50/30 focus:border-brand-400" : "border-[#eef2f6] focus:border-brand-400"
+                      "w-full bg-[var(--surface-2)] border rounded-xl pr-8 pl-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-50 placeholder:text-[var(--text-3)] transition-all",
+                      customer ? "border-brand-300 bg-brand-50/30 focus:border-brand-400" : "border-[var(--border)] focus:border-brand-400"
                     )}
                     placeholder="ابحث عن عميل..."
                     value={customerSearch}
@@ -1360,7 +1360,7 @@ export function POSPage() {
                   />
                   <button
                     onClick={() => { setCustomer(null); setCustomerSearch(""); setShowCustomerInput(false); }}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 p-1 text-gray-300 hover:text-red-400 rounded"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 p-1 text-[var(--text-3)] hover:text-danger rounded"
                   >
                     <X className="w-3.5 h-3.5" />
                   </button>
@@ -1369,21 +1369,21 @@ export function POSPage() {
               {/* Selected customer chip */}
               {customer && !showCustomerInput && (
                 <div className="flex items-center gap-2 py-1">
-                  <div className="flex items-center gap-1.5 bg-brand-50 border border-brand-200 rounded-lg px-2.5 py-1 flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 bg-brand-soft border border-brand-200 rounded-lg px-2.5 py-1 flex-1 min-w-0">
                     <Users className="w-3 h-3 text-brand-400 shrink-0" />
                     <span className="text-[12px] font-semibold text-brand-700 truncate">{customer.name}</span>
                   </div>
-                  <button onClick={() => { setCustomer(null); setCustomerSearch(""); }} className="p-1 text-gray-300 hover:text-red-400 rounded transition-colors">
+                  <button onClick={() => { setCustomer(null); setCustomerSearch(""); }} className="p-1 text-[var(--text-3)] hover:text-danger rounded transition-colors">
                     <X className="w-3.5 h-3.5" />
                   </button>
                 </div>
               )}
               {showCustomerList && customerList.length > 0 && (
-                <div className="absolute left-3 right-3 z-20 bg-white border border-[#eef2f6] rounded-2xl shadow-xl mt-1 max-h-44 overflow-y-auto">
+                <div className="absolute left-3 right-3 z-20 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-token-lg mt-1 max-h-44 overflow-y-auto">
                   {customerList.slice(0, 6).map((c: any) => (
                     <button
                       key={c.id}
-                      className="w-full text-right px-4 py-2.5 hover:bg-brand-50 text-sm border-b border-gray-50 last:border-0 first:rounded-t-2xl last:rounded-b-2xl transition-colors"
+                      className="w-full text-right px-4 py-2.5 hover:bg-brand-50 text-sm border-b border-[var(--border)] last:border-0 first:rounded-t-2xl last:rounded-b-2xl transition-colors"
                       onMouseDown={() => {
                         setCustomer({ id: c.id, name: c.name, phone: c.phone });
                         setCustomerSearch(c.name);
@@ -1391,8 +1391,8 @@ export function POSPage() {
                         setShowCustomerInput(false);
                       }}
                     >
-                      <p className="font-semibold text-gray-800 text-sm">{c.name}</p>
-                      <p className="text-xs text-gray-400">{c.phone}</p>
+                      <p className="font-semibold text-[var(--text-1)] text-sm">{c.name}</p>
+                      <p className="text-xs text-[var(--text-3)]">{c.phone}</p>
                     </button>
                   ))}
                 </div>
@@ -1403,10 +1403,10 @@ export function POSPage() {
             <div className="flex-1 overflow-y-auto min-h-[80px]">
               {cart.length === 0 ? (
                 <div className="h-40 flex flex-col items-center justify-center text-center p-4 gap-2">
-                  <div className="w-12 h-12 rounded-2xl bg-gray-100 flex items-center justify-center">
-                    <ShoppingCart className="w-6 h-6 text-gray-300" />
+                  <div className="w-12 h-12 rounded-2xl bg-[var(--surface-3)] flex items-center justify-center">
+                    <ShoppingCart className="w-6 h-6 text-[var(--text-3)]" />
                   </div>
-                  <p className="text-xs text-gray-400 font-medium">اضغط على أي منتج لإضافته</p>
+                  <p className="text-xs text-[var(--text-3)] font-medium">اضغط على أي منتج لإضافته</p>
                 </div>
               ) : (
                 <div className="p-2 space-y-1">
@@ -1418,7 +1418,7 @@ export function POSPage() {
                     return (
                       <div key={item.id} className={clsx(
                         "rounded-xl border transition-all overflow-hidden",
-                        belowMin ? "border-red-200 bg-red-50" : "border-[#eef2f6] bg-gray-50"
+                        belowMin ? "border-danger-soft bg-danger-soft" : "border-[var(--border)] bg-[var(--surface-2)]"
                       )}>
                         {/* ── Compact row (always visible) ── */}
                         <div className="flex items-center gap-1.5 px-2 py-2">
@@ -1426,7 +1426,7 @@ export function POSPage() {
                           <div className="flex items-center gap-0.5 shrink-0">
                             <button
                               onClick={() => changeQty(item.id, -1)}
-                              className="w-5 h-5 rounded-md bg-white border border-[#eef2f6] flex items-center justify-center hover:border-red-200 hover:text-red-500 transition-colors"
+                              className="w-5 h-5 rounded-md bg-[var(--surface)] border border-[var(--border)] flex items-center justify-center hover:border-danger-soft hover:text-danger transition-colors"
                             >
                               <Minus className="w-2 h-2" />
                             </button>
@@ -1435,7 +1435,7 @@ export function POSPage() {
                                 type="text"
                                 inputMode="numeric"
                                 defaultValue={item.qty}
-                                className="w-7 text-center text-xs font-bold border border-brand-300 rounded-md px-0.5 py-0.5 focus:outline-none bg-white"
+                                className="w-7 text-center text-xs font-bold border border-brand-300 rounded-md px-0.5 py-0.5 focus:outline-none bg-[var(--surface)]"
                                 autoFocus
                                 onBlur={e => { updateQty(item.id, parseInt(normalizeNumeric(e.target.value)) || 1); setEditingQty(null); }}
                                 onKeyDown={e => { if (e.key === "Enter") e.currentTarget.blur(); if (e.key === "Escape") setEditingQty(null); }}
@@ -1457,17 +1457,17 @@ export function POSPage() {
                           </div>
 
                           {/* Name */}
-                          <p className="flex-1 text-[12px] font-medium text-gray-800 truncate min-w-0">{item.name}</p>
+                          <p className="flex-1 text-[12px] font-medium text-[var(--text-1)] truncate min-w-0">{item.name}</p>
 
                           {/* Total + expand + delete */}
                           <div className="flex items-center gap-1 shrink-0">
-                            {priceChanged && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" title="سعر معدَّل" />}
+                            {priceChanged && <span className="w-1.5 h-1.5 rounded-full bg-warning shrink-0" title="سعر معدَّل" />}
                             <div className="text-right">
-                              <div className="text-[12px] font-bold text-gray-900 tabular-nums">
+                              <div className="text-[12px] font-bold text-[var(--text-1)] tabular-nums">
                                 {fmt(effectiveUnitPrice * item.qty)}
                               </div>
                               {item.qty > 1 && (
-                                <div className="text-[10px] text-gray-400 tabular-nums">
+                                <div className="text-[10px] text-[var(--text-3)] tabular-nums">
                                   {fmt(effectiveUnitPrice)} × {item.qty}
                                 </div>
                               )}
@@ -1477,7 +1477,7 @@ export function POSPage() {
                                 onClick={() => setExpandedItem(isExpanded ? null : item.id)}
                                 className={clsx(
                                   "p-0.5 rounded-md transition-colors",
-                                  isExpanded ? "text-brand-500 bg-brand-50" : "text-gray-300 hover:text-gray-500 hover:bg-gray-200"
+                                  isExpanded ? "text-brand-500 bg-brand-soft" : "text-[var(--text-3)] hover:text-[var(--text-2)] hover:bg-[var(--surface-3)]"
                                 )}
                                 title="تعديل السعر"
                               >
@@ -1486,7 +1486,7 @@ export function POSPage() {
                             )}
                             <button
                               onClick={() => removeItem(item.id)}
-                              className="p-0.5 rounded-md text-gray-300 hover:text-red-400 hover:bg-red-50 transition-colors"
+                              className="p-0.5 rounded-md text-[var(--text-3)] hover:text-danger hover:bg-danger-soft transition-colors"
                             >
                               <X className="w-2.5 h-2.5" />
                             </button>
@@ -1495,30 +1495,30 @@ export function POSPage() {
 
                         {/* ── Expanded details (price edit + note) — only for authorized users ── */}
                         {isExpanded && canEditPrice && (
-                          <div className="px-3 pb-3 pt-1 border-t border-[#eef2f6] bg-white space-y-2">
+                          <div className="px-3 pb-3 pt-1 border-t border-[var(--border)] bg-[var(--surface)] space-y-2">
                             {/* Price override */}
                             <div className={clsx(
                               "flex items-center gap-2 rounded-lg px-2.5 py-2 border",
-                              belowMin ? "bg-red-50 border-red-200" : "bg-gray-50 border-[#eef2f6]"
+                              belowMin ? "bg-danger-soft border-danger-soft" : "bg-[var(--surface-2)] border-[var(--border)]"
                             )}>
-                              <span className="text-[11px] text-gray-400 shrink-0">سعر الوحدة</span>
+                              <span className="text-[11px] text-[var(--text-3)] shrink-0">سعر الوحدة</span>
                               <input
                                 type="text"
                                 inputMode="decimal"
-                                className="flex-1 bg-transparent text-sm font-bold text-gray-800 outline-none tabular-nums text-left min-w-0"
+                                className="flex-1 bg-transparent text-sm font-bold text-[var(--text-1)] outline-none tabular-nums text-left min-w-0"
                                 value={item.customPrice !== undefined ? String(item.customPrice) : String(item.price)}
                                 onChange={e => updateItemPrice(item.id, e.target.value)}
                                 dir="ltr"
                               />
                               {item.minPrice != null && item.minPrice > 0 && (
-                                <span className={clsx("text-[10px] shrink-0 tabular-nums", belowMin ? "text-red-600 font-bold" : "text-gray-400")}>
+                                <span className={clsx("text-[10px] shrink-0 tabular-nums", belowMin ? "text-danger font-bold" : "text-[var(--text-3)]")}>
                                   حد أدنى {fmt(item.minPrice)}
                                 </span>
                               )}
                               {priceChanged && (
                                 <button
                                   onClick={() => setCart(prev => prev.map(c => c.id === item.id ? { ...c, customPrice: undefined } : c))}
-                                  className="text-gray-300 hover:text-brand-500 transition-colors shrink-0"
+                                  className="text-[var(--text-3)] hover:text-brand-500 transition-colors shrink-0"
                                   title="استعادة السعر الأصلي"
                                 >
                                   <RotateCcw className="w-3 h-3" />
@@ -1527,7 +1527,7 @@ export function POSPage() {
                             </div>
 
                             {belowMin && (
-                              <p className="text-[11px] text-red-600 font-medium flex items-center gap-1">
+                              <p className="text-[11px] text-danger font-medium flex items-center gap-1">
                                 <AlertCircle className="w-3 h-3 shrink-0" />
                                 السعر أقل من الحد الأدنى
                               </p>
@@ -1535,7 +1535,7 @@ export function POSPage() {
 
                             {/* Per-item note */}
                             <input
-                              className="w-full bg-[#f8fafc] border border-[#eef2f6] rounded-lg px-2.5 py-1.5 text-[12px] text-gray-700 outline-none placeholder:text-gray-300 focus:border-brand-300"
+                              className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-lg px-2.5 py-1.5 text-[12px] text-[var(--text-2)] outline-none placeholder:text-[var(--text-3)] focus:border-brand-300"
                               placeholder="ملاحظة على هذا البند..."
                               value={item.note || ""}
                               onChange={e => updateItemNote(item.id, e.target.value)}
@@ -1546,8 +1546,8 @@ export function POSPage() {
                         {/* Staff name pill — hidden for flowers_events (team assigned in service orders) */}
                         {item.staffName && !hideStaffAssignment && (
                           <div className="flex items-center gap-1 px-3 pb-2">
-                            <Scissors className="w-3 h-3 text-gray-300" />
-                            <span className="text-[11px] text-gray-400">{item.staffName}</span>
+                            <Scissors className="w-3 h-3 text-[var(--text-3)]" />
+                            <span className="text-[11px] text-[var(--text-3)]">{item.staffName}</span>
                           </div>
                         )}
                       </div>
@@ -1558,13 +1558,13 @@ export function POSPage() {
             </div>
 
             {/* Discount + Notes — progressive disclosure */}
-            <div className="px-3 pb-2 border-t border-[#eef2f6] pt-2 shrink-0">
+            <div className="px-3 pb-2 border-t border-[var(--border)] pt-2 shrink-0">
               {/* Toggle links */}
               <div className="flex items-center gap-3 mb-1.5">
                 {!showDiscount ? (
                   <button
                     onClick={() => setShowDiscount(true)}
-                    className="flex items-center gap-1 text-[12px] text-gray-400 hover:text-brand-600 transition-colors"
+                    className="flex items-center gap-1 text-[12px] text-[var(--text-3)] hover:text-brand-600 transition-colors"
                   >
                     <Tag className="w-3 h-3" />
                     خصم
@@ -1578,11 +1578,11 @@ export function POSPage() {
                     إلغاء الخصم
                   </button>
                 )}
-                <span className="w-px h-3 bg-gray-200" />
+                <span className="w-px h-3 bg-[var(--border)]" />
                 <div className="flex items-center gap-1.5 flex-1">
-                  <StickyNote className="w-3 h-3 text-gray-300 shrink-0" />
+                  <StickyNote className="w-3 h-3 text-[var(--text-3)] shrink-0" />
                   <input
-                    className="flex-1 bg-transparent text-[12px] text-gray-600 outline-none placeholder:text-gray-300"
+                    className="flex-1 bg-transparent text-[12px] text-[var(--text-2)] outline-none placeholder:text-[var(--text-3)]"
                     placeholder="ملاحظة..."
                     value={notes}
                     onChange={e => setNotes(e.target.value)}
@@ -1598,8 +1598,8 @@ export function POSPage() {
                     className={clsx(
                       "w-9 h-9 rounded-xl border flex items-center justify-center transition-all shrink-0",
                       discType === "percent"
-                        ? "border-brand-400 bg-brand-50 text-brand-500"
-                        : "border-[#eef2f6] text-gray-400 hover:bg-[#f8fafc]"
+                        ? "border-brand-400 bg-brand-soft text-brand-500"
+                        : "border-[var(--border)] text-[var(--text-3)] hover:bg-[var(--surface-2)]"
                     )}
                     title={discType === "fixed" ? "مبلغ ثابت" : "نسبة مئوية"}
                   >
@@ -1608,7 +1608,7 @@ export function POSPage() {
                   <input
                     type="text"
                     inputMode="decimal"
-                    className="flex-1 bg-[#f8fafc] border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300 tabular-nums"
+                    className="flex-1 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-soft placeholder:text-[var(--text-3)] tabular-nums"
                     placeholder={discType === "fixed" ? "خصم ثابت (ر.س)" : "خصم % (0-100)"}
                     value={discValue}
                     onChange={e => setDiscValue(normalizeNumeric(e.target.value))}
@@ -1620,19 +1620,19 @@ export function POSPage() {
             </div>
 
             {/* Totals */}
-            <div className="mx-3 mb-2 rounded-xl bg-[#f8fafc] border border-[#eef2f6] overflow-hidden shrink-0">
+            <div className="mx-3 mb-2 rounded-xl bg-[var(--surface-2)] border border-[var(--border)] overflow-hidden shrink-0">
               <div className="px-3 py-1.5 space-y-1 text-xs">
-                <div className="flex justify-between text-gray-500">
+                <div className="flex justify-between text-[var(--text-2)]">
                   <span>المجموع</span>
                   <span className="tabular-nums font-medium">{fmt(subtotal)} ر.س</span>
                 </div>
                 {discountAmount > 0 && (
-                  <div className="flex justify-between text-red-500">
+                  <div className="flex justify-between text-danger">
                     <span>الخصم</span>
                     <span className="tabular-nums font-medium">- {fmt(discountAmount)} ر.س</span>
                   </div>
                 )}
-                <div className="flex justify-between text-gray-500">
+                <div className="flex justify-between text-[var(--text-2)]">
                   <span>ضريبة {VAT_RATE}%</span>
                   <span className="tabular-nums font-medium">{fmt(vatAmount)} ر.س</span>
                 </div>
@@ -1644,7 +1644,7 @@ export function POSPage() {
             </div>
 
             {/* Payment section */}
-            <div className="px-3 pt-2 border-t border-[#eef2f6] shrink-0">
+            <div className="px-3 pt-2 border-t border-[var(--border)] shrink-0">
               {/* Method buttons — single compact row of 6 */}
               <div className="grid grid-cols-6 gap-1 mb-2">
                 {([
@@ -1662,7 +1662,7 @@ export function POSPage() {
                       "flex flex-col items-center gap-0.5 py-1.5 rounded-lg border text-[9px] font-bold transition-all",
                       payMode === method
                         ? "border-brand-400 bg-brand-500 text-white shadow-sm shadow-brand-500/25"
-                        : "border-[#eef2f6] bg-[#f8fafc] text-gray-500 hover:bg-gray-100 hover:border-[#eef2f6]"
+                        : "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-2)] hover:bg-[var(--surface-3)] hover:border-[var(--border)]"
                     )}
                   >
                     <Icon className="w-3.5 h-3.5" />
@@ -1689,7 +1689,7 @@ export function POSPage() {
                           "flex-1 py-1.5 rounded-xl text-[11px] font-bold border transition-all",
                           parseFloat(cashReceived || "0") === preset.value
                             ? "border-brand-400 bg-brand-500 text-white"
-                            : "border-[#eef2f6] bg-[#f8fafc] text-gray-500 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600"
+                            : "border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-2)] hover:border-brand-300 hover:bg-brand-soft hover:text-brand-600"
                         )}
                       >
                         {preset.label}
@@ -1699,7 +1699,7 @@ export function POSPage() {
                   <input
                     type="text"
                     inputMode="decimal"
-                    className="w-full bg-[#f8fafc] border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 tabular-nums text-left font-semibold placeholder:text-gray-300 placeholder:font-normal"
+                    className="w-full bg-[var(--surface-2)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-soft tabular-nums text-left font-semibold placeholder:text-[var(--text-3)] placeholder:font-normal"
                     placeholder="0.00"
                     value={cashReceived}
                     onChange={e => setCashReceived(normalizeNumeric(e.target.value))}
@@ -1708,7 +1708,7 @@ export function POSPage() {
                   {parseFloat(cashReceived || "0") > 0 && (
                     <div className={clsx(
                       "flex justify-between items-center px-3 py-1.5 rounded-xl text-xs font-semibold",
-                      cashChange >= 0 ? "bg-emerald-50 text-emerald-700 border border-emerald-100" : "bg-red-50 text-red-600 border border-red-100"
+                      cashChange >= 0 ? "bg-success-soft text-success border border-success-soft" : "bg-danger-soft text-danger border border-danger-soft"
                     )}>
                       <span>{cashChange >= 0 ? "الباقي للعميل" : "مبلغ ناقص"}</span>
                       <span className="tabular-nums font-black text-sm">{fmt(Math.abs(cashChange))} ر.س</span>
@@ -1719,7 +1719,7 @@ export function POSPage() {
 
               {payMode === "card" && (
                 <input
-                  className="w-full mb-3 bg-[#f8fafc] border border-[#eef2f6] rounded-2xl px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
+                  className="w-full mb-3 bg-[var(--surface-2)] border border-[var(--border)] rounded-2xl px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-soft placeholder:text-[var(--text-3)]"
                   placeholder="رقم مرجع العملية (اختياري)"
                   value={cardRef}
                   onChange={e => setCardRef(e.target.value)}
@@ -1729,7 +1729,7 @@ export function POSPage() {
 
               {payMode === "bank_transfer" && (
                 <input
-                  className="w-full mb-3 bg-[#f8fafc] border border-[#eef2f6] rounded-2xl px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
+                  className="w-full mb-3 bg-[var(--surface-2)] border border-[var(--border)] rounded-2xl px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-soft placeholder:text-[var(--text-3)]"
                   placeholder="رقم مرجع التحويل (اختياري)"
                   value={bankRef}
                   onChange={e => setBankRef(e.target.value)}
@@ -1742,7 +1742,7 @@ export function POSPage() {
                   {mixedPayments.map((pay, i) => (
                     <div key={i} className="flex gap-2">
                       <select
-                        className="bg-gray-50 border border-[#eef2f6] rounded-xl px-2 py-2 text-xs outline-none focus:border-brand-300"
+                        className="bg-[var(--surface-2)] border border-[var(--border)] rounded-xl px-2 py-2 text-xs outline-none focus:border-brand-300"
                         value={pay.method}
                         onChange={e => setMixedPayments(prev => prev.map((p, idx) => idx === i ? { ...p, method: e.target.value as any } : p))}
                       >
@@ -1755,14 +1755,14 @@ export function POSPage() {
                       <input
                         type="text"
                         inputMode="decimal"
-                        className="flex-1 bg-[#f8fafc] border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 tabular-nums"
+                        className="flex-1 bg-[var(--surface-2)] border border-[var(--border)] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 tabular-nums"
                         placeholder="المبلغ"
                         value={pay.amount}
                         onChange={e => setMixedPayments(prev => prev.map((p, idx) => idx === i ? { ...p, amount: normalizeNumeric(e.target.value) } : p))}
                         dir="ltr"
                       />
                       {mixedPayments.length > 2 && (
-                        <button onClick={() => setMixedPayments(prev => prev.filter((_, idx) => idx !== i))} className="p-2 text-gray-300 hover:text-red-400">
+                        <button onClick={() => setMixedPayments(prev => prev.filter((_, idx) => idx !== i))} className="p-2 text-[var(--text-3)] hover:text-danger">
                           <X className="w-3.5 h-3.5" />
                         </button>
                       )}
@@ -1778,7 +1778,7 @@ export function POSPage() {
                     </button>
                     <span className={clsx(
                       "text-xs font-bold tabular-nums px-2 py-1 rounded-lg",
-                      Math.abs(mixedRemaining) < 0.05 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
+                      Math.abs(mixedRemaining) < 0.05 ? "bg-success-soft text-success" : "bg-warning-soft text-warning"
                     )}>
                       {Math.abs(mixedRemaining) < 0.05 ? "مغطّى" : `متبقي: ${fmt(mixedRemaining)} ر.س`}
                     </span>
@@ -1788,7 +1788,7 @@ export function POSPage() {
             </div>
 
             {/* Action buttons */}
-            <div className="p-2 space-y-1.5 border-t border-[#eef2f6] shrink-0">
+            <div className="p-2 space-y-1.5 border-t border-[var(--border)] shrink-0">
               {/* Complete sale — primary CTA */}
               <button
                 onClick={handleCompleteSale}
@@ -1809,7 +1809,7 @@ export function POSPage() {
               <button
                 onClick={() => setShowSplit(true)}
                 disabled={cart.length === 0}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-[#eef2f6] text-gray-500 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-xs font-semibold"
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-[var(--border)] text-[var(--text-2)] hover:border-brand-300 hover:bg-brand-soft hover:text-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-xs font-semibold"
               >
                 <SplitSquareHorizontal className="w-3.5 h-3.5" />
                 تقسيم الفاتورة

@@ -27,34 +27,34 @@ const STATUS_LABELS: Record<string, string> = {
   no_show:     "لم يحضر",
 };
 
-// Tailwind class bundles per status
+// Tailwind class bundles per status — uses design system semantic tokens
 const STATUS_CLASSES: Record<string, { badge: string; dot: string }> = {
-  active:      { badge: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" },
-  confirmed:   { badge: "bg-blue-50   text-blue-700",     dot: "bg-blue-500" },
-  completed:   { badge: "bg-brand-50  text-brand-600",    dot: "bg-brand-400" },
-  paid:        { badge: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" },
-  delivered:   { badge: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" },
-  accepted:    { badge: "bg-emerald-50 text-emerald-700", dot: "bg-emerald-500" },
-  in_transit:  { badge: "bg-blue-50   text-blue-700",     dot: "bg-blue-500" },
-  picked_up:   { badge: "bg-blue-50   text-blue-700",     dot: "bg-blue-400" },
-  scheduled:   { badge: "bg-violet-50 text-violet-700",   dot: "bg-violet-400" },
-  in_progress: { badge: "bg-amber-50  text-amber-700",    dot: "bg-amber-500" },
-  pending:     { badge: "bg-amber-50  text-amber-700",    dot: "bg-amber-500" },
-  partial:     { badge: "bg-amber-50  text-amber-700",    dot: "bg-amber-400" },
-  paused:      { badge: "bg-amber-50  text-amber-600",    dot: "bg-amber-400" },
-  overdue:     { badge: "bg-red-50    text-red-700",      dot: "bg-red-500" },
-  cancelled:   { badge: "bg-red-50    text-red-700",      dot: "bg-red-500" },
-  failed:      { badge: "bg-red-50    text-red-600",      dot: "bg-red-500" },
-  returned:    { badge: "bg-red-50    text-red-600",      dot: "bg-red-400" },
-  rejected:    { badge: "bg-red-50    text-red-700",      dot: "bg-red-500" },
-  no_show:     { badge: "bg-red-50    text-red-600",      dot: "bg-red-400" },
-  unpaid:      { badge: "bg-red-50    text-red-600",      dot: "bg-red-400" },
-  draft:       { badge: "bg-gray-100  text-gray-500",     dot: "bg-gray-400" },
-  suspended:   { badge: "bg-gray-100  text-gray-500",     dot: "bg-gray-400" },
-  archived:    { badge: "bg-gray-100  text-gray-400",     dot: "bg-gray-300" },
+  active:      { badge: "bg-success-soft text-success",      dot: "bg-success" },
+  confirmed:   { badge: "bg-brand-soft text-brand-700",      dot: "bg-brand" },
+  completed:   { badge: "bg-brand-50 text-brand-600",        dot: "bg-brand-400" },
+  paid:        { badge: "bg-success-soft text-success",      dot: "bg-success" },
+  delivered:   { badge: "bg-success-soft text-success",      dot: "bg-success" },
+  accepted:    { badge: "bg-success-soft text-success",      dot: "bg-success" },
+  in_transit:  { badge: "bg-sky-soft text-sky",              dot: "bg-sky" },
+  picked_up:   { badge: "bg-sky-soft text-sky",              dot: "bg-sky" },
+  scheduled:   { badge: "bg-lavender-soft text-lavender",    dot: "bg-lavender" },
+  in_progress: { badge: "bg-warning-soft text-warning",      dot: "bg-warning" },
+  pending:     { badge: "bg-warning-soft text-warning",      dot: "bg-warning" },
+  partial:     { badge: "bg-warning-soft text-warning",      dot: "bg-warning" },
+  paused:      { badge: "bg-warning-soft text-warning",      dot: "bg-warning" },
+  overdue:     { badge: "bg-danger-soft text-danger",        dot: "bg-danger" },
+  cancelled:   { badge: "bg-danger-soft text-danger",        dot: "bg-danger" },
+  failed:      { badge: "bg-danger-soft text-danger",        dot: "bg-danger" },
+  returned:    { badge: "bg-danger-soft text-danger",        dot: "bg-danger" },
+  rejected:    { badge: "bg-danger-soft text-danger",        dot: "bg-danger" },
+  no_show:     { badge: "bg-danger-soft text-danger",        dot: "bg-danger" },
+  unpaid:      { badge: "bg-danger-soft text-danger",        dot: "bg-danger" },
+  draft:       { badge: "bg-[var(--surface-3)] text-[var(--text-2)]", dot: "bg-[var(--text-3)]" },
+  suspended:   { badge: "bg-[var(--surface-3)] text-[var(--text-2)]", dot: "bg-[var(--text-3)]" },
+  archived:    { badge: "bg-[var(--surface-3)] text-[var(--text-3)]", dot: "bg-[var(--text-3)]" },
 };
 
-const FALLBACK = { badge: "bg-gray-100 text-gray-500", dot: "bg-gray-400" };
+const FALLBACK = { badge: "bg-[var(--surface-3)] text-[var(--text-2)]", dot: "bg-[var(--text-3)]" };
 
 interface StatusBadgeProps {
   status: string;
