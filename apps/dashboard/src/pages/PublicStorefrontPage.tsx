@@ -986,6 +986,7 @@ export function PublicStorefrontPage() {
           position: "fixed", bottom: 0,
           left: "50%", transform: "translateX(-50%)",
           width: "100%", maxWidth: 440, zIndex: 20,
+          boxSizing: "border-box",
           background: "white",
           borderTop: `1px solid ${T.borderFaint}`,
           padding: "10px 14px env(safe-area-inset-bottom, 10px)",
