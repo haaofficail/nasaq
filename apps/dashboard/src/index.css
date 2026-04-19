@@ -329,11 +329,14 @@
 
 @layer components {
   .input {
-    @apply w-full h-11 border border-[#eef2f6] rounded-xl px-3.5 text-sm text-gray-900 bg-white placeholder-gray-400 outline-none transition-all
-           focus:border-brand-400 focus:ring-[3px] focus:ring-brand-400/10;
+    @apply w-full h-11 border border-[#eef2f6] rounded-xl px-3.5 text-sm text-gray-900 bg-white placeholder-gray-400 outline-none transition-all;
+  }
+  .input:focus {
+    border-color: var(--brand-primary-400, #5b9bd5);
+    box-shadow: 0 0 0 3px rgba(91, 155, 213, 0.1);
   }
   .input:disabled {
-    @apply bg-gray-50 cursor-not-allowed text-gray-400 opacity-70;
+    @apply bg-[#f8fafc] cursor-not-allowed text-gray-400 opacity-70;
   }
 }
 
