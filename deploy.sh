@@ -8,7 +8,8 @@ set -euo pipefail
 
 APP_DIR="${APP_DIR:-/var/www/nasaq}"
 BRANCH="${BRANCH:-main}"
-API_PORT="${API_PORT:-3001}"
+API_PORT="${API_PORT:-3000}"
+HEALTH_PATH="${HEALTH_PATH:-/api/v1/health}"
 HEALTH_RETRIES="${HEALTH_RETRIES:-15}"
 HEALTH_INTERVAL="${HEALTH_INTERVAL:-2}"
 
@@ -62,7 +63,7 @@ pm2 restart all --update-env
 # ─── 6. Health check ─────────────────────────────────────────
 echo "→ فحص صحة الخدمة (${HEALTH_RETRIES} محاولة)..."
 for i in $(seq 1 "$HEALTH_RETRIES"); do
-  if curl -sf "http://localhost:${API_PORT}/health" > /dev/null 2>&1; then
+  if curl -sf "http://localhost:${API_PORT}${HEALTH_PATH}" > /dev/null 2>&1; then
     echo "✅ الخدمة تعمل — النشر مكتمل (${NEW_COMMIT:0:8})"
     exit 0
   fi
