@@ -9,6 +9,7 @@ import {
   Lock, Pencil,
 } from "lucide-react";
 import { posApi, servicesApi, menuApi, categoriesApi, customersApi, settingsApi, bookingsApi } from "@/lib/api";
+import { isFlowersEvents } from "@/lib/flowersEventsConfig";
 import { VAT_RATE as VAT_RATE_DECIMAL } from "@/lib/constants";
 import { useApi } from "@/hooks/useApi";
 import { usePermission } from "@/hooks/usePermission";
@@ -781,9 +782,11 @@ export function POSPage() {
   const [linkedBookingId, setLinkedBookingId] = useState<string | null>(null);
   const [linkedBookingNumber, setLinkedBookingNumber] = useState<string | null>(null);
 
-  // Profile — used for org name in receipt only
+  // Profile — used for org name in receipt + businessType check
   const { data: profileRes } = useApi(() => settingsApi.profile(), []);
   const orgProfile = profileRes?.data as any;
+  // flowers_events: hide staff assignment in POS — event team is assigned in service orders
+  const hideStaffAssignment = isFlowersEvents(orgProfile?.businessType);
 
   // Menu items + categories fetched unconditionally.
   // If this org has the "catalog" capability → API returns data → food-business mode.
@@ -1540,8 +1543,8 @@ export function POSPage() {
                           </div>
                         )}
 
-                        {/* Staff name pill */}
-                        {item.staffName && (
+                        {/* Staff name pill — hidden for flowers_events (team assigned in service orders) */}
+                        {item.staffName && !hideStaffAssignment && (
                           <div className="flex items-center gap-1 px-3 pb-2">
                             <Scissors className="w-3 h-3 text-gray-300" />
                             <span className="text-[11px] text-gray-400">{item.staffName}</span>

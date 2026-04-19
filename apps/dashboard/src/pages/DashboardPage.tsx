@@ -1,6 +1,8 @@
 import { useMemo, useEffect } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { ArrowLeft, QrCode, Printer, ExternalLink, AlertTriangle, CalendarCheck, Users, Package, Clock, CheckCircle2, Truck } from "lucide-react";
+import { FlowersEventsDashboardSection } from "@/components/dashboard/FlowersEventsCards";
+import { isFlowersEvents } from "@/lib/flowersEventsConfig";
 import { clsx } from "clsx";
 import { getProfile } from "@/lib/dashboardProfiles";
 import { ProfileDashboard } from "@/components/dashboard/ProfileDashboard";
@@ -409,10 +411,15 @@ export function DashboardPage() {
         </div>
       )}
 
-      {businessType !== "flower_shop" && <SmartAlertsBanner businessType={businessType} />}
+      {businessType !== "flower_shop" && !isFlowersEvents(businessType) && (
+        <SmartAlertsBanner businessType={businessType} />
+      )}
 
-      {/* Flower shop operations panel — active/ready/delivery/service orders */}
+      {/* Flower shop operations panel */}
       {businessType === "flower_shop" && <FlowerOpsPanel />}
+
+      {/* flowers_events: 3 dedicated cards — upcoming events, daily sales, flower alerts */}
+      {isFlowersEvents(businessType) && <FlowersEventsDashboardSection />}
 
       <ProfileDashboard profile={profile} user={enrichedUser} context={context ?? undefined} />
 

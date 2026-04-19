@@ -2980,3 +2980,17 @@ export const billingPricingApi = {
   myPlan:         () => api.get<{ data: any }>("/billing/my-plan"),
   usage:          () => api.get<{ data: { branches: number; employees: number } }>("/billing/usage"),
 };
+
+// ── Flowers & Events Ops API ──────────────────────────────
+export const flowersEventsApi = {
+  dashboardMetrics:   () => api.get<{ data: any }>("/flowers-events/dashboard-metrics"),
+  expiringFlowers:    (days?: number) => api.get<{ data: any[] }>(`/flowers-events/expiring-flowers${days ? "?days=" + days : ""}`),
+  reservations:       (p?: { status?: string; service_order_id?: string }) =>
+    api.get<{ data: any[] }>(`/flowers-events/reservations${p ? "?" + new URLSearchParams(p as any).toString() : ""}`),
+  createReservation:  (d: { serviceOrderId: string; variantId: string; batchId?: string; quantity: number; notes?: string }) =>
+    api.post<{ data: any }>("/flowers-events/reservations", d),
+  releaseReservation: (id: string) => api.post<{ data: any }>(`/flowers-events/reservations/${id}/release`),
+  deductReservation:  (id: string) => api.post<{ data: any }>(`/flowers-events/reservations/${id}/deduct`),
+  transition:         (id: string, status: string) =>
+    api.post<{ data: any; warning?: string }>(`/flowers-events/service-orders/${id}/transition`, { status }),
+};

@@ -57,3 +57,5 @@ export * from "./loyalty";
 export * from "./hr";
 export * from "./billing";
 export * from "./compliance";
+
+export * from "./flowers-events";

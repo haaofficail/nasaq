@@ -49,7 +49,11 @@ export const assetTypes = pgTable("asset_types", {
   
   image: text("image"),
   minStock: integer("min_stock").default(0),       // الحد الأدنى للتنبيه
-  
+
+  // flowers_events semantic typing — backward compat: default 'asset'
+  inventoryType: text("inventory_type").default("asset").notNull(), // 'asset' | 'consumable'
+  unitLabel:     text("unit_label"),               // ربطة، غصن، فازة، رول تغليف
+
   isActive: boolean("is_active").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

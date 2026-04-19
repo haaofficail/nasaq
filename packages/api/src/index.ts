@@ -57,6 +57,7 @@ import { flowerSuppliersRouter } from "./routes/flower-suppliers";
 import { decorAssetsRouter } from "./routes/decor-assets";
 import { serviceOrdersRouter } from "./routes/service-orders";
 import { flowerWasteRouter } from "./routes/flower-waste";
+import { flowersEventsOpsRouter } from "./routes/flowers-events-ops";
 import { eventPackagesRouter } from "./routes/event-packages";
 import { treasuryRouter } from "./routes/treasury";
 import { accountingRouter } from "./routes/accounting";
@@ -807,6 +808,10 @@ app.route("/event-packages", eventPackagesRouter);
 app.use("/flower-waste/*", authMiddleware);
 app.use("/flower-waste/*", requireCapability("floral"));
 app.route("/flower-waste", flowerWasteRouter);
+
+app.use("/flowers-events/*", authMiddleware);
+app.use("/flowers-events/*", requireCapability("floral"));
+app.route("/flowers-events", flowersEventsOpsRouter);
 
 // --- Onboarding ---
 app.use("/onboarding/*", authMiddleware);

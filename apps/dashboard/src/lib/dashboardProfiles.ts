@@ -7,6 +7,7 @@ import {
   UserCheck, AlertTriangle, Zap, Home,
   ChefHat, Monitor, Briefcase, Sparkles, Percent,
   FileText, Wrench, ShieldCheck, Image, Building2, ClipboardList,
+  Truck,
 } from "lucide-react";
 import {
   bookingsApi, customersApi, servicesApi, flowerMasterApi,
@@ -1226,6 +1227,65 @@ const profiles: Record<string, DashboardProfile> = {
     widgets: [
       { id: "work-orders-m", label: "أوامر العمل", size: "half" as const, allowedRoles: [], component: WorkOrdersWidget },
       recentBookingsWidget("half"),
+      recentActivityWidget(),
+    ],
+  },
+
+  // ──────────────────────────────────────────────────────────
+  // FLOWERS & EVENTS — محل الورود والمناسبات
+  // ──────────────────────────────────────────────────────────
+  flowers_events: {
+    profileKey: "flowers_events",
+    label: "محل الورود والمناسبات",
+    primaryAction: { label: "طلب كوشة / مناسبة", href: "/dashboard/flower-service-orders" },
+    kpis: [
+      {
+        id: "fe-upcoming-events",
+        label: "مناسبات قادمة",
+        unit: "حفل",
+        icon: CalendarCheck,
+        bg: "bg-blue-50",
+        iconColor: "text-blue-600",
+        fetcher: () => import("@/lib/api").then(m => m.flowersEventsApi.dashboardMetrics()),
+        transform: (d: any) => String(d?.data?.upcoming_events?.count ?? 0),
+        allowedRoles: [],
+      },
+      {
+        id: "fe-expiring",
+        label: "دفعات تنتهي",
+        unit: "دفعة",
+        icon: AlertTriangle,
+        bg: "bg-amber-50",
+        iconColor: "text-amber-600",
+        fetcher: () => import("@/lib/api").then(m => m.flowersEventsApi.dashboardMetrics()),
+        transform: (d: any) => String(d?.data?.flower_alerts?.expiring_count ?? 0),
+        allowedRoles: [],
+      },
+      {
+        id: "builder-orders",
+        label: "طلبات الباقات",
+        unit: "طلب",
+        icon: ShoppingBag,
+        bg: "bg-rose-50",
+        iconColor: "text-rose-600",
+        fetcher: () => import("@/lib/api").then(m => m.flowerBuilderApi.orderStats()),
+        transform: (d: any) => String(d?.data?.today ?? d?.data?.todayTotal ?? d?.data?.total ?? 0),
+        allowedRoles: [],
+      },
+      revenueKpi("fe-revenue"),
+    ],
+    quickActions: [
+      { id: "fe-service-orders", label: "طلب مناسبة",     href: "/dashboard/flower-service-orders", icon: CalendarCheck, bg: "bg-blue-50",    text: "text-blue-600",    allowedRoles: [] },
+      { id: "flower-pos",        label: "الكاشير",         href: "/dashboard/pos",                   icon: ShoppingBag,   bg: "bg-pink-50",    text: "text-pink-600",    allowedRoles: [] },
+      { id: "new-arrangement",   label: "إنشاء باقة",     href: "/dashboard/arrangements",          icon: Flower2,       bg: "bg-rose-50",    text: "text-rose-600",    allowedRoles: [] },
+      { id: "new-customer",      modal: "customer" as const, label: "عميل جديد", href: "/dashboard/customers", icon: Users, bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
+      { id: "receive-batch",     label: "استلام ورد",      href: "/dashboard/flower-master",         icon: Package,       bg: "bg-emerald-50", text: "text-emerald-600", allowedRoles: ["owner","admin","manager"] },
+      { id: "flower-delivery",   label: "قائمة التوصيل",   href: "/dashboard/flower-delivery",       icon: Truck,         bg: "bg-orange-50",  text: "text-orange-600",  allowedRoles: [] },
+    ],
+    widgets: [
+      { id: "expiring-batches-widget", label: "دفعات قاربت الانتهاء", size: "third"      as const, allowedRoles: [], component: ExpiringBatchesWidget },
+      { id: "flower-orders-widget",    label: "طلبات الباقات",        size: "two-thirds" as const, allowedRoles: [], component: FlowerOrdersWidget },
+      { id: "flower-morning-brief",    label: "ورقة الصباح",          size: "full"       as const, allowedRoles: [], component: FlowerMorningBriefWidget },
       recentActivityWidget(),
     ],
   },

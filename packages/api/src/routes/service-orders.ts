@@ -11,8 +11,13 @@ export const serviceOrdersRouter = new Hono();
 // ─── Status transition rules ──────────────────────────────────────────────────
 const SERVICE_ORDER_STATUSES = [
   "draft", "deposit_pending", "confirmed", "scheduled",
-  "preparing", "ready", "dispatched", "in_setup",
+  "preparing", "ready", "dispatched",
+  // flowers_events additions (non-breaking — text column, not PG enum)
+  "arrived",
+  "in_setup",
   "completed_on_site", "returned", "inspected",
+  // flowers_events: maintenance path from returned
+  "maintenance",
   "closed", "cancelled",
 ] as const;
 
@@ -25,11 +30,13 @@ const VALID_TRANSITIONS: Record<string, string[]> = {
   scheduled:         ["preparing","cancelled"],
   preparing:         ["ready"],
   ready:             ["dispatched"],
-  dispatched:        ["in_setup"],
+  dispatched:        ["arrived","in_setup"],        // arrived = flowers_events; in_setup = legacy compat
+  arrived:           ["in_setup","cancelled"],
   in_setup:          ["completed_on_site"],
   completed_on_site: ["returned"],
-  returned:          ["inspected"],
+  returned:          ["inspected","maintenance"],   // maintenance = flowers_events path
   inspected:         ["closed"],
+  maintenance:       ["closed"],
   closed:            [],
   cancelled:         [],
 };
