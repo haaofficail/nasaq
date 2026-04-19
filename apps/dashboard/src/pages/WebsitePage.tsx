@@ -1833,9 +1833,7 @@ export function WebsitePage() {
             <div>
               <p className="text-sm text-gray-700 font-medium">صفحات موقعك الإضافية</p>
               <p className="text-xs text-gray-400 mt-0.5">
-                كل صفحة تظهر على موقعك العام في رابط مثل:{" "}
-                {siteUrl ? <span className="font-mono bg-gray-100 px-1 rounded text-gray-500">{siteUrl}/p/about</span> : <span className="font-mono text-gray-400">tarmizos.com/s/slug/p/الرابط</span>}
-                {" "}— بعد النشر يظهر الرابط في قائمة الموقع
+                كل صفحة تُنشر بمسار <span className="font-mono bg-gray-100 px-1 rounded text-gray-500">/p/الرابط</span> — بعد إطلاق رابط الموقع المستقل يظهر الرابط الكامل هنا
               </p>
             </div>
             <Button icon={Plus} size="sm" onClick={() => { setPageForm({ title: "", type: "custom", isPublished: false }); setPageModal({ open: true }); }}>

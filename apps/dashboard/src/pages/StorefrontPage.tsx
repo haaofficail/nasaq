@@ -418,7 +418,7 @@ export function StorefrontPage() {
           <a href={siteUrl} target="_blank" rel="noreferrer"
             className="flex items-center gap-2 bg-brand-500 hover:bg-brand-600 text-white px-4 py-2.5 rounded-xl text-sm font-medium transition-colors">
             <ExternalLink className="w-4 h-4" />
-            معاينة الموقع
+            معاينة المتجر
           </a>
         )}
       </div>
@@ -448,7 +448,7 @@ export function StorefrontPage() {
           {/* URL Card */}
           <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-gray-900">رابط موقعك</h3>
+              <h3 className="font-semibold text-gray-900">رابط متجرك</h3>
               <span className={clsx("text-xs px-2.5 py-1 rounded-full font-medium",
                 config?.customDomain ? "bg-green-50 text-green-600" : "bg-blue-50 text-blue-600")}>
                 {config?.customDomain ? "دومين مخصص" : "رابط ترميز OS"}
@@ -469,7 +469,7 @@ export function StorefrontPage() {
                 </a>
               </div>
             ) : (
-              <p className="text-sm text-gray-400">أكمل إعداد حسابك للحصول على رابط موقعك</p>
+              <p className="text-sm text-gray-400">أكمل إعداد حسابك للحصول على رابط متجرك</p>
             )}
           </div>
 
