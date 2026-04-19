@@ -19,13 +19,13 @@ function fmt(n: any) {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  draft:          { label: "مسودة",         color: "bg-gray-100 text-gray-600 border-[#eef2f6]",        icon: Clock },
+  draft:          { label: "مسودة",         color: "bg-[#f1f5f9] text-gray-600 border-[#eef2f6]",        icon: Clock },
   issued:         { label: "صادرة",          color: "bg-blue-50 text-blue-700 border-blue-200",          icon: FileText },
   sent:           { label: "مُرسلة",         color: "bg-indigo-50 text-indigo-700 border-indigo-200",    icon: FileText },
   paid:           { label: "مدفوعة",         color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
   partially_paid: { label: "مدفوع جزئياً",  color: "bg-teal-50 text-teal-700 border-teal-200",          icon: Clock },
   overdue:        { label: "متأخرة",         color: "bg-red-50 text-red-700 border-red-200",             icon: AlertTriangle },
-  cancelled:      { label: "ملغاة",          color: "bg-gray-100 text-gray-500 border-[#eef2f6]",         icon: XCircle },
+  cancelled:      { label: "ملغاة",          color: "bg-[#f1f5f9] text-gray-500 border-[#eef2f6]",         icon: XCircle },
 };
 
 const PAY_METHOD: Record<string, string> = {
@@ -462,13 +462,13 @@ export function InvoiceDetailPage() {
             )}
             <button
               onClick={printInvoice}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f8fafc] text-gray-600 text-sm font-medium hover:bg-gray-100 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f8fafc] text-gray-600 text-sm font-medium hover:bg-[#f1f5f9] transition-colors"
             >
               <Printer className="w-4 h-4" /> طباعة الفاتورة
             </button>
             <button
               onClick={printReceipt}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f8fafc] text-gray-600 text-sm font-medium hover:bg-gray-100 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f8fafc] text-gray-600 text-sm font-medium hover:bg-[#f1f5f9] transition-colors"
             >
               <Receipt className="w-4 h-4" /> طباعة الإيصال
             </button>
@@ -482,7 +482,7 @@ export function InvoiceDetailPage() {
             )}
             <button
               onClick={refetch}
-              className="p-1.5 rounded-lg bg-[#f8fafc] text-gray-400 hover:bg-gray-100 transition-colors"
+              className="p-1.5 rounded-lg bg-[#f8fafc] text-gray-400 hover:bg-[#f1f5f9] transition-colors"
               title="تحديث"
             >
               <RefreshCw className="w-4 h-4" />
@@ -491,8 +491,8 @@ export function InvoiceDetailPage() {
         </div>
 
         {/* amounts summary row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-gray-50">
-          <div className="bg-gray-50 rounded-xl p-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-[#eef2f6]">
+          <div className="bg-[#f8fafc] rounded-xl p-3">
             <p className="text-xs text-gray-400">الإجمالي</p>
             <p className="text-lg font-bold text-gray-900 tabular-nums">{fmt(inv.totalAmount)}</p>
             <p className="text-xs text-gray-400">ر.س</p>
@@ -507,7 +507,7 @@ export function InvoiceDetailPage() {
             <p className={clsx("text-lg font-bold tabular-nums", remaining > 0 ? "text-amber-700" : "text-gray-500")}>{fmt(remaining)}</p>
             <p className={clsx("text-xs", remaining > 0 ? "text-amber-500" : "text-gray-400")}>ر.س</p>
           </div>
-          <div className="bg-gray-50 rounded-xl p-3">
+          <div className="bg-[#f8fafc] rounded-xl p-3">
             <p className="text-xs text-gray-400">ضريبة القيمة المضافة</p>
             <p className="text-lg font-bold text-gray-700 tabular-nums">{fmt(inv.vatAmount || 0)}</p>
             <p className="text-xs text-gray-400">ر.س</p>
@@ -544,12 +544,12 @@ export function InvoiceDetailPage() {
             <div className="space-y-6">
               {/* seller + buyer */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-gray-50 rounded-xl p-4">
+                <div className="bg-[#f8fafc] rounded-xl p-4">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">المورد / البائع</p>
                   <p className="font-bold text-gray-900">{inv.sellerName}</p>
                   {inv.sellerVatNumber && <p className="text-xs text-gray-500 mt-1">الرقم الضريبي: <span className="font-mono">{inv.sellerVatNumber}</span></p>}
                 </div>
-                <div className="bg-gray-50 rounded-xl p-4">
+                <div className="bg-[#f8fafc] rounded-xl p-4">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">العميل / المشتري</p>
                   <p className="font-bold text-gray-900">{inv.buyerName}</p>
                   {inv.buyerCompanyName && <p className="text-sm text-violet-700 font-medium mt-0.5">{inv.buyerCompanyName}</p>}
@@ -567,7 +567,7 @@ export function InvoiceDetailPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-gray-50 rounded-lg">
+                        <tr className="bg-[#f8fafc] rounded-lg">
                           {["الاسم / الوصف", "الكمية", "سعر الوحدة", "الخصم", "السعر بدون ضريبة", "نسبة الضريبة", "قيمة الضريبة", "الإجمالي شامل الضريبة"].map(h => (
                             <th key={h} className="text-right px-3 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">{h}</th>
                           ))}
@@ -578,7 +578,7 @@ export function InvoiceDetailPage() {
                           const net = Number(item.totalAmount || 0) / (1 + Number(item.vatRate || 0) / 100);
                           const vatAmt = Number(item.totalAmount || 0) - net;
                           return (
-                            <tr key={item.id} className="border-b border-gray-50 last:border-0">
+                            <tr key={item.id} className="border-b border-[#eef2f6] last:border-0">
                               <td className="px-3 py-2.5 text-gray-800 font-medium">{item.description}</td>
                               <td className="px-3 py-2.5 text-center text-gray-600">{item.quantity}</td>
                               <td className="px-3 py-2.5 tabular-nums text-gray-600">{fmt(item.unitPrice)} ر.س</td>
@@ -607,7 +607,7 @@ export function InvoiceDetailPage() {
                     { label: "نوع الفاتورة",      value: inv.invoiceType === "simplified" ? "مبسطة B2C" : "ضريبية B2B" },
                     { label: "مصدر الفاتورة",    value: inv.sourceType === "booking" ? "حجز" : inv.sourceType === "order" ? "طلب" : "يدوي" },
                   ].map(row => (
-                    <div key={row.label} className="flex justify-between py-1.5 border-b border-gray-50">
+                    <div key={row.label} className="flex justify-between py-1.5 border-b border-[#eef2f6]">
                       <span className="text-gray-400">{row.label}</span>
                       <span className="text-gray-700 font-medium">{row.value}</span>
                     </div>
@@ -622,7 +622,7 @@ export function InvoiceDetailPage() {
                 {/* totals */}
                 <div>
                   <h3 className="text-sm font-semibold text-gray-700 mb-3">الإجمالي</h3>
-                  <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                  <div className="bg-[#f8fafc] rounded-xl p-4 space-y-2">
                     {[
                       { label: "المجموع الفرعي",          value: fmt(inv.taxableAmount ?? inv.subtotal ?? inv.totalAmount) + " ر.س", cls: "text-gray-600" },
                       { label: "الخصم",                    value: fmt(inv.discountAmount || 0) + " ر.س", cls: "text-gray-600" },
@@ -686,7 +686,7 @@ export function InvoiceDetailPage() {
                     </thead>
                     <tbody>
                       {pmts.map((p: any, i: number) => (
-                        <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/50">
+                        <tr key={p.id} className="border-b border-[#eef2f6] last:border-0 hover:bg-[#f8fafc]/50">
                           <td className="px-3 py-3 text-gray-400 text-xs">{i + 1}</td>
                           <td className="px-3 py-3 font-mono text-xs text-brand-500">{p.id?.substring(0, 8).toUpperCase()}</td>
                           <td className="px-3 py-3 font-bold text-emerald-600 tabular-nums">{fmt(p.amount)} ر.س</td>
@@ -751,7 +751,7 @@ export function InvoiceDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-gray-50 hover:bg-[#f8fafc]/50">
+                    <tr className="border-b border-[#eef2f6] hover:bg-[#f8fafc]/50">
                       <td className="px-3 py-3 font-mono text-xs text-brand-500">{inv.invoiceNumber}</td>
                       <td className="px-3 py-3">
                         <span className={clsx("inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium border", st.color)}>

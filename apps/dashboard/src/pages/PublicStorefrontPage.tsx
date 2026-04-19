@@ -3,7 +3,6 @@ import { useParams } from "react-router-dom";
 import { websiteApi } from "@/lib/api";
 import { usePublicTheme } from "@/context/ThemeProvider";
 import { PLATFORM_NAME } from "@/hooks/usePlatformConfig";
-import { OrgLogo } from "@/components/branding/OrgLogo";
 
 // ── Types ────────────────────────────────────────────────────────────
 interface OrgData {
@@ -470,16 +469,16 @@ function Skeleton() {
 // ── Main page ─────────────────────────────────────────────────────────
 export function PublicStorefrontPage() {
   const { orgSlug } = useParams<{ orgSlug: string }>();
-  const [data, setData]           = useState<SiteData | null>(null);
-  const [loading, setLoading]     = useState(true);
-  const [activeCat, setActiveCat] = useState("all");
-  const [cart, setCart]           = useState<ServiceItem[]>([]);
-  const [showSheet, setShowSheet] = useState(false);
-  const catBarRef = useRef<HTMLDivElement>(null);
+  const [data, setData]             = useState<SiteData | null>(null);
+  const [loading, setLoading]       = useState(true);
+  const [activeCat, setActiveCat]   = useState("all");
+  const [cart, setCart]             = useState<ServiceItem[]>([]);
+  const [showSheet, setShowSheet]   = useState(false);
+  const [viewMode, setViewMode]     = useState<"list" | "grid">("grid");
+  const catBarRef                   = useRef<HTMLDivElement>(null);
   const slug = orgSlug || "";
-  // usePublicTheme deliberately removed — public pages use ترميز OS brand only, not org theme
 
-  const inCart    = (id: string) => cart.some(s => s.id === id);
+  const inCart     = (id: string) => cart.some(s => s.id === id);
   const toggleCart = (svc: ServiceItem) =>
     setCart(prev => inCart(svc.id) ? prev.filter(s => s.id !== svc.id) : [...prev, svc]);
 
@@ -500,18 +499,23 @@ export function PublicStorefrontPage() {
   );
 
   const { org, services, categories, config } = data;
-  // Public pages: always BRAND for UI structure — org color only for price display
-  const primary     = BRAND;
-  const logo        = config?.logoUrl || org.logo;
-  const fontFamily  = config?.fontFamily || "IBM Plex Sans Arabic";
-  const headerCfg   = config?.headerConfig;
-  const showLogo    = headerCfg?.showLogo !== false;
-  const showPhone   = headerCfg?.showPhone !== false;
-  const showBook    = headerCfg?.showBookButton !== false;
+
+  // Platform brand = #5b9bd5 — structural identity (stripe, footer)
+  // orgAccent = org.primaryColor — price, add buttons, active pill, cart CTA
+  const orgAccent  = org.primaryColor || "#d4b06a";
+  const fontFamily = config?.fontFamily || "IBM Plex Sans Arabic";
+  const headerCfg  = config?.headerConfig;
+  const showPhone  = headerCfg?.showPhone !== false;
+  const showBook   = headerCfg?.showBookButton !== false;
   const F: React.CSSProperties = { fontFamily: `'${fontFamily}', sans-serif` };
 
-  const active   = services.filter(s => !s.status || s.status === "active" || s.status === "published");
-  const filtered = activeCat === "all" ? active : active.filter(s => s.categoryId === activeCat);
+  const active    = services.filter(s => !s.status || s.status === "active" || s.status === "published");
+  const filtered  = activeCat === "all" ? active : active.filter(s => s.categoryId === activeCat);
+  const totalCart = cart.reduce((sum, s) => sum + parseFloat(s.basePrice || String(s.price ?? 0)), 0);
+  const catMap    = Object.fromEntries(categories.map(c => [c.id, c.name]));
+
+  // Hero initials (2 chars max)
+  const initials = org.name.trim().slice(0, 2);
 
   const waLink = org.phone
     ? `https://wa.me/${org.phone.replace(/\D/g,"")}?text=${encodeURIComponent("مرحبا، أريد الاستفسار عن خدماتكم")}`
@@ -522,80 +526,134 @@ export function PublicStorefrontPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontFamily)}:wght@400;500;600;700;800;900&display=swap');
         *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-        body{margin:0;background:#ffffff;}
+        body{margin:0;background:#0f172a;}
         @keyframes sheetIn{from{transform:translateY(100%)}to{transform:translateY(0)}}
         @keyframes cardIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        @keyframes barUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
         .chip-bar::-webkit-scrollbar{display:none}
         .svc-row{cursor:pointer;transition:transform .12s;}
         .svc-row:active{transform:scale(0.988);}
-        .book-pill{transition:opacity .12s,transform .12s;}
-        .book-pill:active{opacity:.85;transform:scale(0.96);}
+        .book-pill{transition:all .15s;}
+        .book-pill:active{opacity:.82;transform:scale(0.95);}
+        .grid-card{cursor:pointer;transition:transform .12s;}
+        .grid-card:active{transform:scale(0.97);}
+        .view-toggle-btn{transition:all .15s;}
+        .view-toggle-btn:active{opacity:.7;}
       `}</style>
 
-      {/* Full-screen background — bypasses dashboard CSS override */}
-      <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: -1 }} />
+      {/* Fixed bg */}
+      <div style={{ position: "fixed", inset: 0, background: "#f8fafc", zIndex: -1 }} />
 
-      <div dir="rtl" style={{ ...F, maxWidth: 440, margin: "0 auto", minHeight: "100dvh", background: T.bg, paddingBottom: 88 }}>
+      <div dir="rtl" style={{ ...F, maxWidth: 440, margin: "0 auto", minHeight: "100dvh", background: "#f8fafc", paddingBottom: 96 }}>
 
-        {/* ━━━━ HEADER ━━━━
-            Compact smart bar:
-            - Brand color top accent (3px)
-            - White surface
-            - Logo + name/city | contact icons
+        {/* ━━━━ HERO ━━━━
+            Full-bleed dark gradient — scrolls with page.
+            Store avatar · name · stats · contact buttons.
         */}
-        <div style={{ background: T.surface, borderBottom: `1px solid ${T.borderFaint}`, boxShadow: "0 1px 0 rgba(15,23,42,0.04)", position: "sticky", top: 0, zIndex: 20 }}>
-          {/* ترميز OS platform identity stripe — always brand blue */}
-          <div style={{ height: 3, background: `linear-gradient(90deg, ${BRAND} 0%, #3d84c8 100%)` }} />
+        <div style={{
+          background: "linear-gradient(160deg, #1e293b 0%, #0f172a 100%)",
+          padding: "48px 20px 28px",
+          position: "relative",
+          overflow: "hidden",
+        }}>
+          {/* ترميز OS identity stripe */}
+          <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 3, background: `linear-gradient(90deg, ${BRAND} 0%, #3d84c8 100%)` }} />
 
-          <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "11px 16px 13px" }}>
+          {/* Subtle radial glow */}
+          <div style={{
+            position: "absolute", inset: 0, pointerEvents: "none",
+            background: `radial-gradient(ellipse 80% 60% at 30% 50%, ${hex2rgb(orgAccent, 0.14)} 0%, transparent 70%)`,
+          }} />
 
-            {/* Logo */}
-            {showLogo && (
-              <OrgLogo src={logo} orgName={org.name} size={46}
-                style={{ borderRadius: 12, flexShrink: 0, boxShadow: T.shadow }} />
-            )}
+          <div style={{ position: "relative" }}>
+            {/* Avatar + name row */}
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 14, marginBottom: 20 }}>
+              {/* Initials avatar */}
+              <div style={{
+                width: 64, height: 64, borderRadius: 16, flexShrink: 0,
+                background: "white",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 26, fontWeight: 900, color: orgAccent,
+                boxShadow: `0 8px 24px rgba(0,0,0,0.35)`,
+                fontFamily: "inherit",
+              }}>
+                {initials}
+              </div>
 
-            {/* Name + meta */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: T.t1, lineHeight: 1.2, letterSpacing: -0.2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {org.name}
-              </p>
-              <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3, flexWrap: "wrap" }}>
-                {org.city && (
-                  <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 12, color: T.t3, fontWeight: 600 }}>
-                    <span style={{ color: T.t3 }}>{Icon.pin}</span>
-                    {org.city}
-                  </span>
-                )}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ margin: "0 0 6px", fontSize: 20, fontWeight: 900, color: "#f8fafc", lineHeight: 1.2, letterSpacing: -0.4 }}>
+                  {org.name}
+                </p>
+                {/* Service count badge */}
                 {active.length > 0 && (
-                  <span style={{ fontSize: 11, color: T.t3, fontWeight: 500 }}>
-                    {org.city ? "·" : ""} {active.length} خدمة
+                  <span style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    fontSize: 11, fontWeight: 700,
+                    color: orgAccent,
+                    background: hex2rgb(orgAccent, 0.15),
+                    padding: "3px 8px", borderRadius: 999,
+                    border: `1px solid ${hex2rgb(orgAccent, 0.25)}`,
+                  }}>
+                    {active.length} خدمة
                   </span>
                 )}
               </div>
             </div>
 
-            {/* Contact actions */}
-            {showPhone && (
-              <div style={{ display: "flex", gap: 7, flexShrink: 0 }}>
+            {/* Stats row with border-top divider */}
+            <div style={{ borderTop: "1px solid rgba(255,255,255,0.08)", paddingTop: 16, marginBottom: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <span style={{ fontSize: 14, fontWeight: 900, color: "#f8fafc" }}>4.9</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>التقييم</span>
+                </div>
+                <span style={{ width: 1, height: 28, background: "rgba(255,255,255,0.1)" }} />
+                <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                  <span style={{ fontSize: 14, fontWeight: 900, color: "#f8fafc" }}>{active.length}</span>
+                  <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>خدمة</span>
+                </div>
+                {org.city && (
+                  <>
+                    <span style={{ width: 1, height: 28, background: "rgba(255,255,255,0.1)" }} />
+                    <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 12, color: "#f8fafc", fontWeight: 700 }}>
+                        {Icon.pin} {org.city}
+                      </span>
+                      <span style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", fontWeight: 500 }}>الموقع</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* Contact buttons */}
+            {showPhone && (org.phone || waLink) && (
+              <div style={{ display: "flex", gap: 9 }}>
                 {waLink && (
                   <a href={waLink} target="_blank" rel="noreferrer" style={{
-                    width: 38, height: 38, borderRadius: 10, border: `1px solid rgba(37,211,102,0.3)`,
-                    background: "rgba(37,211,102,0.08)",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: T.wa, textDecoration: "none",
+                    flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                    height: 34, borderRadius: 10,
+                    background: "#25D366", color: "white",
+                    fontWeight: 800, fontSize: 13, textDecoration: "none",
+                    boxShadow: "0 4px 14px rgba(37,211,102,0.35)",
+                    fontFamily: "inherit",
                   }}>
-                    {Icon.wa}
+                    {Icon.wa} واتساب
                   </a>
                 )}
                 {org.phone && (
                   <a href={`tel:${org.phone}`} style={{
-                    width: 38, height: 38, borderRadius: 10, border: `1px solid ${T.border}`,
-                    background: T.surfaceSubtle,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: T.t2, textDecoration: "none",
+                    ...(waLink ? { flexShrink: 0, width: 40 } : { flex: 1 }),
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 7,
+                    height: 34, borderRadius: 10,
+                    background: "rgba(255,255,255,0.1)",
+                    border: "1px solid rgba(255,255,255,0.15)",
+                    color: "rgba(255,255,255,0.9)",
+                    fontWeight: 700, fontSize: 13, textDecoration: "none",
+                    fontFamily: "inherit",
                   }}>
                     {Icon.phone}
+                    {!waLink && "اتصال"}
                   </a>
                 )}
               </div>
@@ -603,118 +661,280 @@ export function PublicStorefrontPage() {
           </div>
         </div>
 
-        {/* ━━━━ CATEGORY CHIPS ━━━━ */}
-        {categories.length > 0 && (
+        {/* ━━━━ STICKY CATEGORY PILLS ━━━━ */}
+        <div style={{
+          position: "sticky", top: 0, zIndex: 20,
+          background: "white",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+        }}>
           <div ref={catBarRef} className="chip-bar" style={{
-            display: "flex", gap: 7, overflowX: "auto", padding: "13px 16px 4px", scrollbarWidth: "none",
+            display: "flex", gap: 6, overflowX: "auto",
+            padding: "10px 14px", scrollbarWidth: "none",
           }}>
             {[{ id: "all", name: "الكل" }, ...categories].map(cat => {
               const isActive = activeCat === cat.id;
               return (
                 <button key={cat.id} onClick={() => setActiveCat(cat.id)} style={{
-                  flexShrink: 0, padding: "7px 16px", borderRadius: 999,
+                  flexShrink: 0, padding: "6px 14px", borderRadius: 999,
                   fontSize: 12, fontWeight: 700, cursor: "pointer", fontFamily: "inherit",
                   transition: "all .15s",
-                  border: `1.5px solid ${isActive ? primary : T.border}`,
-                  background: isActive ? primary : T.surface,
+                  border: `1.5px solid ${isActive ? orgAccent : T.border}`,
+                  background: isActive ? orgAccent : "white",
                   color: isActive ? "white" : T.t2,
-                  boxShadow: isActive ? `0 2px 10px ${hex2rgb(primary, 0.3)}` : "none",
+                  boxShadow: isActive ? `0 2px 10px ${hex2rgb(orgAccent, 0.3)}` : "none",
                 }}>
                   {cat.name}
                 </button>
               );
             })}
           </div>
-        )}
+        </div>
 
         {/* ━━━━ SERVICES ━━━━ */}
-        <div style={{ padding: "12px 14px 4px" }}>
+        <div style={{ padding: viewMode === "grid" ? "12px 12px 4px" : "12px 14px 4px" }}>
+          {/* Section header: count label + view toggle */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: T.t3, textTransform: "uppercase", letterSpacing: 0.5 }}>
+              {filtered.length} خدمة متاحة
+            </span>
+            <div style={{ display: "flex", gap: 3, background: "#f1f5f9", borderRadius: 8, padding: 3 }}>
+              {(["grid", "list"] as const).map(mode => (
+                <button key={mode} className="view-toggle-btn" onClick={() => setViewMode(mode)} style={{
+                  width: 28, height: 28, borderRadius: 6, border: "none", cursor: "pointer",
+                  background: viewMode === mode ? "#0f172a" : "transparent",
+                  color: viewMode === mode ? "white" : T.t3,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: "inherit", transition: "all .15s",
+                }}>
+                  {mode === "grid" ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}>
+                      <rect x="3" y="3" width="7" height="7" rx="1.5" /><rect x="14" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="3" y="14" width="7" height="7" rx="1.5" /><rect x="14" y="14" width="7" height="7" rx="1.5" />
+                    </svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ width: 14, height: 14 }}>
+                      <path strokeLinecap="round" d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
           {filtered.length === 0 ? (
-            <div style={{ textAlign: "center", padding: "56px 0" }}>
-              <div style={{ width: 48, height: 48, borderRadius: 14, background: T.surfaceSubtle, margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg fill="none" viewBox="0 0 24 24" stroke={T.border} strokeWidth={1.5} style={{ width: 24, height: 24 }}>
+            /* Empty state */
+            <div style={{ textAlign: "center", padding: "64px 0" }}>
+              <div style={{
+                width: 56, height: 56, borderRadius: 16, margin: "0 auto 14px",
+                background: T.surfaceSubtle,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                <svg fill="none" viewBox="0 0 24 24" stroke={T.border} strokeWidth={1.5} style={{ width: 26, height: 26 }}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
                 </svg>
               </div>
-              <p style={{ margin: 0, fontSize: 13, color: T.t3, fontWeight: 600 }}>لا توجد خدمات في هذا التصنيف</p>
+              <p style={{ margin: "0 0 4px", fontSize: 14, color: T.t2, fontWeight: 700 }}>اختر خدمة للحجز</p>
+              <p style={{ margin: 0, fontSize: 12, color: T.t3, fontWeight: 500 }}>لا توجد خدمات في هذا التصنيف</p>
             </div>
+
+          ) : viewMode === "grid" ? (
+            /* ── GRID VIEW ── */
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+              {filtered.map((s, i) => {
+                const price    = parseFloat(s.basePrice || String(s.price ?? 0));
+                const hasPrice = price > 0 && s.pricingType !== "free";
+                const isFree   = s.pricingType === "free";
+                const added    = inCart(s.id);
+                return (
+                  <div key={s.id} className="grid-card" style={{
+                    background: "white",
+                    borderRadius: 16,
+                    border: `1.5px solid ${added ? hex2rgb(orgAccent, 0.4) : T.borderFaint}`,
+                    boxShadow: added ? `0 0 0 2px ${hex2rgb(orgAccent, 0.15)}, ${T.shadow}` : T.shadow,
+                    overflow: "hidden",
+                    animation: `cardIn .22s ease ${i * 0.03}s both`,
+                    transition: "border-color .15s, box-shadow .15s",
+                  }}>
+                    {/* Image area — warm honey gradient */}
+                    <div style={{
+                      height: 130, position: "relative",
+                      background: "linear-gradient(135deg, #faf7ef 0%, #f5edda 100%)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke={hex2rgb(orgAccent, 0.35)} strokeWidth={1.5} style={{ width: 32, height: 32 }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+                      </svg>
+                      {/* Category badge — top right */}
+                      {s.categoryId && catMap[s.categoryId] && (
+                        <div style={{
+                          position: "absolute", top: 8, right: 8,
+                          fontSize: 9, fontWeight: 700, color: T.t2,
+                          background: "rgba(255,255,255,0.85)", padding: "2px 7px", borderRadius: 999,
+                          backdropFilter: "blur(4px)",
+                        }}>
+                          {catMap[s.categoryId]}
+                        </div>
+                      )}
+                      {added && (
+                        <div style={{
+                          position: "absolute", top: 8, left: 8,
+                          width: 22, height: 22, borderRadius: 6,
+                          background: "#0f172a",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          boxShadow: "0 2px 8px rgba(0,0,0,0.25)",
+                        }}>
+                          <svg viewBox="0 0 24 24" fill="none" strokeWidth={3} style={{ width: 12, height: 12 }}>
+                            <path stroke="white" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Card body */}
+                    <div style={{ padding: "10px 10px 11px" }}>
+                      <p style={{ margin: "0 0 3px", fontSize: 12, fontWeight: 800, color: T.t1, lineHeight: 1.3, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                        {s.name}
+                      </p>
+                      {s.description && (
+                        <p style={{ margin: "0 0 6px", fontSize: 10, color: T.t3, lineHeight: 1.4, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
+                          {s.description}
+                        </p>
+                      )}
+
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 6, gap: 6 }}>
+                        <div>
+                          {hasPrice && (
+                            <span style={{ fontSize: 13, fontWeight: 900, color: orgAccent, letterSpacing: -0.3 }}>
+                              {price.toLocaleString("ar-SA")}
+                              <span style={{ fontSize: 9, fontWeight: 600, marginRight: 1 }}> ر.س</span>
+                            </span>
+                          )}
+                          {isFree && (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: "#059669", background: "#D1FAE5", padding: "2px 6px", borderRadius: 5 }}>مجاني</span>
+                          )}
+                          {!hasPrice && !isFree && (
+                            <span style={{ fontSize: 10, color: T.t3, fontWeight: 500 }}>عند الطلب</span>
+                          )}
+                        </div>
+
+                        {showBook && (
+                          <button className="book-pill" onClick={() => toggleCart(s)} style={{
+                            width: 28, height: 28, borderRadius: 8, border: "none",
+                            background: added ? "#0f172a" : orgAccent,
+                            color: "white",
+                            cursor: "pointer", fontFamily: "inherit",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            flexShrink: 0,
+                            boxShadow: added ? "0 2px 8px rgba(0,0,0,0.2)" : `0 2px 8px ${hex2rgb(orgAccent, 0.3)}`,
+                          }}>
+                            {added ? (
+                              <svg viewBox="0 0 24 24" fill="none" strokeWidth={2.5} style={{ width: 13, height: 13 }}>
+                                <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <svg viewBox="0 0 24 24" fill="none" strokeWidth={2.5} style={{ width: 13, height: 13 }}>
+                                <path stroke="currentColor" strokeLinecap="round" d="M12 5v14M5 12h14" />
+                              </svg>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
           ) : (
+            /* ── LIST VIEW ── */
             <div style={{ display: "flex", flexDirection: "column", gap: 9 }}>
               {filtered.map((s, i) => {
                 const price    = parseFloat(s.basePrice || String(s.price ?? 0));
                 const hasPrice = price > 0 && s.pricingType !== "free";
                 const isFree   = s.pricingType === "free";
+                const added    = inCart(s.id);
                 return (
                   <div key={s.id} className="svc-row" style={{
-                    background: T.surface,
+                    background: "white",
                     borderRadius: 16,
-                    border: `1px solid ${T.borderFaint}`,
-                    boxShadow: T.shadow,
+                    border: `1.5px solid ${added ? hex2rgb(orgAccent, 0.35) : T.borderFaint}`,
+                    boxShadow: added ? `0 0 0 2px ${hex2rgb(orgAccent, 0.12)}, ${T.shadow}` : T.shadow,
                     display: "flex",
-                    alignItems: "center",
-                    padding: "15px 14px 15px 16px",
-                    gap: 14,
+                    alignItems: "stretch",
+                    gap: 0,
+                    overflow: "hidden",
                     animation: `cardIn .26s ease ${i * 0.04}s both`,
+                    transition: "border-color .15s, box-shadow .15s",
                   }}>
+                    {/* Thumbnail — 56×56 square warm gradient */}
+                    <div style={{
+                      width: 56, height: 56, flexShrink: 0, alignSelf: "center",
+                      margin: "0 0 0 12px",
+                      borderRadius: 10, overflow: "hidden",
+                      background: "linear-gradient(135deg, #faf7ef 0%, #f5edda 100%)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke={hex2rgb(orgAccent, 0.35)} strokeWidth={1.5} style={{ width: 22, height: 22 }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+                      </svg>
+                    </div>
 
                     {/* Text block */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: "0 0 5px", fontWeight: 800, color: T.t1, fontSize: 14, lineHeight: 1.3 }}>
+                    <div style={{ flex: 1, minWidth: 0, padding: "13px 10px 13px 0" }}>
+                      {/* Category name */}
+                      {s.categoryId && catMap[s.categoryId] && (
+                        <p style={{ margin: "0 0 2px", fontSize: 10, fontWeight: 600, color: T.t3 }}>
+                          {catMap[s.categoryId]}
+                        </p>
+                      )}
+                      <p style={{ margin: "0 0 4px", fontWeight: 800, color: T.t1, fontSize: 14, lineHeight: 1.3 }}>
                         {s.name}
                       </p>
-
-                      {/* Price row */}
                       <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                         {hasPrice && (
-                          <span style={{ fontSize: 15, fontWeight: 900, color: primary, letterSpacing: -0.3 }}>
-                            {s.pricingType === "from" && <span style={{ fontSize: 11, fontWeight: 600, marginLeft: 2 }}>من </span>}
+                          <span style={{ fontSize: 14, fontWeight: 900, color: orgAccent, letterSpacing: -0.3 }}>
+                            {s.pricingType === "from" && <span style={{ fontSize: 10, fontWeight: 600, marginLeft: 2 }}>من </span>}
                             {price.toLocaleString("ar-SA")}
-                            <span style={{ fontSize: 10, fontWeight: 600, color: hex2rgb(primary, 0.7), marginRight: 2 }}> ر.س</span>
+                            <span style={{ fontSize: 9, fontWeight: 600, color: hex2rgb(orgAccent, 0.65), marginRight: 2 }}> ر.س</span>
                           </span>
                         )}
                         {isFree && (
-                          <span style={{ fontSize: 11, fontWeight: 700, color: "#059669", background: "#D1FAE5", padding: "2px 8px", borderRadius: 6 }}>
-                            مجاني
-                          </span>
+                          <span style={{ fontSize: 10, fontWeight: 700, color: "#059669", background: "#D1FAE5", padding: "2px 7px", borderRadius: 5 }}>مجاني</span>
                         )}
                         {s.duration && s.duration > 0 && (
-                          <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 11, color: T.t3, fontWeight: 600 }}>
+                          <span style={{ display: "flex", alignItems: "center", gap: 3, fontSize: 10, color: T.t3, fontWeight: 600 }}>
                             {Icon.clock} {s.duration} د
                           </span>
                         )}
                       </div>
-
-                      {/* Description */}
-                      {s.description && (
-                        <p style={{ margin: "5px 0 0", fontSize: 11, color: T.t3, lineHeight: 1.45, overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 1, WebkitBoxOrient: "vertical" }}>
-                          {s.description}
-                        </p>
-                      )}
                     </div>
 
-                    {/* Cart toggle button */}
-                    {showBook && (() => {
-                      const added = inCart(s.id);
-                      return (
+                    {/* Add button — honey outline style */}
+                    {showBook && (
+                      <div style={{ display: "flex", alignItems: "center", padding: "0 14px 0 10px", flexShrink: 0 }}>
                         <button className="book-pill" onClick={() => toggleCart(s)} style={{
-                          flexShrink: 0,
-                          padding: "9px 16px",
+                          padding: "6px 14px",
                           borderRadius: 10,
-                          background: added ? hex2rgb(primary, 0.1) : primary,
-                          color: added ? primary : "white",
-                          fontWeight: 800,
-                          fontSize: 13,
-                          border: `1.5px solid ${added ? hex2rgb(primary, 0.3) : primary}`,
-                          cursor: "pointer",
-                          fontFamily: "inherit",
+                          background: added ? orgAccent : "white",
+                          color: added ? "white" : orgAccent,
+                          fontWeight: 800, fontSize: 12,
+                          border: `1.5px solid ${orgAccent}`,
+                          cursor: "pointer", fontFamily: "inherit",
                           whiteSpace: "nowrap",
-                          boxShadow: added ? "none" : `0 2px 8px ${hex2rgb(primary, 0.28)}`,
+                          boxShadow: added ? `0 2px 8px ${hex2rgb(orgAccent, 0.3)}` : "none",
+                          display: "flex", alignItems: "center", gap: 4,
                           transition: "all .15s",
                         }}>
-                          {added ? "مضافة ✓" : "أضف"}
+                          {added ? (
+                            <>
+                              <svg viewBox="0 0 24 24" fill="none" strokeWidth={2.5} style={{ width: 12, height: 12 }}>
+                                <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                              مضاف
+                            </>
+                          ) : "أضف"}
                         </button>
-                      );
-                    })()}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -733,58 +953,94 @@ export function PublicStorefrontPage() {
           <span style={{ fontSize: 11, fontWeight: 800, color: BRAND }}>{PLATFORM_NAME}</span>
         </div>
 
-        {/* ━━━━ BOTTOM BAR ━━━━
-            Glass surface, safe-area aware.
-            Primary CTA + optional WA button.
+        {/* ━━━━ BOTTOM CTA BAR ━━━━
+            Always white outer wrapper.
+            Inner: dark #0f172a rounded container when items in cart.
+            Inner: light #f1f5f9 rounded pill when empty.
         */}
         <div style={{
           position: "fixed", bottom: 0,
           left: "50%", transform: "translateX(-50%)",
           width: "100%", maxWidth: 440, zIndex: 20,
-          background: "rgba(255,255,255,0.97)",
-          backdropFilter: "blur(20px)",
-          WebkitBackdropFilter: "blur(20px)",
+          background: "white",
           borderTop: `1px solid ${T.borderFaint}`,
-          padding: "10px 14px env(safe-area-inset-bottom, 14px)",
-          display: "flex", gap: 9,
+          padding: "10px 14px env(safe-area-inset-bottom, 10px)",
           boxShadow: "0 -4px 20px rgba(15,23,42,0.07)",
+          animation: "barUp .25s ease both",
         }}>
           {showBook && active.length > 0 && (
-            <button onClick={() => cart.length > 0 ? setShowSheet(true) : setCart([active[0]])} style={{
-              flex: 1, padding: "13px 0", borderRadius: 13, border: "none",
-              background: cart.length > 0
-                ? `linear-gradient(135deg, ${primary} 0%, ${darken(primary)} 100%)`
-                : T.surfaceSubtle,
-              color: cart.length > 0 ? "white" : T.t3,
-              fontWeight: 900, fontSize: 14,
-              cursor: "pointer", fontFamily: "inherit",
-              boxShadow: cart.length > 0 ? `0 4px 16px ${hex2rgb(primary, 0.35)}` : "none",
-              transition: "all .2s",
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            }}>
+            <>
               {cart.length > 0 ? (
-                <>
-                  <span style={{ background: "rgba(255,255,255,0.25)", borderRadius: 8, padding: "1px 8px", fontSize: 12, fontWeight: 900 }}>{cart.length}</span>
-                  تأكيد الحجز
-                </>
-              ) : "اختر خدمة للحجز"}
-            </button>
+                /* Dark inner container with cart info + CTA */
+                <div style={{
+                  background: "#0f172a", borderRadius: 14,
+                  display: "flex", alignItems: "center", gap: 10,
+                  padding: "10px 14px",
+                }}>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
+                    <span style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 600 }}>
+                      {cart.length} {cart.length === 1 ? "خدمة" : "خدمات"}
+                    </span>
+                    {totalCart > 0 && (
+                      <span style={{ fontSize: 15, fontWeight: 900, color: orgAccent, letterSpacing: -0.4 }}>
+                        {totalCart.toLocaleString("ar-SA")} ر.س
+                      </span>
+                    )}
+                  </div>
+
+                  <button onClick={() => setShowSheet(true)} style={{
+                    flex: 1, padding: "11px 0", borderRadius: 10, border: "none",
+                    background: `linear-gradient(135deg, ${orgAccent} 0%, ${darken(orgAccent)} 100%)`,
+                    color: "white", fontWeight: 900, fontSize: 14,
+                    cursor: "pointer", fontFamily: "inherit",
+                    boxShadow: `0 4px 16px ${hex2rgb(orgAccent, 0.4)}`,
+                    display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                    transition: "all .15s",
+                  }}>
+                    <span style={{ background: "rgba(255,255,255,0.22)", borderRadius: 6, padding: "1px 7px", fontSize: 12, fontWeight: 900 }}>
+                      {cart.length}
+                    </span>
+                    تأكيد الحجز
+                    <svg viewBox="0 0 24 24" fill="none" strokeWidth={2.5} style={{ width: 14, height: 14 }}>
+                      <path stroke="white" strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+
+                  {waLink && (
+                    <a href={waLink} target="_blank" rel="noreferrer" style={{
+                      width: 42, height: 42, borderRadius: 10, flexShrink: 0,
+                      background: "rgba(37,211,102,0.15)",
+                      border: "1px solid rgba(37,211,102,0.3)",
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                      color: "#25D366", textDecoration: "none",
+                    }}>
+                      {Icon.wa}
+                    </a>
+                  )}
+                </div>
+              ) : (
+                /* Empty state — light pill */
+                <div style={{
+                  height: 50, background: "#f1f5f9", borderRadius: 14,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                }}>
+                  <span style={{ fontSize: 13, color: T.t3, fontWeight: 600 }}>اختر خدمة للحجز</span>
+                </div>
+              )}
+            </>
           )}
 
-          {waLink && (
+          {/* WA only (no booking enabled) */}
+          {(!showBook || active.length === 0) && waLink && (
             <a href={waLink} target="_blank" rel="noreferrer" style={{
-              ...(showBook && active.length > 0
-                ? { flexShrink: 0, width: 48, borderRadius: 13 }
-                : { flex: 1, borderRadius: 13 }),
-              padding: "13px 0",
-              background: T.wa,
-              color: "white", fontWeight: 800, fontSize: 14,
-              textDecoration: "none",
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              width: "100%", height: 50, borderRadius: 14,
+              background: "#25D366", color: "white",
+              fontWeight: 800, fontSize: 14, textDecoration: "none",
               boxShadow: "0 4px 16px rgba(37,211,102,0.3)",
+              fontFamily: "inherit",
             }}>
-              {Icon.wa}
-              {(!showBook || active.length === 0) && "واتساب"}
+              {Icon.wa} واتساب
             </a>
           )}
         </div>

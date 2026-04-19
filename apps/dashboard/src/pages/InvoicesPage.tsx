@@ -10,20 +10,20 @@ import { Button, Modal, Input, Select, confirmDialog } from "@/components/ui";
 import { CreateInvoiceModal } from "@/components/invoices/CreateInvoiceModal";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  draft:          { label: "مسودة",         color: "bg-gray-100 text-gray-600 border-[#eef2f6]",       icon: Clock },
+  draft:          { label: "مسودة",         color: "bg-[#f1f5f9] text-gray-600 border-[#eef2f6]",       icon: Clock },
   issued:         { label: "صادرة",          color: "bg-blue-50 text-blue-700 border-blue-200",         icon: FileText },
   sent:           { label: "مُرسلة",         color: "bg-indigo-50 text-indigo-700 border-indigo-200",   icon: FileText },
   paid:           { label: "مدفوعة",         color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
   partially_paid: { label: "مدفوعة جزئياً", color: "bg-teal-50 text-teal-700 border-teal-200",         icon: Clock },
   overdue:        { label: "متأخرة",         color: "bg-red-50 text-red-700 border-red-200",             icon: AlertTriangle },
-  cancelled:      { label: "ملغاة",          color: "bg-gray-100 text-gray-500 border-[#eef2f6]",        icon: XCircle },
+  cancelled:      { label: "ملغاة",          color: "bg-[#f1f5f9] text-gray-500 border-[#eef2f6]",        icon: XCircle },
 };
 
 const SOURCE_BADGE: Record<string, { label: string; color: string }> = {
   booking:  { label: "حجز",     color: "bg-brand-50 text-brand-700 border-brand-200" },
   order:    { label: "طلب",     color: "bg-violet-50 text-violet-700 border-violet-200" },
   services: { label: "خدمات",   color: "bg-amber-50 text-amber-700 border-amber-200" },
-  manual:   { label: "يدوي",    color: "bg-gray-100 text-gray-500 border-[#eef2f6]" },
+  manual:   { label: "يدوي",    color: "bg-[#f1f5f9] text-gray-500 border-[#eef2f6]" },
 };
 
 
@@ -142,7 +142,7 @@ export function InvoicesPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "إجمالي الفواتير",  value: stats ? `${stats.total} فاتورة` : `${invoiceList.length} فاتورة`, color: "text-brand-600",   bg: "bg-brand-50" },
-          { label: "إجمالي المبالغ",   value: `${fmt(stats?.totalAmount)} ر.س`,                                  color: "text-gray-700",    bg: "bg-gray-100" },
+          { label: "إجمالي المبالغ",   value: `${fmt(stats?.totalAmount)} ر.س`,                                  color: "text-gray-700",    bg: "bg-[#f1f5f9]" },
           { label: "مدفوعة",           value: `${fmt(stats?.paidAmount)} ر.س`,                                   color: "text-emerald-600", bg: "bg-emerald-50" },
           { label: "بانتظار الدفع من العملاء", value: `${fmt(stats?.unpaidAmount)} ر.س`,                                 color: "text-red-500",     bg: "bg-red-50" },
         ].map(s => (
@@ -193,9 +193,9 @@ export function InvoicesPage() {
           <div className="p-5 space-y-3">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex items-center gap-4 animate-pulse">
-                <div className="w-9 h-9 rounded-lg bg-gray-100 shrink-0" />
-                <div className="flex-1 space-y-1.5"><div className="h-3.5 w-40 bg-gray-100 rounded" /><div className="h-3 w-24 bg-gray-100 rounded" /></div>
-                <div className="h-6 w-20 bg-gray-100 rounded-full" />
+                <div className="w-9 h-9 rounded-lg bg-[#eef2f6] shrink-0" />
+                <div className="flex-1 space-y-1.5"><div className="h-3.5 w-40 bg-[#eef2f6] rounded" /><div className="h-3 w-24 bg-[#eef2f6] rounded" /></div>
+                <div className="h-6 w-20 bg-[#eef2f6] rounded-full" />
               </div>
             ))}
           </div>
@@ -273,7 +273,7 @@ export function InvoicesPage() {
                                 تسجيل دفعة
                               </button>
                               <button onClick={() => markPaid(inv.id)}
-                                className="px-2 py-1 rounded-lg bg-[#f8fafc] text-gray-500 text-[10px] font-medium hover:bg-gray-100 transition-colors border border-[#eef2f6]">
+                                className="px-2 py-1 rounded-lg bg-[#f8fafc] text-gray-500 text-[10px] font-medium hover:bg-[#f1f5f9] transition-colors border border-[#eef2f6]">
                                 تأشير كمدفوع
                               </button>
                               <span className="text-[9px] text-gray-400 leading-tight text-right">بدون تسجيل طريقة الدفع</span>
@@ -365,7 +365,7 @@ export function InvoicesPage() {
                 { label: "تاريخ الإصدار", value: fmtDate(viewInvoice.issueDate || viewInvoice.createdAt) },
                 ...(viewInvoice.dueDate ? [{ label: "تاريخ الاستحقاق", value: fmtDate(viewInvoice.dueDate) }] : []),
               ].map(row => (
-                <div key={row.label} className="flex justify-between py-1.5 border-b border-gray-50">
+                <div key={row.label} className="flex justify-between py-1.5 border-b border-[#eef2f6]">
                   <span className="text-gray-500">{row.label}</span>
                   <span>{row.value}</span>
                 </div>
@@ -373,7 +373,7 @@ export function InvoicesPage() {
             </div>
 
             {/* Amounts */}
-            <div className="bg-gray-50 rounded-xl p-3 space-y-1.5 text-sm">
+            <div className="bg-[#f8fafc] rounded-xl p-3 space-y-1.5 text-sm">
               <div className="flex justify-between text-gray-600">
                 <span>قبل الضريبة</span>
                 <span className="tabular-nums">{fmt(viewInvoice.subtotal)} ر.س</span>
@@ -438,7 +438,7 @@ export function InvoicesPage() {
             )}
 
             {/* ترميز OS watermark */}
-            <div className="pt-2 flex items-center justify-between border-t border-gray-50">
+            <div className="pt-2 flex items-center justify-between border-t border-[#eef2f6]">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-brand-600 flex items-center justify-center shrink-0">
                   <span className="text-white font-bold text-xs leading-none">ن</span>
