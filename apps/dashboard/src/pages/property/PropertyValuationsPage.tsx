@@ -89,7 +89,7 @@ export function PropertyValuationsPage() {
 
       {/* Chart */}
       {!loading && chartData.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
           <h2 className="text-base font-semibold text-gray-800 mb-4">تطور قيمة العقارات</h2>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chartData}>
@@ -115,8 +115,8 @@ export function PropertyValuationsPage() {
       )}
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="px-[10px] py-[6px] border-b border-[#eef2f6]">
           <h2 className="font-semibold text-gray-800">سجل التقييمات</h2>
         </div>
         {loading ? (
@@ -130,7 +130,7 @@ export function PropertyValuationsPage() {
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-[#f8fafc]">
               <tr>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">العقار</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">التاريخ</th>
@@ -141,20 +141,20 @@ export function PropertyValuationsPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {valuations.map((v: any) => (
-                <tr key={v.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3 font-medium text-gray-900">{v.propertyName ?? v.propertyId}</td>
-                  <td className="px-4 py-3 text-gray-600">
+                <tr key={v.id} className="hover:bg-[#f8fafc] transition-colors">
+                  <td className="px-[10px] py-[6px] font-medium text-gray-900">{v.propertyName ?? v.propertyId}</td>
+                  <td className="px-[10px] py-[6px] text-gray-600">
                     {v.valuationDate ? new Date(v.valuationDate).toLocaleDateString("ar-SA") : "—"}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-[10px] py-[6px] text-gray-600">
                     {v.valuationType === "market" ? "سوقية" :
                      v.valuationType === "income" ? "دخلية" :
                      v.valuationType === "cost" ? "تكلفة" : v.valuationType}
                   </td>
-                  <td className="px-4 py-3 font-semibold text-emerald-700">
+                  <td className="px-[10px] py-[6px] font-semibold text-emerald-700">
                     {Number(v.value).toLocaleString("en-US")}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{v.valuatorName ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-gray-600">{v.valuatorName ?? "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -174,7 +174,7 @@ export function PropertyValuationsPage() {
                 <select
                   value={form.propertyId}
                   onChange={(e) => setForm({ ...form, propertyId: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 >
                   <option value="">اختر العقار</option>
                   {properties.map((p: any) => (
@@ -188,7 +188,7 @@ export function PropertyValuationsPage() {
                 <select
                   value={form.valuationType}
                   onChange={(e) => setForm({ ...form, valuationType: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 >
                   <option value="market">سوقية</option>
                   <option value="income">دخلية</option>
@@ -203,7 +203,7 @@ export function PropertyValuationsPage() {
                   value={form.value}
                   onChange={(e) => setForm({ ...form, value: e.target.value })}
                   placeholder="0"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
 
@@ -213,7 +213,7 @@ export function PropertyValuationsPage() {
                   value={form.valuatorName}
                   onChange={(e) => setForm({ ...form, valuatorName: e.target.value })}
                   placeholder="اسم المقيّم أو الجهة"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
 
@@ -223,7 +223,7 @@ export function PropertyValuationsPage() {
                   type="date"
                   value={form.valuationDate}
                   onChange={(e) => setForm({ ...form, valuationDate: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
             </div>
@@ -239,7 +239,7 @@ export function PropertyValuationsPage() {
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors"
+                className="flex-1 py-2 border border-[#eef2f6] text-gray-700 rounded-xl text-sm hover:bg-[#f8fafc] transition-colors"
               >
                 إلغاء
               </button>

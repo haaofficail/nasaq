@@ -72,27 +72,27 @@ export function BookingSalesReportPage() {
       </div>
 
       {/* filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">من تاريخ</label>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">إلى تاريخ</label>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">حالة الحجز</label>
             <select value={status} onChange={e => setStatus(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 bg-white">
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400 bg-white">
               {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
           <button onClick={exportCsv}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors mr-auto">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f8fafc] border border-[#eef2f6] text-sm text-gray-600 hover:bg-gray-100 transition-colors mr-auto">
             <Download className="w-4 h-4" /> تصدير CSV
           </button>
         </div>
@@ -107,11 +107,11 @@ export function BookingSalesReportPage() {
               { icon: Banknote,      label: "إجمالي الإيرادات", value: fmt(summary.totalRevenue),      unit: "ر.س",   color: "text-emerald-600", bg: "bg-emerald-50" },
               { icon: Banknote,      label: "المبالغ المحصّلة", value: fmt(summary.totalPaid),          unit: "ر.س",   color: "text-emerald-700", bg: "bg-emerald-100" },
               { icon: Clock,         label: "إيرادات معلقة",    value: fmt(summary.outstanding),        unit: "ر.س",   color: "text-amber-600",   bg: "bg-amber-50" },
-              { icon: TrendingUp,    label: "متوسط قيمة الحجز", value: fmt(summary.avgValue),           unit: "ر.س",   color: "text-gray-800",    bg: "bg-gray-50" },
+              { icon: TrendingUp,    label: "متوسط قيمة الحجز", value: fmt(summary.avgValue),           unit: "ر.س",   color: "text-gray-800",    bg: "bg-[#f8fafc]" },
             ].map(card => {
               const Icon = card.icon;
               return (
-                <div key={card.label} className="bg-white rounded-2xl border border-gray-100 p-4">
+                <div key={card.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
                   <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-3", card.bg)}>
                     <Icon className={clsx("w-4 h-4", card.color)} />
                   </div>
@@ -131,7 +131,7 @@ export function BookingSalesReportPage() {
               { key: "inProgressCount", label: "قيد التنفيذ",       color: "bg-brand-50 text-brand-600" },
               { key: "cancelledCount",  label: "ملغي",              color: "bg-red-50 text-red-500" },
             ].map(s => (
-              <div key={s.key} className={clsx("rounded-2xl border border-gray-100 p-4", s.color.split(" ")[0].replace("text-", "bg-").replace("700", "50").replace("600", "50").replace("500", "50"))}>
+              <div key={s.key} className={clsx("rounded-2xl border border-[#eef2f6] p-4", s.color.split(" ")[0].replace("text-", "bg-").replace("700", "50").replace("600", "50").replace("500", "50"))}>
                 <p className={clsx("text-2xl font-bold tabular-nums", s.color.split(" ")[1])}>{fmtInt(summary[s.key])}</p>
                 <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
               </div>
@@ -142,7 +142,7 @@ export function BookingSalesReportPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
 
             {/* Daily trend chart */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-50">
                 <h2 className="font-semibold text-gray-900 text-sm">الإيرادات اليومية</h2>
               </div>
@@ -171,7 +171,7 @@ export function BookingSalesReportPage() {
             </div>
 
             {/* By service table */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
                 <h2 className="font-semibold text-gray-900 text-sm">أداء الخدمات</h2>
                 <span className="text-xs text-gray-400">{byService.length} خدمة</span>
@@ -193,11 +193,11 @@ export function BookingSalesReportPage() {
                     </thead>
                     <tbody>
                       {byService.map((s: any, i: number) => (
-                        <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                          <td className="px-4 py-3 font-medium text-gray-800">{s.serviceName || "—"}</td>
-                          <td className="px-4 py-3 text-center tabular-nums text-gray-600">{s.bookingCount}</td>
-                          <td className="px-4 py-3 tabular-nums font-semibold text-gray-900">{fmt(s.totalRevenue)} ر.س</td>
-                          <td className="px-4 py-3 tabular-nums text-gray-500">{fmt(s.avgPrice)} ر.س</td>
+                        <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
+                          <td className="px-[10px] py-[6px] font-medium text-gray-800">{s.serviceName || "—"}</td>
+                          <td className="px-[10px] py-[6px] text-center tabular-nums text-gray-600">{s.bookingCount}</td>
+                          <td className="px-[10px] py-[6px] tabular-nums font-semibold text-gray-900">{fmt(s.totalRevenue)} ر.س</td>
+                          <td className="px-[10px] py-[6px] tabular-nums text-gray-500">{fmt(s.avgPrice)} ر.س</td>
                         </tr>
                       ))}
                     </tbody>
@@ -208,7 +208,7 @@ export function BookingSalesReportPage() {
           </div>
 
           {/* FAQ */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
             <div className="space-y-3">
               {[
@@ -217,8 +217,8 @@ export function BookingSalesReportPage() {
                 { q: "ما المقصود بـ «متوسط قيمة الحجز»؟", a: "إجمالي الإيرادات مقسومًا على عدد الحجوزات في الفترة المحددة." },
                 { q: "لماذا يختلف هذا التقرير عن تقرير المبيعات (الفواتير)؟", a: "تقرير الحجوزات يركّز على الحجوزات كوحدة، أما تقرير المبيعات فيركّز على بنود الفواتير. الحجوزات قد لا يكون لها فاتورة بعد." },
               ].map(faq => (
-                <details key={faq.q} className="border border-gray-100 rounded-xl">
-                  <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+                <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+                  <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
                   <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
                 </details>
               ))}

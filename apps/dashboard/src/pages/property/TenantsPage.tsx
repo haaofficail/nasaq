@@ -10,7 +10,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
+        <div className="flex justify-between items-center p-4 border-b border-[#eef2f6]">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
@@ -29,7 +29,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
 
 const EMPTY_FORM = {
   customerId: "", nationalId: "", iqamaNumber: "", nationality: "",
@@ -113,19 +113,19 @@ export function TenantsPage() {
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="البحث بالاسم أو رقم الهوية..."
-        className="w-full max-w-md border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+        className="w-full max-w-md border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
       />
 
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50">
+          <thead className="bg-[#f8fafc]">
             <tr>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الاسم</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الهوية / الإقامة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الجوال</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">عدد العقود</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">آخر نشاط</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الإجراءات</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الاسم</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الهوية / الإقامة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الجوال</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">عدد العقود</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">آخر نشاط</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الإجراءات</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -144,17 +144,17 @@ export function TenantsPage() {
               tenants.map((t: any) => (
                 <tr
                   key={t.id}
-                  className="hover:bg-gray-50 cursor-pointer"
+                  className="hover:bg-[#f8fafc] cursor-pointer"
                   onClick={() => setSelectedTenant(t)}
                 >
-                  <td className="px-4 py-3 font-medium text-gray-900">{t.name ?? t.fullName ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500">{t.nationalId ?? t.iqamaNumber ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500">{t.phone ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500">{t.contractsCount ?? 0}</td>
-                  <td className="px-4 py-3 text-gray-500">
+                  <td className="px-[10px] py-[6px] font-medium text-gray-900">{t.name ?? t.fullName ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">{t.nationalId ?? t.iqamaNumber ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">{t.phone ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">{t.contractsCount ?? 0}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">
                     {t.lastActivity ? new Date(t.lastActivity).toLocaleDateString("ar-SA") : "—"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <button
                       onClick={(e) => { e.stopPropagation(); openEdit(t); }}
                       className="text-xs text-emerald-700 hover:underline"
@@ -172,7 +172,7 @@ export function TenantsPage() {
       {/* Side panel */}
       {selectedTenant && (
         <div className="fixed inset-y-0 left-0 w-full md:w-96 bg-white shadow-2xl z-40 flex flex-col overflow-hidden" dir="rtl">
-          <div className="flex items-center justify-between p-4 border-b border-gray-100">
+          <div className="flex items-center justify-between p-4 border-b border-[#eef2f6]">
             <h3 className="font-semibold text-gray-900">{selectedTenant.name ?? selectedTenant.fullName}</h3>
             <button onClick={() => setSelectedTenant(null)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
           </div>
@@ -202,7 +202,7 @@ export function TenantsPage() {
                 </div>
 
                 {/* Tabs */}
-                <div className="border-b border-gray-100">
+                <div className="border-b border-[#eef2f6]">
                   <nav className="flex gap-4">
                     {([
                       { id: "contracts", label: "العقود" },
@@ -301,7 +301,7 @@ export function TenantsPage() {
               <textarea className={clsx(inputCls, "h-20 resize-none")} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </Field>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50">
                 {saving ? "جارٍ الحفظ..." : "حفظ"}
               </button>

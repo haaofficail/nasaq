@@ -235,7 +235,7 @@ function StatementDetail({ id, onBack }: { id: string; onBack: () => void }) {
             color: computed.isBalanced ? "text-emerald-600" : "text-red-500",
           },
         ].map((k) => (
-          <div key={k.label} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={k.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <p className="text-xs text-gray-400 mb-1">{k.label}</p>
             <p className={clsx("text-lg font-bold tabular-nums", k.color)}>{fmt(k.value)} ر.س</p>
           </div>
@@ -259,8 +259,8 @@ function StatementDetail({ id, onBack }: { id: string; onBack: () => void }) {
         const sideLabel = side === "book" ? "تسويات رصيد الدفاتر" : "تسويات الرصيد الخارجي";
 
         return (
-          <div key={side} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
+          <div key={side} className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-[6px] border-b border-[#eef2f6]">
               <p className="font-semibold text-gray-900 text-sm">{sideLabel}</p>
               <span className="text-sm font-bold tabular-nums text-gray-700">{fmt(sideTotal)} ر.س</span>
             </div>
@@ -269,7 +269,7 @@ function StatementDetail({ id, onBack }: { id: string; onBack: () => void }) {
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                  <tr className="bg-gray-50/50 border-b border-[#eef2f6]">
                     <th className="text-right py-2.5 px-4 text-xs text-gray-400 font-semibold">النوع</th>
                     <th className="text-right py-2.5 px-4 text-xs text-gray-400 font-semibold">الوصف</th>
                     <th className="text-right py-2.5 px-4 text-xs text-gray-400 font-semibold">المرجع</th>
@@ -279,20 +279,20 @@ function StatementDetail({ id, onBack }: { id: string; onBack: () => void }) {
                 </thead>
                 <tbody>
                   {items.map((item: any) => (
-                    <tr key={item.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40">
-                      <td className="py-3 px-4">
+                    <tr key={item.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40">
+                      <td className="py-[6px] px-[10px]">
                         <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                           {ITEM_TYPE_LABELS[item.itemType] ?? item.itemType}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-gray-800">{item.description}</td>
-                      <td className="py-3 px-4 text-gray-400 text-xs font-mono">{item.reference || "—"}</td>
+                      <td className="py-[6px] px-[10px] text-gray-800">{item.description}</td>
+                      <td className="py-[6px] px-[10px] text-gray-400 text-xs font-mono">{item.reference || "—"}</td>
                       <td className={clsx("py-3 px-4 font-bold tabular-nums",
                         parseFloat(item.amount) >= 0 ? "text-emerald-600" : "text-red-500")}>
                         {parseFloat(item.amount) >= 0 ? "+" : ""}{fmt(parseFloat(item.amount))} ر.س
                       </td>
                       {!isCompleted && (
-                        <td className="py-3 px-4">
+                        <td className="py-[6px] px-[10px]">
                           <button
                             onClick={() => handleDeleteItem(item.id)}
                             className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors">
@@ -352,7 +352,7 @@ function StatementList({ onSelect }: { onSelect: (id: string) => void }) {
               "px-3.5 py-1.5 rounded-xl text-sm font-medium transition-all",
               typeFilter === opt.value
                 ? "bg-brand-500 text-white"
-                : "bg-white border border-gray-200 text-gray-600 hover:border-brand-300"
+                : "bg-white border border-[#eef2f6] text-gray-600 hover:border-brand-300"
             )}>
             {opt.label}
           </button>
@@ -364,16 +364,16 @@ function StatementList({ onSelect }: { onSelect: (id: string) => void }) {
           <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
         </div>
       ) : statements.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <Scale className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-sm text-gray-400">لا توجد كشوف تسوية</p>
           <Button className="mt-4" icon={Plus} onClick={() => setShowCreate(true)}>إنشاء أول كشف</Button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
+              <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                 <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold">النوع</th>
                 <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">الفترة</th>
                 <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">رصيد الدفاتر</th>
@@ -387,20 +387,20 @@ function StatementList({ onSelect }: { onSelect: (id: string) => void }) {
                 <tr key={s.id}
                   onClick={() => onSelect(s.id)}
                   className="border-b border-gray-50 last:border-0 hover:bg-brand-50/40 cursor-pointer transition-colors">
-                  <td className="py-3.5 px-5 font-medium text-gray-900">{TYPE_LABELS[s.type] ?? s.type}</td>
-                  <td className="py-3.5 px-4 text-gray-500 text-xs">
+                  <td className="py-[6px] px-5 font-medium text-gray-900">{TYPE_LABELS[s.type] ?? s.type}</td>
+                  <td className="py-[6px] px-[10px] text-gray-500 text-xs">
                     {fmtDate(s.periodStart)} — {fmtDate(s.periodEnd)}
                   </td>
-                  <td className="py-3.5 px-4 tabular-nums text-gray-700">{fmt(parseFloat(s.bookBalance))} ر.س</td>
-                  <td className="py-3.5 px-4 tabular-nums text-gray-700">{fmt(parseFloat(s.externalBalance))} ر.س</td>
-                  <td className="py-3.5 px-4 tabular-nums">
+                  <td className="py-[6px] px-[10px] tabular-nums text-gray-700">{fmt(parseFloat(s.bookBalance))} ر.س</td>
+                  <td className="py-[6px] px-[10px] tabular-nums text-gray-700">{fmt(parseFloat(s.externalBalance))} ر.س</td>
+                  <td className="py-[6px] px-[10px] tabular-nums">
                     {s.finalDifference != null ? (
                       <span className={Math.abs(parseFloat(s.finalDifference)) < 0.01 ? "text-emerald-600 font-medium" : "text-red-500 font-medium"}>
                         {fmt(Math.abs(parseFloat(s.finalDifference)))} ر.س
                       </span>
                     ) : "—"}
                   </td>
-                  <td className="py-3.5 px-4">
+                  <td className="py-[6px] px-[10px]">
                     <span className={clsx("text-xs px-2 py-0.5 rounded-full font-medium", STATUS_LABELS[s.status]?.color)}>
                       {STATUS_LABELS[s.status]?.label}
                     </span>

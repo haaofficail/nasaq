@@ -282,7 +282,7 @@ function FAQRow({ item }: { item: FAQItem }) {
     <div className="border-b border-gray-50 last:border-0">
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-start justify-between gap-3 py-3 px-4 text-right hover:bg-gray-50/60 transition-colors"
+        className="w-full flex items-start justify-between gap-3 py-3 px-4 text-right hover:bg-[#f8fafc]/60 transition-colors"
       >
         <span className="text-sm font-semibold text-gray-800 flex-1 leading-snug">{item.q}</span>
         {open
@@ -305,11 +305,11 @@ export function PageFAQ({ pageId }: { pageId: string }) {
   if (!faqs.length) return null;
 
   return (
-    <div className="mt-8 border border-gray-100 rounded-2xl overflow-hidden bg-white shadow-sm" dir="rtl">
+    <div className="mt-8 border border-[#eef2f6] rounded-2xl overflow-hidden bg-white shadow-sm" dir="rtl">
       {/* Header */}
       <button
         onClick={() => setExpanded(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-50/60 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-[6px] hover:bg-[#f8fafc]/60 transition-colors"
       >
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-lg bg-[#5b9bd5]/10 flex items-center justify-center shrink-0">
@@ -327,11 +327,11 @@ export function PageFAQ({ pageId }: { pageId: string }) {
 
       {/* FAQ list */}
       {expanded && (
-        <div className="border-t border-gray-100">
+        <div className="border-t border-[#eef2f6]">
           <div className="divide-y divide-gray-50">
             {faqs.map((item, i) => <FAQRow key={i} item={item} />)}
           </div>
-          <div className="flex items-center justify-end px-4 py-2.5 bg-gray-50/50 border-t border-gray-100">
+          <div className="flex items-center justify-end px-4 py-2.5 bg-gray-50/50 border-t border-[#eef2f6]">
             <button
               onClick={() => navigate("/school/guide")}
               className="flex items-center gap-1.5 text-xs text-[#5b9bd5] font-semibold hover:underline"

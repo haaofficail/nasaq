@@ -132,7 +132,7 @@ export function NewPropertyWizard({ open, onClose, onSuccess }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" dir="rtl">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2f6]">
           <h2 className="text-lg font-bold text-gray-900">عقار جديد</h2>
           <div className="flex items-center gap-4">
             <div className="flex gap-2">
@@ -173,7 +173,7 @@ export function NewPropertyWizard({ open, onClose, onSuccess }: Props) {
                     className={`p-4 rounded-2xl border-2 text-right transition-all ${
                       propertyType === type.value
                         ? "border-blue-400 bg-blue-50"
-                        : "border-gray-100 hover:border-gray-200"
+                        : "border-[#eef2f6] hover:border-[#eef2f6]"
                     }`}
                   >
                     <div className="font-semibold text-gray-900">{type.label}</div>
@@ -198,7 +198,7 @@ export function NewPropertyWizard({ open, onClose, onSuccess }: Props) {
                     value={basicInfo.name}
                     onChange={(e) => setBasicInfo({ ...basicInfo, name: e.target.value })}
                     placeholder="مثال: برج النزهة"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                   />
                 </div>
                 <div>
@@ -207,7 +207,7 @@ export function NewPropertyWizard({ open, onClose, onSuccess }: Props) {
                     value={basicInfo.address}
                     onChange={(e) => setBasicInfo({ ...basicInfo, address: e.target.value })}
                     placeholder="شارع / رقم المبنى"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                   />
                 </div>
                 <div>
@@ -216,7 +216,7 @@ export function NewPropertyWizard({ open, onClose, onSuccess }: Props) {
                     value={basicInfo.neighborhood}
                     onChange={(e) => setBasicInfo({ ...basicInfo, neighborhood: e.target.value })}
                     placeholder="اسم الحي"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                   />
                 </div>
                 <div>
@@ -224,7 +224,7 @@ export function NewPropertyWizard({ open, onClose, onSuccess }: Props) {
                   <select
                     value={basicInfo.city}
                     onChange={(e) => setBasicInfo({ ...basicInfo, city: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                   >
                     <option value="">اختر المدينة</option>
                     {SAUDI_CITIES.map((c) => (
@@ -249,14 +249,14 @@ export function NewPropertyWizard({ open, onClose, onSuccess }: Props) {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => handleUnitCountChange(unitCount - 1)}
-                    className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50"
+                    className="w-8 h-8 rounded-lg border border-[#eef2f6] flex items-center justify-center text-gray-600 hover:bg-[#f8fafc]"
                   >
                     -
                   </button>
                   <span className="w-12 text-center font-semibold">{unitCount}</span>
                   <button
                     onClick={() => handleUnitCountChange(unitCount + 1)}
-                    className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50"
+                    className="w-8 h-8 rounded-lg border border-[#eef2f6] flex items-center justify-center text-gray-600 hover:bg-[#f8fafc]"
                   >
                     +
                   </button>
@@ -274,7 +274,7 @@ export function NewPropertyWizard({ open, onClose, onSuccess }: Props) {
                           value={unit.unitNumber}
                           onChange={(e) => updateUnit(i, "unitNumber", e.target.value)}
                           placeholder={`وحدة ${i + 1}`}
-                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                          className="w-full border border-[#eef2f6] rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                         />
                       </div>
                       <div>
@@ -284,7 +284,7 @@ export function NewPropertyWizard({ open, onClose, onSuccess }: Props) {
                           value={unit.floor}
                           onChange={(e) => updateUnit(i, "floor", e.target.value)}
                           placeholder="1"
-                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                          className="w-full border border-[#eef2f6] rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                         />
                       </div>
                       <div>
@@ -294,7 +294,7 @@ export function NewPropertyWizard({ open, onClose, onSuccess }: Props) {
                           value={unit.area}
                           onChange={(e) => updateUnit(i, "area", e.target.value)}
                           placeholder="100"
-                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                          className="w-full border border-[#eef2f6] rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                         />
                       </div>
                       <div>
@@ -304,7 +304,7 @@ export function NewPropertyWizard({ open, onClose, onSuccess }: Props) {
                           value={unit.monthlyRent}
                           onChange={(e) => updateUnit(i, "monthlyRent", e.target.value)}
                           placeholder="3000"
-                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                          className="w-full border border-[#eef2f6] rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                         />
                       </div>
                       <div>
@@ -314,7 +314,7 @@ export function NewPropertyWizard({ open, onClose, onSuccess }: Props) {
                           value={unit.bedrooms}
                           onChange={(e) => updateUnit(i, "bedrooms", e.target.value)}
                           placeholder="2"
-                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                          className="w-full border border-[#eef2f6] rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                         />
                       </div>
                       <div>
@@ -324,7 +324,7 @@ export function NewPropertyWizard({ open, onClose, onSuccess }: Props) {
                           value={unit.bathrooms}
                           onChange={(e) => updateUnit(i, "bathrooms", e.target.value)}
                           placeholder="1"
-                          className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                          className="w-full border border-[#eef2f6] rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                         />
                       </div>
                     </div>
@@ -336,10 +336,10 @@ export function NewPropertyWizard({ open, onClose, onSuccess }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[#eef2f6]">
           <button
             onClick={step === 1 ? onClose : () => setStep(step - 1)}
-            className="px-5 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors"
+            className="px-5 py-2 border border-[#eef2f6] text-gray-700 rounded-xl text-sm hover:bg-[#f8fafc] transition-colors"
           >
             {step === 1 ? "إلغاء" : "السابق"}
           </button>

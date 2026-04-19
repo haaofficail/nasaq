@@ -93,14 +93,14 @@ export function CustomizationPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-white rounded-2xl border border-gray-100 p-1 overflow-x-auto">
+      <div className="flex gap-1 bg-white rounded-2xl border border-[#eef2f6] p-1 overflow-x-auto">
         {TABS.map((tab, i) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(i)}
             className={clsx(
               "flex-1 min-w-max py-2.5 px-3 rounded-xl text-sm font-medium whitespace-nowrap transition-colors",
-              activeTab === i ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-gray-50"
+              activeTab === i ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-[#f8fafc]"
             )}
           >
             {tab.label}
@@ -109,7 +109,7 @@ export function CustomizationPage() {
       </div>
 
       {/* Editor */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-gray-900">{currentTab?.label}</h2>
           <Button
@@ -130,7 +130,7 @@ export function CustomizationPage() {
             currentList.map((item, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between px-4 py-2.5 bg-gray-50 rounded-xl border border-gray-100"
+                className="flex items-center justify-between px-4 py-2.5 bg-[#f8fafc] rounded-xl border border-[#eef2f6]"
               >
                 <span className="text-sm text-gray-800">{item}</span>
                 <button
@@ -145,14 +145,14 @@ export function CustomizationPage() {
         </div>
 
         {/* Add new */}
-        <div className="flex gap-2 pt-2 border-t border-gray-100">
+        <div className="flex gap-2 pt-2 border-t border-[#eef2f6]">
           <input
             type="text"
             value={newValues[currentTab?.key] || ""}
             onChange={(e) => setNewValues((prev) => ({ ...prev, [currentTab.key]: e.target.value }))}
             onKeyDown={(e) => { if (e.key === "Enter") addItem(); }}
             placeholder="أضف عنصر جديد..."
-            className="flex-1 border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all"
+            className="flex-1 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all"
           />
           <button
             onClick={addItem}

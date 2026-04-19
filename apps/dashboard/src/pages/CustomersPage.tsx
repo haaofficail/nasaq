@@ -103,7 +103,7 @@ export function CustomersPage() {
           { label: "مؤسسات", value: stats.enterprise || customers.filter((c: any) => c.type === "business").length, color: "text-violet-600" },
           { label: "جديد هذا الشهر", value: stats.newThisMonth || 0, color: "text-emerald-600" },
         ].map((s, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <p className="text-xs text-gray-400 mb-1">{s.label}</p>
             <p className={clsx("text-xl font-bold tabular-nums", s.color)}>{s.value}</p>
           </div>
@@ -115,7 +115,7 @@ export function CustomersPage() {
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
           <input type="text" value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالاسم أو الجوال أو اسم الشركة..."
-            className="w-full bg-white border border-gray-100 rounded-xl pr-10 pl-4 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all" />
+            className="w-full bg-white border border-[#eef2f6] rounded-xl pr-10 pl-4 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all" />
         </div>
         <div className="flex gap-1.5 flex-wrap">
           {([
@@ -132,7 +132,7 @@ export function CustomersPage() {
                 "flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-colors",
                 segmentFilter === f.value
                   ? "bg-brand-500 text-white shadow-sm"
-                  : "bg-white border border-gray-100 text-gray-600 hover:bg-gray-50"
+                  : "bg-white border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]"
               )}
             >
               {f.label}
@@ -148,7 +148,7 @@ export function CustomersPage() {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <Users className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-gray-900 mb-1">{search ? "لا توجد نتائج" : biz.terminology.clientEmpty}</h3>
           <p className="text-sm text-gray-400 mb-4">{search ? "جرب كلمات بحث مختلفة" : "أضف " + biz.terminology.client + " جديد"}</p>
@@ -160,10 +160,10 @@ export function CustomersPage() {
           )}
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
+              <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                 <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold uppercase tracking-wide">العميل</th>
                 <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">الجوال</th>
                 <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">الطلبات</th>
@@ -181,10 +181,10 @@ export function CustomersPage() {
                 return (
                   <tr
                     key={customer.id}
-                    className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 cursor-pointer transition-colors"
+                    className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/60 cursor-pointer transition-colors"
                     onClick={() => navigate("/dashboard/customers/" + customer.id)}
                   >
-                    <td className="py-3.5 px-5">
+                    <td className="py-[6px] px-5">
                       <div className="flex items-center gap-3">
                         <div className={clsx(
                           "w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0",
@@ -209,16 +209,16 @@ export function CustomersPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="py-3.5 px-4 text-gray-500 font-mono text-xs" dir="ltr">
+                    <td className="py-[6px] px-[10px] text-gray-500 font-mono text-xs" dir="ltr">
                       {customer.phone ? (
                         <a href={`tel:${customer.phone}`} className="hover:text-brand-600 transition-colors" onClick={e => e.stopPropagation()}>{customer.phone}</a>
                       ) : "—"}
                     </td>
-                    <td className="py-3.5 px-4 text-gray-700 tabular-nums font-medium">{customer.totalBookings || 0}</td>
-                    <td className="py-3.5 px-4 font-semibold text-gray-900 tabular-nums">
+                    <td className="py-[6px] px-[10px] text-gray-700 tabular-nums font-medium">{customer.totalBookings || 0}</td>
+                    <td className="py-[6px] px-[10px] font-semibold text-gray-900 tabular-nums">
                       {Number(customer.totalSpent || 0).toLocaleString()} ر.س
                     </td>
-                    <td className="py-3.5 px-4 text-gray-500 text-xs tabular-nums">
+                    <td className="py-[6px] px-[10px] text-gray-500 text-xs tabular-nums">
                       {relativeTime(customer.lastBookingAt)}
                     </td>
                   </tr>
@@ -232,7 +232,7 @@ export function CustomersPage() {
       {showCreate && <CreateCustomerForm open={true} onClose={() => setShowCreate(false)} onSuccess={handleCreated} />}
 
       {/* FAQ */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 mt-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 mt-5">
         <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
         <div className="space-y-3">
           {[
@@ -242,8 +242,8 @@ export function CustomersPage() {
             { q: "كيف أرى تاريخ عميل بالكامل؟", a: "افتح ملف العميل بالضغط على اسمه. ستجد كل حجوزاته ومدفوعاته وتقييماته في مكان واحد." },
             { q: "كيف أرسل رسالة تسويقية لمجموعة عملاء؟", a: "استخدم «مجموعات العملاء» من قسم التسويق والنمو. صنّف عملاءك ثم أرسل لهم عرضاً مخصصاً أو رسالة متابعة." },
           ].map(faq => (
-            <details key={faq.q} className="border border-gray-100 rounded-xl">
-              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+            <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+              <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
               <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
             </details>
           ))}

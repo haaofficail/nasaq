@@ -35,7 +35,7 @@ export function QuickActionsGrid({ actions, currentRole, onModalOpen }: QuickAct
 
         const cls = clsx(
           "group flex flex-col items-center gap-2.5 py-4 px-3 bg-white rounded-2xl",
-          "border border-gray-100 hover:border-gray-200 shadow-sm hover:shadow-md",
+          "border border-[#eef2f6] hover:border-[#eef2f6] shadow-sm hover:shadow-md",
           "hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
         );
 

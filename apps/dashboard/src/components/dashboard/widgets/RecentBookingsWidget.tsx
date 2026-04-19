@@ -15,7 +15,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 };
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={clsx("animate-pulse bg-gray-100 rounded-lg", className)} />;
+  return <div className={clsx("animate-pulse bg-[#f1f5f9] rounded-lg", className)} />;
 }
 
 export function RecentBookingsWidget() {
@@ -24,7 +24,7 @@ export function RecentBookingsWidget() {
   const bookings: any[] = data?.data || [];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100">
+    <div className="bg-white rounded-2xl border border-[#eef2f6]">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
         <h2 className="font-semibold text-gray-900 text-sm">{biz.terminology.recentBookingsTitle}</h2>
         <Link
@@ -61,7 +61,7 @@ export function RecentBookingsWidget() {
               <Link
                 key={b.id}
                 to={`/dashboard/bookings/${b.id}`}
-                className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors border-b border-gray-50 last:border-0"
+                className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#f8fafc] transition-colors border-b border-gray-50 last:border-0"
               >
                 <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", s.color)}>
                   <CalendarCheck className="w-4 h-4" />

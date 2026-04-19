@@ -85,7 +85,7 @@ export default function CarRentalPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-[#eef2f6]">
         <nav className="-mb-px flex gap-6">
           {(
             [
@@ -175,7 +175,7 @@ export default function CarRentalPage() {
               {categories.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                   {categories.map((cat) => (
-                    <div key={cat.id} className="bg-white border border-gray-200 rounded-lg p-3">
+                    <div key={cat.id} className="bg-white border border-[#eef2f6] rounded-lg p-3">
                       <div className="font-semibold text-sm text-gray-900">{cat.name}</div>
                       <div className="text-sm text-gray-500 mt-1">
                         {Number(cat.pricePerDay).toLocaleString("en-US")} ريال / يوم
@@ -185,33 +185,33 @@ export default function CarRentalPage() {
                 </div>
               )}
 
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-white border border-[#eef2f6] rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-gray-50 border-b border-[#eef2f6]">
                     <tr>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">السيارة</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">اللوحة</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">الفئة</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">الكيلومترات</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">الحالة</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">تغيير الحالة</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">السيارة</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">اللوحة</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">الفئة</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">الكيلومترات</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">الحالة</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">تغيير الحالة</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {vehicles.map((v) => (
-                      <tr key={v.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
+                      <tr key={v.id} className="hover:bg-[#f8fafc]">
+                        <td className="px-[10px] py-[6px]">
                           <div className="font-medium">{v.make} {v.model}</div>
                           <div className="text-xs text-gray-400">{v.year} · {v.color}</div>
                         </td>
-                        <td className="px-4 py-3 text-gray-500">{v.plateNumber || "—"}</td>
-                        <td className="px-4 py-3 text-gray-500">
+                        <td className="px-[10px] py-[6px] text-gray-500">{v.plateNumber || "—"}</td>
+                        <td className="px-[10px] py-[6px] text-gray-500">
                           {categories.find((c) => c.id === v.categoryId)?.name ?? "—"}
                         </td>
-                        <td className="px-4 py-3 text-gray-500">
+                        <td className="px-[10px] py-[6px] text-gray-500">
                           {(v.mileage || 0).toLocaleString("en-US")} كم
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           <span
                             className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                               VEHICLE_STATUS_COLORS[v.status] ?? "bg-gray-100 text-gray-600"
@@ -220,9 +220,9 @@ export default function CarRentalPage() {
                             {VEHICLE_STATUS_AR[v.status] ?? v.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           <select
-                            className="text-xs border border-gray-200 rounded px-2 py-1"
+                            className="text-xs border border-[#eef2f6] rounded px-2 py-1"
                             value={v.status}
                             onChange={async (e) => {
                               await carRentalApi.updateVehicleStatus(v.id, { status: e.target.value });
@@ -287,7 +287,7 @@ export default function CarRentalPage() {
                     className={`px-3 py-1 text-xs rounded-full border transition-colors ${
                       reservationFilter === s
                         ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                        : "bg-white text-gray-600 border-[#eef2f6] hover:bg-[#f8fafc]"
                     }`}
                   >
                     {s ? RESERVATION_STATUS_AR[s] : "الكل"}
@@ -295,47 +295,47 @@ export default function CarRentalPage() {
                 ))}
               </div>
 
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-white border border-[#eef2f6] rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-gray-50 border-b border-[#eef2f6]">
                     <tr>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">السائق</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">السيارة</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">الاستلام</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">الإرجاع</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">المبلغ</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">الحالة</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">إجراءات</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">السائق</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">السيارة</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">الاستلام</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">الإرجاع</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">المبلغ</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">الحالة</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">إجراءات</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {filteredReservations.map((res) => (
-                      <tr key={res.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
+                      <tr key={res.id} className="hover:bg-[#f8fafc]">
+                        <td className="px-[10px] py-[6px]">
                           <div className="font-medium">{res.driverName}</div>
                           <div className="text-xs text-gray-400">{res.driverPhone}</div>
                         </td>
-                        <td className="px-4 py-3 text-gray-500">
+                        <td className="px-[10px] py-[6px] text-gray-500">
                           {(() => {
                             const v = vehicles.find((v) => v.id === res.vehicleUnitId);
                             return v ? `${v.make} ${v.model}` : (categories.find((c) => c.id === res.categoryId)?.name ?? "—");
                           })()}
                         </td>
-                        <td className="px-4 py-3 text-gray-500">
+                        <td className="px-[10px] py-[6px] text-gray-500">
                           {fmtDate(res.pickupDate)}
                         </td>
-                        <td className="px-4 py-3 text-gray-500">
+                        <td className="px-[10px] py-[6px] text-gray-500">
                           {fmtDate(res.returnDate)}
                         </td>
-                        <td className="px-4 py-3 font-medium">
+                        <td className="px-[10px] py-[6px] font-medium">
                           {Number(res.totalAmount).toLocaleString("en-US")} ريال
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                             {RESERVATION_STATUS_AR[res.status] ?? res.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           <div className="flex gap-1">
                             {res.status === "confirmed" && (
                               <button
@@ -405,27 +405,27 @@ export default function CarRentalPage() {
                 <h2 className="text-lg font-semibold">سجل الفحوصات</h2>
               </div>
 
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-white border border-[#eef2f6] rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-gray-50 border-b border-[#eef2f6]">
                     <tr>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">السيارة</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">نوع الفحص</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">التاريخ</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">تلف</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">ملاحظات</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">السيارة</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">نوع الفحص</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">التاريخ</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">تلف</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">ملاحظات</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {inspections.map((insp) => (
-                      <tr key={insp.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
+                      <tr key={insp.id} className="hover:bg-[#f8fafc]">
+                        <td className="px-[10px] py-[6px]">
                           {(() => {
                             const v = vehicles.find((v) => v.id === insp.vehicleUnitId);
                             return v ? `${v.make} ${v.model} (${v.plateNumber || "—"})` : "—";
                           })()}
                         </td>
-                        <td className="px-4 py-3 text-gray-500">
+                        <td className="px-[10px] py-[6px] text-gray-500">
                           {{
                             pre_rental: "قبل التسليم",
                             post_rental: "بعد الإرجاع",
@@ -433,17 +433,17 @@ export default function CarRentalPage() {
                             damage: "تلف",
                           }[insp.inspectionType as string] ?? insp.inspectionType}
                         </td>
-                        <td className="px-4 py-3 text-gray-500">
+                        <td className="px-[10px] py-[6px] text-gray-500">
                           {fmtDate(insp.inspectedAt)}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           {insp.hasDamage ? (
                             <span className="text-red-600 font-medium">نعم</span>
                           ) : (
                             <span className="text-green-600">لا</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-gray-500 max-w-xs truncate">
+                        <td className="px-[10px] py-[6px] text-gray-500 max-w-xs truncate">
                           {insp.notes || "—"}
                         </td>
                       </tr>
@@ -484,7 +484,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-4 border-b border-gray-200">
+        <div className="flex justify-between items-center p-4 border-b border-[#eef2f6]">
           <h3 className="text-lg font-semibold">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
         </div>

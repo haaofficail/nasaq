@@ -54,7 +54,7 @@ const QUALITY_LABELS: Record<string, { label: string; cls: string }> = {
   expired:  { label: "منتهي الصلاحية", cls: "bg-gray-100 text-gray-600" },
 };
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500 bg-white";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500 bg-white";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -135,7 +135,7 @@ function Modal({ title, onClose, wide, children }: { title: string; onClose: () 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className={clsx("bg-white rounded-2xl shadow-2xl w-full flex flex-col max-h-[90vh]", wide ? "max-w-2xl" : "max-w-lg")}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6] shrink-0">
           <h3 className="font-bold text-gray-900">{title}</h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
             <X className="w-4 h-4" />
@@ -171,7 +171,7 @@ function SpecialtyCheckboxes({ value, onChange }: { value: string; onChange: (v:
         return (
           <button key={sp} type="button" onClick={() => toggle(sp)}
             className={clsx("px-3 py-1.5 rounded-xl border text-xs font-medium transition-colors",
-              checked ? "border-brand-400 bg-brand-50 text-brand-700" : "border-gray-200 text-gray-600 hover:border-gray-300")}>
+              checked ? "border-brand-400 bg-brand-50 text-brand-700" : "border-[#eef2f6] text-gray-600 hover:border-[#eef2f6]")}>
             {sp}
           </button>
         );
@@ -251,7 +251,7 @@ function SupplierDetailPanel({
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="px-5 py-4 border-b border-gray-100 shrink-0">
+        <div className="px-5 py-4 border-b border-[#eef2f6] shrink-0">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h2 className="text-lg font-bold text-gray-900 truncate">{supplier.name}</h2>
@@ -277,7 +277,7 @@ function SupplierDetailPanel({
               <p className="text-base font-bold text-green-700 tabular-nums">{fmt(totalPaid)}</p>
               <p className="text-[10px] text-green-400">ر.س</p>
             </div>
-            <div className={clsx("rounded-xl p-2.5 text-center", outstanding > 0 ? "bg-amber-50" : "bg-gray-50")}>
+            <div className={clsx("rounded-xl p-2.5 text-center", outstanding > 0 ? "bg-amber-50" : "bg-[#f8fafc]")}>
               <p className={clsx("text-[10px]", outstanding > 0 ? "text-amber-600" : "text-gray-500")}>المستحق</p>
               <p className={clsx("text-base font-bold tabular-nums", outstanding > 0 ? "text-amber-700" : "text-gray-400")}>{fmt(outstanding)}</p>
               <p className={clsx("text-[10px]", outstanding > 0 ? "text-amber-400" : "text-gray-400")}>ر.س</p>
@@ -295,7 +295,7 @@ function SupplierDetailPanel({
               <ShoppingCart className="w-3.5 h-3.5" /> أمر شراء
             </button>
             <button onClick={onEdit}
-              className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
+              className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc] transition-colors">
               <Edit2 className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -308,7 +308,7 @@ function SupplierDetailPanel({
             return (
               <button key={t.id} onClick={() => setTab(t.id)}
                 className={clsx("flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl text-xs font-medium transition-colors",
-                  tab === t.id ? "bg-brand-50 text-brand-600" : "text-gray-500 hover:bg-gray-50")}>
+                  tab === t.id ? "bg-brand-50 text-brand-600" : "text-gray-500 hover:bg-[#f8fafc]")}>
                 <Icon className="w-3.5 h-3.5" />
                 {t.label}
                 {(t.count ?? 0) > 0 && (
@@ -329,7 +329,7 @@ function SupplierDetailPanel({
           {tab === "invoices" && (
             invoicesLoading ? (
               <div className="space-y-2">
-                {[1,2,3].map(i => <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse" />)}
+                {[1,2,3].map(i => <div key={i} className="h-16 bg-[#f8fafc] rounded-xl animate-pulse" />)}
               </div>
             ) : invoices.length === 0 ? (
               <div className="py-12 text-center">
@@ -384,7 +384,7 @@ function SupplierDetailPanel({
           {tab === "orders" && (
             ordersLoading ? (
               <div className="space-y-2">
-                {[1,2,3].map(i => <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse" />)}
+                {[1,2,3].map(i => <div key={i} className="h-16 bg-[#f8fafc] rounded-xl animate-pulse" />)}
               </div>
             ) : orders.length === 0 ? (
               <div className="py-12 text-center">
@@ -425,7 +425,7 @@ function SupplierDetailPanel({
           {tab === "batches" && (
             detailLoading ? (
               <div className="space-y-2">
-                {[1,2,3].map(i => <div key={i} className="h-16 bg-gray-50 rounded-xl animate-pulse" />)}
+                {[1,2,3].map(i => <div key={i} className="h-16 bg-[#f8fafc] rounded-xl animate-pulse" />)}
               </div>
             ) : batches.length === 0 ? (
               <div className="py-12 text-center">
@@ -466,7 +466,7 @@ function SupplierDetailPanel({
         </div>
 
         {/* Contact info strip */}
-        <div className="border-t border-gray-100 px-5 py-3 shrink-0 flex items-center gap-4 text-xs text-gray-500">
+        <div className="border-t border-[#eef2f6] px-5 py-3 shrink-0 flex items-center gap-4 text-xs text-gray-500">
           {supplier.phone && (
             <a href={`tel:${supplier.phone}`} className="flex items-center gap-1 hover:text-brand-500 transition-colors">
               <Phone className="w-3.5 h-3.5" /> {supplier.phone}
@@ -507,7 +507,7 @@ function SupplierDetailPanel({
               </Field>
               <div className="flex gap-3">
                 <button onClick={() => setPayInvoice(null)}
-                  className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50">
+                  className="flex-1 border border-[#eef2f6] text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-[#f8fafc]">
                   إلغاء
                 </button>
                 <button onClick={handlePay} disabled={paying || !payAmount}
@@ -580,7 +580,7 @@ function NewPOModal({ supplier, onClose, onSaved }: { supplier: Supplier; onClos
   return (
     <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh]">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6] shrink-0">
           <div>
             <h4 className="font-bold text-gray-900">أمر شراء جديد</h4>
             <p className="text-xs text-gray-400 mt-0.5">المورد: {supplier.name}</p>
@@ -640,8 +640,8 @@ function NewPOModal({ supplier, onClose, onSaved }: { supplier: Supplier; onClos
           </Field>
         </div>
 
-        <div className="flex gap-3 px-5 py-4 border-t border-gray-100 shrink-0">
-          <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50">
+        <div className="flex gap-3 px-5 py-4 border-t border-[#eef2f6] shrink-0">
+          <button onClick={onClose} className="flex-1 border border-[#eef2f6] text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-[#f8fafc]">
             إلغاء
           </button>
           <button onClick={handleSave} disabled={loading}
@@ -671,11 +671,11 @@ function SupplierCard({ supplier, isBest, onClick }: {
       onClick={onClick}
       className={clsx(
         "bg-white rounded-2xl border cursor-pointer hover:shadow-md transition-all group",
-        isBest ? "border-brand-300 ring-1 ring-brand-100" : "border-gray-100"
+        isBest ? "border-brand-300 ring-1 ring-brand-100" : "border-[#eef2f6]"
       )}
     >
       {/* Card Header */}
-      <div className="px-4 py-3 border-b border-gray-50 flex items-start justify-between gap-2">
+      <div className="px-[10px] py-[6px] border-b border-gray-50 flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-sm font-bold text-gray-900 truncate group-hover:text-brand-600 transition-colors">
@@ -697,7 +697,7 @@ function SupplierCard({ supplier, isBest, onClick }: {
       </div>
 
       {/* Card Body */}
-      <div className="px-4 py-3 space-y-2.5">
+      <div className="px-[10px] py-[6px] space-y-2.5">
         {supplier.phone && (
           <div className="flex items-center gap-2 text-xs text-gray-600" onClick={e => e.stopPropagation()}>
             <Phone className="w-3.5 h-3.5 text-gray-400 shrink-0" />
@@ -842,7 +842,7 @@ function SupplierFormModal({ initial, onClose, onSaved }: {
       </div>
 
       <div className="flex gap-3 pt-1">
-        <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50">
+        <button onClick={onClose} className="flex-1 border border-[#eef2f6] text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-[#f8fafc]">
           إلغاء
         </button>
         <button onClick={handleSave} disabled={saving || !form.name.trim()}
@@ -859,7 +859,7 @@ function SupplierFormModal({ initial, onClose, onSaved }: {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse space-y-3">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-4 animate-pulse space-y-3">
       <div className="flex items-start justify-between">
         <div className="space-y-1.5">
           <div className="h-4 bg-gray-100 rounded w-32" />
@@ -912,7 +912,7 @@ export function FlowerSuppliersPage() {
         </div>
         <div className="flex items-center gap-2">
           <button onClick={refetch}
-            className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-100 hover:bg-gray-50 text-gray-400 transition-colors">
+            className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-400 transition-colors">
             <RefreshCw className="w-4 h-4" />
           </button>
           <button onClick={openCreate}
@@ -930,7 +930,7 @@ export function FlowerSuppliersPage() {
           { label: "متوسط الجودة",   value: loading ? null : (avgQuality > 0 ? `${avgQuality.toFixed(1)}/10` : "—"),            icon: Star,     color: "text-green-500 bg-green-50"   },
           { label: "أفضل مورد",      value: loading ? null : (bestSupplier?.name ?? "—"),                                      icon: Award,    color: "text-amber-500 bg-amber-50"   },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center mb-3", s.color)}>
               <s.icon className="w-4 h-4" />
             </div>
@@ -948,7 +948,7 @@ export function FlowerSuppliersPage() {
           {Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)}
         </div>
       ) : error ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-2xl border border-gray-100">
+        <div className="flex flex-col items-center justify-center py-16 text-center bg-white rounded-2xl border border-[#eef2f6]">
           <AlertTriangle className="w-10 h-10 text-red-300 mb-3" />
           <p className="text-sm font-semibold text-gray-700">حدث خطأ في تحميل الموردين</p>
           <button onClick={refetch} className="mt-3 px-4 py-2 rounded-xl bg-gray-100 text-sm text-gray-600 hover:bg-gray-200">
@@ -956,8 +956,8 @@ export function FlowerSuppliersPage() {
           </button>
         </div>
       ) : suppliers.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border border-gray-100">
-          <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-4">
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border border-[#eef2f6]">
+          <div className="w-14 h-14 rounded-2xl bg-[#f8fafc] flex items-center justify-center mb-4">
             <Package className="w-7 h-7 text-gray-300" />
           </div>
           <p className="text-sm font-semibold text-gray-700">لا يوجد موردون</p>

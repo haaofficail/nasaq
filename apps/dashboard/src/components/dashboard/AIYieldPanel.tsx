@@ -111,7 +111,7 @@ export function AIYieldPanel({
         </div>
 
         {/* Utilization Gauge */}
-        <div className="flex flex-col items-center justify-center shrink-0 w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 shadow-inner">
+        <div className="flex flex-col items-center justify-center shrink-0 w-16 h-16 rounded-2xl bg-[#f8fafc] border border-[#eef2f6] shadow-inner">
           <TrendingUp className={clsx("w-5 h-5 mb-1", 
             analysis.status === "high" ? "text-emerald-500" : 
             analysis.status === "med" ? "text-brand-500" : "text-amber-500"
@@ -123,7 +123,7 @@ export function AIYieldPanel({
 
       <div className="space-y-3 relative z-10">
         {analysis.insights.length === 0 ? (
-          <div className="flex items-center gap-2 text-[12px] text-gray-500 bg-gray-50 p-3 rounded-xl border border-gray-100">
+          <div className="flex items-center gap-2 text-[12px] text-gray-500 bg-[#f8fafc] p-3 rounded-xl border border-[#eef2f6]">
             <CheckCircle2 className="w-4 h-4 text-emerald-500" />
             جدول اليوم مثالي! لا توجد فراغات 30 دقيقة مقطوعة، مما يضمن أقصى ربحية ممكنة.
           </div>

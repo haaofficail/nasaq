@@ -110,7 +110,7 @@ function VoucherModal({
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center gap-3 p-5 border-b border-gray-100">
+        <div className="flex items-center gap-3 p-5 border-b border-[#eef2f6]">
           <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center", bg)}>
             <Icon className={clsx("w-5 h-5", color)} />
           </div>
@@ -126,7 +126,7 @@ function VoucherModal({
                 <select
                   value={form.fromAccountId}
                   onChange={(e) => setForm((f) => ({ ...f, fromAccountId: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   required
                 >
                   {accounts.map((a) => (
@@ -139,7 +139,7 @@ function VoucherModal({
                 <select
                   value={form.toAccountId}
                   onChange={(e) => setForm((f) => ({ ...f, toAccountId: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                   required
                 >
                   {accounts.filter((a) => a.id !== form.fromAccountId).map((a) => (
@@ -154,7 +154,7 @@ function VoucherModal({
               <select
                 value={form.treasuryAccountId}
                 onChange={(e) => setForm((f) => ({ ...f, treasuryAccountId: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 required
               >
                 {accounts.map((a) => (
@@ -173,7 +173,7 @@ function VoucherModal({
               value={form.amount}
               onChange={(e) => setForm((f) => ({ ...f, amount: e.target.value }))}
               placeholder="0.00"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               required
             />
           </div>
@@ -185,7 +185,7 @@ function VoucherModal({
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               placeholder="وصف العملية"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               required={type !== "transfer"}
             />
           </div>
@@ -197,7 +197,7 @@ function VoucherModal({
                 <select
                   value={form.paymentMethod}
                   onChange={(e) => setForm((f) => ({ ...f, paymentMethod: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 >
                   <option value="cash">نقدي</option>
                   <option value="mada">مدى</option>
@@ -212,7 +212,7 @@ function VoucherModal({
                   value={form.counterpartyName}
                   onChange={(e) => setForm((f) => ({ ...f, counterpartyName: e.target.value }))}
                   placeholder="اسم العميل أو المورد"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 />
               </div>
             </>
@@ -226,7 +226,7 @@ function VoucherModal({
           )}
 
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">إلغاء</button>
+            <button type="button" onClick={onClose} className="flex-1 border border-[#eef2f6] rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-[#f8fafc]">إلغاء</button>
             <button
               type="submit"
               disabled={saving}
@@ -273,7 +273,7 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-[#eef2f6]">
           <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
             <Wallet className="w-5 h-5 text-emerald-600" />
           </div>
@@ -288,7 +288,7 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
               value={form.name}
               onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               placeholder="مثال: الصندوق الرئيسي"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               autoFocus
             />
           </div>
@@ -297,7 +297,7 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             <select
               value={form.type}
               onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               {Object.entries(ACCOUNT_TYPE_CONFIG).map(([k, v]) => (
                 <option key={k} value={k}>{v.label}</option>
@@ -314,7 +314,7 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
               min="0"
               step="0.01"
               dir="ltr"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
           {error && (
@@ -324,7 +324,7 @@ function CreateAccountModal({ onClose, onSuccess }: { onClose: () => void; onSuc
             </div>
           )}
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">إلغاء</button>
+            <button type="button" onClick={onClose} className="flex-1 border border-[#eef2f6] rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-[#f8fafc]">إلغاء</button>
             <button type="submit" disabled={saving} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl py-2.5 text-sm font-medium flex items-center justify-center gap-2">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : "إنشاء الحساب"}
             </button>
@@ -347,7 +347,7 @@ function AccountCard({ account, onSelect, selected }: { account: any; onSelect: 
       onClick={onSelect}
       className={clsx(
         "w-full text-right p-4 rounded-2xl border-2 transition-all",
-        selected ? "border-brand-400 bg-brand-50/30" : "border-gray-100 bg-white hover:border-gray-200"
+        selected ? "border-brand-400 bg-brand-50/30" : "border-[#eef2f6] bg-white hover:border-[#eef2f6]"
       )}
     >
       <div className="flex items-center gap-3 mb-3">
@@ -404,7 +404,7 @@ export function TreasuryPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setVoucherModal("transfer")}
-            className="flex items-center gap-2 border border-gray-200 rounded-xl px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="flex items-center gap-2 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm font-medium text-gray-700 hover:bg-[#f8fafc]"
           >
             <ArrowLeftRight className="w-4 h-4" />
             تحويل
@@ -428,22 +428,22 @@ export function TreasuryPage() {
 
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <p className="text-xs text-gray-400 mb-1">إجمالي الأرصدة</p>
           <p className="text-2xl font-bold text-gray-900 tabular-nums">{fmt(summary.totalBalance)}</p>
           <p className="text-xs text-gray-400 mt-0.5">ر.س</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <p className="text-xs text-gray-400 mb-1">قبض اليوم</p>
           <p className="text-2xl font-bold text-emerald-600 tabular-nums">{fmt(daily.totalReceipts)}</p>
           <p className="text-xs text-gray-400 mt-0.5">ر.س</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <p className="text-xs text-gray-400 mb-1">صرف اليوم</p>
           <p className="text-2xl font-bold text-red-600 tabular-nums">{fmt(daily.totalPayments)}</p>
           <p className="text-xs text-gray-400 mt-0.5">ر.س</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <p className="text-xs text-gray-400 mb-1">صافي اليوم</p>
           <p className={clsx("text-2xl font-bold tabular-nums", (daily.netFlow ?? 0) >= 0 ? "text-emerald-600" : "text-red-600")}>
             {fmt(daily.netFlow)}
@@ -464,10 +464,10 @@ export function TreasuryPage() {
           </div>
           {loadingAccounts ? (
             <div className="space-y-3">
-              {[1, 2, 3].map((i) => <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />)}
+              {[1, 2, 3].map((i) => <div key={i} className="h-24 bg-[#f1f5f9] rounded-2xl animate-pulse" />)}
             </div>
           ) : accounts.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-dashed border-gray-200 p-6 text-center">
+            <div className="bg-white rounded-2xl border border-dashed border-[#eef2f6] p-6 text-center">
               <Wallet className="w-8 h-8 text-gray-200 mx-auto mb-2" />
               <p className="text-sm text-gray-400">لا يوجد صناديق بعد</p>
               <button onClick={() => setShowCreateAccount(true)} className="text-xs text-brand-500 mt-1 inline-block hover:text-brand-600">
@@ -487,7 +487,7 @@ export function TreasuryPage() {
         </div>
 
         {/* Transactions */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100">
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-[#eef2f6]">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
             <h2 className="font-semibold text-gray-900 text-sm">
               {selectedAccount ? `حركات: ${selectedAccount.name}` : "حركات الصندوق"}
@@ -517,7 +517,7 @@ export function TreasuryPage() {
               transactions.map((tx: any) => {
                 const cfg = TX_TYPE_CONFIG[tx.transaction_type] ?? { label: tx.transaction_type, sign: "", color: "text-gray-600" };
                 return (
-                  <div key={tx.id} className="flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50/50">
+                  <div key={tx.id} className="flex items-center gap-3 px-5 py-[6px] hover:bg-[#f8fafc]/50">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-800 truncate">{tx.description}</p>
                       <div className="flex items-center gap-2 mt-0.5">
@@ -564,7 +564,7 @@ export function TreasuryPage() {
             <AlertCircle className="w-10 h-10 text-amber-400 mx-auto mb-3" />
             <p className="font-semibold text-gray-900 mb-1">لا يوجد صناديق</p>
             <p className="text-sm text-gray-500 mb-4">أنشئ صندوقاً أولاً قبل تسجيل العمليات.</p>
-            <button onClick={() => setVoucherModal(null)} className="w-full border border-gray-200 rounded-xl py-2.5 text-sm font-medium">إغلاق</button>
+            <button onClick={() => setVoucherModal(null)} className="w-full border border-[#eef2f6] rounded-xl py-2.5 text-sm font-medium">إغلاق</button>
           </div>
         </div>
       )}
@@ -578,7 +578,7 @@ export function TreasuryPage() {
       )}
 
       {/* FAQ */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 mt-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 mt-4">
         <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة — الخزينة</h3>
         <div className="space-y-3">
           {[
@@ -588,8 +588,8 @@ export function TreasuryPage() {
             { q: "كيف أسوّي الفرق بين الخزينة والبنك؟", a: "من قسم «التسويات» تستطيع مطابقة رصيد الخزينة مع كشف حساب البنك وتحديد الفروقات." },
             { q: "هل يمكن إضافة أكثر من حساب خزينة؟", a: "نعم. يمكنك إضافة حسابات منفصلة لكل فرع أو مصدر (صندوق، بنك، محفظة إلكترونية)." },
           ].map(faq => (
-            <details key={faq.q} className="border border-gray-100 rounded-xl">
-              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+            <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+              <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
               <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
             </details>
           ))}

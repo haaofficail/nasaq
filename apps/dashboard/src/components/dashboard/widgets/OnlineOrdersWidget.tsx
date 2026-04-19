@@ -14,7 +14,7 @@ export function OnlineOrdersWidget() {
   const revenue   = Number(stats.revenue ?? stats.todayRevenue ?? 0);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 h-full">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 h-full">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-xl bg-orange-50 flex items-center justify-center">

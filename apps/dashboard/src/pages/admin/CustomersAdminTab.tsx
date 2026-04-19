@@ -47,27 +47,27 @@ function CustomersAdminTab() {
       <div className="flex flex-wrap gap-2">
         <input value={q} onChange={e => { setQ(e.target.value); setPage(1); }}
           placeholder="بحث بالاسم أو الجوال..."
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none flex-1 min-w-40" />
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none flex-1 min-w-40" />
         <input value={orgId} onChange={e => { setOrgId(e.target.value); setPage(1); }}
           placeholder="معرّف المنشأة..."
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none w-48 font-mono" dir="ltr" />
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none w-48 font-mono" dir="ltr" />
         <select value={tier} onChange={e => { setTier(e.target.value); setPage(1); }}
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
           <option value="">كل الفئات</option>
           {TIERS.map(t => <option key={t} value={t}>{TIER_LABELS[t]}</option>)}
         </select>
         {(orgId || tier || q) && (
-          <button onClick={handleReset} className="px-3 py-2 text-xs text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">
+          <button onClick={handleReset} className="px-3 py-2 text-xs text-gray-500 border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">
             <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
       {loading ? <Spinner /> : rows.length === 0 ? <Empty icon={Users} text="لا يوجد عملاء" /> : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
+              <tr className="border-b border-[#eef2f6] bg-[#f8fafc] text-xs text-gray-500">
                 <th className="text-right px-4 py-3 font-semibold">المنشأة</th>
                 <th className="text-right px-4 py-3 font-semibold">الاسم</th>
                 <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">الجوال</th>
@@ -81,22 +81,22 @@ function CustomersAdminTab() {
             </thead>
             <tbody>
               {rows.map((r: any) => (
-                <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                  <td className="px-4 py-3 text-xs font-medium text-gray-700">{r.orgName ?? r.orgId?.slice(0, 8)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{r.name}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell font-mono" dir="ltr">{r.phone ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell" dir="ltr">{r.email ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell">{r.type ?? "—"}</td>
-                  <td className="px-4 py-3">
+                <tr key={r.id} className="border-b border-gray-50 hover:bg-[#f8fafc] last:border-0">
+                  <td className="px-[10px] py-[6px] text-xs font-medium text-gray-700">{r.orgName ?? r.orgId?.slice(0, 8)}</td>
+                  <td className="px-[10px] py-[6px] text-sm text-gray-900">{r.name}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden md:table-cell font-mono" dir="ltr">{r.phone ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden lg:table-cell" dir="ltr">{r.email ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden md:table-cell">{r.type ?? "—"}</td>
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("text-xs font-medium px-2 py-0.5 rounded-lg", TIER_COLORS[r.tier] ?? "bg-gray-100 text-gray-600")}>
                       {TIER_LABELS[r.tier] ?? r.tier}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell tabular-nums">
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden lg:table-cell tabular-nums">
                     {r.totalSpent ? `${Number(r.totalSpent).toLocaleString("en-US")} ر.س` : "—"}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell tabular-nums">{r.totalBookings ?? 0}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell tabular-nums">{r.loyaltyPoints ?? 0}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden lg:table-cell tabular-nums">{r.totalBookings ?? 0}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden md:table-cell tabular-nums">{r.loyaltyPoints ?? 0}</td>
                 </tr>
               ))}
             </tbody>
@@ -107,10 +107,10 @@ function CustomersAdminTab() {
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           <button disabled={page <= 1} onClick={() => setPage(page - 1)}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-xl disabled:opacity-40 hover:bg-gray-50">السابق</button>
+            className="px-3 py-1.5 text-sm border border-[#eef2f6] rounded-xl disabled:opacity-40 hover:bg-[#f8fafc]">السابق</button>
           <span className="text-sm text-gray-500">{page} / {totalPages}</span>
           <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-xl disabled:opacity-40 hover:bg-gray-50">التالي</button>
+            className="px-3 py-1.5 text-sm border border-[#eef2f6] rounded-xl disabled:opacity-40 hover:bg-[#f8fafc]">التالي</button>
         </div>
       )}
     </div>

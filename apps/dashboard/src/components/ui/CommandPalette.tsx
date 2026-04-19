@@ -64,10 +64,10 @@ export function CommandPalette() {
       />
       
       <div 
-        className="fixed top-[20%] left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden z-[200] border border-gray-100 flex flex-col"
+        className="fixed top-[20%] left-1/2 -translate-x-1/2 w-[90%] max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden z-[200] border border-[#eef2f6] flex flex-col"
         dir="rtl"
       >
-        <div className="flex items-center px-4 py-3 border-b border-gray-100 gap-3">
+        <div className="flex items-center px-4 py-3 border-b border-[#eef2f6] gap-3">
           <Search className="w-5 h-5 text-brand-500 shrink-0" />
           <input
             ref={inputRef}
@@ -102,7 +102,7 @@ export function CommandPalette() {
                   onClick={() => handleSelect(action.perform)}
                   className={clsx(
                     "w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-colors text-right",
-                    i === 0 && query ? "bg-brand-50 text-brand-700" : "hover:bg-gray-50 text-gray-700"
+                    i === 0 && query ? "bg-brand-50 text-brand-700" : "hover:bg-[#f8fafc] text-gray-700"
                   )}
                 >
                   <div className="flex items-center gap-3">
@@ -110,7 +110,7 @@ export function CommandPalette() {
                     <span className="text-sm font-medium">{action.name}</span>
                   </div>
                   {action.shortcut ? (
-                    <kbd className="text-[10px] bg-white border border-gray-200 text-gray-400 px-1.5 py-0.5 rounded shadow-sm font-sans font-mono">
+                    <kbd className="text-[10px] bg-white border border-[#eef2f6] text-gray-400 px-1.5 py-0.5 rounded shadow-sm font-sans font-mono">
                       {action.shortcut}
                     </kbd>
                   ) : (
@@ -122,7 +122,7 @@ export function CommandPalette() {
           )}
         </div>
         
-        <div className="px-4 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+        <div className="px-[10px] py-[6px] bg-[#f8fafc] border-t border-[#eef2f6] flex items-center justify-between text-xs text-gray-400">
           <div className="flex items-center gap-1">
             <span>استخدم</span>
             <kbd className="font-sans px-1 rounded bg-gray-200">↑</kbd>

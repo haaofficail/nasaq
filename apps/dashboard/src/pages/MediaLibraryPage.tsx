@@ -121,7 +121,7 @@ function AssetThumbnail({ asset, selected, onSelect, onClick, onQuickDelete }: {
       onClick={confirmDelete ? undefined : onClick}
     >
       {/* Thumbnail area */}
-      <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">
+      <div className="aspect-square bg-[#f8fafc] flex items-center justify-center overflow-hidden">
         {asset.fileType === "image" && !imgErr ? (
           <img
             src={asset.fileUrl}
@@ -207,7 +207,7 @@ function AssetThumbnail({ asset, selected, onSelect, onClick, onQuickDelete }: {
       )}
 
       {/* Name */}
-      <div className="px-2 py-1.5 border-t border-gray-100">
+      <div className="px-2 py-1.5 border-t border-[#eef2f6]">
         <p className="text-xs text-gray-700 truncate font-medium">{asset.name}</p>
         <p className="text-[11px] text-gray-400">{fileSizeLabel(asset.sizeBytes)}</p>
       </div>
@@ -228,7 +228,7 @@ function AssetListRow({ asset, selected, onSelect, onClick, onQuickDelete }: {
   return (
     <div
       className={clsx(
-        "group flex items-center gap-3 px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-gray-50 transition-colors",
+        "group flex items-center gap-3 px-4 py-3 border-b border-gray-50 cursor-pointer hover:bg-[#f8fafc] transition-colors",
         selected && "bg-brand-50",
       )}
       onClick={confirmDelete ? undefined : onClick}
@@ -239,9 +239,9 @@ function AssetListRow({ asset, selected, onSelect, onClick, onQuickDelete }: {
           : <Square className="w-4 h-4 text-gray-300" />}
       </button>
 
-      <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", cfg.bg)}>
+      <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0", cfg.bg)}>
         {asset.fileType === "image"
-          ? <img src={asset.fileUrl} alt="" className="w-10 h-10 rounded-xl object-cover" onError={(e) => { (e.target as any).style.display = "none"; }} />
+          ? <img src={asset.fileUrl} alt="" className="w-9 h-9 rounded-[10px] object-cover" onError={(e) => { (e.target as any).style.display = "none"; }} />
           : <Icon className={clsx("w-5 h-5", cfg.color)} />}
       </div>
 
@@ -275,7 +275,7 @@ function AssetListRow({ asset, selected, onSelect, onClick, onQuickDelete }: {
           <div className="flex items-center gap-1">
             <button
               onClick={(e) => { e.stopPropagation(); setConfirmDelete(false); }}
-              className="text-[11px] px-2 py-1 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50"
+              className="text-[11px] px-2 py-1 rounded-lg border border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]"
             >
               إلغاء
             </button>
@@ -307,8 +307,8 @@ function UploadQueue({ items, onClear }: {
   if (items.length === 0) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 bg-white rounded-2xl border border-gray-200 shadow-xl w-80">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+    <div className="fixed bottom-4 left-4 z-50 bg-white rounded-2xl border border-[#eef2f6] shadow-xl w-80">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef2f6]">
         <span className="text-sm font-semibold text-gray-900">
           رفع الملفات ({items.filter(i => i.status === "done").length}/{items.length})
         </span>
@@ -416,9 +416,9 @@ function AssetDetail({
   };
 
   return (
-    <div className="h-full flex flex-col bg-white border-r border-gray-100">
+    <div className="h-full flex flex-col bg-white border-r border-[#eef2f6]">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 shrink-0">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef2f6] shrink-0">
         <h3 className="font-semibold text-gray-900 text-sm truncate flex-1">{asset.name}</h3>
         <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 shrink-0">
           <X className="w-4 h-4" />
@@ -427,7 +427,7 @@ function AssetDetail({
 
       <div className="flex-1 overflow-y-auto">
         {/* Preview */}
-        <div className="bg-gray-50 border-b border-gray-100 flex items-center justify-center" style={{ minHeight: 200 }}>
+        <div className="bg-gray-50 border-b border-[#eef2f6] flex items-center justify-center" style={{ minHeight: 200 }}>
           {asset.fileType === "image" ? (
             <img src={asset.fileUrl} alt={asset.altText || asset.name} className="max-h-52 max-w-full object-contain" />
           ) : asset.fileType === "video" ? (
@@ -464,7 +464,7 @@ function AssetDetail({
                 <input
                   value={form.name}
                   onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400"
                 />
               </div>
               <div>
@@ -472,7 +472,7 @@ function AssetDetail({
                 <input
                   value={form.altText}
                   onChange={e => setForm(p => ({ ...p, altText: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400"
                   placeholder="وصف الصورة..."
                 />
               </div>
@@ -481,7 +481,7 @@ function AssetDetail({
                 <input
                   value={form.category}
                   onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400"
                   placeholder="مثال: شعارات، تسويق، منتجات"
                 />
               </div>
@@ -490,7 +490,7 @@ function AssetDetail({
                 <input
                   value={form.tags}
                   onChange={e => setForm(p => ({ ...p, tags: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400"
                   placeholder="hero, dark-bg, summer"
                   dir="ltr"
                 />
@@ -500,7 +500,7 @@ function AssetDetail({
                 <select
                   value={form.fileType}
                   onChange={e => setForm(p => ({ ...p, fileType: e.target.value as AssetType }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 bg-white"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 bg-white"
                 >
                   {Object.entries(TYPE_CONFIG).filter(([k]) => k !== "all").map(([k, v]) => (
                     <option key={k} value={k}>{v.label}</option>
@@ -508,7 +508,7 @@ function AssetDetail({
                 </select>
               </div>
               <div className="flex gap-2 pt-1">
-                <button onClick={() => setEditing(false)} className="flex-1 border border-gray-200 rounded-xl py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">إلغاء</button>
+                <button onClick={() => setEditing(false)} className="flex-1 border border-[#eef2f6] rounded-xl py-2 text-sm font-medium text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
                 <button onClick={handleSave} disabled={saving} className="flex-1 bg-brand-500 text-white rounded-xl py-2 text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-1">
                   {saving && <Loader2 className="w-3.5 h-3.5 animate-spin" />} حفظ
                 </button>
@@ -540,7 +540,7 @@ function AssetDetail({
               )}
               <button
                 onClick={() => setEditing(true)}
-                className="w-full border border-gray-200 rounded-xl py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 mt-1"
+                className="w-full border border-[#eef2f6] rounded-xl py-2 text-sm font-medium text-gray-600 hover:bg-[#f8fafc] mt-1"
               >
                 تعديل البيانات
               </button>
@@ -573,11 +573,11 @@ function AssetDetail({
       </div>
 
       {/* Actions */}
-      <div className="px-4 py-3 border-t border-gray-100 space-y-2 shrink-0">
+      <div className="px-[10px] py-[6px] border-t border-[#eef2f6] space-y-2 shrink-0">
         <div className="flex gap-2">
           <button
             onClick={handleCopy}
-            className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 rounded-xl py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 border border-[#eef2f6] rounded-xl py-2 text-sm font-medium text-gray-600 hover:bg-[#f8fafc] transition-colors"
           >
             {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
             {copied ? "تم النسخ" : "نسخ الرابط"}
@@ -587,7 +587,7 @@ function AssetDetail({
             download={asset.name}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 flex items-center justify-center gap-1.5 border border-gray-200 rounded-xl py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 border border-[#eef2f6] rounded-xl py-2 text-sm font-medium text-gray-600 hover:bg-[#f8fafc] transition-colors"
           >
             <Download className="w-4 h-4" /> تحميل
           </a>
@@ -604,7 +604,7 @@ function AssetDetail({
           </button>
         ) : (
           <div className="flex gap-2">
-            <button onClick={() => { setConfirmDelete(false); setDeleteError(null); }} className="flex-1 border border-gray-200 rounded-xl py-2 text-sm font-medium text-gray-600 hover:bg-gray-50">إلغاء</button>
+            <button onClick={() => { setConfirmDelete(false); setDeleteError(null); }} className="flex-1 border border-[#eef2f6] rounded-xl py-2 text-sm font-medium text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
             <button onClick={handleDelete} disabled={deleting} className="flex-1 bg-red-500 text-white rounded-xl py-2 text-sm font-medium hover:bg-red-600 disabled:opacity-50 flex items-center justify-center gap-1">
               {deleting && <Loader2 className="w-3.5 h-3.5 animate-spin" />} تأكيد الحذف
             </button>
@@ -635,7 +635,7 @@ function UploadConfigModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
           <h3 className="font-bold text-gray-900">إعدادات الرفع</h3>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-4 h-4" /></button>
         </div>
@@ -651,7 +651,7 @@ function UploadConfigModal({
             <input
               value={category}
               onChange={e => setCategory(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
               placeholder="مثال: شعارات، تسويق"
             />
           </div>
@@ -660,7 +660,7 @@ function UploadConfigModal({
             <input
               value={tags}
               onChange={e => setTags(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
               placeholder="hero, summer, promotion"
               dir="ltr"
             />
@@ -677,7 +677,7 @@ function UploadConfigModal({
                     onClick={() => setFileType(t)}
                     className={clsx(
                       "flex flex-col items-center gap-1 p-2 rounded-xl border text-xs font-medium transition-colors",
-                      fileType === t ? "border-brand-400 bg-brand-50 text-brand-700" : "border-gray-200 text-gray-600 hover:bg-gray-50",
+                      fileType === t ? "border-brand-400 bg-brand-50 text-brand-700" : "border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]",
                     )}
                   >
                     <Ic className="w-4 h-4" />
@@ -689,7 +689,7 @@ function UploadConfigModal({
           </div>
         </div>
         <div className="px-5 pb-5 flex gap-2">
-          <button onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50">إلغاء</button>
+          <button onClick={onClose} className="flex-1 border border-[#eef2f6] rounded-xl py-2.5 text-sm font-medium text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
           <button
             onClick={() => onConfirm(category, tags, fileType)}
             className="flex-1 bg-brand-500 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-brand-600"
@@ -951,7 +951,7 @@ export function MediaLibraryPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={() => fetchAssets(1)} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500">
+            <button onClick={() => fetchAssets(1)} className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500">
               <RefreshCw className="w-4 h-4" />
             </button>
             <button
@@ -983,7 +983,7 @@ export function MediaLibraryPage() {
                 onClick={() => { setTypeFilter(typeFilter === t ? "all" : t); fetchAssets(1); }}
                 className={clsx(
                   "rounded-2xl border p-3 text-right transition-all",
-                  typeFilter === t ? "border-brand-300 bg-brand-50" : "bg-white border-gray-100 hover:border-gray-200",
+                  typeFilter === t ? "border-brand-300 bg-brand-50" : "bg-white border-[#eef2f6] hover:border-[#eef2f6]",
                 )}
               >
                 <div className={clsx("w-7 h-7 rounded-xl flex items-center justify-center mb-2", cfg.bg)}>
@@ -1005,7 +1005,7 @@ export function MediaLibraryPage() {
               value={search}
               onChange={e => handleSearch(e.target.value)}
               placeholder="بحث باسم الملف..."
-              className="border border-gray-200 rounded-xl pr-9 pl-3 py-2 text-sm outline-none focus:border-brand-400 w-48"
+              className="border border-[#eef2f6] rounded-xl pr-9 pl-3 py-2 text-sm outline-none focus:border-brand-400 w-48"
             />
           </div>
 
@@ -1014,7 +1014,7 @@ export function MediaLibraryPage() {
             <select
               value={category}
               onChange={e => { setCategory(e.target.value); fetchAssets(1); }}
-              className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 bg-white"
+              className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 bg-white"
             >
               <option value="">كل التصنيفات</option>
               {categories.map(c => <option key={c} value={c!}>{c}</option>)}
@@ -1031,7 +1031,7 @@ export function MediaLibraryPage() {
                   onClick={() => { setTagFilter(tagFilter === t ? "" : t); fetchAssets(1); }}
                   className={clsx(
                     "text-xs px-2.5 py-1 rounded-full border transition-colors",
-                    tagFilter === t ? "bg-brand-500 text-white border-brand-500" : "bg-white border-gray-200 text-gray-600 hover:border-brand-300",
+                    tagFilter === t ? "bg-brand-500 text-white border-brand-500" : "bg-white border-[#eef2f6] text-gray-600 hover:border-brand-300",
                   )}
                 >
                   {t}
@@ -1041,7 +1041,7 @@ export function MediaLibraryPage() {
           )}
 
           {/* Sort */}
-          <div className="mr-auto flex items-center gap-1 border border-gray-200 rounded-xl px-2 py-1.5 bg-white">
+          <div className="mr-auto flex items-center gap-1 border border-[#eef2f6] rounded-xl px-2 py-1.5 bg-white">
             <ArrowUpDown className="w-3.5 h-3.5 text-gray-400" />
             <select
               value={`${sortBy}:${sortDir}`}
@@ -1061,16 +1061,16 @@ export function MediaLibraryPage() {
           </div>
 
           {/* View toggle */}
-          <div className="flex border border-gray-200 rounded-xl overflow-hidden">
+          <div className="flex border border-[#eef2f6] rounded-xl overflow-hidden">
             <button
               onClick={() => setViewMode("grid")}
-              className={clsx("px-3 py-2 transition-colors", viewMode === "grid" ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-gray-50")}
+              className={clsx("px-3 py-2 transition-colors", viewMode === "grid" ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-[#f8fafc]")}
             >
               <Grid3X3 className="w-4 h-4" />
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={clsx("px-3 py-2 transition-colors", viewMode === "list" ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-gray-50")}
+              className={clsx("px-3 py-2 transition-colors", viewMode === "list" ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-[#f8fafc]")}
             >
               <List className="w-4 h-4" />
             </button>
@@ -1109,7 +1109,7 @@ export function MediaLibraryPage() {
             </div>
           ) : assets.length === 0 ? (
             <div
-              className="border-2 border-dashed border-gray-200 rounded-2xl p-16 text-center cursor-pointer hover:border-brand-300 transition-colors"
+              className="border-2 border-dashed border-[#eef2f6] rounded-2xl p-16 text-center cursor-pointer hover:border-brand-300 transition-colors"
               onClick={() => fileInputRef.current?.click()}
             >
               <Upload className="w-12 h-12 text-gray-200 mx-auto mb-3" />
@@ -1138,7 +1138,7 @@ export function MediaLibraryPage() {
                   <button
                     onClick={() => fetchAssets(page + 1)}
                     disabled={loading}
-                    className="border border-gray-200 rounded-xl px-6 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-50"
+                    className="border border-[#eef2f6] rounded-xl px-6 py-2.5 text-sm font-medium text-gray-600 hover:bg-[#f8fafc] disabled:opacity-50"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin inline" /> : `تحميل المزيد (${total - assets.length} متبقي)`}
                   </button>
@@ -1146,7 +1146,7 @@ export function MediaLibraryPage() {
               )}
             </>
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               {assets.map(asset => (
                 <AssetListRow
                   key={asset.id}
@@ -1176,7 +1176,7 @@ export function MediaLibraryPage() {
 
       {/* ── Detail panel (side sheet) ── */}
       {detail && (
-        <div className="fixed lg:absolute top-0 left-0 bottom-0 w-72 z-30 border-r border-gray-100 shadow-xl lg:shadow-none">
+        <div className="fixed lg:absolute top-0 left-0 bottom-0 w-72 z-30 border-r border-[#eef2f6] shadow-xl lg:shadow-none">
           <AssetDetail
             asset={detail}
             onClose={() => setDetail(null)}

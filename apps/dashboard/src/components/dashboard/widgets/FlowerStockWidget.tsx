@@ -41,7 +41,7 @@ export function FlowerStockWidget() {
   const lowStockCount = stock.filter((r) => parseInt(r.total_remaining || 0) < 50).length;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -72,7 +72,7 @@ export function FlowerStockWidget() {
           <p className="text-xl font-bold text-emerald-600 tabular-nums">{variantCount}</p>
           <p className="text-[11px] text-emerald-400 mt-0.5">نوع متاح</p>
         </div>
-        <div className={clsx("rounded-xl p-3 text-center", lowStockCount > 0 ? "bg-red-50" : "bg-gray-50")}>
+        <div className={clsx("rounded-xl p-3 text-center", lowStockCount > 0 ? "bg-red-50" : "bg-[#f8fafc]")}>
           <p className={clsx("text-xl font-bold tabular-nums", lowStockCount > 0 ? "text-red-600" : "text-gray-400")}>
             {lowStockCount}
           </p>
@@ -80,7 +80,7 @@ export function FlowerStockWidget() {
             مخزون منخفض
           </p>
         </div>
-        <div className={clsx("rounded-xl p-3 text-center", expiringCount > 0 ? "bg-amber-50" : "bg-gray-50")}>
+        <div className={clsx("rounded-xl p-3 text-center", expiringCount > 0 ? "bg-amber-50" : "bg-[#f8fafc]")}>
           <p className={clsx("text-xl font-bold tabular-nums", expiringCount > 0 ? "text-amber-600" : "text-gray-400")}>
             {expiringCount}
           </p>

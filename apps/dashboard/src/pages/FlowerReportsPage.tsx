@@ -48,7 +48,7 @@ function trendBadge(pct: number | null) {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 animate-pulse">
       <div className="h-4 bg-gray-100 rounded w-1/2 mb-3" />
       <div className="h-8 bg-gray-100 rounded w-3/4 mb-2" />
       <div className="h-3 bg-gray-100 rounded w-1/3" />
@@ -58,7 +58,7 @@ function SkeletonCard() {
 
 function SectionCard({ title, children, hint }: { title: string; children: React.ReactNode; hint?: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
       <h2 className="text-base font-bold text-gray-800 mb-1 border-r-4 border-brand-500 pr-3">{title}</h2>
       {hint && <p className="text-xs text-gray-400 mb-4 mr-4">{hint}</p>}
       {!hint && <div className="mb-4" />}
@@ -198,7 +198,7 @@ export function FlowerReportsPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+          <div className="flex bg-[#f1f5f9] rounded-xl p-1 gap-1">
             {(["today", "week", "month", "3months"] as Period[]).map(p => (
               <button
                 key={p}
@@ -214,13 +214,13 @@ export function FlowerReportsPage() {
           </div>
           <button
             onClick={refetch}
-            className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-100 hover:bg-gray-50 text-gray-400 transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-400 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
             onClick={() => window.print()}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#eef2f6] rounded-xl text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors"
           >
             <Printer className="w-4 h-4" />
             طباعة
@@ -272,9 +272,9 @@ export function FlowerReportsPage() {
             ].map(card => {
               const Icon = card.icon;
               return (
-                <div key={card.label} className="bg-white rounded-2xl border border-gray-100 p-5">
+                <div key={card.label} className="bg-white rounded-2xl border border-[#eef2f6] p-5">
                   <div className="flex items-start justify-between mb-3">
-                    <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center", card.bg)}>
+                    <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center", card.bg)}>
                       <Icon className="w-5 h-5 text-white" />
                     </div>
                     {trendBadge(card.trend)}
@@ -329,7 +329,7 @@ export function FlowerReportsPage() {
       <SectionCard title="ساعات الذروة" hint="عدد الطلبات حسب الساعة">
         {isLoading ? (
           <div className="flex gap-2 animate-pulse">
-            {Array.from({ length: 15 }).map((_, i) => <div key={i} className="w-10 h-10 bg-gray-100 rounded-xl" />)}
+            {Array.from({ length: 15 }).map((_, i) => <div key={i} className="w-10 h-10 bg-[#f1f5f9] rounded-xl" />)}
           </div>
         ) : (ordersRes?.data ?? []).filter(o => {
           const d = new Date(o.created_at); return d >= periodStart && o.status !== "cancelled";
@@ -348,7 +348,7 @@ export function FlowerReportsPage() {
                 else if (intensity > 0) bg = "bg-green-200";
                 return (
                   <div key={h.hour} className="flex flex-col items-center gap-1">
-                    <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center", bg)} title={`${h.orders} طلب`}>
+                    <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center", bg)} title={`${h.orders} طلب`}>
                       {h.orders > 0 && (
                         <span className={clsx("text-xs font-bold", intensity > 0.4 ? "text-white" : "text-green-800")}>
                           {h.orders}
@@ -377,7 +377,7 @@ export function FlowerReportsPage() {
       <SectionCard title="المخزون الحالي" hint="كميات الورد المتوفرة حالياً">
         {isLoading ? (
           <div className="animate-pulse space-y-3">
-            {[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 rounded-xl" />)}
+            {[1,2,3].map(i => <div key={i} className="h-10 bg-[#f1f5f9] rounded-xl" />)}
           </div>
         ) : stock.length === 0 ? (
           <EmptySection text="لا توجد بيانات مخزون — أضف دفعات من صفحة الموردين" />
@@ -385,7 +385,7 @@ export function FlowerReportsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-xs text-gray-400 border-b border-gray-100">
+                <tr className="text-xs text-gray-400 border-b border-[#eef2f6]">
                   <th className="text-right py-2 pb-3 font-medium">الصنف</th>
                   <th className="text-right py-2 pb-3 font-medium">الكمية المتبقية</th>
                   <th className="text-right py-2 pb-3 font-medium">الحالة</th>
@@ -398,7 +398,7 @@ export function FlowerReportsPage() {
                   const isLow = qty < 10;
                   const expiryDate = item.nearestExpiry ?? item.nearest_expiry;
                   return (
-                    <tr key={idx} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                    <tr key={idx} className="border-b border-gray-50 hover:bg-[#f8fafc] transition-colors">
                       <td className="py-3 font-medium text-gray-800">
                         {item.displayNameAr ?? item.display_name_ar ?? item.flowerType ?? item.flower_type ?? "—"}
                       </td>
@@ -428,14 +428,14 @@ export function FlowerReportsPage() {
       <SectionCard title="أفضل العملاء" hint="بناءً على عدد الطلبات والإنفاق">
         {customersLoading ? (
           <div className="space-y-3 animate-pulse">
-            {[1,2,3,4,5].map(i => <div key={i} className="h-12 bg-gray-100 rounded-xl" />)}
+            {[1,2,3,4,5].map(i => <div key={i} className="h-12 bg-[#f1f5f9] rounded-xl" />)}
           </div>
         ) : topCustomers.length === 0 ? (
           <EmptySection text="ستظهر بيانات العملاء بعد تجميع الطلبات" />
         ) : (
           <div className="space-y-3">
             {topCustomers.map((c: any, idx: number) => (
-              <div key={idx} className="flex flex-wrap items-center justify-between gap-2 p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+              <div key={idx} className="flex flex-wrap items-center justify-between gap-2 p-3 bg-[#f8fafc] rounded-xl hover:bg-gray-100 transition-colors">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-brand-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
                     {(c.customer_name || "؟").charAt(0)}

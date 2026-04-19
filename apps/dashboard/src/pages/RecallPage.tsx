@@ -73,7 +73,7 @@ export function RecallPage() {
               "px-4 py-2 rounded-xl text-sm font-medium border transition-colors",
               weeks === i.weeks
                 ? "bg-brand-500 text-white border-brand-500"
-                : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                : "border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]"
             )}
           >
             {i.label}
@@ -99,7 +99,7 @@ export function RecallPage() {
       {loading ? (
         <SkeletonRows />
       ) : clients.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16">
           <Users className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-gray-400">جميع العملاء زاروا خلال {weeks} أسبوع الأخيرة</p>
         </div>
@@ -120,13 +120,13 @@ export function RecallPage() {
                 }}
                 className={clsx(
                   "bg-white rounded-2xl border px-5 py-3 flex items-center gap-3 cursor-pointer transition-all",
-                  isSelected ? "border-brand-300 ring-1 ring-brand-200" : "border-gray-100 hover:border-gray-200"
+                  isSelected ? "border-brand-300 ring-1 ring-brand-200" : "border-[#eef2f6] hover:border-[#eef2f6]"
                 )}
               >
                 {/* Checkbox */}
                 <div className={clsx(
                   "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0",
-                  isSelected ? "border-brand-500 bg-brand-500" : "border-gray-300"
+                  isSelected ? "border-brand-500 bg-brand-500" : "border-[#eef2f6]"
                 )}>
                   {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
                 </div>
@@ -173,12 +173,12 @@ export function RecallPage() {
       {showMsgPanel && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-end sm:items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-md shadow-xl max-h-[90vh] flex flex-col">
-            <div className="px-5 py-4 border-b border-gray-100 shrink-0">
+            <div className="px-5 py-4 border-b border-[#eef2f6] shrink-0">
               <h3 className="font-bold text-gray-900">رسالة لـ {selectedClients.length} عميل</h3>
             </div>
             <div className="p-5 space-y-3 overflow-y-auto flex-1">
               <textarea
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm resize-none"
                 rows={3}
                 value={customMsg}
                 onChange={e => setCustomMsg(e.target.value)}
@@ -192,7 +192,7 @@ export function RecallPage() {
                     href={buildWaLink(c.phone, customMsg.trim() || WA_TEMPLATE(c.name))}
                     target="_blank"
                     rel="noreferrer"
-                    className="flex items-center gap-3 px-3 py-2 rounded-xl border border-gray-100 hover:border-green-200 hover:bg-green-50 transition-colors"
+                    className="flex items-center gap-3 px-3 py-2 rounded-xl border border-[#eef2f6] hover:border-green-200 hover:bg-green-50 transition-colors"
                   >
                     <div className="w-7 h-7 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-xs shrink-0">
                       {c.name?.[0] || "ع"}
@@ -209,7 +209,7 @@ export function RecallPage() {
             <div className="px-5 pb-5 shrink-0">
               <button
                 onClick={() => { setShowMsgPanel(false); setSelected(new Set()); }}
-                className="w-full px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50"
+                className="w-full px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc]"
               >
                 إغلاق
               </button>

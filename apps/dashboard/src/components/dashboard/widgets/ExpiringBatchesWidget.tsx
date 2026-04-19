@@ -58,12 +58,12 @@ export function ExpiringBatchesWidget() {
   }).length;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 h-full">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] h-full">
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
         <div className="flex items-center gap-2">
           <div className={clsx(
             "w-8 h-8 rounded-xl flex items-center justify-center",
-            criticalCount > 0 ? "bg-red-50" : batches.length > 0 ? "bg-amber-50" : "bg-gray-50"
+            criticalCount > 0 ? "bg-red-50" : batches.length > 0 ? "bg-amber-50" : "bg-[#f8fafc]"
           )}>
             <AlertTriangle className={clsx(
               "w-4 h-4",
@@ -87,7 +87,7 @@ export function ExpiringBatchesWidget() {
         {loading ? (
           <div className="space-y-2.5">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-10" />
+              <div key={i} className="animate-pulse bg-[#f1f5f9] rounded-xl h-10" />
             ))}
           </div>
         ) : sorted.length === 0 ? (

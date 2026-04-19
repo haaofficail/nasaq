@@ -152,7 +152,7 @@ function DocumentsTab() {
                 "px-3 py-1.5 rounded-xl text-xs font-medium transition-colors inline-flex items-center gap-1.5",
                 statusFilter === value
                   ? "bg-brand-500 text-white"
-                  : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50",
+                  : "bg-white border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]",
               )}
             >
               {label}
@@ -188,10 +188,10 @@ function DocumentsTab() {
             return (
               <div
                 key={doc.id}
-                className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-sm transition-shadow"
+                className="bg-white rounded-2xl border border-[#eef2f6] p-5 hover:shadow-sm transition-shadow"
               >
                 <div className="flex items-start gap-4">
-                  <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-[10px] bg-[#f8fafc] flex items-center justify-center shrink-0">
                     <FileText className="w-5 h-5 text-gray-400" />
                   </div>
 
@@ -268,7 +268,7 @@ function DocumentsTab() {
                         href={doc.fileUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 rounded-xl bg-gray-50 text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
+                        className="p-2 rounded-xl bg-[#f8fafc] text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition-colors"
                         title="عرض الملف"
                       >
                         <ExternalLink className="w-4 h-4" />
@@ -308,7 +308,7 @@ function DocumentsTab() {
             value={rejectionReason}
             onChange={(e) => setRejectionReason(e.target.value)}
             rows={3}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
+            className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
             placeholder="اكتب سبب رفض الوثيقة..."
           />
           <div className="flex gap-2 justify-end">

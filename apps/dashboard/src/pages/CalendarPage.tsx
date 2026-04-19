@@ -197,16 +197,16 @@ export function CalendarPage() {
         <h1 className="text-xl font-bold text-gray-900">التقويم</h1>
         <div className="flex items-center gap-2 flex-wrap">
           {/* View toggle */}
-          <div className="flex rounded-xl border border-gray-200 overflow-hidden text-xs">
+          <div className="flex rounded-xl border border-[#eef2f6] overflow-hidden text-xs">
             {(["month", "week", "day"] as const).map(v => (
               <button key={v} onClick={() => setViewMode(v)}
-                className={clsx("px-3 py-1.5 transition-colors", viewMode === v ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-gray-50")}>
+                className={clsx("px-3 py-1.5 transition-colors", viewMode === v ? "bg-brand-500 text-white" : "text-gray-600 hover:bg-[#f8fafc]")}>
                 {v === "month" ? "شهر" : v === "week" ? "أسبوع" : "يوم"}
               </button>
             ))}
           </div>
           {/* Prev / Next */}
-          <div className="flex items-center gap-2 bg-white rounded-2xl border border-gray-100 px-2 py-1.5">
+          <div className="flex items-center gap-2 bg-white rounded-2xl border border-[#eef2f6] px-2 py-1.5">
             <button onClick={prev} className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors">
               <ChevronRight className="w-4 h-4 text-gray-500" />
             </button>
@@ -260,8 +260,8 @@ export function CalendarPage() {
         <>
           {/* ── MONTH VIEW ─────────────────────────────────────── */}
           {viewMode === "month" && (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="grid grid-cols-7 border-b border-gray-100">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+              <div className="grid grid-cols-7 border-b border-[#eef2f6]">
                 {DAY_NAMES.map((d) => (
                   <div key={d} className="py-3 text-center text-xs font-semibold text-gray-400 uppercase tracking-wide">
                     {d}
@@ -318,9 +318,9 @@ export function CalendarPage() {
 
           {/* ── WEEK VIEW ──────────────────────────────────────── */}
           {viewMode === "week" && (
-            <div className="overflow-auto max-h-[600px] rounded-2xl border border-gray-100">
+            <div className="overflow-auto max-h-[600px] rounded-2xl border border-[#eef2f6]">
               {/* Header row */}
-              <div className="grid grid-cols-8 border-b border-gray-100 sticky top-0 bg-white z-10">
+              <div className="grid grid-cols-8 border-b border-[#eef2f6] sticky top-0 bg-white z-10">
                 <div className="p-2" />
                 {weekDays.map(day => (
                   <div key={day.toISOString()}
@@ -340,7 +340,7 @@ export function CalendarPage() {
               {/* Time rows */}
               {WEEK_HOURS.map(hour => (
                 <div key={hour} className="grid grid-cols-8 border-b border-gray-50 min-h-[48px]">
-                  <div className="p-2 text-xs text-gray-400 text-left border-l border-gray-100 sticky right-0 bg-white">
+                  <div className="p-2 text-xs text-gray-400 text-left border-l border-[#eef2f6] sticky right-0 bg-white">
                     {String(hour).padStart(2, "0")}:00
                   </div>
                   {weekDays.map(day => {
@@ -372,9 +372,9 @@ export function CalendarPage() {
 
           {/* ── DAY VIEW ───────────────────────────────────────── */}
           {viewMode === "day" && (
-            <div className="overflow-auto max-h-[600px] rounded-2xl border border-gray-100">
+            <div className="overflow-auto max-h-[600px] rounded-2xl border border-[#eef2f6]">
               {/* Header */}
-              <div className="grid grid-cols-2 border-b border-gray-100 sticky top-0 bg-white z-10">
+              <div className="grid grid-cols-2 border-b border-[#eef2f6] sticky top-0 bg-white z-10">
                 <div className="p-2 text-xs text-gray-400" />
                 <div className={clsx("p-2 text-center text-xs font-semibold",
                   isToday(selectedDay) ? "text-brand-600" : "text-gray-700")}>
@@ -393,7 +393,7 @@ export function CalendarPage() {
                 const slotBookings = dayBookingsBySlot[k] || [];
                 return (
                   <div key={label} className="grid grid-cols-2 border-b border-gray-50 min-h-[36px]">
-                    <div className="p-2 text-xs text-gray-400 border-l border-gray-100 sticky right-0 bg-white">
+                    <div className="p-2 text-xs text-gray-400 border-l border-[#eef2f6] sticky right-0 bg-white">
                       {label}
                     </div>
                     <div className="p-0.5 cursor-pointer hover:bg-blue-50 transition-colors"
@@ -429,7 +429,7 @@ export function CalendarPage() {
       )}
 
       {/* FAQ */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
         <div className="space-y-3">
           {[
@@ -438,8 +438,8 @@ export function CalendarPage() {
             { q: "ما الفرق بين ألوان الحجوزات؟", a: "كل لون يعبّر عن حالة الحجز: أصفر = معلق، أزرق = مؤكد، بنفسجي = قيد التنفيذ، أخضر = مكتمل، أحمر = ملغي." },
             { q: "كيف أمنع التعارض في المواعيد؟", a: "النظام يمنع تلقائياً حجز نفس الموظف أو الأصل في وقتين متداخلين إذا كانت مدة الخدمة محددة بدقة." },
           ].map(faq => (
-            <details key={faq.q} className="border border-gray-100 rounded-xl">
-              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+            <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+              <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
               <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
             </details>
           ))}

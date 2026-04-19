@@ -20,7 +20,7 @@ const EVENT_LABELS: Record<string, { label: string; icon: typeof Bell; color: st
   late:               { label: "تأخر طالب",     icon: Bell,          color: "text-purple-600 bg-purple-50 border-purple-100" },
   teacher_absence:    { label: "غياب معلم",     icon: UserCheck,     color: "text-orange-600 bg-orange-50 border-orange-100" },
   teacher_assignment: { label: "إسناد معلم",    icon: UserCheck,     color: "text-blue-600 bg-blue-50 border-blue-100" },
-  test:               { label: "اختبار",        icon: Send,          color: "text-gray-500 bg-gray-50 border-gray-100" },
+  test:               { label: "اختبار",        icon: Send,          color: "text-gray-500 bg-[#f8fafc] border-[#eef2f6]" },
 };
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -74,14 +74,14 @@ function StatusBadge({ status }: { status: string }) {
     return <span className="flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2 py-0.5"><CheckCircle2 className="w-3 h-3" />تم الإرسال</span>;
   if (status === "failed")
     return <span className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-50 border border-red-100 rounded-full px-2 py-0.5"><XCircle className="w-3 h-3" />فشل</span>;
-  return <span className="text-[10px] font-bold text-gray-500 bg-gray-50 border border-gray-200 rounded-full px-2 py-0.5">{status}</span>;
+  return <span className="text-[10px] font-bold text-gray-500 bg-[#f8fafc] border border-[#eef2f6] rounded-full px-2 py-0.5">{status}</span>;
 }
 
 function SettingToggle({
   label, desc, value, onChange,
 }: { label: string; desc: string; value: boolean; onChange: (v: boolean) => void }) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3.5 border-b border-gray-50 last:border-0">
+    <div className="flex items-center justify-between gap-4 py-[6px] border-b border-gray-50 last:border-0">
       <div>
         <p className="text-sm font-semibold text-gray-800">{label}</p>
         <p className="text-xs text-gray-400 mt-0.5">{desc}</p>
@@ -106,7 +106,7 @@ function TemplateEditor({
         rows={4}
         value={value}
         onChange={e => onChange(field, e.target.value)}
-        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 resize-none font-mono"
+        className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 resize-none font-mono"
         dir="rtl"
       />
       <div className="flex flex-wrap gap-1">
@@ -114,7 +114,7 @@ function TemplateEditor({
           <button
             key={v.var}
             onClick={() => onChange(field, value + v.var)}
-            className="text-[10px] px-2 py-0.5 bg-gray-100 hover:bg-brand-500/10 hover:text-brand-500 rounded-lg border border-gray-200 transition-colors"
+            className="text-[10px] px-2 py-0.5 bg-gray-100 hover:bg-brand-500/10 hover:text-brand-500 rounded-lg border border-[#eef2f6] transition-colors"
           >
             {v.label}
           </button>
@@ -195,7 +195,7 @@ function WhatsAppConnectCard() {
     return (
       <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-[10px] bg-emerald-600 flex items-center justify-center shrink-0">
             <Smartphone className="w-5 h-5 text-white" />
           </div>
           <div>
@@ -221,13 +221,13 @@ function WhatsAppConnectCard() {
   // ── QR ready to scan ──────────────────────────────────────
   if (baileys?.status === "qr_ready" && baileys.qrBase64) {
     return (
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+      <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm p-5">
         <div className="flex items-start gap-4">
           <div className="shrink-0">
             <img
               src={baileys.qrBase64}
               alt="WhatsApp QR"
-              className="w-48 h-48 rounded-xl border border-gray-200 shadow-sm"
+              className="w-48 h-48 rounded-xl border border-[#eef2f6] shadow-sm"
             />
           </div>
           <div className="flex-1 space-y-3">
@@ -271,8 +271,8 @@ function WhatsAppConnectCard() {
   // ── Connecting (generating QR) ────────────────────────────
   if (baileys?.status === "connecting") {
     return (
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 flex items-center gap-4">
-        <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
+      <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm p-5 flex items-center gap-4">
+        <div className="w-9 h-9 rounded-[10px] bg-gray-100 flex items-center justify-center shrink-0">
           <Loader2 className="w-5 h-5 text-brand-500 animate-spin" />
         </div>
         <div>
@@ -285,12 +285,12 @@ function WhatsAppConnectCard() {
 
   // ── Disconnected ──────────────────────────────────────────
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+    <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-hidden">
       {/* Header */}
       <div className="p-5 border-b border-gray-50">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-[10px] bg-gray-100 flex items-center justify-center">
               <QrCode className="w-5 h-5 text-gray-500" />
             </div>
             <div>
@@ -330,7 +330,7 @@ function WhatsAppConnectCard() {
         </button>
 
         {api?.configured && (
-          <div className="flex items-start gap-2 text-[11px] text-gray-400 bg-gray-50 rounded-xl px-3 py-2">
+          <div className="flex items-start gap-2 text-[11px] text-gray-400 bg-[#f8fafc] rounded-xl px-3 py-2">
             <Info className="w-3.5 h-3.5 shrink-0 mt-0.5" />
             إذا ربطت الباركود، ستُعطى الأولوية على إعدادات الـ API.
           </div>
@@ -339,7 +339,7 @@ function WhatsAppConnectCard() {
         {!api?.configured && !baileys?.hasSaved && (
           <details className="text-xs text-gray-400">
             <summary className="cursor-pointer hover:text-gray-600">إعداد API خارجي بدلاً من ذلك</summary>
-            <div className="mt-2 space-y-1 pr-3 border-r border-gray-100">
+            <div className="mt-2 space-y-1 pr-3 border-r border-[#eef2f6]">
               <p><strong>Meta Cloud (مجاني):</strong> META_WA_TOKEN + META_WA_PHONE_ID</p>
               <p><strong>Unifonic:</strong> UNIFONIC_APP_SID + UNIFONIC_WHATSAPP_SENDER</p>
               <p><strong>Twilio:</strong> TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN + TWILIO_WHATSAPP_FROM</p>
@@ -425,7 +425,7 @@ export function SchoolNotificationsPage() {
       <WhatsAppConnectCard />
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+      <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1 w-fit">
         {[
           { id: "settings", label: "الإعدادات",   icon: Bell },
           { id: "log",      label: "سجل الإرسال", icon: FileText },
@@ -451,7 +451,7 @@ export function SchoolNotificationsPage() {
         <div className="grid gap-5 lg:grid-cols-2">
 
           {/* Toggles */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5">
             <h2 className="text-sm font-black text-gray-800 mb-1">تفعيل الإشعارات</h2>
             <p className="text-xs text-gray-400 mb-4">اختر ما يُرسَل تلقائياً عبر واتساب</p>
 
@@ -486,7 +486,7 @@ export function SchoolNotificationsPage() {
               onChange={v => setProp("notifyTeacherOnAssignment", v)}
             />
 
-            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-100">
+            <div className="flex items-center gap-2 mt-4 pt-4 border-t border-[#eef2f6]">
               <button
                 onClick={handleSave}
                 disabled={saving || !localSettings}
@@ -500,7 +500,7 @@ export function SchoolNotificationsPage() {
           </div>
 
           {/* Test panel */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5">
             <h2 className="text-sm font-black text-gray-800 mb-1">اختبار الإرسال</h2>
             <p className="text-xs text-gray-400 mb-4">تحقق من عمل الواتساب قبل تفعيل الإشعارات</p>
 
@@ -514,7 +514,7 @@ export function SchoolNotificationsPage() {
                     value={testPhone}
                     onChange={e => setTestPhone(e.target.value)}
                     placeholder="9665xxxxxxxx"
-                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10"
+                    className="flex-1 px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10"
                     dir="ltr"
                   />
                 </div>
@@ -525,7 +525,7 @@ export function SchoolNotificationsPage() {
                   rows={2}
                   value={testMessage}
                   onChange={e => setTestMessage(e.target.value)}
-                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 resize-none"
+                  className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 resize-none"
                 />
               </div>
               <button
@@ -549,7 +549,7 @@ export function SchoolNotificationsPage() {
           </div>
 
           {/* Message Templates */}
-          <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="lg:col-span-2 bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5">
             <h2 className="text-sm font-black text-gray-800 mb-1">قوالب الرسائل</h2>
             <p className="text-xs text-gray-400 mb-5">خصص نص كل إشعار — اضغط على المتغير لإدراجه</p>
 
@@ -591,7 +591,7 @@ export function SchoolNotificationsPage() {
               />
             </div>
 
-            <div className="flex items-center gap-2 mt-5 pt-4 border-t border-gray-100">
+            <div className="flex items-center gap-2 mt-5 pt-4 border-t border-[#eef2f6]">
               <button
                 onClick={handleSave}
                 disabled={saving || !localSettings}
@@ -603,7 +603,7 @@ export function SchoolNotificationsPage() {
               {localSettings && (
                 <button
                   onClick={() => setLocalSettings(null)}
-                  className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50"
+                  className="px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-500 hover:bg-[#f8fafc]"
                 >
                   إلغاء
                 </button>
@@ -622,7 +622,7 @@ export function SchoolNotificationsPage() {
             <select
               value={filterEvent}
               onChange={e => setFilterEvent(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white"
+              className="px-3 py-2 rounded-xl border border-[#eef2f6] text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white"
             >
               <option value="">كل الأحداث</option>
               <option value="violation">مخالفة</option>
@@ -635,19 +635,19 @@ export function SchoolNotificationsPage() {
             <select
               value={filterStatus}
               onChange={e => setFilterStatus(e.target.value)}
-              className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white"
+              className="px-3 py-2 rounded-xl border border-[#eef2f6] text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 bg-white"
             >
               <option value="">كل الحالات</option>
               <option value="sent">تم الإرسال</option>
               <option value="failed">فشل</option>
             </select>
-            <button onClick={refetchLogs} className="p-2 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500">
+            <button onClick={refetchLogs} className="p-2 rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500">
               <RefreshCw className="w-4 h-4" />
             </button>
             <span className="text-xs text-gray-400 mr-auto">{total} رسالة</span>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
             {logsLoading ? (
               <div className="flex items-center justify-center py-16">
                 <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
@@ -663,7 +663,7 @@ export function SchoolNotificationsPage() {
                 {logs.map((log: any) => {
                   const ev = EVENT_LABELS[log.eventType] ?? EVENT_LABELS.test;
                   return (
-                    <div key={log.id} className="px-5 py-3.5 hover:bg-gray-50 transition-colors">
+                    <div key={log.id} className="px-5 py-[6px] hover:bg-[#f8fafc] transition-colors">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0">
                           <span className={clsx("mt-0.5 shrink-0 p-1.5 rounded-lg border", ev.color)}>
@@ -675,7 +675,7 @@ export function SchoolNotificationsPage() {
                                 {log.studentName ?? log.teacherName ?? "—"}
                               </span>
                               {log.studentGrade && (
-                                <span className="text-[10px] text-gray-400 bg-gray-100 rounded-lg px-1.5 py-0.5">
+                                <span className="text-[10px] text-gray-400 bg-[#f1f5f9] rounded-lg px-1.5 py-0.5">
                                   {log.studentGrade}
                                 </span>
                               )}

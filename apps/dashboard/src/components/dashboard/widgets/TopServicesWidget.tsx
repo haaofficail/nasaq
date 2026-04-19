@@ -10,7 +10,7 @@ export function TopServicesWidget() {
   const services: any[] = data?.data || [];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-gray-900 text-sm">{biz.terminology.topItemsTitle}</h2>
         <Link to="/dashboard/catalog" className="text-xs text-brand-500 hover:text-brand-600 font-medium">
@@ -41,7 +41,7 @@ export function TopServicesWidget() {
             <Link
               key={service.id}
               to={`/dashboard/catalog`}
-              className="flex items-center gap-2.5 rounded-lg p-1.5 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2.5 rounded-lg p-1.5 hover:bg-[#f8fafc] transition-colors"
             >
               <span className="w-6 h-6 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center text-[11px] font-bold shrink-0">
                 {i + 1}

@@ -20,8 +20,8 @@ const STATUS: Record<string, { label: string; color: string; bg: string; border:
   late:           { label: "متأخر",        color: "text-amber-700",   bg: "bg-amber-50",    border: "border-amber-200",   dot: "bg-amber-500"   },
   absent:         { label: "غائب",         color: "text-red-700",     bg: "bg-red-50",      border: "border-red-200",     dot: "bg-red-500"     },
   on_leave:       { label: "إجازة",        color: "text-blue-700",    bg: "bg-blue-50",     border: "border-blue-200",    dot: "bg-blue-500"    },
-  week_off:       { label: "عطلة",         color: "text-gray-500",    bg: "bg-gray-50",     border: "border-gray-200",    dot: "bg-gray-300"    },
-  not_started:    { label: "لم يبدأ بعد", color: "text-gray-400",    bg: "bg-gray-50",     border: "border-gray-100",    dot: "bg-gray-200"    },
+  week_off:       { label: "عطلة",         color: "text-gray-500",    bg: "bg-[#f8fafc]",     border: "border-[#eef2f6]",    dot: "bg-gray-300"    },
+  not_started:    { label: "لم يبدأ بعد", color: "text-gray-400",    bg: "bg-[#f8fafc]",     border: "border-[#eef2f6]",    dot: "bg-gray-200"    },
   not_checked_in: { label: "لم يسجل",     color: "text-orange-700",  bg: "bg-orange-50",   border: "border-orange-200",  dot: "bg-orange-500"  },
   incomplete:     { label: "ناقص",         color: "text-orange-700",  bg: "bg-orange-50",   border: "border-orange-200",  dot: "bg-orange-400"  },
   early_leave:    { label: "خروج مبكر",   color: "text-purple-700",  bg: "bg-purple-50",   border: "border-purple-200",  dot: "bg-purple-500"  },
@@ -126,19 +126,19 @@ function DailyTab({ onTabChange }: { onTabChange: (t: Tab) => void }) {
     { key: "incomplete",     label: "ناقص",        icon: AlertTriangle,color: "text-orange-600",  bg: "bg-orange-50"  },
     { key: "early_leave",    label: "خروج مبكر",  icon: LogOut,       color: "text-purple-600",  bg: "bg-purple-50"  },
     { key: "overtime",       label: "إضافي",       icon: TrendingUp,   color: "text-indigo-600",  bg: "bg-indigo-50"  },
-    { key: "week_off",       label: "عطلة",        icon: Coffee,       color: "text-gray-500",    bg: "bg-gray-50"    },
+    { key: "week_off",       label: "عطلة",        icon: Coffee,       color: "text-gray-500",    bg: "bg-[#f8fafc]"    },
   ];
 
   return (
     <div className="space-y-5">
       {/* Date Nav */}
       <div className="flex items-center gap-2 flex-wrap">
-        <button onClick={() => { const d = new Date(date); d.setDate(d.getDate()-1); setDate(d.toISOString().split("T")[0]); }} className="p-2 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"><ChevronRight className="w-4 h-4 text-gray-500" /></button>
-        <input type="date" value={date} onChange={e => setDate(e.target.value)} className="border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-brand-300" dir="ltr" />
-        <button onClick={() => { const d = new Date(date); d.setDate(d.getDate()+1); setDate(d.toISOString().split("T")[0]); }} disabled={date >= t} className="p-2 rounded-xl border border-gray-200 hover:bg-gray-50 disabled:opacity-40 transition-colors"><ChevronLeft className="w-4 h-4 text-gray-500" /></button>
+        <button onClick={() => { const d = new Date(date); d.setDate(d.getDate()-1); setDate(d.toISOString().split("T")[0]); }} className="p-2 rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] transition-colors"><ChevronRight className="w-4 h-4 text-gray-500" /></button>
+        <input type="date" value={date} onChange={e => setDate(e.target.value)} className="border border-[#eef2f6] rounded-xl px-4 py-2 text-sm outline-none focus:border-brand-300" dir="ltr" />
+        <button onClick={() => { const d = new Date(date); d.setDate(d.getDate()+1); setDate(d.toISOString().split("T")[0]); }} disabled={date >= t} className="p-2 rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] disabled:opacity-40 transition-colors"><ChevronLeft className="w-4 h-4 text-gray-500" /></button>
         {date !== t && <button onClick={() => setDate(t)} className="px-3 py-2 text-xs font-medium text-brand-600 hover:bg-brand-50 rounded-xl transition-colors">اليوم</button>}
         <div className="mr-auto flex gap-2">
-          <button onClick={refresh} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors"><RefreshCw className="w-4 h-4" /></button>
+          <button onClick={refresh} className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500 transition-colors"><RefreshCw className="w-4 h-4" /></button>
           <Button variant="secondary" icon={Plus} onClick={() => setShowManual(true)}>إدخال يدوي</Button>
         </div>
       </div>
@@ -167,7 +167,7 @@ function DailyTab({ onTabChange }: { onTabChange: (t: Tab) => void }) {
       {/* Summary Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {STAT_CARDS.map(({ key, label, icon: Icon, color, bg }) => (
-          <div key={key} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={key} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-2", bg)}>
               <Icon className={clsx("w-4 h-4", color)} />
             </div>
@@ -178,8 +178,8 @@ function DailyTab({ onTabChange }: { onTabChange: (t: Tab) => void }) {
       </div>
 
       {/* Records Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="px-5 py-[6px] border-b border-gray-50 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900 text-sm">سجلات الحضور</h2>
           <span className="text-xs text-gray-400">{records.length} موظف</span>
         </div>
@@ -217,7 +217,7 @@ function DailyTab({ onTabChange }: { onTabChange: (t: Tab) => void }) {
               </thead>
               <tbody>
                 {records.map((r: any) => (
-                  <tr key={r.userId} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
+                  <tr key={r.userId} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
                     <td className="py-3 px-5">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 rounded-full bg-brand-50 text-brand-600 font-bold text-sm flex items-center justify-center shrink-0">{r.name?.[0]}</div>
@@ -385,10 +385,10 @@ function SchedulesTab() {
 
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => <div key={i} className="h-40 bg-gray-100 rounded-2xl animate-pulse" />)}
+          {[...Array(3)].map((_, i) => <div key={i} className="h-40 bg-[#f1f5f9] rounded-2xl animate-pulse" />)}
         </div>
       ) : schedules.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <CalendarDays className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-gray-900 mb-1">لا توجد جداول دوام</h3>
           <p className="text-sm text-gray-400 mb-4">أنشئ جدول دوام أسبوعي وعيّنه للموظفين</p>
@@ -402,7 +402,7 @@ function SchedulesTab() {
             const assignedCount = parseInt(s.assigned_count) || 0;
             const times = activeDays[0] ? `${activeDays[0].start_time} — ${activeDays[0].end_time}` : "—";
             return (
-              <div key={s.id} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-sm transition-shadow">
+              <div key={s.id} className="bg-white rounded-2xl border border-[#eef2f6] p-5 hover:shadow-sm transition-shadow">
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-0.5">
@@ -433,8 +433,8 @@ function SchedulesTab() {
 
       {/* Assignments list */}
       {assignments.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-gray-50">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+          <div className="px-5 py-[6px] border-b border-gray-50">
             <h2 className="font-semibold text-gray-900 text-sm">تعيينات الموظفين</h2>
           </div>
           <table className="w-full text-sm">
@@ -447,15 +447,15 @@ function SchedulesTab() {
             </thead>
             <tbody>
               {assignments.map((a: any) => (
-                <tr key={a.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40">
+                <tr key={a.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40">
                   <td className="py-3 px-5">
                     <p className="font-medium text-gray-900">{a.name}</p>
                     <p className="text-xs text-gray-400">{a.job_title}</p>
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-600">
+                  <td className="py-[6px] px-[10px] text-sm text-gray-600">
                     {a.schedule_name ? <span>{a.schedule_name}</span> : <span className="text-gray-300">غير محدد</span>}
                   </td>
-                  <td className="py-3 px-4 text-xs text-gray-500" dir="ltr">{a.effective_from || "—"}</td>
+                  <td className="py-[6px] px-[10px] text-xs text-gray-500" dir="ltr">{a.effective_from || "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -466,7 +466,7 @@ function SchedulesTab() {
       {/* Unassigned staff warning */}
       {unassignedStaff.length > 0 && schedules.length > 0 && (
         <div className="bg-white rounded-2xl border border-amber-200 overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-amber-100 bg-amber-50 flex items-center gap-2">
+          <div className="px-5 py-[6px] border-b border-amber-100 bg-amber-50 flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-amber-500" />
             <h2 className="font-semibold text-amber-800 text-sm">{unassignedStaff.length} موظف بدون جدول معين</h2>
           </div>
@@ -505,16 +505,16 @@ function SchedulesTab() {
             <p className="text-sm font-medium text-gray-700 mb-2">أيام العمل وأوقاتها</p>
             <div className="space-y-2">
               {days.map((d, i) => (
-                <div key={d.dayOfWeek} className={clsx("flex items-center gap-3 p-2.5 rounded-xl border transition-colors", d.active ? "border-brand-100 bg-brand-50/30" : "border-gray-100 bg-gray-50/30")}>
+                <div key={d.dayOfWeek} className={clsx("flex items-center gap-3 p-2.5 rounded-xl border transition-colors", d.active ? "border-brand-100 bg-brand-50/30" : "border-[#eef2f6] bg-gray-50/30")}>
                   <label className="flex items-center gap-2 w-20 shrink-0 cursor-pointer">
                     <input type="checkbox" checked={d.active} onChange={e => setDay(i, "active", e.target.checked)} className="rounded" />
                     <span className="text-sm font-medium text-gray-700">{DAYS_AR[d.dayOfWeek]}</span>
                   </label>
                   {d.active && (
                     <>
-                      <input type="time" value={d.startTime} onChange={e => setDay(i, "startTime", e.target.value)} className="border border-gray-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-brand-300 w-24" dir="ltr" />
+                      <input type="time" value={d.startTime} onChange={e => setDay(i, "startTime", e.target.value)} className="border border-[#eef2f6] rounded-lg px-2 py-1 text-sm outline-none focus:border-brand-300 w-24" dir="ltr" />
                       <span className="text-gray-400 text-xs">—</span>
-                      <input type="time" value={d.endTime} onChange={e => setDay(i, "endTime", e.target.value)} className="border border-gray-200 rounded-lg px-2 py-1 text-sm outline-none focus:border-brand-300 w-24" dir="ltr" />
+                      <input type="time" value={d.endTime} onChange={e => setDay(i, "endTime", e.target.value)} className="border border-[#eef2f6] rounded-lg px-2 py-1 text-sm outline-none focus:border-brand-300 w-24" dir="ltr" />
                     </>
                   )}
                 </div>
@@ -529,7 +529,7 @@ function SchedulesTab() {
         footer={<><Button variant="secondary" onClick={() => setShowAssign(null)}>إلغاء</Button><Button onClick={handleAssign} disabled={!selectedUsers.length}>تعيين ({selectedUsers.length})</Button></>}>
         <div className="space-y-2 max-h-72 overflow-y-auto">
           {allStaff.map((s: any) => (
-            <label key={s.id} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50 cursor-pointer">
+            <label key={s.id} className="flex items-center gap-3 p-3 rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] cursor-pointer">
               <input type="checkbox" checked={selectedUsers.includes(s.id)} onChange={e => setSelectedUsers(prev => e.target.checked ? [...prev, s.id] : prev.filter(id => id !== s.id))} className="rounded" />
               <div className="w-7 h-7 rounded-full bg-brand-50 text-brand-600 font-bold text-xs flex items-center justify-center shrink-0">{s.name?.[0]}</div>
               <div>
@@ -579,28 +579,28 @@ function PoliciesTab() {
 
   return (
     <div className="max-w-2xl space-y-5">
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-5">
         <h2 className="font-semibold text-gray-900 text-sm border-b border-gray-50 pb-3">أوقات الحضور</h2>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">سماحية التأخير (دقيقة)</label>
             <input type="number" value={f("grace_minutes") || 0} onChange={e => set("grace_minutes", parseInt(e.target.value))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-brand-300" dir="ltr" />
+              className="w-full border border-[#eef2f6] rounded-xl px-4 py-2 text-sm outline-none focus:border-brand-300" dir="ltr" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">حد الغياب (دقيقة)</label>
             <input type="number" value={f("absent_threshold_minutes") || 0} onChange={e => set("absent_threshold_minutes", parseInt(e.target.value))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-brand-300" dir="ltr" />
+              className="w-full border border-[#eef2f6] rounded-xl px-4 py-2 text-sm outline-none focus:border-brand-300" dir="ltr" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">تقريب الوقت (دقيقة)</label>
             <input type="number" value={f("rounding_minutes") || 0} onChange={e => set("rounding_minutes", parseInt(e.target.value))}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-brand-300" dir="ltr" />
+              className="w-full border border-[#eef2f6] rounded-xl px-4 py-2 text-sm outline-none focus:border-brand-300" dir="ltr" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">إغلاق تلقائي الساعة</label>
             <input type="time" value={f("auto_close_hour") || "23:59"} onChange={e => set("auto_close_hour", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm outline-none focus:border-brand-300" dir="ltr" />
+              className="w-full border border-[#eef2f6] rounded-xl px-4 py-2 text-sm outline-none focus:border-brand-300" dir="ltr" />
           </div>
         </div>
 
@@ -614,7 +614,7 @@ function PoliciesTab() {
             { key: "require_gps",              label: "اشتراط تحديد الموقع (GPS)"              },
             { key: "require_qr",               label: "اشتراط مسح QR للتسجيل"                },
           ].map(({ key, label }) => (
-            <label key={key} className="flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:bg-gray-50 cursor-pointer">
+            <label key={key} className="flex items-center justify-between p-3 rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] cursor-pointer">
               <span className="text-sm text-gray-700">{label}</span>
               <div className={clsx("w-10 h-5 rounded-full transition-colors cursor-pointer relative", f(key) ? "bg-brand-500" : "bg-gray-200")}
                 onClick={() => set(key, !f(key))}>
@@ -689,7 +689,7 @@ function AdjustmentsTab() {
         <div className="flex gap-2">
           {["pending", "approved", "rejected"].map(s => (
             <button key={s} onClick={() => setStatusFilter(s)}
-              className={clsx("px-4 py-2 rounded-xl text-sm font-medium transition-colors", statusFilter === s ? "bg-brand-500 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50")}>
+              className={clsx("px-4 py-2 rounded-xl text-sm font-medium transition-colors", statusFilter === s ? "bg-brand-500 text-white" : "bg-white border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]")}>
               {s === "pending" ? "بانتظار الموافقة" : s === "approved" ? "مقبولة" : "مرفوضة"}
             </button>
           ))}
@@ -697,7 +697,7 @@ function AdjustmentsTab() {
         <Button icon={Plus} onClick={() => setShowCreate(true)}>طلب تصحيح</Button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-400 animate-pulse">جاري التحميل...</div>
         ) : adjustments.length === 0 ? (
@@ -716,14 +716,14 @@ function AdjustmentsTab() {
                   <div className="flex items-center gap-2 flex-wrap mb-1">
                     <p className="font-medium text-gray-900 text-sm">{r.user_name}</p>
                     <span className="text-xs text-gray-400">{r.job_title}</span>
-                    <span className={clsx("text-[10px] px-2 py-0.5 rounded-full border font-medium", STATUS_BADGE[r.status] || "bg-gray-50 text-gray-500 border-gray-200")}>
+                    <span className={clsx("text-[10px] px-2 py-0.5 rounded-full border font-medium", STATUS_BADGE[r.status] || "bg-gray-50 text-gray-500 border-[#eef2f6]")}>
                       {r.status === "pending" ? "معلق" : r.status === "approved" ? "مقبول" : "مرفوض"}
                     </span>
                   </div>
                   <p className="text-xs font-medium text-gray-700 mb-0.5">{ADJ_TYPES[r.type] || r.type}</p>
                   <p className="text-xs text-gray-500">{r.reason}</p>
                   {r.work_date && <p className="text-xs text-gray-400 mt-1" dir="ltr">{r.work_date}</p>}
-                  {r.review_note && <p className="text-xs text-gray-500 mt-1 bg-gray-50 rounded-lg px-2 py-1">ملاحظة المراجع: {r.review_note}</p>}
+                  {r.review_note && <p className="text-xs text-gray-500 mt-1 bg-[#f8fafc] rounded-lg px-2 py-1">ملاحظة المراجع: {r.review_note}</p>}
                 </div>
                 {r.status === "pending" && (
                   <div className="flex gap-2 shrink-0">
@@ -793,7 +793,7 @@ function ReportsTab() {
           { key: "employee", label: "تقرير موظف" },
         ].map(({ key, label }) => (
           <button key={key} onClick={() => setReportType(key as any)}
-            className={clsx("px-4 py-2 rounded-xl text-sm font-medium transition-colors", reportType === key ? "bg-brand-500 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50")}>
+            className={clsx("px-4 py-2 rounded-xl text-sm font-medium transition-colors", reportType === key ? "bg-brand-500 text-white" : "bg-white border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]")}>
             {label}
           </button>
         ))}
@@ -827,13 +827,13 @@ function ReportsTab() {
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {Object.entries(dailyRes.data.summary || {}).filter(([k]) => ["present","late","absent","on_leave"].includes(k)).map(([k, v]) => (
-                  <div key={k} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+                  <div key={k} className="bg-white rounded-2xl border border-[#eef2f6] p-4 text-center">
                     <p className={clsx("text-2xl font-bold", STATUS[k]?.color || "text-gray-700")}>{String(v)}</p>
                     <p className="text-xs text-gray-400 mt-1">{STATUS[k]?.label || k}</p>
                   </div>
                 ))}
               </div>
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
                 <table className="w-full text-sm">
                   <thead><tr className="border-b border-gray-50 bg-gray-50/40">
                     <th className="text-right py-2.5 px-5 text-xs text-gray-400 font-semibold">الموظف</th>
@@ -844,12 +844,12 @@ function ReportsTab() {
                   </tr></thead>
                   <tbody>
                     {(dailyRes.data.rows || []).map((r: any, i: number) => (
-                      <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40">
+                      <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40">
                         <td className="py-3 px-5 font-medium text-gray-900">{r.name}<p className="text-xs text-gray-400">{r.jobTitle}</p></td>
-                        <td className="py-3 px-4 text-xs tabular-nums text-gray-600">{fmt(r.actualStart)}</td>
-                        <td className="py-3 px-4 text-xs tabular-nums text-gray-600">{fmt(r.actualEnd)}</td>
-                        <td className="py-3 px-4 text-xs text-gray-600">{r.workedMinutesFmt || "—"}</td>
-                        <td className="py-3 px-4"><StatusBadge status={r.status} /></td>
+                        <td className="py-[6px] px-[10px] text-xs tabular-nums text-gray-600">{fmt(r.actualStart)}</td>
+                        <td className="py-[6px] px-[10px] text-xs tabular-nums text-gray-600">{fmt(r.actualEnd)}</td>
+                        <td className="py-[6px] px-[10px] text-xs text-gray-600">{r.workedMinutesFmt || "—"}</td>
+                        <td className="py-[6px] px-[10px]"><StatusBadge status={r.status} /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -859,7 +859,7 @@ function ReportsTab() {
           )}
 
           {reportType === "monthly" && monthlyRes?.data && (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-gray-50 bg-gray-50/40">
                   <th className="text-right py-2.5 px-5 text-xs text-gray-400 font-semibold">الموظف</th>
@@ -873,12 +873,12 @@ function ReportsTab() {
                     const hrs = Math.floor((r.total_worked_minutes || 0) / 60);
                     const mins = (r.total_worked_minutes || 0) % 60;
                     return (
-                      <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40">
+                      <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40">
                         <td className="py-3 px-5 font-medium text-gray-900">{r.name}<p className="text-xs text-gray-400">{r.job_title}</p></td>
-                        <td className="py-3 px-4 text-sm text-emerald-600 font-medium">{r.present_days}</td>
-                        <td className="py-3 px-4 text-sm text-red-500 font-medium">{r.absent_days}</td>
-                        <td className="py-3 px-4 text-sm text-orange-600">{r.incomplete_days}</td>
-                        <td className="py-3 px-4 text-xs text-gray-600 tabular-nums">{hrs}س {mins}د</td>
+                        <td className="py-[6px] px-[10px] text-sm text-emerald-600 font-medium">{r.present_days}</td>
+                        <td className="py-[6px] px-[10px] text-sm text-red-500 font-medium">{r.absent_days}</td>
+                        <td className="py-[6px] px-[10px] text-sm text-orange-600">{r.incomplete_days}</td>
+                        <td className="py-[6px] px-[10px] text-xs text-gray-600 tabular-nums">{hrs}س {mins}د</td>
                       </tr>
                     );
                   })}
@@ -888,7 +888,7 @@ function ReportsTab() {
           )}
 
           {reportType === "employee" && empRes?.data && (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <table className="w-full text-sm">
                 <thead><tr className="border-b border-gray-50 bg-gray-50/40">
                   <th className="text-right py-2.5 px-5 text-xs text-gray-400 font-semibold">التاريخ</th>
@@ -898,11 +898,11 @@ function ReportsTab() {
                 </tr></thead>
                 <tbody>
                   {(empRes.data as any[]).map((r: any, i: number) => (
-                    <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40">
+                    <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40">
                       <td className="py-3 px-5 text-sm text-gray-700" dir="ltr">{r.date}</td>
-                      <td className="py-3 px-4 text-xs tabular-nums text-gray-600">{fmt(r.actual_start_time)}</td>
-                      <td className="py-3 px-4 text-xs tabular-nums text-gray-600">{fmt(r.actual_end_time)}</td>
-                      <td className="py-3 px-4"><span className={clsx("text-xs px-2 py-0.5 rounded-full", r.status === "completed" ? "bg-emerald-50 text-emerald-700" : r.status === "no_show" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700")}>{r.status === "completed" ? "مكتمل" : r.status === "no_show" ? "غياب" : r.status}</span></td>
+                      <td className="py-[6px] px-[10px] text-xs tabular-nums text-gray-600">{fmt(r.actual_start_time)}</td>
+                      <td className="py-[6px] px-[10px] text-xs tabular-nums text-gray-600">{fmt(r.actual_end_time)}</td>
+                      <td className="py-[6px] px-[10px]"><span className={clsx("text-xs px-2 py-0.5 rounded-full", r.status === "completed" ? "bg-emerald-50 text-emerald-700" : r.status === "no_show" ? "bg-red-50 text-red-700" : "bg-amber-50 text-amber-700")}>{r.status === "completed" ? "مكتمل" : r.status === "no_show" ? "غياب" : r.status}</span></td>
                     </tr>
                   ))}
                 </tbody>
@@ -941,7 +941,7 @@ export function AttendancePage() {
       </div>
 
       {/* Tab Nav */}
-      <div className="flex gap-1 bg-gray-50 rounded-2xl p-1 overflow-x-auto">
+      <div className="flex gap-1 bg-[#f8fafc] rounded-2xl p-1 overflow-x-auto">
         {TABS.map(({ key, label, icon: Icon }) => (
           <button key={key} onClick={() => setTab(key)}
             className={clsx("flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all",

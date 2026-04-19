@@ -82,14 +82,14 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
     onClose();
   });
 
-  const inp = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500";
+  const inp = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500";
   const set = (k: keyof CreateForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
     setForm(f => ({ ...f, [k]: e.target.value }));
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" dir="rtl">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-100">
+        <div className="p-6 border-b border-[#eef2f6]">
           <h2 className="text-lg font-bold text-gray-900">عقد جديد</h2>
         </div>
         <div className="p-6 space-y-4">
@@ -150,17 +150,17 @@ function CreateModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">ملاحظات</label>
             <textarea value={form.notes} onChange={set("notes")} rows={2}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 resize-none" />
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 resize-none" />
           </div>
         </div>
-        <div className="p-6 border-t border-gray-100 flex gap-3">
+        <div className="p-6 border-t border-[#eef2f6] flex gap-3">
           <button onClick={() => doCreate(undefined as unknown as void)} disabled={loading}
             className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
             {loading && <Loader2 size={14} className="animate-spin" />}
             إنشاء العقد
           </button>
           <button onClick={onClose}
-            className="flex-1 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+            className="flex-1 py-2.5 border border-[#eef2f6] text-gray-700 rounded-xl text-sm font-medium hover:bg-[#f8fafc] transition-colors">
             إلغاء
           </button>
         </div>
@@ -211,10 +211,10 @@ export function ContractsPage() {
           {[
             { label: "نشطة",        value: stats.active_count ?? 0,     cls: "text-green-700",  bg: "bg-green-50" },
             { label: "تنتهي قريباً", value: stats.expiring_soon ?? 0,    cls: "text-orange-700", bg: "bg-orange-50" },
-            { label: "مسودة",       value: stats.draft_count ?? 0,      cls: "text-gray-700",   bg: "bg-gray-50" },
+            { label: "مسودة",       value: stats.draft_count ?? 0,      cls: "text-gray-700",   bg: "bg-[#f8fafc]" },
             { label: "قيمة العقود", value: fmt(stats.active_value ?? 0), cls: "text-brand-500",  bg: "bg-blue-50" },
           ].map(s => (
-            <div key={s.label} className={clsx("rounded-2xl p-4 border border-gray-100", s.bg)}>
+            <div key={s.label} className={clsx("rounded-2xl p-4 border border-[#eef2f6]", s.bg)}>
               <p className="text-xs text-gray-500 mb-1">{s.label}</p>
               <p className={clsx("text-lg font-bold", s.cls)}>{s.value}</p>
             </div>
@@ -230,7 +230,7 @@ export function ContractsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="بحث بالعنوان أو اسم الطرف..."
-            className="w-full pr-9 pl-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
+            className="w-full pr-9 pl-3 py-2 border border-[#eef2f6] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
           />
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -251,13 +251,13 @@ export function ContractsPage() {
 
       {/* List */}
       {loading ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-4"><SkeletonRows rows={4} /></div>
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4"><SkeletonRows rows={4} /></div>
       ) : error ? (
         <div className="bg-red-50 rounded-2xl border border-red-100 p-6 flex items-center gap-3 text-red-700">
           <AlertCircle size={20} /><span>{error}</span>
         </div>
       ) : contracts.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <FileSignature className="mx-auto mb-3 text-gray-300" size={40} />
           <p className="text-gray-500 font-medium">لا توجد عقود</p>
           <p className="text-gray-400 text-sm mt-1">أنشئ عقدك الأول لبدء إدارة العقود</p>
@@ -268,7 +268,7 @@ export function ContractsPage() {
             const st = STATUS[c.status] ?? STATUS.draft;
             const Icon = st.icon;
             return (
-              <div key={c.id} className="bg-white rounded-2xl border border-gray-100 p-4 hover:border-gray-200 transition-colors">
+              <div key={c.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 hover:border-[#eef2f6] transition-colors">
                 <div className="flex items-start gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1 flex-wrap">

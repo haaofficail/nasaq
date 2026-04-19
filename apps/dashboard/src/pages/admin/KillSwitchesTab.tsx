@@ -92,13 +92,13 @@ export default function KillSwitchesTab() {
             onChange={e => setFormId(e.target.value)}
             placeholder="مفتاح الميزة مثل: flower_master"
             dir="ltr"
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-500 font-mono"
+            className="w-full rounded-lg border border-[#eef2f6] px-3 py-2 text-sm outline-none focus:border-brand-500 font-mono"
           />
           <input
             value={formReason}
             onChange={e => setFormReason(e.target.value)}
             placeholder="السبب (يُعرض للمستخدمين)"
-            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-500"
+            className="w-full rounded-lg border border-[#eef2f6] px-3 py-2 text-sm outline-none focus:border-brand-500"
           />
           <div className="flex gap-2">
             <button
@@ -122,7 +122,7 @@ export default function KillSwitchesTab() {
           <p className="text-sm">لا توجد مفاتيح إيقاف — جميع الميزات تعمل بشكل طبيعي</p>
         </div>
       ) : (
-        <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
+        <div className="divide-y divide-gray-100 border border-[#eef2f6] rounded-xl overflow-hidden">
           {rows.map((ks) => (
             <div key={ks.id} className={clsx(
               "flex items-center justify-between p-4 bg-white",

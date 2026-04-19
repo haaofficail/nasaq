@@ -34,7 +34,7 @@ export function CatalogPage() {
       {tab === "addons"     && <AddonsPage />}
 
       {/* Guide */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 mt-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 mt-5">
         <h3 className="font-semibold text-gray-900 mb-4 text-sm">دليل الخدمات والمنتجات — الطريقة الصحيحة</h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
           {[
@@ -60,7 +60,7 @@ export function CatalogPage() {
               steps: ["أنشئ إضافة لكل خيار مدفوع", "ربطها بالخدمات المناسبة", "تظهر للعميل عند الحجز الإلكتروني"],
             },
           ].map(s => (
-            <div key={s.title} className="border border-gray-100 rounded-xl p-4">
+            <div key={s.title} className="border border-[#eef2f6] rounded-xl p-4">
               <div className="flex items-center gap-2 mb-2">
                 <p className="text-sm font-semibold text-gray-800">{s.title}</p>
                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${s.badgeColor}`}>{s.badge}</span>
@@ -86,8 +86,8 @@ export function CatalogPage() {
             { q: "ما معنى «مدة الخدمة»؟", a: "الوقت الذي تستغرقه الخدمة فعلياً. يستخدمه النظام لحساب التقويم ومنع التعارض في المواعيد. أدخل دائماً مدة واقعية." },
             { q: "هل الإضافات مربوطة بخدمات محددة؟", a: "نعم، عند إنشاء الإضافة تختار الخدمات التي تظهر معها. يمكنك ربطها بكل الخدمات أو بخدمات محددة فقط." },
           ].map(faq => (
-            <details key={faq.q} className="border border-gray-100 rounded-xl">
-              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+            <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+              <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
               <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
             </details>
           ))}

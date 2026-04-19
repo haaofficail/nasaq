@@ -64,7 +64,7 @@ function MarkPaidModal({
     onClose();
   });
 
-  const inp = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500";
+  const inp = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500";
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" dir="rtl">
@@ -99,7 +99,7 @@ function MarkPaidModal({
             تأكيد الدفعة
           </button>
           <button onClick={onClose}
-            className="flex-1 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+            className="flex-1 py-2.5 border border-[#eef2f6] text-gray-700 rounded-xl text-sm font-medium hover:bg-[#f8fafc] transition-colors">
             إلغاء
           </button>
         </div>
@@ -127,7 +127,7 @@ function RenewModal({
     onClose();
   });
 
-  const inp = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500";
+  const inp = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500";
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" dir="rtl">
@@ -155,7 +155,7 @@ function RenewModal({
             تجديد
           </button>
           <button onClick={onClose}
-            className="flex-1 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+            className="flex-1 py-2.5 border border-[#eef2f6] text-gray-700 rounded-xl text-sm font-medium hover:bg-[#f8fafc] transition-colors">
             إلغاء
           </button>
         </div>
@@ -195,7 +195,7 @@ export function ContractDetailPage() {
   if (loading) {
     return (
       <div className="p-6" dir="rtl">
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
           <SkeletonRows rows={6} />
         </div>
       </div>
@@ -231,7 +231,7 @@ export function ContractDetailPage() {
       </div>
 
       {/* Header */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
             <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -277,7 +277,7 @@ export function ContractDetailPage() {
         </div>
 
         {/* Details */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-gray-100">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-6 pt-6 border-t border-[#eef2f6]">
           <div>
             <p className="text-xs text-gray-400 mb-0.5">تاريخ البداية</p>
             <p className="text-sm font-medium text-gray-700">{fmtDate(contract.start_date)}</p>
@@ -297,7 +297,7 @@ export function ContractDetailPage() {
         </div>
 
         {contract.linked_entity_name && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="mt-4 pt-4 border-t border-[#eef2f6]">
             <p className="text-xs text-gray-400 mb-1">الأصل المرتبط</p>
             <p className="flex items-center gap-1.5 text-sm font-medium text-brand-600">
               <Link2 size={14} />
@@ -307,7 +307,7 @@ export function ContractDetailPage() {
         )}
 
         {contract.notes && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="mt-4 pt-4 border-t border-[#eef2f6]">
             <p className="text-xs text-gray-400 mb-1">ملاحظات</p>
             <p className="text-sm text-gray-600">{contract.notes}</p>
           </div>
@@ -339,8 +339,8 @@ export function ContractDetailPage() {
       )}
 
       {/* Payments */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-[#eef2f6]">
           <div>
             <h2 className="font-semibold text-gray-900">جدول الدفعات</h2>
             <p className="text-xs text-gray-400 mt-0.5">
@@ -383,8 +383,8 @@ export function ContractDetailPage() {
 
       {/* Documents */}
       {documents.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="p-4 border-b border-gray-100">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+          <div className="p-4 border-b border-[#eef2f6]">
             <h2 className="font-semibold text-gray-900">المستندات</h2>
           </div>
           <div className="divide-y divide-gray-50">

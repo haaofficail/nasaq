@@ -17,13 +17,13 @@ const STATUS_MAP: Record<string, { label: string; cls: string }> = {
   cancelled: { label: "ملغاة",    cls: "bg-red-50 text-red-500" },
 };
 
-const inp = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300";
+const inp = "w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300";
 
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className={clsx("bg-white rounded-2xl shadow-2xl w-full max-h-[92vh] overflow-y-auto", wide ? "max-w-2xl" : "max-w-md")}>
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between p-5 border-b border-[#eef2f6] sticky top-0 bg-white z-10">
           <h3 className="font-bold text-gray-900">{title}</h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
             <X className="w-4 h-4" />
@@ -111,7 +111,7 @@ export function EventsPage() {
           { label: "جارية الآن", value: ongoing,        icon: BarChart2,   color: "text-green-600 bg-green-50" },
           { label: "تذاكر مبيعة",value: totalSold,      icon: Ticket,      color: "text-purple-600 bg-purple-50" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
+          <div key={label} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all">
             <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", color.split(" ")[1])}>
               <Icon className={clsx("w-4 h-4", color.split(" ")[0])} />
             </div>
@@ -130,7 +130,7 @@ export function EventsPage() {
           {loading ? (
             <SkeletonRows />
           ) : events.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16">
               <PartyPopper className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400">لا توجد فعاليات</p>
               <button onClick={() => setCreateModal(true)} className="mt-2 text-sm text-brand-500 hover:underline">أضف أول فعالية</button>
@@ -141,7 +141,7 @@ export function EventsPage() {
             return (
               <button key={e.id} onClick={() => setSelectedEvent(isSelected ? null : e)}
                 className={clsx("w-full text-right bg-white rounded-2xl border p-4 transition-colors",
-                  isSelected ? "border-brand-300 bg-brand-50/30" : "border-gray-100 hover:border-gray-200")}>
+                  isSelected ? "border-brand-300 bg-brand-50/30" : "border-[#eef2f6] hover:border-[#eef2f6]")}>
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-semibold text-gray-900 truncate">{e.name}</p>
@@ -171,7 +171,7 @@ export function EventsPage() {
         {/* Detail panel */}
         {selectedEvent && (
           <div className="w-80 shrink-0 space-y-3">
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="font-semibold text-gray-900 text-sm">{selectedEvent.name}</p>
                 {selectedEvent.status === "draft" && (
@@ -200,7 +200,7 @@ export function EventsPage() {
             </div>
 
             {/* Ticket types */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4 space-y-3">
               <div className="flex items-center justify-between">
                 <p className="font-semibold text-gray-800 text-sm flex items-center gap-1.5"><Tag className="w-3.5 h-3.5" /> أنواع التذاكر</p>
                 <button onClick={() => setTtModal(true)}
@@ -278,7 +278,7 @@ export function EventsPage() {
                 {createEvent.loading ? "جاري الحفظ..." : "إنشاء الفعالية"}
               </button>
               <button onClick={() => setCreateModal(false)}
-                className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50">
+                className="flex-1 border border-[#eef2f6] text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-[#f8fafc]">
                 إلغاء
               </button>
             </div>
@@ -318,7 +318,7 @@ export function EventsPage() {
                 {createTT.loading ? "جاري الحفظ..." : "إضافة"}
               </button>
               <button onClick={() => setTtModal(false)}
-                className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50">
+                className="flex-1 border border-[#eef2f6] text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-[#f8fafc]">
                 إلغاء
               </button>
             </div>
@@ -333,7 +333,7 @@ function EventStats({ eventId }: { eventId: string }) {
   const { data } = useApi(() => eventsApi.stats(eventId), [eventId]);
   if (!data) return null;
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-4 space-y-2">
       <p className="font-semibold text-gray-800 text-sm flex items-center gap-1.5"><BarChart2 className="w-3.5 h-3.5" /> إحصائيات</p>
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="bg-gray-50 rounded-xl p-2.5 text-center">

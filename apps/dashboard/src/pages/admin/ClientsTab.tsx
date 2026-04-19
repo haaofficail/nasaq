@@ -46,17 +46,17 @@ function ClientsTab() {
 
       <div className="flex gap-2">
         <select value={managerFilter} onChange={(e) => setManagerFilter(e.target.value)}
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
           <option value="">كل مدراء الحسابات</option>
           {staffList.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
       </div>
 
       {loading ? <Spinner /> : filtered.length === 0 ? <Empty icon={Briefcase} text="لا توجد منشآت معيّنة" /> : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
+              <tr className="border-b border-[#eef2f6] bg-[#f8fafc] text-xs text-gray-500">
                 <th className="text-right px-4 py-3 font-semibold">المنشأة</th>
                 <th className="text-right px-4 py-3 font-semibold">مدير الحساب</th>
                 <th className="text-right px-4 py-3 font-semibold">الباقة</th>
@@ -68,8 +68,8 @@ function ClientsTab() {
               {filtered.map((o: any) => {
                 const mgr = staffList.find((s: any) => s.id === o.accountManagerId);
                 return (
-                  <tr key={o.id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                    <td className="px-4 py-3">
+                  <tr key={o.id} className="border-b border-gray-50 hover:bg-[#f8fafc] last:border-0">
+                    <td className="px-[10px] py-[6px]">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 rounded-lg bg-brand-50 flex items-center justify-center text-brand-600 font-bold text-xs shrink-0">{o.name[0]}</div>
                         <div>
@@ -78,10 +78,10 @@ function ClientsTab() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-700 text-xs">{mgr?.name || "—"}</td>
-                    <td className="px-4 py-3"><PlanBadge plan={o.plan} /></td>
-                    <td className="px-4 py-3"><StatusBadge status={o.subscriptionStatus} /></td>
-                    <td className="px-4 py-3 text-gray-400 text-xs hidden md:table-cell">
+                    <td className="px-[10px] py-[6px] text-gray-700 text-xs">{mgr?.name || "—"}</td>
+                    <td className="px-[10px] py-[6px]"><PlanBadge plan={o.plan} /></td>
+                    <td className="px-[10px] py-[6px]"><StatusBadge status={o.subscriptionStatus} /></td>
+                    <td className="px-[10px] py-[6px] text-gray-400 text-xs hidden md:table-cell">
                       {o.subscriptionEndsAt ? new Date(o.subscriptionEndsAt).toLocaleDateString("ar") : o.trialEndsAt ? new Date(o.trialEndsAt).toLocaleDateString("ar") : "—"}
                     </td>
                   </tr>

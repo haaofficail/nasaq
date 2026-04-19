@@ -78,7 +78,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+        <div className="flex items-center justify-between p-5 border-b border-[#eef2f6]">
           <h3 className="font-bold text-gray-900 text-lg">{title}</h3>
           <button
             onClick={onClose}
@@ -103,12 +103,12 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function InputClass() {
-  return "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-brand-500";
+  return "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 focus:border-brand-500";
 }
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 animate-pulse">
       <div className="h-4 bg-gray-200 rounded w-2/3 mb-3" />
       <div className="h-3 bg-gray-100 rounded w-1/2 mb-2" />
       <div className="h-3 bg-gray-100 rounded w-1/3" />
@@ -254,7 +254,7 @@ function DisposalRulesTab() {
       </div>
 
       {/* Freshness Thermometer */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h3 className="font-semibold text-gray-800 mb-4 text-sm">مقياس الطزاجة</h3>
         <div className="flex rounded-xl overflow-hidden h-8">
           <div className="flex-1 bg-green-500 flex items-center justify-center text-white text-xs font-bold">
@@ -309,7 +309,7 @@ function DisposalRulesTab() {
           <button onClick={refetch} className="mt-3 text-sm text-red-600 underline">إعادة المحاولة</button>
         </div>
       ) : sorted.length === 0 ? (
-        <div className="bg-gray-50 rounded-2xl border border-gray-100 p-10 text-center space-y-4">
+        <div className="bg-gray-50 rounded-2xl border border-[#eef2f6] p-10 text-center space-y-4">
           <Leaf className="w-12 h-12 mx-auto text-gray-300" />
           <div>
             <p className="text-gray-600 font-semibold text-base">لا توجد قواعد تصريف بعد</p>
@@ -317,7 +317,7 @@ function DisposalRulesTab() {
           </div>
 
           {/* Default rules preview */}
-          <div className="bg-white border border-gray-200 rounded-2xl p-4 text-right space-y-2 max-w-sm mx-auto">
+          <div className="bg-white border border-[#eef2f6] rounded-2xl p-4 text-right space-y-2 max-w-sm mx-auto">
             <p className="text-xs font-semibold text-gray-500 mb-3">القواعد الافتراضية</p>
             {DEFAULT_RULES.map((r, i) => (
               <div key={i} className="flex items-center justify-between text-sm">
@@ -340,7 +340,7 @@ function DisposalRulesTab() {
             </button>
             <button
               onClick={openCreate}
-              className="flex items-center gap-2 border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 border border-[#eef2f6] text-gray-600 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-[#f8fafc] transition-colors"
             >
               <Plus className="w-4 h-4" />
               إضافة قاعدة مخصصة
@@ -354,7 +354,7 @@ function DisposalRulesTab() {
             return (
               <div
                 key={rule.id}
-                className={`bg-white rounded-2xl border p-5 transition-all ${rule.is_active ? `${zone.border}` : "border-gray-100 opacity-60"}`}
+                className={`bg-white rounded-2xl border p-5 transition-all ${rule.is_active ? `${zone.border}` : "border-[#eef2f6] opacity-60"}`}
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -526,7 +526,7 @@ function DisposalRulesTab() {
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                className="px-4 py-2.5 rounded-xl text-sm font-medium border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc] transition-colors"
               >
                 إلغاء
               </button>
@@ -554,7 +554,7 @@ function DisposalRulesTab() {
               </button>
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+                className="flex-1 py-2.5 rounded-xl text-sm font-medium border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc] transition-colors"
               >
                 إلغاء
               </button>
@@ -662,7 +662,7 @@ function FreshnessTab() {
           <button onClick={refetch} className="mt-3 text-sm text-red-600 underline">إعادة المحاولة</button>
         </div>
       ) : batches.length === 0 ? (
-        <div className="bg-gray-50 rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-gray-50 rounded-2xl border border-[#eef2f6] p-12 text-center">
           <Package className="w-12 h-12 mx-auto mb-3 text-gray-300" />
           <p className="text-gray-500 font-medium">لا توجد دفعات في المخزون</p>
           <p className="text-gray-400 text-sm mt-1">أضف دفعات ورد من صفحة المخزون لعرضها هنا</p>
@@ -774,7 +774,7 @@ function TodayBundleTab() {
 
       {loading ? (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-100 p-8 animate-pulse">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-8 animate-pulse">
             <div className="h-6 bg-gray-200 rounded w-1/2 mb-4" />
             <div className="h-4 bg-gray-100 rounded w-3/4 mb-3" />
             <div className="h-4 bg-gray-100 rounded w-2/3 mb-3" />
@@ -789,7 +789,7 @@ function TodayBundleTab() {
           <button onClick={refetch} className="mt-3 text-sm text-red-600 underline">إعادة المحاولة</button>
         </div>
       ) : !bundle ? (
-        <div className="bg-gray-50 rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-gray-50 rounded-2xl border border-[#eef2f6] p-12 text-center">
           <ShoppingBag className="w-14 h-14 mx-auto mb-3 text-gray-300" />
           <p className="text-gray-500 font-medium text-lg">لا توجد باقة لليوم</p>
           <p className="text-gray-400 text-sm mt-1 mb-6">
@@ -877,7 +877,7 @@ function TodayBundleTab() {
               </button>
               <button
                 onClick={handleRegenerate}
-                className="px-5 py-3 rounded-xl font-bold border-2 border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                className="px-5 py-3 rounded-xl font-bold border-2 border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc] transition-colors flex items-center gap-2"
               >
                 <RefreshCw className="w-4 h-4" />
                 توليد جديد
@@ -886,7 +886,7 @@ function TodayBundleTab() {
           </div>
 
           {/* Stats Row */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h4 className="font-semibold text-gray-700 mb-4 text-sm">ملخص التوفير</h4>
             <div className="space-y-3">
               <div>
@@ -945,13 +945,13 @@ export function FlowerDisposalPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 md:p-6" dir="rtl">
+    <div className="min-h-screen bg-[#f8fafc] p-4 md:p-6" dir="rtl">
       <div className="max-w-4xl mx-auto space-y-6">
 
         <FlowerLossAlertsBanner onApplyDisposal={handleApplyDisposal} />
 
         {/* Page Header */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -972,7 +972,7 @@ export function FlowerDisposalPage() {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-1.5 flex gap-1">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-1.5 flex gap-1">
           {TABS.map(tab => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -983,7 +983,7 @@ export function FlowerDisposalPage() {
                 className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium transition-all ${
                   isActive
                     ? "bg-brand-500 text-white shadow-sm"
-                    : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                    : "text-gray-500 hover:bg-[#f8fafc] hover:text-gray-700"
                 }`}
               >
                 <Icon className="w-4 h-4" />

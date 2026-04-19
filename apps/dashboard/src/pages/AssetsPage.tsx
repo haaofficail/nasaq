@@ -85,7 +85,7 @@ function LocationTypeBadge({ locationType }: { locationType?: string }) {
   );
 }
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -108,7 +108,7 @@ function Modal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className={clsx("bg-white rounded-2xl shadow-2xl w-full flex flex-col max-h-[90vh]", w)}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6] shrink-0">
           <h3 className="font-bold text-gray-900">{title}</h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
             <X className="w-4 h-4" />
@@ -116,7 +116,7 @@ function Modal({
         </div>
         <div className="flex-1 overflow-y-auto p-5">{children}</div>
         {footer && (
-          <div className="px-5 py-4 border-t border-gray-100 flex gap-2 justify-end shrink-0">
+          <div className="px-5 py-4 border-t border-[#eef2f6] flex gap-2 justify-end shrink-0">
             {footer}
           </div>
         )}
@@ -135,7 +135,7 @@ function Btn({
   const base = "px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 transition-colors disabled:opacity-50";
   const variants = {
     primary:   "bg-brand-500 text-white hover:bg-brand-600",
-    secondary: "border border-gray-200 text-gray-600 hover:bg-gray-50",
+    secondary: "border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]",
     danger:    "border border-red-100 text-red-500 hover:bg-red-50",
     orange:    "bg-orange-500 text-white hover:bg-orange-600",
   };
@@ -375,7 +375,7 @@ export function AssetsPage() {
         <div className="flex gap-2">
           <button
             onClick={() => { setTypeForm({ name: "", category: "", minStock: 0 }); setTypeModal({ open: true }); }}
-            className="flex items-center gap-1.5 border border-gray-200 text-gray-600 rounded-xl px-3 py-2 text-sm font-medium hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-1.5 border border-[#eef2f6] text-gray-600 rounded-xl px-3 py-2 text-sm font-medium hover:bg-[#f8fafc] transition-colors"
           >
             <Tag className="w-4 h-4" /> فئة جديدة
           </button>
@@ -391,7 +391,7 @@ export function AssetsPage() {
       {/* ── Stats ── */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
-          { label: "إجمالي الأصول", value: stats.total,       bg: "bg-gray-50",    text: "text-gray-800",     border: "border-gray-200" },
+          { label: "إجمالي الأصول", value: stats.total,       bg: "bg-[#f8fafc]",    text: "text-gray-800",     border: "border-[#eef2f6]" },
           { label: "متاح",          value: stats.available,   bg: "bg-green-50",   text: "text-green-700",    border: "border-green-100" },
           { label: "مؤجَّر",         value: stats.rented,      bg: "bg-emerald-50", text: "text-emerald-700",  border: "border-emerald-100" },
           { label: "معيَّن لموظف",  value: stats.assigned,    bg: "bg-purple-50",  text: "text-purple-700",   border: "border-purple-100" },
@@ -411,14 +411,14 @@ export function AssetsPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="بحث بالاسم أو الرقم..."
-            className="border border-gray-200 rounded-xl pr-9 pl-3 py-2 text-sm outline-none focus:border-brand-400 w-48 transition-all"
+            className="border border-[#eef2f6] rounded-xl pr-9 pl-3 py-2 text-sm outline-none focus:border-brand-400 w-48 transition-all"
           />
         </div>
 
         <select
           value={filterStatus}
           onChange={e => setFilterStatus(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 bg-white"
+          className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 bg-white"
         >
           <option value="all">كل الحالات</option>
           {Object.entries(STATUS).map(([v, { label }]) => (
@@ -429,7 +429,7 @@ export function AssetsPage() {
         <select
           value={filterLocation}
           onChange={e => setFilterLocation(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 bg-white"
+          className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 bg-white"
         >
           <option value="all">كل المواقع</option>
           {Object.entries(LOCATION_TYPE).map(([v, { label }]) => (
@@ -442,7 +442,7 @@ export function AssetsPage() {
             onClick={() => setFilterType("all")}
             className={clsx(
               "px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-colors",
-              filterType === "all" ? "bg-brand-500 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50",
+              filterType === "all" ? "bg-brand-500 text-white" : "bg-white border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]",
             )}
           >
             الكل ({allAssets.length})
@@ -453,7 +453,7 @@ export function AssetsPage() {
               onClick={() => setFilterType(t.id)}
               className={clsx(
                 "px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-colors",
-                filterType === t.id ? "bg-brand-500 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50",
+                filterType === t.id ? "bg-brand-500 text-white" : "bg-white border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]",
               )}
             >
               {t.name} <span className="opacity-60">({t.totalAssets ?? 0})</span>
@@ -466,7 +466,7 @@ export function AssetsPage() {
       {loading ? (
         <SkeletonRows rows={3} />
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16">
           <Package className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-gray-400 text-sm">لا توجد أصول</p>
           <button onClick={openAddAsset} className="mt-3 text-sm text-brand-500 hover:underline">
@@ -483,7 +483,7 @@ export function AssetsPage() {
               <div
                 key={asset.id}
                 onClick={() => { setDetailId(asset.id); setActiveTab("journey"); }}
-                className="bg-white rounded-2xl border border-gray-100 p-4 hover:border-brand-200 hover:shadow-sm transition-all cursor-pointer"
+                className="bg-white rounded-2xl border border-[#eef2f6] p-4 hover:border-brand-200 hover:shadow-sm transition-all cursor-pointer"
               >
                 {/* top */}
                 <div className="flex items-start justify-between mb-3">
@@ -518,7 +518,7 @@ export function AssetsPage() {
                 {/* flags */}
                 <div className="flex gap-1.5 mt-2">
                   {!asset.isMovable && (
-                    <span className="flex items-center gap-0.5 text-[10px] text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded-lg">
+                    <span className="flex items-center gap-0.5 text-[10px] text-gray-400 bg-[#f8fafc] px-1.5 py-0.5 rounded-lg">
                       <Lock className="w-2.5 h-2.5" /> ثابت
                     </span>
                   )}
@@ -824,7 +824,7 @@ export function AssetsPage() {
               </div>
 
               {/* Tabs */}
-              <div className="flex gap-1 bg-gray-50 rounded-xl p-1">
+              <div className="flex gap-1 bg-[#f8fafc] rounded-xl p-1">
                 {[
                   { key: "journey",     label: "رحلة الأصل" },
                   { key: "info",        label: "المعلومات" },
@@ -860,8 +860,8 @@ export function AssetsPage() {
                         journey.currentPosition.status === "in_use"      && "border-blue-200 bg-blue-50",
                         journey.currentPosition.status === "maintenance" && "border-orange-200 bg-orange-50",
                         journey.currentPosition.status === "damaged"     && "border-red-200 bg-red-50",
-                        journey.currentPosition.status === "lost"        && "border-gray-200 bg-gray-50",
-                        journey.currentPosition.status === "retired"     && "border-gray-200 bg-gray-100",
+                        journey.currentPosition.status === "lost"        && "border-[#eef2f6] bg-gray-50",
+                        journey.currentPosition.status === "retired"     && "border-[#eef2f6] bg-gray-100",
                       )}>
                         <p className="text-xs font-semibold text-gray-500 mb-3 flex items-center gap-1.5">
                           <Activity className="w-3.5 h-3.5" /> الموقع الحالي
@@ -1061,7 +1061,7 @@ export function AssetsPage() {
                                     </div>
 
                                     {/* Content */}
-                                    <div className="flex-1 bg-white border border-gray-100 rounded-xl p-3 text-xs">
+                                    <div className="flex-1 bg-white border border-[#eef2f6] rounded-xl p-3 text-xs">
                                       {isMovement && (
                                         <>
                                           <div className="flex items-center justify-between mb-1">
@@ -1138,7 +1138,7 @@ export function AssetsPage() {
                             </div>
                           </div>
                         ) : (
-                          <p className="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl">
+                          <p className="text-sm text-gray-400 text-center py-8 bg-[#f8fafc] rounded-xl">
                             لا يوجد سجل بعد
                           </p>
                         )}
@@ -1190,7 +1190,7 @@ export function AssetsPage() {
                             "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors disabled:opacity-50",
                             detail.status === v
                               ? "bg-brand-50 border-brand-200 text-brand-700"
-                              : "bg-white border-gray-200 text-gray-600 hover:border-brand-300 hover:bg-brand-50",
+                              : "bg-white border-[#eef2f6] text-gray-600 hover:border-brand-300 hover:bg-brand-50",
                           )}
                         >
                           <span className={clsx("w-1.5 h-1.5 rounded-full", dot)} />
@@ -1200,7 +1200,7 @@ export function AssetsPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 pt-2 border-t border-gray-100">
+                  <div className="flex gap-2 pt-2 border-t border-[#eef2f6]">
                     <Btn variant="secondary" onClick={() => { openEditAsset(detail); setDetailId(null); }}>
                       <Edit2 className="w-4 h-4" /> تعديل
                     </Btn>
@@ -1228,7 +1228,7 @@ export function AssetsPage() {
                   {detail.maintenanceHistory?.length > 0 ? (
                     <div className="space-y-2">
                       {detail.maintenanceHistory.map((m: any) => (
-                        <div key={m.id} className="border border-gray-100 rounded-xl p-3 text-sm">
+                        <div key={m.id} className="border border-[#eef2f6] rounded-xl p-3 text-sm">
                           <div className="flex items-center justify-between mb-1">
                             <span className="font-medium text-gray-900">{MAINT_TYPE[m.type] ?? m.type}</span>
                             <span className="text-xs text-gray-400">{fmtDate(m.startDate)}</span>
@@ -1243,7 +1243,7 @@ export function AssetsPage() {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl">
+                    <p className="text-sm text-gray-400 text-center py-8 bg-[#f8fafc] rounded-xl">
                       لا يوجد سجل صيانة بعد
                     </p>
                   )}
@@ -1267,7 +1267,7 @@ export function AssetsPage() {
                         const FromIcon = fromCfg?.icon ?? Warehouse;
                         const ToIcon   = toCfg?.icon ?? Warehouse;
                         return (
-                          <div key={mv.id} className="border border-gray-100 rounded-xl p-3 text-sm">
+                          <div key={mv.id} className="border border-[#eef2f6] rounded-xl p-3 text-sm">
                             <div className="flex items-center gap-2 mb-1">
                               <span className={clsx("flex items-center gap-1 text-xs", fromCfg?.cls)}>
                                 <FromIcon className="w-3 h-3" /> {fromCfg?.label ?? "—"}
@@ -1285,7 +1285,7 @@ export function AssetsPage() {
                       })}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-400 text-center py-8 bg-gray-50 rounded-xl">
+                    <p className="text-sm text-gray-400 text-center py-8 bg-[#f8fafc] rounded-xl">
                       لا يوجد سجل حركات بعد
                     </p>
                   )}

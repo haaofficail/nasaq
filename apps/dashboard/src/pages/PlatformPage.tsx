@@ -65,14 +65,14 @@ export function PlatformPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-white rounded-2xl border border-gray-100 p-1">
+      <div className="flex gap-1 bg-white rounded-2xl border border-[#eef2f6] p-1">
         {tabs.map((t, i) => (
           <button
             key={i}
             onClick={() => setActiveTab(i)}
             className={clsx(
               "flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors",
-              activeTab === i ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-gray-50"
+              activeTab === i ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-[#f8fafc]"
             )}
           >
             {t}
@@ -88,14 +88,14 @@ export function PlatformPage() {
           </div>
 
           {keys.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-10 text-center">
               <Key className="w-9 h-9 text-gray-200 mx-auto mb-2" />
               <p className="text-sm text-gray-400">لا توجد مفاتيح API</p>
             </div>
           ) : (
             <div className="space-y-3">
               {keys.map((k: any) => (
-                <div key={k.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4">
+                <div key={k.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-4">
                   <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
                     <Key className="w-4 h-4 text-brand-500" />
                   </div>
@@ -161,13 +161,13 @@ export function PlatformPage() {
       {activeTab === 1 && (
         <div className="space-y-3">
           {webhooks.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-10 text-center">
               <Webhook className="w-9 h-9 text-gray-200 mx-auto mb-2" />
               <p className="text-sm text-gray-400">لا يوجد Webhooks</p>
             </div>
           ) : (
             webhooks.map((wh: any) => (
-              <div key={wh.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+              <div key={wh.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
                 <div className="flex items-center gap-2 mb-1.5">
                   <Webhook className="w-4 h-4 text-brand-500 shrink-0" />
                   <code className="text-sm text-gray-700 truncate">{wh.url}</code>
@@ -188,7 +188,7 @@ export function PlatformPage() {
       {activeTab === 2 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {apps.length === 0 ? (
-            <div className="col-span-full bg-white rounded-2xl border border-gray-100 p-10 text-center">
+            <div className="col-span-full bg-white rounded-2xl border border-[#eef2f6] p-10 text-center">
               <Store className="w-9 h-9 text-gray-200 mx-auto mb-2" />
               <p className="text-sm text-gray-400">لا توجد إضافات متاحة</p>
             </div>
@@ -200,7 +200,7 @@ export function PlatformPage() {
                   key={app.id}
                   className={clsx(
                     "bg-white rounded-2xl border p-4 transition-all",
-                    isInstalled ? "border-brand-200 bg-brand-50/20" : "border-gray-100 hover:border-gray-200"
+                    isInstalled ? "border-brand-200 bg-brand-50/20" : "border-[#eef2f6] hover:border-[#eef2f6]"
                   )}
                 >
                   <div className="flex items-start gap-3 mb-3">

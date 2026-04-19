@@ -23,7 +23,7 @@ export function PropertyOwnersPage() {
         <p className="text-gray-500 text-sm mt-1">ملاك العقارات المُدارة من قبل المكتب</p>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         {loading ? (
           <div className="p-4"><SkeletonRows rows={6} /></div>
         ) : error ? (
@@ -34,7 +34,7 @@ export function PropertyOwnersPage() {
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-[#f8fafc]">
               <tr>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">الاسم</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">نوع المالك</th>
@@ -45,24 +45,24 @@ export function PropertyOwnersPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {owners.map((owner: any) => (
-                <tr key={owner.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
+                <tr key={owner.id} className="hover:bg-[#f8fafc] transition-colors">
+                  <td className="px-[10px] py-[6px]">
                     <div className="font-medium text-gray-900">{owner.name}</div>
                     {owner.phone && <div className="text-xs text-gray-500">{owner.phone}</div>}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">
+                  <td className="px-[10px] py-[6px] text-gray-600">
                     {owner.ownerType === "individual" ? "فرد" :
                      owner.ownerType === "company" ? "شركة" : owner.ownerType ?? "—"}
                   </td>
-                  <td className="px-4 py-3 text-gray-700">
+                  <td className="px-[10px] py-[6px] text-gray-700">
                     {owner.managementFeeRate ? `${owner.managementFeeRate}%` : "—"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <span className="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">
                       {owner.propertiesCount ?? 0} عقار
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <button
                       onClick={() => setReportOwnerId(owner.id)}
                       className="text-xs px-3 py-1 text-white rounded-lg transition-colors"
@@ -129,7 +129,7 @@ export function PropertyOwnersPage() {
                 </div>
 
                 {/* Calculation note */}
-                <div className="text-xs text-gray-500 bg-gray-50 rounded-xl p-3">
+                <div className="text-xs text-gray-500 bg-[#f8fafc] rounded-xl p-3">
                   الصافي = الإيرادات ({Number(report.totalRevenue ?? 0).toLocaleString("en-US")})
                   - المصروفات ({Number(report.totalExpenses ?? 0).toLocaleString("en-US")})
                   - عمولة المكتب ({Number(report.officeCommission ?? 0).toLocaleString("en-US")})
@@ -142,7 +142,7 @@ export function PropertyOwnersPage() {
                     <h3 className="font-medium text-gray-700 mb-2 text-sm">العقارات المُدارة</h3>
                     <div className="space-y-2">
                       {report.properties.map((p: any) => (
-                        <div key={p.id} className="flex justify-between items-center bg-gray-50 rounded-xl px-3 py-2 text-sm">
+                        <div key={p.id} className="flex justify-between items-center bg-[#f8fafc] rounded-xl px-3 py-2 text-sm">
                           <span className="text-gray-800">{p.name}</span>
                           <span className="text-emerald-600 font-medium">
                             {Number(p.netIncome ?? 0).toLocaleString("en-US")} ر.س

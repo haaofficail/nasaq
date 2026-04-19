@@ -60,25 +60,25 @@ export function CashCloseReportPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">من تاريخ</label>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">إلى تاريخ</label>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div className="flex gap-2 mr-auto">
             <button onClick={refetch}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">
               <RefreshCw className="w-4 h-4" /> تحديث
             </button>
             <button onClick={exportCsv}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f8fafc] border border-[#eef2f6] text-sm text-gray-600 hover:bg-gray-100 transition-colors">
               <Download className="w-4 h-4" /> تصدير CSV
             </button>
           </div>
@@ -89,28 +89,28 @@ export function CashCloseReportPage() {
         <>
           {/* Summary cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center mb-3">
                 <Wallet className="w-4 h-4 text-brand-500" />
               </div>
               <p className="text-xl font-bold tabular-nums text-brand-600">{shiftCount}</p>
               <p className="text-xs text-gray-400 mt-0.5">عدد الورديات</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center mb-3">
                 <TrendingDown className="w-4 h-4 text-emerald-600 rotate-180" />
               </div>
               <p className="text-xl font-bold tabular-nums text-emerald-700">{fmt(totalCashIn)}</p>
               <p className="text-xs text-gray-400 mt-0.5">إجمالي نقد وارد ر.س</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center mb-3">
                 <TrendingDown className="w-4 h-4 text-red-500" />
               </div>
               <p className="text-xl font-bold tabular-nums text-red-600">{fmt(totalCashOut)}</p>
               <p className="text-xs text-gray-400 mt-0.5">إجمالي نقد صادر ر.س</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center mb-3">
                 <AlertTriangle className="w-4 h-4 text-amber-500" />
               </div>
@@ -122,7 +122,7 @@ export function CashCloseReportPage() {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900 text-sm">سجل الورديات</h2>
               <span className="text-xs text-gray-400">{rows.length} وردية</span>
@@ -146,20 +146,20 @@ export function CashCloseReportPage() {
                     {rows.map((r: any, i: number) => {
                       const disc = r.discrepancy !== null ? Number(r.discrepancy) : null;
                       return (
-                        <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                          <td className="px-4 py-3 font-medium text-gray-800">{r.accountName}</td>
-                          <td className="px-4 py-3 text-gray-600">{r.openedBy}</td>
-                          <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{fmtDateTime(r.openedAt)}</td>
-                          <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
+                        <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
+                          <td className="px-[10px] py-[6px] font-medium text-gray-800">{r.accountName}</td>
+                          <td className="px-[10px] py-[6px] text-gray-600">{r.openedBy}</td>
+                          <td className="px-[10px] py-[6px] text-xs text-gray-400 whitespace-nowrap">{fmtDateTime(r.openedAt)}</td>
+                          <td className="px-[10px] py-[6px] text-xs text-gray-400 whitespace-nowrap">
                             {r.closedAt ? fmtDateTime(r.closedAt) : (
                               <span className="flex items-center gap-1 text-emerald-600"><Clock className="w-3 h-3" /> مفتوحة</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 tabular-nums text-gray-600">{fmt(r.openingBalance)}</td>
-                          <td className="px-4 py-3 tabular-nums text-emerald-700 font-medium">{fmt(r.cashIn)}</td>
-                          <td className="px-4 py-3 tabular-nums text-red-600 font-medium">{fmt(r.cashOut)}</td>
-                          <td className="px-4 py-3 tabular-nums font-bold text-gray-800">{r.closingBalance !== null ? fmt(r.closingBalance) : "—"}</td>
-                          <td className="px-4 py-3 tabular-nums">
+                          <td className="px-[10px] py-[6px] tabular-nums text-gray-600">{fmt(r.openingBalance)}</td>
+                          <td className="px-[10px] py-[6px] tabular-nums text-emerald-700 font-medium">{fmt(r.cashIn)}</td>
+                          <td className="px-[10px] py-[6px] tabular-nums text-red-600 font-medium">{fmt(r.cashOut)}</td>
+                          <td className="px-[10px] py-[6px] tabular-nums font-bold text-gray-800">{r.closingBalance !== null ? fmt(r.closingBalance) : "—"}</td>
+                          <td className="px-[10px] py-[6px] tabular-nums">
                             {disc === null ? (
                               <span className="text-gray-300">—</span>
                             ) : (
@@ -171,7 +171,7 @@ export function CashCloseReportPage() {
                               </span>
                             )}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-[10px] py-[6px]">
                             <span className={clsx("text-xs px-2 py-0.5 rounded-full", STATUS_COLORS[r.status] || "bg-gray-100 text-gray-600")}>
                               {STATUS_LABELS[r.status] || r.status}
                             </span>
@@ -181,11 +181,11 @@ export function CashCloseReportPage() {
                     })}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-gray-50 font-bold border-t border-gray-200">
-                      <td colSpan={5} className="px-4 py-3 text-gray-700">الإجمالي</td>
-                      <td className="px-4 py-3 tabular-nums text-emerald-700">{fmt(totalCashIn)} ر.س</td>
-                      <td className="px-4 py-3 tabular-nums text-red-600">{fmt(totalCashOut)} ر.س</td>
-                      <td colSpan={3} className="px-4 py-3 text-xs text-gray-400">{rows.length} وردية</td>
+                    <tr className="bg-gray-50 font-bold border-t border-[#eef2f6]">
+                      <td colSpan={5} className="px-[10px] py-[6px] text-gray-700">الإجمالي</td>
+                      <td className="px-[10px] py-[6px] tabular-nums text-emerald-700">{fmt(totalCashIn)} ر.س</td>
+                      <td className="px-[10px] py-[6px] tabular-nums text-red-600">{fmt(totalCashOut)} ر.س</td>
+                      <td colSpan={3} className="px-[10px] py-[6px] text-xs text-gray-400">{rows.length} وردية</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -194,7 +194,7 @@ export function CashCloseReportPage() {
           </div>
 
           {/* FAQ */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
             <div className="space-y-3">
               {[
@@ -203,8 +203,8 @@ export function CashCloseReportPage() {
                 { q: "هل تظهر ورديات الفروع المختلفة هنا؟", a: "نعم، يشمل التقرير جميع ورديات المنشأة في الفترة المحددة بغض النظر عن الفرع أو الحساب." },
                 { q: "ماذا لو كانت الوردية «مفتوحة»؟", a: "تظهر في القائمة بحالة «مفتوحة» ولا يُحسب الفارق لها لأن الإغلاق لم يتم بعد." },
               ].map(faq => (
-                <details key={faq.q} className="border border-gray-100 rounded-xl">
-                  <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+                <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+                  <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
                   <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
                 </details>
               ))}

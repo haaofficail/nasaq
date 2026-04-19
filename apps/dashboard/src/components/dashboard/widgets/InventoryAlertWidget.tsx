@@ -12,10 +12,10 @@ export function InventoryAlertWidget() {
   const lowCount = lowStockItems.length || report.lowStockCount || 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 h-full">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 h-full">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center", lowCount > 0 ? "bg-amber-50" : "bg-gray-50")}>
+          <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center", lowCount > 0 ? "bg-amber-50" : "bg-[#f8fafc]")}>
             <AlertTriangle className={clsx("w-4 h-4", lowCount > 0 ? "text-amber-500" : "text-gray-400")} />
           </div>
           <div>
@@ -31,7 +31,7 @@ export function InventoryAlertWidget() {
       {loading ? (
         <div className="space-y-2">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="animate-pulse bg-gray-100 rounded-lg h-8" />
+            <div key={i} className="animate-pulse bg-[#f1f5f9] rounded-lg h-8" />
           ))}
         </div>
       ) : lowCount === 0 ? (

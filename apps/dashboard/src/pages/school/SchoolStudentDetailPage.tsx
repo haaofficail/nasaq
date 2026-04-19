@@ -34,7 +34,7 @@ const NOTE_TYPE_LABELS: Record<string, { label: string; cls: string }> = {
   positive:   { label: "إيجابية",  cls: "bg-emerald-50 text-emerald-700 border-emerald-100" },
   behavioral: { label: "سلوكية",   cls: "bg-amber-50 text-amber-700 border-amber-100" },
   academic:   { label: "أكاديمية", cls: "bg-blue-50 text-blue-700 border-blue-100" },
-  general:    { label: "عامة",     cls: "bg-gray-50 text-gray-600 border-gray-200" },
+  general:    { label: "عامة",     cls: "bg-gray-50 text-gray-600 border-[#eef2f6]" },
   followup:   { label: "متابعة",   cls: "bg-violet-50 text-violet-700 border-violet-100" },
 };
 
@@ -64,10 +64,10 @@ export function SchoolStudentDetailPage() {
     return (
       <div dir="rtl" className="p-6 space-y-4">
         <div className="animate-pulse space-y-4">
-          <div className="h-8 w-48 bg-gray-100 rounded-xl" />
-          <div className="h-32 bg-gray-100 rounded-2xl" />
+          <div className="h-8 w-48 bg-[#f1f5f9] rounded-xl" />
+          <div className="h-32 bg-[#f1f5f9] rounded-2xl" />
           <div className="grid grid-cols-3 gap-4">
-            {[1, 2, 3].map(i => <div key={i} className="h-40 bg-gray-100 rounded-2xl" />)}
+            {[1, 2, 3].map(i => <div key={i} className="h-40 bg-[#f1f5f9] rounded-2xl" />)}
           </div>
         </div>
       </div>
@@ -115,7 +115,7 @@ export function SchoolStudentDetailPage() {
       </div>
 
       {/* Student info card */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex items-start gap-4">
           <div className="w-14 h-14 rounded-2xl bg-emerald-600/10 flex items-center justify-center text-emerald-700 font-bold text-lg shrink-0">
             {initials}
@@ -180,7 +180,7 @@ export function SchoolStudentDetailPage() {
 
       {/* Full attendance history */}
       {attendance.length > 0 && (
-        <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <section className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Calendar className="w-4 h-4 text-brand-500" />
@@ -190,7 +190,7 @@ export function SchoolStudentDetailPage() {
           </div>
           <div className="divide-y divide-gray-50">
             {displayedAttendance.map((a: any) => {
-              const s = STATUS_LABELS[a.status] ?? { label: a.status, cls: "bg-gray-50 text-gray-600 border-gray-200" };
+              const s = STATUS_LABELS[a.status] ?? { label: a.status, cls: "bg-gray-50 text-gray-600 border-[#eef2f6]" };
               return (
                 <div key={a.id ?? a.attendanceDate} className="flex items-center justify-between px-5 py-2.5">
                   <span className="text-sm text-gray-700 tabular-nums">{a.attendanceDate}</span>
@@ -215,7 +215,7 @@ export function SchoolStudentDetailPage() {
       )}
 
       {/* Teacher notes about this student */}
-      <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <section className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MessageSquare className="w-4 h-4 text-violet-500" />
@@ -233,7 +233,7 @@ export function SchoolStudentDetailPage() {
         ) : (
           <div className="divide-y divide-gray-50">
             {notes.slice(0, 20).map((n: any) => {
-              const nt = NOTE_TYPE_LABELS[n.noteType] ?? { label: n.noteType, cls: "bg-gray-50 text-gray-600 border-gray-200" };
+              const nt = NOTE_TYPE_LABELS[n.noteType] ?? { label: n.noteType, cls: "bg-gray-50 text-gray-600 border-[#eef2f6]" };
               return (
                 <div key={n.id} className="px-5 py-3">
                   <div className="flex items-center gap-2 flex-wrap mb-1">
@@ -243,7 +243,7 @@ export function SchoolStudentDetailPage() {
                       <span className="px-1.5 py-0.5 rounded-lg text-[10px] bg-red-50 text-red-600 border border-red-100">متابعة مطلوبة</span>
                     )}
                     {n.isPrivate && (
-                      <span className="px-1.5 py-0.5 rounded-lg text-[10px] bg-gray-100 text-gray-500 border border-gray-200">خاصة</span>
+                      <span className="px-1.5 py-0.5 rounded-lg text-[10px] bg-gray-100 text-gray-500 border border-[#eef2f6]">خاصة</span>
                     )}
                   </div>
                   <p className="text-sm text-gray-800 leading-relaxed">{n.note}</p>
@@ -256,7 +256,7 @@ export function SchoolStudentDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Violations */}
-        <div className="bg-white rounded-2xl border border-gray-100">
+        <div className="bg-white rounded-2xl border border-[#eef2f6]">
           <div className="flex items-center justify-between p-4 border-b border-gray-50">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-500" />
@@ -270,7 +270,7 @@ export function SchoolStudentDetailPage() {
             {violations.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-4">لا توجد مخالفات</p>
             ) : violations.map((v: any) => (
-              <div key={v.id} className="flex items-start gap-2 p-2 rounded-xl hover:bg-gray-50">
+              <div key={v.id} className="flex items-start gap-2 p-2 rounded-xl hover:bg-[#f8fafc]">
                 <span
                   className="w-2 h-2 rounded-full mt-1.5 shrink-0"
                   style={{ backgroundColor: v.categoryColor ?? "#6b7280" }}
@@ -291,7 +291,7 @@ export function SchoolStudentDetailPage() {
         </div>
 
         {/* Cases */}
-        <div className="bg-white rounded-2xl border border-gray-100">
+        <div className="bg-white rounded-2xl border border-[#eef2f6]">
           <div className="flex items-center justify-between p-4 border-b border-gray-50">
             <div className="flex items-center gap-2">
               <FileText className="w-4 h-4 text-blue-500" />
@@ -305,7 +305,7 @@ export function SchoolStudentDetailPage() {
             {cases.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-4">لا توجد حالات</p>
             ) : cases.map((cs: any) => (
-              <div key={cs.id} className="p-2 rounded-xl hover:bg-gray-50">
+              <div key={cs.id} className="p-2 rounded-xl hover:bg-[#f8fafc]">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-xs font-semibold text-gray-800 truncate flex-1">{cs.title}</p>
                   <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full border shrink-0 ${
@@ -323,7 +323,7 @@ export function SchoolStudentDetailPage() {
         </div>
 
         {/* Transfer history */}
-        <div className="bg-white rounded-2xl border border-gray-100">
+        <div className="bg-white rounded-2xl border border-[#eef2f6]">
           <div className="flex items-center justify-between p-4 border-b border-gray-50">
             <div className="flex items-center gap-2">
               <ArrowLeftRight className="w-4 h-4 text-purple-500" />
@@ -337,9 +337,9 @@ export function SchoolStudentDetailPage() {
             {transfers.length === 0 ? (
               <p className="text-xs text-gray-400 text-center py-4">لا توجد تنقلات</p>
             ) : transfers.map((t: any) => (
-              <div key={t.id} className="p-2 rounded-xl hover:bg-gray-50">
+              <div key={t.id} className="p-2 rounded-xl hover:bg-[#f8fafc]">
                 <div className="flex items-center gap-1.5 text-xs text-gray-700">
-                  <span className="bg-gray-100 rounded-lg px-1.5 py-0.5 font-medium">
+                  <span className="bg-[#f1f5f9] rounded-lg px-1.5 py-0.5 font-medium">
                     {t.fromGrade ? `${t.fromGrade} / ${t.fromName}` : "بدون فصل"}
                   </span>
                   <ArrowLeftRight className="w-3 h-3 text-gray-400 shrink-0" />

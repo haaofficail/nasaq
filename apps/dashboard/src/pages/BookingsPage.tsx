@@ -111,8 +111,8 @@ function Skeleton() {
   return (
     <tr className="animate-pulse">
       {[...Array(6)].map((_, i) => (
-        <td key={i} className="px-4 py-4">
-          <div className="h-4 bg-gray-100 rounded-lg" />
+        <td key={i} className="px-[10px] py-[6px]">
+          <div className="h-4 bg-[#f1f5f9] rounded-lg" />
         </td>
       ))}
     </tr>
@@ -120,7 +120,7 @@ function Skeleton() {
 }
 
 function MobileSkeleton() {
-  return <div className="h-28 bg-gray-100 rounded-xl animate-pulse" />;
+  return <div className="h-28 bg-[#f1f5f9] rounded-xl animate-pulse" />;
 }
 
 // ── Main page ─────────────────────────────────────────────────────────────────
@@ -262,24 +262,24 @@ export function BookingsPage() {
         {STATS.map((s, i) => (
           <div
             key={i}
-            className="bg-white border border-[#e8ecf1] rounded-xl p-4 flex items-start gap-3.5 hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] hover:border-transparent transition-all"
+            className="bg-white border border-[#eef2f6] rounded-2xl p-4 flex items-start gap-3 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] hover:-translate-y-0.5 transition-all"
           >
-            <div className={clsx("w-10 h-10 rounded-[10px] flex items-center justify-center shrink-0", s.iconBg, s.iconColor)}>
+            <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0", s.iconBg, s.iconColor)}>
               {s.icon}
             </div>
             <div>
-              <p className="text-[22px] font-bold text-[#1a2332] leading-none tabular-nums">
+              <p className="text-[22px] font-bold text-[#0f172a] leading-none tabular-nums">
                 {s.value}
-                {s.suffix && <span className="text-sm font-medium text-[#6b7a8d] mr-1">{s.suffix}</span>}
+                {s.suffix && <span className="text-sm font-medium text-[#475569] mr-1">{s.suffix}</span>}
               </p>
-              <p className="text-[12px] text-[#6b7a8d] mt-1 font-medium">{s.label}</p>
+              <p className="text-[11px] text-[#94a3b8] mt-1 font-medium">{s.label}</p>
             </div>
           </div>
         ))}
       </div>
 
       {/* ── Filters Bar ── */}
-      <div className="bg-white border border-[#e8ecf1] rounded-xl px-4 py-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
+      <div className="bg-white border border-[#eef2f6] rounded-xl px-4 py-3 mb-4 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-1.5 flex-wrap">
           {/* Status pills */}
           {PIPELINE_TABS.map(tab => (
@@ -347,12 +347,12 @@ export function BookingsPage() {
       )}
 
       {/* ── Desktop Table ── */}
-      <div className="hidden md:block bg-white border border-[#e8ecf1] rounded-xl overflow-hidden">
+      <div className="hidden md:block bg-white border border-[#eef2f6] rounded-xl overflow-hidden">
         <table className="w-full border-collapse">
           <thead>
-            <tr className="bg-[#f8f9fb] border-b border-[#e8ecf1]">
+            <tr className="bg-[#f8fafc] border-b border-[#eef2f6]">
               {["العميل", "الخدمة", "التاريخ والوقت", "المبلغ", "الحالة", "إجراءات"].map(h => (
-                <th key={h} className="px-4 py-3 text-right text-[11px] font-semibold text-[#9aa5b4] tracking-wide whitespace-nowrap">
+                <th key={h} className="px-[10px] py-[6px] text-right text-[10px] font-bold text-[#94a3b8] uppercase tracking-wider whitespace-nowrap">
                   {h}
                 </th>
               ))}
@@ -378,13 +378,13 @@ export function BookingsPage() {
               return (
                 <tr
                   key={b.id}
-                  className="border-b border-[#e8ecf1] last:border-0 hover:bg-[#fafbfd] transition-colors"
+                  className="border-b border-[#eef2f6] last:border-0 hover:bg-[#f8fafc] transition-colors"
                 >
                   {/* العميل */}
-                  <td className="px-4 py-3.5">
-                    <div className="flex items-center gap-2.5">
+                  <td className="px-[10px] py-[6px]">
+                    <div className="flex items-center gap-2">
                       <div className={clsx(
-                        "w-9 h-9 rounded-[10px] flex items-center justify-center text-[12px] font-bold text-white bg-gradient-to-br shrink-0",
+                        "w-7 h-7 rounded-[8px] flex items-center justify-center text-[11px] font-bold text-white bg-gradient-to-br shrink-0",
                         avatarGrad
                       )}>
                         {initials}
@@ -399,7 +399,7 @@ export function BookingsPage() {
                   </td>
 
                   {/* الخدمة */}
-                  <td className="px-4 py-3.5">
+                  <td className="px-[10px] py-[6px]">
                     <p className="text-[13px] font-medium text-[#1a2332]">
                       {b.serviceName || "—"}
                     </p>
@@ -411,7 +411,7 @@ export function BookingsPage() {
                   </td>
 
                   {/* التاريخ والوقت */}
-                  <td className="px-4 py-3.5 whitespace-nowrap">
+                  <td className="px-[10px] py-[6px] whitespace-nowrap">
                     {b.eventDate ? (
                       <>
                         <p className="text-[13px] font-medium text-[#1a2332]">{fmtDate(b.eventDate)}</p>
@@ -421,7 +421,7 @@ export function BookingsPage() {
                   </td>
 
                   {/* المبلغ */}
-                  <td className="px-4 py-3.5 whitespace-nowrap">
+                  <td className="px-[10px] py-[6px] whitespace-nowrap">
                     <span className="text-[14px] font-bold text-[#1a2332] tabular-nums">
                       {Number(b.totalAmount || 0).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                     </span>
@@ -429,12 +429,12 @@ export function BookingsPage() {
                   </td>
 
                   {/* الحالة */}
-                  <td className="px-4 py-3.5">
+                  <td className="px-[10px] py-[6px]">
                     <StatusBadge status={b.status} />
                   </td>
 
                   {/* إجراءات */}
-                  <td className="px-4 py-3.5">
+                  <td className="px-[10px] py-[6px]">
                     <div className="flex items-center gap-1">
                       {b.status === "pending" && (
                         <button
@@ -492,8 +492,8 @@ export function BookingsPage() {
 
         {/* Table footer */}
         {!loading && bookings.length > 0 && (
-          <div className="px-4 py-3 border-t border-[#e8ecf1] bg-[#f8f9fb] flex items-center justify-between">
-            <p className="text-[12px] text-[#9aa5b4]">عرض {bookings.length} موعد</p>
+          <div className="px-[10px] py-[6px] border-t border-[#eef2f6] bg-[#f8fafc] flex items-center justify-between">
+            <p className="text-[11px] text-[#94a3b8]">عرض {bookings.length} موعد</p>
           </div>
         )}
       </div>

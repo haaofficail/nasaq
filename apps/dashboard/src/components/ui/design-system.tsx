@@ -18,9 +18,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const buttonVariants: Record<ButtonVariant, string> = {
   primary:
-    "bg-[#5b9bd5] text-white hover:bg-[#4a8ac4] active:bg-[#3979B3] shadow-sm hover:shadow-md",
+    "bg-brand-500 text-white hover:bg-brand-hover active:bg-brand-dark shadow-sm hover:shadow-md",
   secondary:
-    "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 active:bg-gray-100 shadow-sm",
+    "bg-white border border-[#eef2f6] text-gray-700 hover:bg-[#f8fafc] active:bg-gray-100 shadow-sm",
   ghost: "text-gray-500 hover:bg-gray-100 active:bg-gray-200",
   danger: "bg-red-50 text-red-600 hover:bg-red-100 active:bg-red-200 border border-red-100",
 };
@@ -82,7 +82,7 @@ interface CardProps {
 }
 
 const cardVariants: Record<CardVariant, string> = {
-  default: "bg-white border border-gray-100 shadow-sm",
+  default: "bg-white border border-[#eef2f6] shadow-sm",
   glass: "backdrop-blur-xl bg-white/80 border border-white/20 shadow-sm",
 };
 
@@ -162,7 +162,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
               ${
                 error
                   ? "border-red-300 focus:border-red-400 focus:ring-2 focus:ring-red-100"
-                  : "border-gray-200 focus:border-[#5b9bd5] focus:ring-2 focus:ring-[#5b9bd5]/20"
+                  : "border-[#eef2f6] focus:border-[#5b9bd5] focus:ring-2 focus:ring-[#5b9bd5]/20"
               }
               disabled:opacity-50 disabled:bg-gray-50 disabled:cursor-not-allowed
               ${className}
@@ -194,7 +194,7 @@ const badgeColors: Record<BadgeColor, string> = {
   green: "bg-emerald-50 text-emerald-700 border-emerald-100",
   yellow: "bg-amber-50 text-amber-700 border-amber-100",
   red: "bg-red-50 text-red-700 border-red-100",
-  gray: "bg-gray-50 text-gray-600 border-gray-200",
+  gray: "bg-gray-50 text-gray-600 border-[#eef2f6]",
   purple: "bg-purple-50 text-purple-700 border-purple-100",
 };
 
@@ -277,7 +277,7 @@ export function Modal({ open, onClose, title, children, footer, maxWidth = "md" 
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2f6]">
             <h3 className="text-base font-semibold text-gray-900">{title}</h3>
             <button
               onClick={onClose}
@@ -293,7 +293,7 @@ export function Modal({ open, onClose, title, children, footer, maxWidth = "md" 
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-100">
+          <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-[#eef2f6]">
             {footer}
           </div>
         )}
@@ -315,7 +315,7 @@ interface EmptyStateProps {
 export function EmptyState({ icon, title, description, action, className = "" }: EmptyStateProps) {
   return (
     <div className={`flex flex-col items-center justify-center py-16 px-6 text-center ${className}`}>
-      <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-300 mb-4">
+      <div className="w-16 h-16 rounded-2xl bg-[#f8fafc] border border-[#eef2f6] flex items-center justify-center text-gray-300 mb-4">
         {icon}
       </div>
       <h3 className="text-sm font-semibold text-gray-900 mb-1">{title}</h3>
@@ -394,7 +394,7 @@ export function StatCard({ label, value, icon, change, trend, suffix, className 
           )}
         </div>
         {icon && (
-          <div className="w-10 h-10 rounded-xl bg-[#5b9bd5]/10 flex items-center justify-center text-[#5b9bd5] shrink-0">
+          <div className="w-9 h-9 rounded-[10px] bg-[#5b9bd5]/10 flex items-center justify-center text-[#5b9bd5] shrink-0">
             {icon}
           </div>
         )}
@@ -439,10 +439,10 @@ export function Table<T extends { id?: string | number }>({
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-gray-100">
+    <div className="overflow-x-auto rounded-xl border border-[#eef2f6]">
       <table className="w-full text-sm">
         <thead>
-          <tr className="bg-gray-50 border-b border-gray-100">
+          <tr className="bg-gray-50 border-b border-[#eef2f6]">
             {columns.map((col) => (
               <th
                 key={col.key}
@@ -468,12 +468,12 @@ export function Table<T extends { id?: string | number }>({
               <tr
                 key={row.id ?? i}
                 onClick={() => onRowClick?.(row)}
-                className={`transition-colors ${onRowClick ? "hover:bg-gray-50 cursor-pointer" : ""}`}
+                className={`transition-colors ${onRowClick ? "hover:bg-[#f8fafc] cursor-pointer" : ""}`}
               >
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className={`px-4 py-3.5 text-${col.align || "right"} text-gray-700`}
+                    className={`px-[10px] py-[6px] text-${col.align || "right"} text-gray-700`}
                   >
                     {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.key] ?? "")}
                   </td>

@@ -224,13 +224,13 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2f6]">
           <div className="flex items-center gap-2">
             <SplitSquareHorizontal className="w-5 h-5 text-brand-500" />
             <h2 className="font-bold text-gray-900">تقسيم الفاتورة</h2>
             <span className="text-sm text-gray-400">— إجمالي {fmt(total)} ر.س</span>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl text-gray-400 hover:text-gray-600">
+          <button onClick={onClose} className="p-2 hover:bg-[#f1f5f9] rounded-xl text-gray-400 hover:text-gray-600">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -259,7 +259,7 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-600">عدد الأشخاص:</span>
               <div className="flex items-center gap-2">
-                <button onClick={() => setCount(c => Math.max(2, c - 1))} className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50">
+                <button onClick={() => setCount(c => Math.max(2, c - 1))} className="w-8 h-8 rounded-lg border border-[#eef2f6] flex items-center justify-center hover:bg-[#f8fafc]">
                   <Minus className="w-3.5 h-3.5" />
                 </button>
                 <span className="w-8 text-center font-bold text-lg tabular-nums">{count}</span>
@@ -276,7 +276,7 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
             <div className="space-y-2">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">اختر الجزء لكل بند</p>
               {cart.map(item => (
-                <div key={item.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
+                <div key={item.id} className="flex items-center justify-between bg-[#f8fafc] rounded-xl px-4 py-3">
                   <div>
                     <p className="text-sm font-medium text-gray-800">{item.name}</p>
                     <p className="text-xs text-gray-400">{item.qty} × {fmt(item.price)} ر.س</p>
@@ -288,7 +288,7 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
                         onClick={() => assignItem(item.id, i)}
                         className={clsx(
                           "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
-                          (itemAssignments[item.id] ?? 0) === i ? p.color : "border-gray-200 text-gray-400 hover:bg-gray-100"
+                          (itemAssignments[item.id] ?? 0) === i ? p.color : "border-[#eef2f6] text-gray-400 hover:bg-gray-100"
                         )}
                       >
                         {i + 1}
@@ -411,8 +411,8 @@ function SplitBillModal({ cart, total, onConfirm, onClose }: SplitBillModalProps
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex gap-3">
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50">
+        <div className="px-6 py-4 border-t border-[#eef2f6] flex gap-3">
+          <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-[#eef2f6] text-sm font-medium text-gray-600 hover:bg-[#f8fafc]">
             إلغاء
           </button>
           <button
@@ -458,7 +458,7 @@ function ReceiptModal({ result, orgName, onClose, hasNextPart, currentPart, tota
         <div id="receipt-print" className="p-6 space-y-4">
           {/* Header */}
           <div className="text-center space-y-1">
-            <div className="w-10 h-10 rounded-xl bg-brand-600 flex items-center justify-center mx-auto">
+            <div className="w-9 h-9 rounded-[10px] bg-brand-600 flex items-center justify-center mx-auto">
               <span className="text-white font-bold text-lg leading-none">ن</span>
             </div>
             <h2 className="font-bold text-gray-900 text-base">{orgName}</h2>
@@ -470,7 +470,7 @@ function ReceiptModal({ result, orgName, onClose, hasNextPart, currentPart, tota
           </div>
 
           {/* Invoice info */}
-          <div className="border-t border-b border-dashed border-gray-200 py-3 space-y-1 text-xs text-gray-600">
+          <div className="border-t border-b border-dashed border-[#eef2f6] py-3 space-y-1 text-xs text-gray-600">
             <div className="flex justify-between"><span>رقم الفاتورة</span><span className="font-mono font-bold text-gray-900">{invoice?.invoiceNumber}</span></div>
             <div className="flex justify-between"><span>التاريخ</span><span className="tabular-nums">{invoice ? new Date(invoice.issueDate || invoice.createdAt).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", { year: "numeric", month: "2-digit", day: "2-digit" }) : ""}</span></div>
             <div className="flex justify-between"><span>الوقت</span><span className="tabular-nums">{invoice ? new Date(invoice.issueDate || invoice.createdAt).toLocaleTimeString("ar-SA-u-ca-gregory-nu-latn", { hour: "2-digit", minute: "2-digit" }) : ""}</span></div>
@@ -491,7 +491,7 @@ function ReceiptModal({ result, orgName, onClose, hasNextPart, currentPart, tota
           </div>
 
           {/* Totals */}
-          <div className="border-t border-dashed border-gray-200 pt-3 space-y-1.5 text-sm">
+          <div className="border-t border-dashed border-[#eef2f6] pt-3 space-y-1.5 text-sm">
             <div className="flex justify-between text-gray-500">
               <span>المجموع</span>
               <span className="tabular-nums">{fmt(transaction?.subtotal)} ر.س</span>
@@ -506,7 +506,7 @@ function ReceiptModal({ result, orgName, onClose, hasNextPart, currentPart, tota
               <span>ضريبة ({VAT_RATE}%)</span>
               <span className="tabular-nums">{fmt(transaction?.tax_amount)} ر.س</span>
             </div>
-            <div className="flex justify-between font-bold text-base border-t border-gray-200 pt-1.5">
+            <div className="flex justify-between font-bold text-base border-t border-[#eef2f6] pt-1.5">
               <span>الإجمالي</span>
               <span className="tabular-nums text-brand-600">{fmt(transaction?.total_amount)} ر.س</span>
             </div>
@@ -537,7 +537,7 @@ function ReceiptModal({ result, orgName, onClose, hasNextPart, currentPart, tota
           )}
 
           {/* Footer */}
-          <div className="text-center text-[10px] text-gray-300 border-t border-dashed border-gray-100 pt-3">
+          <div className="text-center text-[10px] text-gray-300 border-t border-dashed border-[#eef2f6] pt-3">
             شكراً لزيارتكم · ترميز OS — tarmizos.com
           </div>
         </div>
@@ -610,8 +610,8 @@ function SalesLogTab() {
             { label: "المتوسط", value: `${fmt(stats.avg_sale)} ر.س`, icon: Tag, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "الاستردادات", value: `${fmt(stats.total_refunds)} ر.س`, icon: RotateCcw, color: "text-red-500", bg: "bg-red-50" },
           ].map(s => (
-            <div key={s.label} className="bg-white rounded-2xl border border-gray-100 px-4 py-3 flex items-center gap-3">
-              <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", s.bg)}>
+            <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] px-4 py-3 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all">
+              <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0", s.bg)}>
                 <s.icon className={clsx("w-4 h-4", s.color)} />
               </div>
               <div>
@@ -625,12 +625,12 @@ function SalesLogTab() {
 
       {/* Payment breakdown */}
       {stats?.byMethod && Object.keys(stats.byMethod).length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 px-5 py-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] px-5 py-4">
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">توزيع طرق الدفع</p>
           <div className="flex gap-4 flex-wrap">
             {Object.entries(stats.byMethod as Record<string, number>).map(([method, amount]) => (
               <div key={method} className="flex items-center gap-2">
-                <span className={clsx("inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border", PAYMENT_COLORS[method] || "bg-gray-100 text-gray-600 border-gray-200")}>
+                <span className={clsx("inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border", PAYMENT_COLORS[method] || "bg-gray-100 text-gray-600 border-[#eef2f6]")}>
                   {PAYMENT_LABELS[method] || method}
                 </span>
                 <span className="text-sm font-bold tabular-nums text-gray-800">{fmt(amount)} ر.س</span>
@@ -641,15 +641,15 @@ function SalesLogTab() {
       )}
 
       {/* Transactions list */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="px-[10px] py-[6px] border-b border-[#eef2f6] flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-900">مبيعات اليوم</h3>
           <button onClick={refetch} className="text-xs text-brand-500 hover:text-brand-700">تحديث</button>
         </div>
         {loading ? (
           <div className="p-5 space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />
+              <div key={i} className="h-14 bg-[#f1f5f9] rounded-xl animate-pulse" />
             ))}
           </div>
         ) : transactions.length === 0 ? (
@@ -670,7 +670,7 @@ function SalesLogTab() {
               return (
                 <div key={tx.id}>
                   <div
-                    className="flex items-center px-5 py-3.5 hover:bg-gray-50/50 cursor-pointer transition-colors"
+                    className="flex items-center px-5 py-[6px] hover:bg-[#f8fafc]/50 cursor-pointer transition-colors"
                     onClick={() => setExpandedId(isExpanded ? null : tx.id)}
                   >
                     <div className="flex-1 min-w-0">
@@ -706,7 +706,7 @@ function SalesLogTab() {
                       {/* Payments */}
                       <div className="flex flex-wrap gap-2 mb-3">
                         {payments.map((p: any, i: number) => (
-                          <span key={i} className={clsx("text-xs px-2 py-1 rounded-lg border font-medium", PAYMENT_COLORS[p.method] || "bg-gray-100 text-gray-600 border-gray-200")}>
+                          <span key={i} className={clsx("text-xs px-2 py-1 rounded-lg border font-medium", PAYMENT_COLORS[p.method] || "bg-gray-100 text-gray-600 border-[#eef2f6]")}>
                             {PAYMENT_LABELS[p.method] || p.method}: {fmt(p.amount)} ر.س
                           </span>
                         ))}
@@ -1098,7 +1098,7 @@ export function POSPage() {
     <div className="flex flex-col h-[calc(100dvh-4rem)] overflow-hidden -m-4 md:-m-6">
 
       {/* Top bar */}
-      <div className="flex items-center justify-between px-5 py-2.5 bg-white border-b border-gray-100 shrink-0 shadow-[0_1px_0_0_#f3f4f6]">
+      <div className="flex items-center justify-between px-5 py-2.5 bg-white border-b border-[#eef2f6] shrink-0 shadow-[0_1px_2px_rgba(0,0,0,0.02)]">
         <div className="flex items-center gap-3">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-xl bg-brand-500 flex items-center justify-center shadow-sm shadow-brand-500/30">
@@ -1129,7 +1129,7 @@ export function POSPage() {
             onChange={e => setBarcodeInput(e.target.value)}
             onKeyDown={e => { if (e.key === "Enter") handleBarcodeInput(barcodeInput); }}
             placeholder="امسح الباركود..."
-            className="pr-9 pl-3 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 w-48 bg-gray-50 placeholder:text-gray-300"
+            className="pr-9 pl-3 py-2 text-xs border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 w-48 bg-[#f8fafc] placeholder:text-gray-300"
             dir="ltr"
           />
         </div>
@@ -1144,10 +1144,10 @@ export function POSPage() {
         <div className="flex flex-1 overflow-hidden">
 
           {/* ── LEFT: Catalog ── */}
-          <div className={clsx("flex-1 flex-col border-l border-gray-100 min-w-0 bg-gray-50/50", mobileView === "catalog" ? "flex" : "hidden md:flex")}>
+          <div className={clsx("flex-1 flex-col border-l border-[#eef2f6] min-w-0 bg-[#f8fafc]", mobileView === "catalog" ? "flex" : "hidden md:flex")}>
 
             {/* Category tabs */}
-            <div className="flex gap-1.5 px-4 py-3 bg-white border-b border-gray-100 overflow-x-auto shrink-0 scrollbar-hide">
+            <div className="flex gap-1.5 px-4 py-3 bg-white border-b border-[#eef2f6] overflow-x-auto shrink-0 scrollbar-hide">
               <button
                 onClick={() => setActiveCat("all")}
                 className={clsx(
@@ -1176,11 +1176,11 @@ export function POSPage() {
             </div>
 
             {/* Search */}
-            <div className="px-4 py-3 bg-white border-b border-gray-100 shrink-0">
+            <div className="px-[10px] py-[6px] bg-white border-b border-[#eef2f6] shrink-0">
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
                 <input
-                  className="w-full bg-gray-50 border border-gray-200 rounded-2xl pr-9 pl-3 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
+                  className="w-full bg-[#f8fafc] border border-[#eef2f6] rounded-2xl pr-9 pl-3 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
                   placeholder="بحث سريع..."
                   value={search}
                   onChange={e => setSearch(e.target.value)}
@@ -1193,7 +1193,7 @@ export function POSPage() {
               {effectiveLoading ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
                   {[...Array(12)].map((_, i) => (
-                    <div key={i} className="h-32 bg-gray-100 rounded-2xl animate-pulse" />
+                    <div key={i} className="h-32 bg-[#f1f5f9] rounded-2xl animate-pulse" />
                   ))}
                 </div>
               ) : filteredServices.length === 0 ? (
@@ -1214,7 +1214,7 @@ export function POSPage() {
                           "relative rounded-2xl border transition-all select-none overflow-hidden",
                           inCart
                             ? "border-brand-300 bg-white shadow-[0_2px_12px_rgba(91,155,213,0.15)]"
-                            : "border-gray-100 bg-white hover:border-gray-200 hover:shadow-sm"
+                            : "border-[#eef2f6] bg-white hover:border-[#c9ddef] hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)] hover:-translate-y-px"
                         )}
                       >
                         {/* Full-card click zone */}
@@ -1300,10 +1300,10 @@ export function POSPage() {
           )}
 
           {/* ── RIGHT: Cart + Payment ── */}
-          <div className={clsx("shrink-0 flex flex-col bg-white border-r border-gray-100 w-full md:w-80 lg:w-[360px] shadow-[-4px_0_24px_0_rgba(0,0,0,0.04)]", mobileView === "cart" ? "flex" : "hidden md:flex")}>
+          <div className={clsx("shrink-0 flex flex-col bg-white border-r border-[#eef2f6] w-full md:w-80 lg:w-[360px] shadow-[-4px_0_24px_0_rgba(0,0,0,0.04)]", mobileView === "cart" ? "flex" : "hidden md:flex")}>
 
             {/* Cart header */}
-            <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 shrink-0 bg-white">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-[#eef2f6] shrink-0 bg-white">
               <div className="flex items-center gap-2.5">
                 <button
                   onClick={() => setMobileView("catalog")}
@@ -1323,14 +1323,14 @@ export function POSPage() {
                 </div>
               </div>
               {cart.length > 0 && (
-                <button onClick={clearAll} className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-red-500 transition-colors bg-gray-50 hover:bg-red-50 px-2 py-1 rounded-lg">
+                <button onClick={clearAll} className="flex items-center gap-1 text-[11px] text-gray-400 hover:text-red-500 transition-colors bg-[#f8fafc] hover:bg-red-50 px-2 py-1 rounded-lg">
                   <Trash2 className="w-3 h-3" /> مسح
                 </button>
               )}
             </div>
 
             {/* Customer picker — compact chip, expands on click */}
-            <div className="px-3 py-2 border-b border-gray-100 shrink-0 relative">
+            <div className="px-3 py-2 border-b border-[#eef2f6] shrink-0 relative">
               {!showCustomerInput && !customer ? (
                 <button
                   onClick={() => setShowCustomerInput(true)}
@@ -1345,8 +1345,8 @@ export function POSPage() {
                   <Users className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 pointer-events-none" />
                   <input
                     className={clsx(
-                      "w-full bg-gray-50 border rounded-xl pr-8 pl-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300 transition-all",
-                      customer ? "border-brand-300 bg-brand-50/30 focus:border-brand-400" : "border-gray-200 focus:border-brand-400"
+                      "w-full bg-[#f8fafc] border rounded-xl pr-8 pl-3 py-2 text-sm outline-none focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300 transition-all",
+                      customer ? "border-brand-300 bg-brand-50/30 focus:border-brand-400" : "border-[#eef2f6] focus:border-brand-400"
                     )}
                     placeholder="ابحث عن عميل..."
                     value={customerSearch}
@@ -1376,7 +1376,7 @@ export function POSPage() {
                 </div>
               )}
               {showCustomerList && customerList.length > 0 && (
-                <div className="absolute left-3 right-3 z-20 bg-white border border-gray-200 rounded-2xl shadow-xl mt-1 max-h-44 overflow-y-auto">
+                <div className="absolute left-3 right-3 z-20 bg-white border border-[#eef2f6] rounded-2xl shadow-xl mt-1 max-h-44 overflow-y-auto">
                   {customerList.slice(0, 6).map((c: any) => (
                     <button
                       key={c.id}
@@ -1415,7 +1415,7 @@ export function POSPage() {
                     return (
                       <div key={item.id} className={clsx(
                         "rounded-xl border transition-all overflow-hidden",
-                        belowMin ? "border-red-200 bg-red-50" : "border-gray-100 bg-gray-50"
+                        belowMin ? "border-red-200 bg-red-50" : "border-[#eef2f6] bg-gray-50"
                       )}>
                         {/* ── Compact row (always visible) ── */}
                         <div className="flex items-center gap-1.5 px-2 py-2">
@@ -1423,7 +1423,7 @@ export function POSPage() {
                           <div className="flex items-center gap-0.5 shrink-0">
                             <button
                               onClick={() => changeQty(item.id, -1)}
-                              className="w-5 h-5 rounded-md bg-white border border-gray-200 flex items-center justify-center hover:border-red-200 hover:text-red-500 transition-colors"
+                              className="w-5 h-5 rounded-md bg-white border border-[#eef2f6] flex items-center justify-center hover:border-red-200 hover:text-red-500 transition-colors"
                             >
                               <Minus className="w-2 h-2" />
                             </button>
@@ -1492,11 +1492,11 @@ export function POSPage() {
 
                         {/* ── Expanded details (price edit + note) — only for authorized users ── */}
                         {isExpanded && canEditPrice && (
-                          <div className="px-3 pb-3 pt-1 border-t border-gray-200 bg-white space-y-2">
+                          <div className="px-3 pb-3 pt-1 border-t border-[#eef2f6] bg-white space-y-2">
                             {/* Price override */}
                             <div className={clsx(
                               "flex items-center gap-2 rounded-lg px-2.5 py-2 border",
-                              belowMin ? "bg-red-50 border-red-200" : "bg-gray-50 border-gray-200"
+                              belowMin ? "bg-red-50 border-red-200" : "bg-gray-50 border-[#eef2f6]"
                             )}>
                               <span className="text-[11px] text-gray-400 shrink-0">سعر الوحدة</span>
                               <input
@@ -1532,7 +1532,7 @@ export function POSPage() {
 
                             {/* Per-item note */}
                             <input
-                              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5 text-[12px] text-gray-700 outline-none placeholder:text-gray-300 focus:border-brand-300"
+                              className="w-full bg-[#f8fafc] border border-[#eef2f6] rounded-lg px-2.5 py-1.5 text-[12px] text-gray-700 outline-none placeholder:text-gray-300 focus:border-brand-300"
                               placeholder="ملاحظة على هذا البند..."
                               value={item.note || ""}
                               onChange={e => updateItemNote(item.id, e.target.value)}
@@ -1555,7 +1555,7 @@ export function POSPage() {
             </div>
 
             {/* Discount + Notes — progressive disclosure */}
-            <div className="px-3 pb-2 border-t border-gray-100 pt-2 shrink-0">
+            <div className="px-3 pb-2 border-t border-[#eef2f6] pt-2 shrink-0">
               {/* Toggle links */}
               <div className="flex items-center gap-3 mb-1.5">
                 {!showDiscount ? (
@@ -1596,7 +1596,7 @@ export function POSPage() {
                       "w-9 h-9 rounded-xl border flex items-center justify-center transition-all shrink-0",
                       discType === "percent"
                         ? "border-brand-400 bg-brand-50 text-brand-500"
-                        : "border-gray-200 text-gray-400 hover:bg-gray-50"
+                        : "border-[#eef2f6] text-gray-400 hover:bg-[#f8fafc]"
                     )}
                     title={discType === "fixed" ? "مبلغ ثابت" : "نسبة مئوية"}
                   >
@@ -1605,7 +1605,7 @@ export function POSPage() {
                   <input
                     type="text"
                     inputMode="decimal"
-                    className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300 tabular-nums"
+                    className="flex-1 bg-[#f8fafc] border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300 tabular-nums"
                     placeholder={discType === "fixed" ? "خصم ثابت (ر.س)" : "خصم % (0-100)"}
                     value={discValue}
                     onChange={e => setDiscValue(normalizeNumeric(e.target.value))}
@@ -1617,7 +1617,7 @@ export function POSPage() {
             </div>
 
             {/* Totals */}
-            <div className="mx-3 mb-2 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
+            <div className="mx-3 mb-2 rounded-xl bg-[#f8fafc] border border-[#eef2f6] overflow-hidden shrink-0">
               <div className="px-3 py-1.5 space-y-1 text-xs">
                 <div className="flex justify-between text-gray-500">
                   <span>المجموع</span>
@@ -1641,7 +1641,7 @@ export function POSPage() {
             </div>
 
             {/* Payment section */}
-            <div className="px-3 pt-2 border-t border-gray-100 shrink-0">
+            <div className="px-3 pt-2 border-t border-[#eef2f6] shrink-0">
               {/* Method buttons — single compact row of 6 */}
               <div className="grid grid-cols-6 gap-1 mb-2">
                 {([
@@ -1659,7 +1659,7 @@ export function POSPage() {
                       "flex flex-col items-center gap-0.5 py-1.5 rounded-lg border text-[9px] font-bold transition-all",
                       payMode === method
                         ? "border-brand-400 bg-brand-500 text-white shadow-sm shadow-brand-500/25"
-                        : "border-gray-200 bg-gray-50 text-gray-500 hover:bg-gray-100 hover:border-gray-300"
+                        : "border-[#eef2f6] bg-[#f8fafc] text-gray-500 hover:bg-gray-100 hover:border-[#eef2f6]"
                     )}
                   >
                     <Icon className="w-3.5 h-3.5" />
@@ -1686,7 +1686,7 @@ export function POSPage() {
                           "flex-1 py-1.5 rounded-xl text-[11px] font-bold border transition-all",
                           parseFloat(cashReceived || "0") === preset.value
                             ? "border-brand-400 bg-brand-500 text-white"
-                            : "border-gray-200 bg-gray-50 text-gray-500 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600"
+                            : "border-[#eef2f6] bg-[#f8fafc] text-gray-500 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600"
                         )}
                       >
                         {preset.label}
@@ -1696,7 +1696,7 @@ export function POSPage() {
                   <input
                     type="text"
                     inputMode="decimal"
-                    className="w-full bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 tabular-nums text-left font-semibold placeholder:text-gray-300 placeholder:font-normal"
+                    className="w-full bg-[#f8fafc] border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 tabular-nums text-left font-semibold placeholder:text-gray-300 placeholder:font-normal"
                     placeholder="0.00"
                     value={cashReceived}
                     onChange={e => setCashReceived(normalizeNumeric(e.target.value))}
@@ -1716,7 +1716,7 @@ export function POSPage() {
 
               {payMode === "card" && (
                 <input
-                  className="w-full mb-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
+                  className="w-full mb-3 bg-[#f8fafc] border border-[#eef2f6] rounded-2xl px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
                   placeholder="رقم مرجع العملية (اختياري)"
                   value={cardRef}
                   onChange={e => setCardRef(e.target.value)}
@@ -1726,7 +1726,7 @@ export function POSPage() {
 
               {payMode === "bank_transfer" && (
                 <input
-                  className="w-full mb-3 bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
+                  className="w-full mb-3 bg-[#f8fafc] border border-[#eef2f6] rounded-2xl px-4 py-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
                   placeholder="رقم مرجع التحويل (اختياري)"
                   value={bankRef}
                   onChange={e => setBankRef(e.target.value)}
@@ -1739,7 +1739,7 @@ export function POSPage() {
                   {mixedPayments.map((pay, i) => (
                     <div key={i} className="flex gap-2">
                       <select
-                        className="bg-gray-50 border border-gray-200 rounded-xl px-2 py-2 text-xs outline-none focus:border-brand-300"
+                        className="bg-gray-50 border border-[#eef2f6] rounded-xl px-2 py-2 text-xs outline-none focus:border-brand-300"
                         value={pay.method}
                         onChange={e => setMixedPayments(prev => prev.map((p, idx) => idx === i ? { ...p, method: e.target.value as any } : p))}
                       >
@@ -1752,7 +1752,7 @@ export function POSPage() {
                       <input
                         type="text"
                         inputMode="decimal"
-                        className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 tabular-nums"
+                        className="flex-1 bg-[#f8fafc] border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 tabular-nums"
                         placeholder="المبلغ"
                         value={pay.amount}
                         onChange={e => setMixedPayments(prev => prev.map((p, idx) => idx === i ? { ...p, amount: normalizeNumeric(e.target.value) } : p))}
@@ -1785,7 +1785,7 @@ export function POSPage() {
             </div>
 
             {/* Action buttons */}
-            <div className="p-2 space-y-1.5 border-t border-gray-100 shrink-0">
+            <div className="p-2 space-y-1.5 border-t border-[#eef2f6] shrink-0">
               {/* Complete sale — primary CTA */}
               <button
                 onClick={handleCompleteSale}
@@ -1806,7 +1806,7 @@ export function POSPage() {
               <button
                 onClick={() => setShowSplit(true)}
                 disabled={cart.length === 0}
-                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-gray-200 text-gray-500 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-xs font-semibold"
+                className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-[#eef2f6] text-gray-500 hover:border-brand-300 hover:bg-brand-50 hover:text-brand-600 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-xs font-semibold"
               >
                 <SplitSquareHorizontal className="w-3.5 h-3.5" />
                 تقسيم الفاتورة

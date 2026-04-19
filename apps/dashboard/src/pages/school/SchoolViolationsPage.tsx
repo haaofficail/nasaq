@@ -21,7 +21,7 @@ const SEVERITIES: Record<string, { label: string; color: string; bg: string; bor
 const STATUSES: Record<string, { label: string; color: string; bg: string; border: string }> = {
   open:       { label: "مفتوحة",   color: "text-amber-700",   bg: "bg-amber-50",   border: "border-amber-200" },
   resolved:   { label: "محلولة",   color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },
-  cancelled:  { label: "ملغاة",    color: "text-gray-600",    bg: "bg-gray-100",   border: "border-gray-200" },
+  cancelled:  { label: "ملغاة",    color: "text-gray-600",    bg: "bg-gray-100",   border: "border-[#eef2f6]" },
 };
 
 const SEVERITY_DEFAULT_DEGREE: Record<string, string> = {
@@ -110,7 +110,7 @@ function CategoryModal({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="مثال: غياب متكرر"
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           />
         </div>
         <div>
@@ -120,7 +120,7 @@ function CategoryModal({
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
             placeholder="وصف اختياري للتصنيف"
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 resize-none"
+            className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 resize-none"
           />
         </div>
         <div>
@@ -134,7 +134,7 @@ function CategoryModal({
                   "flex-1 py-2 rounded-xl text-sm font-medium border transition-all",
                   severity === sev
                     ? `${SEVERITIES[sev].bg} ${SEVERITIES[sev].color} ${SEVERITIES[sev].border}`
-                    : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                    : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]"
                 )}
               >
                 {SEVERITIES[sev].label}
@@ -160,7 +160,7 @@ function CategoryModal({
                     "relative flex flex-col items-center gap-0.5 py-2 px-1 rounded-xl border text-center transition-all",
                     defaultDegree === d
                       ? `${cfg.bg} ${cfg.color} ${cfg.border} shadow-sm font-semibold`
-                      : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                      : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]"
                   )}
                 >
                   {isSuggested && defaultDegree !== d && (
@@ -191,7 +191,7 @@ function CategoryModal({
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
-              className="w-7 h-7 rounded-full border border-gray-200 cursor-pointer"
+              className="w-7 h-7 rounded-full border border-[#eef2f6] cursor-pointer"
               title="لون مخصص"
             />
           </div>
@@ -204,7 +204,7 @@ function CategoryModal({
           >
             {saving ? "جاري الحفظ..." : editing ? "حفظ التعديلات" : "إنشاء التصنيف"}
           </button>
-          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc] transition-colors">
             إلغاء
           </button>
         </div>
@@ -406,7 +406,7 @@ function ViolationModal({
         >
           {saving ? "جاري الحفظ..." : editing ? "حفظ التعديلات" : "تسجيل المخالفة"}
         </button>
-        <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">
+        <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc] transition-colors">
           إلغاء
         </button>
       </div>
@@ -444,7 +444,7 @@ function ViolationModal({
                 <select
                   value={gradeFilter}
                   onChange={(e) => { setGradeFilter(e.target.value); setRoomFilter(""); }}
-                  className="flex-1 rounded-xl border border-gray-200 px-2.5 py-2 text-xs focus:outline-none focus:border-emerald-400 bg-white"
+                  className="flex-1 rounded-xl border border-[#eef2f6] px-2.5 py-2 text-xs focus:outline-none focus:border-emerald-400 bg-white"
                 >
                   <option value="">كل الصفوف</option>
                   {grades.map((g: string) => (
@@ -454,7 +454,7 @@ function ViolationModal({
                 <select
                   value={roomFilter}
                   onChange={(e) => setRoomFilter(e.target.value)}
-                  className="flex-1 rounded-xl border border-gray-200 px-2.5 py-2 text-xs focus:outline-none focus:border-emerald-400 bg-white"
+                  className="flex-1 rounded-xl border border-[#eef2f6] px-2.5 py-2 text-xs focus:outline-none focus:border-emerald-400 bg-white"
                 >
                   <option value="">كل الفصول</option>
                   {roomsForGrade.map((cr: any) => (
@@ -467,13 +467,13 @@ function ViolationModal({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="ابحث باسم الطالب أو رقمه..."
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
               />
               {/* List */}
-              <div className="max-h-44 overflow-y-auto rounded-xl border border-gray-200 divide-y divide-gray-50">
+              <div className="max-h-44 overflow-y-auto rounded-xl border border-[#eef2f6] divide-y divide-gray-50">
                 {stuLoading ? (
                   <div className="flex items-center justify-center py-6 gap-2 text-gray-400 text-sm">
-                    <div className="w-4 h-4 border-2 border-gray-300 border-t-emerald-500 rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-[#eef2f6] border-t-emerald-500 rounded-full animate-spin" />
                     جاري البحث...
                   </div>
                 ) : filtered.length === 0 ? (
@@ -508,7 +508,7 @@ function ViolationModal({
           <select
             value={categoryId}
             onChange={(e) => handleCategoryChange(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 bg-white"
+            className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 bg-white"
           >
             <option value="">— بدون تصنيف —</option>
             {categories.filter((c) => c.isActive !== false).map((cat) => (
@@ -523,7 +523,7 @@ function ViolationModal({
           return (
             <div className={clsx(
               "rounded-2xl border transition-all overflow-hidden",
-              cat ? "border-emerald-200 bg-emerald-50/60" : "border-gray-100 bg-gray-50"
+              cat ? "border-emerald-200 bg-emerald-50/60" : "border-[#eef2f6] bg-gray-50"
             )}>
               {/* Category info row */}
               {cat && (
@@ -568,7 +568,7 @@ function ViolationModal({
                           "relative flex flex-col items-center gap-0.5 py-2.5 px-1 rounded-xl border text-center transition-all",
                           isSelected
                             ? `${cfg.bg} ${cfg.color} ${cfg.border} shadow-sm font-semibold`
-                            : "border-gray-200 bg-white text-gray-500 hover:bg-gray-50"
+                            : "border-[#eef2f6] bg-white text-gray-500 hover:bg-[#f8fafc]"
                         )}
                       >
                         {isSuggested && (
@@ -626,7 +626,7 @@ function ViolationModal({
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           />
           {hijriLabel && (
             <p className="mt-1 text-xs text-gray-400">{hijriLabel}</p>
@@ -641,7 +641,7 @@ function ViolationModal({
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
             placeholder="تفاصيل المخالفة (اختياري)"
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 resize-none"
+            className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 resize-none"
           />
         </div>
 
@@ -693,7 +693,7 @@ function ResolveModal({
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder="ما الإجراء المتخذ؟"
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 resize-none"
+            className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 resize-none"
           />
         </div>
         <div className="flex items-center gap-3">
@@ -704,7 +704,7 @@ function ResolveModal({
           >
             {saving ? "جاري الحفظ..." : "تأكيد الإغلاق"}
           </button>
-          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc] transition-colors">
             إلغاء
           </button>
         </div>
@@ -806,15 +806,15 @@ export function SchoolViolationsPage() {
         </div>
       </div>
 
-      <div className="p-6 space-y-5 bg-gray-50 min-h-full -mt-0">
+      <div className="p-6 space-y-5 bg-[#f8fafc] min-h-full -mt-0">
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-white rounded-2xl border border-gray-100 p-1 w-fit -mt-5 relative z-10 shadow-sm">
+        <div className="flex gap-1 bg-white rounded-2xl border border-[#eef2f6] p-1 w-fit -mt-5 relative z-10 shadow-sm">
           <button
             onClick={() => setTab("violations")}
             className={clsx(
               "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
-              tab === "violations" ? "bg-rose-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              tab === "violations" ? "bg-rose-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-[#f8fafc]"
             )}
           >
             <span className="flex items-center gap-1.5">
@@ -831,7 +831,7 @@ export function SchoolViolationsPage() {
             onClick={() => setTab("categories")}
             className={clsx(
               "px-4 py-2 rounded-xl text-sm font-semibold transition-all",
-              tab === "categories" ? "bg-gray-800 text-white shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              tab === "categories" ? "bg-gray-800 text-white shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-[#f8fafc]"
             )}
           >
             <span className="flex items-center gap-1.5">
@@ -849,7 +849,7 @@ export function SchoolViolationsPage() {
               <select
                 value={filterStatus}
                 onChange={(e) => setFilterStatus(e.target.value)}
-                className="rounded-xl border border-gray-200 px-3 py-2 text-sm bg-white focus:outline-none focus:border-emerald-400"
+                className="rounded-xl border border-[#eef2f6] px-3 py-2 text-sm bg-white focus:outline-none focus:border-emerald-400"
               >
                 <option value="">كل الحالات</option>
                 <option value="open">مفتوحة</option>
@@ -859,7 +859,7 @@ export function SchoolViolationsPage() {
               <select
                 value={filterCatId}
                 onChange={(e) => setFilterCatId(e.target.value)}
-                className="rounded-xl border border-gray-200 px-3 py-2 text-sm bg-white focus:outline-none focus:border-emerald-400"
+                className="rounded-xl border border-[#eef2f6] px-3 py-2 text-sm bg-white focus:outline-none focus:border-emerald-400"
               >
                 <option value="">كل الأنواع</option>
                 {categories.map((cat) => (
@@ -871,11 +871,11 @@ export function SchoolViolationsPage() {
             {vLoading ? (
               <div className="space-y-3">
                 {[...Array(5)].map((_, i) => (
-                  <div key={i} className="h-16 bg-white rounded-2xl border border-gray-100 animate-pulse" />
+                  <div key={i} className="h-16 bg-white rounded-2xl border border-[#eef2f6] animate-pulse" />
                 ))}
               </div>
             ) : violations.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 py-16 flex flex-col items-center gap-3 text-center">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] py-16 flex flex-col items-center gap-3 text-center">
                 <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center">
                   <ShieldAlert className="w-7 h-7 text-rose-400" />
                 </div>
@@ -883,33 +883,33 @@ export function SchoolViolationsPage() {
                 <p className="text-sm text-gray-400">استخدم زر "تسجيل مخالفة" لإضافة أول مخالفة</p>
               </div>
             ) : (
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden shadow-sm">
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-gray-50 border-b border-gray-100">
+                      <tr className="bg-gray-50 border-b border-[#eef2f6]">
                         <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs">الطالب</th>
                         <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs">الدرجة</th>
                         <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs">نوع المخالفة</th>
                         <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs">التاريخ</th>
                         <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs">الحالة</th>
                         <th className="text-right px-4 py-3 font-semibold text-gray-500 text-xs">الوصف</th>
-                        <th className="px-4 py-3 w-24"></th>
+                        <th className="px-[10px] py-[6px] w-24"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-50">
                       {violations.map((v) => (
-                        <tr key={v.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 py-3">
+                        <tr key={v.id} className="hover:bg-[#f8fafc] transition-colors">
+                          <td className="px-[10px] py-[6px]">
                             <p className="font-semibold text-gray-900 text-sm">{v.studentName}</p>
                             {v.studentNumber && (
                               <p className="text-xs text-gray-400">{v.studentNumber}</p>
                             )}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-[10px] py-[6px]">
                             <DegreeBadge degree={v.degree ?? "1"} />
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-[10px] py-[6px]">
                             {v.categoryName ? (
                               <span className="inline-flex items-center gap-1.5">
                                 <Circle className="w-2.5 h-2.5 shrink-0" style={{ color: v.categoryColor, fill: v.categoryColor }} />
@@ -920,16 +920,16 @@ export function SchoolViolationsPage() {
                               <span className="text-xs text-gray-400">—</span>
                             )}
                           </td>
-                          <td className="px-4 py-3 text-sm text-gray-600 tabular-nums whitespace-nowrap">
+                          <td className="px-[10px] py-[6px] text-sm text-gray-600 tabular-nums whitespace-nowrap">
                             {fmtHijri(v.violationDate)}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-[10px] py-[6px]">
                             <StatusBadge status={v.status} />
                           </td>
-                          <td className="px-4 py-3 text-xs text-gray-500 max-w-xs truncate">
+                          <td className="px-[10px] py-[6px] text-xs text-gray-500 max-w-xs truncate">
                             {v.description ?? "—"}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-[10px] py-[6px]">
                             <div className="flex items-center gap-1 justify-end">
                               {v.status === "open" && (
                                 <button
@@ -997,11 +997,11 @@ export function SchoolViolationsPage() {
             {catLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="h-24 bg-white rounded-2xl border border-gray-100 animate-pulse" />
+                  <div key={i} className="h-24 bg-white rounded-2xl border border-[#eef2f6] animate-pulse" />
                 ))}
               </div>
             ) : categories.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 py-16 flex flex-col items-center gap-3 text-center">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] py-16 flex flex-col items-center gap-3 text-center">
                 <div className="w-14 h-14 rounded-2xl bg-gray-100 flex items-center justify-center">
                   <Settings2 className="w-7 h-7 text-gray-400" />
                 </div>
@@ -1021,13 +1021,13 @@ export function SchoolViolationsPage() {
                     key={cat.id}
                     className={clsx(
                       "bg-white rounded-2xl border p-4 hover:shadow-sm transition-all",
-                      cat.isActive === false ? "opacity-60 border-gray-100" : "border-gray-100"
+                      cat.isActive === false ? "opacity-60 border-[#eef2f6]" : "border-[#eef2f6]"
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                          className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
                           style={{ backgroundColor: `${cat.color}20`, border: `2px solid ${cat.color}40` }}
                         >
                           <Circle className="w-4 h-4" style={{ color: cat.color, fill: cat.color }} />

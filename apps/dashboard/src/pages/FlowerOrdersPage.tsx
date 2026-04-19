@@ -102,7 +102,7 @@ const SERVICE_STATUS: Record<string, { label: string; cls: string }> = {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 function SaleBadge({ status }: { status: string }) {
-  const c = SALE_STATUS[status] ?? { label: status, bg: "bg-gray-100", text: "text-gray-600", border: "border-gray-200" };
+  const c = SALE_STATUS[status] ?? { label: status, bg: "bg-gray-100", text: "text-gray-600", border: "border-[#eef2f6]" };
   return (
     <span className={clsx("inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold border", c.bg, c.text, c.border)}>
       {c.label}
@@ -135,12 +135,12 @@ function TypeBadge({ kind }: { kind: "sale" | "service" }) {
 function SkeletonRow() {
   return (
     <div className="flex items-center gap-4 p-4 border-b border-gray-50">
-      <div className="w-10 h-10 bg-gray-100 rounded-xl animate-pulse shrink-0" />
+      <div className="w-10 h-10 bg-[#f1f5f9] rounded-xl animate-pulse shrink-0" />
       <div className="flex-1 space-y-2">
         <div className="h-3 bg-gray-100 rounded animate-pulse w-1/3" />
         <div className="h-3 bg-gray-100 rounded animate-pulse w-1/4" />
       </div>
-      <div className="h-6 w-16 bg-gray-100 rounded-lg animate-pulse" />
+      <div className="h-6 w-16 bg-[#f1f5f9] rounded-lg animate-pulse" />
     </div>
   );
 }
@@ -195,7 +195,7 @@ function SaleOrderRow({ order, onStatusUpdate }: { order: SaleOrder; onStatusUpd
 
   return (
     <div className="border-b border-gray-50 last:border-0">
-      <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50/60 transition-colors">
+      <div className="flex items-center gap-3 px-4 py-[6px] hover:bg-[#f8fafc]/60 transition-colors">
         <button onClick={() => setExpanded(!expanded)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 shrink-0">
           {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>
@@ -240,7 +240,7 @@ function SaleOrderRow({ order, onStatusUpdate }: { order: SaleOrder; onStatusUpd
       </div>
 
       {expanded && (
-        <div className="mx-4 mb-3 rounded-xl border border-gray-100 bg-gray-50/50 p-4 space-y-3">
+        <div className="mx-4 mb-3 rounded-xl border border-[#eef2f6] bg-gray-50/50 p-4 space-y-3">
           {items.length > 0 && (
             <div>
               <p className="text-xs font-semibold text-gray-500 mb-2">العناصر</p>
@@ -272,7 +272,7 @@ function SaleOrderRow({ order, onStatusUpdate }: { order: SaleOrder; onStatusUpd
               <span className="italic">{order.gift_message}</span>
             </div>
           )}
-          <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+          <div className="flex items-center justify-between pt-2 border-t border-[#eef2f6]">
             <span className="text-xs text-gray-400">التغليف: {order.packaging ?? "—"}</span>
             <span className="text-xs font-bold text-gray-800">الإجمالي: {total.toLocaleString("en-US")} ر.س</span>
           </div>
@@ -290,7 +290,7 @@ function ServiceOrderRow({ order }: { order: any }) {
 
   return (
     <div className="border-b border-gray-50 last:border-0">
-      <div className="flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50/60 transition-colors">
+      <div className="flex items-center gap-3 px-4 py-[6px] hover:bg-[#f8fafc]/60 transition-colors">
         <button onClick={() => setExpanded(!expanded)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400 shrink-0">
           {expanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
         </button>
@@ -325,7 +325,7 @@ function ServiceOrderRow({ order }: { order: any }) {
 
         <Link
           to="/dashboard/flower-service-orders"
-          className="shrink-0 px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition-colors flex items-center gap-1"
+          className="shrink-0 px-3 py-1.5 rounded-lg border border-[#eef2f6] text-gray-600 text-xs font-medium hover:bg-[#f8fafc] transition-colors flex items-center gap-1"
           onClick={e => e.stopPropagation()}
         >
           التنفيذ <ArrowLeft className="w-3 h-3" />
@@ -333,7 +333,7 @@ function ServiceOrderRow({ order }: { order: any }) {
       </div>
 
       {expanded && (
-        <div className="mx-4 mb-3 rounded-xl border border-gray-100 bg-gray-50/50 p-4 space-y-2">
+        <div className="mx-4 mb-3 rounded-xl border border-[#eef2f6] bg-gray-50/50 p-4 space-y-2">
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div>
               <span className="text-gray-400">النوع: </span>
@@ -358,7 +358,7 @@ function ServiceOrderRow({ order }: { order: any }) {
               </div>
             )}
           </div>
-          <div className="pt-2 border-t border-gray-100">
+          <div className="pt-2 border-t border-[#eef2f6]">
             <Link
               to="/dashboard/flower-service-orders"
               className="text-xs text-brand-500 hover:underline flex items-center gap-1 w-fit"
@@ -496,7 +496,7 @@ export function FlowerOrdersPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={refetchAll} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-100 hover:bg-gray-50 text-gray-400 transition-colors">
+          <button onClick={refetchAll} className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-400 transition-colors">
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
@@ -508,7 +508,7 @@ export function FlowerOrdersPage() {
           </button>
           <Link
             to="/dashboard/flower-pos"
-            className="flex items-center gap-1.5 border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-medium rounded-xl px-4 py-2 transition-colors"
+            className="flex items-center gap-1.5 border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-700 text-sm font-medium rounded-xl px-4 py-2 transition-colors"
           >
             <ShoppingBag className="w-4 h-4" />
             نقطة البيع
@@ -524,7 +524,7 @@ export function FlowerOrdersPage() {
           { label: "تحت التنفيذ",  value: String(serviceStats.in_progress ?? 0),                  color: "text-amber-600" },
           { label: "الإيرادات",    value: `${totalRevenue.toLocaleString("en-US")} ر.س`,           color: "text-emerald-600" },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+          <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4 text-center">
             <p className={clsx("text-xl font-bold tabular-nums", s.color)}>{s.value}</p>
             <p className="text-xs text-gray-400 mt-1">{s.label}</p>
           </div>
@@ -532,10 +532,10 @@ export function FlowerOrdersPage() {
       </div>
 
       {/* Main card */}
-      <div className="bg-white rounded-2xl border border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef2f6]">
 
         {/* Order category tabs */}
-        <div className="flex items-center gap-1 px-4 pt-4 pb-0 border-b border-gray-100 overflow-x-auto">
+        <div className="flex items-center gap-1 px-4 pt-4 pb-0 border-b border-[#eef2f6] overflow-x-auto">
           {CAT_TABS.map(t => (
             <button
               key={t.value}
@@ -565,7 +565,7 @@ export function FlowerOrdersPage() {
                     onClick={() => { setSaleStatus(t.value); setSalePage(1); }}
                     className={clsx(
                       "px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors whitespace-nowrap flex items-center gap-1",
-                      saleStatus === t.value ? "bg-brand-500 text-white border-brand-500" : "border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                      saleStatus === t.value ? "bg-brand-500 text-white border-brand-500" : "border-[#eef2f6] text-gray-500 hover:border-[#eef2f6] hover:text-gray-700"
                     )}
                   >
                     {t.label}
@@ -591,7 +591,7 @@ export function FlowerOrdersPage() {
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="بحث باسم العميل، رقم الهاتف، أو رقم الطلب..."
-              className="w-full border border-gray-200 rounded-xl pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500"
+              className="w-full border border-[#eef2f6] rounded-xl pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500"
             />
           </div>
         </div>
@@ -628,11 +628,11 @@ export function FlowerOrdersPage() {
                 )}
                 {/* Pagination controls for sale orders */}
                 {saleOrders.length > 0 && (
-                  <div className="flex items-center justify-center gap-3 py-3 border-t border-gray-100">
+                  <div className="flex items-center justify-center gap-3 py-3 border-t border-[#eef2f6]">
                     <button
                       disabled={salePage <= 1}
                       onClick={() => setSalePage(p => Math.max(1, p - 1))}
-                      className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-500 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#eef2f6] text-gray-500 hover:border-[#eef2f6] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                       السابق
                     </button>
@@ -640,7 +640,7 @@ export function FlowerOrdersPage() {
                     <button
                       disabled={!hasMoreSalePages}
                       onClick={() => setSalePage(p => p + 1)}
-                      className="px-3 py-1.5 text-xs font-medium rounded-lg border border-gray-200 text-gray-500 hover:border-gray-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="px-3 py-1.5 text-xs font-medium rounded-lg border border-[#eef2f6] text-gray-500 hover:border-[#eef2f6] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                       التالي
                     </button>
@@ -707,8 +707,8 @@ export function FlowerOrdersPage() {
       {/* ─── Create Order Modal ────────────────────────────────────────────── */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" onClick={() => setShowCreateModal(false)}>
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-[#eef2f6]">
               <h2 className="text-base font-bold text-gray-900">طلب جديد</h2>
               <button onClick={() => setShowCreateModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
                 <X className="w-4 h-4" />
@@ -721,7 +721,7 @@ export function FlowerOrdersPage() {
                   <input
                     value={createForm.customerName}
                     onChange={e => setCreateForm(f => ({ ...f, customerName: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                     placeholder="اسم العميل"
                   />
                 </div>
@@ -730,7 +730,7 @@ export function FlowerOrdersPage() {
                   <input
                     value={createForm.customerPhone}
                     onChange={e => setCreateForm(f => ({ ...f, customerPhone: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                     placeholder="05xxxxxxxx"
                     dir="ltr"
                   />
@@ -743,7 +743,7 @@ export function FlowerOrdersPage() {
                   <select
                     value={createForm.orderType}
                     onChange={e => setCreateForm(f => ({ ...f, orderType: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                   >
                     <option value="delivery">توصيل</option>
                     <option value="pickup">استلام</option>
@@ -757,7 +757,7 @@ export function FlowerOrdersPage() {
                     type="number"
                     value={createForm.total}
                     onChange={e => setCreateForm(f => ({ ...f, total: e.target.value }))}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                     placeholder="0.00"
                     dir="ltr"
                   />
@@ -771,7 +771,7 @@ export function FlowerOrdersPage() {
                     <input
                       value={createForm.deliveryAddress}
                       onChange={e => setCreateForm(f => ({ ...f, deliveryAddress: e.target.value }))}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                      className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                       placeholder="الحي، الشارع"
                     />
                   </div>
@@ -781,7 +781,7 @@ export function FlowerOrdersPage() {
                       type="datetime-local"
                       value={createForm.deliveryDate}
                       onChange={e => setCreateForm(f => ({ ...f, deliveryDate: e.target.value }))}
-                      className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                      className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
                       dir="ltr"
                     />
                   </div>
@@ -793,16 +793,16 @@ export function FlowerOrdersPage() {
                 <textarea
                   value={createForm.giftMessage}
                   onChange={e => setCreateForm(f => ({ ...f, giftMessage: e.target.value }))}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 resize-none"
+                  className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 resize-none"
                   rows={2}
                   placeholder="رسالة أو ملاحظات..."
                 />
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 bg-gray-50/50 rounded-b-2xl">
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#eef2f6] bg-gray-50/50 rounded-b-2xl">
               <button
                 onClick={() => setShowCreateModal(false)}
-                className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 rounded-xl border border-[#eef2f6] text-sm font-medium text-gray-600 hover:bg-[#f8fafc] transition-colors"
               >
                 إلغاء
               </button>

@@ -17,12 +17,12 @@ export function BookingCard({ name, service, time, status, avatar, onClick }: Bo
     <div
       onClick={onClick}
       className={clsx(
-        "flex items-center gap-3 px-3.5 py-3 bg-white rounded-xl border border-gray-100 shadow-sm transition-all",
+        "flex items-center gap-3 px-3.5 py-3 bg-white rounded-xl border border-[#eef2f6] shadow-sm transition-all",
         onClick && "cursor-pointer hover:border-brand-300 hover:shadow-md",
       )}
     >
       {/* Avatar */}
-      <div className="w-10 h-10 rounded-xl shrink-0 flex items-center justify-center overflow-hidden bg-gradient-to-br from-brand-100 to-brand-200">
+      <div className="w-9 h-9 rounded-[10px] shrink-0 flex items-center justify-center overflow-hidden bg-gradient-to-br from-brand-100 to-brand-200">
         {avatar
           ? <img src={avatar} alt={name} className="w-full h-full object-cover" />
           : <span className="text-[15px] font-bold text-brand-600">{initials}</span>

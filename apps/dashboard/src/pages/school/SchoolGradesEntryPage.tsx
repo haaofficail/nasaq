@@ -144,12 +144,12 @@ export function SchoolGradesEntryPage() {
       )}
 
       {/* Classroom selector */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
         <label className="block text-xs font-medium text-gray-600 mb-2">الفصل الدراسي</label>
         <select
           value={classRoomId}
           onChange={e => setClassRoomId(e.target.value)}
-          className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+          className="w-full px-3 py-2 border border-[#eef2f6] rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/30"
         >
           <option value="">اختر الفصل</option>
           {classRooms.map((cr: any) => (
@@ -184,7 +184,7 @@ export function SchoolGradesEntryPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="بحث بالاسم..."
-            className="w-full pr-9 pl-9 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+            className="w-full pr-9 pl-9 py-2.5 border border-[#eef2f6] rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/30"
           />
           {search && (
             <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -196,7 +196,7 @@ export function SchoolGradesEntryPage() {
 
       {/* Student grades list */}
       {!classRoomId ? (
-        <div className="bg-white rounded-2xl border border-gray-100 py-16 flex flex-col items-center gap-3">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] py-16 flex flex-col items-center gap-3">
           <div className="w-14 h-14 rounded-2xl bg-brand-50 flex items-center justify-center">
             <Users className="w-7 h-7 text-brand-400" />
           </div>
@@ -204,10 +204,10 @@ export function SchoolGradesEntryPage() {
         </div>
       ) : reportLoading ? (
         <div className="space-y-2">
-          {[...Array(6)].map((_, i) => <div key={i} className="h-16 bg-gray-100 rounded-2xl animate-pulse" />)}
+          {[...Array(6)].map((_, i) => <div key={i} className="h-16 bg-[#f1f5f9] rounded-2xl animate-pulse" />)}
         </div>
       ) : students.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 py-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] py-12 text-center">
           <p className="text-sm text-gray-400">لا يوجد طلاب في هذا الفصل</p>
         </div>
       ) : (
@@ -219,7 +219,7 @@ export function SchoolGradesEntryPage() {
               <div
                 key={s.id}
                 className={`bg-white rounded-2xl border shadow-sm p-3 flex items-center gap-3 transition-colors ${
-                  g.isAbsent ? "border-red-100" : g.isExempt ? "border-blue-100" : hasValue ? "border-emerald-100" : "border-gray-100"
+                  g.isAbsent ? "border-red-100" : g.isExempt ? "border-blue-100" : hasValue ? "border-emerald-100" : "border-[#eef2f6]"
                 }`}
               >
                 <span className="text-xs text-gray-300 font-bold w-6 text-center shrink-0">{idx + 1}</span>
@@ -240,7 +240,7 @@ export function SchoolGradesEntryPage() {
                       onChange={e => setField(s.id, "score", e.target.value)}
                       disabled={g.isAbsent || g.isExempt}
                       placeholder={String(maxScore)}
-                      className="w-20 px-2.5 py-1.5 border border-gray-200 rounded-xl text-sm text-center focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:bg-gray-50 disabled:text-gray-400 tabular-nums"
+                      className="w-20 px-2.5 py-1.5 border border-[#eef2f6] rounded-xl text-sm text-center focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:bg-gray-50 disabled:text-gray-400 tabular-nums"
                     />
                   )}
                   {gradeScale === "letter" && (
@@ -248,7 +248,7 @@ export function SchoolGradesEntryPage() {
                       value={g.score}
                       onChange={e => setField(s.id, "score", e.target.value)}
                       disabled={g.isAbsent || g.isExempt}
-                      className="w-20 px-2 py-1.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none disabled:bg-gray-50"
+                      className="w-20 px-2 py-1.5 border border-[#eef2f6] rounded-xl text-sm bg-white focus:outline-none disabled:bg-gray-50"
                     >
                       <option value="">—</option>
                       {LETTER_OPTIONS.map(l => <option key={l} value={l}>{l}</option>)}
@@ -259,7 +259,7 @@ export function SchoolGradesEntryPage() {
                       value={g.score}
                       onChange={e => setField(s.id, "score", e.target.value)}
                       disabled={g.isAbsent || g.isExempt}
-                      className="w-28 px-2 py-1.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none disabled:bg-gray-50"
+                      className="w-28 px-2 py-1.5 border border-[#eef2f6] rounded-xl text-sm bg-white focus:outline-none disabled:bg-gray-50"
                     >
                       <option value="">—</option>
                       {QUALITATIVE_OPTIONS.map(q => <option key={q} value={q}>{q}</option>)}
@@ -271,7 +271,7 @@ export function SchoolGradesEntryPage() {
                     className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-all ${
                       g.isAbsent
                         ? "bg-red-50 border-red-200 text-red-700"
-                        : "border-gray-100 text-gray-400 hover:border-red-200 hover:text-red-500"
+                        : "border-[#eef2f6] text-gray-400 hover:border-red-200 hover:text-red-500"
                     }`}
                     title="غائب"
                   >

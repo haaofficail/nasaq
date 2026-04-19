@@ -55,7 +55,7 @@ const TIER_CONFIG = {
   vip:       { label: "VIP",    bg: "bg-violet-100 text-violet-700", badge: "bg-violet-50 text-violet-700 border-violet-200" },
   regular:   { label: "منتظم", bg: "bg-blue-100 text-blue-700",     badge: "bg-blue-50 text-blue-700 border-blue-200" },
   returning: { label: "عائد",  bg: "bg-emerald-100 text-emerald-700", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  new:       { label: "جديد",  bg: "bg-gray-100 text-gray-600",     badge: "bg-gray-100 text-gray-600 border-gray-200" },
+  new:       { label: "جديد",  bg: "bg-gray-100 text-gray-600",     badge: "bg-gray-100 text-gray-600 border-[#eef2f6]" },
 };
 
 const ORDER_TYPE_LABEL: Record<string, string> = {
@@ -77,12 +77,12 @@ const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
 function SkeletonRow() {
   return (
     <div className="flex items-center gap-4 p-4 border-b border-gray-50 animate-pulse">
-      <div className="w-10 h-10 bg-gray-100 rounded-xl shrink-0" />
+      <div className="w-10 h-10 bg-[#f1f5f9] rounded-xl shrink-0" />
       <div className="flex-1 space-y-2">
         <div className="h-3 bg-gray-100 rounded w-1/3" />
         <div className="h-3 bg-gray-100 rounded w-1/4" />
       </div>
-      <div className="h-6 w-14 bg-gray-100 rounded-lg" />
+      <div className="h-6 w-14 bg-[#f1f5f9] rounded-lg" />
     </div>
   );
 }
@@ -97,10 +97,10 @@ function CustomerRow({ customer, onClick }: { customer: Customer; onClick: () =>
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-4 px-4 py-3.5 border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors text-right"
+      className="w-full flex items-center gap-4 px-4 py-[6px] border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/60 transition-colors text-right"
     >
       {/* Avatar */}
-      <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold shrink-0", tier.bg, isDormant && "opacity-50")}>
+      <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center text-base font-bold shrink-0", tier.bg, isDormant && "opacity-50")}>
         {customer.customer_name.charAt(0) || "؟"}
       </div>
 
@@ -206,7 +206,7 @@ export function FlowerCustomersPage() {
         </div>
         <button
           onClick={refetch}
-          className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-100 hover:bg-gray-50 text-gray-400 transition-colors"
+          className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-400 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
         </button>
@@ -220,7 +220,7 @@ export function FlowerCustomersPage() {
           { label: "عملاء VIP",       value: loading ? "—" : summary.vipCount,        color: "text-violet-600", icon: Award,     iconBg: "bg-violet-50 text-violet-500" },
           { label: "متوسط الطلب",     value: loading ? "—" : fmtMoney(summary.avgOrderValue), color: "text-brand-500", icon: ShoppingBag, iconBg: "bg-blue-50 text-brand-500" },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-3", s.iconBg)}>
               <s.icon className="w-4 h-4" />
             </div>
@@ -233,7 +233,7 @@ export function FlowerCustomersPage() {
       {/* Due-return alert */}
       {summary.dueReturn > 0 && (
         <div
-          className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3.5 flex items-center gap-3 cursor-pointer hover:bg-amber-100 transition-colors"
+          className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-[6px] flex items-center gap-3 cursor-pointer hover:bg-amber-100 transition-colors"
           onClick={() => setActiveTab("due_return")}
         >
           <TrendingUp className="w-5 h-5 text-amber-600 shrink-0" />
@@ -245,7 +245,7 @@ export function FlowerCustomersPage() {
       )}
 
       {/* Search + Tabs */}
-      <div className="bg-white rounded-2xl border border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef2f6]">
         {/* Search */}
         <div className="px-4 pt-4 pb-0">
           <div className="relative">
@@ -255,7 +255,7 @@ export function FlowerCustomersPage() {
               placeholder="بحث بالاسم أو رقم الجوال..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-brand-500 transition-colors"
+              className="w-full pr-10 pl-4 py-2.5 rounded-xl border border-[#eef2f6] text-sm focus:outline-none focus:border-brand-500 transition-colors"
             />
             {search && (
               <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
@@ -266,7 +266,7 @@ export function FlowerCustomersPage() {
         </div>
 
         {/* Filter Tabs */}
-        <div className="flex items-center gap-1 px-4 pt-3 border-b border-gray-100 overflow-x-auto">
+        <div className="flex items-center gap-1 px-4 pt-3 border-b border-[#eef2f6] overflow-x-auto">
           {FILTER_TABS.map(tab => {
             const cnt = tab.count ? tab.count(customers) : null;
             return (
@@ -314,7 +314,7 @@ export function FlowerCustomersPage() {
             </div>
           ) : customers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-4">
+              <div className="w-14 h-14 rounded-2xl bg-[#f8fafc] flex items-center justify-center mb-4">
                 <Users className="w-7 h-7 text-gray-300" />
               </div>
               <p className="text-sm font-semibold text-gray-700">لا يوجد عملاء بعد</p>
@@ -346,7 +346,7 @@ export function FlowerCustomersPage() {
               {filtered.map(c => (
                 <CustomerRow key={c.customer_phone} customer={c} onClick={() => navigate(`/dashboard/flower-customers/${encodeURIComponent(c.customer_phone)}`)} />
               ))}
-              <div className="px-4 py-3 border-t border-gray-50 bg-gray-50/40">
+              <div className="px-[10px] py-[6px] border-t border-gray-50 bg-gray-50/40">
                 <p className="text-xs text-gray-400 text-center">
                   {filtered.length} عميل
                   {filtered.length !== customers.length && ` من ${customers.length}`}

@@ -88,9 +88,9 @@ export function FinancePage() {
           <button
             key={m.href}
             onClick={() => navigate(m.href)}
-            className="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl p-4 hover:border-brand-200 hover:shadow-sm transition-all text-right group"
+            className="flex items-center gap-4 bg-white border border-[#eef2f6] rounded-2xl p-4 hover:border-brand-200 hover:shadow-sm transition-all text-right group"
           >
-            <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", m.bg)}>
+            <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0", m.bg)}>
               <m.icon className={clsx("w-5 h-5", m.iconColor)} />
             </div>
             <div className="flex-1 min-w-0">
@@ -109,7 +109,7 @@ export function FinancePage() {
           { label: "صافي الربح", value: `${(totalRevenue - totalExpenses).toLocaleString()} ر.س`, color: totalRevenue - totalExpenses >= 0 ? "text-brand-600" : "text-red-500" },
           { label: "الفواتير", value: invoices.length, color: "text-gray-900" },
         ].map((s, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <p className="text-xs text-gray-400 mb-1">{s.label}</p>
             <p className={clsx("text-xl font-bold tabular-nums", s.color)}>{s.value}</p>
           </div>
@@ -119,8 +119,8 @@ export function FinancePage() {
       {/* tab switcher removed — PageHeader handles it */}
 
       {activeTab === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-          <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-gray-50/50">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-3 border-b border-[#eef2f6] bg-gray-50/50">
             <p className="text-sm font-semibold text-gray-700">آخر الفواتير</p>
             <Link to="/dashboard/invoices" className="flex items-center gap-1 text-xs text-brand-600 hover:underline">
               إدارة الفواتير <ExternalLink className="w-3 h-3" />
@@ -134,13 +134,13 @@ export function FinancePage() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100">
+                <tr className="border-b border-[#eef2f6]">
                   <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold">رقم الفاتورة</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">العميل</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">المبلغ</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">الحالة</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">التاريخ</th>
-                  <th className="py-3 px-4" />
+                  <th className="py-[6px] px-[10px]" />
                 </tr>
               </thead>
               <tbody>
@@ -150,21 +150,21 @@ export function FinancePage() {
                   const statusLabel = isPaid ? "مدفوعة" : isPartial ? "جزئي" : inv.status === "overdue" ? "متأخرة" : inv.status === "cancelled" ? "ملغاة" : "بانتظار الدفع";
                   const statusCls = isPaid ? "bg-emerald-50 text-emerald-600" : isPartial ? "bg-teal-50 text-teal-600" : inv.status === "overdue" ? "bg-red-50 text-red-500" : inv.status === "cancelled" ? "bg-gray-100 text-gray-400" : "bg-amber-50 text-amber-600";
                   return (
-                    <tr key={inv.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                      <td className="py-3.5 px-5">
+                    <tr key={inv.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
+                      <td className="py-[6px] px-5">
                         <Link to={`/dashboard/invoices/${inv.id}`} className="font-mono text-xs font-semibold text-brand-600 hover:underline">
                           {inv.invoiceNumber || inv.id?.substring(0, 8)}
                         </Link>
                       </td>
-                      <td className="py-3.5 px-4 text-sm text-gray-700">{inv.buyerName || inv.customerName || "—"}</td>
-                      <td className="py-3.5 px-4 font-bold tabular-nums text-sm">{Number(inv.totalAmount || 0).toLocaleString()} ر.س</td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-[6px] px-[10px] text-sm text-gray-700">{inv.buyerName || inv.customerName || "—"}</td>
+                      <td className="py-[6px] px-[10px] font-bold tabular-nums text-sm">{Number(inv.totalAmount || 0).toLocaleString()} ر.س</td>
+                      <td className="py-[6px] px-[10px]">
                         <span className={clsx("px-2 py-0.5 rounded-full text-[10px] font-medium", statusCls)}>{statusLabel}</span>
                       </td>
-                      <td className="py-3.5 px-4 text-gray-400 text-xs whitespace-nowrap">
+                      <td className="py-[6px] px-[10px] text-gray-400 text-xs whitespace-nowrap">
                         {inv.issueDate ? fmtDate(inv.issueDate) : inv.createdAt ? fmtDate(inv.createdAt) : "—"}
                       </td>
-                      <td className="py-3.5 px-4 text-left">
+                      <td className="py-[6px] px-[10px] text-left">
                         <Link to={`/dashboard/invoices/${inv.id}`}
                           className="inline-flex items-center gap-1 text-[11px] text-brand-600 hover:underline">
                           عرض <ExternalLink className="w-3 h-3" />
@@ -180,7 +180,7 @@ export function FinancePage() {
       )}
 
       {activeTab === 1 && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           {expenses.length === 0 ? (
             <div className="p-10 text-center">
               <TrendingDown className="w-9 h-9 text-gray-200 mx-auto mb-2" />
@@ -189,7 +189,7 @@ export function FinancePage() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
+                <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                   <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold uppercase tracking-wide">الوصف</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">الفئة</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">المبلغ</th>
@@ -198,11 +198,11 @@ export function FinancePage() {
               </thead>
               <tbody>
                 {expenses.map((exp: any) => (
-                  <tr key={exp.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                    <td className="py-3.5 px-5 font-medium text-gray-900">{exp.description}</td>
-                    <td className="py-3.5 px-4 text-gray-500 text-xs">{exp.category}</td>
-                    <td className="py-3.5 px-4 font-bold text-red-500 tabular-nums">{Number(exp.amount || 0).toLocaleString()} ر.س</td>
-                    <td className="py-3.5 px-4 text-gray-400 text-xs">
+                  <tr key={exp.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/50 transition-colors">
+                    <td className="py-[6px] px-5 font-medium text-gray-900">{exp.description}</td>
+                    <td className="py-[6px] px-[10px] text-gray-500 text-xs">{exp.category}</td>
+                    <td className="py-[6px] px-[10px] font-bold text-red-500 tabular-nums">{Number(exp.amount || 0).toLocaleString()} ر.س</td>
+                    <td className="py-[6px] px-[10px] text-gray-400 text-xs">
                       {exp.date ? fmtDate(exp.date) : "—"}
                     </td>
                   </tr>
@@ -219,7 +219,7 @@ export function FinancePage() {
         const netProfit = revenue - expenses;
         const SAR = (v: number) => `${v.toLocaleString()} ر.س`;
         return (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
             <h2 className="font-semibold text-gray-900 mb-5">تقرير الأرباح والخسائر</h2>
             <div className="space-y-2 mb-6">
               <div className="flex justify-between items-center py-3 border-b border-gray-50">
@@ -260,7 +260,7 @@ export function FinancePage() {
       })()}
 
       {/* FAQ */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
         <div className="space-y-3">
           {[
@@ -270,8 +270,8 @@ export function FinancePage() {
             { q: "ما الفرق بين «المالية» هنا و«التقارير»؟", a: "هذه الصفحة للإدارة اليومية (إنشاء فواتير، تسجيل مصروفات). صفحة التقارير للتحليل والمقارنة بالفترات والتصدير." },
             { q: "ما «قيود اليومية» وما «التسويات»؟", a: "قيود اليومية هي التسجيل المحاسبي التفصيلي لكل حركة مالية. التسويات لمطابقة أرصدة البنك أو العملاء مع السجلات." },
           ].map(faq => (
-            <details key={faq.q} className="border border-gray-100 rounded-xl">
-              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+            <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+              <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
               <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
             </details>
           ))}

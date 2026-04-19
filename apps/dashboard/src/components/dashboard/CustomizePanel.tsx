@@ -32,7 +32,7 @@ export function CustomizePanel({
   );
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
       <div className="flex items-center justify-between mb-4">
         <h2 className="font-semibold text-gray-900 text-sm">تخصيص لوحة التحكم</h2>
         <div className="flex items-center gap-2">
@@ -65,7 +65,7 @@ export function CustomizePanel({
                   onClick={() => toggleKpi(kpi.id)}
                   className={clsx(
                     "w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-colors",
-                    hidden ? "text-gray-400 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-50"
+                    hidden ? "text-gray-400 hover:bg-[#f8fafc]" : "text-gray-700 hover:bg-[#f8fafc]"
                   )}
                 >
                   <div className="flex items-center gap-2">
@@ -98,7 +98,7 @@ export function CustomizePanel({
                   onClick={() => toggleWidget(widget.id)}
                   className={clsx(
                     "w-full flex items-center justify-between px-3 py-2 rounded-xl text-sm transition-colors",
-                    hidden ? "text-gray-400 hover:bg-gray-50" : "text-gray-700 hover:bg-gray-50"
+                    hidden ? "text-gray-400 hover:bg-[#f8fafc]" : "text-gray-700 hover:bg-[#f8fafc]"
                   )}
                 >
                   <span className={hidden ? "line-through opacity-50" : ""}>{widget.label}</span>

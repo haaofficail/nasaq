@@ -72,12 +72,12 @@ export function TenantPortalPage() {
       </div>
 
       {/* Search */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-4">
         <div className="flex gap-3">
           <select
             value={queryType}
             onChange={(e) => setQueryType(e.target.value as any)}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
           >
             <option value="contract">رقم العقد</option>
             <option value="phone">رقم الجوال</option>
@@ -87,7 +87,7 @@ export function TenantPortalPage() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSearch()}
             placeholder={queryType === "contract" ? "مثال: CONT-001" : "05xxxxxxxx"}
-            className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="flex-1 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
           />
           <button
             onClick={handleSearch}
@@ -109,7 +109,7 @@ export function TenantPortalPage() {
       {result && (
         <div className="space-y-5">
           {/* Tenant Info */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-bold text-gray-900 text-lg">{result.name}</h2>
@@ -127,15 +127,15 @@ export function TenantPortalPage() {
           </div>
 
           {/* Pending Invoices */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+            <div className="px-[10px] py-[6px] border-b border-[#eef2f6]">
               <h3 className="font-semibold text-gray-800">الفواتير المعلقة</h3>
             </div>
             {invoices.length === 0 ? (
               <div className="p-8 text-center text-gray-400 text-sm">لا توجد فواتير معلقة</div>
             ) : (
               <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+                <thead className="bg-[#f8fafc]">
                   <tr>
                     <th className="text-right px-4 py-2 font-medium text-gray-600">رقم الفاتورة</th>
                     <th className="text-right px-4 py-2 font-medium text-gray-600">الفترة</th>
@@ -145,7 +145,7 @@ export function TenantPortalPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {invoices.map((inv: any) => (
-                    <tr key={inv.id} className="hover:bg-gray-50">
+                    <tr key={inv.id} className="hover:bg-[#f8fafc]">
                       <td className="px-4 py-2 font-medium text-gray-900">{inv.invoiceNumber ?? `#${inv.id?.slice(-4)}`}</td>
                       <td className="px-4 py-2 text-gray-600">{inv.period ?? inv.month ?? "—"}</td>
                       <td className="px-4 py-2 font-semibold text-red-600">
@@ -163,12 +163,12 @@ export function TenantPortalPage() {
 
           {/* Statement */}
           {statement.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-              <div className="px-4 py-3 border-b border-gray-100">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+              <div className="px-[10px] py-[6px] border-b border-[#eef2f6]">
                 <h3 className="font-semibold text-gray-800">كشف الحساب</h3>
               </div>
               <table className="w-full text-sm">
-                <thead className="bg-gray-50">
+                <thead className="bg-[#f8fafc]">
                   <tr>
                     <th className="text-right px-4 py-2 font-medium text-gray-600">التاريخ</th>
                     <th className="text-right px-4 py-2 font-medium text-gray-600">البيان</th>
@@ -179,7 +179,7 @@ export function TenantPortalPage() {
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {statement.map((tx: any, i: number) => (
-                    <tr key={i} className="hover:bg-gray-50">
+                    <tr key={i} className="hover:bg-[#f8fafc]">
                       <td className="px-4 py-2 text-gray-600">
                         {tx.date ? new Date(tx.date).toLocaleDateString("ar-SA") : "—"}
                       </td>
@@ -215,7 +215,7 @@ export function TenantPortalPage() {
                   onChange={(e) => setMaintenanceForm({ ...maintenanceForm, description: e.target.value })}
                   rows={3}
                   placeholder="صف المشكلة بالتفصيل..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
                 />
               </div>
               <div>
@@ -223,7 +223,7 @@ export function TenantPortalPage() {
                 <select
                   value={maintenanceForm.priority}
                   onChange={(e) => setMaintenanceForm({ ...maintenanceForm, priority: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 >
                   <option value="low">منخفضة</option>
                   <option value="normal">عادية</option>
@@ -243,7 +243,7 @@ export function TenantPortalPage() {
               </button>
               <button
                 onClick={() => setShowMaintenanceModal(false)}
-                className="flex-1 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50"
+                className="flex-1 py-2 border border-[#eef2f6] text-gray-700 rounded-xl text-sm hover:bg-[#f8fafc]"
               >
                 إلغاء
               </button>

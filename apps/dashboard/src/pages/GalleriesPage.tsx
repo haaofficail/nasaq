@@ -12,8 +12,8 @@ import { fmtDate } from "@/lib/utils";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const iCls = "w-full border border-gray-200 rounded-xl px-3 h-10 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white";
-const taCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white resize-none";
+const iCls = "w-full border border-[#eef2f6] rounded-xl px-3 h-10 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white";
+const taCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white resize-none";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -33,7 +33,7 @@ function CopyButton({ text }: { text: string }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }}
-      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+      className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-[#f1f5f9] rounded-lg transition-colors"
       title="نسخ الرابط"
     >
       {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
@@ -50,7 +50,7 @@ function AssetPicker({ selected, onToggle }: { selected: Set<string>; onToggle: 
   if (loading) return (
     <div className="grid grid-cols-4 gap-2">
       {[...Array(8)].map((_, i) => (
-        <div key={i} className="aspect-square bg-gray-100 rounded-xl animate-pulse" />
+        <div key={i} className="aspect-square bg-[#f1f5f9] rounded-xl animate-pulse" />
       ))}
     </div>
   );
@@ -72,7 +72,7 @@ function AssetPicker({ selected, onToggle }: { selected: Set<string>; onToggle: 
             "relative aspect-square overflow-hidden rounded-xl border-2 transition-all",
             selected.has(a.id)
               ? "border-brand-400 ring-2 ring-brand-200"
-              : "border-gray-200 hover:border-gray-300",
+              : "border-[#eef2f6] hover:border-[#eef2f6]",
           )}
         >
           <img src={a.fileUrl} alt={a.name} className="w-full h-full object-cover" />
@@ -170,7 +170,7 @@ export function GalleriesPage() {
       </div>
 
       {/* Galleries list */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-6"><SkeletonRows rows={4} /></div>
         ) : error ? (
@@ -180,7 +180,7 @@ export function GalleriesPage() {
           </div>
         ) : galleries.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center">
+            <div className="w-14 h-14 bg-[#f8fafc] rounded-2xl flex items-center justify-center">
               <Images className="w-7 h-7 text-gray-300" />
             </div>
             <p className="text-sm font-medium text-gray-500">لا توجد معارض بعد</p>
@@ -194,7 +194,7 @@ export function GalleriesPage() {
               const expired  = g.expiresAt && new Date(g.expiresAt) < new Date();
               return (
                 <div key={g.id} className="flex items-center gap-4 px-5 py-4">
-                  <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
+                  <div className="w-9 h-9 rounded-[10px] bg-brand-50 flex items-center justify-center shrink-0">
                     <Images className="w-5 h-5 text-brand-500" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -247,7 +247,7 @@ export function GalleriesPage() {
       {modal === "create" && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl my-6" dir="rtl">
-            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#eef2f6]">
               <h2 className="font-bold text-gray-900">معرض جديد</h2>
               <button onClick={() => setModal(null)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
             </div>
@@ -277,7 +277,7 @@ export function GalleriesPage() {
               </div>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-100 space-y-3">
+            <div className="px-6 py-4 border-t border-[#eef2f6] space-y-3">
               {formErr && (
                 <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />{formErr}
@@ -292,7 +292,7 @@ export function GalleriesPage() {
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   إنشاء المعرض ونسخ الرابط
                 </button>
-                <button onClick={() => setModal(null)} className="flex-1 border border-gray-200 text-sm text-gray-600 h-10 rounded-xl hover:bg-gray-50 transition-colors">إلغاء</button>
+                <button onClick={() => setModal(null)} className="flex-1 border border-[#eef2f6] text-sm text-gray-600 h-10 rounded-xl hover:bg-[#f8fafc] transition-colors">إلغاء</button>
               </div>
             </div>
           </div>

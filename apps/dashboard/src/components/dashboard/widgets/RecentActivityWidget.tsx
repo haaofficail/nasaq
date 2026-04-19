@@ -124,7 +124,7 @@ export function RecentActivityWidget() {
   const entries: any[] = data?.data ?? [];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
         <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
@@ -163,7 +163,7 @@ export function RecentActivityWidget() {
             const date     = dateLabel(entry.createdAt);
             const time     = timeLabel(entry.createdAt);
             return (
-              <div key={entry.id} className="flex items-start gap-3 px-4 py-2.5 hover:bg-gray-50/60 transition-colors">
+              <div key={entry.id} className="flex items-start gap-3 px-4 py-2.5 hover:bg-[#f8fafc]/60 transition-colors">
                 <div className={clsx("w-7 h-7 rounded-xl flex items-center justify-center shrink-0 mt-0.5", bg)}>
                   <Icon className={clsx("w-3.5 h-3.5", color)} />
                 </div>

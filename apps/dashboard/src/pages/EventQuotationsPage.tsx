@@ -36,7 +36,7 @@ const TASK_STATUS_MAP: Record<string, { label: string; cls: string; icon: any }>
 const ITEM_CATEGORIES = ["قاعة", "تموين", "ترفيه", "تزيين", "طاقم", "أفراح", "مرئي وصوتي", "أخرى"];
 const TASK_CATEGORIES = ["إعداد", "تموين", "صوت وصورة", "تزيين", "أمن", "تنظيف", "إداري", "أخرى"];
 
-const inp = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300";
+const inp = "w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300";
 const btn = "px-4 py-2 rounded-xl text-sm font-medium transition-colors";
 
 function fmt(n: number | string) {
@@ -48,7 +48,7 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className={clsx("bg-white rounded-2xl shadow-2xl w-full max-h-[92vh] overflow-y-auto", wide ? "max-w-3xl" : "max-w-lg")}>
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between p-5 border-b border-[#eef2f6] sticky top-0 bg-white z-10">
           <h3 className="font-bold text-gray-900">{title}</h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
             <X className="w-4 h-4" />
@@ -196,7 +196,7 @@ function QuotationForm({ initial, onSave, onClose }: { initial?: any; onSave: (d
             </div>
           ))}
           {items.length === 0 && (
-            <p className="text-sm text-gray-400 text-center py-4 border-2 border-dashed border-gray-200 rounded-xl">
+            <p className="text-sm text-gray-400 text-center py-4 border-2 border-dashed border-[#eef2f6] rounded-xl">
               اضغط على "إضافة بند" لإضافة خدمات العرض
             </p>
           )}
@@ -210,21 +210,21 @@ function QuotationForm({ initial, onSave, onClose }: { initial?: any; onSave: (d
         </div>
         <div className="flex justify-between items-center text-sm text-gray-600">
           <span>الخصم</span>
-          <input className="w-24 border border-gray-200 rounded-lg px-2 py-1 text-sm text-left" type="number" min="0" value={form.discountAmount} onChange={f("discountAmount")} />
+          <input className="w-24 border border-[#eef2f6] rounded-lg px-2 py-1 text-sm text-left" type="number" min="0" value={form.discountAmount} onChange={f("discountAmount")} />
         </div>
         <div className="flex justify-between items-center text-sm text-gray-600">
           <span>نسبة الضريبة %</span>
-          <input className="w-16 border border-gray-200 rounded-lg px-2 py-1 text-sm text-left" type="number" min="0" max="100" value={form.vatRate} onChange={f("vatRate")} />
+          <input className="w-16 border border-[#eef2f6] rounded-lg px-2 py-1 text-sm text-left" type="number" min="0" max="100" value={form.vatRate} onChange={f("vatRate")} />
         </div>
         <div className="flex justify-between text-sm text-gray-600">
           <span>الضريبة</span><span>{fmt(vatAmount)} ر.س</span>
         </div>
-        <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-200">
+        <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-[#eef2f6]">
           <span>الإجمالي</span><span>{fmt(total)} ر.س</span>
         </div>
         <div className="flex justify-between items-center text-sm text-gray-600">
           <span>الدفعة الأولى المطلوبة</span>
-          <input className="w-28 border border-gray-200 rounded-lg px-2 py-1 text-sm text-left" type="number" min="0" value={form.depositRequired} onChange={f("depositRequired")} />
+          <input className="w-28 border border-[#eef2f6] rounded-lg px-2 py-1 text-sm text-left" type="number" min="0" value={form.depositRequired} onChange={f("depositRequired")} />
         </div>
       </div>
 
@@ -334,7 +334,7 @@ export function EventQuotationsPage() {
   const qDetail = detailData?.data;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 space-y-6" dir="rtl">
+    <div className="min-h-screen bg-[#f8fafc] p-6 space-y-6" dir="rtl">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -351,7 +351,7 @@ export function EventQuotationsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+      <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1 w-fit">
         {[
           { id: "quotations", label: "عروض الأسعار", icon: FileText },
           { id: "execution",  label: "تتبع التنفيذ",  icon: ClipboardList },
@@ -383,7 +383,7 @@ export function EventQuotationsPage() {
                   onClick={() => setStatusFilter(s)}
                   className={clsx(
                     "px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
-                    statusFilter === s ? "bg-brand-600 text-white border-brand-600" : "bg-white text-gray-600 border-gray-200 hover:border-brand-300"
+                    statusFilter === s ? "bg-brand-600 text-white border-brand-600" : "bg-white text-gray-600 border-[#eef2f6] hover:border-brand-300"
                   )}
                 >
                   {s === "all" ? "الكل" : STATUS_MAP[s]?.label}
@@ -393,7 +393,7 @@ export function EventQuotationsPage() {
 
             {/* Cards */}
             {qLoading ? <SkeletonRows rows={4} /> : quotations.length === 0 ? (
-              <div className="text-center text-gray-400 py-12 bg-white rounded-2xl border border-gray-100">
+              <div className="text-center text-gray-400 py-12 bg-white rounded-2xl border border-[#eef2f6]">
                 <FileText className="w-8 h-8 mx-auto mb-2 opacity-30" />
                 <p className="text-sm">لا توجد عروض</p>
               </div>
@@ -404,7 +404,7 @@ export function EventQuotationsPage() {
                   onClick={() => setDetailQ(q)}
                   className={clsx(
                     "bg-white rounded-2xl border p-4 cursor-pointer hover:border-brand-200 transition-colors",
-                    detailQ?.id === q.id ? "border-brand-400 ring-1 ring-brand-200" : "border-gray-100"
+                    detailQ?.id === q.id ? "border-brand-400 ring-1 ring-brand-200" : "border-[#eef2f6]"
                   )}
                 >
                   <div className="flex items-start justify-between mb-2">
@@ -433,14 +433,14 @@ export function EventQuotationsPage() {
           {/* Detail panel */}
           <div className="col-span-2">
             {!detailQ ? (
-              <div className="bg-white rounded-2xl border border-gray-100 flex items-center justify-center h-96">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] flex items-center justify-center h-96">
                 <div className="text-center text-gray-400">
                   <FileText className="w-10 h-10 mx-auto mb-2 opacity-30" />
                   <p className="text-sm">اختر عرض سعر من القائمة</p>
                 </div>
               </div>
             ) : qDetail ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-6">
                 {/* Header */}
                 <div className="flex items-start justify-between">
                   <div>
@@ -451,7 +451,7 @@ export function EventQuotationsPage() {
                     <span className={clsx("text-sm px-3 py-1 rounded-full font-medium", STATUS_MAP[qDetail.status]?.cls)}>
                       {STATUS_MAP[qDetail.status]?.label}
                     </span>
-                    <button onClick={() => setEditModal({ ...qDetail, items: qDetail.items })} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-50">
+                    <button onClick={() => setEditModal({ ...qDetail, items: qDetail.items })} className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-[#f8fafc]">
                       <Tag className="w-4 h-4" />
                     </button>
                     <button onClick={() => handleDeleteQ(qDetail.id)} className="text-red-400 hover:text-red-600 p-1.5 rounded-lg hover:bg-red-50">
@@ -496,7 +496,7 @@ export function EventQuotationsPage() {
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="text-xs text-gray-500 border-b border-gray-100">
+                          <tr className="text-xs text-gray-500 border-b border-[#eef2f6]">
                             <th className="text-right pb-2 font-medium">الوصف</th>
                             <th className="pb-2 font-medium w-20 text-center">الكمية</th>
                             <th className="pb-2 font-medium w-28 text-center">سعر الوحدة</th>
@@ -522,7 +522,7 @@ export function EventQuotationsPage() {
                 )}
 
                 {/* Totals */}
-                <div className="border-t border-gray-100 pt-4 space-y-2">
+                <div className="border-t border-[#eef2f6] pt-4 space-y-2">
                   <div className="flex justify-between text-sm text-gray-600">
                     <span>المجموع الفرعي</span><span>{fmt(qDetail.subtotal)} ر.س</span>
                   </div>
@@ -534,7 +534,7 @@ export function EventQuotationsPage() {
                   <div className="flex justify-between text-sm text-gray-600">
                     <span>ضريبة القيمة المضافة ({qDetail.vat_rate}%)</span><span>{fmt(qDetail.vat_amount)} ر.س</span>
                   </div>
-                  <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-gray-100">
+                  <div className="flex justify-between text-base font-bold text-gray-900 pt-2 border-t border-[#eef2f6]">
                     <span>الإجمالي</span><span className="text-brand-600">{fmt(qDetail.total)} ر.س</span>
                   </div>
                   {Number(qDetail.deposit_required) > 0 && (
@@ -584,7 +584,7 @@ export function EventQuotationsPage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-2xl border border-gray-100 flex items-center justify-center h-64">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] flex items-center justify-center h-64">
                 <div className="animate-pulse text-gray-300 text-sm">جاري التحميل...</div>
               </div>
             )}
@@ -600,7 +600,7 @@ export function EventQuotationsPage() {
             <div className="flex gap-2">
               {["all", "pre_event", "day_of", "post_event"].map(p => (
                 <button key={p} onClick={() => setPhaseFilter(p)} className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
-                  phaseFilter === p ? "bg-brand-600 text-white border-brand-600" : "bg-white text-gray-600 border-gray-200 hover:border-brand-300"
+                  phaseFilter === p ? "bg-brand-600 text-white border-brand-600" : "bg-white text-gray-600 border-[#eef2f6] hover:border-brand-300"
                 )}>
                   {p === "all" ? "كل المراحل" : PHASE_MAP[p]}
                 </button>
@@ -609,7 +609,7 @@ export function EventQuotationsPage() {
             <div className="flex gap-2">
               {["all", "pending", "in_progress", "done", "blocked"].map(s => (
                 <button key={s} onClick={() => setStatusTaskFilter(s)} className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors",
-                  statusTaskFilter === s ? "bg-gray-800 text-white border-gray-800" : "bg-white text-gray-600 border-gray-200 hover:border-gray-400"
+                  statusTaskFilter === s ? "bg-gray-800 text-white border-gray-800" : "bg-white text-gray-600 border-[#eef2f6] hover:border-gray-400"
                 )}>
                   {s === "all" ? "الكل" : TASK_STATUS_MAP[s]?.label}
                 </button>
@@ -618,7 +618,7 @@ export function EventQuotationsPage() {
           </div>
 
           {tasksLoading ? <SkeletonRows rows={5} /> : tasks.length === 0 ? (
-            <div className="text-center text-gray-400 py-16 bg-white rounded-2xl border border-gray-100">
+            <div className="text-center text-gray-400 py-16 bg-white rounded-2xl border border-[#eef2f6]">
               <ClipboardList className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="text-sm">لا توجد مهام تنفيذ</p>
               <button onClick={() => setTaskModal(true)} className="mt-3 text-brand-600 text-sm hover:underline">إضافة مهمة</button>
@@ -640,7 +640,7 @@ export function EventQuotationsPage() {
                         const sm = TASK_STATUS_MAP[t.status];
                         const Icon = sm?.icon || Clock;
                         return (
-                          <div key={t.id} className="bg-white rounded-xl border border-gray-100 p-4 flex items-start justify-between gap-4">
+                          <div key={t.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-start justify-between gap-4">
                             <div className="flex items-start gap-3 flex-1 min-w-0">
                               <div className={clsx("p-1.5 rounded-lg mt-0.5", sm?.cls)}>
                                 <Icon className="w-3.5 h-3.5" />
@@ -656,7 +656,7 @@ export function EventQuotationsPage() {
                               <select
                                 value={t.status}
                                 onChange={e => handleTaskStatus(t.id, e.target.value)}
-                                className="text-xs border border-gray-200 rounded-lg px-2 py-1 outline-none focus:border-brand-300"
+                                className="text-xs border border-[#eef2f6] rounded-lg px-2 py-1 outline-none focus:border-brand-300"
                               >
                                 {Object.entries(TASK_STATUS_MAP).map(([k, v]) => (
                                   <option key={k} value={k}>{v.label}</option>

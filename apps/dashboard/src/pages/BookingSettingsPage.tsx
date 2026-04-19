@@ -18,7 +18,7 @@ const DAYS = [
 
 function Section({ title, subtitle, icon: Icon, children }: { title: string; subtitle?: string; icon: any; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-3">
         <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
           <Icon className="w-4 h-4 text-brand-500" />
@@ -101,10 +101,10 @@ export function BookingSettingsPage() {
     return (
       <div className="space-y-5 max-w-2xl">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse space-y-4">
+          <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-6 animate-pulse space-y-4">
             <div className="h-4 w-32 bg-gray-100 rounded" />
-            <div className="h-10 bg-gray-100 rounded-xl" />
-            <div className="h-10 bg-gray-100 rounded-xl" />
+            <div className="h-10 bg-[#f1f5f9] rounded-xl" />
+            <div className="h-10 bg-[#f1f5f9] rounded-xl" />
           </div>
         ))}
       </div>
@@ -150,13 +150,13 @@ export function BookingSettingsPage() {
             description="أقصى عدد أيام يمكن الحجز مسبقاً">
             <input type="number" min={1} max={730} value={settings.advanceBookingDays}
               onChange={e => set("advanceBookingDays", parseInt(e.target.value) || 180)}
-              className="w-20 border border-gray-200 rounded-xl px-3 py-1.5 text-sm text-center outline-none focus:border-brand-300 tabular-nums" dir="ltr" />
+              className="w-20 border border-[#eef2f6] rounded-xl px-3 py-1.5 text-sm text-center outline-none focus:border-brand-300 tabular-nums" dir="ltr" />
           </SettingRow>
           <SettingRow label="الحد الأدنى للحجز المسبق (ساعة)"
             description="أقل مدة مسموح بها قبل موعد الفعالية">
             <input type="number" min={0} max={168} value={settings.minAdvanceHours}
               onChange={e => set("minAdvanceHours", parseInt(e.target.value) || 0)}
-              className="w-20 border border-gray-200 rounded-xl px-3 py-1.5 text-sm text-center outline-none focus:border-brand-300 tabular-nums" dir="ltr" />
+              className="w-20 border border-[#eef2f6] rounded-xl px-3 py-1.5 text-sm text-center outline-none focus:border-brand-300 tabular-nums" dir="ltr" />
           </SettingRow>
         </div>
       </Section>
@@ -175,7 +175,7 @@ export function BookingSettingsPage() {
                     className={clsx("px-4 py-2 rounded-xl border text-sm font-medium transition-all",
                       active
                         ? "bg-brand-500 border-brand-500 text-white shadow-sm"
-                        : "border-gray-200 text-gray-500 hover:border-gray-300")}>
+                        : "border-[#eef2f6] text-gray-500 hover:border-[#eef2f6]")}>
                     {d.label}
                   </button>
                 );
@@ -190,14 +190,14 @@ export function BookingSettingsPage() {
                 <label className="text-xs text-gray-500">من</label>
                 <input type="time" value={settings.workingHours.start}
                   onChange={e => setHours("start", e.target.value)}
-                  className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none focus:border-brand-300" dir="ltr" />
+                  className="border border-[#eef2f6] rounded-xl px-3 py-1.5 text-sm outline-none focus:border-brand-300" dir="ltr" />
               </div>
               <span className="text-gray-300">—</span>
               <div className="flex items-center gap-2">
                 <label className="text-xs text-gray-500">إلى</label>
                 <input type="time" value={settings.workingHours.end}
                   onChange={e => setHours("end", e.target.value)}
-                  className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none focus:border-brand-300" dir="ltr" />
+                  className="border border-[#eef2f6] rounded-xl px-3 py-1.5 text-sm outline-none focus:border-brand-300" dir="ltr" />
               </div>
             </div>
           </div>
@@ -221,7 +221,7 @@ export function BookingSettingsPage() {
                   className="flex-1 accent-brand-500" />
                 <input type="number" min={10} max={100} value={settings.depositPercent}
                   onChange={e => set("depositPercent", Math.min(100, Math.max(10, parseInt(e.target.value) || 30)))}
-                  className="w-16 border border-gray-200 rounded-xl px-2 py-1.5 text-sm text-center outline-none focus:border-brand-300 tabular-nums" dir="ltr" />
+                  className="w-16 border border-[#eef2f6] rounded-xl px-2 py-1.5 text-sm text-center outline-none focus:border-brand-300 tabular-nums" dir="ltr" />
                 <span className="text-sm text-gray-500">%</span>
               </div>
             </div>
@@ -236,7 +236,7 @@ export function BookingSettingsPage() {
             onChange={e => { set("cancellationPolicy", e.target.value); }}
             rows={5}
             placeholder="مثال: يحق للعميل إلغاء الحجز قبل 72 ساعة من موعد الفعالية واسترداد الدفعة المقدمة بالكامل. في حال الإلغاء خلال 72 ساعة، لا يُستردّ المبلغ..."
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-300 resize-none leading-relaxed"
+            className="w-full border border-[#eef2f6] rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-300 resize-none leading-relaxed"
           />
           <p className="text-xs text-gray-400">يظهر هذا النص للعملاء في صفحة الحجز وفي رسائل التأكيد</p>
         </div>

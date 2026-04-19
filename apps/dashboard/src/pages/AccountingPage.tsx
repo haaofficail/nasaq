@@ -81,7 +81,7 @@ function AccountModal({
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
-        <div className="flex items-center gap-3 p-5 border-b border-gray-100">
+        <div className="flex items-center gap-3 p-5 border-b border-[#eef2f6]">
           <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center">
             <BookOpen className="w-5 h-5 text-violet-600" />
           </div>
@@ -98,7 +98,7 @@ function AccountModal({
                 value={form.code}
                 onChange={(e) => setForm((f) => ({ ...f, code: e.target.value }))}
                 placeholder="1111"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
                 required
                 disabled={!!editing?.is_system_account}
               />
@@ -108,7 +108,7 @@ function AccountModal({
               <select
                 value={form.type}
                 onChange={(e) => handleTypeChange(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 {Object.entries(ACCOUNT_TYPE_LABELS).map(([k, v]) => (
                   <option key={k} value={k}>{v.label}</option>
@@ -124,7 +124,7 @@ function AccountModal({
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="اسم الحساب"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               required
             />
           </div>
@@ -136,7 +136,7 @@ function AccountModal({
               value={form.nameEn}
               onChange={(e) => setForm((f) => ({ ...f, nameEn: e.target.value }))}
               placeholder="Account Name"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-left"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 text-left"
               dir="ltr"
             />
           </div>
@@ -147,7 +147,7 @@ function AccountModal({
               <select
                 value={form.parentId}
                 onChange={(e) => setForm((f) => ({ ...f, parentId: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="">— بدون أب (رئيسي) —</option>
                 {flat
@@ -162,7 +162,7 @@ function AccountModal({
               <select
                 value={form.normalBalance}
                 onChange={(e) => setForm((f) => ({ ...f, normalBalance: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
               >
                 <option value="debit">مدين</option>
                 <option value="credit">دائن</option>
@@ -188,7 +188,7 @@ function AccountModal({
           )}
 
           <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50">إلغاء</button>
+            <button type="button" onClick={onClose} className="flex-1 border border-[#eef2f6] rounded-xl py-2.5 text-sm font-medium text-gray-700 hover:bg-[#f8fafc]">إلغاء</button>
             <button
               type="submit"
               disabled={saving}
@@ -223,8 +223,8 @@ function AccountRow({
 
   return (
     <>
-      <tr className="hover:bg-gray-50/50 group">
-        <td className="px-4 py-3">
+      <tr className="hover:bg-[#f8fafc]/50 group">
+        <td className="px-[10px] py-[6px]">
           <div className="flex items-center gap-2" style={{ paddingRight: indent }}>
             {hasChildren ? (
               <button onClick={() => setOpen(!open)} className="text-gray-400 hover:text-gray-600 shrink-0">
@@ -242,18 +242,18 @@ function AccountRow({
             )}
           </div>
         </td>
-        <td className="px-4 py-3">
+        <td className="px-[10px] py-[6px]">
           <span className={clsx("text-xs px-2 py-0.5 rounded-full font-medium", cfg.bg, cfg.color)}>{cfg.label}</span>
         </td>
-        <td className="px-4 py-3 text-xs text-gray-500">
+        <td className="px-[10px] py-[6px] text-xs text-gray-500">
           {node.normal_balance === "debit" ? "مدين" : "دائن"}
         </td>
-        <td className="px-4 py-3">
+        <td className="px-[10px] py-[6px]">
           <span className={clsx("text-xs px-2 py-0.5 rounded-full", node.is_posting_allowed ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-500")}>
             {node.is_posting_allowed ? "تفصيلي" : "إجمالي"}
           </span>
         </td>
-        <td className="px-4 py-3">
+        <td className="px-[10px] py-[6px]">
           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
               onClick={() => onEdit(node)}
@@ -300,7 +300,7 @@ function KpiCard({
 }) {
   return (
     <div className={clsx("rounded-2xl p-5 flex items-start gap-4", bg)}>
-      <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", color.replace("text-", "bg-").replace("700", "100").replace("600", "50"))}>
+      <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0", color.replace("text-", "bg-").replace("700", "100").replace("600", "50"))}>
         <Icon className={clsx("w-5 h-5", color)} />
       </div>
       <div className="min-w-0">
@@ -439,10 +439,10 @@ export function AccountingPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="بحث..."
-            className="border border-gray-200 rounded-xl pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 w-48"
+            className="border border-[#eef2f6] rounded-xl pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 w-48"
           />
         </div>
-        <div className="flex items-center gap-1.5 bg-gray-100 rounded-xl p-1">
+        <div className="flex items-center gap-1.5 bg-[#f1f5f9] rounded-xl p-1">
           <button onClick={() => setTypeFilter("all")} className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium transition-all", typeFilter === "all" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700")}>الكل</button>
           {Object.entries(ACCOUNT_TYPE_LABELS).map(([k, v]) => (
             <button key={k} onClick={() => setTypeFilter(k)} className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium transition-all", typeFilter === k ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700")}>{v.label}</button>
@@ -451,7 +451,7 @@ export function AccountingPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
@@ -465,12 +465,12 @@ export function AccountingPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
+                <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                   <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">الحساب</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">النوع</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">الرصيد الطبيعي</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">المستوى</th>
-                  <th className="px-4 py-3" />
+                  <th className="px-[10px] py-[6px]" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">

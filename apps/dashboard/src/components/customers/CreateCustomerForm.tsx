@@ -16,7 +16,7 @@ const TIERS = [
 function Section({ title, icon: Icon, children }: { title: string; icon: any; children: React.ReactNode }) {
   return (
     <div className="space-y-3">
-      <div className="flex items-center gap-2 pb-1 border-b border-gray-100">
+      <div className="flex items-center gap-2 pb-1 border-b border-[#eef2f6]">
         <Icon className="w-3.5 h-3.5 text-brand-400" />
         <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">{title}</span>
       </div>
@@ -124,7 +124,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
       <div className="space-y-5">
 
         {/* Type selector */}
-        <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
+        <div className="grid grid-cols-2 gap-2 p-1 bg-[#f1f5f9] rounded-xl">
           {([
             { v: "individual", label: "فرد",    icon: User },
             { v: "business",   label: "مؤسسة",  icon: Building2 },
@@ -311,7 +311,7 @@ export function CreateCustomerForm({ open, onClose, onSuccess }: {
             onChange={set("internalNotes")}
             rows={3}
             placeholder="ملاحظات خاصة بالفريق — لا يراها العميل"
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all resize-none text-gray-700 placeholder:text-gray-300"
+            className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all resize-none text-gray-700 placeholder:text-gray-300"
           />
         </Section>
 

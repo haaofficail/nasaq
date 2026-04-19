@@ -92,7 +92,7 @@ export default function HotelPage() {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
+      <div className="border-b border-[#eef2f6]">
         <nav className="-mb-px flex gap-6">
           {(
             [
@@ -179,7 +179,7 @@ export default function HotelPage() {
               {roomTypes.length > 0 && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
                   {roomTypes.map((rt) => (
-                    <div key={rt.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div key={rt.id} className="bg-white border border-[#eef2f6] rounded-lg p-4">
                       <div className="font-semibold text-gray-900">{rt.name}</div>
                       <div className="text-sm text-gray-500 mt-1">
                         {Number(rt.pricePerNight).toLocaleString("en-US")} ريال / ليلة
@@ -193,26 +193,26 @@ export default function HotelPage() {
               )}
 
               {/* Rooms Table */}
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-white border border-[#eef2f6] rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-gray-50 border-b border-[#eef2f6]">
                     <tr>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">رقم الغرفة</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">الطابق</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">النوع</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">الحالة</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">إجراء</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">رقم الغرفة</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">الطابق</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">النوع</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">الحالة</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">إجراء</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {rooms.map((room) => (
-                      <tr key={room.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium">{room.roomNumber}</td>
-                        <td className="px-4 py-3 text-gray-500">{room.floor ?? "—"}</td>
-                        <td className="px-4 py-3 text-gray-500">
+                      <tr key={room.id} className="hover:bg-[#f8fafc]">
+                        <td className="px-[10px] py-[6px] font-medium">{room.roomNumber}</td>
+                        <td className="px-[10px] py-[6px] text-gray-500">{room.floor ?? "—"}</td>
+                        <td className="px-[10px] py-[6px] text-gray-500">
                           {roomTypes.find((t) => t.id === room.roomTypeId)?.name ?? "—"}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           <span
                             className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
                               ROOM_STATUS_COLORS[room.status] ?? "bg-gray-100 text-gray-600"
@@ -221,9 +221,9 @@ export default function HotelPage() {
                             {ROOM_STATUS_AR[room.status] ?? room.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           <select
-                            className="text-xs border border-gray-200 rounded px-2 py-1"
+                            className="text-xs border border-[#eef2f6] rounded px-2 py-1"
                             value={room.status}
                             onChange={async (e) => {
                               await hotelApi.updateRoomStatus(room.id, { status: e.target.value });
@@ -289,7 +289,7 @@ export default function HotelPage() {
                     className={`px-3 py-1 text-xs rounded-full border transition-colors ${
                       reservationFilter === s
                         ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                        : "bg-white text-gray-600 border-[#eef2f6] hover:bg-[#f8fafc]"
                     }`}
                   >
                     {s ? RESERVATION_STATUS_AR[s] : "الكل"}
@@ -297,44 +297,44 @@ export default function HotelPage() {
                 ))}
               </div>
 
-              <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-white border border-[#eef2f6] rounded-lg overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200">
+                  <thead className="bg-gray-50 border-b border-[#eef2f6]">
                     <tr>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">النزيل</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">الغرفة</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">الوصول</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">المغادرة</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">المبلغ</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">الحالة</th>
-                      <th className="px-4 py-3 text-right font-medium text-gray-600">إجراءات</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">النزيل</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">الغرفة</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">الوصول</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">المغادرة</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">المبلغ</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">الحالة</th>
+                      <th className="px-[10px] py-[6px] text-right font-medium text-gray-600">إجراءات</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {filteredReservations.map((res) => (
-                      <tr key={res.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
+                      <tr key={res.id} className="hover:bg-[#f8fafc]">
+                        <td className="px-[10px] py-[6px]">
                           <div className="font-medium">{res.guestName}</div>
                           <div className="text-xs text-gray-400">{res.guestPhone}</div>
                         </td>
-                        <td className="px-4 py-3 text-gray-500">
+                        <td className="px-[10px] py-[6px] text-gray-500">
                           {rooms.find((r) => r.id === res.roomUnitId)?.roomNumber ?? "—"}
                         </td>
-                        <td className="px-4 py-3 text-gray-500">
+                        <td className="px-[10px] py-[6px] text-gray-500">
                           {fmtDate(res.checkInDate)}
                         </td>
-                        <td className="px-4 py-3 text-gray-500">
+                        <td className="px-[10px] py-[6px] text-gray-500">
                           {fmtDate(res.checkOutDate)}
                         </td>
-                        <td className="px-4 py-3 font-medium">
+                        <td className="px-[10px] py-[6px] font-medium">
                           {Number(res.totalAmount).toLocaleString("en-US")} ريال
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           <span className="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700">
                             {RESERVATION_STATUS_AR[res.status] ?? res.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           <div className="flex gap-1">
                             {res.status === "confirmed" && (
                               <button
@@ -421,7 +421,7 @@ export default function HotelPage() {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {housekeeping.map((task) => (
-                  <div key={task.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                  <div key={task.id} className="bg-white border border-[#eef2f6] rounded-lg p-4">
                     <div className="flex justify-between items-start">
                       <div>
                         <div className="font-medium text-gray-900">
@@ -496,7 +496,7 @@ export default function HotelPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {seasonalPricing.map((sp) => (
-                  <div key={sp.id} className="bg-white border border-gray-200 rounded-lg p-4">
+                  <div key={sp.id} className="bg-white border border-[#eef2f6] rounded-lg p-4">
                     <div className="font-semibold text-gray-900">{sp.name}</div>
                     <div className="text-sm text-gray-500 mt-1">
                       {fmtDate(sp.startDate)} ←{" "}
@@ -554,7 +554,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-4 border-b border-gray-200">
+        <div className="flex justify-between items-center p-4 border-b border-[#eef2f6]">
           <h3 className="text-lg font-semibold">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl">×</button>
         </div>

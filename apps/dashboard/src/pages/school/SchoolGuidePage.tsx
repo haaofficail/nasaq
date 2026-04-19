@@ -168,7 +168,7 @@ const SECTIONS: Section[] = [
     id: "import",
     title: "استيراد البيانات",
     icon: Upload,
-    color: "bg-gray-50 text-gray-700 border-gray-200",
+    color: "bg-gray-50 text-gray-700 border-[#eef2f6]",
     description: "رفع بيانات الطلاب والمعلمين من ملفات Excel بشكل جماعي.",
     steps: [
       "حمّل قالب Excel الخاص بنوع البيانات (طلاب / معلمون).",
@@ -226,7 +226,7 @@ function GuideSection({ section }: { section: Section }) {
     >
       <button
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50/50 transition-colors text-right"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#f8fafc]/50 transition-colors text-right"
       >
         <div className="flex items-center gap-3">
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center border ${section.color}`}>
@@ -243,7 +243,7 @@ function GuideSection({ section }: { section: Section }) {
       </button>
 
       {open && (
-        <div className="px-5 pb-5 border-t border-gray-100 pt-4 space-y-4 bg-white">
+        <div className="px-5 pb-5 border-t border-[#eef2f6] pt-4 space-y-4 bg-white">
           <p className="text-sm text-gray-600">{section.description}</p>
 
           <div>

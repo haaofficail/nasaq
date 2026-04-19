@@ -283,7 +283,7 @@ export function CreateInvoiceModal({ open, onClose, onSuccess, bookingId: initia
               onChange={e => setBookingSearch(e.target.value)}
             />
             {bookingList.length > 0 && !importedBookingId && (
-              <div className="border border-gray-200 rounded-xl overflow-hidden bg-white max-h-44 overflow-y-auto">
+              <div className="border border-[#eef2f6] rounded-xl overflow-hidden bg-white max-h-44 overflow-y-auto">
                 {bookingList.slice(0, 10).map((bk: any) => (
                   <button
                     key={bk.id}
@@ -333,7 +333,7 @@ export function CreateInvoiceModal({ open, onClose, onSuccess, bookingId: initia
           <div className="relative">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
             <input
-              className="w-full border border-gray-200 rounded-xl pr-9 pl-3 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
+              className="w-full border border-[#eef2f6] rounded-xl pr-9 pl-3 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
               placeholder="ابحث عن عميل (اكتب 2 حروف على الأقل)..."
               value={customerSearch}
               onChange={e => { setCustomerSearch(e.target.value); setShowCustomerList(true); }}
@@ -341,7 +341,7 @@ export function CreateInvoiceModal({ open, onClose, onSuccess, bookingId: initia
             />
           </div>
           {showCustomerList && customerList.length > 0 && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden max-h-44 overflow-y-auto">
+            <div className="absolute z-10 w-full mt-1 bg-white border border-[#eef2f6] rounded-xl shadow-lg overflow-hidden max-h-44 overflow-y-auto">
               {customerList.slice(0, 8).map((c: any) => (
                 <button
                   key={c.id}
@@ -427,9 +427,9 @@ export function CreateInvoiceModal({ open, onClose, onSuccess, bookingId: initia
               <Plus className="w-3.5 h-3.5" /> إضافة بند
             </button>
           </div>
-          <div className="border border-gray-200 rounded-xl overflow-hidden">
+          <div className="border border-[#eef2f6] rounded-xl overflow-hidden">
             {/* Header */}
-            <div className="grid grid-cols-12 gap-0 bg-gray-50 px-3 py-2 text-[11px] font-semibold text-gray-500 border-b border-gray-100">
+            <div className="grid grid-cols-12 gap-0 bg-[#f8fafc] px-3 py-2 text-[11px] font-semibold text-gray-500 border-b border-[#eef2f6]">
               <span className="col-span-5">الوصف</span>
               <span className="col-span-2 text-center">الكمية</span>
               <span className="col-span-2 text-center">السعر</span>
@@ -488,7 +488,7 @@ export function CreateInvoiceModal({ open, onClose, onSuccess, bookingId: initia
             <span>ضريبة القيمة المضافة ({DEFAULT_VAT}%)</span>
             <span className="tabular-nums font-medium">{fmt(totals.vatAmount)} ر.س</span>
           </div>
-          <div className="flex justify-between font-bold text-base border-t border-gray-200 pt-2">
+          <div className="flex justify-between font-bold text-base border-t border-[#eef2f6] pt-2">
             <span>الإجمالي الشامل</span>
             <span className="tabular-nums text-brand-600">{fmt(totals.totalAmount)} ر.س</span>
           </div>

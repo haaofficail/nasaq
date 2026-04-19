@@ -58,10 +58,10 @@ export function DataTable<T extends Record<string, any>>({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
       {/* Header */}
       {(title || onSearch || onAdd || onFilter) && (
-        <div className="flex items-center justify-between px-4 py-3.5 border-b border-gray-100 gap-3 flex-wrap">
+        <div className="flex items-center justify-between px-[10px] py-[6px] border-b border-[#eef2f6] gap-3 flex-wrap">
           {title && <h3 className="text-[15px] font-bold text-gray-900">{title}</h3>}
           <div className={clsx("flex items-center gap-2 flex-wrap", title && "mr-auto")}>
             {onSearch && (
@@ -80,10 +80,10 @@ export function DataTable<T extends Record<string, any>>({
                   onBlur={() => setSearchFocused(false)}
                   placeholder={searchPlaceholder}
                   className={clsx(
-                    "pr-8 pl-3 py-1.5 rounded-xl text-[13px] text-gray-900 bg-gray-50 outline-none transition-all w-48 placeholder:text-gray-400",
+                    "pr-8 pl-3 py-1.5 rounded-xl text-[13px] text-gray-900 bg-[#f8fafc] outline-none transition-all w-48 placeholder:text-gray-400",
                     searchFocused
                       ? "border border-brand-400 ring-[3px] ring-brand-400/10"
-                      : "border border-gray-200 hover:border-gray-300",
+                      : "border border-[#eef2f6] hover:border-[#eef2f6]",
                   )}
                 />
               </div>
@@ -91,7 +91,7 @@ export function DataTable<T extends Record<string, any>>({
             {onFilter && (
               <button
                 onClick={onFilter}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-[13px] text-gray-500 hover:bg-gray-50 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#eef2f6] text-[13px] text-gray-500 hover:bg-[#f8fafc] transition-colors"
               >
                 <Filter size={14} /> فلتر
               </button>
@@ -112,16 +112,16 @@ export function DataTable<T extends Record<string, any>>({
       <div className="overflow-x-auto">
         <table className="w-full border-collapse">
           <thead className="bg-white">
-            <tr className="border-b border-gray-100">
+            <tr className="border-b border-[#eef2f6]">
               {selectable && (
-                <th className="px-4 py-3 w-10">
+                <th className="px-[10px] py-[6px] w-10">
                   <div className="flex items-center justify-center">
                     <input 
                       type="checkbox"
                       checked={isAllSelected}
                       ref={(input) => { if (input) input.indeterminate = isSomeSelected; }}
                       onChange={(e) => onSelectAll?.(e.target.checked)}
-                      className="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 cursor-pointer"
+                      className="w-4 h-4 rounded border-[#eef2f6] text-brand-500 focus:ring-brand-500 cursor-pointer"
                     />
                   </div>
                 </th>
@@ -142,7 +142,7 @@ export function DataTable<T extends Record<string, any>>({
               Array.from({ length: 4 }).map((_, i) => (
                 <tr key={i}>
                   {columns.map(col => (
-                    <td key={col.key} className="px-4 py-3">
+                    <td key={col.key} className="px-[10px] py-[6px]">
                       <div className="h-3.5 rounded-lg bg-gray-100 animate-pulse" />
                     </td>
                   ))}
@@ -166,17 +166,17 @@ export function DataTable<T extends Record<string, any>>({
                     key={rowKey}
                     className={clsx(
                       "border-b border-gray-50 transition-colors",
-                      isSelected ? "bg-brand-50/40" : "hover:bg-gray-50/60"
+                      isSelected ? "bg-brand-50/40" : "hover:bg-[#f8fafc]/60"
                     )}
                   >
                     {selectable && (
-                      <td className="px-4 py-3 text-center align-middle">
+                      <td className="px-[10px] py-[6px] text-center align-middle">
                         <div className="flex items-center justify-center">
                           <input 
                             type="checkbox"
                             checked={isSelected}
                             onChange={(e) => onSelect?.(rowKey, e.target.checked)}
-                            className="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-500 cursor-pointer transition-colors"
+                            className="w-4 h-4 rounded border-[#eef2f6] text-brand-500 focus:ring-brand-500 cursor-pointer transition-colors"
                           />
                         </div>
                       </td>
@@ -184,7 +184,7 @@ export function DataTable<T extends Record<string, any>>({
                     {columns.map(col => (
                       <td
                         key={col.key}
-                        className="px-4 py-3 text-[13px] text-gray-800 align-middle"
+                        className="px-[10px] py-[6px] text-[13px] text-gray-800 align-middle"
                         style={col.width ? { width: col.width } : undefined}
                       >
                         {col.render ? col.render(row) : row[col.key]}

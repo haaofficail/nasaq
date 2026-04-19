@@ -8,7 +8,7 @@ import { Modal, Button, Input } from "@/components/ui";
 import { fmtDate } from "@/lib/utils";
 
 const DELIVERY_STATUS_LABELS: Record<string, { label: string; bg: string; text: string; dot: string }> = {
-  pending:    { label: "معلق",      bg: "bg-gray-50",    text: "text-gray-600",   dot: "bg-gray-400" },
+  pending:    { label: "معلق",      bg: "bg-[#f8fafc]",    text: "text-gray-600",   dot: "bg-gray-400" },
   accepted:   { label: "مقبول",     bg: "bg-blue-50",    text: "text-blue-700",   dot: "bg-blue-500" },
   picked_up:  { label: "تم الاستلام", bg: "bg-amber-50", text: "text-amber-700",  dot: "bg-amber-500" },
   in_transit: { label: "في الطريق", bg: "bg-violet-50",  text: "text-violet-700", dot: "bg-violet-500" },
@@ -24,7 +24,7 @@ const COMMISSION_TYPE_LABELS: Record<string, string> = {
 };
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={clsx("animate-pulse bg-gray-100 rounded-lg", className)} />;
+  return <div className={clsx("animate-pulse bg-[#f1f5f9] rounded-lg", className)} />;
 }
 
 // ============================================================
@@ -95,7 +95,7 @@ function PartnerModal({
         <Input label="الاسم" name="name" value={form.name} onChange={set("name")} required />
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">النوع</label>
-          <select value={form.type} onChange={set("type")} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+          <select value={form.type} onChange={set("type")} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
             <option value="company">شركة</option>
             <option value="individual">سائق مستقل</option>
           </select>
@@ -104,7 +104,7 @@ function PartnerModal({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">نوع العمولة</label>
-            <select value={form.commissionType} onChange={set("commissionType")} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <select value={form.commissionType} onChange={set("commissionType")} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
               <option value="fixed_per_order">مبلغ ثابت/طلب</option>
               <option value="percentage">نسبة مئوية</option>
               <option value="flat_monthly">اشتراك شهري</option>
@@ -121,7 +121,7 @@ function PartnerModal({
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">ملاحظات</label>
-          <textarea value={form.notes} onChange={set("notes")} rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
+          <textarea value={form.notes} onChange={set("notes")} rows={2} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none" />
         </div>
       </div>
     </Modal>
@@ -178,7 +178,7 @@ export function DeliveryPage() {
       {stats && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: "معلق",        value: stats.assignments?.pending || 0,    bg: "bg-gray-50",    text: "text-gray-600" },
+            { label: "معلق",        value: stats.assignments?.pending || 0,    bg: "bg-[#f8fafc]",    text: "text-gray-600" },
             { label: "في الطريق",   value: stats.assignments?.in_transit || 0, bg: "bg-violet-50",  text: "text-violet-600" },
             { label: "تم التسليم",  value: stats.assignments?.delivered || 0,  bg: "bg-emerald-50", text: "text-emerald-600" },
             { label: "شركاء نشطون", value: stats.activePartners || 0,          bg: "bg-blue-50",    text: "text-blue-600" },
@@ -192,7 +192,7 @@ export function DeliveryPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+      <div className="flex items-center gap-1 bg-[#f1f5f9] rounded-xl p-1 w-fit">
         {[
           { id: "partners" as TabId, label: "شركاء التوصيل", icon: Building2 },
           { id: "assignments" as TabId, label: "تعيينات التوصيل", icon: Package },
@@ -223,7 +223,7 @@ export function DeliveryPage() {
             <p className="text-sm text-red-500">{partnersError}</p>
           </div>
         ) : partners.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-3 bg-white rounded-2xl border border-gray-100">
+          <div className="flex flex-col items-center justify-center h-64 gap-3 bg-white rounded-2xl border border-[#eef2f6]">
             <Truck className="w-12 h-12 text-gray-200" />
             <p className="text-gray-400">لا يوجد شركاء توصيل بعد</p>
             <Button icon={Plus} onClick={() => setShowPartnerModal(true)}>أضف أول شريك</Button>
@@ -231,10 +231,10 @@ export function DeliveryPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {partners.map((p: any) => (
-              <div key={p.id} className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-3">
+              <div key={p.id} className="bg-white rounded-2xl border border-[#eef2f6] p-5 flex flex-col gap-3">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-[10px] bg-blue-50 flex items-center justify-center">
                       {p.type === "company" ? <Building2 className="w-5 h-5 text-blue-500" /> : <User className="w-5 h-5 text-blue-500" />}
                     </div>
                     <div>
@@ -264,7 +264,7 @@ export function DeliveryPage() {
                 <div className="flex items-center gap-2 pt-2 border-t border-gray-50">
                   <button
                     onClick={() => setEditPartner(p)}
-                    className="flex-1 py-1.5 text-xs text-gray-500 hover:text-gray-700 bg-gray-50 hover:bg-gray-100 rounded-lg"
+                    className="flex-1 py-1.5 text-xs text-gray-500 hover:text-gray-700 bg-[#f8fafc] hover:bg-[#f1f5f9] rounded-lg"
                   >
                     تعديل
                   </button>
@@ -288,12 +288,12 @@ export function DeliveryPage() {
             {[1,2,3,4].map(i => <Skeleton key={i} className="h-16" />)}
           </div>
         ) : assignments.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64 gap-3 bg-white rounded-2xl border border-gray-100">
+          <div className="flex flex-col items-center justify-center h-64 gap-3 bg-white rounded-2xl border border-[#eef2f6]">
             <Package className="w-12 h-12 text-gray-200" />
             <p className="text-gray-400">لا توجد تعيينات بعد</p>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-gray-50">
@@ -308,7 +308,7 @@ export function DeliveryPage() {
                 {assignments.map((a: any) => {
                   const st = DELIVERY_STATUS_LABELS[a.status] || DELIVERY_STATUS_LABELS.pending;
                   return (
-                    <tr key={a.id} className="hover:bg-gray-50/50 transition-colors">
+                    <tr key={a.id} className="hover:bg-[#f8fafc]/50 transition-colors">
                       <td className="px-5 py-3 text-sm text-gray-700 font-mono">{a.orderId.slice(0, 8)}…</td>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-1.5 text-sm text-gray-600">

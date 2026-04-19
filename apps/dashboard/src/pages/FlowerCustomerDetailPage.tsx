@@ -46,7 +46,7 @@ const TIER_CONFIG: Record<string, { label: string; bg: string; badge: string }> 
   vip:       { label: "VIP",   bg: "bg-violet-100 text-violet-700", badge: "bg-violet-50 text-violet-700 border-violet-200" },
   regular:   { label: "منتظم", bg: "bg-blue-100 text-blue-700",    badge: "bg-blue-50 text-blue-700 border-blue-200" },
   returning: { label: "عائد",  bg: "bg-emerald-100 text-emerald-700", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  new:       { label: "جديد",  bg: "bg-gray-100 text-gray-600",    badge: "bg-gray-100 text-gray-600 border-gray-200" },
+  new:       { label: "جديد",  bg: "bg-gray-100 text-gray-600",    badge: "bg-gray-100 text-gray-600 border-[#eef2f6]" },
 };
 
 const ORDER_TYPE_LABEL: Record<string, string> = {
@@ -172,7 +172,7 @@ export function FlowerCustomerDetailPage() {
       </div>
 
       {/* ── Hero Card ──────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef2f6]">
         <div className="flex flex-col sm:flex-row sm:items-start gap-5 p-6 pb-5">
           {/* Avatar */}
           <div className={clsx("w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold shrink-0", tier.bg)}>
@@ -227,7 +227,7 @@ export function FlowerCustomerDetailPage() {
               ) : (
                 <button
                   onClick={() => setEditingTag(true)}
-                  className="text-xs px-2 py-0.5 rounded-full border border-dashed border-gray-200 text-gray-400 hover:border-brand-200 hover:text-brand-500 transition-colors flex items-center gap-1"
+                  className="text-xs px-2 py-0.5 rounded-full border border-dashed border-[#eef2f6] text-gray-400 hover:border-brand-200 hover:text-brand-500 transition-colors flex items-center gap-1"
                 >
                   <Edit2 className="w-3 h-3" /> إضافة تاق
                 </button>
@@ -239,7 +239,7 @@ export function FlowerCustomerDetailPage() {
           <div className="flex gap-2 shrink-0">
             <a
               href={`tel:${decodedPhone}`}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#eef2f6] text-sm font-medium text-gray-700 hover:bg-[#f8fafc] transition-colors"
             >
               <Phone className="w-4 h-4" /> اتصال
             </a>
@@ -255,7 +255,7 @@ export function FlowerCustomerDetailPage() {
         </div>
 
         {/* KPI bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-x-reverse divide-gray-100 border-t border-gray-100">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-x-reverse divide-gray-100 border-t border-[#eef2f6]">
           {[
             { label: "إجمالي الطلبات",   value: customer.order_count,               color: "text-brand-600" },
             { label: "إجمالي الإنفاق",   value: fmtMoney(customer.total_spent),     color: "text-emerald-600" },
@@ -271,7 +271,7 @@ export function FlowerCustomerDetailPage() {
       </div>
 
       {/* ── Tab Bar ────────────────────────────────────────── */}
-      <div className="flex overflow-x-auto border-b border-gray-100 bg-white rounded-2xl px-2 gap-1">
+      <div className="flex overflow-x-auto border-b border-[#eef2f6] bg-white rounded-2xl px-2 gap-1">
         {TABS.map(t => {
           const Icon = t.icon;
           return (
@@ -279,7 +279,7 @@ export function FlowerCustomerDetailPage() {
               key={t.key}
               onClick={() => setTab(t.key)}
               className={clsx(
-                "flex items-center gap-1.5 px-5 py-3.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
+                "flex items-center gap-1.5 px-5 py-[6px] text-sm font-medium border-b-2 transition-colors whitespace-nowrap",
                 tab === t.key ? "border-brand-500 text-brand-600" : "border-transparent text-gray-500 hover:text-gray-700"
               )}
             >
@@ -294,7 +294,7 @@ export function FlowerCustomerDetailPage() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
           {/* Activity details */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">نشاط العميل</h3>
             <div className="space-y-3.5">
               {[
@@ -309,7 +309,7 @@ export function FlowerCustomerDetailPage() {
                 const Icon = row.icon;
                 return (
                   <div key={row.label} className="flex items-center gap-3 text-sm">
-                    <div className="w-8 h-8 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
+                    <div className="w-8 h-8 rounded-xl bg-[#f8fafc] flex items-center justify-center shrink-0">
                       <Icon className="w-4 h-4 text-gray-400" />
                     </div>
                     <span className="text-gray-400 text-xs w-28 shrink-0">{row.label}</span>
@@ -321,7 +321,7 @@ export function FlowerCustomerDetailPage() {
           </div>
 
           {/* Insights */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">تحليل العميل</h3>
             <div className="space-y-3">
               {customer.is_due_return && (
@@ -346,7 +346,7 @@ export function FlowerCustomerDetailPage() {
                   </div>
                 </div>
               )}
-              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+              <div className="flex items-start gap-3 p-3 bg-[#f8fafc] rounded-xl">
                 <ShoppingBag className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
                 <div>
                   <p className="text-sm font-semibold text-gray-700">{customer.order_count} طلب منذ البداية</p>
@@ -364,11 +364,11 @@ export function FlowerCustomerDetailPage() {
                   typeCount[t] = (typeCount[t] || 0) + 1;
                 });
                 return (
-                  <div className="p-3 bg-gray-50 rounded-xl">
+                  <div className="p-3 bg-[#f8fafc] rounded-xl">
                     <p className="text-xs font-semibold text-gray-500 mb-2">توزيع نوع الطلبات</p>
                     <div className="flex flex-wrap gap-1.5">
                       {Object.entries(typeCount).map(([type, count]) => (
-                        <span key={type} className="text-xs px-2 py-0.5 rounded-full bg-white border border-gray-200 text-gray-600">
+                        <span key={type} className="text-xs px-2 py-0.5 rounded-full bg-white border border-[#eef2f6] text-gray-600">
                           {ORDER_TYPE_LABEL[type] ?? type} ({count})
                         </span>
                       ))}
@@ -383,11 +383,11 @@ export function FlowerCustomerDetailPage() {
 
       {/* ── TAB: الطلبات ────────────────────────────────────── */}
       {tab === "orders" && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           {ordersLoading ? (
             <div className="p-5 space-y-3">
               {[1, 2, 3, 4].map(i => (
-                <div key={i} className="h-16 bg-gray-100 rounded-xl animate-pulse" />
+                <div key={i} className="h-16 bg-[#f1f5f9] rounded-xl animate-pulse" />
               ))}
             </div>
           ) : orders.length === 0 ? (
@@ -398,7 +398,7 @@ export function FlowerCustomerDetailPage() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
+                <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                   {["رقم الطلب", "التاريخ", "القيمة", "النوع", "الحالة", "ملاحظة"].map(h => (
                     <th key={h} className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
                   ))}
@@ -408,15 +408,15 @@ export function FlowerCustomerDetailPage() {
                 {orders.map(o => {
                   const st = STATUS_CONFIG[o.status] ?? { label: o.status, cls: "bg-gray-100 text-gray-600" };
                   return (
-                    <tr key={o.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                      <td className="py-3.5 px-4 font-mono text-xs text-brand-500 font-semibold">{o.order_number}</td>
-                      <td className="py-3.5 px-4 text-gray-500 text-xs">{fmtDate(o.created_at)}</td>
-                      <td className="py-3.5 px-4 font-bold text-gray-900 tabular-nums">{Number(o.total).toLocaleString("en-US")} ر.س</td>
-                      <td className="py-3.5 px-4 text-gray-500 text-xs">{ORDER_TYPE_LABEL[o.delivery_type] ?? o.delivery_type ?? "—"}</td>
-                      <td className="py-3.5 px-4">
+                    <tr key={o.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/50 transition-colors">
+                      <td className="py-[6px] px-[10px] font-mono text-xs text-brand-500 font-semibold">{o.order_number}</td>
+                      <td className="py-[6px] px-[10px] text-gray-500 text-xs">{fmtDate(o.created_at)}</td>
+                      <td className="py-[6px] px-[10px] font-bold text-gray-900 tabular-nums">{Number(o.total).toLocaleString("en-US")} ر.س</td>
+                      <td className="py-[6px] px-[10px] text-gray-500 text-xs">{ORDER_TYPE_LABEL[o.delivery_type] ?? o.delivery_type ?? "—"}</td>
+                      <td className="py-[6px] px-[10px]">
                         <span className={clsx("text-[11px] px-2 py-0.5 rounded-full font-medium", st.cls)}>{st.label}</span>
                       </td>
-                      <td className="py-3.5 px-4 text-gray-400 text-xs italic max-w-[160px] truncate">
+                      <td className="py-[6px] px-[10px] text-gray-400 text-xs italic max-w-[160px] truncate">
                         {o.gift_message || "—"}
                       </td>
                     </tr>
@@ -438,7 +438,7 @@ export function FlowerCustomerDetailPage() {
               { label: "المدفوعة",         value: orders.filter(o => PAID_STATUSES.includes(o.status)).length, color: "text-emerald-600" },
               { label: "الإجمالي المدفوع", value: fmtMoney(orders.filter(o => PAID_STATUSES.includes(o.status)).reduce((s, o) => s + Number(o.total), 0)), color: "text-gray-900" },
             ].map(s => (
-              <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+              <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4 text-center">
                 <p className={clsx("text-xl font-bold tabular-nums", s.color)}>{s.value}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
               </div>
@@ -446,11 +446,11 @@ export function FlowerCustomerDetailPage() {
           </div>
 
           {ordersLoading ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
-              {[1, 2, 3].map(i => <div key={i} className="h-20 bg-gray-100 rounded-xl animate-pulse" />)}
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-3">
+              {[1, 2, 3].map(i => <div key={i} className="h-20 bg-[#f1f5f9] rounded-xl animate-pulse" />)}
             </div>
           ) : orders.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16">
               <Receipt className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400 text-sm">لا توجد فواتير</p>
             </div>
@@ -460,7 +460,7 @@ export function FlowerCustomerDetailPage() {
                 const st = STATUS_CONFIG[o.status] ?? { label: o.status, cls: "bg-gray-100 text-gray-600" };
                 const isPaid = PAID_STATUSES.includes(o.status);
                 return (
-                  <div key={o.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+                  <div key={o.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
                         <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center text-xs font-bold shrink-0",
@@ -509,7 +509,7 @@ export function FlowerCustomerDetailPage() {
                 return acc;
               }, {})
             ).map(([type, data]) => (
-              <div key={type} className="bg-white rounded-2xl border border-gray-100 p-4">
+              <div key={type} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
                 <p className="text-lg font-bold text-gray-900 tabular-nums">{data.count}</p>
                 <p className="text-xs text-gray-500">{ORDER_TYPE_LABEL[type] ?? type}</p>
                 <p className="text-xs text-emerald-600 font-medium mt-1 tabular-nums">{fmtMoney(data.total)}</p>
@@ -519,7 +519,7 @@ export function FlowerCustomerDetailPage() {
 
           {/* Product breakdown */}
           {topItems.length > 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-50">
                 <h3 className="text-sm font-semibold text-gray-900">المنتجات المشتراة</h3>
               </div>
@@ -533,7 +533,7 @@ export function FlowerCustomerDetailPage() {
                 </thead>
                 <tbody>
                   {topItems.map(([name, data]) => (
-                    <tr key={name} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors">
+                    <tr key={name} className="border-t border-gray-50 hover:bg-[#f8fafc]/50 transition-colors">
                       <td className="py-3 px-5 font-medium text-gray-900">{name}</td>
                       <td className="py-3 px-5 text-gray-500 tabular-nums">{data.qty}</td>
                       <td className="py-3 px-5 font-semibold text-gray-900 tabular-nums">{fmtMoney(data.revenue)}</td>
@@ -543,7 +543,7 @@ export function FlowerCustomerDetailPage() {
               </table>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16">
               <BarChart3 className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400 text-sm">لا تتوفر تفاصيل المنتجات بعد</p>
               <p className="text-gray-300 text-xs mt-1">ستظهر هنا عند تفعيل تفاصيل البنود في الطلبات</p>

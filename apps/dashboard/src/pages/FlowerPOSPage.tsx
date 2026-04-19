@@ -124,8 +124,8 @@ function ProductCard({ item, onAdd }: { item: CatalogItem; onAdd: (item: Catalog
       className={clsx(
         "rounded-2xl border p-3 text-right flex flex-col gap-1 transition-all active:scale-95 focus:outline-none",
         soldOut
-          ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
-          : "border-gray-100 bg-white hover:border-brand-300 hover:shadow-sm cursor-pointer"
+          ? "border-[#eef2f6] bg-[#f8fafc] opacity-50 cursor-not-allowed"
+          : "border-[#eef2f6] bg-white hover:border-brand-300 hover:shadow-sm cursor-pointer"
       )}
     >
       <span className="font-semibold text-gray-800 text-sm leading-snug">{item.name}</span>
@@ -137,10 +137,10 @@ function ProductCard({ item, onAdd }: { item: CatalogItem; onAdd: (item: Catalog
 
 function SkeletonProductCard() {
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-3 flex flex-col gap-2 animate-pulse">
-      <div className="h-4 bg-gray-100 rounded-lg w-3/4" />
-      <div className="h-5 bg-gray-100 rounded-lg w-1/2" />
-      <div className="h-3 bg-gray-100 rounded-lg w-1/3" />
+    <div className="rounded-2xl border border-[#eef2f6] bg-white p-3 flex flex-col gap-2 animate-pulse">
+      <div className="h-4 bg-[#f1f5f9] rounded-lg w-3/4" />
+      <div className="h-5 bg-[#f1f5f9] rounded-lg w-1/2" />
+      <div className="h-3 bg-[#f1f5f9] rounded-lg w-1/3" />
     </div>
   );
 }
@@ -165,14 +165,14 @@ function CartRow({
       <div className="flex items-center gap-1.5 shrink-0">
         <button
           onClick={onDecrease}
-          className="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 active:scale-95 transition-all"
+          className="w-9 h-9 rounded-[10px] border border-[#eef2f6] flex items-center justify-center text-gray-500 hover:bg-[#f8fafc] active:scale-95 transition-all"
         >
           <Minus size={14} />
         </button>
         <span className="w-7 text-center text-sm font-semibold text-gray-800">{item.qty}</span>
         <button
           onClick={onIncrease}
-          className="w-10 h-10 rounded-xl border border-brand-500 flex items-center justify-center text-brand-500 hover:bg-brand-50 active:scale-95 transition-all"
+          className="w-9 h-9 rounded-[10px] border border-brand-500 flex items-center justify-center text-brand-500 hover:bg-brand-50 active:scale-95 transition-all"
         >
           <Plus size={14} />
         </button>
@@ -503,8 +503,8 @@ export function FlowerPOSPage() {
 
   if (showSuccess) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6" dir="rtl">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-10 max-w-md w-full text-center flex flex-col items-center gap-6">
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6" dir="rtl">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-10 max-w-md w-full text-center flex flex-col items-center gap-6">
           <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center">
             <CheckCircle2 size={40} className="text-green-500" />
           </div>
@@ -575,7 +575,7 @@ export function FlowerPOSPage() {
                   printWin.print();
                 }
               }}
-              className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-gray-200 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              className="flex-1 flex items-center justify-center gap-2 rounded-xl border border-[#eef2f6] py-3 text-sm font-medium text-gray-600 hover:bg-[#f8fafc] transition-colors"
             >
               <Printer size={16} />
               طباعة الفاتورة
@@ -600,9 +600,9 @@ export function FlowerPOSPage() {
   // ─── Main POS Layout ─────────────────────────────────────────────────────────
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col" dir="rtl">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col" dir="rtl">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-6 py-3 flex items-center justify-between shrink-0">
+      <div className="bg-white border-b border-[#eef2f6] px-6 py-3 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2">
           <Flower2 size={20} className="text-brand-500" />
           <span className="font-bold text-gray-800 text-lg">كاشير الورد</span>
@@ -617,10 +617,10 @@ export function FlowerPOSPage() {
       <div className="flex flex-1 overflow-hidden">
 
         {/* ── RIGHT: Catalog (60%) ── */}
-        <div className="w-3/5 flex flex-col border-l border-gray-100 overflow-hidden">
+        <div className="w-3/5 flex flex-col border-l border-[#eef2f6] overflow-hidden">
 
           {/* Category tabs */}
-          <div className="bg-white border-b border-gray-100 px-4 py-2 flex gap-2 overflow-x-auto shrink-0 scrollbar-hide">
+          <div className="bg-white border-b border-[#eef2f6] px-4 py-2 flex gap-2 overflow-x-auto shrink-0 scrollbar-hide">
             {DEFAULT_CATEGORIES.map((cat) => {
               const Icon = cat.icon;
               const active = activeCategory === cat.id;
@@ -651,7 +651,7 @@ export function FlowerPOSPage() {
                 placeholder="بحث عن منتج..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500"
               />
             </div>
           </div>
@@ -707,7 +707,7 @@ export function FlowerPOSPage() {
 
             {cartEmpty ? (
               <div className="flex flex-col items-center justify-center h-40 gap-3 text-center">
-                <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-2xl bg-[#f8fafc] flex items-center justify-center">
                   <ShoppingCart size={24} className="text-gray-300" />
                 </div>
                 <div>
@@ -731,7 +731,7 @@ export function FlowerPOSPage() {
           </div>
 
           {/* Totals + Forms + Payment */}
-          <div className="border-t border-gray-100 px-4 pt-3 pb-4 flex flex-col gap-3 shrink-0">
+          <div className="border-t border-[#eef2f6] px-4 pt-3 pb-4 flex flex-col gap-3 shrink-0">
 
             {/* Totals */}
             {!cartEmpty && (
@@ -750,7 +750,7 @@ export function FlowerPOSPage() {
                   <span>ضريبة القيمة المضافة {vatPercent}%</span>
                   <span>{fmtPrice(vat)}</span>
                 </div>
-                <div className="flex justify-between font-bold text-gray-800 text-base border-t border-gray-200 pt-1.5 mt-0.5">
+                <div className="flex justify-between font-bold text-gray-800 text-base border-t border-[#eef2f6] pt-1.5 mt-0.5">
                   <span>الإجمالي</span>
                   <span className="text-brand-500">{fmtPrice(total)}</span>
                 </div>
@@ -765,7 +765,7 @@ export function FlowerPOSPage() {
                 placeholder="اسم العميل (اختياري)"
                 value={customerName}
                 onChange={(e) => setCustomerName(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500"
               />
             </div>
 

@@ -69,7 +69,7 @@ function TableSkeleton() {
   return (
     <div className="animate-pulse space-y-3">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div key={i} className="h-12 bg-gray-100 rounded-xl" />
+        <div key={i} className="h-12 bg-[#f1f5f9] rounded-xl" />
       ))}
     </div>
   );
@@ -140,7 +140,7 @@ export default function IntegrationLogsPage() {
         <button
           onClick={() => refetch()}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#eef2f6] text-sm font-medium text-gray-600 hover:bg-[#f8fafc] transition-colors disabled:opacity-50"
         >
           {loading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
@@ -152,7 +152,7 @@ export default function IntegrationLogsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-4">
           <Filter className="w-4 h-4 text-gray-400" />
           تصفية
@@ -169,7 +169,7 @@ export default function IntegrationLogsPage() {
                 setDirection(e.target.value as typeof direction);
                 handleFilterChange();
               }}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 bg-white min-w-[130px]"
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400 bg-white min-w-[130px]"
             >
               <option value="">الكل</option>
               <option value="inbound">وارد</option>
@@ -188,7 +188,7 @@ export default function IntegrationLogsPage() {
                 setStatus(e.target.value as typeof status);
                 handleFilterChange();
               }}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 bg-white min-w-[130px]"
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400 bg-white min-w-[130px]"
             >
               <option value="">الكل</option>
               <option value="success">ناجح (2xx)</option>
@@ -208,7 +208,7 @@ export default function IntegrationLogsPage() {
                 setDateFrom(e.target.value);
                 handleFilterChange();
               }}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400"
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400"
             />
           </div>
 
@@ -224,7 +224,7 @@ export default function IntegrationLogsPage() {
                 setDateTo(e.target.value);
                 handleFilterChange();
               }}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400"
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400"
             />
           </div>
 
@@ -238,7 +238,7 @@ export default function IntegrationLogsPage() {
                 setDateTo("");
                 setPage(0);
               }}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl text-gray-500 hover:bg-gray-50 transition-colors"
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-500 hover:bg-[#f8fafc] transition-colors"
             >
               مسح الفلاتر
             </button>
@@ -247,7 +247,7 @@ export default function IntegrationLogsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         {/* Loading */}
         {loading && (
           <div className="p-5">
@@ -287,7 +287,7 @@ export default function IntegrationLogsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
+                <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                   <th className="text-right text-xs font-medium text-gray-400 px-4 py-3 whitespace-nowrap">
                     التاريخ
                   </th>
@@ -323,15 +323,15 @@ export default function IntegrationLogsPage() {
                   return (
                     <tr
                       key={log.id}
-                      className="hover:bg-gray-50/60 transition-colors"
+                      className="hover:bg-[#f8fafc]/60 transition-colors"
                     >
                       {/* Date */}
-                      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">
+                      <td className="px-[10px] py-[6px] text-xs text-gray-500 whitespace-nowrap">
                         {fmtDate(log.created_at)}
                       </td>
 
                       {/* Direction */}
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-[10px] py-[6px] whitespace-nowrap">
                         <span
                           className={clsx(
                             "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg font-medium",
@@ -348,7 +348,7 @@ export default function IntegrationLogsPage() {
                       </td>
 
                       {/* Endpoint */}
-                      <td className="px-4 py-3 max-w-[220px]">
+                      <td className="px-[10px] py-[6px] max-w-[220px]">
                         <span
                           className="text-xs text-gray-600 font-mono truncate block"
                           title={log.endpoint ?? ""}
@@ -358,7 +358,7 @@ export default function IntegrationLogsPage() {
                       </td>
 
                       {/* Method */}
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-[10px] py-[6px] whitespace-nowrap">
                         {log.method ? (
                           <span className="text-xs font-mono font-semibold text-gray-700 uppercase">
                             {log.method}
@@ -369,7 +369,7 @@ export default function IntegrationLogsPage() {
                       </td>
 
                       {/* Status code */}
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-[10px] py-[6px] whitespace-nowrap">
                         {log.status_code != null ? (
                           <span
                             className={clsx(
@@ -391,7 +391,7 @@ export default function IntegrationLogsPage() {
                       </td>
 
                       {/* Duration */}
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-[10px] py-[6px] whitespace-nowrap">
                         {log.duration_ms != null ? (
                           <span className="text-xs text-gray-500">
                             {log.duration_ms.toLocaleString("en-US")}
@@ -402,7 +402,7 @@ export default function IntegrationLogsPage() {
                       </td>
 
                       {/* Error message */}
-                      <td className="px-4 py-3 max-w-[220px]">
+                      <td className="px-[10px] py-[6px] max-w-[220px]">
                         {log.error_message ? (
                           <span
                             className="text-xs text-red-500 truncate block"
@@ -424,7 +424,7 @@ export default function IntegrationLogsPage() {
 
         {/* Pagination */}
         {!loading && !error && total > PAGE_SIZE && (
-          <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+          <div className="flex items-center justify-between px-4 py-3 border-t border-[#eef2f6]">
             <span className="text-xs text-gray-400">
               {total.toLocaleString("en-US")} سجل إجمالي — صفحة {page + 1} من{" "}
               {totalPages}
@@ -433,7 +433,7 @@ export default function IntegrationLogsPage() {
               <button
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={page === 0}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-xl border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 <ArrowRight className="w-3 h-3" />
                 السابق
@@ -443,7 +443,7 @@ export default function IntegrationLogsPage() {
                   setPage((p) => Math.min(totalPages - 1, p + 1))
                 }
                 disabled={page >= totalPages - 1}
-                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-xl border border-gray-200 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-xl border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 التالي
                 <ArrowLeft className="w-3 h-3" />

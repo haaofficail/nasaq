@@ -99,7 +99,7 @@ export function StaffPage() {
           { label: "معطّل", value: staff.length - active, color: "text-gray-500 bg-gray-100", icon: UserX },
           { label: "مُعيَّن دور", value: staff.filter(s => s.roleId).length, color: "text-violet-600 bg-violet-50", icon: Shield },
         ].map(({ label, value, color, icon: Icon }) => (
-          <div key={label} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
+          <div key={label} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all">
             <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", color.split(" ")[1])}>
               <Icon className={clsx("w-4 h-4", color.split(" ")[0])} />
             </div>
@@ -115,9 +115,9 @@ export function StaffPage() {
         <div className="relative flex-1">
           <Search className="w-4 h-4 text-gray-400 absolute right-3.5 top-1/2 -translate-y-1/2" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالاسم أو الجوال..."
-            className="w-full bg-white border border-gray-100 rounded-xl pr-10 pl-4 py-2.5 text-sm outline-none focus:border-brand-300 transition-all" />
+            className="w-full bg-white border border-[#eef2f6] rounded-xl pr-10 pl-4 py-2.5 text-sm outline-none focus:border-brand-300 transition-all" />
         </div>
-        <div className="flex gap-1 bg-white border border-gray-100 rounded-xl p-1">
+        <div className="flex gap-1 bg-white border border-[#eef2f6] rounded-xl p-1">
           {[["all","الكل"],["employee","موظف"],["admin","مدير"],["vendor","مقدم خدمة"]].map(([v,l]) => (
             <button key={v} onClick={() => setTypeFilter(v)}
               className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors",
@@ -126,7 +126,7 @@ export function StaffPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         {loading ? (
           <div className="p-6 space-y-3">
             {[...Array(5)].map((_, i) => (
@@ -148,13 +148,13 @@ export function StaffPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
+                <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                   <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold">الموظف</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden sm:table-cell">الجوال</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">النوع</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden md:table-cell">الدور / المسمى</th>
                   <th className="text-center py-3 px-4 text-xs text-gray-400 font-semibold">نشط</th>
-                  <th className="py-3 px-4 w-20"></th>
+                  <th className="py-[6px] px-[10px] w-20"></th>
                 </tr>
               </thead>
               <tbody>
@@ -162,8 +162,8 @@ export function StaffPage() {
                   const typeConf = TYPE_CONFIG[s.type] || TYPE_CONFIG.employee;
                   const roleName = roles.find((r: any) => r.id === s.roleId)?.name || s.roleName;
                   return (
-                    <tr key={s.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                      <td className="py-3.5 px-5">
+                    <tr key={s.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
+                      <td className="py-[6px] px-5">
                         <div className="flex items-center gap-3">
                           <div className={clsx("w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-sm",
                             s.status === "active" ? "bg-brand-50 text-brand-600" : "bg-gray-100 text-gray-400")}>
@@ -175,21 +175,21 @@ export function StaffPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 font-mono text-xs text-gray-500 hidden sm:table-cell" dir="ltr">{s.phone || "—"}</td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-[6px] px-[10px] font-mono text-xs text-gray-500 hidden sm:table-cell" dir="ltr">{s.phone || "—"}</td>
+                      <td className="py-[6px] px-[10px]">
                         <span className={clsx("px-2.5 py-0.5 rounded-full text-[11px] font-medium border", typeConf.color)}>{typeConf.label}</span>
                       </td>
-                      <td className="py-3.5 px-4 hidden md:table-cell">
+                      <td className="py-[6px] px-[10px] hidden md:table-cell">
                         <div>
                           {roleName && <p className="text-xs font-medium text-violet-600">{roleName}</p>}
                           {s.jobTitle && <p className="text-xs text-gray-400">{s.jobTitle}</p>}
                           {!roleName && !s.jobTitle && <span className="text-xs text-gray-300">—</span>}
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-center">
+                      <td className="py-[6px] px-[10px] text-center">
                         <Toggle checked={s.status === "active"} onChange={() => handleToggle(s)} />
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <div className="flex gap-1">
                           <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors"><Pencil className="w-3.5 h-3.5 text-brand-500" /></button>
                           <button onClick={() => handleDelete(s)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>

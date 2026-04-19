@@ -90,7 +90,7 @@ function AddReminderModal({ open, onClose, onSaved }: { open: boolean; onClose: 
     <Modal open={open} onClose={onClose} title="اضافة تذكير" size="lg"
       footer={
         <>
-          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">الغاء</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:bg-[#f1f5f9] rounded-lg">الغاء</button>
           <button
             onClick={handleSave}
             disabled={saving || !dueDate || (mode === "custom" && !title)}
@@ -103,7 +103,7 @@ function AddReminderModal({ open, onClose, onSaved }: { open: boolean; onClose: 
       }
     >
       {/* Mode toggle */}
-      <div className="flex gap-2 mb-5 p-1 bg-gray-100 rounded-xl">
+      <div className="flex gap-2 mb-5 p-1 bg-[#f1f5f9] rounded-xl">
         {[
           { id: "template", label: "من قالب جاهز" },
           { id: "custom",   label: "تذكير مخصص" },
@@ -139,13 +139,13 @@ function AddReminderModal({ open, onClose, onSaved }: { open: boolean; onClose: 
                   {cat.templates.map((tpl: any) => (
                     <label key={tpl.id} className={clsx(
                       "flex items-center gap-3 px-3 py-2.5 rounded-lg border cursor-pointer transition-colors",
-                      selectedTemplate === tpl.id ? "border-brand-500 bg-brand-500/5" : "border-gray-100 hover:border-gray-200 bg-gray-50"
+                      selectedTemplate === tpl.id ? "border-brand-500 bg-brand-500/5" : "border-[#eef2f6] hover:border-[#eef2f6] bg-gray-50"
                     )}>
                       <input type="radio" name="template" value={tpl.id} checked={selectedTemplate === tpl.id}
                         onChange={() => setSelectedTemplate(tpl.id)} className="hidden" />
                       <div className={clsx(
                         "w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0",
-                        selectedTemplate === tpl.id ? "border-brand-500 bg-brand-500" : "border-gray-300"
+                        selectedTemplate === tpl.id ? "border-brand-500 bg-brand-500" : "border-[#eef2f6]"
                       )}>
                         {selectedTemplate === tpl.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
                       </div>
@@ -159,7 +159,7 @@ function AddReminderModal({ open, onClose, onSaved }: { open: boolean; onClose: 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">التاريخ <span className="text-red-400">*</span></label>
             <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+              className="w-full rounded-lg border border-[#eef2f6] px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
           </div>
         </div>
       ) : (
@@ -167,12 +167,12 @@ function AddReminderModal({ open, onClose, onSaved }: { open: boolean; onClose: 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">العنوان <span className="text-red-400">*</span></label>
             <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثال: تجديد السجل التجاري"
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+              className="w-full rounded-lg border border-[#eef2f6] px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">التاريخ <span className="text-red-400">*</span></label>
             <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
+              className="w-full rounded-lg border border-[#eef2f6] px-3 py-2.5 text-sm focus:border-brand-500 focus:outline-none" />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">الأولوية</label>
@@ -210,13 +210,13 @@ function ReminderCard({ reminder, onComplete, onRefresh }: { reminder: any; onCo
   return (
     <div className={clsx(
       "flex items-center gap-4 p-4 rounded-xl border transition-all",
-      done ? "bg-gray-50 border-gray-100 opacity-60" : status === "overdue" ? "bg-red-50 border-red-100" : "bg-white border-gray-100 hover:border-gray-200",
+      done ? "bg-gray-50 border-[#eef2f6] opacity-60" : status === "overdue" ? "bg-red-50 border-red-100" : "bg-white border-[#eef2f6] hover:border-[#eef2f6]",
     )}>
       <button
         onClick={() => !done && onComplete(reminder.id)}
         className={clsx(
           "w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors",
-          done ? "border-green-500 bg-green-500" : status === "overdue" ? "border-red-400 hover:bg-red-100" : "border-gray-300 hover:border-brand-500"
+          done ? "border-green-500 bg-green-500" : status === "overdue" ? "border-red-400 hover:bg-red-100" : "border-[#eef2f6] hover:border-brand-500"
         )}
       >
         {done && <Check className="w-3 h-3 text-white" />}
@@ -322,7 +322,7 @@ export function RemindersPage() {
 
       {/* Search */}
       <div className="mb-4 flex items-center gap-3">
-        <div className="flex-1 flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 focus-within:border-brand-500 transition-colors">
+        <div className="flex-1 flex items-center gap-2 bg-white border border-[#eef2f6] rounded-xl px-3 py-2.5 focus-within:border-brand-500 transition-colors">
           <Search className="w-4 h-4 text-gray-400 shrink-0" />
           <input
             type="text"

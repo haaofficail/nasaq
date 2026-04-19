@@ -82,9 +82,9 @@ export function BillingPage() {
   if (loading) {
     return (
       <div className="space-y-5 animate-pulse" dir="rtl">
-        <div className="h-8 bg-gray-100 rounded-xl w-48" />
-        <div className="h-32 bg-gray-100 rounded-2xl" />
-        <div className="h-64 bg-gray-100 rounded-2xl" />
+        <div className="h-8 bg-[#f1f5f9] rounded-xl w-48" />
+        <div className="h-32 bg-[#f1f5f9] rounded-2xl" />
+        <div className="h-64 bg-[#f1f5f9] rounded-2xl" />
       </div>
     );
   }
@@ -125,7 +125,7 @@ export function BillingPage() {
       </div>
 
       {/* Current plan card */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 shadow-sm">
         <div className="flex items-start justify-between flex-wrap gap-4">
           <div>
             <p className="text-xs font-medium text-gray-400 mb-1">الباقة الحالية</p>
@@ -210,7 +210,7 @@ export function BillingPage() {
 
       {/* Plans comparison */}
       {plans.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-50">
             <h2 className="text-base font-semibold text-gray-800">مقارنة الباقات</h2>
             <p className="text-xs text-gray-400 mt-0.5">اختر الباقة المناسبة لنشاطك</p>
@@ -220,11 +220,11 @@ export function BillingPage() {
               <thead>
                 <tr className="bg-gray-50 text-right text-xs text-gray-500 font-medium">
                   <th className="px-5 py-3 w-40">الباقة</th>
-                  <th className="px-4 py-3">السعر الشهري</th>
-                  <th className="px-4 py-3">السعر السنوي</th>
-                  <th className="px-4 py-3">الفروع</th>
-                  <th className="px-4 py-3">الموظفون</th>
-                  <th className="px-4 py-3"></th>
+                  <th className="px-[10px] py-[6px]">السعر الشهري</th>
+                  <th className="px-[10px] py-[6px]">السعر السنوي</th>
+                  <th className="px-[10px] py-[6px]">الفروع</th>
+                  <th className="px-[10px] py-[6px]">الموظفون</th>
+                  <th className="px-[10px] py-[6px]"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -232,7 +232,7 @@ export function BillingPage() {
                   const isCurrent = plan.code === currentPlanCode;
                   const hasOrgPrice = Number(plan.originalPriceMonthly) > 0;
                   return (
-                    <tr key={plan.code} className={clsx("hover:bg-gray-50/50 transition-colors", isCurrent && "bg-brand-50/20")}>
+                    <tr key={plan.code} className={clsx("hover:bg-[#f8fafc]/50 transition-colors", isCurrent && "bg-brand-50/20")}>
                       <td className="px-5 py-3">
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-gray-800">{plan.nameAr}</span>
@@ -243,7 +243,7 @@ export function BillingPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
+                      <td className="px-[10px] py-[6px] text-gray-700">
                         {Number(plan.priceMonthly) === 0 ? (
                           <span className="text-gray-400">مجاني</span>
                         ) : (
@@ -255,7 +255,7 @@ export function BillingPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-700">
+                      <td className="px-[10px] py-[6px] text-gray-700">
                         {Number(plan.priceYearly) === 0 ? (
                           <span className="text-gray-400">—</span>
                         ) : (
@@ -267,13 +267,13 @@ export function BillingPage() {
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 tabular-nums">
+                      <td className="px-[10px] py-[6px] text-gray-600 tabular-nums">
                         {plan.maxBranches >= 999999 ? "غير محدود" : plan.maxBranches}
                       </td>
-                      <td className="px-4 py-3 text-gray-600 tabular-nums">
+                      <td className="px-[10px] py-[6px] text-gray-600 tabular-nums">
                         {plan.maxEmployees >= 999999 ? "غير محدود" : plan.maxEmployees}
                       </td>
-                      <td className="px-4 py-3 text-left">
+                      <td className="px-[10px] py-[6px] text-left">
                         {!isCurrent && plan.code !== "custom" && Number(plan.priceMonthly) > 0 && (
                           <a
                             href="/dashboard/subscription"
@@ -302,7 +302,7 @@ export function BillingPage() {
 
       {/* Plan addons */}
       {planAddons.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-50">
             <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
               <Package className="w-4 h-4 text-gray-400" />
@@ -333,7 +333,7 @@ export function BillingPage() {
                     {!active && (
                       <a
                         href="/dashboard/subscription"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-gray-50 hover:bg-brand-50 hover:text-brand-600 text-gray-600 border border-gray-200 hover:border-brand-200 rounded-xl text-xs font-medium transition-all"
+                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-[#f8fafc] hover:bg-brand-50 hover:text-brand-600 text-gray-600 border border-[#eef2f6] hover:border-brand-200 rounded-xl text-xs font-medium transition-all"
                       >
                         تفعيل
                       </a>
@@ -347,7 +347,7 @@ export function BillingPage() {
       )}
 
       {planAddons.length === 0 && plans.length === 0 && (
-        <div className="flex flex-col items-center justify-center py-16 gap-3 bg-white rounded-2xl border border-gray-100">
+        <div className="flex flex-col items-center justify-center py-16 gap-3 bg-white rounded-2xl border border-[#eef2f6]">
           <CreditCard className="w-10 h-10 text-gray-200" />
           <p className="text-gray-400 text-sm">لا توجد بيانات للعرض</p>
         </div>

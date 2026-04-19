@@ -25,7 +25,7 @@ function TemplatePeriodsList({ templateId }: { templateId: string }) {
   if (loading) {
     return (
       <div className="space-y-2 mt-3">
-        {[...Array(4)].map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded-xl animate-pulse" />)}
+        {[...Array(4)].map((_, i) => <div key={i} className="h-10 bg-[#f1f5f9] rounded-xl animate-pulse" />)}
       </div>
     );
   }
@@ -40,7 +40,7 @@ function TemplatePeriodsList({ templateId }: { templateId: string }) {
 
   if (periods.length === 0) {
     return (
-      <div className="mt-3 py-6 flex flex-col items-center gap-2 text-center bg-gray-50 rounded-xl border border-gray-100">
+      <div className="mt-3 py-6 flex flex-col items-center gap-2 text-center bg-[#f8fafc] rounded-xl border border-[#eef2f6]">
         <Clock className="w-6 h-6 text-gray-200" />
         <p className="text-xs text-gray-400">لا توجد حصص في هذا القالب</p>
       </div>
@@ -55,7 +55,7 @@ function TemplatePeriodsList({ templateId }: { templateId: string }) {
         <div key={p.id}
           className={clsx(
             "flex items-center gap-3 px-4 py-2.5 rounded-xl border",
-            p.isBreak ? "bg-amber-50 border-amber-100" : "bg-gray-50 border-gray-100"
+            p.isBreak ? "bg-amber-50 border-amber-100" : "bg-gray-50 border-[#eef2f6]"
           )}>
           {/* Period number bubble */}
           <span className={clsx(
@@ -93,13 +93,13 @@ function TemplateAccordion({ template }: { template: any }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-5 hover:bg-gray-50/50 transition-colors text-right"
+        className="w-full flex items-center justify-between p-5 hover:bg-[#f8fafc]/50 transition-colors text-right"
       >
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-[10px] bg-emerald-50 flex items-center justify-center shrink-0">
             <Clock className="w-5 h-5 text-emerald-600" />
           </div>
           <div className="text-right">
@@ -123,7 +123,7 @@ function TemplateAccordion({ template }: { template: any }) {
       </button>
 
       {open && (
-        <div className="border-t border-gray-100 px-5 pb-5">
+        <div className="border-t border-[#eef2f6] px-5 pb-5">
           {template.description && (
             <p className="text-xs text-gray-400 pt-3 pb-1">{template.description}</p>
           )}
@@ -174,13 +174,13 @@ export function SchoolPeriodsPage() {
         </div>
       </div>
 
-      <div className="p-6 space-y-5 bg-gray-50 min-h-full">
+      <div className="p-6 space-y-5 bg-[#f8fafc] min-h-full">
 
         {/* Loading */}
         {loading && (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-20 bg-white rounded-2xl border border-gray-100 animate-pulse" />
+              <div key={i} className="h-20 bg-white rounded-2xl border border-[#eef2f6] animate-pulse" />
             ))}
           </div>
         )}
@@ -199,7 +199,7 @@ export function SchoolPeriodsPage() {
 
         {/* Empty */}
         {!loading && !error && templates.length === 0 && (
-          <div className="bg-white rounded-2xl border border-gray-100 py-20 flex flex-col items-center gap-4 text-center">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] py-20 flex flex-col items-center gap-4 text-center">
             <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center">
               <Clock className="w-7 h-7 text-emerald-400" />
             </div>

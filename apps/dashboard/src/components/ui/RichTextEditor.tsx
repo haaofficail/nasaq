@@ -134,9 +134,9 @@ export function RichTextEditor({
         <label className="block text-xs font-medium text-gray-600">{label}</label>
       )}
 
-      <div className="border border-gray-200 rounded-xl overflow-hidden focus-within:border-[#5b9bd5] focus-within:ring-2 focus-within:ring-[#5b9bd5]/10 transition-all">
+      <div className="border border-[#eef2f6] rounded-xl overflow-hidden focus-within:border-[#5b9bd5] focus-within:ring-2 focus-within:ring-[#5b9bd5]/10 transition-all">
         {/* Toolbar */}
-        <div className="flex items-center gap-0.5 px-2 py-1.5 bg-gray-50 border-b border-gray-100 flex-wrap">
+        <div className="flex items-center gap-0.5 px-2 py-1.5 bg-[#f8fafc] border-b border-[#eef2f6] flex-wrap">
           {/* Headings */}
           <ToolBtn onClick={() => insertHeading("h2")} title="عنوان كبير">
             <span className="font-bold text-[11px]">H1</span>

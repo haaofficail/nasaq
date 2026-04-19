@@ -214,7 +214,7 @@ export function BookingDetailPage() {
             </span>
           )}
           {workflowMode && workflowMode !== "legacy" && (
-            <span className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-gray-50 text-gray-400 border border-gray-100">
+            <span className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-[#f8fafc] text-gray-400 border border-[#eef2f6]">
               {workflowMode}
             </span>
           )}
@@ -225,7 +225,7 @@ export function BookingDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           {/* Booking Info */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
             <h2 className="font-semibold text-gray-900 mb-4">تفاصيل الحجز</h2>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-gray-400" /><span className="text-gray-500">تاريخ الحدث</span><span className="font-medium mr-auto">{booking.eventDate ? fmtDate(booking.eventDate) : "—"}</span></div>
@@ -238,10 +238,10 @@ export function BookingDetailPage() {
                 <div className="flex items-center gap-2"><User className="w-4 h-4 text-gray-400" /><span className="text-gray-500">عدد الأشخاص</span><span className="font-medium mr-auto">{booking.guestCount}</span></div>
               )}
             </div>
-            {booking.customerNotes && <div className="mt-4 pt-4 border-t border-gray-100"><p className="text-xs font-medium text-gray-400 mb-1">ملاحظات العميل</p><p className="text-sm text-gray-700">{booking.customerNotes}</p></div>}
-            {booking.notes && !booking.customerNotes && <div className="mt-4 pt-4 border-t border-gray-100"><p className="text-sm text-gray-500">ملاحظات: {booking.notes}</p></div>}
+            {booking.customerNotes && <div className="mt-4 pt-4 border-t border-[#eef2f6]"><p className="text-xs font-medium text-gray-400 mb-1">ملاحظات العميل</p><p className="text-sm text-gray-700">{booking.customerNotes}</p></div>}
+            {booking.notes && !booking.customerNotes && <div className="mt-4 pt-4 border-t border-[#eef2f6]"><p className="text-sm text-gray-500">ملاحظات: {booking.notes}</p></div>}
             {booking.questionAnswers && Array.isArray(booking.questionAnswers) && booking.questionAnswers.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
+              <div className="mt-4 pt-4 border-t border-[#eef2f6] space-y-2">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">إجابات أسئلة الحجز</p>
                 {(booking.questionAnswers as any[]).map((qa: any, i: number) => (
                   <div key={i} className="bg-gray-50 rounded-lg px-3 py-2">
@@ -255,7 +255,7 @@ export function BookingDetailPage() {
 
           {/* Items */}
           {booking.items?.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
               <h2 className="font-semibold text-gray-900 mb-4">بنود الحجز</h2>
               <div className="space-y-3">
                 {booking.items.map((item: any, i: number) => (
@@ -264,13 +264,13 @@ export function BookingDetailPage() {
                     <span className="text-sm font-bold">{Number(item.totalPrice || item.unitPrice * item.quantity || 0).toLocaleString()} ر.س</span>
                   </div>
                 ))}
-                <div className="flex items-center justify-between pt-3 border-t border-gray-200"><span className="font-semibold">الإجمالي</span><span className="text-lg font-bold text-brand-600">{total.toLocaleString()} ر.س</span></div>
+                <div className="flex items-center justify-between pt-3 border-t border-[#eef2f6]"><span className="font-semibold">الإجمالي</span><span className="text-lg font-bold text-brand-600">{total.toLocaleString()} ر.س</span></div>
               </div>
             </div>
           )}
 
           {/* Payments */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-gray-900">المدفوعات</h2>
               {remaining > 0 && (
@@ -315,7 +315,7 @@ export function BookingDetailPage() {
           </div>
           {/* Audit Trail */}
           {eventsRes?.data && eventsRes.data.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
               <div className="flex items-center gap-2 mb-4">
                 <History className="w-4 h-4 text-gray-400" />
                 <h2 className="font-semibold text-gray-900">سجل الأحداث</h2>
@@ -387,7 +387,7 @@ export function BookingDetailPage() {
 
         {/* Sidebar Actions */}
         <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-3">إجراءات</h3>
             {statusError && (
               <div className="flex items-start gap-2 p-3 mb-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
@@ -422,7 +422,7 @@ export function BookingDetailPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-3">العميل</h3>
             <div className="space-y-2 text-sm">
               <div className="flex items-center gap-2"><User className="w-4 h-4 text-gray-400" />{booking.customerName || booking.customer?.name}</div>
@@ -438,7 +438,7 @@ export function BookingDetailPage() {
 
           {/* Operational Panel: SLA + Last Block + Timeline */}
           {timeline.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <History className="w-4 h-4 text-gray-400" />
                 السجل التشغيلي
@@ -510,7 +510,7 @@ export function BookingDetailPage() {
 
           {/* Dynamic Booking Fields Display */}
           {customBookingFields.length > 0 && booking.customFields && Object.keys(booking.customFields).length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5 mt-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 mt-4">
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-brand-500" />
                 تفاصيل إضافية
@@ -532,7 +532,7 @@ export function BookingDetailPage() {
 
           {/* Visit Note — Dynamic Engine */}
           {matrix.visitNoteFields.length > 0 && (booking.status === "completed" || booking.status === "in_progress") && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <div className="flex items-center justify-between mb-2">
                 <h3 className="font-semibold text-gray-900 text-sm">التفاصيل والتنفيذ</h3>
                 <button onClick={openVisitNote} className="text-xs text-brand-500 hover:underline flex items-center gap-1">
@@ -540,7 +540,7 @@ export function BookingDetailPage() {
                 </button>
               </div>
               {existingNoteRes?.data?.[0]?.formula || existingNoteRes?.data?.[0]?.customFields?.formula || existingNoteRes?.data?.[0]?.customFields?.focusAreas || existingNoteRes?.data?.[0]?.customFields?.styleUsed ? (
-                <p className="text-xs font-mono bg-gray-50 rounded-lg px-2 py-1.5 text-gray-700">
+                <p className="text-xs font-mono bg-[#f8fafc] rounded-lg px-2 py-1.5 text-gray-700">
                   {existingNoteRes.data[0].formula || existingNoteRes.data[0].customFields?.formula || existingNoteRes.data[0].customFields?.focusAreas || existingNoteRes.data[0].customFields?.styleUsed}
                 </p>
               ) : (
@@ -559,32 +559,32 @@ export function BookingDetailPage() {
             <div key={f.key}>
               <label className="text-xs font-medium text-gray-500 block mb-1">{f.label}</label>
               {f.type === "textarea" ? (
-                <textarea className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none" rows={2}
+                <textarea className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm resize-none" rows={2}
                   value={vn[f.key] || ""} onChange={e => setVn(v => ({ ...v, [f.key]: e.target.value }))}
                   placeholder={f.placeholder} />
               ) : f.type === "select" ? (
-                <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white"
+                <select className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm bg-white"
                   value={vn[f.key] || ""} onChange={e => setVn(v => ({ ...v, [f.key]: e.target.value }))}>
                   <option value="">—</option>
                   {f.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
               ) : (
-                <input type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono"
+                <input type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm font-mono"
                   value={vn[f.key] || ""} onChange={e => setVn(v => ({ ...v, [f.key]: e.target.value }))}
                   placeholder={f.placeholder} />
               )}
             </div>
           ))}
 
-          <div className="pt-3 border-t border-gray-100">
+          <div className="pt-3 border-t border-[#eef2f6]">
             <label className="text-xs font-medium text-gray-500 block mb-1">توصيات إضافية - الزيارة القادمة بعد (أسابيع)</label>
-            <input type="number" min="1" max="52" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+            <input type="number" min="1" max="52" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm"
               value={vn.nextVisitIn || ""} onChange={e => setVn(v => ({ ...v, nextVisitIn: e.target.value }))}
               placeholder="6" />
           </div>
           <div>
             <label className="text-xs font-medium text-gray-500 block mb-1">ملاحظات داخلية للطاقم (لا تظهر للعميل)</label>
-            <input type="text" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+            <input type="text" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm"
               value={vn.privateNotes || ""} onChange={e => setVn(v => ({ ...v, privateNotes: e.target.value }))}
               placeholder="ملاحظات تشغيلية" />
           </div>

@@ -20,9 +20,9 @@ export function SalesChartWidget() {
   const total = rows.reduce((s, r) => s + r.amount, 0);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden h-full">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-50">
+      <div className="flex items-center justify-between px-5 py-[6px] border-b border-gray-50">
         <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
           <TrendingUp className="w-4 h-4 text-brand-400" />
           المبيعات
@@ -32,7 +32,7 @@ export function SalesChartWidget() {
             </span>
           )}
         </h3>
-        <div className="flex items-center gap-1 bg-gray-50 rounded-lg p-0.5">
+        <div className="flex items-center gap-1 bg-[#f8fafc] rounded-lg p-0.5">
           {(["today", "week"] as Period[]).map((p) => (
             <button
               key={p}
@@ -53,7 +53,7 @@ export function SalesChartWidget() {
       {/* Chart */}
       <div className="px-3 py-4">
         {loading ? (
-          <div className="h-[180px] bg-gray-50 rounded-xl animate-pulse" />
+          <div className="h-[180px] bg-[#f8fafc] rounded-xl animate-pulse" />
         ) : rows.length === 0 ? (
           <div className="h-[180px] flex items-center justify-center text-sm text-gray-400">
             لا توجد مبيعات بعد

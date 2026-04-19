@@ -14,7 +14,7 @@ function KpiCard({
   label, value, sub, color = "bg-white",
 }: { label: string; value: string | number; sub?: string; color?: string }) {
   return (
-    <div className={clsx("border border-gray-100 rounded-2xl p-5 shadow-sm flex flex-col gap-2", color)}>
+    <div className={clsx("border border-[#eef2f6] rounded-2xl p-5 shadow-sm flex flex-col gap-2", color)}>
       <p className="text-xs text-gray-500 font-medium">{label}</p>
       <p className="text-3xl font-bold text-gray-900">{value}</p>
       {sub && <p className="text-xs text-gray-400">{sub}</p>}
@@ -41,7 +41,7 @@ export function SmartHomePage() {
     { label: "صافي الدخل", value: `${Number(netIncome).toLocaleString("en-US")} ريال`, color: "bg-emerald-50" },
     { label: "فواتير متأخرة", value: overdueCount, color: "bg-red-50" },
     { label: "نسبة الإشغال", value: `${dash.occupancyRate ?? 0}%`, color: "bg-teal-50" },
-    { label: "وحدات شاغرة", value: vacantCount, color: "bg-gray-50" },
+    { label: "وحدات شاغرة", value: vacantCount, color: "bg-[#f8fafc]" },
     { label: "عقود تنتهي قريباً", value: expiringCount, color: "bg-orange-50" },
   ];
 
@@ -82,7 +82,7 @@ export function SmartHomePage() {
           </button>
           <button
             onClick={() => navigate("/property/maintenance")}
-            className="border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-xl text-sm font-medium transition-colors"
+            className="border border-[#eef2f6] text-gray-700 hover:bg-[#f8fafc] px-4 py-2 rounded-xl text-sm font-medium transition-colors"
           >
             طلب صيانة
           </button>
@@ -107,12 +107,12 @@ export function SmartHomePage() {
       {/* Tasks + Compliance */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Tasks */}
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+        <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm p-5">
           <h2 className="text-base font-semibold text-gray-800 mb-4">المطلوب منك اليوم</h2>
           {loading ? (
             <div className="space-y-3 animate-pulse">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className="h-14 bg-gray-100 rounded-xl" />
+                <div key={i} className="h-14 bg-[#f1f5f9] rounded-xl" />
               ))}
             </div>
           ) : tasks.length === 0 ? (
@@ -120,7 +120,7 @@ export function SmartHomePage() {
           ) : (
             <div className="space-y-3">
               {tasks.map((task: any) => (
-                <div key={task.id ?? task.type} className="flex items-center justify-between gap-3 bg-gray-50 rounded-xl p-3">
+                <div key={task.id ?? task.type} className="flex items-center justify-between gap-3 bg-[#f8fafc] rounded-xl p-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{task.title}</p>
                     {task.subtitle && <p className="text-xs text-gray-400 mt-0.5">{task.subtitle}</p>}
@@ -159,11 +159,11 @@ export function SmartHomePage() {
         </div>
 
         {/* Compliance */}
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+        <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm p-5">
           <h2 className="text-base font-semibold text-gray-800 mb-4">نسبة الامتثال التنظيمي</h2>
           {loading ? (
             <div className="space-y-3 animate-pulse">
-              <div className="h-8 bg-gray-100 rounded-xl w-24" />
+              <div className="h-8 bg-[#f1f5f9] rounded-xl w-24" />
               <div className="h-4 bg-gray-100 rounded-full" />
             </div>
           ) : (

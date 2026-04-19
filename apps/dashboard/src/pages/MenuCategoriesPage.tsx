@@ -25,7 +25,7 @@ function CatModal({ cat, onClose, onSave }: { cat?: any; onClose: () => void; on
             {CATEGORY_ICONS.map(ic => (
               <button key={ic} onClick={() => f("icon", ic)}
                 className={clsx("w-9 h-9 rounded-xl text-lg flex items-center justify-center border transition-all",
-                  form.icon === ic ? "border-brand-400 bg-brand-50 scale-110 shadow-sm" : "border-gray-200 hover:border-gray-300")}>
+                  form.icon === ic ? "border-brand-400 bg-brand-50 scale-110 shadow-sm" : "border-[#eef2f6] hover:border-[#eef2f6]")}>
                 {ic}
               </button>
             ))}
@@ -36,7 +36,7 @@ function CatModal({ cat, onClose, onSave }: { cat?: any; onClose: () => void; on
         <Input label="وصف مختصر" name="description" value={form.description} onChange={e => f("description", e.target.value)} placeholder="اختياري" />
         <div className="flex gap-3 pt-1">
           <Button className="flex-1" onClick={() => { if (form.name.trim()) onSave(form); }}>حفظ</Button>
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">إلغاء</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">إلغاء</button>
         </div>
       </div>
     </Modal>
@@ -62,7 +62,7 @@ function ItemModal({ item, categories, onClose, onSave }: { item?: any; categori
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1.5">التصنيف</label>
           <select value={form.categoryId} onChange={e => f("categoryId", e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300">
+            className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300">
             {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
           </select>
         </div>
@@ -87,7 +87,7 @@ function ItemModal({ item, categories, onClose, onSave }: { item?: any; categori
         </div>
         <div className="flex gap-3 pt-1">
           <Button className="flex-1" onClick={() => { if (form.name.trim() && form.price) onSave(form); }}>حفظ</Button>
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">إلغاء</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">إلغاء</button>
         </div>
       </div>
     </Modal>
@@ -169,9 +169,9 @@ export function MenuCategoriesPage() {
   if (loading) return (
     <div className="space-y-4">
       {[...Array(3)].map((_, i) => (
-        <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+        <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-5 animate-pulse">
           <div className="h-5 w-40 bg-gray-100 rounded mb-3" />
-          <div className="space-y-2">{[...Array(2)].map((_, j) => <div key={j} className="h-10 bg-gray-50 rounded-xl" />)}</div>
+          <div className="space-y-2">{[...Array(2)].map((_, j) => <div key={j} className="h-10 bg-[#f8fafc] rounded-xl" />)}</div>
         </div>
       ))}
     </div>
@@ -198,7 +198,7 @@ export function MenuCategoriesPage() {
           { label: "متاح", value: allItems.filter((i: any) => i.isAvailable).length, icon: ToggleRight, color: "text-blue-600 bg-blue-50" },
           { label: "الأكثر طلباً", value: allItems.filter((i: any) => i.isPopular).length, icon: DollarSign, color: "text-amber-600 bg-amber-50" },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-2", s.color)}>
               <s.icon className="w-4 h-4" />
             </div>
@@ -213,12 +213,12 @@ export function MenuCategoriesPage() {
         <Search className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="بحث في التصنيفات..."
-          className="w-full bg-white border border-gray-200 rounded-xl pr-10 pl-4 py-2.5 text-sm outline-none focus:border-brand-500" />
+          className="w-full bg-white border border-[#eef2f6] rounded-xl pr-10 pl-4 py-2.5 text-sm outline-none focus:border-brand-500" />
       </div>
 
       {/* Categories accordion */}
       {filtered.length === 0 ? (
-        <div className="py-16 text-center bg-white rounded-2xl border border-gray-100">
+        <div className="py-16 text-center bg-white rounded-2xl border border-[#eef2f6]">
           <UtensilsCrossed className="w-10 h-10 mx-auto mb-3 text-gray-200" />
           <p className="text-sm text-gray-400">لا توجد تصنيفات — أنشئ أول تصنيف</p>
         </div>
@@ -228,7 +228,7 @@ export function MenuCategoriesPage() {
             const items = itemsFor(cat.id);
             const open = expanded.has(cat.id);
             return (
-              <div key={cat.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div key={cat.id} className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
                 {/* Category header */}
                 <div className="flex items-center gap-3 px-5 py-4">
                   <button onClick={() => toggleExpand(cat.id)} className="text-gray-400 hover:text-gray-600">
@@ -253,7 +253,7 @@ export function MenuCategoriesPage() {
                       {cat.isActive ? <ToggleRight className="w-4 h-4 text-brand-500" /> : <ToggleLeft className="w-4 h-4" />}
                     </button>
                     <button onClick={() => setCatModal({ open: true, item: cat })}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand-600 hover:bg-gray-50 transition-colors">
+                      className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-brand-600 hover:bg-[#f8fafc] transition-colors">
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button onClick={() => handleDeleteCat(cat.id, cat.name)}
@@ -275,7 +275,7 @@ export function MenuCategoriesPage() {
                     ) : (
                       <div className="divide-y divide-gray-50">
                         {items.map((item: any) => (
-                          <div key={item.id} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/50 transition-colors">
+                          <div key={item.id} className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8fafc]/50 transition-colors">
                             <GripVertical className="w-4 h-4 text-gray-200 shrink-0" />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">

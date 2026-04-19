@@ -52,7 +52,7 @@ function Modal({ title, children, onClose, wide }: { title: string; children: Re
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className={clsx("bg-white rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto w-full", wide ? "max-w-3xl" : "max-w-2xl")}>
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
+        <div className="flex justify-between items-center p-4 border-b border-[#eef2f6]">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
@@ -71,7 +71,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400";
 
 const EMPTY_CHECKLIST: Record<string, ChecklistEntry> = Object.fromEntries(
   CHECKLIST_ITEMS.map((item) => [item.key, { condition: "good", notes: "" }])
@@ -163,17 +163,17 @@ export function PropertyInspectionsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
+      <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-x-auto">
         <table className="w-full text-sm min-w-max">
-          <thead className="bg-gray-50">
+          <thead className="bg-[#f8fafc]">
             <tr>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">التاريخ</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">النوع</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">العقار</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الوحدة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">المفتش</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الحالة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الإجراءات</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">التاريخ</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">النوع</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">العقار</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الوحدة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">المفتش</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الحالة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الإجراءات</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -185,24 +185,24 @@ export function PropertyInspectionsPage() {
               <tr><td colSpan={7} className="px-4 py-16 text-center text-gray-400">لا توجد فحوصات مسجلة</td></tr>
             ) : (
               inspections.map((insp: any) => (
-                <tr key={insp.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-gray-500">
+                <tr key={insp.id} className="hover:bg-[#f8fafc]">
+                  <td className="px-[10px] py-[6px] text-gray-500">
                     {insp.scheduledDate ? new Date(insp.scheduledDate).toLocaleDateString("ar-SA") : "—"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <span className="bg-brand-50 text-brand-700 rounded-full px-2 py-0.5 text-xs font-medium">
                       {INSPECTION_TYPE_AR[insp.type] ?? insp.type}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{insp.propertyName ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500">{insp.unitName ?? insp.unitNumber ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500">{insp.inspectorName ?? "—"}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px] text-gray-500">{insp.propertyName ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">{insp.unitName ?? insp.unitNumber ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">{insp.inspectorName ?? "—"}</td>
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", INSPECTION_STATUS_COLORS[insp.status] ?? "bg-gray-100 text-gray-600")}>
                       {INSPECTION_STATUS_AR[insp.status] ?? insp.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <button
                       onClick={() => handleCompare(insp)}
                       className="text-xs text-brand-600 border border-brand-200 bg-brand-50 hover:bg-brand-100 rounded-lg px-2 py-1 transition-colors"
@@ -251,9 +251,9 @@ export function PropertyInspectionsPage() {
             {/* Checklist */}
             <div>
               <p className="text-sm font-semibold text-gray-700 mb-3">قائمة الفحص (15 بند)</p>
-              <div className="border border-gray-100 rounded-2xl overflow-hidden">
+              <div className="border border-[#eef2f6] rounded-2xl overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-[#f8fafc]">
                     <tr>
                       <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 w-32">البند</th>
                       <th className="px-3 py-2 text-right text-xs font-medium text-gray-500">الحالة</th>
@@ -264,7 +264,7 @@ export function PropertyInspectionsPage() {
                     {CHECKLIST_ITEMS.map((item) => {
                       const entry = form.checklist[item.key];
                       return (
-                        <tr key={item.key} className="hover:bg-gray-50">
+                        <tr key={item.key} className="hover:bg-[#f8fafc]">
                           <td className="px-3 py-2 font-medium text-gray-700 text-xs">{item.label}</td>
                           <td className="px-3 py-2">
                             <div className="flex gap-1">
@@ -279,7 +279,7 @@ export function PropertyInspectionsPage() {
                                       ? opt.value === "good" ? "bg-emerald-500 text-white border-emerald-500"
                                         : opt.value === "average" ? "bg-yellow-400 text-white border-yellow-400"
                                         : "bg-red-500 text-white border-red-500"
-                                      : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                                      : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]"
                                   )}
                                 >
                                   {opt.label}
@@ -291,7 +291,7 @@ export function PropertyInspectionsPage() {
                             <input
                               value={entry.notes}
                               onChange={(e) => setChecklistField(item.key, "notes", e.target.value)}
-                              className="w-full border border-gray-100 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-brand-300"
+                              className="w-full border border-[#eef2f6] rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-brand-300"
                               placeholder="ملاحظة..."
                             />
                           </td>
@@ -308,7 +308,7 @@ export function PropertyInspectionsPage() {
             </Field>
 
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleCreate} disabled={creating} className="px-4 py-2 text-sm bg-brand-500 text-white rounded-xl hover:bg-brand-600 disabled:opacity-50">
                 {creating ? "جارٍ الحفظ..." : "حفظ الفحص"}
               </button>
@@ -330,7 +330,7 @@ export function PropertyInspectionsPage() {
           ) : (
             <div className="space-y-4">
               {/* Header */}
-              <div className="grid grid-cols-3 text-xs font-semibold text-gray-500 bg-gray-50 rounded-xl px-4 py-2">
+              <div className="grid grid-cols-3 text-xs font-semibold text-gray-500 bg-[#f8fafc] rounded-xl px-4 py-2">
                 <span>البند</span>
                 <span>عند الدخول</span>
                 <span>عند الخروج</span>
@@ -346,7 +346,7 @@ export function PropertyInspectionsPage() {
                     key={item.key}
                     className={clsx(
                       "grid grid-cols-3 text-sm rounded-xl px-4 py-3 gap-2",
-                      hasDiff ? "bg-red-50 border border-red-100" : "bg-gray-50"
+                      hasDiff ? "bg-red-50 border border-red-100" : "bg-[#f8fafc]"
                     )}
                   >
                     <span className="font-medium text-gray-700">{item.label}</span>

@@ -80,9 +80,9 @@ interface AvailableIntegration {
 
 function CardSkeleton() {
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl p-5 space-y-3 animate-pulse">
+    <div className="bg-white border border-[#eef2f6] rounded-2xl p-5 space-y-3 animate-pulse">
       <div className="flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gray-100" />
+        <div className="w-9 h-9 rounded-[10px] bg-gray-100" />
         <div className="flex-1 space-y-2">
           <div className="h-4 bg-gray-100 rounded w-2/3" />
           <div className="h-3 bg-gray-100 rounded w-1/3" />
@@ -90,7 +90,7 @@ function CardSkeleton() {
       </div>
       <div className="h-3 bg-gray-100 rounded w-full" />
       <div className="h-3 bg-gray-100 rounded w-4/5" />
-      <div className="h-8 bg-gray-100 rounded-xl w-full" />
+      <div className="h-8 bg-[#f1f5f9] rounded-xl w-full" />
     </div>
   );
 }
@@ -108,7 +108,7 @@ function ProviderLogo({ provider, name }: { provider: string; name: string }) {
   const colorIdx = provider.split("").reduce((acc, c) => acc + c.charCodeAt(0), 0) % LOGO_COLORS.length;
   const initials = name.slice(0, 2).toUpperCase();
   return (
-    <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center text-white text-sm font-bold shrink-0", LOGO_COLORS[colorIdx])}>
+    <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center text-white text-sm font-bold shrink-0", LOGO_COLORS[colorIdx])}>
       {initials}
     </div>
   );
@@ -180,7 +180,7 @@ function ConnectModal({
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" dir="rtl">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+        <div className="flex items-center justify-between p-5 border-b border-[#eef2f6]">
           <div className="flex items-center gap-3">
             <ProviderLogo provider={integration.provider} name={integration.name} />
             <div>
@@ -205,7 +205,7 @@ function ConnectModal({
             </div>
           )}
 
-          <div className="border-t border-gray-100 pt-4 space-y-4">
+          <div className="border-t border-[#eef2f6] pt-4 space-y-4">
             {integration.fields.map((field) => (
               <div key={field.key}>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -217,7 +217,7 @@ function ConnectModal({
                     <select
                       value={form[field.key] ?? ""}
                       onChange={(e) => handleChange(field.key, e.target.value)}
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white appearance-none focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100"
+                      className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm bg-white appearance-none focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100"
                     >
                       <option value="">اختر...</option>
                       {field.options.map((o) => (
@@ -232,7 +232,7 @@ function ConnectModal({
                     value={form[field.key] ?? ""}
                     onChange={(e) => handleChange(field.key, e.target.value)}
                     placeholder={field.type === "password" ? "••••••••••••" : `أدخل ${field.label}...`}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-100"
                     dir={field.type === "password" ? "ltr" : undefined}
                   />
                 )}
@@ -263,7 +263,7 @@ function ConnectModal({
               <button
                 onClick={handleTest}
                 disabled={testing}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#eef2f6] text-sm font-medium text-gray-600 hover:bg-[#f8fafc] transition-colors disabled:opacity-50"
               >
                 {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plug className="w-4 h-4" />}
                 اختبار
@@ -271,7 +271,7 @@ function ConnectModal({
             )}
             <button
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+              className="flex-1 py-2.5 rounded-xl border border-[#eef2f6] text-sm font-medium text-gray-600 hover:bg-[#f8fafc] transition-colors"
             >
               إلغاء
             </button>
@@ -311,8 +311,8 @@ function IntegrationCard({
 
   return (
     <div className={clsx(
-      "bg-white border rounded-2xl p-5 flex flex-col gap-3 transition-all hover:shadow-md hover:border-gray-200",
-      isActive ? "border-emerald-200" : isError ? "border-red-200" : "border-gray-100"
+      "bg-white border rounded-2xl p-5 flex flex-col gap-3 transition-all hover:shadow-md hover:border-[#eef2f6]",
+      isActive ? "border-emerald-200" : isError ? "border-red-200" : "border-[#eef2f6]"
     )}>
       {/* Header */}
       <div className="flex items-start gap-3">
@@ -355,14 +355,14 @@ function IntegrationCard({
         <div className="flex gap-2">
           <button
             onClick={() => onConnect(integration)}
-            className="flex-1 py-2 rounded-xl border border-gray-200 text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex-1 py-2 rounded-xl border border-[#eef2f6] text-xs font-medium text-gray-600 hover:bg-[#f8fafc] transition-colors"
           >
             إعدادات
           </button>
           {integration.id && (
             <button
               onClick={() => navigate(`/dashboard/integrations/${integration.id}/logs`)}
-              className="flex items-center gap-1 px-3 py-2 rounded-xl border border-gray-200 text-xs font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1 px-3 py-2 rounded-xl border border-[#eef2f6] text-xs font-medium text-gray-500 hover:bg-[#f8fafc] transition-colors"
               title="سجل الطلبات"
             >
               <ScrollText className="w-3.5 h-3.5" />
@@ -474,7 +474,7 @@ export default function IntegrationsPage() {
             "px-3 py-1.5 text-xs font-medium rounded-xl border transition-all",
             category === "all"
               ? "bg-brand-500 text-white border-brand-500 shadow-sm shadow-brand-500/20"
-              : "bg-white text-gray-600 border-gray-200 hover:border-brand-300 hover:text-brand-600"
+              : "bg-white text-gray-600 border-[#eef2f6] hover:border-brand-300 hover:text-brand-600"
           )}
         >
           الكل ({integrations.length})
@@ -490,7 +490,7 @@ export default function IntegrationsPage() {
                 "px-3 py-1.5 text-xs font-medium rounded-xl border transition-all",
                 category === cat
                   ? "bg-brand-500 text-white border-brand-500 shadow-sm shadow-brand-500/20"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-brand-300 hover:text-brand-600"
+                  : "bg-white text-gray-600 border-[#eef2f6] hover:border-brand-300 hover:text-brand-600"
               )}
             >
               {CATEGORY_AR[cat]} ({count})
@@ -500,7 +500,7 @@ export default function IntegrationsPage() {
       </div>
 
       {/* Search */}
-      <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2.5 w-full max-w-xs focus-within:border-brand-300 transition-colors">
+      <div className="flex items-center gap-2 bg-white border border-[#eef2f6] rounded-xl px-3 py-2.5 w-full max-w-xs focus-within:border-brand-300 transition-colors">
         <Search className="w-4 h-4 text-gray-400 shrink-0" />
         <input
           ref={searchRef}

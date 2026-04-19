@@ -15,7 +15,7 @@ export function RoomStatusWidget() {
   ];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 h-full">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 h-full">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="font-semibold text-gray-900 text-sm">حالة الغرف</h2>

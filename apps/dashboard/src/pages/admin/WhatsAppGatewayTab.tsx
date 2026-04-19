@@ -98,10 +98,10 @@ function OrgSearchPicker({ onSelect, className }: {
         onChange={e => handleChange(e.target.value)}
         onFocus={() => query.length >= 2 && setOpen(true)}
         placeholder="ابحث بالاسم أو رقم الجوال..."
-        className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400"
+        className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400"
       />
       {open && (query.length >= 2) && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-30 max-h-52 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-[#eef2f6] rounded-xl shadow-lg z-30 max-h-52 overflow-y-auto">
           {loading ? (
             <div className="p-3 text-center"><Loader2 className="w-4 h-4 animate-spin mx-auto text-gray-400" /></div>
           ) : results.length === 0 ? (
@@ -243,7 +243,7 @@ function PlatformSessionSection() {
 
   return (
     <div className="space-y-5 max-w-xl">
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             {status === "connected"
@@ -266,7 +266,7 @@ function PlatformSessionSection() {
         {status === "qr_ready" && state?.qrBase64 && (
           <div className="flex flex-col items-center gap-3 py-2">
             <p className="text-xs text-gray-500">افتح واتساب &rarr; الأجهزة المرتبطة &rarr; ربط جهاز، ثم امسح الكود</p>
-            <img src={state.qrBase64} alt="QR واتساب المنصة" className="w-48 h-48 rounded-2xl border border-gray-200 shadow-sm" />
+            <img src={state.qrBase64} alt="QR واتساب المنصة" className="w-48 h-48 rounded-2xl border border-[#eef2f6] shadow-sm" />
           </div>
         )}
 
@@ -280,7 +280,7 @@ function PlatformSessionSection() {
           )}
           {status === "connected" && (
             <button onClick={reconnect} disabled={acting}
-              className="flex items-center gap-2 border border-gray-200 hover:border-gray-300 text-gray-700 text-sm font-medium rounded-xl px-4 py-2 transition-colors disabled:opacity-50">
+              className="flex items-center gap-2 border border-[#eef2f6] hover:border-[#eef2f6] text-gray-700 text-sm font-medium rounded-xl px-4 py-2 transition-colors disabled:opacity-50">
               {acting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               إعادة اتصال
             </button>
@@ -324,7 +324,7 @@ export default function WhatsAppGatewayTab() {
       />
 
       {/* Connection Status */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
             <Signal className="w-4 h-4 text-brand-500" />
@@ -488,7 +488,7 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-5">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-5">
       <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
         <QrCode className="w-4 h-4 text-brand-500" />
         ربط واتساب بباركود QR
@@ -521,7 +521,7 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
           {/* Disconnected — Guide to start */}
           {(!qrState?.status || qrState?.status === "disconnected") && (
             <div className="flex flex-col items-center gap-4 py-6">
-              <div className="w-48 h-48 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-3">
+              <div className="w-48 h-48 bg-[#f8fafc] rounded-2xl border-2 border-dashed border-[#eef2f6] flex flex-col items-center justify-center gap-3">
                 <QrCode className="w-12 h-12 text-gray-300" />
                 <p className="text-xs text-gray-400 text-center px-4">
                   اضغط على &quot;بدء جلسة QR&quot; لإنشاء باركود
@@ -611,7 +611,7 @@ function QrConnectionSection({ onStatusChange }: { onStatusChange?: () => void }
             )}
             <button
               onClick={() => refetch()}
-              className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 border border-[#eef2f6] text-gray-600 rounded-xl text-sm font-medium hover:bg-[#f8fafc] transition-colors"
             >
               <RefreshCw className="w-3.5 h-3.5" /> تحديث الحالة
             </button>
@@ -658,7 +658,7 @@ function TestTemplateSection({ connected }: { connected: boolean }) {
   return (
     <div className={clsx(
       "bg-white rounded-2xl border p-5 space-y-4 transition-opacity",
-      connected ? "border-gray-100" : "border-gray-100 opacity-50 pointer-events-none"
+      connected ? "border-[#eef2f6]" : "border-[#eef2f6] opacity-50 pointer-events-none"
     )}>
       <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
         <Send className="w-4 h-4 text-brand-500" />
@@ -679,13 +679,13 @@ function TestTemplateSection({ connected }: { connected: boolean }) {
             onChange={e => setPhone(e.target.value)}
             placeholder="05xxxxxxxx"
             dir="ltr"
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400"
+            className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400"
           />
         </div>
 
         <div>
           <label className="text-xs text-gray-500 block mb-1">نص الرسالة</label>
-          <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 text-xs text-gray-600 leading-relaxed">
+          <div className="bg-gray-50 border border-[#eef2f6] rounded-xl px-3 py-2.5 text-xs text-gray-600 leading-relaxed">
             {TEST_MESSAGE}
           </div>
         </div>
@@ -790,7 +790,7 @@ function CredentialsSendSection() {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-4">
       <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
         <Key className="w-4 h-4 text-brand-500" />
         إرسال بيانات الدخول للمنشأة
@@ -829,24 +829,24 @@ function CredentialsSendSection() {
             <label className="text-xs text-gray-500 block mb-1">اسم المنشأة *</label>
             <input value={form.orgName} onChange={e => setForm(f => ({ ...f, orgName: e.target.value }))}
               placeholder="مثال: شركة النور"
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="text-xs text-gray-500 block mb-1">رقم جوال المالك *</label>
             <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
               placeholder="05XXXXXXXX"
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" dir="ltr" />
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" dir="ltr" />
           </div>
           <div>
             <label className="text-xs text-gray-500 block mb-1">البريد الإلكتروني</label>
             <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
               placeholder="email@example.com"
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" dir="ltr" />
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" dir="ltr" />
           </div>
           <div>
             <label className="text-xs text-gray-500 block mb-1">رابط الدخول</label>
             <input value={form.loginUrl} onChange={e => setForm(f => ({ ...f, loginUrl: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-gray-50 text-gray-600" dir="ltr" />
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-[#f8fafc] text-gray-600" dir="ltr" />
           </div>
         </div>
       </div>
@@ -859,7 +859,7 @@ function CredentialsSendSection() {
             <label className="text-xs text-gray-500 block mb-1">كلمة المرور الجديدة *</label>
             <input value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))}
               placeholder="أدخل كلمة مرور قوية"
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 font-mono" dir="ltr" />
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 font-mono" dir="ltr" />
           </div>
           <div>
             <label className="flex items-start gap-2 cursor-pointer select-none">
@@ -867,7 +867,7 @@ function CredentialsSendSection() {
                 type="checkbox"
                 checked={resetPassword}
                 onChange={e => setResetPassword(e.target.checked)}
-                className="mt-0.5 rounded border-gray-300 text-brand-500 focus:ring-brand-400"
+                className="mt-0.5 rounded border-[#eef2f6] text-brand-500 focus:ring-brand-400"
               />
               <span className="text-xs text-gray-600 leading-relaxed">
                 تغيير كلمة المرور في قاعدة البيانات فعلياً
@@ -882,7 +882,7 @@ function CredentialsSendSection() {
 
         {/* معاينة الرسالة */}
         {form.orgName && form.password && (
-          <div className="mt-3 bg-gray-50 rounded-xl p-3 border border-gray-100">
+          <div className="mt-3 bg-[#f8fafc] rounded-xl p-3 border border-[#eef2f6]">
             <p className="text-[10px] text-gray-400 mb-1.5 font-medium">معاينة الرسالة</p>
             <pre className="text-xs text-gray-600 whitespace-pre-wrap leading-relaxed font-sans">
 {`مرحباً ${form.orgName}،
@@ -907,7 +907,7 @@ ${form.email ? `البريد الإلكتروني: ${form.email}` : `رقم ال
       <div>
         <p className="text-xs font-medium text-gray-500 mb-2">الخطوة 4 — قناة الإرسال</p>
         <select value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))}
-          className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+          className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
           <option value="whatsapp">واتساب</option>
           <option value="sms">رسالة نصية SMS</option>
         </select>
@@ -989,7 +989,7 @@ function SendMessageSection() {
 
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
             <Send className="w-4 h-4 text-brand-500" />
@@ -1021,13 +1021,13 @@ function SendMessageSection() {
             <label className="text-xs text-gray-500 block mb-1">رقم الجوال *</label>
             <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
               placeholder="05XXXXXXXX أو +966XXXXXXXXX"
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="text-xs text-gray-500 block mb-1">اسم المستلم</label>
             <input value={form.recipientName} onChange={e => setForm(f => ({ ...f, recipientName: e.target.value }))}
               placeholder="اختياري"
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
           </div>
         </div>
 
@@ -1035,7 +1035,7 @@ function SendMessageSection() {
           <div>
             <label className="text-xs text-gray-500 block mb-1">القالب</label>
             <select value={form.templateId} onChange={e => applyTemplate(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
               <option value="">— بدون قالب (رسالة حرة) —</option>
               {templates.map((t: any) => (
                 <option key={t.id} value={t.id}>{t.name} — {TEMPLATE_CATEGORIES[t.category] || t.category}</option>
@@ -1045,7 +1045,7 @@ function SendMessageSection() {
           <div>
             <label className="text-xs text-gray-500 block mb-1">قناة الإرسال</label>
             <select value={form.channel} onChange={e => setForm(f => ({ ...f, channel: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
               <option value="whatsapp">واتساب</option>
               <option value="sms">رسالة نصية SMS</option>
             </select>
@@ -1056,7 +1056,7 @@ function SendMessageSection() {
           <label className="text-xs text-gray-500 block mb-1">نص الرسالة *</label>
           <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
             rows={6} placeholder="اكتب نص الرسالة هنا... يمكنك استخدام المتغيرات مثل {{owner_name}} و {{org_name}}"
-            className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 resize-none leading-relaxed" />
+            className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400 resize-none leading-relaxed" />
           <p className="text-[10px] text-gray-400 mt-1">المتغيرات المتاحة: {"{{owner_name}}"} {"{{org_name}}"} {"{{login_url}}"} {"{{username}}"} {"{{password}}"} {"{{plan_name}}"} {"{{expiry_date}}"} {"{{message}}"}</p>
         </div>
 
@@ -1170,7 +1170,7 @@ function BulkSendModal({ templates, onClose }: { templates: any[]; onClose: () =
           <div>
             <label className="text-xs text-gray-500 block mb-1">القالب</label>
             <select value={templateId} onChange={e => applyTemplate(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
               <option value="">— رسالة حرة —</option>
               {templates.map((t: any) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
@@ -1180,7 +1180,7 @@ function BulkSendModal({ templates, onClose }: { templates: any[]; onClose: () =
           <div>
             <label className="text-xs text-gray-500 block mb-1">قناة الإرسال</label>
             <select value={channel} onChange={e => setChannel(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
               <option value="whatsapp">واتساب</option>
               <option value="sms">SMS</option>
             </select>
@@ -1191,7 +1191,7 @@ function BulkSendModal({ templates, onClose }: { templates: any[]; onClose: () =
           <label className="text-xs text-gray-500 block mb-1">نص الرسالة *</label>
           <textarea value={message} onChange={e => setMessage(e.target.value)}
             rows={4} placeholder="اكتب الرسالة... المتغيرات: {{org_name}}"
-            className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 resize-none leading-relaxed" />
+            className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400 resize-none leading-relaxed" />
         </div>
 
         {/* Org selection */}
@@ -1203,7 +1203,7 @@ function BulkSendModal({ templates, onClose }: { templates: any[]; onClose: () =
             </label>
             <div className="flex items-center gap-2">
               <select value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setSelectedIds(new Set()); }}
-                className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white">
+                className="text-xs border border-[#eef2f6] rounded-lg px-2 py-1 bg-white">
                 <option value="">كل المنشآت</option>
                 <option value="active">نشطة</option>
                 <option value="trial">تجريبية</option>
@@ -1216,14 +1216,14 @@ function BulkSendModal({ templates, onClose }: { templates: any[]; onClose: () =
           </div>
 
           {orgsLoading ? <Spinner /> : (
-            <div className="max-h-48 overflow-y-auto border border-gray-100 rounded-xl divide-y divide-gray-50">
+            <div className="max-h-48 overflow-y-auto border border-[#eef2f6] rounded-xl divide-y divide-gray-50">
               {orgs.length === 0 ? (
                 <div className="p-3 text-xs text-gray-400 text-center">لا توجد منشآت</div>
               ) : orgs.map((org: any) => (
                 <label
                   key={org.id}
                   className={clsx(
-                    "flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors",
+                    "flex items-center gap-3 px-3 py-2 cursor-pointer hover:bg-[#f8fafc] transition-colors",
                     !org.phone && "opacity-40"
                   )}
                 >
@@ -1232,7 +1232,7 @@ function BulkSendModal({ templates, onClose }: { templates: any[]; onClose: () =
                     checked={selectedIds.has(org.id)}
                     onChange={() => toggleOne(org.id)}
                     disabled={!org.phone}
-                    className="rounded border-gray-300 text-brand-500 focus:ring-brand-400"
+                    className="rounded border-[#eef2f6] text-brand-500 focus:ring-brand-400"
                   />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-gray-800 truncate">{org.name}</p>
@@ -1266,7 +1266,7 @@ function BulkSendModal({ templates, onClose }: { templates: any[]; onClose: () =
 
         {/* Actions */}
         <div className="flex gap-3 pt-2">
-          <button onClick={onClose} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+          <button onClick={onClose} className="flex-1 py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-600 hover:bg-[#f8fafc]">
             إغلاق
           </button>
           <button
@@ -1378,7 +1378,7 @@ function TemplatesSection() {
       {templates.length === 0 ? <Empty icon={FileText} text="لا توجد قوالب" /> : (
         <div className="space-y-3">
           {templates.map((tpl: any) => (
-            <div key={tpl.id} className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-sm transition-shadow">
+            <div key={tpl.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 hover:shadow-sm transition-shadow">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
@@ -1392,7 +1392,7 @@ function TemplatesSection() {
                       {TEMPLATE_CATEGORIES[tpl.category] || tpl.category}
                     </span>
                   </div>
-                  <pre className="text-xs text-gray-500 whitespace-pre-wrap leading-relaxed bg-gray-50 rounded-lg p-3 mt-2 font-sans max-h-32 overflow-y-auto">
+                  <pre className="text-xs text-gray-500 whitespace-pre-wrap leading-relaxed bg-[#f8fafc] rounded-lg p-3 mt-2 font-sans max-h-32 overflow-y-auto">
                     {tpl.body}
                   </pre>
                   {Array.isArray(tpl.variables) && tpl.variables.length > 0 && (
@@ -1405,7 +1405,7 @@ function TemplatesSection() {
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <button onClick={() => handleToggle(tpl)}
-                    className={clsx("p-1.5 rounded-lg transition-colors", tpl.isActive ? "text-emerald-500 hover:bg-emerald-50" : "text-gray-300 hover:bg-gray-50")}
+                    className={clsx("p-1.5 rounded-lg transition-colors", tpl.isActive ? "text-emerald-500 hover:bg-emerald-50" : "text-gray-300 hover:bg-[#f8fafc]")}
                     title={tpl.isActive ? "تعطيل" : "تفعيل"}>
                     {tpl.isActive ? <CheckCircle2 className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
                   </button>
@@ -1431,19 +1431,19 @@ function TemplatesSection() {
               <div>
                 <label className="text-xs text-gray-500 block mb-1">اسم القالب *</label>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+                  className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
               </div>
               <div>
                 <label className="text-xs text-gray-500 block mb-1">المعرف (slug) *</label>
                 <input value={form.slug} onChange={e => setForm(f => ({ ...f, slug: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "") }))}
                   dir="ltr" placeholder="welcome_credentials" disabled={!!editId}
-                  className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 font-mono disabled:bg-gray-100" />
+                  className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 font-mono disabled:bg-gray-100" />
               </div>
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">التصنيف</label>
               <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+                className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
                 {Object.entries(TEMPLATE_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
@@ -1451,16 +1451,16 @@ function TemplatesSection() {
               <label className="text-xs text-gray-500 block mb-1">نص القالب *</label>
               <textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))}
                 rows={8} placeholder="مرحباً {{owner_name}}،&#10;&#10;تم إنشاء حسابك..."
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 resize-none leading-relaxed" />
+                className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400 resize-none leading-relaxed" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">المتغيرات (مفصولة بفاصلة)</label>
               <input value={form.variables} onChange={e => setForm(f => ({ ...f, variables: e.target.value }))}
                 placeholder="owner_name, org_name, login_url, password"
-                dir="ltr" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 font-mono" />
+                dir="ltr" className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 font-mono" />
             </div>
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setShowForm(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowForm(false)} className="flex-1 py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button disabled={!form.name || !form.slug || !form.body || saving} onClick={handleSave}
                 className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50 flex items-center justify-center gap-2">
                 {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
@@ -1505,10 +1505,10 @@ function MessageLogSection() {
       </div>
 
       {loading ? <Spinner /> : messages.length === 0 ? <Empty icon={MessageCircle} text="لا توجد رسائل" /> : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
+              <tr className="border-b border-[#eef2f6] bg-[#f8fafc] text-xs text-gray-500">
                 <th className="text-right px-4 py-3 font-semibold">المستلم</th>
                 <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">القناة</th>
                 <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">الرسالة</th>
@@ -1518,22 +1518,22 @@ function MessageLogSection() {
             </thead>
             <tbody>
               {messages.map((msg: any) => (
-                <tr key={msg.id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                  <td className="px-4 py-3">
+                <tr key={msg.id} className="border-b border-gray-50 hover:bg-[#f8fafc] last:border-0">
+                  <td className="px-[10px] py-[6px]">
                     <p className="text-sm font-medium text-gray-800">{msg.recipientName || "—"}</p>
                     <p className="text-xs text-gray-400 font-mono" dir="ltr">{msg.recipientPhone}</p>
                   </td>
-                  <td className="px-4 py-3 hidden sm:table-cell">
+                  <td className="px-[10px] py-[6px] hidden sm:table-cell">
                     <span className={clsx("text-xs px-2 py-0.5 rounded-full font-medium",
                       msg.channel === "whatsapp" ? "bg-green-50 text-green-700" : "bg-blue-50 text-blue-700"
                     )}>
                       {msg.channel === "whatsapp" ? "واتساب" : "SMS"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 hidden md:table-cell max-w-xs">
+                  <td className="px-[10px] py-[6px] hidden md:table-cell max-w-xs">
                     <p className="text-xs text-gray-500 truncate">{msg.messageText}</p>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("text-[10px] px-2 py-0.5 rounded-full font-semibold",
                       STATUS_MAP[msg.status]?.color || "bg-gray-100 text-gray-500"
                     )}>
@@ -1543,7 +1543,7 @@ function MessageLogSection() {
                       <p className="text-[10px] text-red-400 mt-0.5 truncate max-w-[120px]">{msg.errorMessage}</p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell">
+                  <td className="px-[10px] py-[6px] text-xs text-gray-400 hidden lg:table-cell">
                     {msg.createdAt ? new Date(msg.createdAt).toLocaleString("ar") : "—"}
                   </td>
                 </tr>
@@ -1557,12 +1557,12 @@ function MessageLogSection() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-center gap-2 pt-2">
           <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-            className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40">
+            className="text-xs px-3 py-1.5 rounded-lg border border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc] disabled:opacity-40">
             السابق
           </button>
           <span className="text-xs text-gray-400">{page} / {pagination.totalPages}</span>
           <button disabled={page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}
-            className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40">
+            className="text-xs px-3 py-1.5 rounded-lg border border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc] disabled:opacity-40">
             التالي
           </button>
         </div>
@@ -1683,7 +1683,7 @@ function InviteOrgSection({ baileysConnected }: { baileysConnected: boolean }) {
     <div className="space-y-5">
 
       {/* Form card */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-4">
         <div className="flex items-center gap-2">
           <Send className="w-4 h-4 text-brand-500" />
           <h3 className="text-sm font-semibold text-gray-800">دعوة منشأة</h3>
@@ -1701,7 +1701,7 @@ function InviteOrgSection({ baileysConnected }: { baileysConnected: boolean }) {
               value={form.phone}
               onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
               placeholder="05XXXXXXXX أو +966XXXXXXXXX"
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400"
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400"
               dir="ltr"
             />
           </div>
@@ -1711,7 +1711,7 @@ function InviteOrgSection({ baileysConnected }: { baileysConnected: boolean }) {
               value={form.recipientName}
               onChange={e => setForm(f => ({ ...f, recipientName: e.target.value }))}
               placeholder="اختياري"
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400"
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400"
             />
           </div>
         </div>
@@ -1723,7 +1723,7 @@ function InviteOrgSection({ baileysConnected }: { baileysConnected: boolean }) {
             value={form.message}
             onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
             rows={5}
-            className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 resize-none"
+            className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 resize-none"
           />
         </div>
 
@@ -1734,7 +1734,7 @@ function InviteOrgSection({ baileysConnected }: { baileysConnected: boolean }) {
           </label>
           {imagePreview ? (
             <div className="flex items-start gap-3">
-              <img src={imagePreview} alt="preview" className="w-24 h-24 object-cover rounded-xl border border-gray-200" />
+              <img src={imagePreview} alt="preview" className="w-24 h-24 object-cover rounded-xl border border-[#eef2f6]" />
               <div className="space-y-1.5">
                 <p className="text-xs text-gray-500">الصورة جاهزة للإرسال</p>
                 <button
@@ -1748,7 +1748,7 @@ function InviteOrgSection({ baileysConnected }: { baileysConnected: boolean }) {
           ) : (
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="flex items-center gap-2 border border-dashed border-gray-300 rounded-xl px-4 py-3 text-xs text-gray-500 hover:border-brand-400 hover:text-brand-500 transition-colors w-full justify-center"
+              className="flex items-center gap-2 border border-dashed border-[#eef2f6] rounded-xl px-4 py-3 text-xs text-gray-500 hover:border-brand-400 hover:text-brand-500 transition-colors w-full justify-center"
             >
               <Upload className="w-4 h-4" />
               اختر صورة من جهازك
@@ -1766,7 +1766,7 @@ function InviteOrgSection({ baileysConnected }: { baileysConnected: boolean }) {
         {/* Send mode badge */}
         <div className={clsx(
           "flex items-center gap-2 rounded-xl px-3 py-2 border text-xs font-medium",
-          SEND_MODE_LABELS[sendMode]?.color || "bg-gray-50 text-gray-500 border-gray-200"
+          SEND_MODE_LABELS[sendMode]?.color || "bg-gray-50 text-gray-500 border-[#eef2f6]"
         )}>
           <Eye className="w-3.5 h-3.5 shrink-0" />
           <span>وضع الإرسال: {SEND_MODE_LABELS[sendMode]?.label}</span>
@@ -1824,10 +1824,10 @@ function InviteOrgSection({ baileysConnected }: { baileysConnected: boolean }) {
               {showPreview ? "إخفاء المعاينة" : "معاينة الرسالة"}
             </button>
             {showPreview && (
-              <div className="mt-2 bg-gray-50 border border-gray-200 rounded-xl p-3 space-y-2">
+              <div className="mt-2 bg-[#f8fafc] border border-[#eef2f6] rounded-xl p-3 space-y-2">
                 <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">معاينة</p>
                 {imagePreview && (
-                  <img src={imagePreview} alt="attachment" className="w-40 rounded-xl border border-gray-200" />
+                  <img src={imagePreview} alt="attachment" className="w-40 rounded-xl border border-[#eef2f6]" />
                 )}
                 <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{form.message}</p>
                 <p className={clsx(
@@ -1853,8 +1853,8 @@ function InviteOrgSection({ baileysConnected }: { baileysConnected: boolean }) {
       </div>
 
       {/* Invite log */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef2f6]">
           <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
             <MessageCircle className="w-4 h-4 text-brand-500" />
             سجل الدعوات المرسلة
@@ -1872,7 +1872,7 @@ function InviteOrgSection({ baileysConnected }: { baileysConnected: boolean }) {
           <>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
+                <tr className="border-b border-[#eef2f6] bg-[#f8fafc] text-xs text-gray-500">
                   <th className="text-right px-4 py-3 font-semibold">المستلم</th>
                   <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">وضع الإرسال</th>
                   <th className="text-right px-4 py-3 font-semibold">الحالة</th>
@@ -1881,25 +1881,25 @@ function InviteOrgSection({ baileysConnected }: { baileysConnected: boolean }) {
               </thead>
               <tbody>
                 {logData.data.map((msg: any) => (
-                  <tr key={msg.id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                    <td className="px-4 py-3">
+                  <tr key={msg.id} className="border-b border-gray-50 hover:bg-[#f8fafc] last:border-0">
+                    <td className="px-[10px] py-[6px]">
                       <p className="text-sm font-medium text-gray-800">{msg.recipientName || "—"}</p>
                       <p className="text-xs text-gray-400 font-mono" dir="ltr">{msg.recipientPhone}</p>
                     </td>
-                    <td className="px-4 py-3 hidden sm:table-cell">
+                    <td className="px-[10px] py-[6px] hidden sm:table-cell">
                       <span className="flex items-center gap-1 text-xs text-gray-500">
                         {msg.attachmentUrl ? <ImageIcon className="w-3.5 h-3.5 text-brand-400" /> : null}
                         {msg.attachmentUrl ? "مع صورة" : "نص فقط"}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <span className={clsx("text-[10px] px-2 py-0.5 rounded-full font-semibold",
                         STATUS_MAP[msg.status]?.color || "bg-gray-100 text-gray-500"
                       )}>
                         {STATUS_MAP[msg.status]?.label || msg.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400 hidden md:table-cell">
+                    <td className="px-[10px] py-[6px] text-xs text-gray-400 hidden md:table-cell">
                       {msg.createdAt ? new Date(msg.createdAt).toLocaleString("ar") : "—"}
                     </td>
                   </tr>
@@ -1908,14 +1908,14 @@ function InviteOrgSection({ baileysConnected }: { baileysConnected: boolean }) {
             </table>
 
             {logData.pagination?.totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-gray-100">
+              <div className="flex items-center justify-center gap-2 px-4 py-3 border-t border-[#eef2f6]">
                 <button disabled={logPage <= 1} onClick={() => setLogPage(p => p - 1)}
-                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40">
+                  className="text-xs px-3 py-1.5 rounded-lg border border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc] disabled:opacity-40">
                   السابق
                 </button>
                 <span className="text-xs text-gray-400">{logPage} / {logData.pagination.totalPages}</span>
                 <button disabled={logPage >= logData.pagination.totalPages} onClick={() => setLogPage(p => p + 1)}
-                  className="text-xs px-3 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-40">
+                  className="text-xs px-3 py-1.5 rounded-lg border border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc] disabled:opacity-40">
                   التالي
                 </button>
               </div>

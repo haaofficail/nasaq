@@ -129,7 +129,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
 
       {!detail ? <Spinner /> : (
         <>
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
             <div className="flex items-start justify-between gap-4 flex-wrap">
               <div className="flex items-center gap-4">
                 <div className="relative group">
@@ -201,7 +201,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
             <TabPill tabs={tabs} active={tab} onChange={setTab} />
 
             {tab === "summary" && (
@@ -260,21 +260,21 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                   {notesEditing ? (
                     <div className="space-y-2">
                       <textarea value={notesVal} onChange={(e) => setNotesVal(e.target.value)}
-                        rows={3} className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none resize-none" />
+                        rows={3} className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none resize-none" />
                       <button onClick={async () => { await saveNotes(notesVal); setNotesEditing(false); refetchDetail(); }}
                         className="px-4 py-1.5 bg-brand-500 text-white text-xs rounded-xl hover:bg-brand-600 font-medium">
                         حفظ
                       </button>
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-600 bg-gray-50 rounded-xl p-3">{detail.adminNotes || "لا توجد ملاحظات"}</p>
+                    <p className="text-sm text-gray-600 bg-[#f8fafc] rounded-xl p-3">{detail.adminNotes || "لا توجد ملاحظات"}</p>
                   )}
                 </div>
 
                 {/* Logo shortcut */}
                 <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex items-center justify-center">
+                    <div className="w-9 h-9 rounded-[10px] bg-[#f8fafc] border border-[#eef2f6] overflow-hidden flex items-center justify-center">
                       {detail.logo
                         ? <img src={detail.logo} alt="شعار" className="w-full h-full object-contain" />
                         : <span className="text-brand-600 font-bold">{detail.name?.[0] || "م"}</span>
@@ -308,12 +308,12 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                     تعديل الباقة والاشتراك
                   </button>
                 ) : (
-                  <div className="space-y-3 border border-gray-100 rounded-xl p-4">
+                  <div className="space-y-3 border border-[#eef2f6] rounded-xl p-4">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <label className="text-xs text-gray-500 block mb-1">الباقة</label>
                         <select value={planForm.plan} onChange={(e) => setPlanForm({ ...planForm, plan: e.target.value })}
-                          className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none">
+                          className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none">
                           <option value="basic">الأساسي</option>
                           <option value="advanced">المتقدم</option>
                           <option value="pro">الاحترافي</option>
@@ -323,7 +323,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                       <div>
                         <label className="text-xs text-gray-500 block mb-1">حالة الاشتراك</label>
                         <select value={planForm.subscriptionStatus} onChange={(e) => setPlanForm({ ...planForm, subscriptionStatus: e.target.value })}
-                          className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none">
+                          className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none">
                           <option value="trialing">تجربة</option>
                           <option value="active">نشط</option>
                           <option value="past_due">متأخر</option>
@@ -336,16 +336,16 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                       <div>
                         <label className="text-xs text-gray-500 block mb-1">نهاية التجربة</label>
                         <input type="date" value={planForm.trialEndsAt} onChange={(e) => setPlanForm({ ...planForm, trialEndsAt: e.target.value })}
-                          className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none" />
+                          className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none" />
                       </div>
                       <div>
                         <label className="text-xs text-gray-500 block mb-1">نهاية الاشتراك</label>
                         <input type="date" value={planForm.subscriptionEndsAt} onChange={(e) => setPlanForm({ ...planForm, subscriptionEndsAt: e.target.value })}
-                          className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none" />
+                          className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none" />
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => setShowPlanEdit(false)} className="flex-1 py-2 border border-gray-200 rounded-xl text-sm text-gray-600">إلغاء</button>
+                      <button onClick={() => setShowPlanEdit(false)} className="flex-1 py-2 border border-[#eef2f6] rounded-xl text-sm text-gray-600">إلغاء</button>
                       <button disabled={changingPlan} onClick={async () => {
                         const p: any = {};
                         if (planForm.plan) p.plan = planForm.plan;
@@ -394,7 +394,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                             setActiveCaps(enabled ? base.filter((k: string) => k !== c.key) : [...base, c.key]);
                           }}
                             className={clsx("flex items-center gap-2 p-2.5 rounded-xl border text-xs font-medium text-right transition-all",
-                              enabled ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-gray-100 bg-gray-50 text-gray-400",
+                              enabled ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-[#eef2f6] bg-[#f8fafc] text-gray-400",
                               capEditing ? "cursor-pointer hover:opacity-80" : "cursor-default"
                             )}>
                             {enabled ? <ToggleRight className="w-3.5 h-3.5 text-emerald-500 shrink-0" /> : <ToggleLeft className="w-3.5 h-3.5 text-gray-300 shrink-0" />}
@@ -411,22 +411,22 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
             {tab === "users" && (
               <div className="space-y-3">
                 {orgUsers.length === 0 ? <Empty icon={Users} text="لا يوجد مستخدمون" /> : (
-                  <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+                  <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
+                        <tr className="border-b border-[#eef2f6] bg-[#f8fafc] text-xs text-gray-500">
                           <th className="text-right px-4 py-3 font-semibold">المستخدم</th>
                           <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">الدور</th>
                           <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">المسمى</th>
                           <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">الحالة</th>
                           <th className="text-right px-4 py-3 font-semibold hidden lg:table-cell">تاريخ الإنشاء</th>
-                          <th className="px-4 py-3 font-semibold text-right">الإجراءات</th>
+                          <th className="px-[10px] py-[6px] font-semibold text-right">الإجراءات</th>
                         </tr>
                       </thead>
                       <tbody>
                         {orgUsers.map((u: any) => (
-                          <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                            <td className="px-4 py-3">
+                          <tr key={u.id} className="border-b border-gray-50 hover:bg-[#f8fafc] last:border-0">
+                            <td className="px-[10px] py-[6px]">
                               <div className="flex items-center gap-3">
                                 <div className="w-9 h-9 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-sm shrink-0">
                                   {u.name?.[0] || "م"}
@@ -437,7 +437,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-3 hidden sm:table-cell">
+                            <td className="px-[10px] py-[6px] hidden sm:table-cell">
                               <span className={clsx(
                                 "inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold",
                                 u.type === "owner" ? "bg-amber-50 text-amber-700" : u.type === "manager" ? "bg-blue-50 text-blue-700" : "bg-gray-100 text-gray-500"
@@ -445,8 +445,8 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                                 {u.type === "owner" ? "مالك" : u.type === "manager" ? "مدير" : u.type === "staff" ? "موظف" : u.type}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-gray-500 text-xs hidden md:table-cell">{u.jobTitle || "—"}</td>
-                            <td className="px-4 py-3 hidden md:table-cell">
+                            <td className="px-[10px] py-[6px] text-gray-500 text-xs hidden md:table-cell">{u.jobTitle || "—"}</td>
+                            <td className="px-[10px] py-[6px] hidden md:table-cell">
                               <span className={clsx(
                                 "inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold",
                                 u.status === "active" ? "bg-emerald-50 text-emerald-700" : u.status === "suspended" ? "bg-red-50 text-red-600" : "bg-gray-100 text-gray-500"
@@ -454,10 +454,10 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                                 {u.status === "active" ? "نشط" : u.status === "suspended" ? "موقوف" : u.status === "inactive" ? "غير نشط" : u.status || "—"}
                               </span>
                             </td>
-                            <td className="px-4 py-3 text-gray-400 text-xs hidden lg:table-cell">
+                            <td className="px-[10px] py-[6px] text-gray-400 text-xs hidden lg:table-cell">
                               {u.createdAt ? new Date(u.createdAt).toLocaleDateString("ar") : "—"}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-[10px] py-[6px]">
                               <div className="flex items-center gap-1.5">
                                 <button
                                   onClick={() => {
@@ -506,7 +506,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                       className="text-xs text-red-500 hover:text-red-600 font-medium">إلغاء التعيين</button>
                   </div>
                 ) : (
-                  <div className="p-4 bg-gray-50 border border-gray-100 rounded-xl text-sm text-gray-400 text-center">
+                  <div className="p-4 bg-[#f8fafc] border border-[#eef2f6] rounded-xl text-sm text-gray-400 text-center">
                     لم يتم تعيين مدير حساب لهذه المنشأة
                   </div>
                 )}
@@ -515,7 +515,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                     <p className="text-xs text-gray-400 font-medium">فريق ترميز OS المتاح</p>
                     {staffList.map((s: any) => (
                       <div key={s.id} className={clsx("flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all",
-                        detail.accountManagerId === s.id ? "border-brand-200 bg-brand-50" : "border-gray-100 hover:bg-gray-50"
+                        detail.accountManagerId === s.id ? "border-brand-200 bg-brand-50" : "border-[#eef2f6] hover:bg-[#f8fafc]"
                       )} onClick={async () => { await setManager(s.id); refetchDetail(); }}>
                         <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 font-bold text-sm">{s.name?.[0]}</div>
                         <div className="flex-1">
@@ -538,7 +538,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
         <div className="space-y-4">
           {/* Preview */}
           <div className="flex justify-center">
-            <div className="w-28 h-28 rounded-2xl bg-gray-50 border-2 border-gray-100 flex items-center justify-center overflow-hidden">
+            <div className="w-28 h-28 rounded-2xl bg-[#f8fafc] border-2 border-[#eef2f6] flex items-center justify-center overflow-hidden">
               {logoPreview
                 ? <img src={logoPreview} alt="معاينة" className="w-full h-full object-contain" />
                 : detail?.logo
@@ -558,7 +558,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
             onDrop={handleLogoDrop}
             onClick={() => logoFileRef.current?.click()}
             className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors ${
-              logoDragging ? "border-brand-400 bg-brand-50" : "border-gray-200 hover:border-brand-300 hover:bg-gray-50"
+              logoDragging ? "border-brand-400 bg-brand-50" : "border-[#eef2f6] hover:border-brand-300 hover:bg-[#f8fafc]"
             }`}
           >
             <ImagePlus className="w-8 h-8 text-gray-300 mx-auto mb-2" />
@@ -570,7 +570,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
 
           <div className="flex gap-3">
             <button onClick={() => { setLogoEditing(false); setLogoFile(null); setLogoPreview(""); }}
-              className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600">
+              className="flex-1 py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-600">
               إلغاء
             </button>
             <button onClick={handleLogoSave} disabled={!logoFile || logoUploading}
@@ -586,9 +586,9 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
           <p className="text-sm text-gray-500">سيتم تقييد وصول المنشأة فوراً. أدخل سبب الإيقاف.</p>
           <textarea value={suspendReason} onChange={(e) => setSuspendReason(e.target.value)}
             placeholder="سبب الإيقاف..." rows={3}
-            className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none resize-none" />
+            className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none resize-none" />
           <div className="flex gap-3">
-            <button onClick={() => setSuspendModal(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600">إلغاء</button>
+            <button onClick={() => setSuspendModal(false)} className="flex-1 py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-600">إلغاء</button>
             <button onClick={async () => { await suspend(suspendReason); setSuspendModal(false); onBack(); }}
               className="flex-1 py-2.5 bg-red-500 text-white rounded-xl text-sm hover:bg-red-600 font-medium">
               تأكيد الإيقاف
@@ -613,7 +613,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                   onChange={(e) => setUserPw(e.target.value)}
                   placeholder="أدخل كلمة المرور (6 أحرف على الأقل)"
                   dir="ltr"
-                  className="w-full border border-gray-200 rounded-xl p-3 pe-20 text-sm outline-none focus:border-brand-400 font-mono"
+                  className="w-full border border-[#eef2f6] rounded-xl p-3 pe-20 text-sm outline-none focus:border-brand-400 font-mono"
                 />
                 <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                   <button type="button" onClick={() => setUserPwVisible(!userPwVisible)}
@@ -635,13 +635,13 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
                 setUserPw(generateSecurePassword());
                 setUserPwVisible(true);
               }}
-              className="w-full py-2.5 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 border border-dashed border-[#eef2f6] rounded-xl text-sm text-gray-500 hover:bg-[#f8fafc] transition-colors flex items-center justify-center gap-2"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               توليد كلمة مرور عشوائية
             </button>
             <div className="flex gap-3 pt-1">
-              <button onClick={() => setUserPwModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setUserPwModal(null)} className="flex-1 py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button
                 disabled={!userPw || userPw.length < 6 || userPwSaving}
                 onClick={async () => {
@@ -678,39 +678,39 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
             <div>
               <label className="text-xs text-gray-500 block mb-1">اسم المنشأة *</label>
               <input value={editOrgForm.name || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, name: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+                className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">الاسم بالإنجليزية</label>
               <input value={editOrgForm.nameEn || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, nameEn: e.target.value })}
-                dir="ltr" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+                dir="ltr" className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">الـ Slug</label>
               <input value={editOrgForm.slug || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "") })}
-                dir="ltr" placeholder="company-slug" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 font-mono" />
+                dir="ltr" placeholder="company-slug" className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 font-mono" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">نوع النشاط</label>
               <select value={editOrgForm.businessType || "general"} onChange={(e) => setEditOrgForm({ ...editOrgForm, businessType: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+                className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
                 {Object.entries(BUSINESS_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">الهاتف</label>
               <input value={editOrgForm.phone || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, phone: e.target.value })}
-                placeholder="05XXXXXXXX" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+                placeholder="05XXXXXXXX" className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">البريد الإلكتروني</label>
               <input value={editOrgForm.email || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, email: e.target.value })}
-                dir="ltr" placeholder="info@company.com" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+                dir="ltr" placeholder="info@company.com" className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">المدينة</label>
               <select value={editOrgForm.city || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, city: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+                className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
                 <option value="">— اختر المدينة —</option>
                 {SAUDI_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -718,26 +718,26 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
             <div>
               <label className="text-xs text-gray-500 block mb-1">الموقع الإلكتروني</label>
               <input value={editOrgForm.website || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, website: e.target.value })}
-                dir="ltr" placeholder="https://example.com" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+                dir="ltr" placeholder="https://example.com" className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
             </div>
             <div className="col-span-2">
               <label className="text-xs text-gray-500 block mb-1">العنوان</label>
               <input value={editOrgForm.address || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, address: e.target.value })}
-                placeholder="العنوان الكامل" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+                placeholder="العنوان الكامل" className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">السجل التجاري</label>
               <input value={editOrgForm.commercialRegister || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, commercialRegister: e.target.value })}
-                dir="ltr" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+                dir="ltr" className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">الرقم الضريبي</label>
               <input value={editOrgForm.vatNumber || ""} onChange={(e) => setEditOrgForm({ ...editOrgForm, vatNumber: e.target.value })}
-                dir="ltr" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+                dir="ltr" className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
             </div>
           </div>
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setEditOrgOpen(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+            <button onClick={() => setEditOrgOpen(false)} className="flex-1 py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
             <button
               disabled={editOrgSaving || !editOrgForm.name}
               onClick={async () => {
@@ -781,27 +781,27 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
             <div>
               <label className="text-xs text-gray-500 block mb-1">الاسم *</label>
               <input value={editUserForm.name || ""} onChange={(e) => setEditUserForm({ ...editUserForm, name: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+                className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">البريد الإلكتروني</label>
               <input value={editUserForm.email || ""} onChange={(e) => setEditUserForm({ ...editUserForm, email: e.target.value })}
-                dir="ltr" placeholder="user@example.com" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+                dir="ltr" placeholder="user@example.com" className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">الجوال</label>
               <input value={editUserForm.phone || ""} onChange={(e) => setEditUserForm({ ...editUserForm, phone: e.target.value })}
-                placeholder="05XXXXXXXX" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+                placeholder="05XXXXXXXX" className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">المسمى الوظيفي</label>
               <input value={editUserForm.jobTitle || ""} onChange={(e) => setEditUserForm({ ...editUserForm, jobTitle: e.target.value })}
-                placeholder="مثال: مدير العمليات" className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
+                placeholder="مثال: مدير العمليات" className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">حالة الحساب</label>
               <select value={editUserForm.status || "active"} onChange={(e) => setEditUserForm({ ...editUserForm, status: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
+                className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-400 bg-white">
                 <option value="active">نشط</option>
                 <option value="inactive">غير نشط</option>
                 <option value="suspended">موقوف</option>
@@ -813,7 +813,7 @@ function OrgDetail({ org, onBack }: { org: any; onBack: () => void }) {
               </div>
             )}
             <div className="flex gap-3 pt-2">
-              <button onClick={() => setEditUserModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setEditUserModal(null)} className="flex-1 py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button
                 disabled={editUserSaving || !editUserForm.name}
                 onClick={async () => {
@@ -913,13 +913,13 @@ function OrgsTab() {
       />
 
       <div className="flex flex-wrap gap-2">
-        <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 flex-1 min-w-48">
+        <div className="flex items-center gap-2 bg-white border border-[#eef2f6] rounded-xl px-3 py-2 flex-1 min-w-48">
           <Search className="w-4 h-4 text-gray-400 shrink-0" />
           <input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="بحث بالاسم أو الـ slug..."
             className="flex-1 text-sm outline-none bg-transparent" />
         </div>
         <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
           <option value="">كل الحالات</option>
           <option value="active">نشط</option>
           <option value="trialing">تجربة</option>
@@ -927,7 +927,7 @@ function OrgsTab() {
           <option value="suspended">موقوف</option>
         </select>
         <select value={planFilter} onChange={(e) => { setPlanFilter(e.target.value); setPage(1); }}
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
           <option value="">كل الباقات</option>
           <option value="basic">الأساسي</option>
           <option value="advanced">المتقدم</option>
@@ -935,31 +935,31 @@ function OrgsTab() {
           <option value="enterprise">المؤسسي</option>
         </select>
         <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
           <option value="">كل الأنواع</option>
           {Object.entries(BUSINESS_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
       </div>
 
       {loading ? <Spinner /> : orgs.length === 0 ? <Empty icon={Building2} text="لا توجد منشآت" /> : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
+              <tr className="border-b border-[#eef2f6] bg-[#f8fafc] text-xs text-gray-500">
                 <th className="text-right px-4 py-3 font-semibold">المنشأة</th>
                 <th className="text-right px-4 py-3 font-semibold hidden sm:table-cell">النوع</th>
                 <th className="text-right px-4 py-3 font-semibold">الباقة</th>
                 <th className="text-right px-4 py-3 font-semibold">الحالة</th>
                 <th className="text-right px-4 py-3 font-semibold hidden lg:table-cell">ينتهي في</th>
                 <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">تاريخ الإنشاء</th>
-                <th className="px-4 py-3"></th>
+                <th className="px-[10px] py-[6px]"></th>
               </tr>
             </thead>
             <tbody>
               {orgs.map((org: any) => (
                 <tr key={org.id} onClick={() => setSelectedOrg(org)}
-                  className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors last:border-0">
-                  <td className="px-4 py-3">
+                  className="border-b border-gray-50 hover:bg-[#f8fafc] cursor-pointer transition-colors last:border-0">
+                  <td className="px-[10px] py-[6px]">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center text-brand-600 font-bold text-sm shrink-0">
                         {org.name[0]}
@@ -974,12 +974,12 @@ function OrgsTab() {
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-gray-500 text-xs hidden sm:table-cell">
+                  <td className="px-[10px] py-[6px] text-gray-500 text-xs hidden sm:table-cell">
                     {BUSINESS_TYPES[org.businessType] || org.businessType}
                   </td>
-                  <td className="px-4 py-3"><PlanBadge plan={org.plan} /></td>
-                  <td className="px-4 py-3"><StatusBadge status={org.subscriptionStatus} /></td>
-                  <td className="px-4 py-3 text-gray-500 text-xs hidden lg:table-cell">
+                  <td className="px-[10px] py-[6px]"><PlanBadge plan={org.plan} /></td>
+                  <td className="px-[10px] py-[6px]"><StatusBadge status={org.subscriptionStatus} /></td>
+                  <td className="px-[10px] py-[6px] text-gray-500 text-xs hidden lg:table-cell">
                     {org.subscriptionEndsAt
                       ? (() => {
                           const d = Math.ceil((new Date(org.subscriptionEndsAt).getTime() - Date.now()) / 86400000);
@@ -991,10 +991,10 @@ function OrgsTab() {
                         })()
                       : "—"}
                   </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs hidden md:table-cell">
+                  <td className="px-[10px] py-[6px] text-gray-400 text-xs hidden md:table-cell">
                     {org.createdAt ? new Date(org.createdAt).toLocaleDateString("ar") : "—"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <div className="flex items-center gap-1 justify-end" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => { setAddonsModal({ orgId: org.id, orgName: org.name }); }}
@@ -1042,11 +1042,11 @@ function OrgsTab() {
           <p className="text-xs text-gray-400">{pagination.total} منشأة · صفحة {page} من {pagination.totalPages}</p>
           <div className="flex gap-2">
             <button disabled={page <= 1} onClick={() => setPage(page - 1)}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-xl disabled:opacity-40 hover:bg-gray-50">
+              className="px-3 py-1.5 text-sm border border-[#eef2f6] rounded-xl disabled:opacity-40 hover:bg-[#f8fafc]">
               السابق
             </button>
             <button disabled={page >= pagination.totalPages} onClick={() => setPage(page + 1)}
-              className="px-3 py-1.5 text-sm border border-gray-200 rounded-xl disabled:opacity-40 hover:bg-gray-50">
+              className="px-3 py-1.5 text-sm border border-[#eef2f6] rounded-xl disabled:opacity-40 hover:bg-[#f8fafc]">
               التالي
             </button>
           </div>
@@ -1066,7 +1066,7 @@ function OrgsTab() {
                     <span className="text-gray-400 font-sans text-xs">رابط الدخول</span>
                     <span className="text-gray-900 select-all text-xs" dir="ltr">{window.location.origin}/login</span>
                   </div>
-                  <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-2">
+                  <div className="flex justify-between items-center border-t border-[#eef2f6] pt-2 mt-2">
                     <span className="text-gray-400 font-sans text-xs">كلمة المرور الجديدة</span>
                     <span className="text-brand-600 font-bold select-all" dir="ltr">{resetPw}</span>
                   </div>
@@ -1077,7 +1077,7 @@ function OrgsTab() {
                       const text = `بيانات الدخول الجديدة لمنصة ترميز OS:\n\nرابط الدخول: ${window.location.origin}/login\nكلمة المرور الجديدة: ${resetPw}\n\nيرجى تغيير كلمة المرور بعد تسجيل الدخول.`;
                       navigator.clipboard.writeText(text);
                     }}
-                    className="py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2 font-medium"
+                    className="py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-700 hover:bg-[#f8fafc] flex items-center justify-center gap-2 font-medium"
                   >
                     <Copy className="w-4 h-4" /> نسخ الكل
                   </button>
@@ -1093,7 +1093,7 @@ function OrgsTab() {
                   </button>
                 </div>
                 <button onClick={() => { setResetPwModal(null); setResetPwDone(false); setResetPw(""); }}
-                  className="w-full py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+                  className="w-full py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-600 hover:bg-[#f8fafc]">
                   إغلاق
                 </button>
               </>
@@ -1111,7 +1111,7 @@ function OrgsTab() {
                       onChange={(e) => setResetPw(e.target.value)}
                       placeholder="أدخل كلمة المرور (6 أحرف على الأقل)"
                       dir="ltr"
-                      className="w-full border border-gray-200 rounded-xl p-3 pe-20 text-sm outline-none focus:border-brand-400 font-mono"
+                      className="w-full border border-[#eef2f6] rounded-xl p-3 pe-20 text-sm outline-none focus:border-brand-400 font-mono"
                     />
                     <div className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
                       <button type="button" onClick={() => setResetPwVisible(!resetPwVisible)}
@@ -1133,13 +1133,13 @@ function OrgsTab() {
                     setResetPw(generateSecurePassword());
                     setResetPwVisible(true);
                   }}
-                  className="w-full py-2.5 border border-dashed border-gray-300 rounded-xl text-sm text-gray-500 hover:bg-gray-50 transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-2.5 border border-dashed border-[#eef2f6] rounded-xl text-sm text-gray-500 hover:bg-[#f8fafc] transition-colors flex items-center justify-center gap-2"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   توليد كلمة مرور عشوائية
                 </button>
                 <div className="flex gap-3 pt-1">
-                  <button onClick={() => { setResetPwModal(null); setResetPwDone(false); }} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+                  <button onClick={() => { setResetPwModal(null); setResetPwDone(false); }} className="flex-1 py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
                   <button
                     disabled={!resetPw || resetPw.length < 6 || resetPwSaving}
                     onClick={async () => {
@@ -1179,7 +1179,7 @@ function OrgsTab() {
                   {PLAN_MAP[renewModal.plan]?.price ? `${PLAN_MAP[renewModal.plan].price} ر.س / سنة` : "حسب الطلب"}
                 </span>
               </div>
-              <div className="flex justify-between border-t border-gray-200 pt-2 mt-2">
+              <div className="flex justify-between border-t border-[#eef2f6] pt-2 mt-2">
                 <span className="text-gray-500">تمديد حتى</span>
                 <span className="font-semibold text-emerald-700 font-mono">
                   {new Date((renewModal.subscriptionEndsAt ? Math.max(new Date(renewModal.subscriptionEndsAt).getTime(), Date.now()) : Date.now()) + 365 * 24 * 60 * 60 * 1000).toLocaleDateString("ar")}
@@ -1187,7 +1187,7 @@ function OrgsTab() {
               </div>
             </div>
             <div className="flex gap-3 pt-1">
-              <button onClick={() => setRenewModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setRenewModal(null)} className="flex-1 py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button
                 disabled={renewing}
                 onClick={async () => {
@@ -1230,7 +1230,7 @@ function OrgsTab() {
                   <span className="text-gray-900 select-all" dir="ltr">{credentialsModal.phone}</span>
                 </div>
               )}
-              <div className="flex justify-between items-center border-t border-gray-200 pt-2 mt-2">
+              <div className="flex justify-between items-center border-t border-[#eef2f6] pt-2 mt-2">
                 <span className="text-gray-400 font-sans text-xs">كلمة المرور</span>
                 <span className="text-brand-600 font-bold select-all" dir="ltr">{credentialsModal.password}</span>
               </div>
@@ -1241,7 +1241,7 @@ function OrgsTab() {
                   const text = `بيانات الدخول لمنصة ترميز OS:\n\nرابط الدخول: ${window.location.origin}/login\n${credentialsModal.email ? `الإيميل: ${credentialsModal.email}\n` : ""}${credentialsModal.phone ? `الجوال: ${credentialsModal.phone}\n` : ""}كلمة المرور: ${credentialsModal.password}`;
                   navigator.clipboard.writeText(text);
                 }}
-                className="py-2.5 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 flex items-center justify-center gap-2 font-medium"
+                className="py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-700 hover:bg-[#f8fafc] flex items-center justify-center gap-2 font-medium"
               >
                 <Copy className="w-4 h-4" /> نسخ الكل
               </button>
@@ -1257,7 +1257,7 @@ function OrgsTab() {
               </button>
             </div>
             <button onClick={() => setCredentialsModal(null)}
-              className="w-full py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+              className="w-full py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-600 hover:bg-[#f8fafc]">
               إغلاق
             </button>
           </div>
@@ -1270,14 +1270,14 @@ function OrgsTab() {
             <div>
               <label className="text-xs text-gray-500 block mb-1">الباقة</label>
               <select value={planForm.plan} onChange={e => setPlanForm(p => ({ ...p, plan: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 bg-white">
+                className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400 bg-white">
                 {PLANS.map(p => <option key={p.key} value={p.key}>{p.name} — {p.price > 0 ? `${p.price} ر.س` : "حسب الطلب"}</option>)}
               </select>
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">الحالة</label>
               <select value={planForm.subscriptionStatus} onChange={e => setPlanForm(p => ({ ...p, subscriptionStatus: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 bg-white">
+                className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400 bg-white">
                 <option value="trialing">تجربة</option>
                 <option value="active">نشط</option>
                 <option value="past_due">متأخر</option>
@@ -1289,10 +1289,10 @@ function OrgsTab() {
               <label className="text-xs text-gray-500 block mb-1">تاريخ الانتهاء</label>
               <input type="date" value={planForm.subscriptionEndsAt}
                 onChange={e => setPlanForm(p => ({ ...p, subscriptionEndsAt: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
+                className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
             </div>
             <div className="flex gap-3 pt-1">
-              <button onClick={() => setPlanModal(null)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setPlanModal(null)} className="flex-1 py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button
                 disabled={changingPlan}
                 onClick={async () => {
@@ -1324,7 +1324,7 @@ function OrgsTab() {
               ) : (
                 <div className="space-y-1.5">
                   {(addonsData?.data ?? []).filter((a: any) => a.isActive).map((a: any) => (
-                    <div key={a.id} className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-xl">
+                    <div key={a.id} className="flex items-center justify-between px-3 py-2 bg-[#f8fafc] rounded-xl">
                       <span className="text-sm text-gray-700">{a.addonName}</span>
                       <button
                         onClick={async () => {
@@ -1340,11 +1340,11 @@ function OrgsTab() {
                 </div>
               )}
             </div>
-            <div className="border-t border-gray-100 pt-4">
+            <div className="border-t border-[#eef2f6] pt-4">
               <p className="text-xs font-semibold text-gray-500 mb-2">إضافة جديدة</p>
               <div className="flex gap-2">
                 <select value={newAddonKey} onChange={e => setNewAddonKey(e.target.value)}
-                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 bg-white">
+                  className="flex-1 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 bg-white">
                   <option value="">اختر الإضافة</option>
                   {ADDONS.map(a => <option key={a.key} value={a.key}>{a.name}</option>)}
                 </select>
@@ -1365,7 +1365,7 @@ function OrgsTab() {
               </div>
             </div>
             <button onClick={() => setAddonsModal(null)}
-              className="w-full py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
+              className="w-full py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-600 hover:bg-[#f8fafc]">
               إغلاق
             </button>
           </div>
@@ -1378,17 +1378,17 @@ function OrgsTab() {
             <div className="col-span-2">
               <label className="text-xs text-gray-500 block mb-1">اسم المنشأة *</label>
               <input value={createForm.name} onChange={(e) => setCreateForm({ ...createForm, name: e.target.value })}
-                placeholder="مثال: صالون نور" className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
+                placeholder="مثال: صالون نور" className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">الاسم بالإنجليزي (slug)</label>
               <input value={createForm.nameEn} onChange={(e) => setCreateForm({ ...createForm, nameEn: e.target.value })}
-                placeholder="salon-noor" dir="ltr" className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
+                placeholder="salon-noor" dir="ltr" className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">المدينة</label>
               <select value={createForm.city} onChange={(e) => setCreateForm({ ...createForm, city: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400 bg-white">
+                className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400 bg-white">
                 <option value="">— اختر المدينة —</option>
                 {SAUDI_CITIES.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
@@ -1396,14 +1396,14 @@ function OrgsTab() {
             <div>
               <label className="text-xs text-gray-500 block mb-1">نوع النشاط</label>
               <select value={createForm.businessType} onChange={(e) => setCreateForm({ ...createForm, businessType: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400">
+                className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400">
                 {Object.entries(BUSINESS_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">الباقة</label>
               <select value={createForm.plan} onChange={(e) => setCreateForm({ ...createForm, plan: e.target.value })}
-                className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400">
+                className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400">
                 <option value="basic">الأساسي — 199 ر.س</option>
                 <option value="advanced">المتقدم — 499 ر.س</option>
                 <option value="pro">الاحترافي — 999 ر.س</option>
@@ -1413,45 +1413,45 @@ function OrgsTab() {
             <div>
               <label className="text-xs text-gray-500 block mb-1">الجوال</label>
               <input value={createForm.phone} onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
-                placeholder="05XXXXXXXX" className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
+                placeholder="05XXXXXXXX" className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">البريد الإلكتروني</label>
               <input value={createForm.email} onChange={(e) => setCreateForm({ ...createForm, email: e.target.value })}
-                placeholder="info@company.com" dir="ltr" className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
+                placeholder="info@company.com" dir="ltr" className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
             </div>
           </div>
 
-          <div className="border-t border-gray-100 pt-3">
+          <div className="border-t border-[#eef2f6] pt-3">
             <p className="text-xs font-medium text-gray-500 mb-2">بيانات المالك (اختياري — لتفعيل الدخول فوراً)</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-gray-500 block mb-1">اسم المالك</label>
                 <input value={createForm.ownerName} onChange={(e) => setCreateForm({ ...createForm, ownerName: e.target.value })}
-                  placeholder="أحمد محمد" className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
+                  placeholder="أحمد محمد" className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
               </div>
               <div>
                 <label className="text-xs text-gray-500 block mb-1">جوال المالك</label>
                 <input value={createForm.ownerPhone} onChange={(e) => setCreateForm({ ...createForm, ownerPhone: e.target.value })}
-                  placeholder="05XXXXXXXX" className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
+                  placeholder="05XXXXXXXX" className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
               </div>
               <div className="col-span-2">
                 <label className="text-xs text-gray-500 block mb-1">إيميل المالك <span className="text-brand-500 font-medium">(للدخول)</span></label>
                 <input type="email" value={createForm.ownerEmail} onChange={(e) => setCreateForm({ ...createForm, ownerEmail: e.target.value })}
                   placeholder="owner@company.com" dir="ltr"
-                  className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
+                  className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
               </div>
               <div className="col-span-2">
                 <label className="text-xs text-gray-500 block mb-1">كلمة المرور</label>
                 <input type="password" value={createForm.ownerPassword} onChange={(e) => setCreateForm({ ...createForm, ownerPassword: e.target.value })}
                   placeholder="سيتم إنشاء كلمة مرور تلقائية إذا تُرك فارغاً" dir="ltr"
-                  className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
+                  className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
               </div>
             </div>
           </div>
 
           <div className="flex gap-3 pt-2">
-            <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">إلغاء</button>
+            <button onClick={() => setShowCreate(false)} className="flex-1 py-2.5 border border-[#eef2f6] rounded-xl text-sm text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
             <button disabled={creating || !createForm.name} onClick={async () => {
               const res: any = await createOrg(createForm);
               setShowCreate(false);

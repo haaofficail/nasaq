@@ -350,7 +350,7 @@ export function PublicFlowerPage() {
       </div>
       <h1 className="text-2xl font-black text-gray-900 mb-2">تم استلام طلبك!</h1>
       <p className="text-gray-500 mb-1">رقم الطلب</p>
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-8 py-4 mb-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm px-8 py-4 mb-4">
         <p className="font-mono font-black text-3xl text-gray-900">#{orderNum}</p>
         <p className="text-xs text-gray-400 mt-1">احتفظ بهذا الرقم لمتابعة الطلب</p>
       </div>
@@ -390,7 +390,7 @@ export function PublicFlowerPage() {
       <header className="bg-white/90 backdrop-blur-sm shadow-sm sticky top-0 z-30">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           {data.org.logo
-            ? <img src={data.org.logo} className="w-9 h-9 rounded-full object-cover border border-gray-100" alt="" />
+            ? <img src={data.org.logo} className="w-9 h-9 rounded-full object-cover border border-[#eef2f6]" alt="" />
             : <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-black shrink-0"
                 style={{ background: accent }}>{data.org.name[0]}</div>}
           <div className="flex-1 min-w-0">
@@ -486,7 +486,7 @@ export function PublicFlowerPage() {
                 <div className="flex gap-3 overflow-x-auto pb-1 -mx-1 px-1">
                   {data.packages.map(pkg => (
                     <button key={pkg.id} onClick={() => handlePickPackage(pkg)}
-                      className="flex-none w-36 bg-white rounded-2xl border border-gray-100 overflow-hidden text-right shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-95">
+                      className="flex-none w-36 bg-white rounded-2xl border border-[#eef2f6] overflow-hidden text-right shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 active:scale-95">
                       <div className="h-24 flex items-center justify-center overflow-hidden"
                         style={{ background: `linear-gradient(135deg, ${accent}20, ${accent}08)` }}>
                         {pkg.image
@@ -518,7 +518,7 @@ export function PublicFlowerPage() {
                   return (
                     <button key={color} onClick={() => setColorFilter(colorFilter === color ? "" : color)}
                       className={clsx("flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-medium whitespace-nowrap transition-all flex-none",
-                        colorFilter === color ? "border-gray-400 bg-gray-100 text-gray-800" : "border-gray-200 text-gray-500 bg-white")}>
+                        colorFilter === color ? "border-gray-400 bg-gray-100 text-gray-800" : "border-[#eef2f6] text-gray-500 bg-white")}>
                       <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: dot }} />
                       {color}
                     </button>
@@ -537,7 +537,7 @@ export function PublicFlowerPage() {
                 )}
               </p>
               {filteredInventory.length === 0 ? (
-                <div className="text-center py-8 text-gray-400 text-sm bg-white rounded-2xl border border-gray-100">
+                <div className="text-center py-8 text-gray-400 text-sm bg-white rounded-2xl border border-[#eef2f6]">
                   لا توجد ورود متاحة حالياً
                 </div>
               ) : (
@@ -549,7 +549,7 @@ export function PublicFlowerPage() {
                     return (
                       <div key={fl.id}
                         className={clsx("bg-white rounded-2xl border overflow-hidden transition-all",
-                          qty > 0 ? "shadow-md" : "border-gray-100 shadow-sm")}
+                          qty > 0 ? "shadow-md" : "border-[#eef2f6] shadow-sm")}
                         style={qty > 0 ? { borderColor: accent } : {}}>
                         <div className="h-28 flex items-center justify-center relative overflow-hidden"
                           style={{ background: `linear-gradient(135deg, ${dot}22, ${dot}08)` }}>
@@ -615,7 +615,7 @@ export function PublicFlowerPage() {
             <div className="space-y-2">
               <button onClick={() => setPackaging("")}
                 className={clsx("w-full flex items-center gap-3 p-4 rounded-2xl border text-right transition-all",
-                  !packaging ? "shadow-md" : "border-gray-100 bg-white hover:border-gray-200")}
+                  !packaging ? "shadow-md" : "border-[#eef2f6] bg-white hover:border-[#eef2f6]")}
                 style={!packaging ? { borderColor: accent, background: `${accent}08` } : {}}>
                 <div className={clsx("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all")}
                   style={!packaging ? { borderColor: accent, background: accent } : { borderColor: "#d1d5db" }}>
@@ -631,7 +631,7 @@ export function PublicFlowerPage() {
               {data.catalog.packaging.map(pkg => (
                 <button key={pkg.id} onClick={() => setPackaging(pkg.id)}
                   className={clsx("w-full flex items-center gap-3 p-4 rounded-2xl border text-right transition-all",
-                    packaging === pkg.id ? "shadow-md" : "border-gray-100 bg-white hover:border-gray-200")}
+                    packaging === pkg.id ? "shadow-md" : "border-[#eef2f6] bg-white hover:border-[#eef2f6]")}
                   style={packaging === pkg.id ? { borderColor: accent, background: `${accent}08` } : {}}>
                   <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all"
                     style={packaging === pkg.id ? { borderColor: accent, background: accent } : { borderColor: "#d1d5db" }}>
@@ -671,7 +671,7 @@ export function PublicFlowerPage() {
                   return (
                     <div key={g.id}
                       className={clsx("flex items-center gap-3 p-4 rounded-2xl border bg-white transition-all",
-                        qty > 0 ? "shadow-md" : "border-gray-100")}
+                        qty > 0 ? "shadow-md" : "border-[#eef2f6]")}
                       style={qty > 0 ? { borderColor: accent } : {}}>
                       <span className="text-2xl shrink-0">{g.icon ? g.icon : <Gift className="w-5 h-5 text-gray-400" />}</span>
                       <div className="flex-1 min-w-0">
@@ -715,7 +715,7 @@ export function PublicFlowerPage() {
               <div className="space-y-2">
                 <button onClick={() => setCardId("")}
                   className={clsx("w-full flex items-center gap-3 p-4 rounded-2xl border text-right transition-all",
-                    !cardId ? "shadow-md" : "border-gray-100 bg-white")}
+                    !cardId ? "shadow-md" : "border-[#eef2f6] bg-white")}
                   style={!cardId ? { borderColor: accent, background: `${accent}08` } : {}}>
                   <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
                     style={!cardId ? { borderColor: accent, background: accent } : { borderColor: "#d1d5db" }}>
@@ -727,7 +727,7 @@ export function PublicFlowerPage() {
                 {data.catalog.card.map(c => (
                   <button key={c.id} onClick={() => setCardId(c.id)}
                     className={clsx("w-full flex items-center gap-3 p-4 rounded-2xl border text-right transition-all",
-                      cardId === c.id ? "shadow-md" : "border-gray-100 bg-white")}
+                      cardId === c.id ? "shadow-md" : "border-[#eef2f6] bg-white")}
                     style={cardId === c.id ? { borderColor: accent, background: `${accent}08` } : {}}>
                     <div className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0"
                       style={cardId === c.id ? { borderColor: accent, background: accent } : { borderColor: "#d1d5db" }}>
@@ -754,7 +754,7 @@ export function PublicFlowerPage() {
                   {cfg.cardTemplates.map((t, i) => (
                     <button key={i} onClick={() => setCardMsg(t)}
                       className={clsx("px-3 py-2 rounded-xl border text-sm transition-all",
-                        cardMsg === t ? "text-white font-medium shadow-sm" : "border-gray-200 text-gray-600 bg-white hover:border-gray-300")}
+                        cardMsg === t ? "text-white font-medium shadow-sm" : "border-[#eef2f6] text-gray-600 bg-white hover:border-[#eef2f6]")}
                       style={cardMsg === t ? { background: accent, borderColor: accent } : {}}>
                       {t}
                     </button>
@@ -771,7 +771,7 @@ export function PublicFlowerPage() {
               </label>
               <textarea value={cardMsg} onChange={e => setCardMsg(e.target.value)} rows={4}
                 placeholder="اكتب رسالتك هنا..."
-                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none resize-none leading-relaxed bg-white"
+                className="w-full border border-[#eef2f6] rounded-2xl px-4 py-3 text-sm outline-none resize-none leading-relaxed bg-white"
                 style={{ "--tw-ring-color": accent } as any}
                 onFocus={e => (e.target.style.borderColor = accent)}
                 onBlur={e => (e.target.style.borderColor = "#e5e7eb")} />
@@ -792,7 +792,7 @@ export function PublicFlowerPage() {
               {cfg.features.deliveryEnabled && (
                 <button onClick={() => setDelivType("delivery")}
                   className={clsx("p-4 rounded-2xl border text-center transition-all",
-                    delivType === "delivery" ? "shadow-md text-white" : "border-gray-100 bg-white text-gray-600")}
+                    delivType === "delivery" ? "shadow-md text-white" : "border-[#eef2f6] bg-white text-gray-600")}
                   style={delivType === "delivery" ? { background: accent, borderColor: accent } : {}}>
                   <Truck className="w-6 h-6 mx-auto mb-1.5" />
                   <p className="font-bold text-sm">توصيل للمنزل</p>
@@ -801,7 +801,7 @@ export function PublicFlowerPage() {
               {cfg.features.pickupEnabled && (
                 <button onClick={() => setDelivType("pickup")}
                   className={clsx("p-4 rounded-2xl border text-center transition-all",
-                    delivType === "pickup" ? "shadow-md text-white" : "border-gray-100 bg-white text-gray-600")}
+                    delivType === "pickup" ? "shadow-md text-white" : "border-[#eef2f6] bg-white text-gray-600")}
                   style={delivType === "pickup" ? { background: accent, borderColor: accent } : {}}>
                   <ShoppingBag className="w-6 h-6 mx-auto mb-1.5" />
                   <p className="font-bold text-sm">استلام من المتجر</p>
@@ -826,7 +826,7 @@ export function PublicFlowerPage() {
               </label>
               <input type="date" value={delivDate} onChange={e => setDelivDate(e.target.value)}
                 min={new Date().toISOString().split("T")[0]}
-                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none bg-white"
+                className="w-full border border-[#eef2f6] rounded-2xl px-4 py-3 text-sm outline-none bg-white"
                 dir="ltr"
                 onFocus={e => (e.target.style.borderColor = accent)}
                 onBlur={e => (e.target.style.borderColor = "#e5e7eb")} />
@@ -841,7 +841,7 @@ export function PublicFlowerPage() {
                 </label>
                 <input type="text" value={delivAddr} onChange={e => setDelivAddr(e.target.value)}
                   placeholder="الحي، الشارع، رقم المبنى..."
-                  className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none bg-white"
+                  className="w-full border border-[#eef2f6] rounded-2xl px-4 py-3 text-sm outline-none bg-white"
                   onFocus={e => (e.target.style.borderColor = accent)}
                   onBlur={e => (e.target.style.borderColor = "#e5e7eb")} />
               </div>
@@ -855,7 +855,7 @@ export function PublicFlowerPage() {
                   {cfg.deliveryZones.map(z => (
                     <button key={z.name} onClick={() => setSelectedZone(z.name)}
                       className={clsx("p-3 rounded-xl border text-right text-sm transition-all",
-                        selectedZone === z.name ? "text-white font-bold" : "border-gray-200 bg-white text-gray-600")}
+                        selectedZone === z.name ? "text-white font-bold" : "border-[#eef2f6] bg-white text-gray-600")}
                       style={selectedZone === z.name ? { background: accent, borderColor: accent } : {}}>
                       <p className="font-semibold">{z.name}</p>
                       <p className={clsx("text-xs mt-0.5", selectedZone === z.name ? "text-white/80" : "text-gray-400")}>
@@ -870,10 +870,10 @@ export function PublicFlowerPage() {
             {/* Surprise toggle */}
             <button onClick={() => setIsSurprise(v => !v)}
               className={clsx("w-full flex items-center gap-3 p-4 rounded-2xl border text-right transition-all",
-                isSurprise ? "text-white" : "border-gray-200 bg-white")}
+                isSurprise ? "text-white" : "border-[#eef2f6] bg-white")}
               style={isSurprise ? { background: accent, borderColor: accent } : {}}>
               <div className={clsx("w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0",
-                isSurprise ? "border-white bg-white/30" : "border-gray-300")}>
+                isSurprise ? "border-white bg-white/30" : "border-[#eef2f6]")}>
                 {isSurprise && <Check className="w-3 h-3 text-white" />}
               </div>
               <div>
@@ -889,18 +889,18 @@ export function PublicFlowerPage() {
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1.5">اسم المستلم</label>
                 <input value={recipName} onChange={e => setRecipName(e.target.value)} placeholder="اختياري"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none bg-white" />
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none bg-white" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1.5">جوال المستلم</label>
                 <input type="tel" value={recipPhone} onChange={e => setRecipPhone(e.target.value)}
                   placeholder="05XX" dir="ltr"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none bg-white" />
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none bg-white" />
               </div>
             </div>
 
             {/* Customer info */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4 space-y-3">
               <p className="text-xs font-bold text-gray-700 flex items-center gap-1.5">
                 <User className="w-3.5 h-3.5" style={{ color: accent }} /> معلوماتك الشخصية
               </p>
@@ -908,7 +908,7 @@ export function PublicFlowerPage() {
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1.5">اسمك *</label>
                   <input value={custName} onChange={e => setCustName(e.target.value)} placeholder="اسمك الكريم"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none bg-gray-50"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none bg-gray-50"
                     onFocus={e => (e.target.style.borderColor = accent)}
                     onBlur={e => (e.target.style.borderColor = "#e5e7eb")} />
                 </div>
@@ -916,7 +916,7 @@ export function PublicFlowerPage() {
                   <label className="block text-xs font-medium text-gray-500 mb-1.5">جوالك *</label>
                   <input type="tel" value={custPhone} onChange={e => setCustPhone(e.target.value)}
                     placeholder="05XXXXXXXX" dir="ltr"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none bg-gray-50"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none bg-gray-50"
                     onFocus={e => (e.target.style.borderColor = accent)}
                     onBlur={e => (e.target.style.borderColor = "#e5e7eb")} />
                 </div>
@@ -927,7 +927,7 @@ export function PublicFlowerPage() {
               <label className="block text-xs font-medium text-gray-500 mb-1.5">ملاحظات إضافية</label>
               <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
                 placeholder="أي تفاصيل إضافية..."
-                className="w-full border border-gray-200 rounded-2xl px-4 py-3 text-sm outline-none resize-none bg-white" />
+                className="w-full border border-[#eef2f6] rounded-2xl px-4 py-3 text-sm outline-none resize-none bg-white" />
             </div>
           </div>
         )}
@@ -942,8 +942,8 @@ export function PublicFlowerPage() {
 
             {/* Flowers */}
             {Object.keys(flowers).length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                <div className="px-4 py-3 border-b border-gray-50 flex items-center gap-2">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+                <div className="px-[10px] py-[6px] border-b border-gray-50 flex items-center gap-2">
                   <Flower2 className="w-4 h-4 text-rose-400" />
                   <span className="text-sm font-bold text-gray-700">الورود ({flowerCount} قطعة)</span>
                 </div>
@@ -968,7 +968,7 @@ export function PublicFlowerPage() {
 
             {/* Extras */}
             {(packaging || Object.keys(gifts).length > 0 || cardId) && (
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
                 <div className="divide-y divide-gray-50">
                   {packaging && (() => {
                     const p = data.catalog.packaging.find(x => x.id === packaging);
@@ -1008,7 +1008,7 @@ export function PublicFlowerPage() {
             )}
 
             {/* Delivery info */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4 space-y-2">
               <p className="text-xs font-bold text-gray-500 mb-2 flex items-center gap-1.5">
                 <Truck className="w-3.5 h-3.5" style={{ color: accent }} />
                 {delivType === "delivery" ? "التوصيل" : "الاستلام من المتجر"}
@@ -1034,7 +1034,7 @@ export function PublicFlowerPage() {
             </div>
 
             {/* Grand total breakdown */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <div className="divide-y divide-gray-50">
                 {flowerTotal > 0 && <div className="flex items-center justify-between px-4 py-2.5 text-sm text-gray-600">
                   <span>الورود</span><span className="font-semibold">{flowerTotal.toLocaleString("en-US")} ر.س</span>
@@ -1057,7 +1057,7 @@ export function PublicFlowerPage() {
                   <span className="font-semibold">مجاناً</span>
                 </div>}
               </div>
-              <div className="px-4 py-3 flex items-center justify-between"
+              <div className="px-[10px] py-[6px] flex items-center justify-between"
                 style={{ background: `linear-gradient(135deg, ${accent}15, ${accent}08)` }}>
                 <span className="font-black text-gray-900">المجموع الكلي</span>
                 <span className="text-2xl font-black" style={{ color: accent }}>{grandTotal.toLocaleString("en-US")} ر.س</span>
@@ -1083,11 +1083,11 @@ export function PublicFlowerPage() {
       </main>
 
       {/* ── Sticky bottom bar ────────────────────────────────── */}
-      <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 shadow-2xl z-30">
+      <div className="fixed bottom-0 inset-x-0 bg-white/95 backdrop-blur-sm border-t border-[#eef2f6] shadow-2xl z-30">
         <div className="max-w-lg mx-auto px-4 py-3 flex items-center gap-3">
           {/* Back */}
           <button onClick={prevStep} disabled={step === steps[0].id}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-bold disabled:opacity-40 hover:bg-gray-50 transition-all shrink-0">
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-[#eef2f6] text-gray-600 text-sm font-bold disabled:opacity-40 hover:bg-[#f8fafc] transition-all shrink-0">
             <ChevronRight className="w-4 h-4" />
             رجوع
           </button>

@@ -22,7 +22,7 @@ const DAY_MAP: Record<number, string> = {
 
 function StatCard({ icon, label, value, color }: { icon: React.ReactNode; label: string; value: number | string; color: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5 flex items-center gap-4">
       <div className={clsx("w-12 h-12 rounded-xl flex items-center justify-center", color)}>
         {icon}
       </div>
@@ -89,10 +89,10 @@ export function SchoolDayMonitorPage() {
       <div dir="rtl" className="p-6 space-y-4">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div key={i} className="animate-pulse bg-gray-100 rounded-2xl h-24 w-full" />
+            <div key={i} className="animate-pulse bg-[#f1f5f9] rounded-2xl h-24 w-full" />
           ))}
         </div>
-        <div className="animate-pulse bg-gray-100 rounded-2xl h-64 w-full" />
+        <div className="animate-pulse bg-[#f1f5f9] rounded-2xl h-64 w-full" />
       </div>
     );
   }
@@ -150,7 +150,7 @@ export function SchoolDayMonitorPage() {
       </div>
 
       {/* الحصة الجارية */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Timer className="w-4 h-4 text-emerald-600" />
@@ -161,7 +161,7 @@ export function SchoolDayMonitorPage() {
         {currentEntry ? (
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center">
+              <div className="w-9 h-9 rounded-[10px] bg-emerald-50 flex items-center justify-center">
                 <BookOpen className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
@@ -182,7 +182,7 @@ export function SchoolDayMonitorPage() {
           </div>
         ) : (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-[10px] bg-[#f8fafc] flex items-center justify-center">
               <Timer className="w-5 h-5 text-gray-300" />
             </div>
             <div>
@@ -243,7 +243,7 @@ export function SchoolDayMonitorPage() {
           { label: "إضافة معلم",      href: "/school/teachers",          icon: UsersRound,   color: "bg-emerald-50 border-emerald-200 text-emerald-700" },
           { label: "التقويم الدراسي", href: "/school/academic-calendar", icon: CalendarRange, color: "bg-blue-50 border-blue-200 text-blue-700" },
           { label: "تسجيل مخالفة",    href: "/school/violations",        icon: XCircle,      color: "bg-red-50 border-red-200 text-red-700" },
-          { label: "استيراد البيانات", href: "/school/import",            icon: Upload,       color: "bg-gray-50 border-gray-200 text-gray-700" },
+          { label: "استيراد البيانات", href: "/school/import",            icon: Upload,       color: "bg-gray-50 border-[#eef2f6] text-gray-700" },
         ].map((a) => {
           const Icon = a.icon;
           return (

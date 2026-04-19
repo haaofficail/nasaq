@@ -21,17 +21,17 @@ const BOOKING_STATUS: Record<string, { label: string; color: string }> = {
   confirmed: { label: "مؤكد",   color: "bg-blue-50 text-blue-700 border-blue-200" },
   completed: { label: "مكتمل",  color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   cancelled: { label: "ملغي",   color: "bg-red-50 text-red-600 border-red-200" },
-  no_show:   { label: "لم يحضر", color: "bg-gray-100 text-gray-500 border-gray-200" },
+  no_show:   { label: "لم يحضر", color: "bg-gray-100 text-gray-500 border-[#eef2f6]" },
 };
 
 const INV_STATUS: Record<string, { label: string; color: string; icon: any }> = {
-  draft:          { label: "مسودة",         color: "bg-gray-100 text-gray-600 border-gray-200",        icon: Clock },
+  draft:          { label: "مسودة",         color: "bg-gray-100 text-gray-600 border-[#eef2f6]",        icon: Clock },
   issued:         { label: "صادرة",          color: "bg-blue-50 text-blue-700 border-blue-200",          icon: FileText },
   sent:           { label: "مُرسلة",         color: "bg-indigo-50 text-indigo-700 border-indigo-200",    icon: FileText },
   paid:           { label: "مدفوعة",         color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
   partially_paid: { label: "جزئي",           color: "bg-teal-50 text-teal-700 border-teal-200",          icon: Clock },
   overdue:        { label: "متأخرة",         color: "bg-red-50 text-red-700 border-red-200",             icon: AlertTriangle },
-  cancelled:      { label: "ملغاة",          color: "bg-gray-100 text-gray-500 border-gray-200",         icon: XCircle },
+  cancelled:      { label: "ملغاة",          color: "bg-gray-100 text-gray-500 border-[#eef2f6]",         icon: XCircle },
 };
 
 const MSG_STATUS: Record<string, { label: string; color: string }> = {
@@ -190,7 +190,7 @@ export function CustomerDetailPage() {
       ]} />
 
       {/* ── customer hero ───────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef2f6]">
         {/* top: avatar + info + actions */}
         <div className="flex flex-col sm:flex-row sm:items-center gap-5 p-6 pb-5">
           {/* avatar */}
@@ -252,13 +252,13 @@ export function CustomerDetailPage() {
             </Link>
             <button
               onClick={openEdit}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-lg border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors flex items-center gap-1.5"
             >
               <Pencil className="w-4 h-4" /> تعديل
             </button>
             <button
               onClick={() => { setShowInteraction(true); setInteractionType("note"); }}
-              className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors flex items-center gap-1.5"
+              className="px-3 py-1.5 rounded-lg border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors flex items-center gap-1.5"
             >
               <StickyNote className="w-4 h-4" /> ملاحظة
             </button>
@@ -266,7 +266,7 @@ export function CustomerDetailPage() {
         </div>
 
         {/* stats bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-x-reverse divide-gray-100 border-t border-gray-100">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-x-reverse divide-gray-100 border-t border-[#eef2f6]">
           <div className="px-6 py-4 text-center">
             <p className="text-2xl font-bold text-brand-600 tabular-nums">{customer.totalBookings || bookingList.length || 0}</p>
             <p className="text-xs text-gray-400 mt-0.5">{biz.terminology.bookings}</p>
@@ -289,7 +289,7 @@ export function CustomerDetailPage() {
       </div>
 
       {/* ── tab bar — part of the page, not a card ─────────── */}
-      <div className="flex overflow-x-auto border-b border-gray-100 bg-white rounded-2xl px-2 gap-1">
+      <div className="flex overflow-x-auto border-b border-[#eef2f6] bg-white rounded-2xl px-2 gap-1">
         {TABS.map(t => {
           const Icon = t.icon;
           return (
@@ -297,7 +297,7 @@ export function CustomerDetailPage() {
               key={t.key}
               onClick={() => setTab(t.key)}
               className={clsx(
-                "flex items-center gap-1.5 px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+                "flex items-center gap-1.5 px-4 py-[6px] text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
                 tab === t.key
                   ? "border-brand-500 text-brand-600"
                   : "border-transparent text-gray-500 hover:text-gray-700",
@@ -316,7 +316,7 @@ export function CustomerDetailPage() {
           {tab === "profile" && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               {/* contact info */}
-              <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">بيانات التواصل</h3>
                 <div className="space-y-3">
                   {[
@@ -345,7 +345,7 @@ export function CustomerDetailPage() {
               </div>
 
               {/* financial summary */}
-              <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
                 <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">الملخص المالي</h3>
                 <div className="space-y-3">
                   {[
@@ -364,11 +364,11 @@ export function CustomerDetailPage() {
 
               {/* B2B contacts */}
               {customer.contacts?.length > 0 && (
-                <div className="bg-white rounded-2xl border border-gray-100 p-5 lg:col-span-2">
+                <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 lg:col-span-2">
                   <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">جهات الاتصال</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {customer.contacts.map((c: any) => (
-                      <div key={c.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                      <div key={c.id} className="flex items-center justify-between p-3 bg-[#f8fafc] rounded-xl">
                         <div>
                           <p className="text-sm font-medium text-gray-800">{c.name}</p>
                           {c.role && <p className="text-xs text-gray-400">{c.role}</p>}
@@ -384,7 +384,7 @@ export function CustomerDetailPage() {
 
           {/* ── TAB: الحجوزات ─────────────────────────────── */}
           {tab === "bookings" && (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               {bookingList.length === 0 ? (
                 <div className="text-center py-16">
                   <CalendarDays className="w-10 h-10 text-gray-200 mx-auto mb-3" />
@@ -393,7 +393,7 @@ export function CustomerDetailPage() {
               ) : (
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                    <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                       {["رقم الحجز", "الخدمة", "تاريخ الحدث", "المبلغ", "الحالة", ""].map(h => (
                         <th key={h} className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
                       ))}
@@ -401,17 +401,17 @@ export function CustomerDetailPage() {
                   </thead>
                   <tbody>
                     {bookingList.map((b: any) => {
-                      const st = BOOKING_STATUS[b.status] || { label: b.status, color: "bg-gray-100 text-gray-500 border-gray-200" };
+                      const st = BOOKING_STATUS[b.status] || { label: b.status, color: "bg-gray-100 text-gray-500 border-[#eef2f6]" };
                       return (
-                        <tr key={b.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                          <td className="py-3.5 px-4 font-mono text-xs text-brand-500">#{b.bookingNumber || b.id?.substring(0, 8)}</td>
-                          <td className="py-3.5 px-4 text-gray-700 font-medium">{b.serviceName || b.locationName || "—"}</td>
-                          <td className="py-3.5 px-4 text-gray-500 text-xs">{b.eventDate ? fmtDate(b.eventDate) : "—"}</td>
-                          <td className="py-3.5 px-4 font-bold text-gray-900 tabular-nums">{fmt(b.totalAmount)} ر.س</td>
-                          <td className="py-3.5 px-4">
+                        <tr key={b.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/50 transition-colors">
+                          <td className="py-[6px] px-[10px] font-mono text-xs text-brand-500">#{b.bookingNumber || b.id?.substring(0, 8)}</td>
+                          <td className="py-[6px] px-[10px] text-gray-700 font-medium">{b.serviceName || b.locationName || "—"}</td>
+                          <td className="py-[6px] px-[10px] text-gray-500 text-xs">{b.eventDate ? fmtDate(b.eventDate) : "—"}</td>
+                          <td className="py-[6px] px-[10px] font-bold text-gray-900 tabular-nums">{fmt(b.totalAmount)} ر.س</td>
+                          <td className="py-[6px] px-[10px]">
                             <span className={clsx("text-[11px] px-2 py-0.5 rounded-full font-medium border", st.color)}>{st.label}</span>
                           </td>
-                          <td className="py-3.5 px-4 text-left">
+                          <td className="py-[6px] px-[10px] text-left">
                             <Link to={`/bookings/${b.id}`} className="text-xs text-brand-500 hover:text-brand-700 font-medium">عرض</Link>
                           </td>
                         </tr>
@@ -425,7 +425,7 @@ export function CustomerDetailPage() {
 
           {/* ── TAB: الفواتير ─────────────────────────────── */}
           {tab === "invoices" && (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               {invoiceList.length === 0 ? (
                 <div className="text-center py-16">
                   <Receipt className="w-10 h-10 text-gray-200 mx-auto mb-3" />
@@ -434,7 +434,7 @@ export function CustomerDetailPage() {
               ) : (
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                    <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                       {["رقم الفاتورة", "تاريخ الإصدار", "الإجمالي", "المدفوع", "الحالة", ""].map(h => (
                         <th key={h} className="text-right py-3 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
                       ))}
@@ -446,17 +446,17 @@ export function CustomerDetailPage() {
                       const Icon = st.icon;
                       const canSend = ["issued","sent","overdue","partially_paid"].includes(inv.status);
                       return (
-                        <tr key={inv.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors">
-                          <td className="py-3.5 px-4 font-mono text-xs text-brand-500 font-semibold">{inv.invoiceNumber}</td>
-                          <td className="py-3.5 px-4 text-gray-500 text-xs">{inv.issueDate ? fmtDate(inv.issueDate) : "—"}</td>
-                          <td className="py-3.5 px-4 font-bold text-gray-900 tabular-nums">{fmt(inv.totalAmount)} ر.س</td>
-                          <td className="py-3.5 px-4 text-emerald-600 font-semibold tabular-nums">{fmt(inv.paidAmount || 0)} ر.س</td>
-                          <td className="py-3.5 px-4">
+                        <tr key={inv.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/50 transition-colors">
+                          <td className="py-[6px] px-[10px] font-mono text-xs text-brand-500 font-semibold">{inv.invoiceNumber}</td>
+                          <td className="py-[6px] px-[10px] text-gray-500 text-xs">{inv.issueDate ? fmtDate(inv.issueDate) : "—"}</td>
+                          <td className="py-[6px] px-[10px] font-bold text-gray-900 tabular-nums">{fmt(inv.totalAmount)} ر.س</td>
+                          <td className="py-[6px] px-[10px] text-emerald-600 font-semibold tabular-nums">{fmt(inv.paidAmount || 0)} ر.س</td>
+                          <td className="py-[6px] px-[10px]">
                             <span className={clsx("inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium border", st.color)}>
                               <Icon className="w-3 h-3" /> {st.label}
                             </span>
                           </td>
-                          <td className="py-3.5 px-4 text-left">
+                          <td className="py-[6px] px-[10px] text-left">
                             {canSend && (
                               <button
                                 onClick={() => sendInvoice(inv.id)}
@@ -478,7 +478,7 @@ export function CustomerDetailPage() {
 
           {/* ── TAB: الرسائل ──────────────────────────────── */}
           {tab === "messages" && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               {messages.length === 0 ? (
                 <div className="text-center py-12">
                   <MessageSquare className="w-10 h-10 text-gray-200 mx-auto mb-3" />
@@ -489,8 +489,8 @@ export function CustomerDetailPage() {
                   {messages.map((msg: any) => {
                     const st = MSG_STATUS[msg.status] || { label: msg.status, color: "bg-gray-100 text-gray-500" };
                     return (
-                      <div key={msg.id} className="flex gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                        <div className="w-8 h-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center flex-shrink-0">
+                      <div key={msg.id} className="flex gap-3 p-4 bg-[#f8fafc] rounded-xl border border-[#eef2f6]">
+                        <div className="w-8 h-8 rounded-lg bg-white border border-[#eef2f6] flex items-center justify-center flex-shrink-0">
                           <MessageSquare className="w-4 h-4 text-gray-300" />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -516,7 +516,7 @@ export function CustomerDetailPage() {
 
           {/* ── TAB: التفاعلات ────────────────────────────── */}
           {tab === "interactions" && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm text-gray-500 font-medium">{interactions.length} تفاعل مسجّل</p>
                 <button
@@ -535,8 +535,8 @@ export function CustomerDetailPage() {
               ) : (
                 <div className="space-y-3">
                   {interactions.map((int: any) => (
-                    <div key={int.id} className="flex gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                      <div className="w-8 h-8 rounded-lg bg-white border border-gray-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div key={int.id} className="flex gap-3 p-4 bg-[#f8fafc] rounded-xl border border-[#eef2f6]">
+                      <div className="w-8 h-8 rounded-lg bg-white border border-[#eef2f6] flex items-center justify-center flex-shrink-0 mt-0.5">
                         <StickyNote className="w-4 h-4 text-gray-300" />
                       </div>
                       <div className="flex-1 min-w-0">
@@ -560,7 +560,7 @@ export function CustomerDetailPage() {
 
           {/* ── TAB: السجل ────────────────────────────────── */}
           {tab === "timeline" && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               {timeline.length === 0 ? (
                 <div className="text-center py-10">
                   <History className="w-10 h-10 text-gray-200 mx-auto mb-3" />
@@ -693,9 +693,9 @@ export function CustomerDetailPage() {
           {/* Tags */}
           <div className="space-y-2">
             <label className="text-xs font-medium text-gray-600">الوسوم (Tags)</label>
-            <div className="flex flex-wrap gap-1.5 min-h-[2rem] p-2 border border-gray-200 rounded-xl bg-gray-50">
+            <div className="flex flex-wrap gap-1.5 min-h-[2rem] p-2 border border-[#eef2f6] rounded-xl bg-gray-50">
               {editTags.map(tag => (
-                <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-gray-200 text-xs text-gray-700">
+                <span key={tag} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-white border border-[#eef2f6] text-xs text-gray-700">
                   {tag}
                   <button
                     type="button"

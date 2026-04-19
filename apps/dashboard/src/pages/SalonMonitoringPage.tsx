@@ -15,7 +15,7 @@ function StatCard({ label, value, variant = "default" }: {
   variant?: "default" | "warn" | "danger" | "success";
 }) {
   const colors = {
-    default: "bg-white border-gray-100 text-gray-900",
+    default: "bg-white border-[#eef2f6] text-gray-900",
     success: "bg-green-50 border-green-100 text-green-800",
     warn:    "bg-yellow-50 border-yellow-100 text-yellow-800",
     danger:  "bg-red-50 border-red-100 text-red-800",
@@ -127,7 +127,7 @@ export function SalonMonitoringPage() {
       </div>
 
       {/* Health Checks */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <p className="text-xs font-semibold text-gray-500 mb-3">حالة النظام</p>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {[
@@ -179,7 +179,7 @@ export function SalonMonitoringPage() {
 
       {/* Last Critical Errors */}
       {(d.lastCriticalErrors ?? []).length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
           <p className="text-xs font-semibold text-gray-500 mb-3">آخر الأحداث الحرجة</p>
           <div className="space-y-2">
             {(d.lastCriticalErrors as any[]).map((e: any) => (

@@ -91,7 +91,7 @@ function IncomeStatement({ from, to }: { from: string; to: string }) {
   const margin = d.profitMargin ?? 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h2 className="font-bold text-gray-900">قائمة الدخل</h2>
@@ -121,7 +121,7 @@ function IncomeStatement({ from, to }: { from: string; to: string }) {
       ))}
       <SectionRow label="إجمالي المصروفات" amount={d.expenses.total} bold positive={false} />
 
-      <div className="my-4 border-t border-dashed border-gray-200" />
+      <div className="my-4 border-t border-dashed border-[#eef2f6]" />
       <SectionRow label="صافي الدخل / (الخسارة)" amount={d.netIncome} bold positive={d.netIncome >= 0} />
     </div>
   );
@@ -142,7 +142,7 @@ function BalanceSheet({ asOf }: { asOf: string }) {
   if (error || !d) return <Empty message="تعذر تحميل الميزانية" />;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h2 className="font-bold text-gray-900">الميزانية العمومية</h2>
@@ -176,7 +176,7 @@ function BalanceSheet({ asOf }: { asOf: string }) {
           ))}
           <SectionRow label="إجمالي حقوق الملكية" amount={d.equity.total} bold />
 
-          <div className="my-4 border-t border-dashed border-gray-200" />
+          <div className="my-4 border-t border-dashed border-[#eef2f6]" />
           <SectionRow label="الخصوم + حقوق الملكية" amount={d.liabilities.total + d.equity.total} bold />
         </div>
       </div>
@@ -199,8 +199,8 @@ function TrialBalance({ from, to }: { from: string; to: string }) {
   if (error || !d) return <Empty message="تعذر تحميل ميزان المراجعة" />;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-      <div className="flex items-center justify-between p-5 border-b border-gray-100">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+      <div className="flex items-center justify-between p-5 border-b border-[#eef2f6]">
         <div>
           <h2 className="font-bold text-gray-900">ميزان المراجعة</h2>
           <p className="text-xs text-gray-400 mt-0.5">{from} — {to}</p>
@@ -210,7 +210,7 @@ function TrialBalance({ from, to }: { from: string; to: string }) {
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="bg-gray-50/60 border-b border-gray-100">
+            <tr className="bg-gray-50/60 border-b border-[#eef2f6]">
               <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">الكود</th>
               <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">اسم الحساب</th>
               <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">مدين</th>
@@ -220,11 +220,11 @@ function TrialBalance({ from, to }: { from: string; to: string }) {
           </thead>
           <tbody>
             {d.accounts.map((a: any) => (
-              <tr key={a.id} className="border-b border-gray-50 hover:bg-gray-50/40 transition-colors">
-                <td className="py-3 px-4 font-mono text-xs text-gray-500">{a.code}</td>
-                <td className="py-3 px-4 text-gray-800">{a.name}</td>
-                <td className="py-3 px-4 tabular-nums text-gray-700">{fmt(parseFloat(a.total_debit))}</td>
-                <td className="py-3 px-4 tabular-nums text-gray-700">{fmt(parseFloat(a.total_credit))}</td>
+              <tr key={a.id} className="border-b border-gray-50 hover:bg-[#f8fafc]/40 transition-colors">
+                <td className="py-[6px] px-[10px] font-mono text-xs text-gray-500">{a.code}</td>
+                <td className="py-[6px] px-[10px] text-gray-800">{a.name}</td>
+                <td className="py-[6px] px-[10px] tabular-nums text-gray-700">{fmt(parseFloat(a.total_debit))}</td>
+                <td className="py-[6px] px-[10px] tabular-nums text-gray-700">{fmt(parseFloat(a.total_credit))}</td>
                 <td className={clsx("py-3 px-4 tabular-nums font-medium",
                   parseFloat(a.balance) >= 0 ? "text-gray-900" : "text-red-500")}>
                   {fmt(Math.abs(parseFloat(a.balance)))}
@@ -234,11 +234,11 @@ function TrialBalance({ from, to }: { from: string; to: string }) {
             ))}
           </tbody>
           <tfoot>
-            <tr className="bg-gray-50 font-bold border-t-2 border-gray-200">
-              <td className="py-3 px-4" colSpan={2}>الإجمالي</td>
-              <td className="py-3 px-4 tabular-nums">{fmt(d.totals.totalDebit)}</td>
-              <td className="py-3 px-4 tabular-nums">{fmt(d.totals.totalCredit)}</td>
-              <td className="py-3 px-4" />
+            <tr className="bg-gray-50 font-bold border-t-2 border-[#eef2f6]">
+              <td className="py-[6px] px-[10px]" colSpan={2}>الإجمالي</td>
+              <td className="py-[6px] px-[10px] tabular-nums">{fmt(d.totals.totalDebit)}</td>
+              <td className="py-[6px] px-[10px] tabular-nums">{fmt(d.totals.totalCredit)}</td>
+              <td className="py-[6px] px-[10px]" />
             </tr>
           </tfoot>
         </table>
@@ -284,20 +284,20 @@ function AgingReport({ type, asOf }: { type: "ar" | "ap"; asOf: string }) {
   const total = d[totalKey] ?? 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-      <div className="p-5 border-b border-gray-100">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+      <div className="p-5 border-b border-[#eef2f6]">
         <h2 className="font-bold text-gray-900">{title}</h2>
         <p className="text-xs text-gray-400 mt-0.5">بتاريخ {asOf}</p>
       </div>
 
       {/* KPI Summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-0 border-b border-gray-100">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-0 border-b border-[#eef2f6]">
         {Object.entries(AGING_LABELS).map(([key, label]) => {
           const amount = parseFloat(d.buckets?.[key] ?? "0");
           const pct    = total > 0 ? Math.round((amount / total) * 100) : 0;
           return (
             <div key={key}
-              className="p-4 border-l border-gray-100 last:border-0 cursor-pointer hover:bg-gray-50/50 transition-colors"
+              className="p-4 border-l border-[#eef2f6] last:border-0 cursor-pointer hover:bg-[#f8fafc]/50 transition-colors"
               onClick={() => setExpanded(expanded === key ? null : key)}>
               <p className="text-[11px] text-gray-400 mb-1">{label}</p>
               <p className="text-base font-bold tabular-nums text-gray-900">{fmt(amount)}</p>
@@ -310,7 +310,7 @@ function AgingReport({ type, asOf }: { type: "ar" | "ap"; asOf: string }) {
       </div>
 
       {/* Total */}
-      <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+      <div className="px-5 py-3 border-b border-[#eef2f6] flex items-center justify-between">
         <span className="text-sm font-bold text-gray-900">الإجمالي</span>
         <span className="text-lg font-bold tabular-nums text-gray-900">{fmt(total)} ر.س</span>
       </div>
@@ -321,7 +321,7 @@ function AgingReport({ type, asOf }: { type: "ar" | "ap"; asOf: string }) {
           <p className="text-xs font-semibold text-gray-500 mb-3">{AGING_LABELS[expanded]}</p>
           <div className="space-y-2">
             {d.bucketItems[expanded].map((item: any, i: number) => (
-              <div key={i} className="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-gray-100">
+              <div key={i} className="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-[#eef2f6]">
                 <div>
                   <p className="text-sm text-gray-800 font-medium">{item.description}</p>
                   <p className="text-xs text-gray-400">{item.entryNumber} · {fmtDate(item.date)} · {item.ageDays} يوم</p>
@@ -360,7 +360,7 @@ function CashFlow({ from, to }: { from: string; to: string }) {
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h2 className="font-bold text-gray-900">قائمة التدفقات النقدية</h2>
@@ -376,7 +376,7 @@ function CashFlow({ from, to }: { from: string; to: string }) {
         <SectionRow key={key} label={wcLabels[key] ?? key} amount={val as number} indent positive={(val as number) >= 0} />
       ))}
 
-      <div className="my-3 border-t border-dashed border-gray-200" />
+      <div className="my-3 border-t border-dashed border-[#eef2f6]" />
       <SectionRow
         label="صافي التدفق النقدي من أنشطة التشغيل"
         amount={d.operatingActivities.netOperatingCashFlow}
@@ -395,9 +395,9 @@ function CashFlow({ from, to }: { from: string; to: string }) {
 
 function Skeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-3">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-3">
       {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="h-8 bg-gray-100 rounded-lg animate-pulse" />
+        <div key={i} className="h-8 bg-[#f1f5f9] rounded-lg animate-pulse" />
       ))}
     </div>
   );
@@ -405,7 +405,7 @@ function Skeleton() {
 
 function Empty({ message }: { message: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
       <AlertCircle className="w-8 h-8 text-gray-200 mx-auto mb-2" />
       <p className="text-sm text-gray-400">{message}</p>
     </div>
@@ -432,23 +432,23 @@ export function FinancialStatementsPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <input type="date" value={from} onChange={(e) => setFrom(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 bg-white focus:border-brand-300 focus:outline-none" dir="ltr" />
+            className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm text-gray-700 bg-white focus:border-brand-300 focus:outline-none" dir="ltr" />
           <span className="text-gray-400 text-sm">—</span>
           <input type="date" value={to} onChange={(e) => setTo(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 bg-white focus:border-brand-300 focus:outline-none" dir="ltr" />
+            className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm text-gray-700 bg-white focus:border-brand-300 focus:outline-none" dir="ltr" />
           <Button variant="secondary" icon={Download} className="shrink-0">تصدير</Button>
         </div>
       </div>
 
       {/* Tab Bar */}
-      <div className="flex gap-1 bg-white rounded-2xl border border-gray-100 p-1 overflow-x-auto">
+      <div className="flex gap-1 bg-white rounded-2xl border border-[#eef2f6] p-1 overflow-x-auto">
         {TABS.map((tab) => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
             className={clsx(
               "flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all shrink-0",
               activeTab === tab.id
                 ? "bg-brand-500 text-white shadow-sm"
-                : "text-gray-500 hover:bg-gray-50"
+                : "text-gray-500 hover:bg-[#f8fafc]"
             )}>
             <tab.icon className="w-4 h-4" />
             {tab.label}

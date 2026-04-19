@@ -332,7 +332,7 @@ export function FixedAssetsPage() {
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
               activeTab === tab.key
                 ? "bg-brand-500 text-white"
-                : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+                : "bg-white border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]"
             }`}
           >
             {tab.label}
@@ -342,7 +342,7 @@ export function FixedAssetsPage() {
 
       {/* Skeleton */}
       {loading && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="flex items-center gap-4 px-6 py-4 border-b border-gray-50 last:border-0 animate-pulse">
               <div className="w-16 h-4 bg-gray-200 rounded" />
@@ -358,7 +358,7 @@ export function FixedAssetsPage() {
 
       {/* Empty */}
       {!loading && !error && assets.length === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-16 text-center">
           <div className="text-4xl text-gray-300 mb-4 select-none">&#9632;</div>
           <p className="text-gray-500 text-lg font-medium">لا توجد أصول</p>
           <p className="text-gray-400 text-sm mt-2">
@@ -374,11 +374,11 @@ export function FixedAssetsPage() {
 
       {/* Table */}
       {!loading && assets.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
+                <tr className="bg-gray-50 border-b border-[#eef2f6]">
                   <th className="text-right text-xs font-semibold text-gray-500 px-5 py-3">الكود</th>
                   <th className="text-right text-xs font-semibold text-gray-500 px-4 py-3">الاسم</th>
                   <th className="text-right text-xs font-semibold text-gray-500 px-4 py-3">التصنيف</th>
@@ -392,7 +392,7 @@ export function FixedAssetsPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {assets.map((asset) => (
-                  <tr key={asset.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={asset.id} className="hover:bg-[#f8fafc] transition-colors">
                     <td className="px-5 py-4">
                       <span className="font-mono text-xs font-semibold text-brand-500">{asset.asset_code}</span>
                     </td>
@@ -446,7 +446,7 @@ export function FixedAssetsPage() {
               </tbody>
             </table>
           </div>
-          <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-500">
+          <div className="px-6 py-3 bg-[#f8fafc] border-t border-[#eef2f6] text-xs text-gray-500">
             {assets.length} أصل
           </div>
         </div>
@@ -456,7 +456,7 @@ export function FixedAssetsPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 overflow-y-auto py-8" dir="rtl">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2f6]">
               <h2 className="text-lg font-bold text-gray-900">
                 {editing ? "تعديل الأصل" : "إضافة أصل ثابت"}
               </h2>
@@ -473,7 +473,7 @@ export function FixedAssetsPage() {
                     type="text"
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     placeholder="مثال: سيارة تويوتا لاندكروزر"
                   />
                 </div>
@@ -482,7 +482,7 @@ export function FixedAssetsPage() {
                   <select
                     value={form.category}
                     onChange={(e) => setForm({ ...form, category: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   >
                     {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
@@ -494,7 +494,7 @@ export function FixedAssetsPage() {
                   <select
                     value={form.depreciationMethod}
                     onChange={(e) => setForm({ ...form, depreciationMethod: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   >
                     <option value="straight_line">القسط الثابت</option>
                     <option value="declining_balance">القسط المتناقص</option>
@@ -506,7 +506,7 @@ export function FixedAssetsPage() {
                     type="date"
                     value={form.purchaseDate}
                     onChange={(e) => setForm({ ...form, purchaseDate: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     dir="ltr"
                   />
                 </div>
@@ -516,7 +516,7 @@ export function FixedAssetsPage() {
                     type="number"
                     value={form.usefulLifeMonths}
                     onChange={(e) => setForm({ ...form, usefulLifeMonths: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     min="1"
                     dir="ltr"
                   />
@@ -527,7 +527,7 @@ export function FixedAssetsPage() {
                     type="number"
                     value={form.purchasePrice}
                     onChange={(e) => setForm({ ...form, purchasePrice: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     min="0"
                     step="0.01"
                     dir="ltr"
@@ -539,7 +539,7 @@ export function FixedAssetsPage() {
                     type="number"
                     value={form.salvageValue}
                     onChange={(e) => setForm({ ...form, salvageValue: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     min="0"
                     step="0.01"
                     dir="ltr"
@@ -550,7 +550,7 @@ export function FixedAssetsPage() {
                   <select
                     value={form.costCenterId}
                     onChange={(e) => setForm({ ...form, costCenterId: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   >
                     <option value="">بدون مركز تكلفة</option>
                     {costCenters.filter((cc) => cc.is_active).map((cc) => (
@@ -564,7 +564,7 @@ export function FixedAssetsPage() {
                     type="text"
                     value={form.vendorName}
                     onChange={(e) => setForm({ ...form, vendorName: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     placeholder="اسم المورد أو الشركة"
                   />
                 </div>
@@ -574,7 +574,7 @@ export function FixedAssetsPage() {
                     type="text"
                     value={form.location}
                     onChange={(e) => setForm({ ...form, location: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     placeholder="مكان الأصل"
                   />
                 </div>
@@ -584,7 +584,7 @@ export function FixedAssetsPage() {
                     type="text"
                     value={form.serialNumber}
                     onChange={(e) => setForm({ ...form, serialNumber: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     placeholder="رقم تسلسلي أو موديل"
                     dir="ltr"
                   />
@@ -595,13 +595,13 @@ export function FixedAssetsPage() {
                     value={form.notes}
                     onChange={(e) => setForm({ ...form, notes: e.target.value })}
                     rows={2}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
                     placeholder="ملاحظات إضافية..."
                   />
                 </div>
               </div>
             </div>
-            <div className="flex items-center gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
+            <div className="flex items-center gap-3 px-6 py-4 border-t border-[#eef2f6] bg-gray-50">
               <button
                 onClick={handleSave}
                 disabled={saving}
@@ -611,7 +611,7 @@ export function FixedAssetsPage() {
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 py-2 rounded-xl text-sm font-medium transition-colors"
+                className="flex-1 border border-[#eef2f6] bg-white hover:bg-[#f8fafc] text-gray-700 py-2 rounded-xl text-sm font-medium transition-colors"
               >
                 إلغاء
               </button>
@@ -624,7 +624,7 @@ export function FixedAssetsPage() {
       {scheduleAsset && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 overflow-y-auto py-8" dir="rtl">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl mx-4 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2f6]">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">جدول الإهلاك</h2>
                 <p className="text-sm text-gray-500">{scheduleAsset.name} — {scheduleAsset.asset_code}</p>
@@ -643,7 +643,7 @@ export function FixedAssetsPage() {
               ) : (
                 <table className="w-full text-sm">
                   <thead className="sticky top-0 bg-gray-50">
-                    <tr className="border-b border-gray-100">
+                    <tr className="border-b border-[#eef2f6]">
                       <th className="text-right text-xs font-semibold text-gray-500 px-4 py-2">الشهر</th>
                       <th className="text-right text-xs font-semibold text-gray-500 px-4 py-2">التاريخ</th>
                       <th className="text-right text-xs font-semibold text-gray-500 px-4 py-2">قسط الإهلاك</th>
@@ -653,7 +653,7 @@ export function FixedAssetsPage() {
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {schedule.map((row) => (
-                      <tr key={row.month} className="hover:bg-gray-50">
+                      <tr key={row.month} className="hover:bg-[#f8fafc]">
                         <td className="px-4 py-2 text-gray-600">{row.month}</td>
                         <td className="px-4 py-2 text-gray-600" dir="ltr">{row.date}</td>
                         <td className="px-4 py-2 text-orange-600">{fmt(row.depreciation)}</td>
@@ -665,10 +665,10 @@ export function FixedAssetsPage() {
                 </table>
               )}
             </div>
-            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+            <div className="px-6 py-4 border-t border-[#eef2f6] bg-[#f8fafc] flex justify-end">
               <button
                 onClick={() => setScheduleAsset(null)}
-                className="border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-6 py-2 rounded-xl text-sm font-medium transition-colors"
+                className="border border-[#eef2f6] bg-white hover:bg-[#f8fafc] text-gray-700 px-6 py-2 rounded-xl text-sm font-medium transition-colors"
               >
                 إغلاق
               </button>
@@ -692,7 +692,7 @@ export function FixedAssetsPage() {
               </button>
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                className="flex-1 border border-[#eef2f6] text-gray-700 py-2 rounded-xl text-sm font-medium hover:bg-[#f8fafc] transition-colors"
               >
                 إلغاء
               </button>

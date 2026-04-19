@@ -67,27 +67,27 @@ export function AccountingPeriodsPage() {
 
       {/* Content */}
       {loading ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-4"><SkeletonRows rows={4} /></div>
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4"><SkeletonRows rows={4} /></div>
       ) : error ? (
         <div className="bg-red-50 rounded-2xl border border-red-100 p-6 flex items-center gap-3 text-red-700">
           <AlertCircle size={20} /><span>{error}</span>
         </div>
       ) : periods.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <Clock className="mx-auto mb-3 text-gray-300" size={40} />
           <p className="text-gray-500 font-medium">لا توجد فترات محاسبية</p>
           <p className="text-gray-400 text-sm mt-1">أنشئ فترة محاسبية للبدء في تسجيل القيود</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-50 border-b border-[#eef2f6]">
               <tr>
-                <th className="px-4 py-3 text-right text-gray-600 font-medium">الاسم</th>
-                <th className="px-4 py-3 text-right text-gray-600 font-medium">من</th>
-                <th className="px-4 py-3 text-right text-gray-600 font-medium">إلى</th>
-                <th className="px-4 py-3 text-right text-gray-600 font-medium">الحالة</th>
-                <th className="px-4 py-3 text-right text-gray-600 font-medium">الإجراءات</th>
+                <th className="px-[10px] py-[6px] text-right text-gray-600 font-medium">الاسم</th>
+                <th className="px-[10px] py-[6px] text-right text-gray-600 font-medium">من</th>
+                <th className="px-[10px] py-[6px] text-right text-gray-600 font-medium">إلى</th>
+                <th className="px-[10px] py-[6px] text-right text-gray-600 font-medium">الحالة</th>
+                <th className="px-[10px] py-[6px] text-right text-gray-600 font-medium">الإجراءات</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -95,16 +95,16 @@ export function AccountingPeriodsPage() {
                 const st = STATUS[p.status] ?? STATUS.open;
                 const Icon = st.icon;
                 return (
-                  <tr key={p.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-900">{p.name}</td>
-                    <td className="px-4 py-3 text-gray-600">{fmt(p.start_date ?? p.startDate)}</td>
-                    <td className="px-4 py-3 text-gray-600">{fmt(p.end_date ?? p.endDate)}</td>
-                    <td className="px-4 py-3">
+                  <tr key={p.id} className="hover:bg-[#f8fafc] transition-colors">
+                    <td className="px-[10px] py-[6px] font-medium text-gray-900">{p.name}</td>
+                    <td className="px-[10px] py-[6px] text-gray-600">{fmt(p.start_date ?? p.startDate)}</td>
+                    <td className="px-[10px] py-[6px] text-gray-600">{fmt(p.end_date ?? p.endDate)}</td>
+                    <td className="px-[10px] py-[6px]">
                       <span className={clsx("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium", st.cls)}>
                         <Icon size={12} />{st.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <div className="flex items-center gap-2">
                         {p.status === "open" && (
                           <>
@@ -150,18 +150,18 @@ export function AccountingPeriodsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">اسم الفترة</label>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="مثال: الربع الأول 2026"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">تاريخ البداية</label>
                   <input type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">تاريخ النهاية</label>
                   <input type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
                 </div>
               </div>
             </div>
@@ -172,7 +172,7 @@ export function AccountingPeriodsPage() {
                 إنشاء الفترة
               </button>
               <button onClick={() => { setShowModal(false); setFormError(null); }}
-                className="flex-1 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                className="flex-1 py-2.5 border border-[#eef2f6] text-gray-700 rounded-xl text-sm font-medium hover:bg-[#f8fafc] transition-colors">
                 إلغاء
               </button>
             </div>

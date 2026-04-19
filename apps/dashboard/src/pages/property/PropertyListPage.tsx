@@ -54,7 +54,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
+        <div className="flex justify-between items-center p-4 border-b border-[#eef2f6]">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
@@ -73,7 +73,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
 
 export function PropertyListPage() {
   const [typeFilter, setTypeFilter] = useState("");
@@ -159,7 +159,7 @@ export function PropertyListPage() {
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
         >
           <option value="">كل الأنواع</option>
           {Object.entries(PROPERTY_TYPE_AR).map(([k, v]) => (
@@ -170,7 +170,7 @@ export function PropertyListPage() {
           value={cityFilter}
           onChange={(e) => setCityFilter(e.target.value)}
           placeholder="البحث بالمدينة..."
-          className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+          className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
         />
       </div>
 
@@ -178,7 +178,7 @@ export function PropertyListPage() {
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-48 bg-gray-100 rounded-2xl animate-pulse" />
+            <div key={i} className="h-48 bg-[#f1f5f9] rounded-2xl animate-pulse" />
           ))}
         </div>
       ) : error ? (
@@ -199,7 +199,7 @@ export function PropertyListPage() {
               : 0;
             const occupancyPct = 100 - vacancyRate;
             return (
-              <div key={p.id} className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+              <div key={p.id} className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-hidden">
                 {p.coverImageUrl ? (
                   <img src={p.coverImageUrl} alt={p.name} className="w-full h-36 object-cover" />
                 ) : (
@@ -334,7 +334,7 @@ export function PropertyListPage() {
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setShowModal(false)}
-                className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50"
+                className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]"
               >
                 إلغاء
               </button>

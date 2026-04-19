@@ -103,23 +103,23 @@ export function CommissionsPage() {
           <button
             onClick={() => setUseTiers(!useTiers)}
             className={clsx("px-3 py-1.5 rounded-xl text-xs font-medium border flex items-center gap-1.5",
-              useTiers ? "bg-brand-500 text-white border-brand-500" : "border-gray-200 text-gray-600 hover:bg-gray-50")}
+              useTiers ? "bg-brand-500 text-white border-brand-500" : "border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]")}
           >
             <Percent className="w-3.5 h-3.5" /> {useTiers ? "تصاعدي" : "ثابت"}
           </button>
           {useTiers && (
             <button
               onClick={() => setShowTierSettings(true)}
-              className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500"
+              className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500"
             >
               <Settings2 className="w-4 h-4" />
             </button>
           )}
-          <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500">
+          <button onClick={prevMonth} className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500">
             <ChevronUp className="w-4 h-4" />
           </button>
           <span className="text-sm font-medium text-gray-700 min-w-[100px] text-center">{MONTHS[month]} {year}</span>
-          <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500">
+          <button onClick={nextMonth} className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500">
             <ChevronDown className="w-4 h-4" />
           </button>
         </div>
@@ -133,8 +133,8 @@ export function CommissionsPage() {
           { label: "إجمالي الرواتب", value: `${totalSalaries.toFixed(0)} ر.س`, icon: DollarSign, color: "text-blue-600 bg-blue-50" },
           { label: "إجمالي الحجوزات", value: totalBookings, icon: Users, color: "text-purple-600 bg-purple-50" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
-            <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", color.split(" ")[1])}>
+          <div key={label} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all">
+            <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0", color.split(" ")[1])}>
               <Icon className={clsx("w-5 h-5", color.split(" ")[0])} />
             </div>
             <div>
@@ -151,15 +151,15 @@ export function CommissionsPage() {
       ) : (
         <div className="space-y-2">
           {commissions.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16">
               <Users className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400">لا يوجد موظفون</p>
             </div>
           ) : (
             commissions.map(staff => (
-              <div key={staff.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div key={staff.id} className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
                 <button
-                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#f8fafc] transition-colors"
                   onClick={() => setExpanded(expanded === staff.id ? null : staff.id)}
                 >
                   <div className="flex items-center gap-3">
@@ -219,7 +219,7 @@ export function CommissionsPage() {
       {showTierSettings && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
               <h3 className="font-bold text-gray-900">شرائح العمولة التصاعدية</h3>
               <button onClick={() => setShowTierSettings(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
@@ -233,7 +233,7 @@ export function CommissionsPage() {
                     ) : (
                       <input
                         type="number"
-                        className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-sm"
+                        className="w-full border border-[#eef2f6] rounded-xl px-3 py-1.5 text-sm"
                         value={tier.upTo}
                         onChange={e => {
                           const updated = [...tiers];
@@ -250,7 +250,7 @@ export function CommissionsPage() {
                       min="0"
                       max="100"
                       step="0.5"
-                      className="w-full border border-gray-200 rounded-xl px-3 py-1.5 text-sm"
+                      className="w-full border border-[#eef2f6] rounded-xl px-3 py-1.5 text-sm"
                       value={tier.rate}
                       onChange={e => {
                         const updated = [...tiers];

@@ -173,7 +173,7 @@ function FulfillmentsTab() {
               onClick={() => setStageFilter(s)}
               className={clsx(
                 "px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors",
-                stageFilter === s ? "bg-brand-600 text-white border-brand-600" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50",
+                stageFilter === s ? "bg-brand-600 text-white border-brand-600" : "bg-white text-gray-600 border-[#eef2f6] hover:bg-[#f8fafc]",
               )}
             >
               {s ? STAGE_CONFIG[s]?.label : "الكل"}
@@ -192,7 +192,7 @@ function FulfillmentsTab() {
       {loading ? (
         <div className="space-y-2"><SkeletonRows rows={4} /></div>
       ) : fulfillments.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <ClipboardList className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-gray-900 mb-1">لا توجد طلبات تنفيذ</h3>
           <p className="text-sm text-gray-400 mb-4">أنشئ طلب تنفيذ عند تأكيد حجز يحتاج معدات</p>
@@ -206,7 +206,7 @@ function FulfillmentsTab() {
               <div
                 key={f.id}
                 onClick={() => setDetail(f.id)}
-                className="bg-white rounded-2xl border border-gray-100 px-5 py-4 flex items-center gap-4 hover:shadow-sm cursor-pointer transition-all"
+                className="bg-white rounded-2xl border border-[#eef2f6] px-5 py-4 flex items-center gap-4 hover:shadow-sm cursor-pointer transition-all"
               >
                 <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", sc.bg)}>
                   <sc.icon className={clsx("w-4 h-4", sc.color)} />
@@ -323,8 +323,8 @@ function FulfillmentsTab() {
                         const aStatus = ALLOC_STATUS[alloc.status] || ALLOC_STATUS.allocated;
                         const nextSt  = ALLOC_NEXT_STATUS[alloc.status];
                         return (
-                          <div key={alloc.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-gray-100 shrink-0">
+                          <div key={alloc.id} className="flex items-center gap-3 p-3 bg-[#f8fafc] rounded-xl">
+                            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center border border-[#eef2f6] shrink-0">
                               <Package className="w-3.5 h-3.5 text-gray-400" />
                             </div>
                             <div className="flex-1 min-w-0">
@@ -404,9 +404,9 @@ function FulfillmentsTab() {
                   key={a.id}
                   onClick={() => handleAddAsset(a.id)}
                   disabled={addingAsset}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 border border-gray-100 transition-colors text-right"
+                  className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-brand-50 border border-[#eef2f6] transition-colors text-right"
                 >
-                  <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 bg-[#f1f5f9] rounded-lg flex items-center justify-center shrink-0">
                     <Package className="w-3.5 h-3.5 text-gray-400" />
                   </div>
                   <div className="flex-1 min-w-0">

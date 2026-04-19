@@ -52,7 +52,7 @@ function SelectField({
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="w-full appearance-none rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors bg-white pr-10"
+          className="w-full appearance-none rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors bg-white pr-10"
         >
           {placeholder && <option value="">{placeholder}</option>}
           {options.map((o) => (
@@ -187,7 +187,7 @@ export function SchoolRegisterPage() {
           </Link>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-8">
 
           {/* ── Step 1: Registration Form ── */}
           {step === "form" && (
@@ -206,7 +206,7 @@ export function SchoolRegisterPage() {
                     type="text"
                     value={form.schoolName}
                     onChange={(e) => set("schoolName")(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors"
+                    className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors"
                     placeholder="مدرسة الفيصل الابتدائية"
                   />
                 </div>
@@ -220,7 +220,7 @@ export function SchoolRegisterPage() {
                     type="text"
                     value={form.adminName}
                     onChange={(e) => set("adminName")(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors"
+                    className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors"
                     placeholder="محمد عبدالله"
                   />
                 </div>
@@ -235,7 +235,7 @@ export function SchoolRegisterPage() {
                     dir="ltr"
                     value={form.phone}
                     onChange={(e) => set("phone")(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors"
+                    className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors"
                     placeholder="05XXXXXXXX"
                   />
                 </div>
@@ -252,7 +252,7 @@ export function SchoolRegisterPage() {
                         dir="ltr"
                         value={form.password}
                         onChange={(e) => set("password")(e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors pr-10"
+                        className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors pr-10"
                         placeholder="8 أحرف على الأقل"
                       />
                       <button
@@ -274,7 +274,7 @@ export function SchoolRegisterPage() {
                         dir="ltr"
                         value={form.confirmPassword}
                         onChange={(e) => set("confirmPassword")(e.target.value)}
-                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors pr-10"
+                        className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors pr-10"
                         placeholder="أعد كتابة كلمة المرور"
                       />
                       <button
@@ -320,7 +320,7 @@ export function SchoolRegisterPage() {
                     type="text"
                     value={form.address}
                     onChange={(e) => set("address")(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors"
+                    className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors"
                     placeholder="حي النزهة، شارع الأمير..."
                   />
                 </div>
@@ -333,7 +333,7 @@ export function SchoolRegisterPage() {
                     dir="ltr"
                     value={form.schoolEmail}
                     onChange={(e) => set("schoolEmail")(e.target.value)}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors"
+                    className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors"
                     placeholder="info@school.edu.sa"
                   />
                 </div>
@@ -344,7 +344,7 @@ export function SchoolRegisterPage() {
               <button
                 onClick={submitForm}
                 disabled={loading}
-                className="w-full mt-6 bg-emerald-600 text-white py-3.5 rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                className="w-full mt-6 bg-emerald-600 text-white py-[6px] rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "إنشاء الحساب"}
               </button>
@@ -390,7 +390,7 @@ export function SchoolRegisterPage() {
                       if (e.key === "Backspace" && !otp[i] && i > 0)
                         document.getElementById(`school-reg-otp-${i - 1}`)?.focus();
                     }}
-                    className="w-11 h-12 text-center text-lg font-bold rounded-xl border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none transition-colors"
+                    className="w-11 h-12 text-center text-lg font-bold rounded-xl border border-[#eef2f6] focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none transition-colors"
                   />
                 ))}
               </div>
@@ -406,7 +406,7 @@ export function SchoolRegisterPage() {
               <button
                 onClick={verifyOtp}
                 disabled={loading || otp.join("").length < 6}
-                className="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                className="w-full bg-emerald-600 text-white py-[6px] rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "تأكيد وإنشاء الحساب"}
               </button>

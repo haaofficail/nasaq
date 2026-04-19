@@ -64,7 +64,7 @@ const EVENT_COLORS: Record<string, { bg: string; text: string; icon: typeof Flag
   national_day:{ bg: "bg-emerald-50",text: "text-emerald-700",icon: Star },
   exam:        { bg: "bg-violet-50", text: "text-violet-700", icon: BookOpen },
   activity:    { bg: "bg-amber-50",  text: "text-amber-700",  icon: PartyPopper },
-  other:       { bg: "bg-gray-50",   text: "text-gray-600",   icon: CalendarDays },
+  other:       { bg: "bg-[#f8fafc]",   text: "text-gray-600",   icon: CalendarDays },
 };
 
 // ── Module Card ───────────────────────────────────────────────
@@ -78,7 +78,7 @@ function ModuleCard({ label, desc, icon: Icon, href, bg, iconColor }: {
   return (
     <button
       onClick={() => navigate(href)}
-      className="bg-white rounded-2xl border border-gray-100 p-4 hover:border-gray-200 hover:shadow-sm transition-all text-right group w-full"
+      className="bg-white rounded-2xl border border-[#eef2f6] p-4 hover:border-[#eef2f6] hover:shadow-sm transition-all text-right group w-full"
     >
       <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center mb-3 transition-colors", bg)}>
         <Icon className={clsx("w-4 h-4", iconColor)} />
@@ -107,7 +107,7 @@ function KpiCard({ label, value, sub, icon: Icon, bg, iconColor, border, loading
       )}
     >
       <div className="flex items-start justify-between mb-3">
-        <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center", bg)}>
+        <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center", bg)}>
           <Icon className={clsx("w-5 h-5", iconColor)} />
         </div>
       </div>
@@ -350,8 +350,8 @@ export function SchoolDashboardPage() {
             متابعة إنجاز اليوم — Smart Daily Tracker
             ════════════════════════════════════════ */}
         {(totalClassrooms > 0 || stats.teachers > 0) && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
+            <div className="px-5 py-[6px] border-b border-gray-50 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center">
                   <CheckCircle2 className="w-3.5 h-3.5 text-violet-600" />
@@ -511,8 +511,8 @@ export function SchoolDashboardPage() {
         {/* ══════════════════════════════════════════
             Widget 1: الحصة الجارية الآن
             ════════════════════════════════════════ */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
+          <div className="px-5 py-[6px] border-b border-gray-50 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center">
                 <Timer className="w-3.5 h-3.5 text-indigo-600" />
@@ -568,7 +568,7 @@ export function SchoolDashboardPage() {
                   </div>
                 ))}
                 {currentEntries.length > 8 && (
-                  <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2.5 flex items-center justify-center">
+                  <div className="bg-gray-50 border border-[#eef2f6] rounded-xl px-3 py-2.5 flex items-center justify-center">
                     <p className="text-xs text-gray-400 font-semibold">+{currentEntries.length - 8} أخرى</p>
                   </div>
                 )}
@@ -610,8 +610,8 @@ export function SchoolDashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
           {/* Student Attendance Today */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
+            <div className="px-5 py-[6px] border-b border-gray-50 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-cyan-50 flex items-center justify-center">
                   <UserRoundCheck className="w-3.5 h-3.5 text-cyan-600" />
@@ -659,8 +659,8 @@ export function SchoolDashboardPage() {
           </div>
 
           {/* Teacher Attendance Today */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
+            <div className="px-5 py-[6px] border-b border-gray-50 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center">
                   <CalendarCheck2 className="w-3.5 h-3.5 text-emerald-600" />
@@ -713,8 +713,8 @@ export function SchoolDashboardPage() {
           </div>
 
           {/* Widget 3: حصص الانتظار اليوم */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
+            <div className="px-5 py-[6px] border-b border-gray-50 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center">
                   <ClipboardList className="w-3.5 h-3.5 text-amber-600" />
@@ -773,8 +773,8 @@ export function SchoolDashboardPage() {
         </div>
 
         {/* ── Week Events ── */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
+          <div className="px-5 py-[6px] border-b border-gray-50 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <div className="w-7 h-7 rounded-lg bg-brand-500/10 flex items-center justify-center">
                 <CalendarDays className="w-3.5 h-3.5 text-brand-500" />
@@ -799,7 +799,7 @@ export function SchoolDashboardPage() {
                 const ec = EVENT_COLORS[evt.eventType] ?? EVENT_COLORS.other;
                 const EIcon = ec.icon;
                 return (
-                  <div key={evt.id} className="flex items-center gap-3 px-5 py-3.5">
+                  <div key={evt.id} className="flex items-center gap-3 px-5 py-[6px]">
                     <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", ec.bg)}>
                       <EIcon className={clsx("w-3.5 h-3.5", ec.text)} />
                     </div>

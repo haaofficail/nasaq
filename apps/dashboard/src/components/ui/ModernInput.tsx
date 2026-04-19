@@ -76,7 +76,7 @@ export function ModernInput({
               ? "border border-red-400 ring-[3px] ring-red-400/10"
               : focused
                 ? "border border-brand-400 ring-[3px] ring-brand-400/10"
-                : "border border-gray-200 hover:border-gray-300",
+                : "border border-[#eef2f6] hover:border-[#eef2f6]",
           )}
         />
         {suffix && (

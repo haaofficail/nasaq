@@ -13,7 +13,7 @@ const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
 };
 
 const SEVERITY_LABELS: Record<string, { label: string; cls: string }> = {
-  low:      { label: "منخفض",   cls: "bg-gray-50 text-gray-600 border-gray-200" },
+  low:      { label: "منخفض",   cls: "bg-gray-50 text-gray-600 border-[#eef2f6]" },
   medium:   { label: "متوسط",   cls: "bg-amber-50 text-amber-700 border-amber-200" },
   high:     { label: "عالٍ",    cls: "bg-orange-50 text-orange-700 border-orange-200" },
   critical: { label: "حرج",     cls: "bg-red-50 text-red-700 border-red-200" },
@@ -26,7 +26,7 @@ export function LegalSettingsPage() {
     <div dir="rtl" className="p-6 space-y-6 max-w-5xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center">
+        <div className="w-9 h-9 rounded-[10px] bg-blue-50 flex items-center justify-center">
           <Shield className="w-5 h-5 text-blue-600" />
         </div>
         <div>
@@ -56,7 +56,7 @@ export function LegalSettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+      <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1 w-fit">
         {([
           { key: "settings",  label: "بيانات المنشأة",     icon: FileText },
           { key: "requests",  label: "طلبات الخصوصية",     icon: Download },
@@ -111,7 +111,7 @@ function LegalSettingsTab() {
     }
   };
 
-  if (loading) return <div className="h-40 bg-gray-50 rounded-2xl animate-pulse" />;
+  if (loading) return <div className="h-40 bg-[#f8fafc] rounded-2xl animate-pulse" />;
 
   return (
     <div className="space-y-6">
@@ -193,10 +193,10 @@ function PrivacyRequestsTab() {
         <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-lg">{requests.length} طلب</span>
       </div>
 
-      {loading && <div className="h-32 bg-gray-50 rounded-2xl animate-pulse" />}
+      {loading && <div className="h-32 bg-[#f8fafc] rounded-2xl animate-pulse" />}
 
       {!loading && requests.length === 0 && (
-        <div className="text-center py-12 text-gray-400 bg-gray-50 rounded-2xl">
+        <div className="text-center py-12 text-gray-400 bg-[#f8fafc] rounded-2xl">
           <Download className="w-8 h-8 mx-auto mb-2 opacity-40" />
           <p className="text-sm">لا توجد طلبات خصوصية</p>
         </div>
@@ -205,7 +205,7 @@ function PrivacyRequestsTab() {
       {requests.map((r) => {
         const s = STATUS_LABELS[r.status] ?? STATUS_LABELS.pending;
         return (
-          <div key={r.id} className="bg-white border border-gray-100 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
+          <div key={r.id} className="bg-white border border-[#eef2f6] rounded-2xl p-4 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
               <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${r.type === "delete" ? "bg-red-50" : "bg-blue-50"}`}>
                 {r.type === "delete" ? <Trash2 className="w-4 h-4 text-red-500" /> : <Download className="w-4 h-4 text-blue-500" />}
@@ -249,10 +249,10 @@ function SecurityIncidentsTab() {
         </div>
       </div>
 
-      {loading && <div className="h-32 bg-gray-50 rounded-2xl animate-pulse" />}
+      {loading && <div className="h-32 bg-[#f8fafc] rounded-2xl animate-pulse" />}
 
       {!loading && incidents.length === 0 && (
-        <div className="text-center py-12 text-gray-400 bg-gray-50 rounded-2xl">
+        <div className="text-center py-12 text-gray-400 bg-[#f8fafc] rounded-2xl">
           <Shield className="w-8 h-8 mx-auto mb-2 opacity-40" />
           <p className="text-sm">لا توجد حوادث أمان مسجّلة</p>
         </div>
@@ -261,7 +261,7 @@ function SecurityIncidentsTab() {
       {incidents.map((i) => {
         const sev = SEVERITY_LABELS[i.severity] ?? SEVERITY_LABELS.low;
         return (
-          <div key={i.id} className="bg-white border border-gray-100 rounded-2xl p-4 space-y-2">
+          <div key={i.id} className="bg-white border border-[#eef2f6] rounded-2xl p-4 space-y-2">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <span className={`text-xs px-2 py-1 rounded-lg border ${sev.cls}`}>{sev.label}</span>
@@ -290,7 +290,7 @@ function SecurityIncidentsTab() {
 
 function Section({ title, sub, children }: { title: string; sub: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl p-5 space-y-4">
+    <div className="bg-white border border-[#eef2f6] rounded-2xl p-5 space-y-4">
       <div>
         <h3 className="text-sm font-700 text-gray-900">{title}</h3>
         <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
@@ -312,7 +312,7 @@ function Field({ label, value, onChange, type = "text", placeholder }: {
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
+        className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400"
       />
     </div>
   );
@@ -329,7 +329,7 @@ function TextArea({ label, value, onChange, placeholder }: {
         placeholder={placeholder}
         rows={4}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 resize-none"
+        className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-400 resize-none"
       />
     </div>
   );

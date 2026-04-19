@@ -29,7 +29,7 @@ interface DurationInputProps {
 }
 
 const inputCls =
-  "border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300";
+  "border border-[#eef2f6] rounded-lg px-3 py-1.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300";
 
 export function DurationInput({
   valueMinutes,

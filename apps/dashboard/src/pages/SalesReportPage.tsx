@@ -56,27 +56,27 @@ export function SalesReportPage() {
       </div>
 
       {/* filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">من تاريخ</label>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">إلى تاريخ</label>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">حالة الدفع</label>
             <select value={status} onChange={e => setStatus(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 bg-white">
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400 bg-white">
               {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
           <button onClick={exportCsv}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors mr-auto">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f8fafc] border border-[#eef2f6] text-sm text-gray-600 hover:bg-gray-100 transition-colors mr-auto">
             <Download className="w-4 h-4" /> تصدير CSV
           </button>
         </div>
@@ -95,7 +95,7 @@ export function SalesReportPage() {
             ].map(card => {
               const Icon = card.icon;
               return (
-                <div key={card.label} className="bg-white rounded-2xl border border-gray-100 p-4">
+                <div key={card.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
                   <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-3", card.bg)}>
                     <Icon className={clsx("w-4 h-4", card.color)} />
                   </div>
@@ -107,7 +107,7 @@ export function SalesReportPage() {
           </div>
 
           {/* items table */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900 text-sm">تفاصيل المبيعات</h2>
               <span className="text-xs text-gray-400">{items.length} خدمة</span>
@@ -130,32 +130,32 @@ export function SalesReportPage() {
                   </thead>
                   <tbody>
                     {items.map((it: any, i: number) => (
-                      <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                        <td className="px-4 py-3 font-medium text-gray-800">{it.description}</td>
-                        <td className="px-4 py-3 tabular-nums text-gray-600">{fmt(it.unitPrice)} ر.س</td>
-                        <td className="px-4 py-3 text-center text-gray-600">{it.totalQty}</td>
-                        <td className="px-4 py-3 tabular-nums text-gray-500">{fmt(it.totalVat)} ر.س</td>
-                        <td className="px-4 py-3 tabular-nums text-amber-600">{fmt(it.totalDiscount)} ر.س</td>
-                        <td className="px-4 py-3 tabular-nums font-bold text-gray-900">{fmt(it.totalAmount)} ر.س</td>
-                        <td className="px-4 py-3 tabular-nums text-red-400">0.00 ر.س</td>
-                        <td className="px-4 py-3">
+                      <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
+                        <td className="px-[10px] py-[6px] font-medium text-gray-800">{it.description}</td>
+                        <td className="px-[10px] py-[6px] tabular-nums text-gray-600">{fmt(it.unitPrice)} ر.س</td>
+                        <td className="px-[10px] py-[6px] text-center text-gray-600">{it.totalQty}</td>
+                        <td className="px-[10px] py-[6px] tabular-nums text-gray-500">{fmt(it.totalVat)} ر.س</td>
+                        <td className="px-[10px] py-[6px] tabular-nums text-amber-600">{fmt(it.totalDiscount)} ر.س</td>
+                        <td className="px-[10px] py-[6px] tabular-nums font-bold text-gray-900">{fmt(it.totalAmount)} ر.س</td>
+                        <td className="px-[10px] py-[6px] tabular-nums text-red-400">0.00 ر.س</td>
+                        <td className="px-[10px] py-[6px]">
                           <span className="text-xs text-brand-500 font-medium">عرض ({it.invoiceCount})</span>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-gray-50 font-bold border-t border-gray-200">
-                      <td className="px-4 py-3 text-gray-700">الإجمالي</td>
-                      <td className="px-4 py-3" />
-                      <td className="px-4 py-3 text-center text-gray-700">
+                    <tr className="bg-gray-50 font-bold border-t border-[#eef2f6]">
+                      <td className="px-[10px] py-[6px] text-gray-700">الإجمالي</td>
+                      <td className="px-[10px] py-[6px]" />
+                      <td className="px-[10px] py-[6px] text-center text-gray-700">
                         {items.reduce((s: number, it: any) => s + Number(it.totalQty), 0)}
                       </td>
-                      <td className="px-4 py-3 tabular-nums text-gray-600">{fmt(summary.totalVat)} ر.س</td>
-                      <td className="px-4 py-3 tabular-nums text-amber-600">{fmt(summary.totalDiscounts)} ر.س</td>
-                      <td className="px-4 py-3 tabular-nums text-brand-600">{fmt(summary.totalSales)} ر.س</td>
-                      <td className="px-4 py-3 tabular-nums text-red-400">0.00 ر.س</td>
-                      <td className="px-4 py-3 text-xs text-gray-400">{summary.invoiceCount} فاتورة</td>
+                      <td className="px-[10px] py-[6px] tabular-nums text-gray-600">{fmt(summary.totalVat)} ر.س</td>
+                      <td className="px-[10px] py-[6px] tabular-nums text-amber-600">{fmt(summary.totalDiscounts)} ر.س</td>
+                      <td className="px-[10px] py-[6px] tabular-nums text-brand-600">{fmt(summary.totalSales)} ر.س</td>
+                      <td className="px-[10px] py-[6px] tabular-nums text-red-400">0.00 ر.س</td>
+                      <td className="px-[10px] py-[6px] text-xs text-gray-400">{summary.invoiceCount} فاتورة</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -164,7 +164,7 @@ export function SalesReportPage() {
           </div>
 
           {/* FAQ */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
             <div className="space-y-3">
               {[
@@ -173,8 +173,8 @@ export function SalesReportPage() {
                 { q: "ما المقصود بـ «المبالغ المخصومة»؟", a: "إجمالي الخصومات المطبّقة على بنود الفواتير." },
                 { q: "ما المقصود بـ «صافي الدخل»؟", a: "المبالغ المدفوعة فعلياً بعد الخصومات والمسترجعات." },
               ].map(faq => (
-                <details key={faq.q} className="border border-gray-100 rounded-xl">
-                  <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+                <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+                  <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
                   <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
                 </details>
               ))}

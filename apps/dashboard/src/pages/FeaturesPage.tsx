@@ -91,7 +91,7 @@ export function FeaturesPage() {
 
         {/* Feature sections */}
         {features.map((f, i) => (
-          <section key={f.title} className={`py-20 ${i % 2 === 0 ? "bg-white" : "bg-gray-50"}`}>
+          <section key={f.title} className={`py-20 ${i % 2 === 0 ? "bg-white" : "bg-[#f8fafc]"}`}>
             <div className="max-w-5xl mx-auto px-6">
               <div className={`flex flex-col md:flex-row items-center gap-12 ${i % 2 === 1 ? "md:flex-row-reverse" : ""}`}>
                 <div className="flex-1">

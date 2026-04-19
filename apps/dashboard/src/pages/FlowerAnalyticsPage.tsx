@@ -9,8 +9,8 @@ function SkeletonSection() {
     <div className="space-y-5">
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3 animate-pulse">
-            <div className="w-10 h-10 rounded-xl bg-gray-100 shrink-0" />
+          <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-3 animate-pulse">
+            <div className="w-9 h-9 rounded-[10px] bg-gray-100 shrink-0" />
             <div className="flex-1 space-y-2">
               <div className="h-5 bg-gray-100 rounded w-2/3" />
               <div className="h-3 bg-gray-100 rounded w-1/2" />
@@ -19,7 +19,7 @@ function SkeletonSection() {
         ))}
       </div>
       {[1, 2, 3].map(i => (
-        <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse space-y-3">
+        <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-5 animate-pulse space-y-3">
           <div className="h-4 bg-gray-100 rounded w-1/3" />
           <div className="h-3 bg-gray-100 rounded w-full" />
           <div className="h-3 bg-gray-100 rounded w-3/4" />
@@ -35,9 +35,9 @@ function Section({ title, icon: Icon, children, defaultOpen = true }: {
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
       <button
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#f8fafc] transition-colors"
         onClick={() => setOpen(o => !o)}
       >
         <p className="font-semibold text-gray-800 flex items-center gap-2 text-sm">
@@ -78,7 +78,7 @@ export function FlowerAnalyticsPage() {
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">هدر الورد، الهامش، الطلب، التنبؤ بإعادة الطلب</p>
         </div>
-        <button onClick={refetch} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500">
+        <button onClick={refetch} className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500">
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
@@ -86,7 +86,7 @@ export function FlowerAnalyticsPage() {
       {loading ? (
         <SkeletonSection />
       ) : !data && !loading ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-8 flex flex-col items-center justify-center text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-8 flex flex-col items-center justify-center text-center">
           <AlertCircle className="w-10 h-10 text-red-300 mb-3" />
           <p className="text-sm font-semibold text-gray-700">حدث خطأ في تحميل التحليلات</p>
           <p className="text-xs text-gray-400 mt-1">تعذّر الاتصال بالخادم أو حدث خطأ غير متوقع</p>
@@ -108,8 +108,8 @@ export function FlowerAnalyticsPage() {
               { label: "تنتهي خلال 7 أيام", value: expiring.length,         unit: "صنف", color: "text-amber-600 bg-amber-50",   icon: Clock },
               { label: "تحتاج إعادة طلب", value: reorderNeeded.length,     unit: "صنف", color: "text-purple-600 bg-purple-50", icon: RefreshCw },
             ].map(({ label, value, unit, color, icon: Icon }) => (
-              <div key={label} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
-                <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", color.split(" ")[1])}>
+              <div key={label} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all">
+                <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0", color.split(" ")[1])}>
                   <Icon className={clsx("w-5 h-5", color.split(" ")[0])} />
                 </div>
                 <div>
@@ -291,7 +291,7 @@ export function FlowerAnalyticsPage() {
                   { label: "مجدول/مؤكد",   value: ordersStats.scheduled ?? 0 },
                   { label: "قيد التنفيذ",  value: ordersStats.in_progress ?? 0 },
                 ].map(({ label, value }) => (
-                  <div key={label} className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+                  <div key={label} className="bg-white border border-[#eef2f6] rounded-xl p-3 text-center">
                     <p className="text-lg font-bold text-gray-800 tabular-nums">{value}</p>
                     <p className="text-xs text-gray-400">{label}</p>
                   </div>

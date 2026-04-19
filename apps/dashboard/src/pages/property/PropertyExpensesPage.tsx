@@ -29,7 +29,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
+        <div className="flex justify-between items-center p-4 border-b border-[#eef2f6]">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
@@ -48,7 +48,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
 
 export function PropertyExpensesPage() {
   const [showModal, setShowModal] = useState(false);
@@ -111,14 +111,14 @@ export function PropertyExpensesPage() {
 
       {/* Summary cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm md:col-span-1">
+        <div className="bg-white border border-[#eef2f6] rounded-2xl p-4 shadow-sm md:col-span-1">
           <p className="text-xs text-gray-400">إجمالي هذا الشهر</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">
             {Number(summary.thisMonth ?? 0).toLocaleString("en-US")} ريال
           </p>
         </div>
         {topCategories.map((cat: any, i: number) => (
-          <div key={i} className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+          <div key={i} className="bg-white border border-[#eef2f6] rounded-2xl p-4 shadow-sm">
             <p className="text-xs text-gray-400">{EXPENSE_CATEGORY_AR[cat.category] ?? cat.category}</p>
             <p className="text-xl font-bold text-gray-800 mt-1">{Number(cat.total ?? 0).toLocaleString("en-US")} ريال</p>
           </div>
@@ -128,7 +128,7 @@ export function PropertyExpensesPage() {
       {/* Pie chart + table */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Pie */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm md:col-span-1">
+        <div className="bg-white border border-[#eef2f6] rounded-2xl p-4 shadow-sm md:col-span-1">
           <h3 className="text-sm font-semibold text-gray-700 mb-3">المصروفات حسب التصنيف</h3>
           {pieData.length > 0 ? (
             <ResponsiveContainer width="100%" height={200}>
@@ -148,17 +148,17 @@ export function PropertyExpensesPage() {
         </div>
 
         {/* Table */}
-        <div className="md:col-span-2 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="md:col-span-2 bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-[#f8fafc]">
               <tr>
-                <th className="px-4 py-3 text-right font-medium text-gray-500">رقم المصروف</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-500">العقار</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-500">التصنيف</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-500">الوصف</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-500">المبلغ</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-500">التاريخ</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-500">المدفوع لـ</th>
+                <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">رقم المصروف</th>
+                <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">العقار</th>
+                <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">التصنيف</th>
+                <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الوصف</th>
+                <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">المبلغ</th>
+                <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">التاريخ</th>
+                <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">المدفوع لـ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -170,18 +170,18 @@ export function PropertyExpensesPage() {
                 <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">لا توجد مصروفات</td></tr>
               ) : (
                 expenses.map((e: any) => (
-                  <tr key={e.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900 text-xs">{e.expenseNumber ?? e.id?.slice(0, 8)}</td>
-                    <td className="px-4 py-3 text-gray-500">{e.propertyName ?? "—"}</td>
-                    <td className="px-4 py-3">
+                  <tr key={e.id} className="hover:bg-[#f8fafc]">
+                    <td className="px-[10px] py-[6px] font-medium text-gray-900 text-xs">{e.expenseNumber ?? e.id?.slice(0, 8)}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{e.propertyName ?? "—"}</td>
+                    <td className="px-[10px] py-[6px]">
                       <span className="bg-teal-50 text-teal-700 rounded-full px-2 py-0.5 text-xs">
                         {EXPENSE_CATEGORY_AR[e.category] ?? e.category}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 truncate max-w-32">{e.description}</td>
-                    <td className="px-4 py-3 font-medium text-gray-900">{Number(e.amount ?? 0).toLocaleString("en-US")} ريال</td>
-                    <td className="px-4 py-3 text-gray-500">{e.paidAt ? new Date(e.paidAt).toLocaleDateString("ar-SA") : "—"}</td>
-                    <td className="px-4 py-3 text-gray-500">{e.paidTo ?? "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500 truncate max-w-32">{e.description}</td>
+                    <td className="px-[10px] py-[6px] font-medium text-gray-900">{Number(e.amount ?? 0).toLocaleString("en-US")} ريال</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{e.paidAt ? new Date(e.paidAt).toLocaleDateString("ar-SA") : "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{e.paidTo ?? "—"}</td>
                   </tr>
                 ))
               )}
@@ -244,7 +244,7 @@ export function PropertyExpensesPage() {
               <textarea className={clsx(inputCls, "h-20 resize-none")} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </Field>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleSave} disabled={creating} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50">
                 {creating ? "جارٍ الإضافة..." : "إضافة"}
               </button>

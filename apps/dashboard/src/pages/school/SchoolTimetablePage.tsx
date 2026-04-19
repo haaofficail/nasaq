@@ -109,7 +109,7 @@ function CellModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
           <div>
             <h3 className="text-sm font-black text-gray-900">{periodLabel}</h3>
             <p className="text-xs text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
@@ -129,7 +129,7 @@ function CellModal({
             <select
               value={subject}
               onChange={e => { setSubject(e.target.value); setTeacherId(""); }}
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
             >
               <option value="">— اختر المادة —</option>
               {subjects.map((s: any) => (
@@ -151,7 +151,7 @@ function CellModal({
               value={teacherId}
               onChange={e => setTeacherId(e.target.value)}
               disabled={!subject || loadingTeachers}
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:opacity-50 disabled:bg-gray-50"
+              className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 disabled:opacity-50 disabled:bg-gray-50"
             >
               <option value="">
                 {loadingTeachers ? "جاري التحميل..." : "— اختر المعلم —"}
@@ -163,7 +163,7 @@ function CellModal({
           </div>
         </div>
 
-        <div className="px-5 py-3.5 border-t border-gray-100 flex gap-2">
+        <div className="px-5 py-[6px] border-t border-[#eef2f6] flex gap-2">
           <button
             onClick={() => {
               const tName = filteredTeachers.find((t: any) => t.id === teacherId)?.fullName ?? null;
@@ -181,7 +181,7 @@ function CellModal({
           >
             <Trash2 className="w-4 h-4" />
           </button>
-          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50">
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc]">
             إلغاء
           </button>
         </div>
@@ -205,7 +205,7 @@ function SettingsPanel({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-sm bg-white rounded-2xl shadow-2xl" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
           <h3 className="text-sm font-black text-gray-900">إعدادات الجدول</h3>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
             <X className="w-4 h-4" />
@@ -215,39 +215,39 @@ function SettingsPanel({
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1.5">بداية الدوام</label>
             <input type="time" value={form.startTime} onChange={e => sf("startTime", e.target.value)} dir="ltr"
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400" />
+              className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400" />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">مدة الحصة (دقيقة)</label>
               <input type="number" min={20} max={90} value={form.periodDuration} onChange={e => sf("periodDuration", +e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400" />
+                className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">مدة الفسحة (دقيقة)</label>
               <input type="number" min={5} max={45} value={form.breakDuration} onChange={e => sf("breakDuration", +e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400" />
+                className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400" />
             </div>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">عدد الحصص</label>
               <input type="number" min={1} max={12} value={form.numberOfPeriods} onChange={e => sf("numberOfPeriods", +e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400" />
+                className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1.5">الفسحة بعد الحصة</label>
               <input type="number" min={1} max={10} value={form.breakAfter} onChange={e => sf("breakAfter", +e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400" />
+                className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400" />
             </div>
           </div>
         </div>
-        <div className="px-5 py-3.5 border-t border-gray-100 flex gap-2">
+        <div className="px-5 py-[6px] border-t border-[#eef2f6] flex gap-2">
           <button onClick={() => onApply(form)}
             className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700">
             تطبيق وإعادة البناء
           </button>
-          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50">
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc]">
             إلغاء
           </button>
         </div>
@@ -480,7 +480,7 @@ export function SchoolTimetablePage() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setShowSettings(true)}
-            className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50"
+            className="flex items-center gap-1.5 px-3 py-2 border border-[#eef2f6] rounded-xl text-sm text-gray-600 hover:bg-[#f8fafc]"
           >
             <Settings2 className="w-4 h-4" />
             إعدادات الجدول
@@ -501,7 +501,7 @@ export function SchoolTimetablePage() {
         <select
           value={classRoomId}
           onChange={e => setClassRoomId(e.target.value)}
-          className="px-4 py-2.5 border border-gray-200 rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-400/30 min-w-[200px]"
+          className="px-4 py-2.5 border border-[#eef2f6] rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-400/30 min-w-[200px]"
         >
           <option value="">اختر الفصل الدراسي...</option>
           {classRooms.map((cr: any) => (
@@ -509,7 +509,7 @@ export function SchoolTimetablePage() {
           ))}
         </select>
         {classRoomId && (
-          <button onClick={() => { refetchTt(); setSaveMsg(""); }} className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-500">
+          <button onClick={() => { refetchTt(); setSaveMsg(""); }} className="p-2 border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc] text-gray-500">
             <RefreshCw className="w-4 h-4" />
           </button>
         )}
@@ -554,7 +554,7 @@ export function SchoolTimetablePage() {
       {/* Empty state */}
       {!classRoomId && (
         <div className="py-16 flex flex-col items-center gap-4 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center">
+          <div className="w-16 h-16 rounded-2xl bg-[#f8fafc] flex items-center justify-center">
             <Grid3x3 className="w-8 h-8 text-gray-300" />
           </div>
           <div>
@@ -574,8 +574,8 @@ export function SchoolTimetablePage() {
 
       {/* Timetable Grid */}
       {classRoomId && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-gray-100 flex items-center gap-2">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
+          <div className="px-5 py-[6px] border-b border-[#eef2f6] flex items-center gap-2">
             <Grid3x3 className="w-4 h-4 text-emerald-600" />
             <span className="text-sm font-bold text-gray-900">
               {selectedClass ? `${selectedClass.grade} — فصل ${selectedClass.name}` : ""}
@@ -586,7 +586,7 @@ export function SchoolTimetablePage() {
           {ttLoading ? (
             <div className="p-8 space-y-2">
               {[...Array(8)].map((_, i) => (
-                <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-10 w-full" />
+                <div key={i} className="animate-pulse bg-[#f1f5f9] rounded-xl h-10 w-full" />
               ))}
             </div>
           ) : (
@@ -594,9 +594,9 @@ export function SchoolTimetablePage() {
               <table className="w-full text-sm min-w-[640px]">
                 <thead>
                   <tr className="bg-gray-50 text-xs text-gray-500">
-                    <th className="text-right px-4 py-3 font-bold w-28 border-l border-gray-100">الحصة / الوقت</th>
+                    <th className="text-right px-4 py-3 font-bold w-28 border-l border-[#eef2f6]">الحصة / الوقت</th>
                     {DAYS.map(d => (
-                      <th key={d.value} className="text-center px-3 py-3 font-bold border-l border-gray-100">{d.label}</th>
+                      <th key={d.value} className="text-center px-3 py-3 font-bold border-l border-[#eef2f6]">{d.label}</th>
                     ))}
                   </tr>
                 </thead>
@@ -605,7 +605,7 @@ export function SchoolTimetablePage() {
                     if (p.isBreak) {
                       return (
                         <tr key={`break-${p.periodNumber}`} className="bg-amber-50/60">
-                          <td className="px-4 py-2 border-t border-l border-gray-100">
+                          <td className="px-4 py-2 border-t border-l border-[#eef2f6]">
                             <div className="flex items-center gap-1.5 text-amber-700">
                               <Coffee className="w-3.5 h-3.5" />
                               <span className="text-xs font-bold">فسحة</span>
@@ -622,8 +622,8 @@ export function SchoolTimetablePage() {
                     }
 
                     return (
-                      <tr key={p.periodNumber} className="border-t border-gray-50 hover:bg-gray-50/40 transition-colors">
-                        <td className="px-4 py-3 border-l border-gray-100 bg-gray-50/50">
+                      <tr key={p.periodNumber} className="border-t border-gray-50 hover:bg-[#f8fafc]/40 transition-colors">
+                        <td className="px-[10px] py-[6px] border-l border-[#eef2f6] bg-gray-50/50">
                           <p className="text-xs font-bold text-gray-700">{p.label}</p>
                           <p className="text-[10px] text-gray-400 mt-0.5" dir="ltr">{p.startTime} — {p.endTime}</p>
                         </td>
@@ -634,7 +634,7 @@ export function SchoolTimetablePage() {
                             <td
                               key={d.value}
                               onClick={() => setEditModal({ day: d.value, period: p.periodNumber })}
-                              className="px-2 py-2 border-l border-gray-100 cursor-pointer group"
+                              className="px-2 py-2 border-l border-[#eef2f6] cursor-pointer group"
                             >
                               {hasContent ? (
                                 <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-2.5 py-2 text-center group-hover:border-emerald-300 transition-colors">
@@ -649,7 +649,7 @@ export function SchoolTimetablePage() {
                                   )}
                                 </div>
                               ) : (
-                                <div className="h-12 rounded-xl border border-dashed border-gray-200 group-hover:border-emerald-300 group-hover:bg-emerald-50/30 transition-all flex items-center justify-center">
+                                <div className="h-12 rounded-xl border border-dashed border-[#eef2f6] group-hover:border-emerald-300 group-hover:bg-emerald-50/30 transition-all flex items-center justify-center">
                                   <span className="text-[10px] text-gray-300 group-hover:text-emerald-400">+</span>
                                 </div>
                               )}

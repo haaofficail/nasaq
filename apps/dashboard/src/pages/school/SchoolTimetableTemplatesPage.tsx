@@ -44,7 +44,7 @@ function CreateTemplateModal({ onClose, onSaved }: { onClose: () => void; onSave
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
           <h2 className="text-base font-black text-gray-900">إضافة قالب دوام</h2>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-4 h-4" /></button>
         </div>
@@ -61,7 +61,7 @@ function CreateTemplateModal({ onClose, onSaved }: { onClose: () => void; onSave
               onChange={(e) => setName(e.target.value)}
               placeholder="مثال: قالب الدوام الصباحي"
               autoFocus
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
             />
           </div>
           <div>
@@ -75,7 +75,7 @@ function CreateTemplateModal({ onClose, onSaved }: { onClose: () => void; onSave
                     "flex-1 py-2 rounded-xl text-xs font-medium border transition-all",
                     sessionType === t
                       ? `${SESSION_TYPES[t].bg} ${SESSION_TYPES[t].color} ${SESSION_TYPES[t].border}`
-                      : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                      : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]"
                   )}
                 >
                   {SESSION_TYPES[t].label}
@@ -90,7 +90,7 @@ function CreateTemplateModal({ onClose, onSaved }: { onClose: () => void; onSave
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
               placeholder="وصف مختصر للقالب..."
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 resize-none"
+              className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 resize-none"
             />
           </div>
           <div className="flex gap-3 pt-1">
@@ -98,7 +98,7 @@ function CreateTemplateModal({ onClose, onSaved }: { onClose: () => void; onSave
               className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors">
               {saving ? "جاري الحفظ..." : "إضافة القالب"}
             </button>
-            <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">إلغاء</button>
+            <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc] transition-colors">إلغاء</button>
           </div>
         </div>
       </div>
@@ -134,7 +134,7 @@ function AddPeriodForm({ templateId, nextNumber, onSaved }: { templateId: string
   };
 
   return (
-    <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 space-y-3">
+    <div className="bg-gray-50 rounded-xl border border-[#eef2f6] p-4 space-y-3">
       <p className="text-xs font-bold text-gray-600">إضافة حصة — رقم {nextNumber}</p>
       {error && (
         <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs">
@@ -145,23 +145,23 @@ function AddPeriodForm({ templateId, nextNumber, onSaved }: { templateId: string
         <div>
           <label className="block text-xs text-gray-500 mb-1">البداية <span className="text-red-400">*</span></label>
           <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400" dir="ltr" />
+            className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400" dir="ltr" />
         </div>
         <div>
           <label className="block text-xs text-gray-500 mb-1">النهاية <span className="text-red-400">*</span></label>
           <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400" dir="ltr" />
+            className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400" dir="ltr" />
         </div>
       </div>
       <div>
         <label className="block text-xs text-gray-500 mb-1">التسمية (اختياري)</label>
         <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="مثال: الحصة الأولى"
-          className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400" />
+          className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400" />
       </div>
       <div className="flex items-center justify-between">
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={isBreak} onChange={(e) => setIsBreak(e.target.checked)}
-            className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+            className="w-4 h-4 rounded border-[#eef2f6] text-emerald-600 focus:ring-emerald-500" />
           <span className="text-xs text-gray-600">استراحة</span>
         </label>
         <button onClick={handleAdd} disabled={saving}
@@ -202,11 +202,11 @@ function TemplateCard({ template, onDeleted }: { template: any; onDeleted: () =>
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
       {/* Card Header */}
       <div className="flex items-center justify-between p-5">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+          <div className="w-9 h-9 rounded-[10px] bg-emerald-50 flex items-center justify-center shrink-0">
             <Clock className="w-5 h-5 text-emerald-600" />
           </div>
           <div>
@@ -225,7 +225,7 @@ function TemplateCard({ template, onDeleted }: { template: any; onDeleted: () =>
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => setExpanded(!expanded)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc] transition-colors"
           >
             {expanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
             {expanded ? "إخفاء الحصص" : "عرض الحصص"}
@@ -242,10 +242,10 @@ function TemplateCard({ template, onDeleted }: { template: any; onDeleted: () =>
 
       {/* Expanded: Periods */}
       {expanded && (
-        <div className="border-t border-gray-100 px-5 py-4 space-y-3">
+        <div className="border-t border-[#eef2f6] px-5 py-4 space-y-3">
           {periodsLoading ? (
             <div className="space-y-2">
-              {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-gray-100 rounded-xl animate-pulse" />)}
+              {[...Array(3)].map((_, i) => <div key={i} className="h-10 bg-[#f1f5f9] rounded-xl animate-pulse" />)}
             </div>
           ) : periods.length === 0 ? (
             <div className="py-6 flex flex-col items-center gap-2 text-center">
@@ -258,7 +258,7 @@ function TemplateCard({ template, onDeleted }: { template: any; onDeleted: () =>
                 <div key={p.id}
                   className={clsx(
                     "flex items-center justify-between px-4 py-2.5 rounded-xl border transition-all group",
-                    p.isBreak ? "bg-amber-50 border-amber-100" : "bg-gray-50 border-gray-100"
+                    p.isBreak ? "bg-amber-50 border-amber-100" : "bg-gray-50 border-[#eef2f6]"
                   )}>
                   <div className="flex items-center gap-3">
                     <span className={clsx(
@@ -352,13 +352,13 @@ export function SchoolTimetableTemplatesPage() {
         </div>
       </div>
 
-      <div className="p-6 space-y-5 bg-gray-50 min-h-full">
+      <div className="p-6 space-y-5 bg-[#f8fafc] min-h-full">
 
         {/* Loading */}
         {loading && (
           <div className="space-y-3">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-24 bg-white rounded-2xl border border-gray-100 animate-pulse" />
+              <div key={i} className="h-24 bg-white rounded-2xl border border-[#eef2f6] animate-pulse" />
             ))}
           </div>
         )}
@@ -377,7 +377,7 @@ export function SchoolTimetableTemplatesPage() {
 
         {/* Empty */}
         {!loading && !error && templates.length === 0 && (
-          <div className="bg-white rounded-2xl border border-gray-100 py-20 flex flex-col items-center gap-4 text-center">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] py-20 flex flex-col items-center gap-4 text-center">
             <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center">
               <Clock className="w-7 h-7 text-emerald-400" />
             </div>

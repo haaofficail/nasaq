@@ -110,7 +110,7 @@ function PermissionsModal({ jobTitle, onClose }: { jobTitle: any; onClose: () =>
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6] shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ backgroundColor: jobTitle.color + "22" }}>
               <Shield className="w-4 h-4" style={{ color: jobTitle.color }} />
@@ -138,17 +138,17 @@ function PermissionsModal({ jobTitle, onClose }: { jobTitle: any; onClose: () =>
               const isOpen = expanded[groupKey] !== false; // open by default
 
               return (
-                <div key={groupKey} className="border border-gray-100 rounded-2xl overflow-hidden">
+                <div key={groupKey} className="border border-[#eef2f6] rounded-2xl overflow-hidden">
                   <button
                     onClick={() => setExpanded(prev => ({ ...prev, [groupKey]: !isOpen }))}
-                    className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+                    className="w-full flex items-center justify-between px-4 py-3 bg-[#f8fafc] hover:bg-gray-100 transition-colors"
                   >
                     <div className="flex items-center gap-3">
                       <button
                         onClick={e => { e.stopPropagation(); toggleGroup(groupKey); }}
                         className={clsx(
                           "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0",
-                          allChecked ? "bg-emerald-500 border-emerald-500" : checkedCount > 0 ? "border-emerald-300 bg-emerald-50" : "border-gray-300"
+                          allChecked ? "bg-emerald-500 border-emerald-500" : checkedCount > 0 ? "border-emerald-300 bg-emerald-50" : "border-[#eef2f6]"
                         )}
                       >
                         {allChecked && <Check className="w-3 h-3 text-white" />}
@@ -172,7 +172,7 @@ function PermissionsModal({ jobTitle, onClose }: { jobTitle: any; onClose: () =>
                             onClick={() => toggle(perm.key)}
                             className={clsx(
                               "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0",
-                              perms.has(perm.key) ? "bg-emerald-500 border-emerald-500" : "border-gray-300 group-hover:border-emerald-300"
+                              perms.has(perm.key) ? "bg-emerald-500 border-emerald-500" : "border-[#eef2f6] group-hover:border-emerald-300"
                             )}
                           >
                             {perms.has(perm.key) && <Check className="w-3 h-3 text-white" />}
@@ -188,7 +188,7 @@ function PermissionsModal({ jobTitle, onClose }: { jobTitle: any; onClose: () =>
           )}
         </div>
 
-        <div className="px-5 py-3.5 border-t border-gray-100 flex gap-2 shrink-0">
+        <div className="px-5 py-[6px] border-t border-[#eef2f6] flex gap-2 shrink-0">
           <button
             onClick={handleSave}
             disabled={saving || saved}
@@ -197,7 +197,7 @@ function PermissionsModal({ jobTitle, onClose }: { jobTitle: any; onClose: () =>
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
             {saved ? "تم الحفظ" : "حفظ الصلاحيات"}
           </button>
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">
+          <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc]">
             إغلاق
           </button>
         </div>
@@ -238,7 +238,7 @@ function AddTitleModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="مثال: فني صيانة"
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
+              className="w-full px-3 py-2.5 border border-[#eef2f6] rounded-xl text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20"
               autoFocus
             />
           </div>
@@ -265,7 +265,7 @@ function AddTitleModal({ onClose, onDone }: { onClose: () => void; onDone: () =>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
               إضافة
             </button>
-            <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">
+            <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc]">
               إلغاء
             </button>
           </div>
@@ -322,7 +322,7 @@ export function SchoolRolesPage() {
           <p className="text-sm text-red-500">{error}</p>
         </div>
       ) : jobTitles.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-2xl py-14 text-center">
+        <div className="bg-white border border-[#eef2f6] rounded-2xl py-14 text-center">
           <Shield className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-sm font-bold text-gray-500">لا توجد مسميات وظيفية</p>
           <p className="text-xs text-gray-400 mt-1">اضغط «مسمى جديد» لإضافة أول مسمى</p>
@@ -333,10 +333,10 @@ export function SchoolRolesPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {jobTitles.map((jt: any) => (
-            <div key={jt.id} className="bg-white border border-gray-100 rounded-2xl p-4 hover:border-gray-200 transition-all group">
+            <div key={jt.id} className="bg-white border border-[#eef2f6] rounded-2xl p-4 hover:border-[#eef2f6] transition-all group">
               <div className="flex items-start gap-3">
                 <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+                  className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0 mt-0.5"
                   style={{ backgroundColor: (jt.color ?? "#374151") + "1a" }}
                 >
                   <Shield className="w-5 h-5" style={{ color: jt.color ?? "#374151" }} />
@@ -358,7 +358,7 @@ export function SchoolRolesPage() {
                 </button>
                 <button
                   onClick={() => handleDelete(jt.id, jt.name)}
-                  className="p-1.5 rounded-xl border border-gray-100 text-gray-300 hover:border-red-100 hover:text-red-400 hover:bg-red-50 transition-colors"
+                  className="p-1.5 rounded-xl border border-[#eef2f6] text-gray-300 hover:border-red-100 hover:text-red-400 hover:bg-red-50 transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

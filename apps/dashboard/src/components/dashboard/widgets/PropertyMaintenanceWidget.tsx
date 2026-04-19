@@ -34,8 +34,8 @@ export function PropertyMaintenanceWidget() {
   const inProgressCount  = requests.filter((r) => r.status === "in_progress").length;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full">
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-50">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden h-full">
+      <div className="flex items-center justify-between px-5 py-[6px] border-b border-gray-50">
         <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
           <Wrench className="w-4 h-4 text-amber-500" />
           طلبات الصيانة
@@ -74,7 +74,7 @@ export function PropertyMaintenanceWidget() {
       ) : (
         <div className="divide-y divide-gray-50">
           {requests.slice(0, 5).map((req: any) => (
-            <div key={req.id} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/60 transition-colors">
+            <div key={req.id} className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8fafc]/60 transition-colors">
               <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-amber-50 shrink-0">
                 {statusIcon(req.status)}
               </div>

@@ -121,10 +121,10 @@ export function SchoolLoginPage() {
           </Link>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-8">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-8">
 
           {/* Mode tabs */}
-          <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6">
+          <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1 mb-6">
             <button
               onClick={() => switchMode("password")}
               className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
@@ -162,7 +162,7 @@ export function SchoolLoginPage() {
                     value={phone}
                     onChange={(e) => { setPhone(e.target.value); clearError(); }}
                     onKeyDown={(e) => e.key === "Enter" && document.getElementById("school-password")?.focus()}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors"
+                    className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors"
                     placeholder="05XXXXXXXX"
                   />
                 </div>
@@ -177,7 +177,7 @@ export function SchoolLoginPage() {
                       value={password}
                       onChange={(e) => { setPassword(e.target.value); clearError(); }}
                       onKeyDown={(e) => e.key === "Enter" && loginWithPassword()}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors pr-10"
+                      className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors pr-10"
                       placeholder="••••••••"
                     />
                     <button
@@ -197,7 +197,7 @@ export function SchoolLoginPage() {
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  className="w-4 h-4 rounded border-[#eef2f6] text-emerald-600 focus:ring-emerald-500"
                 />
                 <span className="text-sm text-gray-600">تذكرني وابقَ متصلاً</span>
               </label>
@@ -207,7 +207,7 @@ export function SchoolLoginPage() {
               <button
                 onClick={loginWithPassword}
                 disabled={loading}
-                className="w-full mt-5 bg-emerald-600 text-white py-3.5 rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                className="w-full mt-5 bg-emerald-600 text-white py-[6px] rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "دخول"}
               </button>
@@ -234,7 +234,7 @@ export function SchoolLoginPage() {
                 value={phone}
                 onChange={(e) => { setPhone(e.target.value); clearError(); }}
                 onKeyDown={(e) => e.key === "Enter" && requestOtp()}
-                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors"
+                className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 transition-colors"
                 placeholder="05XXXXXXXX"
               />
 
@@ -244,7 +244,7 @@ export function SchoolLoginPage() {
                   type="checkbox"
                   checked={remember}
                   onChange={(e) => setRemember(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                  className="w-4 h-4 rounded border-[#eef2f6] text-emerald-600 focus:ring-emerald-500"
                 />
                 <span className="text-sm text-gray-600">تذكرني وابقَ متصلاً</span>
               </label>
@@ -254,7 +254,7 @@ export function SchoolLoginPage() {
               <button
                 onClick={requestOtp}
                 disabled={loading}
-                className="w-full mt-5 bg-emerald-600 text-white py-3.5 rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                className="w-full mt-5 bg-emerald-600 text-white py-[6px] rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "إرسال رمز التحقق"}
               </button>
@@ -292,7 +292,7 @@ export function SchoolLoginPage() {
                       if (e.key === "Backspace" && !otp[i] && i > 0)
                         document.getElementById(`school-otp-${i - 1}`)?.focus();
                     }}
-                    className="w-11 h-12 text-center text-lg font-bold rounded-xl border border-gray-200 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none transition-colors"
+                    className="w-11 h-12 text-center text-lg font-bold rounded-xl border border-[#eef2f6] focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 outline-none transition-colors"
                   />
                 ))}
               </div>
@@ -308,7 +308,7 @@ export function SchoolLoginPage() {
               <button
                 onClick={verifyOtp}
                 disabled={loading || otp.join("").length < 6}
-                className="w-full bg-emerald-600 text-white py-3.5 rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                className="w-full bg-emerald-600 text-white py-[6px] rounded-xl font-bold hover:bg-emerald-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : "دخول"}
               </button>

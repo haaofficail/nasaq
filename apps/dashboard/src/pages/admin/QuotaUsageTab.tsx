@@ -46,12 +46,12 @@ export default function QuotaUsageTab() {
           onChange={e => setOrgId(e.target.value)}
           placeholder="تصفية بـ orgId"
           dir="ltr"
-          className="flex-1 min-w-48 rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 font-mono"
+          className="flex-1 min-w-48 rounded-xl border border-[#eef2f6] px-4 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 font-mono"
         />
         <select
           value={metric}
           onChange={e => setMetric(e.target.value)}
-          className="rounded-xl border border-gray-200 px-4 py-2.5 text-sm outline-none focus:border-brand-500 bg-white"
+          className="rounded-xl border border-[#eef2f6] px-4 py-2.5 text-sm outline-none focus:border-brand-500 bg-white"
         >
           <option value="">كل المقاييس</option>
           {Object.entries(METRIC_LABELS).map(([key, label]) => (
@@ -79,32 +79,32 @@ export default function QuotaUsageTab() {
 
       {!loading && rows.length > 0 && (
         <>
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <div className="overflow-x-auto rounded-xl border border-[#eef2f6]">
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50 text-right">
-                  <th className="px-4 py-3 font-medium text-gray-600">المنشأة</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">المقياس</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">الفترة</th>
-                  <th className="px-4 py-3 font-medium text-gray-600 text-center">الاستخدام</th>
-                  <th className="px-4 py-3 font-medium text-gray-600">آخر تحديث</th>
+                  <th className="px-[10px] py-[6px] font-medium text-gray-600">المنشأة</th>
+                  <th className="px-[10px] py-[6px] font-medium text-gray-600">المقياس</th>
+                  <th className="px-[10px] py-[6px] font-medium text-gray-600">الفترة</th>
+                  <th className="px-[10px] py-[6px] font-medium text-gray-600 text-center">الاستخدام</th>
+                  <th className="px-[10px] py-[6px] font-medium text-gray-600">آخر تحديث</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {rows.map((row) => (
-                  <tr key={row.id} className="bg-white hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
+                  <tr key={row.id} className="bg-white hover:bg-[#f8fafc] transition-colors">
+                    <td className="px-[10px] py-[6px]">
                       <p className="font-medium text-gray-900">{row.orgName ?? "—"}</p>
                       <p className="text-xs text-gray-400 font-mono mt-0.5">{row.orgId.slice(0, 8)}…</p>
                     </td>
-                    <td className="px-4 py-3 text-gray-700">
+                    <td className="px-[10px] py-[6px] text-gray-700">
                       {METRIC_LABELS[row.metricKey] ?? row.metricKey}
                     </td>
-                    <td className="px-4 py-3 font-mono text-gray-500 text-xs">{row.period}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-[10px] py-[6px] font-mono text-gray-500 text-xs">{row.period}</td>
+                    <td className="px-[10px] py-[6px] text-center">
                       <span className="font-bold text-brand-600 text-base">{row.usedCount.toLocaleString("ar")}</span>
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">
+                    <td className="px-[10px] py-[6px] text-gray-400 text-xs">
                       {new Date(row.updatedAt).toLocaleString("ar-SA")}
                     </td>
                   </tr>

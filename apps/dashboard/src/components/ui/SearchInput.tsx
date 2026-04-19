@@ -64,10 +64,10 @@ export function SearchInput({
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
         className={clsx(
-          "pr-8 pl-8 py-1.5 rounded-xl text-[13px] text-gray-900 bg-gray-50 outline-none transition-all w-48 placeholder:text-gray-400",
+          "pr-8 pl-8 py-1.5 rounded-xl text-[13px] text-gray-900 bg-[#f8fafc] outline-none transition-all w-48 placeholder:text-gray-400",
           focused
             ? "border border-brand-400 ring-[3px] ring-brand-400/10"
-            : "border border-gray-200 hover:border-gray-300",
+            : "border border-[#eef2f6] hover:border-[#eef2f6]",
         )}
       />
       {localValue && (

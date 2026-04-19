@@ -137,7 +137,7 @@ export function SchoolAttendancePage() {
       {/* Controls */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Date picker with prev/next */}
-        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl px-2 py-1">
+        <div className="flex items-center gap-1 bg-white border border-[#eef2f6] rounded-xl px-2 py-1">
           <button
             onClick={() => setDate(prevDay(date))}
             className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"
@@ -161,7 +161,7 @@ export function SchoolAttendancePage() {
           {date !== today && (
             <button
               onClick={() => setDate(today)}
-              className="text-xs text-emerald-600 hover:text-emerald-700 px-2 border-r border-gray-200 mr-1"
+              className="text-xs text-emerald-600 hover:text-emerald-700 px-2 border-r border-[#eef2f6] mr-1"
             >
               اليوم
             </button>
@@ -172,7 +172,7 @@ export function SchoolAttendancePage() {
         <select
           value={classRoomId}
           onChange={(e) => setClassRoomId(e.target.value)}
-          className="flex-1 min-w-48 px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+          className="flex-1 min-w-48 px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
         >
           <option value="">اختر الفصل</option>
           {classRooms.map((cr: any) => (
@@ -228,7 +228,7 @@ export function SchoolAttendancePage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="بحث بالاسم..."
-            className="w-full pr-9 pl-9 py-2.5 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            className="w-full pr-9 pl-9 py-2.5 border border-[#eef2f6] rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
           />
           {search && (
             <button
@@ -243,7 +243,7 @@ export function SchoolAttendancePage() {
 
       {/* Student list */}
       {!classRoomId ? (
-        <div className="bg-white rounded-2xl border border-gray-100 py-16 flex flex-col items-center gap-3">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] py-16 flex flex-col items-center gap-3">
           <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center">
             <UserCheck className="w-7 h-7 text-emerald-400" />
           </div>
@@ -252,11 +252,11 @@ export function SchoolAttendancePage() {
       ) : loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="animate-pulse bg-gray-100 rounded-2xl h-20" />
+            <div key={i} className="animate-pulse bg-[#f1f5f9] rounded-2xl h-20" />
           ))}
         </div>
       ) : studentRows.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] py-16 text-center">
           <p className="text-sm text-gray-400">لا يوجد طلاب في هذا الفصل</p>
         </div>
       ) : (
@@ -276,7 +276,7 @@ export function SchoolAttendancePage() {
             </div>
           )}
           {displayedStudents.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 py-10 text-center">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] py-10 text-center">
               <p className="text-sm text-gray-400">لا توجد نتائج</p>
             </div>
           ) : null}
@@ -286,7 +286,7 @@ export function SchoolAttendancePage() {
             return (
               <div
                 key={s.id}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex items-center gap-3 hover:border-gray-200 transition-colors"
+                className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-3 flex items-center gap-3 hover:border-[#eef2f6] transition-colors"
               >
                 {/* Number + name */}
                 <span className="text-xs text-gray-300 font-bold w-6 text-center shrink-0">{idx + 1}</span>
@@ -308,7 +308,7 @@ export function SchoolAttendancePage() {
                         className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-all ${
                           active
                             ? opt.bg + " shadow-sm"
-                            : "border-gray-100 text-gray-400 hover:border-gray-200 hover:text-gray-600"
+                            : "border-[#eef2f6] text-gray-400 hover:border-[#eef2f6] hover:text-gray-600"
                         }`}
                       >
                         <Icon className="w-3.5 h-3.5" />

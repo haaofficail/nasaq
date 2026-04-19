@@ -121,7 +121,7 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
                 </span>
               )}
               {orgCode && (
-                <span className="text-[10px] font-mono text-gray-400 bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-100" dir="ltr">
+                <span className="text-[10px] font-mono text-gray-400 bg-[#f8fafc] px-2 py-0.5 rounded-lg border border-[#eef2f6]" dir="ltr">
                   {orgCode}
                 </span>
               )}
@@ -138,7 +138,7 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
             {(planName || daysLeft !== null) && (
               <Link
                 to="/dashboard/subscription"
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-brand-50 rounded-xl border border-gray-100 hover:border-brand-200 transition-all group text-xs"
+                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-[#f8fafc] hover:bg-brand-50 rounded-xl border border-[#eef2f6] hover:border-brand-200 transition-all group text-xs"
               >
                 {planName && (
                   <span className="font-semibold text-gray-700 group-hover:text-brand-700">{planName}</span>
@@ -213,7 +213,7 @@ export function ProfileDashboard({ profile, user, context }: ProfileDashboardPro
             </a>
             <button
               onClick={handleCopyLink}
-              className="shrink-0 flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-brand-50 text-gray-500 hover:text-brand-600 border border-gray-200 hover:border-brand-200 rounded-lg text-[11px] font-medium transition-all"
+              className="shrink-0 flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-brand-50 text-gray-500 hover:text-brand-600 border border-[#eef2f6] hover:border-brand-200 rounded-lg text-[11px] font-medium transition-all"
             >
               {copied
                 ? <><Check className="w-3 h-3 text-emerald-500" /> تم</>

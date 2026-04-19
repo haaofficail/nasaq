@@ -9,7 +9,7 @@ import { Modal, Input, Select, Button } from "@/components/ui";
 // ─── Skeletons ────────────────────────────────────────────────────────────────
 function SummarySkeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
       <div className="h-4 bg-gray-100 rounded w-32 mb-4 animate-pulse" />
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
@@ -26,8 +26,8 @@ function SummarySkeleton() {
 
 function TableSkeleton() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-      <div className="bg-gray-50 border-b border-gray-100 px-4 py-3 flex gap-16">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+      <div className="bg-gray-50 border-b border-[#eef2f6] px-4 py-3 flex gap-16">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="h-4 bg-gray-100 rounded w-16 animate-pulse" />
         ))}
@@ -148,7 +148,7 @@ export function FlowerWastePage() {
 
       {/* Summary */}
       {summary.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <p className="text-sm font-semibold text-gray-700 mb-3">ملخص آخر 30 يوم</p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {summary.map((s: any) => (
@@ -182,41 +182,41 @@ export function FlowerWastePage() {
 
       {/* Log table */}
       {logs.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <AlertTriangle className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-gray-900 mb-1">لا يوجد هدر مسجل</h3>
           <p className="text-sm text-gray-400 mb-4">سجّل الهدر لتتبع خسائر المخزون بدقة</p>
           <Button icon={Plus} onClick={() => setShowForm(true)}>تسجيل هدر</Button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-50 border-b border-[#eef2f6]">
               <tr>
-                <th className="px-4 py-3 text-right font-semibold text-gray-500">الورد</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-500">الكمية</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-500">السبب</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-500">التاريخ</th>
+                <th className="px-[10px] py-[6px] text-right font-semibold text-gray-500">الورد</th>
+                <th className="px-[10px] py-[6px] text-right font-semibold text-gray-500">الكمية</th>
+                <th className="px-[10px] py-[6px] text-right font-semibold text-gray-500">السبب</th>
+                <th className="px-[10px] py-[6px] text-right font-semibold text-gray-500">التاريخ</th>
               </tr>
             </thead>
             <tbody>
               {logs.map((l: any) => (
-                <tr key={l.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors">
-                  <td className="px-4 py-3">
+                <tr key={l.id} className="border-t border-gray-50 hover:bg-[#f8fafc]/50 transition-colors">
+                  <td className="px-[10px] py-[6px]">
                     <p className="font-medium text-gray-800">{l.variant_name ?? "—"}</p>
                     {l.batch_number && <p className="text-xs text-gray-400">{l.batch_number}</p>}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <span className="font-semibold text-red-600">{l.quantity}</span>
                     <span className="text-gray-400 text-xs mr-1">
                       {l.quantity_type === "stems" ? "ساق" : "بنش"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-500">
+                  <td className="px-[10px] py-[6px] text-gray-500">
                     {REASON_LABELS[l.reason] ?? l.reason}
                     {l.notes && <p className="text-xs text-gray-400">{l.notes}</p>}
                   </td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">
+                  <td className="px-[10px] py-[6px] text-gray-400 text-xs">
                     {new Date(l.created_at).toLocaleDateString("ar-SA")}
                   </td>
                 </tr>
@@ -259,7 +259,7 @@ export function FlowerWastePage() {
                       "flex-1 py-2 rounded-xl text-sm font-medium border transition-colors",
                       form.quantity_type === v
                         ? "bg-brand-500 text-white border-brand-500"
-                        : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                        : "bg-white text-gray-600 border-[#eef2f6] hover:border-[#eef2f6]"
                     )}
                   >
                     {v === "stems" ? "ساق" : "بنش"}

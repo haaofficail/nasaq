@@ -48,13 +48,13 @@ function SortableFieldItem({
       style={style}
       className={clsx(
         "flex items-center gap-3 bg-white border rounded-xl p-3 mb-2 transition-all",
-        isDragging ? "shadow-lg border-brand-400 z-10 opacity-80" : "border-gray-200 shadow-sm hover:border-gray-300",
+        isDragging ? "shadow-lg border-brand-400 z-10 opacity-80" : "border-[#eef2f6] shadow-sm hover:border-[#eef2f6]",
       )}
     >
       {/* Drag handle */}
       <button
         type="button"
-        className="touch-none flex items-center justify-center p-1.5 text-gray-400 hover:text-gray-600 rounded bg-gray-50 hover:bg-gray-100 cursor-grab active:cursor-grabbing"
+        className="touch-none flex items-center justify-center p-1.5 text-gray-400 hover:text-gray-600 rounded bg-[#f8fafc] hover:bg-gray-100 cursor-grab active:cursor-grabbing"
         {...attributes}
         {...listeners}
       >
@@ -63,7 +63,7 @@ function SortableFieldItem({
 
       {/* Field Info */}
       <div className="flex-1 min-w-0 flex items-center gap-4">
-        <div className="w-8 h-8 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
+        <div className="w-8 h-8 rounded-lg bg-[#f8fafc] border border-[#eef2f6] flex items-center justify-center shrink-0">
           <Icon className="w-4 h-4 text-gray-500" />
         </div>
         <div>
@@ -159,7 +159,7 @@ export function SystemFieldsBuilder({
       </div>
 
       {fields.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-200">
+        <div className="text-center py-12 bg-gray-50/50 rounded-2xl border-2 border-dashed border-[#eef2f6]">
           <Type size={32} className="mx-auto text-gray-300 mb-3" />
           <p className="text-sm font-semibold text-gray-600 mb-1">لا توجد حقول إضافية مخصصة</p>
           <p className="text-xs text-gray-400">انقر على "إضافة حقل" لتخصيص البيانات التي تريد جمعها.</p>
@@ -227,7 +227,7 @@ export function SystemFieldsBuilder({
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1.5">خيارات القائمة المنسدلة (افصل بينها بفاصلة)</label>
                 <textarea
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-3 text-sm outline-none focus:border-brand-400 focus:bg-white resize-none h-20"
+                  className="w-full rounded-xl border border-[#eef2f6] bg-gray-50/50 px-3 py-3 text-sm outline-none focus:border-brand-400 focus:bg-white resize-none h-20"
                   placeholder="صغير, متوسط, كبير"
                   value={(editingField.options || []).join(", ")}
                   onChange={e => setEditingField({ ...editingField, options: e.target.value.split(",").map(s => s.trim()).filter(Boolean) })}
@@ -235,7 +235,7 @@ export function SystemFieldsBuilder({
               </div>
             )}
 
-            <div className="p-4 bg-gray-50/50 border border-gray-100 rounded-xl space-y-4">
+            <div className="p-4 bg-gray-50/50 border border-[#eef2f6] rounded-xl space-y-4">
               <Toggle
                 label="هذا الحقل إجباري (مطلوب)"
                 checked={!!editingField.required}

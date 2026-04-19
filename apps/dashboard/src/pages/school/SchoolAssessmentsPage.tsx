@@ -18,7 +18,7 @@ const CATEGORY_MAP: Record<string, { label: string; bg: string; text: string; bo
   oral:        { label: "تقييم شفهي",    bg: "bg-cyan-50",    text: "text-cyan-700",    border: "border-cyan-100" },
   performance: { label: "تقييم أدائي",   bg: "bg-teal-50",    text: "text-teal-700",    border: "border-teal-100" },
   attendance:  { label: "انضباط/حضور",   bg: "bg-green-50",   text: "text-green-700",   border: "border-green-100" },
-  other:       { label: "أخرى",           bg: "bg-gray-50",    text: "text-gray-600",    border: "border-gray-200" },
+  other:       { label: "أخرى",           bg: "bg-[#f8fafc]",    text: "text-gray-600",    border: "border-[#eef2f6]" },
 };
 
 const CATEGORY_OPTIONS = [
@@ -203,8 +203,8 @@ export function SchoolAssessmentsPage() {
             { label: "نشط",               value: stats.active, icon: CheckCircle2,  cls: "bg-emerald-50 text-emerald-600" },
             { label: "أنواع مختلفة",      value: stats.cats,   icon: BookMarked,    cls: "bg-purple-50 text-purple-600" },
           ].map(({ label, value, icon: Icon, cls }) => (
-            <div key={label} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${cls.split(" ")[0]}`}>
+            <div key={label} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all">
+              <div className={`w-9 h-9 rounded-[10px] flex items-center justify-center ${cls.split(" ")[0]}`}>
                 <Icon className={`w-5 h-5 ${cls.split(" ")[1]}`} />
               </div>
               <div>
@@ -226,7 +226,7 @@ export function SchoolAssessmentsPage() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="بحث بالاسم..."
-              className="w-full pr-9 pl-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              className="w-full pr-9 pl-3 py-2 border border-[#eef2f6] rounded-xl text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/30"
             />
             {search && (
               <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
@@ -237,7 +237,7 @@ export function SchoolAssessmentsPage() {
           <select
             value={filterCategory}
             onChange={e => setFilterCategory(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none"
+            className="px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none"
           >
             <option value="all">كل الأنواع</option>
             {CATEGORY_OPTIONS.map(o => (
@@ -250,10 +250,10 @@ export function SchoolAssessmentsPage() {
       {/* List */}
       {loading ? (
         <div className="space-y-3">
-          {[1, 2, 3].map(i => <div key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />)}
+          {[1, 2, 3].map(i => <div key={i} className="h-20 bg-[#f1f5f9] rounded-2xl animate-pulse" />)}
         </div>
       ) : types.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 py-16 flex flex-col items-center gap-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] py-16 flex flex-col items-center gap-4">
           <div className="w-16 h-16 rounded-2xl bg-brand-50 flex items-center justify-center">
             <ClipboardList className="w-8 h-8 text-brand-400" />
           </div>
@@ -281,7 +281,7 @@ export function SchoolAssessmentsPage() {
           {/* Preview of standard templates */}
           {templates.length > 0 && (
             <div className="w-full max-w-2xl mt-4 border border-amber-100 rounded-2xl overflow-hidden">
-              <div className="px-4 py-3 bg-amber-50 border-b border-amber-100">
+              <div className="px-[10px] py-[6px] bg-amber-50 border-b border-amber-100">
                 <p className="text-xs font-semibold text-amber-700">التقييمات النموذجية المعتمدة — وزارة التعليم السعودية</p>
               </div>
               <div className="divide-y divide-gray-50">
@@ -303,7 +303,7 @@ export function SchoolAssessmentsPage() {
           )}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 py-10 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] py-10 text-center">
           <p className="text-sm text-gray-400">لا توجد نتائج</p>
         </div>
       ) : (
@@ -311,7 +311,7 @@ export function SchoolAssessmentsPage() {
           {Object.entries(grouped).map(([cat, items]) => {
             const catInfo = CATEGORY_MAP[cat] ?? CATEGORY_MAP.other;
             return (
-              <div key={cat} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div key={cat} className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
                 <div className={`px-5 py-3 border-b border-gray-50 flex items-center gap-2`}>
                   <span className={`px-2.5 py-1 rounded-xl text-xs font-semibold border ${catInfo.bg} ${catInfo.text} ${catInfo.border}`}>
                     {catInfo.label}
@@ -320,7 +320,7 @@ export function SchoolAssessmentsPage() {
                 </div>
                 <div className="divide-y divide-gray-50">
                   {items.map((t: any) => (
-                    <div key={t.id} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50 transition-colors">
+                    <div key={t.id} className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8fafc] transition-colors">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <p className="text-sm font-semibold text-gray-900">{t.name}</p>
@@ -328,7 +328,7 @@ export function SchoolAssessmentsPage() {
                             <span className="text-xs text-gray-400 font-mono bg-gray-100 px-1.5 py-0.5 rounded">{t.code}</span>
                           )}
                           {!t.isActive && (
-                            <span className="text-xs text-gray-400 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded-lg">غير نشط</span>
+                            <span className="text-xs text-gray-400 bg-gray-100 border border-[#eef2f6] px-1.5 py-0.5 rounded-lg">غير نشط</span>
                           )}
                         </div>
                         <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-400">
@@ -374,7 +374,7 @@ export function SchoolAssessmentsPage() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setShowForm(false)}>
           <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
               <h2 className="text-sm font-bold text-gray-900">{editId ? "تعديل التقييم" : "تقييم جديد"}</h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-700">
                 <X className="w-5 h-5" />
@@ -389,7 +389,7 @@ export function SchoolAssessmentsPage() {
                     value={form.name}
                     onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="مثال: اختبار نهاية الفصل الأول"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                    className="w-full px-3 py-2 border border-[#eef2f6] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
                   />
                 </div>
                 <div>
@@ -399,7 +399,7 @@ export function SchoolAssessmentsPage() {
                     value={form.code}
                     onChange={e => setForm(f => ({ ...f, code: e.target.value }))}
                     placeholder="FINAL1"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none"
+                    className="w-full px-3 py-2 border border-[#eef2f6] rounded-xl text-sm focus:outline-none"
                   />
                 </div>
                 <div>
@@ -407,7 +407,7 @@ export function SchoolAssessmentsPage() {
                   <select
                     value={form.category}
                     onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none"
+                    className="w-full px-3 py-2 border border-[#eef2f6] rounded-xl text-sm bg-white focus:outline-none"
                   >
                     {CATEGORY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
@@ -420,7 +420,7 @@ export function SchoolAssessmentsPage() {
                     max={1000}
                     value={form.maxScore}
                     onChange={e => setForm(f => ({ ...f, maxScore: parseFloat(e.target.value) || 100 }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none"
+                    className="w-full px-3 py-2 border border-[#eef2f6] rounded-xl text-sm focus:outline-none"
                   />
                 </div>
                 <div>
@@ -432,7 +432,7 @@ export function SchoolAssessmentsPage() {
                     value={form.weightPct}
                     onChange={e => setForm(f => ({ ...f, weightPct: e.target.value }))}
                     placeholder="مثال: 60"
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none"
+                    className="w-full px-3 py-2 border border-[#eef2f6] rounded-xl text-sm focus:outline-none"
                   />
                 </div>
                 <div>
@@ -440,7 +440,7 @@ export function SchoolAssessmentsPage() {
                   <select
                     value={form.gradeScale}
                     onChange={e => setForm(f => ({ ...f, gradeScale: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white focus:outline-none"
+                    className="w-full px-3 py-2 border border-[#eef2f6] rounded-xl text-sm bg-white focus:outline-none"
                   >
                     {GRADE_SCALE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
@@ -451,7 +451,7 @@ export function SchoolAssessmentsPage() {
                     type="date"
                     value={form.dueDate}
                     onChange={e => setForm(f => ({ ...f, dueDate: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none"
+                    className="w-full px-3 py-2 border border-[#eef2f6] rounded-xl text-sm focus:outline-none"
                   />
                 </div>
                 <div className="col-span-2">
@@ -460,7 +460,7 @@ export function SchoolAssessmentsPage() {
                     value={form.notes}
                     onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                     rows={2}
-                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none resize-none"
+                    className="w-full px-3 py-2 border border-[#eef2f6] rounded-xl text-sm focus:outline-none resize-none"
                   />
                 </div>
               </div>
@@ -468,7 +468,7 @@ export function SchoolAssessmentsPage() {
                 <p className={`text-xs ${msg.includes("خطأ") ? "text-red-600" : "text-emerald-600"}`}>{msg}</p>
               )}
             </div>
-            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100">
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-[#eef2f6]">
               <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800">إلغاء</button>
               <button
                 onClick={handleSave}

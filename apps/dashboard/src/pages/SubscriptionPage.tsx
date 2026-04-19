@@ -23,13 +23,13 @@ function StatusBadge({ status }: { status: string }) {
     active:           { label: "نشط",              cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
     trialing:         { label: "تجربة",            cls: "bg-brand-50 text-brand-700 border-brand-200" },
     past_due:         { label: "متأخر",            cls: "bg-amber-50 text-amber-700 border-amber-200" },
-    cancelled:        { label: "ملغي",             cls: "bg-gray-50 text-gray-600 border-gray-200" },
+    cancelled:        { label: "ملغي",             cls: "bg-gray-50 text-gray-600 border-[#eef2f6]" },
     suspended:        { label: "موقوف",            cls: "bg-red-50 text-red-700 border-red-200" },
     paid:             { label: "مدفوع",            cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
     pending_payment:  { label: "بانتظار الدفع",   cls: "bg-amber-50 text-amber-700 border-amber-200" },
-    expired:          { label: "منتهي",            cls: "bg-gray-100 text-gray-500 border-gray-200" },
+    expired:          { label: "منتهي",            cls: "bg-gray-100 text-gray-500 border-[#eef2f6]" },
   };
-  const m = map[status] ?? { label: status, cls: "bg-gray-50 text-gray-600 border-gray-200" };
+  const m = map[status] ?? { label: status, cls: "bg-gray-50 text-gray-600 border-[#eef2f6]" };
   return (
     <span className={clsx("inline-flex items-center px-2.5 py-1 rounded-lg border text-xs font-semibold", m.cls)}>
       {m.label}
@@ -179,9 +179,9 @@ export function SubscriptionPage() {
   if (loading) {
     return (
       <div className="space-y-5 animate-pulse">
-        <div className="h-8 bg-gray-100 rounded-xl w-48" />
-        <div className="h-40 bg-gray-100 rounded-2xl" />
-        <div className="h-64 bg-gray-100 rounded-2xl" />
+        <div className="h-8 bg-[#f1f5f9] rounded-xl w-48" />
+        <div className="h-40 bg-[#f1f5f9] rounded-2xl" />
+        <div className="h-64 bg-[#f1f5f9] rounded-2xl" />
       </div>
     );
   }
@@ -250,7 +250,7 @@ export function SubscriptionPage() {
       )}
 
       {/* ── Current plan card ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 shadow-sm">
         <div className="flex items-start justify-between mb-4">
           <div>
             <h2 className="text-base font-semibold text-gray-800">الباقة الحالية</h2>
@@ -308,7 +308,7 @@ export function SubscriptionPage() {
       </div>
 
       {/* ── Available plans ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-50">
           <h2 className="text-base font-semibold text-gray-800">الباقات المتاحة</h2>
         </div>
@@ -344,7 +344,7 @@ export function SubscriptionPage() {
                       "mt-2 w-full flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all border",
                       isHigher
                         ? "bg-brand-500 text-white border-brand-500 hover:bg-brand-600"
-                        : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100"
+                        : "bg-gray-50 text-gray-600 border-[#eef2f6] hover:bg-gray-100"
                     )}
                   >
                     {isHigher ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
@@ -361,7 +361,7 @@ export function SubscriptionPage() {
       </div>
 
       {/* ── Available add-ons ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-50">
           <h2 className="text-base font-semibold text-gray-800 flex items-center gap-2">
             <Package className="w-4 h-4 text-gray-400" /> الإضافات المتاحة
@@ -390,14 +390,14 @@ export function SubscriptionPage() {
                   {active ? (
                     <button
                       onClick={() => handleDeactivateAddon(addon.key)}
-                      className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-gray-400 hover:text-red-500 border border-gray-200 hover:border-red-200 rounded-xl text-xs transition-all"
+                      className="shrink-0 flex items-center gap-1 px-2.5 py-1.5 text-gray-400 hover:text-red-500 border border-[#eef2f6] hover:border-red-200 rounded-xl text-xs transition-all"
                     >
                       <X className="w-3 h-3" /> إلغاء
                     </button>
                   ) : (
                     <button
                       onClick={() => { setSelectedAddon(addon.key); setModalType("addon"); }}
-                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-brand-50 hover:text-brand-600 text-gray-600 border border-gray-200 hover:border-brand-200 rounded-xl text-xs font-medium transition-all"
+                      className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-[#f8fafc] hover:bg-brand-50 hover:text-brand-600 text-gray-600 border border-[#eef2f6] hover:border-brand-200 rounded-xl text-xs font-medium transition-all"
                     >
                       تفعيل
                     </button>
@@ -410,7 +410,7 @@ export function SubscriptionPage() {
       </div>
 
       {/* ── Orders + History ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-2">
           <History className="w-4 h-4 text-gray-400" />
           <h2 className="text-base font-semibold text-gray-800">سجل العمليات</h2>
@@ -431,7 +431,7 @@ export function SubscriptionPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {orders.map((row: any) => (
-                  <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={row.id} className="hover:bg-[#f8fafc]/50 transition-colors">
                     <td className="px-5 py-3 font-medium text-gray-800">
                       {row.orderType === "upgrade"  ? "ترقية باقة"  :
                        row.orderType === "renewal"  ? "تجديد"       :
@@ -462,7 +462,7 @@ export function SubscriptionPage() {
         title="تجديد الاشتراك"
         footer={
           <>
-            <button onClick={closeModal} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">إلغاء</button>
+            <button onClick={closeModal} className="px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">إلغاء</button>
             <button
               onClick={handleConfirm}
               disabled={confirming}
@@ -483,7 +483,7 @@ export function SubscriptionPage() {
               <span className="text-gray-500">فترة التجديد</span>
               <span className="font-semibold text-gray-800">سنة كاملة</span>
             </div>
-            <div className="flex justify-between border-t border-gray-200 pt-2">
+            <div className="flex justify-between border-t border-[#eef2f6] pt-2">
               <span className="text-gray-600 font-medium">المبلغ الإجمالي</span>
               <span className="font-bold text-brand-600 text-base">
                 {currentPlan?.price ? fmtPrice(annualPrice(currentPlan.price)) : "حسب الطلب"}
@@ -504,7 +504,7 @@ export function SubscriptionPage() {
         title="تغيير الباقة"
         footer={
           <>
-            <button onClick={closeModal} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">إلغاء</button>
+            <button onClick={closeModal} className="px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">إلغاء</button>
             <button
               onClick={handleConfirm}
               disabled={confirming}
@@ -530,7 +530,7 @@ export function SubscriptionPage() {
                 <span className="font-semibold text-brand-700">{upgradePlan.name}</span>
               </div>
               {currentPlan && upgradePlan.price > 0 && (
-                <div className="flex justify-between items-center border-t border-gray-200 pt-2">
+                <div className="flex justify-between items-center border-t border-[#eef2f6] pt-2">
                   <span className="text-gray-500">فرق السعر (سنوياً)</span>
                   <span className={clsx(
                     "font-bold text-base",
@@ -541,7 +541,7 @@ export function SubscriptionPage() {
                   </span>
                 </div>
               )}
-              <div className="flex justify-between border-t border-gray-200 pt-2">
+              <div className="flex justify-between border-t border-[#eef2f6] pt-2">
                 <span className="font-medium text-gray-600">المبلغ الإجمالي (سنوياً)</span>
                 <span className="font-bold text-brand-600 text-base">
                   {fmtPrice(annualPrice(upgradePlan.price))}
@@ -563,7 +563,7 @@ export function SubscriptionPage() {
         title="تفعيل إضافة"
         footer={
           <>
-            <button onClick={closeModal} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">إلغاء</button>
+            <button onClick={closeModal} className="px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">إلغاء</button>
             <button
               onClick={handleConfirm}
               disabled={confirming}
@@ -582,7 +582,7 @@ export function SubscriptionPage() {
                 <span className="font-semibold text-gray-800">{upgradeAddon.name}</span>
               </div>
               <p className="text-xs text-gray-400 leading-relaxed">{upgradeAddon.description}</p>
-              <div className="flex justify-between border-t border-gray-200 pt-2">
+              <div className="flex justify-between border-t border-[#eef2f6] pt-2">
                 <span className="font-medium text-gray-600">السعر السنوي</span>
                 <span className="font-bold text-brand-600 text-base">
                   {upgradeAddon.price === 0 ? "مجاناً" : fmtPrice(upgradeAddon.price)}
@@ -607,7 +607,7 @@ export function SubscriptionPage() {
           setTimeout(() => setCopied(false), 2000);
         };
         return (
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
             <div className="flex items-center gap-2 mb-1">
               <Gift className="w-5 h-5 text-brand-500" />
               <h2 className="text-base font-bold text-gray-900">ادعُ وأحصل على شهر مجاني</h2>
@@ -617,7 +617,7 @@ export function SubscriptionPage() {
             </p>
 
             {/* Link box */}
-            <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-4">
+            <div className="flex items-center gap-2 bg-[#f8fafc] border border-[#eef2f6] rounded-xl px-4 py-3 mb-4">
               <span className="flex-1 text-sm text-gray-700 truncate font-mono" dir="ltr">{link}</span>
               <button
                 onClick={copyLink}

@@ -14,8 +14,8 @@ import { fmtDate } from "@/lib/utils";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const iCls = "w-full border border-gray-200 rounded-xl px-3 h-10 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white";
-const taCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white resize-none";
+const iCls = "w-full border border-[#eef2f6] rounded-xl px-3 h-10 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white";
+const taCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white resize-none";
 const selCls = iCls + " appearance-none";
 
 function Badge({ label, color }: { label: string; color: string }) {
@@ -241,8 +241,8 @@ export function WorkOrdersPage() {
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-            <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", s.bg)}>
+          <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4 flex items-center gap-3">
+            <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0", s.bg)}>
               <s.icon className={clsx("w-5 h-5", s.color)} />
             </div>
             <div>
@@ -261,26 +261,26 @@ export function WorkOrdersPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="بحث برقم الأمر / اسم العميل / الجهاز..."
-            className="w-full border border-gray-200 rounded-xl pr-9 pl-3 h-9 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 bg-white"
+            className="w-full border border-[#eef2f6] rounded-xl pr-9 pl-3 h-9 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 bg-white"
           />
         </div>
         <select value={filterStatus}   onChange={e => setFilterStatus(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 h-9 text-sm bg-white appearance-none min-w-36">
+          className="border border-[#eef2f6] rounded-xl px-3 h-9 text-sm bg-white appearance-none min-w-36">
           <option value="">كل الحالات</option>
           {WORK_ORDER_STATUSES.map(s => <option key={s.key} value={s.key}>{s.label}</option>)}
         </select>
         <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 h-9 text-sm bg-white appearance-none min-w-36">
+          className="border border-[#eef2f6] rounded-xl px-3 h-9 text-sm bg-white appearance-none min-w-36">
           <option value="">كل الفئات</option>
           {WORK_ORDER_CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
         </select>
-        <button onClick={refetch} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
+        <button onClick={refetch} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-[#f8fafc] rounded-xl transition-colors">
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-6"><SkeletonRows rows={6} /></div>
         ) : error ? (
@@ -290,7 +290,7 @@ export function WorkOrdersPage() {
           </div>
         ) : orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center">
+            <div className="w-14 h-14 bg-[#f8fafc] rounded-2xl flex items-center justify-center">
               <Wrench className="w-7 h-7 text-gray-300" />
             </div>
             <p className="text-sm font-medium text-gray-500">لا توجد أوامر عمل</p>
@@ -301,7 +301,7 @@ export function WorkOrdersPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 text-xs text-gray-400 bg-gray-50/50">
+                <tr className="border-b border-[#eef2f6] text-xs text-gray-400 bg-gray-50/50">
                   <th className="text-right font-medium px-4 py-3">رقم الأمر</th>
                   <th className="text-right font-medium px-4 py-3">العميل</th>
                   <th className="text-right font-medium px-4 py-3">الجهاز / الغرض</th>
@@ -309,7 +309,7 @@ export function WorkOrdersPage() {
                   <th className="text-right font-medium px-4 py-3">الحالة</th>
                   <th className="text-right font-medium px-4 py-3">التكلفة</th>
                   <th className="text-right font-medium px-4 py-3">تاريخ الإنشاء</th>
-                  <th className="px-4 py-3" />
+                  <th className="px-[10px] py-[6px]" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -317,26 +317,26 @@ export function WorkOrdersPage() {
                   const st  = STATUS_MAP[o.status]    ?? { label: o.status,   color: "bg-gray-100 text-gray-600" };
                   const cat = CATEGORY_MAP[o.category] ?? { label: o.category };
                   return (
-                    <tr key={o.id} className="hover:bg-gray-50/50 transition-colors group">
-                      <td className="px-4 py-3 font-mono text-xs text-gray-500">{o.orderNumber}</td>
-                      <td className="px-4 py-3">
+                    <tr key={o.id} className="hover:bg-[#f8fafc]/50 transition-colors group">
+                      <td className="px-[10px] py-[6px] font-mono text-xs text-gray-500">{o.orderNumber}</td>
+                      <td className="px-[10px] py-[6px]">
                         <div className="font-medium text-gray-900">{o.customerName}</div>
                         {o.customerPhone && <div className="text-xs text-gray-400">{o.customerPhone}</div>}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px]">
                         <div className="font-medium text-gray-800">{o.itemName}</div>
                         {o.itemModel && <div className="text-xs text-gray-400">{o.itemModel}</div>}
                       </td>
-                      <td className="px-4 py-3 text-gray-500">{cat.label}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px] text-gray-500">{cat.label}</td>
+                      <td className="px-[10px] py-[6px]">
                         <Badge label={st.label} color={st.color} />
                       </td>
-                      <td className="px-4 py-3 tabular-nums text-gray-700">
+                      <td className="px-[10px] py-[6px] tabular-nums text-gray-700">
                         {o.finalCost ? `${Number(o.finalCost).toLocaleString("ar-SA")} ر.س` :
                          o.estimatedCost ? <span className="text-gray-400">{`~${Number(o.estimatedCost).toLocaleString("ar-SA")}`}</span> : "—"}
                       </td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">{fmtDate(o.createdAt)}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px] text-gray-400 text-xs">{fmtDate(o.createdAt)}</td>
+                      <td className="px-[10px] py-[6px]">
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => openStatus(o)}
@@ -347,7 +347,7 @@ export function WorkOrdersPage() {
                           </button>
                           <button
                             onClick={() => openEdit(o)}
-                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-[#f1f5f9] rounded-lg transition-colors"
                             title="تعديل"
                           >
                             <ChevronRight className="w-4 h-4" />
@@ -388,7 +388,7 @@ export function WorkOrdersPage() {
                     "w-full flex items-center justify-between px-4 py-2.5 rounded-xl border text-sm font-medium transition-colors",
                     statusNext === s.key
                       ? "border-brand-300 bg-brand-50 text-brand-700"
-                      : "border-gray-100 hover:bg-gray-50 text-gray-700",
+                      : "border-[#eef2f6] hover:bg-[#f8fafc] text-gray-700",
                   )}
                 >
                   <span>{s.label}</span>
@@ -406,7 +406,7 @@ export function WorkOrdersPage() {
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                 حفظ الحالة
               </button>
-              <button onClick={() => setModal(null)} className="flex-1 border border-gray-200 text-sm text-gray-600 h-10 rounded-xl hover:bg-gray-50 transition-colors">إلغاء</button>
+              <button onClick={() => setModal(null)} className="flex-1 border border-[#eef2f6] text-sm text-gray-600 h-10 rounded-xl hover:bg-[#f8fafc] transition-colors">إلغاء</button>
             </div>
           </div>
         </div>
@@ -416,7 +416,7 @@ export function WorkOrdersPage() {
       {isFormModal && (
         <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-6 flex flex-col" dir="rtl">
-            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#eef2f6]">
               <h2 className="font-bold text-gray-900">{modal === "create" ? "أمر عمل جديد" : "تعديل أمر العمل"}</h2>
               <button onClick={() => setModal(null)} className="text-gray-400 hover:text-gray-600"><X className="w-5 h-5" /></button>
             </div>
@@ -536,7 +536,7 @@ export function WorkOrdersPage() {
               </Field>
             </div>
 
-            <div className="px-6 py-4 border-t border-gray-100 space-y-3">
+            <div className="px-6 py-4 border-t border-[#eef2f6] space-y-3">
               {formErr && (
                 <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 rounded-xl px-3 py-2">
                   <AlertCircle className="w-4 h-4 shrink-0" />{formErr}
@@ -551,7 +551,7 @@ export function WorkOrdersPage() {
                   {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                   {modal === "create" ? "إنشاء الأمر" : "حفظ التعديلات"}
                 </button>
-                <button onClick={() => setModal(null)} className="flex-1 border border-gray-200 text-sm text-gray-600 h-10 rounded-xl hover:bg-gray-50 transition-colors">إلغاء</button>
+                <button onClick={() => setModal(null)} className="flex-1 border border-[#eef2f6] text-sm text-gray-600 h-10 rounded-xl hover:bg-[#f8fafc] transition-colors">إلغاء</button>
               </div>
             </div>
           </div>

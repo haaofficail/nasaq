@@ -60,33 +60,33 @@ export function ExpensesReportPage() {
       </div>
 
       {/* filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">من تاريخ</label>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">إلى تاريخ</label>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">الفئة</label>
             <select value={category} onChange={e => setCategory(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 bg-white">
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400 bg-white">
               <option value="">الكل</option>
               {Object.entries(CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>
           </div>
           <div className="flex gap-2 mr-auto">
             <button onClick={refetch}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">
               <RefreshCw className="w-4 h-4" /> تحديث
             </button>
             <button onClick={exportCsv}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f8fafc] border border-[#eef2f6] text-sm text-gray-600 hover:bg-gray-100 transition-colors">
               <Download className="w-4 h-4" /> تصدير CSV
             </button>
           </div>
@@ -96,18 +96,18 @@ export function ExpensesReportPage() {
       {loading ? <PageSkeleton /> : (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center mb-3">
                 <Receipt className="w-4 h-4 text-red-500" />
               </div>
               <p className="text-xl font-bold tabular-nums text-red-600">{fmt(summary.total)}</p>
               <p className="text-xs text-gray-400 mt-0.5">إجمالي المصروفات ر.س</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <p className="text-2xl font-bold text-gray-900">{summary.count || 0}</p>
               <p className="text-xs text-gray-400 mt-0.5">عدد المصروفات</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <p className="text-2xl font-bold text-gray-900">{byCategory.length}</p>
               <p className="text-xs text-gray-400 mt-0.5">فئات مختلفة</p>
             </div>
@@ -115,7 +115,7 @@ export function ExpensesReportPage() {
 
           {/* by category */}
           {byCategory.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <h3 className="font-semibold text-gray-900 text-sm mb-4">توزيع المصروفات حسب الفئة</h3>
               <div className="space-y-3">
                 {byCategory.map((cat: any) => {
@@ -138,7 +138,7 @@ export function ExpensesReportPage() {
           )}
 
           {/* table */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900 text-sm">سجل المصروفات</h2>
               <span className="text-xs text-gray-400">{expenses.length} مصروف</span>
@@ -160,25 +160,25 @@ export function ExpensesReportPage() {
                   </thead>
                   <tbody>
                     {expenses.map((e: any) => (
-                      <tr key={e.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{fmtDate(e.expense_date)}</td>
-                        <td className="px-4 py-3">
+                      <tr key={e.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
+                        <td className="px-[10px] py-[6px] text-xs text-gray-400 whitespace-nowrap">{fmtDate(e.expense_date)}</td>
+                        <td className="px-[10px] py-[6px]">
                           <span className={clsx("text-xs px-2 py-0.5 rounded-full", CATEGORY_COLORS[e.category] || "bg-gray-100 text-gray-700")}>
                             {CATEGORY_LABELS[e.category] || e.category}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-gray-700 max-w-[180px] truncate">{e.description}</td>
-                        <td className="px-4 py-3 tabular-nums font-bold text-red-600">{fmt(e.amount)} ر.س</td>
-                        <td className="px-4 py-3 text-xs text-gray-400 font-mono">{e.receipt_number || "—"}</td>
-                        <td className="px-4 py-3 text-xs text-gray-400 max-w-[140px] truncate">{e.notes || "—"}</td>
+                        <td className="px-[10px] py-[6px] text-gray-700 max-w-[180px] truncate">{e.description}</td>
+                        <td className="px-[10px] py-[6px] tabular-nums font-bold text-red-600">{fmt(e.amount)} ر.س</td>
+                        <td className="px-[10px] py-[6px] text-xs text-gray-400 font-mono">{e.receipt_number || "—"}</td>
+                        <td className="px-[10px] py-[6px] text-xs text-gray-400 max-w-[140px] truncate">{e.notes || "—"}</td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-gray-50 font-bold border-t border-gray-200">
-                      <td colSpan={3} className="px-4 py-3 text-gray-700">الإجمالي</td>
-                      <td className="px-4 py-3 tabular-nums text-red-600">{fmt(summary.total)} ر.س</td>
-                      <td colSpan={2} className="px-4 py-3 text-xs text-gray-400">{expenses.length} مصروف</td>
+                    <tr className="bg-gray-50 font-bold border-t border-[#eef2f6]">
+                      <td colSpan={3} className="px-[10px] py-[6px] text-gray-700">الإجمالي</td>
+                      <td className="px-[10px] py-[6px] tabular-nums text-red-600">{fmt(summary.total)} ر.س</td>
+                      <td colSpan={2} className="px-[10px] py-[6px] text-xs text-gray-400">{expenses.length} مصروف</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -187,7 +187,7 @@ export function ExpensesReportPage() {
           </div>
 
           {/* FAQ */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
             <div className="space-y-3">
               {[
@@ -196,8 +196,8 @@ export function ExpensesReportPage() {
                 { q: "ما المقصود بـ «رقم الإيصال»؟", a: "رقم الفاتورة أو الإيصال من المورّد، يُستخدم للمراجعة المحاسبية والتوثيق." },
                 { q: "كيف يؤثر تقرير المصروفات على صافي الربح؟", a: "صافي الربح = إجمالي المبيعات − المصروفات. كلما ارتفعت المصروفات انخفض صافي الربح في التقارير المالية." },
               ].map(faq => (
-                <details key={faq.q} className="border border-gray-100 rounded-xl">
-                  <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+                <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+                  <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
                   <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
                 </details>
               ))}

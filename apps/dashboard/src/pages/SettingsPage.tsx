@@ -214,7 +214,7 @@ export function SettingsPage() {
       </div>
 
       {/* Tab navigation */}
-      <div className="flex gap-1 bg-white border border-gray-100 rounded-2xl p-1 w-fit max-w-full overflow-x-auto">
+      <div className="flex gap-1 bg-white border border-[#eef2f6] rounded-2xl p-1 w-fit max-w-full overflow-x-auto">
         {tabs.map((tab, i) => (
           <button
             key={i}
@@ -232,7 +232,7 @@ export function SettingsPage() {
 
       {/* ── Profile tab ──────────────────────────────────────── */}
       {activeTab === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm px-6 py-6">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm px-6 py-6">
           <h2 className="text-[15px] font-bold text-gray-900 mb-5 flex items-center gap-2">
             <Building2 size={16} className="text-brand-400" />
             معلومات المؤسسة
@@ -278,7 +278,7 @@ export function SettingsPage() {
               { icon: <CheckCircle2 size={17} className="text-emerald-600" />, bg: "bg-emerald-50", value: branches.filter(b => b.isActive).length, label: "فروع نشطة" },
               { icon: <Star size={17} className="text-amber-600" />, bg: "bg-amber-50", value: null, name: mainBranch?.name || "—", label: "الفرع الرئيسي" },
             ].map((s, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm px-4 py-3.5 flex items-center gap-3">
+              <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm px-4 py-[6px] flex items-center gap-3">
                 <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", s.bg)}>
                   {s.icon}
                 </div>
@@ -302,7 +302,7 @@ export function SettingsPage() {
 
           {/* Empty state */}
           {branches.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 py-14 px-5 text-center">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] py-14 px-5 text-center">
               <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <GitBranch size={28} className="text-indigo-600" />
               </div>
@@ -315,7 +315,7 @@ export function SettingsPage() {
               {branches.map((branch: any) => (
                 <div
                   key={branch.id}
-                  className={clsx("bg-white rounded-2xl border border-gray-100 overflow-hidden transition-all hover:shadow-md", !branch.isActive && "opacity-60")}
+                  className={clsx("bg-white rounded-2xl border border-[#eef2f6] overflow-hidden transition-all hover:shadow-md", !branch.isActive && "opacity-60")}
                 >
                   {/* Color bar */}
                   <div className="h-1.5 w-full" style={{ backgroundColor: branch.color || "#6366f1" }} />
@@ -495,11 +495,11 @@ export function SettingsPage() {
               {/* Section: أوقات الدوام */}
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">أوقات الدوام</p>
-                <div className="border border-gray-100 rounded-xl overflow-hidden">
+                <div className="border border-[#eef2f6] rounded-xl overflow-hidden">
                   {Object.entries(DAYS_AR).map(([day, label], idx) => {
                     const dayData = branchForm.openingHours?.[day] || { open: "09:00", close: "22:00", active: false };
                     return (
-                      <div key={day} className={clsx("flex items-center gap-3 px-4 py-2.5", idx % 2 === 0 ? "bg-gray-50" : "bg-white")}>
+                      <div key={day} className={clsx("flex items-center gap-3 px-4 py-2.5", idx % 2 === 0 ? "bg-[#f8fafc]" : "bg-white")}>
                         {/* Active toggle */}
                         <button
                           type="button"
@@ -515,7 +515,7 @@ export function SettingsPage() {
                               type="time"
                               value={dayData.open}
                               onChange={e => setDay(day, "open", e.target.value)}
-                              className="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1 text-center"
+                              className="flex-1 text-sm border border-[#eef2f6] rounded-lg px-2 py-1 text-center"
                               dir="ltr"
                             />
                             <span className="text-gray-400 text-sm">—</span>
@@ -523,7 +523,7 @@ export function SettingsPage() {
                               type="time"
                               value={dayData.close}
                               onChange={e => setDay(day, "close", e.target.value)}
-                              className="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1 text-center"
+                              className="flex-1 text-sm border border-[#eef2f6] rounded-lg px-2 py-1 text-center"
                               dir="ltr"
                             />
                           </div>
@@ -550,14 +550,14 @@ export function SettingsPage() {
       {activeTab === 3 && (
         <div className="space-y-5 max-w-2xl">
           {/* Logo */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-6">
             <h2 className="text-[15px] font-bold text-gray-900 mb-5 flex items-center gap-2">
               <ImageIcon size={16} className="text-brand-400" />
               شعار المنشأة
             </h2>
             <div className="flex items-center gap-5">
               {/* Preview */}
-              <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center shrink-0 overflow-hidden">
+              <div className="w-20 h-20 rounded-2xl border-2 border-dashed border-[#eef2f6] bg-[#f8fafc] flex items-center justify-center shrink-0 overflow-hidden">
                 {f.logo ? (
                   <img src={f.logo} alt="logo" className="w-full h-full object-contain" />
                 ) : (
@@ -596,14 +596,14 @@ export function SettingsPage() {
           </div>
 
           {/* Favicon */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-6">
             <h2 className="text-[15px] font-bold text-gray-900 mb-5 flex items-center gap-2">
               <Palette size={16} className="text-brand-400" />
               أيقونة المتصفح (Favicon)
             </h2>
             <div className="flex items-center gap-5">
               {/* Preview */}
-              <div className="w-12 h-12 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center shrink-0 overflow-hidden">
+              <div className="w-12 h-12 rounded-xl border-2 border-dashed border-[#eef2f6] bg-[#f8fafc] flex items-center justify-center shrink-0 overflow-hidden">
                 {f.favicon ? (
                   <img src={f.favicon} alt="favicon" className="w-8 h-8 object-contain" />
                 ) : (
@@ -642,7 +642,7 @@ export function SettingsPage() {
           </div>
 
           {/* Brand color */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-6">
             <h2 className="text-[15px] font-bold text-gray-900 mb-5 flex items-center gap-2">
               <Palette size={16} className="text-brand-400" />
               اللون الأساسي للمنشأة
@@ -665,7 +665,7 @@ export function SettingsPage() {
                   type="color"
                   value={f.brandColor || "#5b9bd5"}
                   onChange={e => setForm({ ...f, brandColor: e.target.value })}
-                  className="w-10 h-10 rounded-lg border border-gray-200 cursor-pointer p-0.5"
+                  className="w-10 h-10 rounded-lg border border-[#eef2f6] cursor-pointer p-0.5"
                 />
                 <span className="text-xs text-gray-400 font-mono">{f.brandColor || "#5b9bd5"}</span>
               </div>
@@ -687,7 +687,7 @@ export function SettingsPage() {
       {/* ── Subscription tab ─────────────────────────────────── */}
       {activeTab === 2 && (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-[15px] font-bold text-gray-900 flex items-center gap-2">
                 <Zap size={16} className="text-amber-500" />
@@ -721,12 +721,12 @@ export function SettingsPage() {
                 </p>
               </div>
             </div>
-            <div className="mt-5 pt-5 border-t border-gray-100">
+            <div className="mt-5 pt-5 border-t border-[#eef2f6]">
               <Button variant="secondary" icon={CreditCard}>ترقية الباقة</Button>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-6">
             <h3 className="text-[15px] font-bold text-gray-900 mb-4 flex items-center gap-2">
               <Shield size={16} className="text-brand-400" />
               مميزات الباقة
@@ -746,7 +746,7 @@ export function SettingsPage() {
       {/* ── Tab 4: بوابة الدفع ── */}
       {activeTab === 4 && (
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-6">
             <h2 className="text-[15px] font-bold text-gray-900 flex items-center gap-2 mb-1">
               <Wallet size={16} className="text-brand-400" />
               بوابة الدفع الإلكتروني
@@ -759,7 +759,7 @@ export function SettingsPage() {
             {gateways.length > 0 && (
               <div className="space-y-3 mb-6">
                 {gateways.map((gw: any) => (
-                  <div key={gw.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+                  <div key={gw.id} className="flex items-center justify-between p-4 bg-[#f8fafc] rounded-xl border border-[#eef2f6]">
                     <div className="flex items-center gap-3">
                       <span className={clsx("w-2 h-2 rounded-full shrink-0", gw.isActive ? "bg-emerald-500" : "bg-gray-300")} />
                       <div>
@@ -789,7 +789,7 @@ export function SettingsPage() {
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1.5">مزود الدفع</label>
                     <select value={gwForm.provider} onChange={e => setGwForm(v => ({ ...v, provider: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400">
+                      className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400">
                       <option value="moyasar">Moyasar</option>
                       <option value="tap">Tap Payments</option>
                       <option value="hyperpay">HyperPay</option>
@@ -798,7 +798,7 @@ export function SettingsPage() {
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1.5">الاسم المعروض للعميل</label>
                     <input value={gwForm.displayName} onChange={e => setGwForm(v => ({ ...v, displayName: e.target.value }))}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" placeholder="Moyasar" />
+                      className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" placeholder="Moyasar" />
                   </div>
                 </div>
 
@@ -815,7 +815,7 @@ export function SettingsPage() {
                     value={gwForm.apiKey}
                     onChange={e => setGwForm(v => ({ ...v, apiKey: e.target.value }))}
                     placeholder="sk_live_..."
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 font-mono"
+                    className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400 font-mono"
                   />
                   <p className="text-xs text-gray-400 mt-1">الـ Secret Key من لوحة تحكم Moyasar</p>
                 </div>
@@ -826,7 +826,7 @@ export function SettingsPage() {
                     value={gwForm.publishableKey}
                     onChange={e => setGwForm(v => ({ ...v, publishableKey: e.target.value }))}
                     placeholder="pk_live_..."
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 font-mono"
+                    className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400 font-mono"
                   />
                 </div>
 
@@ -837,7 +837,7 @@ export function SettingsPage() {
                     value={gwForm.webhookSecret}
                     onChange={e => setGwForm(v => ({ ...v, webhookSecret: e.target.value }))}
                     placeholder="whsec_..."
-                    className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 font-mono"
+                    className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400 font-mono"
                   />
                 </div>
 

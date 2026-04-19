@@ -85,7 +85,7 @@
 
 @layer base {
   * {
-    @apply border-gray-200;
+    border-color: var(--border-default, #eef2f6);
     box-sizing: border-box;
     font-variant-numeric: tabular-nums;
   }
@@ -108,7 +108,7 @@
 :root {
   /* ── 1. Brand Layer (dynamic — overridden by applyOrgTheme) ── */
   --brand-primary:       #5b9bd5;
-  --brand-primary-hover: #3a7abf;
+  --brand-primary-hover: #4a8ac4;
   --brand-primary-dark:  #3a7abf;
   --brand-primary-soft:  #EBF3FB;
   --brand-primary-light: #EBF3FB;
@@ -151,6 +151,7 @@
 
   /* ── 5. Typography ── */
   --nasaq-font-family: 'IBM Plex Sans Arabic', 'Tajawal', system-ui, sans-serif;
+  --font-sans:         'IBM Plex Sans Arabic', 'Tajawal', system-ui, sans-serif;
 
   /* ── 6. Surface (Elite Tones) ── */
   --surface-page:     #FAFAFC;
@@ -165,6 +166,65 @@
   /* ── 8. Border ── */
   --border-default: #eef2f6;
   --border-strong:  #d1d9e2;
+
+  /* ── Design System short-name aliases (tarmeez-os-design-system theme.css compat) ── */
+  --brand:          var(--brand-primary);
+  --brand-hover:    var(--brand-primary-hover);
+  --brand-dark:     var(--brand-primary-dark);
+  --brand-soft:     var(--brand-primary-soft);
+  --brand-soft-2:   var(--brand-primary-light);
+  --brand-700:      var(--brand-primary-700);
+  --brand-focus:    var(--brand-primary-focus);
+
+  --bg:             var(--surface-page);
+  --surface:        var(--surface-card);
+  --surface-2:      #f8fafc;
+  --surface-3:      #f1f5f9;
+
+  --border:         var(--border-default);
+  --border-2:       var(--border-strong);
+
+  --text-1:         var(--text-primary);
+  --text-2:         var(--text-secondary);
+  --text-3:         var(--text-muted);
+
+  --sage:           var(--sage-main, #7fb09b);
+  --lavender:       var(--lavender-main, #9b8fc4);
+  --rose:           var(--rose-main, #d4917e);
+  --sky:            var(--sky-main, #7eb5d4);
+  --honey:          var(--honey-main, #d4b06a);
+  --coral:          var(--coral-main, #c98b8b);
+
+  --success:        var(--color-success);
+  --success-soft:   var(--color-success-soft);
+  --warning:        var(--color-warning);
+  --warning-soft:   var(--color-warning-soft);
+  --danger:         var(--color-danger);
+  --danger-soft:    var(--color-danger-soft);
+  --info:           var(--color-info);
+  --info-soft:      var(--color-info-soft);
+
+  --r-xs:           4px;
+  --r-sm:           8px;
+  --r-md:           12px;
+  --r-lg:           16px;
+  --r-xl:           20px;
+  --r-2xl:          24px;
+  --r-full:         100px;
+
+  --shadow-brand:   0 4px 20px rgba(91,155,213,0.25);
+
+  --ease:           cubic-bezier(0.22, 1, 0.36, 1);
+  --spring:         cubic-bezier(0.34, 1.56, 0.64, 1);
+  --fast:           0.15s;
+  --base:           0.25s;
+  --slow:           0.6s;
+
+  /* Compact density */
+  --row-h:          36px;
+  --cell-px:        10px;
+  --cell-py:        6px;
+  --card-p:         16px;
 
   /* ── Legacy aliases (backward compat) ── */
   --nasaq-primary:       var(--brand-primary);
@@ -192,6 +252,58 @@
   --state-info-soft:     var(--color-info-soft);
 }
 
+/* ═══ DARK MODE ════════════════════════════════════════════
+   Activate by setting data-theme="dark" on <html> or a wrapper.
+   ══════════════════════════════════════════════════════════ */
+[data-theme="dark"] {
+  --surface-page:     #0d1117;
+  --surface-card:     #161b22;
+  --surface-elevated: #21262d;
+
+  --border-default:   #30363d;
+  --border-strong:    #484f58;
+
+  --text-primary:     #e6edf3;
+  --text-secondary:   #8b949e;
+  --text-muted:       #6e7681;
+
+  --brand-primary-soft:  rgba(91,155,213,0.15);
+  --brand-primary-light: rgba(91,155,213,0.15);
+  --brand-primary-focus: rgba(91,155,213,0.25);
+
+  /* Semantic soft tints — dark */
+  --sage-soft:     rgba(127,176,155,0.15); --sage-bg:     rgba(127,176,155,0.08);
+  --lavender-soft: rgba(155,143,196,0.15); --lavender-bg: rgba(155,143,196,0.08);
+  --rose-soft:     rgba(212,145,126,0.15); --rose-bg:     rgba(212,145,126,0.08);
+  --sky-soft:      rgba(126,181,212,0.15); --sky-bg:      rgba(126,181,212,0.08);
+  --honey-soft:    rgba(212,176,106,0.15); --honey-bg:    rgba(212,176,106,0.08);
+  --coral-soft:    rgba(201,139,139,0.15); --coral-bg:    rgba(201,139,139,0.08);
+
+  /* State soft tints — dark */
+  --color-success-soft: rgba(26,158,114,0.15);
+  --color-warning-soft: rgba(212,176,106,0.15);
+  --color-danger-soft:  rgba(220,38,38,0.15);
+  --color-info-soft:    rgba(126,181,212,0.15);
+
+  --shadow-xs: 0 1px 3px rgba(0,0,0,0.3);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+}
+
+/* ═══ BUSINESS TYPE ACCENT OVERRIDES ════════════════════════
+   Applied via [data-btype="restaurant"] on <body> or layout wrapper.
+   Overrides --brand-* vars only — does NOT touch neutral/semantic/state.
+   The dashboard Layout strips these on every mount to prevent bleed.
+   ══════════════════════════════════════════════════════════ */
+[data-btype="restaurant"] { --brand-primary:#7eb5d4; --brand-primary-hover:#5a9ec7; --brand-primary-dark:#4a8ab8; --brand-primary-soft:var(--sky-soft); --brand-primary-light:var(--sky-soft); }
+[data-btype="salon"]      { --brand-primary:#d4917e; --brand-primary-hover:#c07060; --brand-primary-dark:#a85e4e; --brand-primary-soft:var(--rose-soft); --brand-primary-light:var(--rose-soft); }
+[data-btype="events"]     { --brand-primary:#9b8fc4; --brand-primary-hover:#8070b0; --brand-primary-dark:#6a5a9a; --brand-primary-soft:var(--lavender-soft); --brand-primary-light:var(--lavender-soft); }
+[data-btype="store"]      { --brand-primary:#d4b06a; --brand-primary-hover:#c09040; --brand-primary-dark:#a07030; --brand-primary-soft:var(--honey-soft); --brand-primary-light:var(--honey-soft); }
+[data-btype="flower_shop"]{ --brand-primary:#7fb09b; --brand-primary-hover:#5a9a80; --brand-primary-dark:#4a8a70; --brand-primary-soft:var(--sage-soft); --brand-primary-light:var(--sage-soft); }
+[data-btype="hotel"]      { --brand-primary:#c98b8b; --brand-primary-hover:#b07070; --brand-primary-dark:#905050; --brand-primary-soft:var(--coral-soft); --brand-primary-light:var(--coral-soft); }
+[data-btype="school"]     { --brand-primary:#9b8fc4; --brand-primary-hover:#8070b0; --brand-primary-dark:#6a5a9a; --brand-primary-soft:var(--lavender-soft); --brand-primary-light:var(--lavender-soft); }
+
 /* Focus visible */
 :focus-visible {
   outline: 2px solid var(--sys-brand, #5b9bd5);
@@ -217,7 +329,11 @@
 
 @layer components {
   .input {
-    @apply w-full border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors;
+    @apply w-full h-11 border border-[#eef2f6] rounded-xl px-3.5 text-sm text-gray-900 bg-white placeholder-gray-400 outline-none transition-all
+           focus:border-brand-400 focus:ring-[3px] focus:ring-brand-400/10;
+  }
+  .input:disabled {
+    @apply bg-gray-50 cursor-not-allowed text-gray-400 opacity-70;
   }
 }
 

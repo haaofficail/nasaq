@@ -118,7 +118,7 @@ export function NewLeaseWizard({ open, onClose, onSuccess }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" dir="rtl">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2f6]">
           <h2 className="text-lg font-bold text-gray-900">عقد إيجار جديد</h2>
           <div className="flex items-center gap-4">
             <div className="flex gap-1">
@@ -140,7 +140,7 @@ export function NewLeaseWizard({ open, onClose, onSuccess }: Props) {
           </div>
         </div>
 
-        <div className="px-6 py-2 border-b border-gray-100">
+        <div className="px-6 py-2 border-b border-[#eef2f6]">
           <p className="text-xs text-gray-500">{stepLabels[step - 1]}</p>
         </div>
 
@@ -151,7 +151,7 @@ export function NewLeaseWizard({ open, onClose, onSuccess }: Props) {
             <div className="space-y-3">
               <p className="text-sm text-gray-600">اختر وحدة شاغرة لإنشاء العقد عليها</p>
               {vacantUnits.length === 0 ? (
-                <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-xl">
+                <div className="text-center py-8 text-gray-400 bg-[#f8fafc] rounded-xl">
                   لا توجد وحدات شاغرة حالياً
                 </div>
               ) : (
@@ -163,7 +163,7 @@ export function NewLeaseWizard({ open, onClose, onSuccess }: Props) {
                       className={`w-full p-4 rounded-2xl border-2 text-right transition-all ${
                         selectedUnitId === unit.id
                           ? "border-blue-400 bg-blue-50"
-                          : "border-gray-100 hover:border-gray-200"
+                          : "border-[#eef2f6] hover:border-[#eef2f6]"
                       }`}
                     >
                       <div className="font-medium text-gray-900">
@@ -191,7 +191,7 @@ export function NewLeaseWizard({ open, onClose, onSuccess }: Props) {
                   value={tenant.name}
                   onChange={(e) => setTenant({ ...tenant, name: e.target.value })}
                   placeholder="الاسم الكامل"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
               <div>
@@ -200,7 +200,7 @@ export function NewLeaseWizard({ open, onClose, onSuccess }: Props) {
                   value={tenant.phone}
                   onChange={(e) => setTenant({ ...tenant, phone: e.target.value })}
                   placeholder="05xxxxxxxx"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
               <div>
@@ -209,7 +209,7 @@ export function NewLeaseWizard({ open, onClose, onSuccess }: Props) {
                   value={tenant.nationalId}
                   onChange={(e) => setTenant({ ...tenant, nationalId: e.target.value })}
                   placeholder="1xxxxxxxxx"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
             </div>
@@ -225,7 +225,7 @@ export function NewLeaseWizard({ open, onClose, onSuccess }: Props) {
                   type="date"
                   value={contractData.startDate}
                   onChange={(e) => setContractData({ ...contractData, startDate: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
               <div>
@@ -234,7 +234,7 @@ export function NewLeaseWizard({ open, onClose, onSuccess }: Props) {
                   type="date"
                   value={contractData.endDate}
                   onChange={(e) => setContractData({ ...contractData, endDate: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
               <div>
@@ -244,7 +244,7 @@ export function NewLeaseWizard({ open, onClose, onSuccess }: Props) {
                   value={contractData.monthlyRent}
                   onChange={(e) => setContractData({ ...contractData, monthlyRent: e.target.value })}
                   placeholder="0"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
               <div>
@@ -254,7 +254,7 @@ export function NewLeaseWizard({ open, onClose, onSuccess }: Props) {
                   value={contractData.depositAmount}
                   onChange={(e) => setContractData({ ...contractData, depositAmount: e.target.value })}
                   placeholder="0"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
             </div>
@@ -312,10 +312,10 @@ export function NewLeaseWizard({ open, onClose, onSuccess }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[#eef2f6]">
           <button
             onClick={step === 1 ? onClose : () => setStep(step - 1)}
-            className="px-5 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors"
+            className="px-5 py-2 border border-[#eef2f6] text-gray-700 rounded-xl text-sm hover:bg-[#f8fafc] transition-colors"
           >
             {step === 1 ? "إلغاء" : "السابق"}
           </button>

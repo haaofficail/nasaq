@@ -169,10 +169,10 @@ function ModeCard({
       disabled={!enabled}
       className={`text-right w-full p-5 rounded-2xl border-2 transition-all ${
         !enabled
-          ? "border-gray-100 bg-gray-50 opacity-60 cursor-not-allowed"
+          ? "border-[#eef2f6] bg-[#f8fafc] opacity-60 cursor-not-allowed"
           : active
             ? "border-brand-500 bg-white shadow-sm"
-            : "border-gray-200 bg-white hover:border-gray-300"
+            : "border-[#eef2f6] bg-white hover:border-[#eef2f6]"
       }`}
     >
       <div className="flex items-start gap-4">
@@ -232,7 +232,7 @@ function NasaqGatewaySection({
       {/* KPIs */}
       {statsLoading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />)}
+          {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-[#f1f5f9] rounded-2xl animate-pulse" />)}
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -244,7 +244,7 @@ function NasaqGatewaySection({
       )}
 
       {/* Sub-tabs */}
-      <div className="flex border-b border-gray-200 gap-1">
+      <div className="flex border-b border-[#eef2f6] gap-1">
         {(["transactions", "settlement"] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
             className={`px-4 py-2.5 text-sm font-medium rounded-t-lg transition-colors ${
@@ -258,20 +258,20 @@ function NasaqGatewaySection({
       {tab === "transactions" && (
         <div className="space-y-3">
           <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
+            className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30">
             <option value="">كل الحالات</option>
             {Object.entries(STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
 
           {txLoading ? (
-            <div className="space-y-2">{[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-gray-100 rounded-2xl animate-pulse" />)}</div>
+            <div className="space-y-2">{[...Array(4)].map((_, i) => <div key={i} className="h-14 bg-[#f1f5f9] rounded-2xl animate-pulse" />)}</div>
           ) : txList.length === 0 ? (
             <div className="flex flex-col items-center py-16 text-gray-400">
               <CreditCard className="w-10 h-10 mb-2 opacity-30" />
               <p className="text-sm">لا توجد معاملات</p>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-gray-500 text-xs">
                   <tr>
@@ -285,17 +285,17 @@ function NasaqGatewaySection({
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {txList.map((tx: any) => (
-                    <tr key={tx.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-700">{tx.description || "—"}</td>
-                      <td className="px-4 py-3 font-medium">{Number(tx.merchantAmount).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td>
-                      <td className="px-4 py-3">
+                    <tr key={tx.id} className="hover:bg-[#f8fafc]">
+                      <td className="px-[10px] py-[6px] text-gray-700">{tx.description || "—"}</td>
+                      <td className="px-[10px] py-[6px] font-medium">{Number(tx.merchantAmount).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td>
+                      <td className="px-[10px] py-[6px]">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[tx.status] ?? "bg-gray-100"}`}>
                           {STATUS_LABELS[tx.status] ?? tx.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-500 capitalize">{tx.paymentMethod || "—"}</td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">{new Date(tx.createdAt).toLocaleDateString("ar-SA")}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px] text-gray-500 capitalize">{tx.paymentMethod || "—"}</td>
+                      <td className="px-[10px] py-[6px] text-gray-400 text-xs">{new Date(tx.createdAt).toLocaleDateString("ar-SA")}</td>
+                      <td className="px-[10px] py-[6px]">
                         {tx.status === "paid" && (
                           refundMsg[tx.id] ? (
                             <span className="text-xs text-green-600">{refundMsg[tx.id]}</span>
@@ -323,9 +323,9 @@ function NasaqGatewaySection({
       {tab === "settlement" && (
         <div className="max-w-lg">
           {settingsLoading ? (
-            <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-14 bg-gray-100 rounded-2xl animate-pulse" />)}</div>
+            <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-14 bg-[#f1f5f9] rounded-2xl animate-pulse" />)}</div>
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-4">
               <h2 className="font-semibold text-gray-800 flex items-center gap-2">
                 <Landmark className="w-4 h-4" />
                 الحساب البنكي للتسوية
@@ -344,7 +344,7 @@ function NasaqGatewaySection({
                     onChange={tf(field as any)}
                     placeholder={placeholder}
                     dir={dir as any}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
                   />
                 </div>
               ))}
@@ -393,7 +393,7 @@ function OwnGatewaySection({ navigate }: { navigate: (path: string) => void }) {
           <button
             key={g.provider}
             onClick={() => navigate(`/dashboard/integrations`)}
-            className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-gray-100 hover:border-brand-500/40 hover:shadow-sm transition-all text-right"
+            className="flex items-center gap-3 p-4 bg-white rounded-2xl border border-[#eef2f6] hover:border-brand-500/40 hover:shadow-sm transition-all text-right"
           >
             <div className={`w-10 h-10 ${g.color} rounded-xl flex items-center justify-center font-bold text-sm shrink-0`}>
               {g.logo}
@@ -409,7 +409,7 @@ function OwnGatewaySection({ navigate }: { navigate: (path: string) => void }) {
 
       <button
         onClick={() => navigate("/dashboard/integrations")}
-        className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-200 rounded-2xl text-sm text-gray-500 hover:border-brand-500/40 hover:text-brand-500 transition-colors"
+        className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-[#eef2f6] rounded-2xl text-sm text-gray-500 hover:border-brand-500/40 hover:text-brand-500 transition-colors"
       >
         <Settings className="w-4 h-4" />
         إدارة التكاملات والبوابات
@@ -426,7 +426,7 @@ function LockedSection({ title, description }: { title: string; description: str
   const email = platform.supportEmail ?? "info@tarmizos.com";
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center">
-      <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center mb-4">
+      <div className="w-14 h-14 bg-[#f1f5f9] rounded-2xl flex items-center justify-center mb-4">
         <Lock className="w-7 h-7 text-gray-400" />
       </div>
       <h3 className="font-semibold text-gray-700 mb-2">{title} — غير مفعّل</h3>
@@ -455,7 +455,7 @@ function LockedSection({ title, description }: { title: string; description: str
 
 function KpiCard({ icon, bg, label, value }: { icon: React.ReactNode; bg: string; label: string; value: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
       <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center mb-3`}>{icon}</div>
       <p className="text-xs text-gray-400 mb-1">{label}</p>
       <p className="text-lg font-bold text-gray-800">{value}</p>

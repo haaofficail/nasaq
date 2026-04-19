@@ -28,7 +28,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
+        <div className="flex justify-between items-center p-4 border-b border-[#eef2f6]">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
@@ -47,7 +47,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400";
 
 export function ContractDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -198,7 +198,7 @@ export function ContractDetailPage() {
           <button
             onClick={handleGeneratePdf}
             disabled={generatingPdf}
-            className="border border-gray-200 text-gray-700 hover:bg-gray-50 px-3 py-2 rounded-xl text-sm font-medium transition-colors"
+            className="border border-[#eef2f6] text-gray-700 hover:bg-[#f8fafc] px-3 py-2 rounded-xl text-sm font-medium transition-colors"
           >
             {generatingPdf ? "جارٍ التوليد..." : "طباعة العقد PDF"}
           </button>
@@ -228,7 +228,7 @@ export function ContractDetailPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200">
+      <div className="flex gap-1 border-b border-[#eef2f6]">
         {[
           { id: "overview" as const, label: "نظرة عامة" },
           { id: "schedule" as const, label: `جدول الدفعات${invoices.length ? ` (${invoices.length})` : ""}` },
@@ -253,7 +253,7 @@ export function ContractDetailPage() {
       {/* Contract info */}
       {activeTab === "overview" && (<>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+        <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-4">معلومات العقد</h2>
           <div className="grid grid-cols-2 gap-3 text-sm">
             {[
@@ -277,7 +277,7 @@ export function ContractDetailPage() {
         </div>
 
         {/* Statement */}
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+        <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm p-5">
           <h2 className="text-sm font-semibold text-gray-700 mb-4">كشف الحساب</h2>
           {stmtLoading ? (
             <SkeletonRows rows={4} />
@@ -292,7 +292,7 @@ export function ContractDetailPage() {
                   <p className="text-xs text-gray-400">المدفوع</p>
                   <p className="font-bold text-emerald-700 mt-1">{Number(statement?.totalPaid ?? 0).toLocaleString("en-US")} ريال</p>
                 </div>
-                <div className={clsx("rounded-xl p-3 text-center", balance > 0 ? "bg-red-50" : "bg-gray-50")}>
+                <div className={clsx("rounded-xl p-3 text-center", balance > 0 ? "bg-red-50" : "bg-[#f8fafc]")}>
                   <p className="text-xs text-gray-400">الرصيد المتبقي</p>
                   <p className={clsx("font-bold mt-1", balance > 0 ? "text-red-600" : "text-gray-600")}>
                     {Number(balance).toLocaleString("en-US")} ريال
@@ -306,7 +306,7 @@ export function ContractDetailPage() {
                   <p className="text-xs font-semibold text-gray-500 mb-2">الفواتير</p>
                   <div className="space-y-1 max-h-32 overflow-y-auto">
                     {invoices.map((inv: any) => (
-                      <div key={inv.id} className="flex justify-between text-xs bg-gray-50 rounded-lg px-3 py-2">
+                      <div key={inv.id} className="flex justify-between text-xs bg-[#f8fafc] rounded-lg px-3 py-2">
                         <span className="text-gray-500">{inv.invoiceNumber}</span>
                         <span className="text-gray-600">{inv.periodLabel ?? "—"}</span>
                         <span className="font-medium text-gray-800">{Number(inv.amount ?? 0).toLocaleString("en-US")} ريال</span>
@@ -341,7 +341,7 @@ export function ContractDetailPage() {
       </div>
 
       {/* Timeline */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+      <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm p-5">
         <h2 className="text-sm font-semibold text-gray-700 mb-4">تاريخ العقد</h2>
         {(statement?.timeline ?? []).length === 0 ? (
           <p className="text-xs text-gray-400 text-center py-4">لا توجد أحداث مسجّلة</p>
@@ -366,8 +366,8 @@ export function ContractDetailPage() {
 
       {/* ── PAYMENT SCHEDULE TAB ── */}
       {activeTab === "schedule" && (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#eef2f6] flex items-center justify-between">
             <h2 className="text-sm font-semibold text-gray-700">جدول الدفعات</h2>
             <div className="flex gap-3 text-xs text-gray-500">
               <span>المجموع: <strong>{Number(statement?.totalInvoiced ?? 0).toLocaleString("en-US")} ريال</strong></span>
@@ -379,15 +379,15 @@ export function ContractDetailPage() {
             <div className="text-center py-12 text-gray-400 text-sm">لا توجد فواتير مجدولة</div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="bg-gray-50">
+              <thead className="bg-[#f8fafc]">
                 <tr>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">#</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">رقم الفاتورة</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">الفترة</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">تاريخ الاستحقاق</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">المبلغ</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">المدفوع</th>
-                  <th className="px-4 py-3 text-right font-medium text-gray-500">الحالة</th>
+                  <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">#</th>
+                  <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">رقم الفاتورة</th>
+                  <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الفترة</th>
+                  <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">تاريخ الاستحقاق</th>
+                  <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">المبلغ</th>
+                  <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">المدفوع</th>
+                  <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الحالة</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
@@ -398,14 +398,14 @@ export function ContractDetailPage() {
                     : "bg-gray-100 text-gray-600";
                   const statusAr = inv.status === "paid" ? "مدفوع" : inv.status === "overdue" ? "متأخر" : inv.status === "partial" ? "جزئي" : "قادم";
                   return (
-                    <tr key={inv.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-500">{i + 1}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-gray-600">{inv.invoiceNumber}</td>
-                      <td className="px-4 py-3 text-gray-500">{inv.periodLabel ?? "—"}</td>
-                      <td className="px-4 py-3 text-gray-500">{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("ar-SA") : "—"}</td>
-                      <td className="px-4 py-3 font-medium text-gray-900">{Number(inv.totalAmount ?? inv.amount ?? 0).toLocaleString("en-US")} ريال</td>
-                      <td className="px-4 py-3 text-emerald-600">{Number(inv.paidAmount ?? 0).toLocaleString("en-US")} ريال</td>
-                      <td className="px-4 py-3"><span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", statusCls)}>{statusAr}</span></td>
+                    <tr key={inv.id} className="hover:bg-[#f8fafc]">
+                      <td className="px-[10px] py-[6px] text-gray-500">{i + 1}</td>
+                      <td className="px-[10px] py-[6px] font-mono text-xs text-gray-600">{inv.invoiceNumber}</td>
+                      <td className="px-[10px] py-[6px] text-gray-500">{inv.periodLabel ?? "—"}</td>
+                      <td className="px-[10px] py-[6px] text-gray-500">{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("ar-SA") : "—"}</td>
+                      <td className="px-[10px] py-[6px] font-medium text-gray-900">{Number(inv.totalAmount ?? inv.amount ?? 0).toLocaleString("en-US")} ريال</td>
+                      <td className="px-[10px] py-[6px] text-emerald-600">{Number(inv.paidAmount ?? 0).toLocaleString("en-US")} ريال</td>
+                      <td className="px-[10px] py-[6px]"><span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", statusCls)}>{statusAr}</span></td>
                     </tr>
                   );
                 })}
@@ -428,7 +428,7 @@ export function ContractDetailPage() {
             </button>
           </div>
           {amendments.length === 0 ? (
-            <div className="bg-white border border-gray-100 rounded-2xl p-12 text-center text-gray-400 text-sm">لا توجد ملحقات</div>
+            <div className="bg-white border border-[#eef2f6] rounded-2xl p-12 text-center text-gray-400 text-sm">لا توجد ملحقات</div>
           ) : (
             <div className="space-y-3">
               {amendments.map((amd: any) => {
@@ -436,7 +436,7 @@ export function ContractDetailPage() {
                 const amdStatusAr = { draft: "مسودة", pending_approval: "قيد الموافقة", active: "نشط", rejected: "مرفوض" }[amd.status as string] ?? amd.status;
                 const typeAr = { rent_change: "تغيير الإيجار", duration_change: "تغيير المدة", terms_change: "تغيير الشروط", service_change: "تغيير الخدمات", other: "أخرى" }[amd.type as string] ?? amd.type;
                 return (
-                  <div key={amd.id} className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4">
+                  <div key={amd.id} className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
@@ -535,7 +535,7 @@ export function ContractDetailPage() {
               <textarea className={clsx(inputCls, "h-20 resize-none")} value={amendmentForm.description} onChange={(e) => setAmendmentForm({ ...amendmentForm, description: e.target.value })} />
             </Field>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowAmendment(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowAmendment(false)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleSaveAmendment} disabled={savingAmd} className="px-4 py-2 text-sm bg-brand-500 text-white rounded-xl hover:bg-brand-600 disabled:opacity-50">
                 {savingAmd ? "جارٍ الحفظ..." : "حفظ"}
               </button>
@@ -563,7 +563,7 @@ export function ContractDetailPage() {
               </Field>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowRenew(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowRenew(false)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleRenew} disabled={renewing} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50">
                 {renewing ? "جارٍ التجديد..." : "تجديد"}
               </button>
@@ -583,7 +583,7 @@ export function ContractDetailPage() {
               <textarea className={clsx(inputCls, "h-24 resize-none")} value={terminateForm.terminationReason} onChange={(e) => setTerminateForm({ ...terminateForm, terminationReason: e.target.value })} />
             </Field>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowTerminate(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowTerminate(false)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleTerminate} disabled={terminating} className="px-4 py-2 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50">
                 {terminating ? "جارٍ الإنهاء..." : "إنهاء العقد"}
               </button>
@@ -608,7 +608,7 @@ export function ContractDetailPage() {
               <textarea className={clsx(inputCls, "h-20 resize-none")} value={ejarForm.ejarNotes} onChange={(e) => setEjarForm({ ...ejarForm, ejarNotes: e.target.value })} />
             </Field>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowEjar(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowEjar(false)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleEjar} disabled={updatingEjar} className="px-4 py-2 text-sm bg-brand-500 text-white rounded-xl hover:bg-brand-600 disabled:opacity-50">
                 {updatingEjar ? "جارٍ الحفظ..." : "حفظ"}
               </button>

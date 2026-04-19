@@ -44,7 +44,7 @@ export function ModernSelect({ options, value, onChange, placeholder = "اختر
             ? "border border-red-400 ring-[3px] ring-red-400/10"
             : open
               ? "border border-brand-400 ring-[3px] ring-brand-400/10"
-              : "border border-gray-200 hover:border-gray-300",
+              : "border border-[#eef2f6] hover:border-[#eef2f6]",
           selected ? "text-gray-900" : "text-gray-400",
         )}
       >
@@ -56,7 +56,7 @@ export function ModernSelect({ options, value, onChange, placeholder = "اختر
       </button>
 
       {open && (
-        <div className="absolute top-[calc(100%+4px)] right-0 left-0 z-50 bg-white rounded-xl border border-gray-200 shadow-lg overflow-hidden">
+        <div className="absolute top-[calc(100%+4px)] right-0 left-0 z-50 bg-white rounded-xl border border-[#eef2f6] shadow-lg overflow-hidden">
           {options.map(opt => {
             const active = opt.value === value;
             return (
@@ -68,7 +68,7 @@ export function ModernSelect({ options, value, onChange, placeholder = "اختر
                   "w-full flex items-center justify-between px-3.5 py-2 text-sm text-right transition-colors",
                   active
                     ? "bg-brand-50 text-brand-600"
-                    : "text-gray-800 hover:bg-gray-50",
+                    : "text-gray-800 hover:bg-[#f8fafc]",
                 )}
               >
                 <span>{opt.label}</span>

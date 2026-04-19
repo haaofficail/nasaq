@@ -186,7 +186,7 @@ export function OnboardingWizard({ status, onComplete }: Props) {
               className={clsx(
                 "flex-1 h-1.5 rounded-full transition-colors",
                 i < stepIdx  ? "bg-brand-500" :
-                i === stepIdx ? "bg-brand-400" : "bg-gray-100"
+                i === stepIdx ? "bg-brand-400" : "bg-[#eef2f6]"
               )}
             />
           ))}
@@ -227,7 +227,7 @@ export function OnboardingWizard({ status, onComplete }: Props) {
                   value={branchName}
                   onChange={e => setBranchName(e.target.value)}
                   placeholder="مثال: الفرع الرئيسي - الرياض"
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500"
+                  className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-500"
                 />
               </div>
               <div>
@@ -235,7 +235,7 @@ export function OnboardingWizard({ status, onComplete }: Props) {
                 <select
                   value={branchCity}
                   onChange={e => setBranchCity(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500"
+                  className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-500"
                 >
                   {SAUDI_CITIES.map(c => (
                     <option key={c} value={c}>{c}</option>
@@ -272,12 +272,12 @@ export function OnboardingWizard({ status, onComplete }: Props) {
                             "flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm text-right transition-all",
                             selectedTemplates.has(idx)
                               ? "border-brand-500 bg-brand-50 text-brand-800"
-                              : "border-gray-200 hover:border-gray-300 text-gray-700"
+                              : "border-[#eef2f6] hover:border-[#eef2f6] text-gray-700"
                           )}
                         >
                           <div className={clsx(
                             "w-4 h-4 rounded border-2 flex-shrink-0 flex items-center justify-center",
-                            selectedTemplates.has(idx) ? "border-brand-500 bg-brand-500" : "border-gray-300"
+                            selectedTemplates.has(idx) ? "border-brand-500 bg-brand-500" : "border-[#eef2f6]"
                           )}>
                             {selectedTemplates.has(idx) && <Check className="w-2.5 h-2.5 text-white" />}
                           </div>
@@ -290,14 +290,14 @@ export function OnboardingWizard({ status, onComplete }: Props) {
                     </div>
                   </div>
                 )}
-                <div className="border-t border-gray-100 pt-3">
+                <div className="border-t border-[#eef2f6] pt-3">
                   <p className="text-xs text-gray-400 mb-2">أو أضف خدمة يدوياً:</p>
                   <div className="flex gap-2">
                     <input
                       value={svcName}
                       onChange={e => setSvcName(e.target.value)}
                       placeholder="اسم الخدمة"
-                      className="flex-1 rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+                      className="flex-1 rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm outline-none focus:border-brand-500"
                     />
                     <input
                       type="number"
@@ -305,7 +305,7 @@ export function OnboardingWizard({ status, onComplete }: Props) {
                       value={svcPrice}
                       onChange={e => setSvcPrice(e.target.value)}
                       placeholder="السعر"
-                      className="w-24 rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+                      className="w-24 rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm outline-none focus:border-brand-500"
                     />
                   </div>
                 </div>
@@ -323,11 +323,11 @@ export function OnboardingWizard({ status, onComplete }: Props) {
                 onClick={() => setDemoChoice("yes")}
                 className={clsx(
                   "w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-right",
-                  demoChoice === "yes" ? "border-brand-500 bg-brand-50" : "border-gray-200 hover:border-gray-300"
+                  demoChoice === "yes" ? "border-brand-500 bg-brand-50" : "border-[#eef2f6] hover:border-[#eef2f6]"
                 )}
               >
                 <div className={clsx("w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center",
-                  demoChoice === "yes" ? "border-brand-500 bg-brand-500" : "border-gray-300"
+                  demoChoice === "yes" ? "border-brand-500 bg-brand-500" : "border-[#eef2f6]"
                 )}>
                   {demoChoice === "yes" && <Check className="w-3 h-3 text-white" />}
                 </div>
@@ -340,11 +340,11 @@ export function OnboardingWizard({ status, onComplete }: Props) {
                 onClick={() => setDemoChoice("no")}
                 className={clsx(
                   "w-full flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-right",
-                  demoChoice === "no" ? "border-brand-500 bg-brand-50" : "border-gray-200 hover:border-gray-300"
+                  demoChoice === "no" ? "border-brand-500 bg-brand-50" : "border-[#eef2f6] hover:border-[#eef2f6]"
                 )}
               >
                 <div className={clsx("w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center",
-                  demoChoice === "no" ? "border-brand-500 bg-brand-500" : "border-gray-300"
+                  demoChoice === "no" ? "border-brand-500 bg-brand-500" : "border-[#eef2f6]"
                 )}>
                   {demoChoice === "no" && <Check className="w-3 h-3 text-white" />}
                 </div>
@@ -359,7 +359,7 @@ export function OnboardingWizard({ status, onComplete }: Props) {
           {/* Step: team */}
           {step.id === "team" && (
             <div className="space-y-4">
-              <div className="bg-gray-50 rounded-xl p-4 text-sm text-gray-600">
+              <div className="bg-[#f8fafc] rounded-xl p-4 text-sm text-gray-600">
                 <p className="font-medium text-gray-800 mb-2">يمكنك دعوة الفريق من إدارة الفريق</p>
                 <ul className="space-y-1.5">
                   {["اذهب إلى الفريق في القائمة الجانبية", "أضف أعضاء الفريق بأرقام جوالاتهم", "حدد الدور والصلاحيات لكل عضو"].map((s, i) => (

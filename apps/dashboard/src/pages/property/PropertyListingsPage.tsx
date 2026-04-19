@@ -81,13 +81,13 @@ export function PropertyListingsPage() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-64 bg-gray-100 rounded-2xl animate-pulse" />
+            <div key={i} className="h-64 bg-[#f1f5f9] rounded-2xl animate-pulse" />
           ))}
         </div>
       ) : error ? (
         <div className="p-6 bg-red-50 border border-red-200 text-red-700 rounded-2xl">{error}</div>
       ) : listings.length === 0 ? (
-        <div className="p-12 text-center bg-white rounded-2xl border border-gray-100">
+        <div className="p-12 text-center bg-white rounded-2xl border border-[#eef2f6]">
           <p className="text-gray-400 text-lg">لا توجد إعلانات</p>
           <p className="text-gray-300 text-sm mt-1">أنشئ أول إعلان لوحداتك الشاغرة</p>
         </div>
@@ -96,7 +96,7 @@ export function PropertyListingsPage() {
           {listings.map((listing: any) => {
             const status = STATUS_LABELS[listing.status] ?? STATUS_LABELS.draft;
             return (
-              <div key={listing.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-sm transition-shadow">
+              <div key={listing.id} className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden hover:shadow-sm transition-shadow">
                 {listing.imageUrl ? (
                   <img
                     src={listing.imageUrl}
@@ -152,7 +152,7 @@ export function PropertyListingsPage() {
                 <select
                   value={form.unitId}
                   onChange={(e) => setForm({ ...form, unitId: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 >
                   <option value="">اختر الوحدة</option>
                   {vacantUnits.map((u: any) => (
@@ -167,7 +167,7 @@ export function PropertyListingsPage() {
                   value={form.title}
                   onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="مثال: شقة 3 غرف بحي النزهة"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
 
@@ -178,7 +178,7 @@ export function PropertyListingsPage() {
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
                   rows={3}
                   placeholder="تفاصيل الوحدة..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200 resize-none"
                 />
               </div>
 
@@ -189,7 +189,7 @@ export function PropertyListingsPage() {
                   value={form.price}
                   onChange={(e) => setForm({ ...form, price: e.target.value })}
                   placeholder="0"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
 
@@ -199,7 +199,7 @@ export function PropertyListingsPage() {
                   value={form.location}
                   onChange={(e) => setForm({ ...form, location: e.target.value })}
                   placeholder="الحي / المدينة"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
 
@@ -209,7 +209,7 @@ export function PropertyListingsPage() {
                   value={form.imageUrl}
                   onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
                   placeholder="https://..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
             </div>
@@ -225,7 +225,7 @@ export function PropertyListingsPage() {
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50"
+                className="flex-1 py-2 border border-[#eef2f6] text-gray-700 rounded-xl text-sm hover:bg-[#f8fafc]"
               >
                 إلغاء
               </button>

@@ -22,7 +22,7 @@ function Section({ section, profile, editing, onEdit, onSave, onCancel, draft, s
   const Icon = ICONS[section.iconName] || FileText;
   
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
       <div className={clsx("flex items-center justify-between px-5 py-3 border-b border-gray-50", section.colorClass || "bg-gray-50/50")}>
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4" />
@@ -30,7 +30,7 @@ function Section({ section, profile, editing, onEdit, onSave, onCancel, draft, s
         </div>
         {editing ? (
           <div className="flex gap-1">
-            <button onClick={onCancel} className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50">
+            <button onClick={onCancel} className="w-7 h-7 rounded-lg border border-[#eef2f6] flex items-center justify-center hover:bg-[#f8fafc]">
               <X className="w-3.5 h-3.5 text-gray-400" />
             </button>
             <button onClick={onSave} className="w-7 h-7 rounded-lg bg-brand-500 flex items-center justify-center">
@@ -38,7 +38,7 @@ function Section({ section, profile, editing, onEdit, onSave, onCancel, draft, s
             </button>
           </div>
         ) : (
-          <button onClick={onEdit} className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-gray-50">
+          <button onClick={onEdit} className="w-7 h-7 rounded-lg border border-[#eef2f6] flex items-center justify-center hover:bg-[#f8fafc]">
             <Pencil className="w-3.5 h-3.5 text-gray-400" />
           </button>
         )}
@@ -50,16 +50,16 @@ function Section({ section, profile, editing, onEdit, onSave, onCancel, draft, s
               <div key={f.key}>
                 <label className="text-xs font-medium text-gray-500 block mb-1">{f.label}</label>
                 {f.type === "textarea" ? (
-                  <textarea className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none" rows={2}
+                  <textarea className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm resize-none" rows={2}
                     value={draft[f.key] || ""} onChange={e => setDraft({ ...draft, [f.key]: e.target.value })} placeholder={f.placeholder} />
                 ) : f.type === "select" ? (
-                  <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white"
+                  <select className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm bg-white"
                     value={draft[f.key] || ""} onChange={e => setDraft({ ...draft, [f.key]: e.target.value })}>
                     <option value="">—</option>
                     {f.options?.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                   </select>
                 ) : (
-                  <input type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                  <input type={f.type === "number" ? "number" : f.type === "date" ? "date" : "text"} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm"
                     value={draft[f.key] || ""} onChange={e => setDraft({ ...draft, [f.key]: e.target.value })} placeholder={f.placeholder} />
                 )}
               </div>
@@ -210,7 +210,7 @@ export function ClientBeautyCardPage() {
 
       {/* Visit History */}
       {visits.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <div className="flex items-center gap-2 px-5 py-3 border-b border-gray-50 bg-gray-50/50">
             <Clock className="w-4 h-4 text-gray-400" />
             <span className="font-semibold text-sm text-gray-800">سجل الأحداث والزيارات</span>
@@ -222,7 +222,7 @@ export function ClientBeautyCardPage() {
                   <div className="flex-1">
                     {/* Render primary visit note field if exists (like formula) */}
                     {(v.formula || v.customFields?.formula || v.customFields?.focusAreas || v.customFields?.workoutFocus) && (
-                      <p className="text-xs font-mono bg-gray-50 rounded-lg px-2 py-1 text-gray-700 mb-1.5 inline-block">
+                      <p className="text-xs font-mono bg-[#f8fafc] rounded-lg px-2 py-1 text-gray-700 mb-1.5 inline-block">
                         {v.formula || v.customFields?.formula || v.customFields?.focusAreas || v.customFields?.workoutFocus}
                       </p>
                     )}

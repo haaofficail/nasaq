@@ -43,7 +43,7 @@ function StampDots({ count, goal, size = "sm" }: { count: number; goal: number; 
             dim,
             i < filled
               ? "bg-brand-500 text-white shadow-sm shadow-brand-300/50"
-              : "bg-gray-100 text-gray-300 border border-gray-200"
+              : "bg-gray-100 text-gray-300 border border-[#eef2f6]"
           )}
         >
           {i < filled ? <Star className="w-2.5 h-2.5 fill-current" /> : null}
@@ -79,10 +79,10 @@ function LoyaltyCard({
         "bg-white rounded-2xl border cursor-pointer transition-all hover:shadow-sm group",
         ready
           ? "border-brand-200 shadow-[0_0_0_2px_rgba(91,155,213,0.15)]"
-          : "border-gray-100 hover:border-brand-100"
+          : "border-[#eef2f6] hover:border-brand-100"
       )}
     >
-      <div className="px-4 py-3.5">
+      <div className="px-[10px] py-[6px]">
         {/* Top row */}
         <div className="flex items-center gap-3">
           {/* Avatar */}
@@ -192,7 +192,7 @@ function DetailModal({
       <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-[#eef2f6]">
           <div className={clsx(
             "w-11 h-11 rounded-full flex items-center justify-center font-bold text-base shrink-0",
             ready ? "bg-brand-500 text-white" : "bg-brand-50 text-brand-600"
@@ -232,7 +232,7 @@ function DetailModal({
               <p className="text-lg font-bold text-purple-600 tabular-nums">{customer.freeItemsRedeemed}</p>
               <p className="text-xs text-purple-500">مكافآت مستبدلة</p>
             </div>
-            <div className={clsx("rounded-xl p-3 text-center", ready ? "bg-brand-50" : "bg-gray-50")}>
+            <div className={clsx("rounded-xl p-3 text-center", ready ? "bg-brand-50" : "bg-[#f8fafc]")}>
               <p className={clsx("text-lg font-bold tabular-nums", ready ? "text-brand-600" : "text-gray-700")}>
                 {ready ? "جاهزة!" : remaining}
               </p>
@@ -273,12 +273,12 @@ function DetailModal({
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setGoal(n => Math.max(3, n - 1))}
-                    className="w-8 h-8 rounded-lg border border-gray-200 font-bold text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="w-8 h-8 rounded-lg border border-[#eef2f6] font-bold text-gray-700 hover:bg-gray-100 transition-colors"
                   >−</button>
                   <span className="flex-1 text-center font-bold text-gray-900 tabular-nums">{goal}</span>
                   <button
                     onClick={() => setGoal(n => Math.min(30, n + 1))}
-                    className="w-8 h-8 rounded-lg border border-gray-200 font-bold text-gray-700 hover:bg-gray-100 transition-colors"
+                    className="w-8 h-8 rounded-lg border border-[#eef2f6] font-bold text-gray-700 hover:bg-gray-100 transition-colors"
                   >+</button>
                 </div>
               </div>
@@ -287,12 +287,12 @@ function DetailModal({
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setCount(n => Math.max(1, n - 1))}
-                className="w-10 h-10 rounded-xl border border-gray-200 font-bold text-xl text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center"
+                className="w-9 h-9 rounded-[10px] border border-[#eef2f6] font-bold text-xl text-gray-700 hover:bg-[#f8fafc] transition-colors flex items-center justify-center"
               >−</button>
               <span className="flex-1 text-center text-2xl font-bold text-gray-900 tabular-nums">{count}</span>
               <button
                 onClick={() => setCount(n => n + 1)}
-                className="w-10 h-10 rounded-xl border border-gray-200 font-bold text-xl text-gray-700 hover:bg-gray-50 transition-colors flex items-center justify-center"
+                className="w-9 h-9 rounded-[10px] border border-[#eef2f6] font-bold text-xl text-gray-700 hover:bg-[#f8fafc] transition-colors flex items-center justify-center"
               >+</button>
             </div>
 
@@ -337,7 +337,7 @@ function CustomerPicker({
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
           <h3 className="font-bold text-gray-900">اختر عميلاً</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
             <X className="w-5 h-5" />
@@ -353,7 +353,7 @@ function CustomerPicker({
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="ابحث بالاسم أو الهاتف..."
-              className="w-full bg-gray-50 border border-gray-200 rounded-xl pr-9 pl-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50"
+              className="w-full bg-[#f8fafc] border border-[#eef2f6] rounded-xl pr-9 pl-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50"
             />
           </div>
         </div>
@@ -363,7 +363,7 @@ function CustomerPicker({
             <button
               key={c.id}
               onClick={() => onPick(c)}
-              className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-gray-50 text-right transition-colors"
+              className="w-full flex items-center gap-3 px-5 py-[6px] hover:bg-[#f8fafc] text-right transition-colors"
             >
               <div className="w-9 h-9 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 font-bold text-sm shrink-0">
                 {(c.name || "ع")[0]}
@@ -480,7 +480,7 @@ export function LoyaltyPage() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="بحث باسم العميل أو رقم الهاتف..."
-          className="w-full bg-white border border-gray-200 rounded-xl pr-9 pl-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
+          className="w-full bg-white border border-[#eef2f6] rounded-xl pr-9 pl-4 py-2.5 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50 placeholder:text-gray-300"
         />
       </div>
 
@@ -488,7 +488,7 @@ export function LoyaltyPage() {
       {loading ? (
         <SkeletonRows />
       ) : cards.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 text-center py-16 px-8">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16 px-8">
           <div className="w-16 h-16 bg-brand-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Gift className="w-8 h-8 text-brand-300" />
           </div>

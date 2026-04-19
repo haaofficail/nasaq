@@ -36,8 +36,8 @@ function SubscriptionOrdersTab() {
     const m: Record<string, string> = {
       pending_payment: "bg-amber-50 text-amber-700 border-amber-200",
       paid:            "bg-emerald-50 text-emerald-700 border-emerald-200",
-      cancelled:       "bg-gray-100 text-gray-500 border-gray-200",
-      expired:         "bg-gray-100 text-gray-500 border-gray-200",
+      cancelled:       "bg-gray-100 text-gray-500 border-[#eef2f6]",
+      expired:         "bg-gray-100 text-gray-500 border-[#eef2f6]",
     };
     const labels: Record<string, string> = {
       pending_payment: "بانتظار الدفع",
@@ -95,7 +95,7 @@ function SubscriptionOrdersTab() {
         ))}
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-sm text-gray-400">جارٍ التحميل...</div>
         ) : orders.length === 0 ? (
@@ -104,7 +104,7 @@ function SubscriptionOrdersTab() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-right text-xs text-gray-500 font-medium border-b border-gray-100">
+                <tr className="bg-gray-50 text-right text-xs text-gray-500 font-medium border-b border-[#eef2f6]">
                   <th className="px-5 py-3">المنشأة</th>
                   <th className="px-5 py-3">نوع العملية</th>
                   <th className="px-5 py-3">التفاصيل</th>
@@ -116,7 +116,7 @@ function SubscriptionOrdersTab() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {orders.map((o: any) => (
-                  <tr key={o.id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={o.id} className="hover:bg-[#f8fafc]/50 transition-colors">
                     <td className="px-5 py-3">
                       <p className="font-medium text-gray-800 text-sm">{o.orgName}</p>
                       {o.orgCode && <p className="text-[11px] font-mono text-gray-400">{o.orgCode}</p>}
@@ -142,7 +142,7 @@ function SubscriptionOrdersTab() {
                           </button>
                           <button
                             onClick={() => handleCancel(o.id)}
-                            className="px-2.5 py-1 text-gray-400 text-[11px] rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors border border-gray-200"
+                            className="px-2.5 py-1 text-gray-400 text-[11px] rounded-lg hover:bg-red-50 hover:text-red-500 transition-colors border border-[#eef2f6]"
                           >
                             إلغاء
                           </button>
@@ -184,14 +184,14 @@ function SubscriptionOrdersTab() {
                 value={paymentRef}
                 onChange={e => setPaymentRef(e.target.value)}
                 placeholder="رقم الحوالة أو مرجع بوابة الدفع"
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-500"
+                className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm outline-none focus:border-brand-500"
                 dir="ltr"
               />
             </div>
             <div className="flex gap-2 pt-1">
               <button
                 onClick={() => { setShowConfirmModal(null); setPaymentRef(""); }}
-                className="flex-1 px-4 py-2 border border-gray-200 text-sm text-gray-600 rounded-xl hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2 border border-[#eef2f6] text-sm text-gray-600 rounded-xl hover:bg-[#f8fafc] transition-colors"
               >
                 إلغاء
               </button>

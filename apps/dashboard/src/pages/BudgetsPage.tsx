@@ -91,13 +91,13 @@ export function BudgetsPage() {
 
       {/* List */}
       {loading ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-4"><SkeletonRows rows={3} /></div>
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4"><SkeletonRows rows={3} /></div>
       ) : error ? (
         <div className="bg-red-50 rounded-2xl border border-red-100 p-6 flex items-center gap-3 text-red-700">
           <AlertCircle size={20} /><span>{error}</span>
         </div>
       ) : budgets.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <Archive className="mx-auto mb-3 text-gray-300" size={40} />
           <p className="text-gray-500 font-medium">لا توجد موازنات بعد</p>
           <p className="text-gray-400 text-sm mt-1">أنشئ موازنة لتتبع الإنفاق مقابل الخطة</p>
@@ -109,7 +109,7 @@ export function BudgetsPage() {
             const Icon = st.icon;
             const isOpen = expanded === b.id;
             return (
-              <div key={b.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div key={b.id} className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
                 <div className="flex items-center gap-4 p-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
@@ -129,7 +129,7 @@ export function BudgetsPage() {
                       </button>
                     )}
                     <button onClick={() => toggleExpand(b.id)}
-                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50 transition-colors">
+                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-[#f8fafc] transition-colors">
                       {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                     </button>
                   </div>
@@ -137,14 +137,14 @@ export function BudgetsPage() {
 
                 {/* Expanded lines */}
                 {isOpen && (
-                  <div className="border-t border-gray-100 p-4">
+                  <div className="border-t border-[#eef2f6] p-4">
                     {expandLoading ? (
                       <SkeletonRows rows={3} />
                     ) : !expandedData?.lines?.length ? (
                       <p className="text-sm text-gray-400 text-center py-4">لا توجد سطور موازنة بعد</p>
                     ) : (
                       <table className="w-full text-sm">
-                        <thead className="text-gray-500 border-b border-gray-100">
+                        <thead className="text-gray-500 border-b border-[#eef2f6]">
                           <tr>
                             <th className="pb-2 text-right font-medium">الشهر</th>
                             <th className="pb-2 text-right font-medium">الحساب</th>
@@ -198,24 +198,24 @@ export function BudgetsPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">اسم الموازنة</label>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   placeholder="مثال: موازنة 2026"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">بداية الفترة</label>
                   <input type="date" value={form.periodStart} onChange={e => setForm(f => ({ ...f, periodStart: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">نهاية الفترة</label>
                   <input type="date" value={form.periodEnd} onChange={e => setForm(f => ({ ...f, periodEnd: e.target.value }))}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500" />
                 </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">ملاحظات (اختياري)</label>
                 <textarea value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} rows={2}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 resize-none" />
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 resize-none" />
               </div>
             </div>
             <div className="flex gap-3 mt-6">
@@ -225,7 +225,7 @@ export function BudgetsPage() {
                 إنشاء الموازنة
               </button>
               <button onClick={() => { setShowModal(false); setFormError(null); }}
-                className="flex-1 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                className="flex-1 py-2.5 border border-[#eef2f6] text-gray-700 rounded-xl text-sm font-medium hover:bg-[#f8fafc] transition-colors">
                 إلغاء
               </button>
             </div>

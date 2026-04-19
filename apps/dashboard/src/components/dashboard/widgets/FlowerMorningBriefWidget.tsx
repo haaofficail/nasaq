@@ -45,7 +45,7 @@ function occasionBg(color: string): string {
     violet: "bg-violet-50",
     blue: "bg-blue-50",
   };
-  return map[color] ?? "bg-gray-50";
+  return map[color] ?? "bg-[#f8fafc]";
 }
 
 // ─── skeleton ─────────────────────────────────────────────────────────────────
@@ -164,10 +164,10 @@ export function FlowerMorningBriefWidget() {
   return (
     <div
       dir="rtl"
-      className="bg-white rounded-2xl border border-gray-100 overflow-hidden"
+      className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden"
     >
       {/* ── Header ──────────────────────────────────────────────────────── */}
-      <div className="bg-gradient-to-l from-[#5b9bd5]/10 to-[#5b9bd5]/5 px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <div className="bg-gradient-to-l from-[#5b9bd5]/10 to-[#5b9bd5]/5 px-5 py-4 border-b border-[#eef2f6] flex items-center justify-between">
         <div>
           <h2 className="text-base font-bold text-gray-900">
             ماذا يحدث الآن؟
@@ -370,7 +370,7 @@ export function FlowerMorningBriefWidget() {
               className={clsx(
                 "rounded-2xl px-4 py-3 border-r-4 flex items-start gap-3 transition-colors",
                 totalDelivery === 0
-                  ? "bg-gray-50 border-gray-200"
+                  ? "bg-gray-50 border-[#eef2f6]"
                   : readyDelivery > 0
                   ? "bg-amber-50 border-amber-400"
                   : "bg-blue-50 border-blue-300"

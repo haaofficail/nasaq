@@ -37,7 +37,7 @@ interface FilterBarProps {
 export function FilterBar({ tabs, activeTab, onTabChange, actions, className }: FilterBarProps) {
   return (
     <div className={clsx(
-      "flex items-center gap-1.5 flex-wrap bg-white rounded-2xl border border-gray-100 px-3 py-2",
+      "flex items-center gap-1.5 flex-wrap bg-white rounded-2xl border border-[#eef2f6] px-3 py-2",
       className,
     )}>
       {tabs.map((tab) => {
@@ -50,7 +50,7 @@ export function FilterBar({ tabs, activeTab, onTabChange, actions, className }: 
               "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[13px] font-medium transition-colors",
               active
                 ? "bg-brand-50 text-brand-600"
-                : "text-gray-500 hover:bg-gray-50 hover:text-gray-700",
+                : "text-gray-500 hover:bg-[#f8fafc] hover:text-gray-700",
             )}
           >
             {tab.label}

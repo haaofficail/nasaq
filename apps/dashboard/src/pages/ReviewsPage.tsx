@@ -92,18 +92,18 @@ export function ReviewsPage() {
           </h1>
           <p className="text-sm text-gray-400 mt-0.5">إدارة وعرض تقييمات العملاء وردود الفعل</p>
         </div>
-        <button onClick={refetch} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
+        <button onClick={refetch} className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500 transition-colors">
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
       {/* stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <p className="text-2xl font-bold text-gray-900">{stats.total || 0}</p>
           <p className="text-xs text-gray-400 mt-0.5">إجمالي التقييمات</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <div className="flex items-center gap-1.5 mb-1">
             <p className="text-2xl font-bold text-amber-500">{stats.avg || "0.0"}</p>
             <p className="text-sm text-gray-400">/ 5</p>
@@ -115,12 +115,12 @@ export function ReviewsPage() {
           </div>
           <p className="text-xs text-gray-400 mt-1">متوسط التقييم</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <p className="text-2xl font-bold text-amber-600">{stats.pending || 0}</p>
           <p className="text-xs text-gray-400 mt-0.5">قيد المراجعة</p>
         </div>
         {/* distribution */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <p className="text-xs font-semibold text-gray-500 mb-2">توزيع التقييمات</p>
           <div className="space-y-1">
             {[5,4,3,2,1].map(n => {
@@ -141,12 +141,12 @@ export function ReviewsPage() {
       </div>
 
       {/* tabs + table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="flex items-center justify-between px-5 border-b border-gray-50">
           <div className="flex overflow-x-auto">
             {TABS.map(t => (
               <button key={t.key} onClick={() => setTab(t.key)}
-                className={clsx("px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+                className={clsx("px-4 py-[6px] text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
                   tab === t.key ? "border-brand-500 text-brand-600" : "border-transparent text-gray-500 hover:text-gray-700")}>
                 {t.label}
               </button>
@@ -173,26 +173,26 @@ export function ReviewsPage() {
                 {reviewList.map((rv: any) => {
                   const st = STATUS_LABELS[rv.status] || STATUS_LABELS.pending;
                   return (
-                    <tr key={rv.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                      <td className="px-4 py-3">
+                    <tr key={rv.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
+                      <td className="px-[10px] py-[6px]">
                         <p className="font-medium text-gray-800">{rv.customerName || rv.customerId?.substring(0, 8)}</p>
                         {rv.customerPhone && <p className="text-xs text-gray-400" dir="ltr">{rv.customerPhone}</p>}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px]">
                         <StarRow rating={rv.rating} />
                         <p className="text-xs font-bold text-amber-500 mt-0.5">{rv.rating}/5</p>
                       </td>
-                      <td className="px-4 py-3 max-w-[200px]">
+                      <td className="px-[10px] py-[6px] max-w-[200px]">
                         {rv.comment ? (
                           <p className="text-sm text-gray-700 line-clamp-2">{rv.comment}</p>
                         ) : (
                           <span className="text-gray-300">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
+                      <td className="px-[10px] py-[6px] text-xs text-gray-400 whitespace-nowrap">
                         {rv.createdAt ? fmtDate(rv.createdAt) : "—"}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px]">
                         {rv.responseText ? (
                           <p className="text-xs text-emerald-600 max-w-[140px] line-clamp-2">{rv.responseText}</p>
                         ) : (
@@ -202,17 +202,17 @@ export function ReviewsPage() {
                           </button>
                         )}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px]">
                         <button onClick={() => handleToggle(rv.id)}
                           className={clsx("inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium border transition-colors",
-                            rv.isPublished ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-gray-100 text-gray-500 border-gray-200")}>
+                            rv.isPublished ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-gray-100 text-gray-500 border-[#eef2f6]")}>
                           {rv.isPublished ? <><Eye className="w-3 h-3" /> ظاهر</> : <><EyeOff className="w-3 h-3" /> مخفي</>}
                         </button>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px]">
                         <span className={clsx("text-[11px] px-2 py-0.5 rounded-full font-medium border", st.color)}>{st.label}</span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px]">
                         <div className="flex items-center gap-1">
                           {rv.status === "pending" && (
                             <>
@@ -248,7 +248,7 @@ export function ReviewsPage() {
       </div>
 
       {/* FAQ */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
         <div className="space-y-3">
           {[
@@ -257,8 +257,8 @@ export function ReviewsPage() {
             { q: "ماذا يعني «ظاهر» و«مخفي»؟", a: "«ظاهر» يعني أن التقييم يظهر للعملاء في صفحتك العامة، و«مخفي» يعني أنك أوقفت ظهوره مؤقتاً دون حذفه." },
             { q: "هل يصل العميل بإشعار عند ردّي على تقييمه؟", a: "نعم، إذا كان لديه بريد إلكتروني أو جوال مسجّل يصله إشعار بردّك تلقائياً." },
           ].map(faq => (
-            <details key={faq.q} className="border border-gray-100 rounded-xl">
-              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+            <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+              <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
               <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
             </details>
           ))}

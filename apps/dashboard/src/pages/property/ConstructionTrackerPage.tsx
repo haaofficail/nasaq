@@ -66,7 +66,7 @@ const INSPECTION_STATUS = [
 ];
 
 // ── Helpers ────────────────────────────────────────────────
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 bg-white";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 bg-white";
 
 function fmt(n: any) {
   return Number(n ?? 0).toLocaleString("en-US");
@@ -97,14 +97,14 @@ function Modal({ title, onClose, children, footer }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" dir="rtl">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2f6] shrink-0">
           <h2 className="text-base font-bold text-gray-900">{title}</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center transition-colors">
             <X className="w-4 h-4 text-gray-500" />
           </button>
         </div>
         <div className="overflow-y-auto flex-1 px-6 py-4 space-y-4">{children}</div>
-        <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">{footer}</div>
+        <div className="flex gap-3 px-6 py-4 border-t border-[#eef2f6] shrink-0">{footer}</div>
       </div>
     </div>
   );
@@ -195,7 +195,7 @@ function ProjectList({ onSelect }: { onSelect: (id: string) => void }) {
       </div>
 
       {/* Status filter */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit overflow-x-auto">
+      <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1 w-fit overflow-x-auto">
         {STATUS_FILTER_TABS.map((t) => (
           <button
             key={t.id}
@@ -221,8 +221,8 @@ function ProjectList({ onSelect }: { onSelect: (id: string) => void }) {
       ) : error ? (
         <div className="p-4 text-red-600 bg-red-50 rounded-xl text-sm">{error}</div>
       ) : projects.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border border-gray-100">
-          <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-3">
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-white rounded-2xl border border-[#eef2f6]">
+          <div className="w-14 h-14 rounded-2xl bg-[#f8fafc] flex items-center justify-center mb-3">
             <HardHat className="w-6 h-6 text-gray-300" />
           </div>
           <p className="text-gray-500 font-medium">
@@ -244,7 +244,7 @@ function ProjectList({ onSelect }: { onSelect: (id: string) => void }) {
             <button
               key={p.id}
               onClick={() => onSelect(p.id)}
-              className="group bg-white rounded-2xl border border-gray-100 p-5 text-right hover:border-brand-200 hover:shadow-md transition-all"
+              className="group bg-white rounded-2xl border border-[#eef2f6] p-5 text-right hover:border-brand-200 hover:shadow-md transition-all"
             >
               <div className="flex items-start justify-between mb-3">
                 <div className="min-w-0">
@@ -300,7 +300,7 @@ function ProjectList({ onSelect }: { onSelect: (id: string) => void }) {
               </button>
               <button
                 onClick={() => setShowCreate(false)}
-                className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                className="px-5 py-2.5 border border-[#eef2f6] text-gray-700 rounded-xl text-sm font-medium hover:bg-[#f8fafc] transition-colors"
               >
                 إلغاء
               </button>
@@ -384,7 +384,7 @@ function GeneralTab({ project, constructionId, onRefetch }: { project: any; cons
           <p className="text-lg font-bold text-emerald-700">{fmt(budget)}</p>
           <p className="text-xs text-emerald-600 mt-1">الميزانية ر.س</p>
         </div>
-        <div className={clsx("rounded-2xl p-4 text-center", overrun ? "bg-red-50" : "bg-gray-50")}>
+        <div className={clsx("rounded-2xl p-4 text-center", overrun ? "bg-red-50" : "bg-[#f8fafc]")}>
           <p className={clsx("text-lg font-bold", overrun ? "text-red-700" : "text-gray-700")}>{fmt(actual)}</p>
           <p className="text-xs text-gray-500 mt-1">الفعلي ر.س</p>
         </div>
@@ -397,7 +397,7 @@ function GeneralTab({ project, constructionId, onRefetch }: { project: any; cons
       </div>
 
       {/* Progress */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-4 space-y-2">
         <div className="flex justify-between text-sm">
           <span className="font-semibold text-gray-700">نسبة الإنجاز الكلية</span>
           <span className="font-bold text-brand-600">{progress}%</span>
@@ -406,7 +406,7 @@ function GeneralTab({ project, constructionId, onRefetch }: { project: any; cons
       </div>
 
       {/* Construction file */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-4">
         <h3 className="text-sm font-bold text-gray-800 flex items-center gap-2">
           <FileText className="w-4 h-4 text-brand-500" />
           ملف المشروع
@@ -421,7 +421,7 @@ function GeneralTab({ project, constructionId, onRefetch }: { project: any; cons
             { icon: TrendingUp,  label: "التاريخ المتوقع",    value: project?.expectedEndDate ? new Date(project.expectedEndDate).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn") : null },
           ].map(({ icon: Icon, label, value }) => (
             <div key={label} className="flex items-start gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-[#f8fafc] flex items-center justify-center shrink-0">
                 <Icon className="w-3.5 h-3.5 text-gray-500" />
               </div>
               <div>
@@ -441,7 +441,7 @@ function GeneralTab({ project, constructionId, onRefetch }: { project: any; cons
 
       {/* Budget vs actual */}
       {budget > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4 space-y-2">
           <div className="flex items-center justify-between text-sm mb-1">
             <span className="font-semibold text-gray-700">الميزانية مقابل الفعلي</span>
             <span className={clsx("text-[10px] font-bold px-2 py-0.5 rounded-full", overrun ? "bg-red-100 text-red-700" : "bg-emerald-100 text-emerald-700")}>
@@ -507,7 +507,7 @@ function PhasesTab({ constructionId }: { constructionId: string }) {
       {phases.length === 0 ? (
         <div className="text-center py-12 text-gray-400 text-sm">لا توجد مراحل — يمكنك إضافتها يدوياً</div>
       ) : phases.map((phase: any) => (
-        <div key={phase.id} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+        <div key={phase.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 space-y-3">
           <div className="flex items-center justify-between">
             <div>
               <span className="font-semibold text-gray-900 text-sm">{phase.name}</span>
@@ -541,7 +541,7 @@ function PhasesTab({ constructionId }: { constructionId: string }) {
             <button onClick={addPhase} disabled={saving} className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-bold hover:bg-brand-600 disabled:opacity-50">
               {saving ? "جاري..." : "إضافة"}
             </button>
-            <button onClick={() => setShowAdd(false)} className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>
+            <button onClick={() => setShowAdd(false)} className="px-5 py-2.5 border border-[#eef2f6] text-gray-700 rounded-xl text-sm hover:bg-[#f8fafc]">إلغاء</button>
           </>
         }>
           <Field label="اسم المرحلة" required>
@@ -628,7 +628,7 @@ function InspectionsTab({ constructionId }: { constructionId: string }) {
       ) : (
         <div className="space-y-3">
           {inspections.map((ins: any) => (
-            <div key={ins.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div key={ins.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center gap-2.5">
                   {statusIcon(ins.inspectionStatus ?? "scheduled")}
@@ -664,7 +664,7 @@ function InspectionsTab({ constructionId }: { constructionId: string }) {
             <button onClick={addInspection} disabled={saving} className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-bold hover:bg-brand-600 disabled:opacity-50">
               {saving ? "جاري..." : "إضافة المعاينة"}
             </button>
-            <button onClick={() => setShowAdd(false)} className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>
+            <button onClick={() => setShowAdd(false)} className="px-5 py-2.5 border border-[#eef2f6] text-gray-700 rounded-xl text-sm hover:bg-[#f8fafc]">إلغاء</button>
           </>
         }>
           <Field label="تاريخ المعاينة" required>
@@ -737,7 +737,7 @@ function LogsTab({ constructionId }: { constructionId: string }) {
       {logs.length === 0 ? (
         <div className="text-center py-12 text-gray-400 text-sm">لا توجد سجلات يومية</div>
       ) : logs.map((log: any) => (
-        <div key={log.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div key={log.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <div className="flex items-center justify-between mb-2">
             <span className="font-semibold text-gray-900 text-sm">
               {log.logDate ? new Date(log.logDate).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn") : "—"}
@@ -757,7 +757,7 @@ function LogsTab({ constructionId }: { constructionId: string }) {
             <button onClick={addLog} disabled={saving} className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-bold hover:bg-brand-600 disabled:opacity-50">
               {saving ? "جاري..." : "إضافة السجل"}
             </button>
-            <button onClick={() => setShowAdd(false)} className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>
+            <button onClick={() => setShowAdd(false)} className="px-5 py-2.5 border border-[#eef2f6] text-gray-700 rounded-xl text-sm hover:bg-[#f8fafc]">إلغاء</button>
           </>
         }>
           <Field label="التاريخ" required>
@@ -842,9 +842,9 @@ function CostsTab({ constructionId }: { constructionId: string }) {
       {costs.length === 0 ? (
         <div className="text-center py-12 text-gray-400 text-sm">لا توجد تكاليف مسجلة</div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-50 border-b border-[#eef2f6]">
               <tr>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600">الوصف</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600">الفئة</th>
@@ -854,11 +854,11 @@ function CostsTab({ constructionId }: { constructionId: string }) {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {costs.map((c: any) => (
-                <tr key={c.id} className="hover:bg-gray-50/60">
-                  <td className="px-4 py-3 text-gray-800 font-medium">{c.description ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">{c.category ?? "—"}</td>
-                  <td className="px-4 py-3 font-semibold text-gray-900">{fmt(c.amount)} ر.س</td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">{c.date ? new Date(c.date).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn") : "—"}</td>
+                <tr key={c.id} className="hover:bg-[#f8fafc]/60">
+                  <td className="px-[10px] py-[6px] text-gray-800 font-medium">{c.description ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500 text-xs">{c.category ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] font-semibold text-gray-900">{fmt(c.amount)} ر.س</td>
+                  <td className="px-[10px] py-[6px] text-gray-400 text-xs">{c.date ? new Date(c.date).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn") : "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -872,7 +872,7 @@ function CostsTab({ constructionId }: { constructionId: string }) {
             <button onClick={addCost} disabled={saving} className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-bold hover:bg-brand-600 disabled:opacity-50">
               {saving ? "جاري..." : "إضافة"}
             </button>
-            <button onClick={() => setShowAdd(false)} className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>
+            <button onClick={() => setShowAdd(false)} className="px-5 py-2.5 border border-[#eef2f6] text-gray-700 rounded-xl text-sm hover:bg-[#f8fafc]">إلغاء</button>
           </>
         }>
           <Field label="الوصف" required>
@@ -943,22 +943,22 @@ function PaymentsTab({ constructionId }: { constructionId: string }) {
       {payments.length === 0 ? (
         <div className="text-center py-12 text-gray-400 text-sm">لا توجد مستخلصات</div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-50 border-b border-[#eef2f6]">
               <tr>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600">المستخلص</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600">المبلغ</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600">الحالة</th>
-                <th className="px-4 py-3" />
+                <th className="px-[10px] py-[6px]" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {payments.map((p: any) => (
-                <tr key={p.id} className="hover:bg-gray-50/60">
-                  <td className="px-4 py-3 font-medium text-gray-800">{p.description ?? `مستخلص #${p.id?.slice(-4)}`}</td>
-                  <td className="px-4 py-3 font-semibold">{fmt(p.amount)} ر.س</td>
-                  <td className="px-4 py-3">
+                <tr key={p.id} className="hover:bg-[#f8fafc]/60">
+                  <td className="px-[10px] py-[6px] font-medium text-gray-800">{p.description ?? `مستخلص #${p.id?.slice(-4)}`}</td>
+                  <td className="px-[10px] py-[6px] font-semibold">{fmt(p.amount)} ر.س</td>
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("text-[10px] font-semibold px-2 py-0.5 rounded-full",
                       p.status === "approved" ? "bg-emerald-100 text-emerald-700" :
                       p.status === "pending"  ? "bg-amber-100 text-amber-700" :
@@ -967,7 +967,7 @@ function PaymentsTab({ constructionId }: { constructionId: string }) {
                       {p.status === "approved" ? "معتمد" : p.status === "pending" ? "معلق" : p.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     {p.status === "pending" && (
                       <button onClick={() => approve(p.id)} disabled={approvingId === p.id}
                         className="text-xs px-3 py-1 bg-brand-500 text-white rounded-lg hover:bg-brand-600 disabled:opacity-50 transition-colors">
@@ -988,7 +988,7 @@ function PaymentsTab({ constructionId }: { constructionId: string }) {
             <button onClick={addPayment} disabled={saving} className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-bold hover:bg-brand-600 disabled:opacity-50">
               {saving ? "جاري..." : "إضافة"}
             </button>
-            <button onClick={() => setShowAdd(false)} className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>
+            <button onClick={() => setShowAdd(false)} className="px-5 py-2.5 border border-[#eef2f6] text-gray-700 rounded-xl text-sm hover:bg-[#f8fafc]">إلغاء</button>
           </>
         }>
           <Field label="الوصف" required>
@@ -1058,9 +1058,9 @@ function ChangeOrdersTab({ constructionId }: { constructionId: string }) {
       {orders.length === 0 ? (
         <div className="text-center py-12 text-gray-400 text-sm">لا توجد أوامر تغيير</div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-50 border-b border-[#eef2f6]">
               <tr>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600">الوصف</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-gray-600">تكلفة</th>
@@ -1070,15 +1070,15 @@ function ChangeOrdersTab({ constructionId }: { constructionId: string }) {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {orders.map((co: any) => (
-                <tr key={co.id} className="hover:bg-gray-50/60">
-                  <td className="px-4 py-3 font-medium text-gray-800">{co.description ?? "—"}</td>
+                <tr key={co.id} className="hover:bg-[#f8fafc]/60">
+                  <td className="px-[10px] py-[6px] font-medium text-gray-800">{co.description ?? "—"}</td>
                   <td className={clsx("px-4 py-3 font-semibold text-xs", Number(co.costImpact) > 0 ? "text-red-600" : "text-emerald-600")}>
                     {Number(co.costImpact) > 0 ? "+" : ""}{fmt(co.costImpact)} ر.س
                   </td>
                   <td className={clsx("px-4 py-3 font-semibold text-xs", Number(co.timeImpactDays) > 0 ? "text-amber-600" : "text-gray-400")}>
                     {Number(co.timeImpactDays) > 0 ? "+" : ""}{co.timeImpactDays ?? 0}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("text-[10px] font-semibold px-2 py-0.5 rounded-full",
                       co.status === "approved" ? "bg-emerald-100 text-emerald-700" :
                       co.status === "pending"  ? "bg-amber-100 text-amber-700" :
@@ -1100,7 +1100,7 @@ function ChangeOrdersTab({ constructionId }: { constructionId: string }) {
             <button onClick={addOrder} disabled={saving} className="flex-1 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-bold hover:bg-brand-600 disabled:opacity-50">
               {saving ? "جاري..." : "إضافة"}
             </button>
-            <button onClick={() => setShowAdd(false)} className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50">إلغاء</button>
+            <button onClick={() => setShowAdd(false)} className="px-5 py-2.5 border border-[#eef2f6] text-gray-700 rounded-xl text-sm hover:bg-[#f8fafc]">إلغاء</button>
           </>
         }>
           <Field label="وصف التغيير" required>
@@ -1161,7 +1161,7 @@ export function ConstructionTrackerPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 overflow-x-auto">
+      <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1 overflow-x-auto">
         {TABS.map((tab) => (
           <button
             key={tab.id}

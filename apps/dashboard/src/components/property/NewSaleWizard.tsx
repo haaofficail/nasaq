@@ -96,7 +96,7 @@ export function NewSaleWizard({ open, onClose, onSuccess }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" dir="rtl">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2f6]">
           <h2 className="text-lg font-bold text-gray-900">عملية بيع جديدة</h2>
           <div className="flex items-center gap-4">
             <div className="flex gap-1">
@@ -132,7 +132,7 @@ export function NewSaleWizard({ open, onClose, onSuccess }: Props) {
                     setSelectedPropertyId(e.target.value);
                     setSelectedUnitId("");
                   }}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 >
                   <option value="">اختر العقار</option>
                   {properties.map((p: any) => (
@@ -147,7 +147,7 @@ export function NewSaleWizard({ open, onClose, onSuccess }: Props) {
                   <select
                     value={selectedUnitId}
                     onChange={(e) => setSelectedUnitId(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                   >
                     <option value="">العقار بالكامل</option>
                     {units.map((u: any) => (
@@ -180,7 +180,7 @@ export function NewSaleWizard({ open, onClose, onSuccess }: Props) {
                   value={buyer.name}
                   onChange={(e) => setBuyer({ ...buyer, name: e.target.value })}
                   placeholder="الاسم الكامل"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
               <div>
@@ -189,7 +189,7 @@ export function NewSaleWizard({ open, onClose, onSuccess }: Props) {
                   value={buyer.phone}
                   onChange={(e) => setBuyer({ ...buyer, phone: e.target.value })}
                   placeholder="05xxxxxxxx"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
               <div>
@@ -198,7 +198,7 @@ export function NewSaleWizard({ open, onClose, onSuccess }: Props) {
                   value={buyer.nationalId}
                   onChange={(e) => setBuyer({ ...buyer, nationalId: e.target.value })}
                   placeholder="1xxxxxxxxx"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
 
@@ -212,7 +212,7 @@ export function NewSaleWizard({ open, onClose, onSuccess }: Props) {
                       className={`w-full p-3 rounded-2xl border-2 text-right transition-all ${
                         buyer.paymentMethod === method.value
                           ? "border-blue-400 bg-blue-50"
-                          : "border-gray-100 hover:border-gray-200"
+                          : "border-[#eef2f6] hover:border-[#eef2f6]"
                       }`}
                     >
                       <div className="font-medium text-gray-900 text-sm">{method.label}</div>
@@ -234,7 +234,7 @@ export function NewSaleWizard({ open, onClose, onSuccess }: Props) {
                   value={saleDetails.salePrice}
                   onChange={(e) => setSaleDetails({ ...saleDetails, salePrice: e.target.value })}
                   placeholder="0"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
 
@@ -247,7 +247,7 @@ export function NewSaleWizard({ open, onClose, onSuccess }: Props) {
                   placeholder="2"
                   min="0"
                   max="100"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
 
@@ -257,7 +257,7 @@ export function NewSaleWizard({ open, onClose, onSuccess }: Props) {
                   type="date"
                   value={saleDetails.saleDate}
                   onChange={(e) => setSaleDetails({ ...saleDetails, saleDate: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
 
@@ -286,10 +286,10 @@ export function NewSaleWizard({ open, onClose, onSuccess }: Props) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-t border-[#eef2f6]">
           <button
             onClick={step === 1 ? onClose : () => setStep(step - 1)}
-            className="px-5 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50 transition-colors"
+            className="px-5 py-2 border border-[#eef2f6] text-gray-700 rounded-xl text-sm hover:bg-[#f8fafc] transition-colors"
           >
             {step === 1 ? "إلغاء" : "السابق"}
           </button>

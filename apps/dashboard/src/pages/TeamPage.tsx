@@ -174,7 +174,7 @@ function MemberModal({
             value={form.notes}
             onChange={set("notes")}
             rows={2}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none outline-none focus:border-brand-400 transition-colors"
+            className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm resize-none outline-none focus:border-brand-400 transition-colors"
           />
         </div>
       </div>
@@ -362,17 +362,17 @@ function MembersTab() {
           <button onClick={refetch} className="text-xs text-red-600 underline">إعادة المحاولة</button>
         </div>
       ) : members.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <Users className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-sm text-gray-500 font-medium mb-1">لا يوجد أعضاء</p>
           <p className="text-xs text-gray-400 mb-4">أضف أول عضو في فريقك</p>
           <Button icon={UserPlus} onClick={() => setShowCreate(true)}>إضافة عضو</Button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
+              <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                 {["العضو", "المسمى الوظيفي", "نوع التوظيف", "الحالة", ""].map((h, i) => (
                   <th key={i} className="text-right py-3 px-5 text-xs text-gray-400 font-semibold">{h}</th>
                 ))}
@@ -384,9 +384,9 @@ function MembersTab() {
                 const roleBadge = ROLE_BADGE[row.jobTitle?.systemRole];
                 const empBadge  = EMP_BADGE[row.member.employmentType];
                 return (
-                  <tr key={row.member.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors">
+                  <tr key={row.member.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/60 transition-colors">
                     {/* Member */}
-                    <td className="py-3.5 px-5">
+                    <td className="py-[6px] px-5">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-brand-50 flex items-center justify-center shrink-0">
                           <span className="text-sm font-bold text-brand-500">{row.user.name?.[0] || "؟"}</span>
@@ -400,7 +400,7 @@ function MembersTab() {
                       </div>
                     </td>
                     {/* Job title */}
-                    <td className="py-3.5 px-5">
+                    <td className="py-[6px] px-5">
                       {row.jobTitle ? (
                         <div className="flex items-center gap-2 flex-wrap">
                           <Briefcase className="w-3.5 h-3.5 text-gray-400" />
@@ -429,7 +429,7 @@ function MembersTab() {
                       )}
                     </td>
                     {/* Employment type */}
-                    <td className="py-3.5 px-5">
+                    <td className="py-[6px] px-5">
                       {empBadge ? (
                         <span className={clsx("px-2 py-0.5 rounded-full text-[11px] font-medium", empBadge.badge)}>
                           {empBadge.label}
@@ -439,14 +439,14 @@ function MembersTab() {
                       )}
                     </td>
                     {/* Status */}
-                    <td className="py-3.5 px-5">
+                    <td className="py-[6px] px-5">
                       <span className={clsx("inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium", st.badge)}>
                         <span className={clsx("w-1.5 h-1.5 rounded-full shrink-0", st.dot)} />
                         {st.label}
                       </span>
                     </td>
                     {/* Actions */}
-                    <td className="py-3.5 px-5">
+                    <td className="py-[6px] px-5">
                       <div className="flex items-center gap-1 justify-end">
                         <button onClick={() => setEditTarget(row)} className="p-1.5 rounded-lg hover:bg-brand-50 text-gray-400 hover:text-brand-500 transition-colors" title="تعديل">
                           <Briefcase className="w-3.5 h-3.5" />
@@ -523,7 +523,7 @@ export function TeamPage() {
       {/* Setup guide + FAQ */}
       <div className="mt-5 space-y-4">
         {/* How to set up */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
           <h3 className="font-semibold text-gray-900 mb-4 text-sm">دليل إعداد الفريق — الخطوات الصحيحة</h3>
           <ol className="space-y-3">
             {[
@@ -544,7 +544,7 @@ export function TeamPage() {
         </div>
 
         {/* FAQ */}
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
           <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
           <div className="space-y-3">
             {[
@@ -554,8 +554,8 @@ export function TeamPage() {
               { q: "لماذا لا يستطيع الموظف الدخول للنظام؟", a: "تحقق من: (1) أن حسابه نشط وليس «معلق» أو «موقوف»، (2) أنه فعّل الحساب عبر رابط التفعيل المرسل، (3) أنه يستخدم رقم الجوال الصحيح." },
               { q: "هل يمكنني تعطيل موظف مؤقتاً بدون حذفه؟", a: "نعم. اضغط على زر «تعطيل» بجانب اسمه وستتحول حالته إلى «غير نشط» مما يمنعه من الدخول دون فقدان بياناته." },
             ].map((faq: any) => (
-              <details key={faq.q} className="border border-gray-100 rounded-xl">
-                <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+              <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+                <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
                 <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
               </details>
             ))}
@@ -594,7 +594,7 @@ export function SchoolStaffPage() {
       {tab === "schedule" && <AttendancePage />}
 
       <div className="mt-5">
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
           <h3 className="font-semibold text-gray-900 mb-4 text-sm">دليل إعداد طاقم المدرسة</h3>
           <ol className="space-y-3">
             {[

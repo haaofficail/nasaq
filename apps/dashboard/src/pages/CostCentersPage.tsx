@@ -148,7 +148,7 @@ export function CostCentersPage() {
 
       {/* Skeleton */}
       {loading && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="flex items-center gap-4 px-6 py-4 border-b border-gray-50 last:border-0 animate-pulse">
               <div className="w-20 h-4 bg-gray-200 rounded" />
@@ -163,7 +163,7 @@ export function CostCentersPage() {
 
       {/* Empty */}
       {!loading && !error && items.length === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-16 text-center">
           <div className="text-4xl text-gray-300 mb-4 select-none">&#9776;</div>
           <p className="text-gray-500 text-lg font-medium">لا توجد مراكز تكلفة</p>
           <p className="text-gray-400 text-sm mt-2">ابدأ بإضافة أول مركز تكلفة لمنشأتك</p>
@@ -175,11 +175,11 @@ export function CostCentersPage() {
 
       {/* Table */}
       {!loading && items.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
+                <tr className="bg-gray-50 border-b border-[#eef2f6]">
                   <th className="text-right text-xs font-semibold text-gray-500 px-6 py-3">الكود</th>
                   <th className="text-right text-xs font-semibold text-gray-500 px-4 py-3">الاسم</th>
                   <th className="text-right text-xs font-semibold text-gray-500 px-4 py-3">النوع</th>
@@ -190,7 +190,7 @@ export function CostCentersPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {items.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={item.id} className="hover:bg-[#f8fafc] transition-colors">
                     <td className="px-6 py-4">
                       <span className="font-mono text-sm font-semibold text-brand-500">{item.code}</span>
                     </td>
@@ -232,7 +232,7 @@ export function CostCentersPage() {
               </tbody>
             </table>
           </div>
-          <div className="px-6 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-500">
+          <div className="px-6 py-3 bg-[#f8fafc] border-t border-[#eef2f6] text-xs text-gray-500">
             {activeItems.length} مركز نشط من أصل {items.length}
           </div>
         </div>
@@ -242,7 +242,7 @@ export function CostCentersPage() {
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" dir="rtl">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2f6]">
               <h2 className="text-lg font-bold text-gray-900">
                 {editing ? "تعديل مركز التكلفة" : "إضافة مركز تكلفة"}
               </h2>
@@ -259,7 +259,7 @@ export function CostCentersPage() {
                     type="text"
                     value={form.code}
                     onChange={(e) => setForm({ ...form, code: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                     placeholder="مثال: CC-001"
                   />
                 </div>
@@ -268,7 +268,7 @@ export function CostCentersPage() {
                   <select
                     value={form.type}
                     onChange={(e) => setForm({ ...form, type: e.target.value })}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   >
                     {Object.entries(TYPE_LABELS).map(([k, v]) => (
                       <option key={k} value={k}>{v}</option>
@@ -282,7 +282,7 @@ export function CostCentersPage() {
                   type="text"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   placeholder="اسم مركز التكلفة"
                 />
               </div>
@@ -292,7 +292,7 @@ export function CostCentersPage() {
                   type="text"
                   value={form.nameEn}
                   onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                   placeholder="Cost center name in English"
                   dir="ltr"
                 />
@@ -302,7 +302,7 @@ export function CostCentersPage() {
                 <select
                   value={form.parentId}
                   onChange={(e) => setForm({ ...form, parentId: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
                 >
                   <option value="">بدون مركز أب</option>
                   {items
@@ -318,7 +318,7 @@ export function CostCentersPage() {
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   rows={2}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent resize-none"
                   placeholder="ملاحظات إضافية..."
                 />
               </div>
@@ -336,7 +336,7 @@ export function CostCentersPage() {
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50">
+            <div className="flex items-center gap-3 px-6 py-4 border-t border-[#eef2f6] bg-gray-50">
               <button
                 onClick={handleSave}
                 disabled={saving}
@@ -346,7 +346,7 @@ export function CostCentersPage() {
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 py-2 rounded-xl text-sm font-medium transition-colors"
+                className="flex-1 border border-[#eef2f6] bg-white hover:bg-[#f8fafc] text-gray-700 py-2 rounded-xl text-sm font-medium transition-colors"
               >
                 إلغاء
               </button>
@@ -370,7 +370,7 @@ export function CostCentersPage() {
               </button>
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 border border-gray-200 text-gray-700 py-2 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                className="flex-1 border border-[#eef2f6] text-gray-700 py-2 rounded-xl text-sm font-medium hover:bg-[#f8fafc] transition-colors"
               >
                 إلغاء
               </button>

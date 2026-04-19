@@ -47,25 +47,25 @@ export function VisitorsReportPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">من تاريخ</label>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">إلى تاريخ</label>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div className="flex gap-2 mr-auto">
             <button onClick={refetch}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">
               <RefreshCw className="w-4 h-4" /> تحديث
             </button>
             <button onClick={exportCsv}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f8fafc] border border-[#eef2f6] text-sm text-gray-600 hover:bg-gray-100 transition-colors">
               <Download className="w-4 h-4" /> تصدير CSV
             </button>
           </div>
@@ -76,28 +76,28 @@ export function VisitorsReportPage() {
         <>
           {/* Summary cards */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center mb-3">
                 <Users className="w-4 h-4 text-brand-500" />
               </div>
               <p className="text-xl font-bold tabular-nums text-brand-600">{totalBookings}</p>
               <p className="text-xs text-gray-400 mt-0.5">إجمالي الحجوزات</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center mb-3">
                 <Globe className="w-4 h-4 text-emerald-600" />
               </div>
               <p className="text-xl font-bold tabular-nums text-emerald-700">{onlineCount}</p>
               <p className="text-xs text-gray-400 mt-0.5">إلكترونية</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="w-8 h-8 rounded-xl bg-purple-50 flex items-center justify-center mb-3">
                 <Smartphone className="w-4 h-4 text-purple-500" />
               </div>
               <p className="text-xl font-bold tabular-nums text-purple-700">{manualCount}</p>
               <p className="text-xs text-gray-400 mt-0.5">يدوية</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center mb-3">
                 <TrendingUp className="w-4 h-4 text-amber-500" />
               </div>
@@ -108,7 +108,7 @@ export function VisitorsReportPage() {
 
           {/* Channel breakdown */}
           {totalBookings > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <h3 className="text-sm font-semibold text-gray-900 mb-4">مصادر الحجوزات</h3>
               <div className="h-3 rounded-full overflow-hidden flex bg-gray-100 mb-3">
                 <div className="bg-emerald-400 h-full transition-all" style={{ width: `${onlineRate}%` }} />
@@ -133,7 +133,7 @@ export function VisitorsReportPage() {
 
           {/* Daily trend chart */}
           {daily.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <h3 className="text-sm font-semibold text-gray-900 mb-4">الاتجاه اليومي</h3>
               <div className="flex items-end gap-1 h-32">
                 {daily.map((d: any, i: number) => {
@@ -168,7 +168,7 @@ export function VisitorsReportPage() {
 
           {/* Daily table */}
           {daily.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
                 <h2 className="font-semibold text-gray-900 text-sm">التفصيل اليومي</h2>
                 <span className="text-xs text-gray-400">{daily.length} يوم</span>
@@ -184,11 +184,11 @@ export function VisitorsReportPage() {
                   </thead>
                   <tbody>
                     {daily.map((r: any, i: number) => (
-                      <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                        <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{fmtDate(r.date)}</td>
-                        <td className="px-4 py-3 tabular-nums text-emerald-700 font-medium">{r.online}</td>
-                        <td className="px-4 py-3 tabular-nums text-purple-600">{r.manual}</td>
-                        <td className="px-4 py-3 tabular-nums font-bold text-gray-800">{r.total}</td>
+                      <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
+                        <td className="px-[10px] py-[6px] text-xs text-gray-500 whitespace-nowrap">{fmtDate(r.date)}</td>
+                        <td className="px-[10px] py-[6px] tabular-nums text-emerald-700 font-medium">{r.online}</td>
+                        <td className="px-[10px] py-[6px] tabular-nums text-purple-600">{r.manual}</td>
+                        <td className="px-[10px] py-[6px] tabular-nums font-bold text-gray-800">{r.total}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -198,14 +198,14 @@ export function VisitorsReportPage() {
           )}
 
           {daily.length === 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 text-center py-12">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-12">
               <Globe className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400 text-sm">لا توجد حجوزات في هذه الفترة</p>
             </div>
           )}
 
           {/* FAQ */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
             <div className="space-y-3">
               {[
@@ -214,8 +214,8 @@ export function VisitorsReportPage() {
                 { q: "هل يشمل التقرير حجوزات الفروع المختلفة؟", a: "نعم، يشمل جميع الحجوزات على مستوى المنشأة بكل فروعها." },
                 { q: "لماذا لا تظهر زيارات الموقع (Page Views)؟", a: "يعتمد النظام حالياً على تحليل مصادر الحجوزات الفعلية. لتتبع زيارات الصفحة، يمكن ربط Google Analytics في إعدادات الموقع." },
               ].map(faq => (
-                <details key={faq.q} className="border border-gray-100 rounded-xl">
-                  <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+                <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+                  <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
                   <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
                 </details>
               ))}

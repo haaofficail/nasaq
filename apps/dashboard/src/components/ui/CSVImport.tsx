@@ -150,7 +150,7 @@ export function CSVImport({ open, onClose, type, onSuccess }: Props) {
             </div>
           </div>
 
-          <div className="overflow-x-auto border border-gray-200 rounded-lg max-h-64">
+          <div className="overflow-x-auto border border-[#eef2f6] rounded-lg max-h-64">
             <table className="w-full text-xs">
               <thead className="bg-gray-50 sticky top-0">
                 <tr>
@@ -162,7 +162,7 @@ export function CSVImport({ open, onClose, type, onSuccess }: Props) {
               </thead>
               <tbody>
                 {preview.rows.slice(0, 10).map((row, i) => (
-                  <tr key={i} className="border-t border-gray-100">
+                  <tr key={i} className="border-t border-[#eef2f6]">
                     <td className="px-3 py-1.5 text-gray-400">{i + 1}</td>
                     {preview.headers.map(h => (
                       <td key={h} className="px-3 py-1.5 text-gray-700 max-w-[200px] truncate">{row[h]}</td>
@@ -180,7 +180,7 @@ export function CSVImport({ open, onClose, type, onSuccess }: Props) {
       {!result && !preview && (
         <div
           onClick={() => fileRef.current?.click()}
-          className="border-2 border-dashed border-gray-200 rounded-xl p-12 text-center cursor-pointer hover:border-gray-300 hover:bg-gray-50 transition-colors"
+          className="border-2 border-dashed border-[#eef2f6] rounded-xl p-12 text-center cursor-pointer hover:border-[#eef2f6] hover:bg-[#f8fafc] transition-colors"
         >
           <input ref={fileRef} type="file" accept=".csv,.tsv,.txt" className="hidden" onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])} />
           <Upload className="w-10 h-10 text-gray-300 mx-auto mb-3" />

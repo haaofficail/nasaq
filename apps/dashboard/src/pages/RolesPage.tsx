@@ -85,7 +85,7 @@ const SYSTEM_ROLE_COLORS: Record<string, string> = {
 };
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={clsx("animate-pulse bg-gray-100 rounded-lg", className)} />;
+  return <div className={clsx("animate-pulse bg-[#f1f5f9] rounded-lg", className)} />;
 }
 
 // ============================================================
@@ -162,18 +162,18 @@ function PermissionModal({ jobTitle, onClose }: { jobTitle: any; onClose: () => 
             const allSet = groupPerms.every((k) => perms.has(k));
             const someSet = groupPerms.some((k) => perms.has(k));
             return (
-              <div key={groupKey} className="border border-gray-100 rounded-xl overflow-hidden">
+              <div key={groupKey} className="border border-[#eef2f6] rounded-xl overflow-hidden">
                 <button
                   onClick={() => toggleGroup(groupKey)}
                   className={clsx(
                     "w-full flex items-center justify-between px-4 py-3 text-right",
-                    allSet ? "bg-brand-50" : someSet ? "bg-amber-50" : "bg-gray-50"
+                    allSet ? "bg-brand-50" : someSet ? "bg-amber-50" : "bg-[#f8fafc]"
                   )}
                 >
                   <span className="text-sm font-semibold text-gray-800">{group.label}</span>
                   <div className={clsx(
                     "w-5 h-5 rounded border-2 flex items-center justify-center",
-                    allSet ? "bg-brand-500 border-brand-500" : someSet ? "bg-amber-400 border-amber-400" : "border-gray-300"
+                    allSet ? "bg-brand-500 border-brand-500" : someSet ? "bg-amber-400 border-amber-400" : "border-[#eef2f6]"
                   )}>
                     {(allSet || someSet) && <Check className="w-3 h-3 text-white" />}
                   </div>
@@ -187,10 +187,10 @@ function PermissionModal({ jobTitle, onClose }: { jobTitle: any; onClose: () => 
                         onClick={() => toggle(perm.key)}
                         className={clsx(
                           "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all text-right",
-                          on ? "bg-brand-50 text-brand-700 border border-brand-200" : "bg-white text-gray-500 border border-gray-100 hover:border-gray-200"
+                          on ? "bg-brand-50 text-brand-700 border border-brand-200" : "bg-white text-gray-500 border border-[#eef2f6] hover:border-[#eef2f6]"
                         )}
                       >
-                        <div className={clsx("w-4 h-4 rounded shrink-0 flex items-center justify-center border", on ? "bg-brand-500 border-brand-500" : "border-gray-300")}>
+                        <div className={clsx("w-4 h-4 rounded shrink-0 flex items-center justify-center border", on ? "bg-brand-500 border-brand-500" : "border-[#eef2f6]")}>
                           {on && <Check className="w-2.5 h-2.5 text-white" />}
                         </div>
                         {perm.label}
@@ -276,7 +276,7 @@ function JobTitleModal({
           <select
             value={form.systemRole}
             onChange={set("systemRole")}
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
           >
             {SYSTEM_ROLES.map((r) => (
               <option key={r} value={r}>{SYSTEM_ROLE_LABELS[r]}</option>
@@ -343,7 +343,7 @@ export function RolesPage() {
 
       {/* Grid */}
       {jobTitles.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-64 gap-3 bg-white rounded-2xl border border-gray-100">
+        <div className="flex flex-col items-center justify-center h-64 gap-3 bg-white rounded-2xl border border-[#eef2f6]">
           <Shield className="w-12 h-12 text-gray-200" />
           <p className="text-gray-400">لا توجد مسميات وظيفية بعد</p>
           <Button icon={Plus} onClick={() => setShowCreate(true)}>أضف أول مسمى</Button>
@@ -351,11 +351,11 @@ export function RolesPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {jobTitles.map((jt: any) => (
-            <div key={jt.id} className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-4">
+            <div key={jt.id} className="bg-white rounded-2xl border border-[#eef2f6] p-5 flex flex-col gap-4">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                    className="w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0"
                     style={{ backgroundColor: jt.color ? `${jt.color}22` : undefined }}
                   >
                     <Shield className="w-5 h-5" style={{ color: jt.color || undefined }} />
@@ -372,10 +372,10 @@ export function RolesPage() {
 
               <div className="flex items-center gap-1 flex-wrap">
                 {(jt.resolvedPermissions || []).slice(0, 4).map((p: string) => (
-                  <span key={p} className="px-2 py-0.5 bg-gray-50 rounded-full text-xs text-gray-500">{p.split(".")[1]}</span>
+                  <span key={p} className="px-2 py-0.5 bg-[#f8fafc] rounded-full text-xs text-gray-500">{p.split(".")[1]}</span>
                 ))}
                 {(jt.resolvedPermissions || []).length > 4 && (
-                  <span className="px-2 py-0.5 bg-gray-50 rounded-full text-xs text-gray-400">+{jt.resolvedPermissions.length - 4}</span>
+                  <span className="px-2 py-0.5 bg-[#f8fafc] rounded-full text-xs text-gray-400">+{jt.resolvedPermissions.length - 4}</span>
                 )}
               </div>
 
@@ -388,7 +388,7 @@ export function RolesPage() {
                 </button>
                 <button
                   onClick={() => setEditTarget(jt)}
-                  className="px-3 py-1.5 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-50 text-xs"
+                  className="px-3 py-1.5 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-[#f8fafc] text-xs"
                 >
                   تعديل
                 </button>

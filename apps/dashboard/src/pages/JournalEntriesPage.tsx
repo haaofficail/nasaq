@@ -61,7 +61,7 @@ function EntryDrawer({ entryId, onClose, onPost, onReverse }: {
     <div className="fixed inset-0 bg-black/40 flex items-start justify-end z-50" dir="rtl">
       <div className="bg-white h-full w-full max-w-xl shadow-2xl flex flex-col">
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-[#eef2f6]">
           <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center">
             <FileText className="w-5 h-5 text-violet-600" />
           </div>
@@ -86,7 +86,7 @@ function EntryDrawer({ entryId, onClose, onPost, onReverse }: {
         <div className="flex-1 overflow-y-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
+              <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                 <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500">الحساب</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-emerald-600">مدين</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-red-600">دائن</th>
@@ -100,19 +100,19 @@ function EntryDrawer({ entryId, onClose, onPost, onReverse }: {
                     <p className="text-xs text-gray-400 font-mono">{line.account_code}</p>
                     {line.description && <p className="text-xs text-gray-400 mt-0.5">{line.description}</p>}
                   </td>
-                  <td className="px-4 py-3 text-left tabular-nums text-sm font-medium text-emerald-700">
+                  <td className="px-[10px] py-[6px] text-left tabular-nums text-sm font-medium text-emerald-700">
                     {parseFloat(line.debit) > 0 ? fmt(line.debit) : "—"}
                   </td>
-                  <td className="px-4 py-3 text-left tabular-nums text-sm font-medium text-red-700">
+                  <td className="px-[10px] py-[6px] text-left tabular-nums text-sm font-medium text-red-700">
                     {parseFloat(line.credit) > 0 ? fmt(line.credit) : "—"}
                   </td>
                 </tr>
               ))}
               {/* Totals */}
-              <tr className="bg-gray-50/50 font-semibold border-t-2 border-gray-200">
+              <tr className="bg-gray-50/50 font-semibold border-t-2 border-[#eef2f6]">
                 <td className="px-5 py-3 text-sm text-gray-700">الإجمالي</td>
-                <td className="px-4 py-3 text-left tabular-nums text-sm text-emerald-700">{fmt(totalDebit)}</td>
-                <td className="px-4 py-3 text-left tabular-nums text-sm text-red-700">{fmt(totalCredit)}</td>
+                <td className="px-[10px] py-[6px] text-left tabular-nums text-sm text-emerald-700">{fmt(totalDebit)}</td>
+                <td className="px-[10px] py-[6px] text-left tabular-nums text-sm text-red-700">{fmt(totalCredit)}</td>
               </tr>
             </tbody>
           </table>
@@ -126,7 +126,7 @@ function EntryDrawer({ entryId, onClose, onPost, onReverse }: {
         </div>
 
         {/* Actions */}
-        <div className="px-5 py-4 border-t border-gray-100 flex gap-3">
+        <div className="px-5 py-4 border-t border-[#eef2f6] flex gap-3">
           {entry.status === "draft" && (
             <button
               onClick={() => onPost(entry.id)}
@@ -139,13 +139,13 @@ function EntryDrawer({ entryId, onClose, onPost, onReverse }: {
           {entry.status === "posted" && (
             <button
               onClick={() => onReverse(entry.id)}
-              className="flex-1 border border-gray-200 text-gray-700 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 flex items-center justify-center gap-2"
+              className="flex-1 border border-[#eef2f6] text-gray-700 rounded-xl py-2.5 text-sm font-medium hover:bg-[#f8fafc] flex items-center justify-center gap-2"
             >
               <RotateCcw className="w-4 h-4" />
               عكس القيد
             </button>
           )}
-          <button onClick={onClose} className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50">إغلاق</button>
+          <button onClick={onClose} className="border border-[#eef2f6] rounded-xl px-4 py-2.5 text-sm text-gray-600 hover:bg-[#f8fafc]">إغلاق</button>
         </div>
       </div>
     </div>
@@ -235,10 +235,10 @@ export function JournalEntriesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="رقم القيد أو البيان..."
-            className="border border-gray-200 rounded-xl pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 w-52"
+            className="border border-[#eef2f6] rounded-xl pr-9 pl-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 w-52"
           />
         </div>
-        <div className="flex items-center gap-1.5 bg-gray-100 rounded-xl p-1">
+        <div className="flex items-center gap-1.5 bg-[#f1f5f9] rounded-xl p-1">
           {["all", "draft", "posted", "reversed"].map((s) => (
             <button key={s} onClick={() => setStatusFilter(s)} className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium transition-all", statusFilter === s ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700")}>
               {s === "all" ? "الكل" : STATUS_CONFIG[s]?.label ?? s}
@@ -248,7 +248,7 @@ export function JournalEntriesPage() {
         <select
           value={sourceFilter}
           onChange={(e) => setSourceFilter(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         >
           <option value="all">كل المصادر</option>
           {Object.entries(SOURCE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
@@ -256,7 +256,7 @@ export function JournalEntriesPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
@@ -270,41 +270,41 @@ export function JournalEntriesPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
+                <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                   <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">رقم القيد</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">البيان</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">المصدر</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">التاريخ</th>
                   <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500">المدين</th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500">الحالة</th>
-                  <th className="px-4 py-3" />
+                  <th className="px-[10px] py-[6px]" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map((entry: any) => {
                   const sc = STATUS_CONFIG[entry.status] ?? STATUS_CONFIG.draft;
                   return (
-                    <tr key={entry.id} className="hover:bg-gray-50/50">
-                      <td className="px-4 py-3">
+                    <tr key={entry.id} className="hover:bg-[#f8fafc]/50">
+                      <td className="px-[10px] py-[6px]">
                         <span className="text-sm font-mono font-medium text-gray-900">{entry.entry_number}</span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px]">
                         <p className="text-sm text-gray-700 max-w-xs truncate">{entry.description}</p>
                         {entry.reference && <p className="text-xs text-gray-400 mt-0.5">{entry.reference}</p>}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px]">
                         <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
                           {SOURCE_LABELS[entry.source_type] ?? entry.source_type}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500 whitespace-nowrap">{fmtDate(entry.date)}</td>
-                      <td className="px-4 py-3 text-left tabular-nums text-sm font-medium text-gray-900">
+                      <td className="px-[10px] py-[6px] text-xs text-gray-500 whitespace-nowrap">{fmtDate(entry.date)}</td>
+                      <td className="px-[10px] py-[6px] text-left tabular-nums text-sm font-medium text-gray-900">
                         —
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px]">
                         <span className={clsx("text-xs px-2.5 py-1 rounded-full font-medium", sc.bg, sc.color)}>{sc.label}</span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px]">
                         <button
                           onClick={() => setSelectedEntry(entry.id)}
                           className="p-1.5 rounded-lg text-gray-400 hover:text-brand-600 hover:bg-brand-50"

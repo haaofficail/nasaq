@@ -47,7 +47,7 @@ function AdminTicketDetail({ ticketId, onClose, onRefresh }: { ticketId: string;
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative mr-auto w-full max-w-xl bg-white h-full flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-start justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+        <div className="flex items-start justify-between px-5 py-4 border-b border-[#eef2f6] shrink-0">
           <div className="flex-1 min-w-0 ml-3">
             {loading ? (
               <div className="space-y-2"><div className="h-4 w-40 bg-gray-100 rounded animate-pulse" /><div className="h-3 w-24 bg-gray-100 rounded animate-pulse" /></div>
@@ -91,7 +91,7 @@ function AdminTicketDetail({ ticketId, onClose, onRefresh }: { ticketId: string;
 
         {/* Status actions */}
         {ticket && (
-          <div className="flex items-center gap-2 px-5 py-2.5 border-b border-gray-100 bg-gray-50/60 shrink-0 flex-wrap">
+          <div className="flex items-center gap-2 px-5 py-2.5 border-b border-[#eef2f6] bg-gray-50/60 shrink-0 flex-wrap">
             <span className="text-[11px] text-gray-500 font-medium">تغيير الحالة:</span>
             {ticket.status !== "in_progress" && (
               <button onClick={() => changeStatus("in_progress")} className="text-xs bg-amber-50 text-amber-700 px-2.5 py-1 rounded-lg hover:bg-amber-100 font-medium transition-colors">قيد المعالجة</button>
@@ -111,7 +111,7 @@ function AdminTicketDetail({ ticketId, onClose, onRefresh }: { ticketId: string;
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 bg-gray-50/30">
           {loading ? (
-            <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />)}</div>
+            <div className="space-y-3">{[1,2].map(i => <div key={i} className="h-20 bg-[#f1f5f9] rounded-2xl animate-pulse" />)}</div>
           ) : (
             <>
               {ticket && (
@@ -120,7 +120,7 @@ function AdminTicketDetail({ ticketId, onClose, onRefresh }: { ticketId: string;
                     {ticket.orgName?.[0] ?? "م"}
                   </div>
                   <div className="flex-1">
-                    <div className="bg-white border border-gray-100 rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm">
+                    <div className="bg-white border border-[#eef2f6] rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm">
                       <p className="text-[10px] font-semibold text-gray-500 mb-1">{ticket.orgName ?? "المنشأة"}</p>
                       <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{ticket.body}</p>
                     </div>
@@ -139,7 +139,7 @@ function AdminTicketDetail({ ticketId, onClose, onRefresh }: { ticketId: string;
                     </div>
                     <div className={clsx("flex-1", isAdmin && "flex flex-col items-end")}>
                       <div className={clsx("border rounded-2xl px-4 py-3 shadow-sm max-w-[85%]",
-                        isAdmin ? "bg-brand-500 border-brand-500 rounded-tl-sm" : "bg-white border-gray-100 rounded-tr-sm"
+                        isAdmin ? "bg-brand-500 border-brand-500 rounded-tl-sm" : "bg-white border-[#eef2f6] rounded-tr-sm"
                       )}>
                         {isAdmin && <p className="text-[10px] font-semibold text-brand-200 mb-1">{msg.senderName || "فريق ترميز OS"}</p>}
                         <p className={clsx("text-sm leading-relaxed whitespace-pre-wrap", isAdmin ? "text-white" : "text-gray-800")}>{msg.message}</p>
@@ -160,12 +160,12 @@ function AdminTicketDetail({ ticketId, onClose, onRefresh }: { ticketId: string;
         </div>
 
         {/* Reply */}
-        <div className="border-t border-gray-100 p-4 bg-white shrink-0">
+        <div className="border-t border-[#eef2f6] p-4 bg-white shrink-0">
           <div className="space-y-2.5">
             <textarea value={reply} onChange={e => setReply(e.target.value)} rows={3}
               onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendReply(); }}
               placeholder="اكتب ردّك على التذكرة... (Ctrl+Enter للإرسال)"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none resize-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 bg-white placeholder:text-gray-300 transition-all" />
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none resize-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 bg-white placeholder:text-gray-300 transition-all" />
             <div className="flex justify-end">
               <button onClick={sendReply} disabled={sending || !reply.trim()}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-500 text-white text-xs font-medium hover:bg-brand-600 disabled:opacity-40 transition-colors">
@@ -228,9 +228,9 @@ function SupportTab() {
           { label: "مفتوحة",       val: stats["open"]        ?? 0, color: "text-blue-600",    bg: "bg-blue-50"    },
           { label: "قيد المعالجة", val: stats["in_progress"] ?? 0, color: "text-amber-600",   bg: "bg-amber-50"   },
           { label: "محلولة",       val: stats["resolved"]    ?? 0, color: "text-emerald-600", bg: "bg-emerald-50" },
-          { label: "مغلقة",        val: stats["closed"]      ?? 0, color: "text-gray-500",    bg: "bg-gray-50"    },
+          { label: "مغلقة",        val: stats["closed"]      ?? 0, color: "text-gray-500",    bg: "bg-[#f8fafc]"    },
         ].map(s => (
-          <div key={s.label} className="bg-white border border-gray-100 rounded-xl p-3 text-center">
+          <div key={s.label} className="bg-white border border-[#eef2f6] rounded-xl p-3 text-center">
             <p className={clsx("text-xl font-bold", s.color)}>{s.val}</p>
             <p className="text-[10px] text-gray-400 mt-0.5">{s.label}</p>
           </div>
@@ -239,7 +239,7 @@ function SupportTab() {
 
       {/* Filters */}
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex gap-1 bg-gray-50 rounded-xl p-1">
+        <div className="flex gap-1 bg-[#f8fafc] rounded-xl p-1">
           {[["open", "مفتوحة"], ["in_progress", "قيد المعالجة"], ["resolved", "محلولة"], ["closed", "مغلقة"], ["", "الكل"]].map(([s, l]) => (
             <button key={s} onClick={() => setStatusFilter(s)}
               className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
@@ -248,13 +248,13 @@ function SupportTab() {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1.5 flex-1 min-w-[180px] border border-gray-200 rounded-xl px-3 h-9 bg-white focus-within:border-brand-300 transition-all">
+        <div className="flex items-center gap-1.5 flex-1 min-w-[180px] border border-[#eef2f6] rounded-xl px-3 h-9 bg-white focus-within:border-brand-300 transition-all">
           <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالموضوع أو المنشأة..."
             className="flex-1 bg-transparent border-none outline-none text-sm text-gray-700 placeholder:text-gray-300" />
         </div>
         <select value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)}
-          className="h-9 border border-gray-200 rounded-xl px-3 text-xs text-gray-600 outline-none bg-white focus:border-brand-300">
+          className="h-9 border border-[#eef2f6] rounded-xl px-3 text-xs text-gray-600 outline-none bg-white focus:border-brand-300">
           <option value="">كل التصنيفات</option>
           {Object.entries(TICKET_CATEGORIES).map(([v, c]) => <option key={v} value={v}>{c.label}</option>)}
         </select>
@@ -264,7 +264,7 @@ function SupportTab() {
             "flex items-center gap-1.5 h-9 px-3 rounded-xl border text-xs font-medium transition-all",
             orgTypeFilter === "education"
               ? "bg-emerald-50 border-emerald-300 text-emerald-700"
-              : "bg-white border-gray-200 text-gray-500 hover:border-emerald-300 hover:text-emerald-600"
+              : "bg-white border-[#eef2f6] text-gray-500 hover:border-emerald-300 hover:text-emerald-600"
           )}
         >
           <GraduationCap className="w-3.5 h-3.5" />
@@ -278,7 +278,7 @@ function SupportTab() {
           {filtered.map((t: any) => (
             <div key={t.id}
               onClick={() => setActiveTicket(t.id)}
-              className="bg-white rounded-2xl border border-gray-100 p-4 cursor-pointer hover:border-brand-200 hover:shadow-sm transition-all group">
+              className="bg-white rounded-2xl border border-[#eef2f6] p-4 cursor-pointer hover:border-brand-200 hover:shadow-sm transition-all group">
               <div className="flex items-start gap-3">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1.5 flex-wrap">
@@ -307,7 +307,7 @@ function SupportTab() {
                       </span>
                     )}
                     {Array.isArray(t.messages) && t.messages.length > 0 && (
-                      <span className="flex items-center gap-1 text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">
+                      <span className="flex items-center gap-1 text-[10px] text-gray-400 bg-[#f8fafc] px-2 py-0.5 rounded-full">
                         <MessageSquare className="w-3 h-3" />{t.messages.length} رد
                       </span>
                     )}

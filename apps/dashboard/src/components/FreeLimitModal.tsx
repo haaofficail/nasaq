@@ -81,7 +81,7 @@ export function FreeLimitModal({ orgId, freeState, bookingUsed, bookingLimit }: 
         {/* Plans */}
         <div className="px-6 pb-4 space-y-2">
           {PAID_PLANS.map((plan) => (
-            <div key={plan.key} className="border border-gray-100 rounded-xl p-3 flex items-center justify-between hover:border-brand-200 transition-colors">
+            <div key={plan.key} className="border border-[#eef2f6] rounded-xl p-3 flex items-center justify-between hover:border-brand-200 transition-colors">
               <div>
                 <p className="text-sm font-semibold text-gray-800">{plan.name}</p>
                 <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">

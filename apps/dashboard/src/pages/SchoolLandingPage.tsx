@@ -56,7 +56,7 @@ function SchoolHeader() {
 
   return (
     <header className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-      scrolled ? "bg-white/95 backdrop-blur-sm shadow-sm border-b border-gray-100" : "bg-transparent"
+      scrolled ? "bg-white/95 backdrop-blur-sm shadow-sm border-b border-[#eef2f6]" : "bg-transparent"
     }`}>
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo */}
@@ -120,12 +120,12 @@ function SchoolHeader() {
       </div>
 
       {mobileOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 px-6 py-4 space-y-3 shadow-lg">
+        <div className="md:hidden bg-white border-t border-[#eef2f6] px-6 py-4 space-y-3 shadow-lg">
           <a href="#features" className="block text-sm font-medium text-gray-700 py-2" onClick={() => setMobileOpen(false)}>الميزات</a>
           <a href="#how" className="block text-sm font-medium text-gray-700 py-2" onClick={() => setMobileOpen(false)}>كيف يعمل</a>
           <a href="#modules" className="block text-sm font-medium text-gray-700 py-2" onClick={() => setMobileOpen(false)}>الوحدات</a>
-          <div className="flex gap-3 pt-2 border-t border-gray-100">
-            <Link to="/school/login" className="flex-1 text-center border border-gray-200 text-sm font-medium text-gray-700 py-2.5 rounded-xl" onClick={() => setMobileOpen(false)}>تسجيل الدخول</Link>
+          <div className="flex gap-3 pt-2 border-t border-[#eef2f6]">
+            <Link to="/school/login" className="flex-1 text-center border border-[#eef2f6] text-sm font-medium text-gray-700 py-2.5 rounded-xl" onClick={() => setMobileOpen(false)}>تسجيل الدخول</Link>
             <Link to="/school/register" className="flex-1 text-center bg-emerald-600 text-white text-sm font-semibold py-2.5 rounded-xl" onClick={() => setMobileOpen(false)}>ابدأ مجاناً</Link>
           </div>
         </div>
@@ -298,7 +298,7 @@ export function SchoolLandingPage() {
       </section>
 
       {/* ── Stats ────────────────────────────────────────────────────────── */}
-      <section className="bg-white border-b border-gray-100 py-16">
+      <section className="bg-white border-b border-[#eef2f6] py-16">
         <div ref={statsRef} className="max-w-4xl mx-auto px-6 grid grid-cols-3 gap-8 text-center">
           <div>
             <p className="text-4xl font-black text-gray-900">{s1}+</p>
@@ -385,9 +385,9 @@ export function SchoolLandingPage() {
             {MODULES.map((m) => (
               <div
                 key={m.label}
-                className="bg-white rounded-2xl border border-gray-100 p-5 hover:border-emerald-200 hover:shadow-sm transition-all text-center group"
+                className="bg-white rounded-2xl border border-[#eef2f6] p-5 hover:border-emerald-200 hover:shadow-sm transition-all text-center group"
               >
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center mx-auto mb-3 group-hover:bg-emerald-100 transition-colors">
+                <div className="w-9 h-9 rounded-[10px] bg-emerald-50 flex items-center justify-center mx-auto mb-3 group-hover:bg-emerald-100 transition-colors">
                   <m.icon className="w-5 h-5 text-emerald-600" />
                 </div>
                 <p className="text-sm font-bold text-gray-900">{m.label}</p>

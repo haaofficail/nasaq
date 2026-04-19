@@ -81,7 +81,7 @@ const TYPE_COLOR: Record<string, string> = {
   field_service:    "bg-orange-50 text-orange-600 border-orange-100",
   rental:           "bg-emerald-50 text-emerald-600 border-emerald-100",
   event_rental:     "bg-teal-50 text-teal-600 border-teal-100",
-  product:          "bg-gray-100 text-gray-600 border-gray-200",
+  product:          "bg-gray-100 text-gray-600 border-[#eef2f6]",
   product_shipping: "bg-amber-50 text-amber-600 border-amber-100",
   food_order:       "bg-red-50 text-red-600 border-red-100",
   package:          "bg-indigo-50 text-indigo-600 border-indigo-100",
@@ -91,7 +91,7 @@ const TYPE_COLOR: Record<string, string> = {
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   active:   { label: "منشور",   cls: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-  draft:    { label: "مسودة",   cls: "bg-gray-50 text-gray-500 border-gray-200" },
+  draft:    { label: "مسودة",   cls: "bg-gray-50 text-gray-500 border-[#eef2f6]" },
   paused:   { label: "معلقة",   cls: "bg-amber-50 text-amber-700 border-amber-200" },
   archived: { label: "مؤرشفة",  cls: "bg-red-50 text-red-600 border-red-200" },
 };
@@ -159,7 +159,7 @@ function TypeBadge({ type }: { type: string }) {
   const label = TYPE_LABEL[type];
   if (!label) return null;
   return (
-    <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border", TYPE_COLOR[type] ?? "bg-gray-100 text-gray-500 border-gray-200")}>
+    <span className={clsx("inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-medium border", TYPE_COLOR[type] ?? "bg-gray-100 text-gray-500 border-[#eef2f6]")}>
       {label}
     </span>
   );
@@ -216,21 +216,21 @@ function ServiceRowActions({
         <MoreHorizontal className="w-4 h-4" />
       </button>
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-100 rounded-xl shadow-lg py-1 w-44 text-sm overflow-hidden">
-          <button onClick={() => act(onEdit)} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-right text-gray-700 hover:bg-gray-50">
+        <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-[#eef2f6] rounded-xl shadow-lg py-1 w-44 text-sm overflow-hidden">
+          <button onClick={() => act(onEdit)} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-right text-gray-700 hover:bg-[#f8fafc]">
             <Pencil className="w-3.5 h-3.5 text-gray-400" /> تعديل
           </button>
-          <button onClick={() => act(onDuplicate)} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-right text-gray-700 hover:bg-gray-50">
+          <button onClick={() => act(onDuplicate)} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-right text-gray-700 hover:bg-[#f8fafc]">
             <Copy className="w-3.5 h-3.5 text-gray-400" /> تكرار الخدمة
           </button>
           <div className="h-px bg-gray-100 my-0.5" />
-          <button onClick={() => act(onToggleStatus)} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-right text-gray-700 hover:bg-gray-50">
+          <button onClick={() => act(onToggleStatus)} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-right text-gray-700 hover:bg-[#f8fafc]">
             {service.status === "active"
               ? <><EyeOff className="w-3.5 h-3.5 text-amber-400" /> تحويل لمسودة</>
               : <><Eye className="w-3.5 h-3.5 text-emerald-500" /> نشر الخدمة</>
             }
           </button>
-          <button onClick={() => act(onToggleOnline)} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-right text-gray-700 hover:bg-gray-50">
+          <button onClick={() => act(onToggleOnline)} className="flex items-center gap-2.5 w-full px-3.5 py-2 text-right text-gray-700 hover:bg-[#f8fafc]">
             {service.isVisibleOnline
               ? <><Globe className="w-3.5 h-3.5 text-gray-400" /> إخفاء من الموقع</>
               : <><Globe className="w-3.5 h-3.5 text-brand-400" /> إظهار في الموقع</>
@@ -264,7 +264,7 @@ function ServiceCard({
     <div className={clsx(
       "relative bg-white rounded-2xl border overflow-hidden transition-all flex flex-col group",
       "hover:shadow-md hover:-translate-y-0.5",
-      isSelected ? "border-brand-300 ring-2 ring-brand-100" : "border-gray-100 hover:border-gray-200",
+      isSelected ? "border-brand-300 ring-2 ring-brand-100" : "border-[#eef2f6] hover:border-[#eef2f6]",
     )}>
       {/* Selection checkbox — top left */}
       <div className="absolute top-2.5 left-2.5 z-10">
@@ -286,7 +286,7 @@ function ServiceCard({
 
       {/* Image area */}
       <div
-        className="relative aspect-[4/3] overflow-hidden bg-gray-50 cursor-pointer shrink-0"
+        className="relative aspect-[4/3] overflow-hidden bg-[#f8fafc] cursor-pointer shrink-0"
         onClick={onEdit}
       >
         {service.coverImage ? (
@@ -402,7 +402,7 @@ function ServiceListRow({
       "grid items-center px-5 py-3 border-b border-gray-50 last:border-0 transition-colors group",
       "grid-cols-[28px_1fr_auto_80px] lg:grid-cols-[28px_1fr_150px_120px_160px_80px]",
       "gap-3 lg:gap-4",
-      isSelected ? "bg-brand-50/50" : "hover:bg-gray-50/70",
+      isSelected ? "bg-brand-50/50" : "hover:bg-[#f8fafc]/70",
     )}>
       {/* Checkbox */}
       <div onClick={e => e.stopPropagation()}>
@@ -509,10 +509,10 @@ function TypePickerOverlay({ onSelect, onClose, businessType }: {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
       <div
-        className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-xl border border-gray-100 w-full sm:max-w-lg max-h-[90vh] flex flex-col"
+        className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-xl border border-[#eef2f6] w-full sm:max-w-lg max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+        <div className="flex items-center justify-between p-5 border-b border-[#eef2f6]">
           <div>
             <h2 className="text-base font-bold text-gray-900">نوع الخدمة الجديدة</h2>
             <p className="text-xs text-gray-400 mt-0.5">اختر النوع المناسب لنشاطك</p>
@@ -530,7 +530,7 @@ function TypePickerOverlay({ onSelect, onClose, businessType }: {
                   key={t.value}
                   type="button"
                   onClick={() => onSelect(t.value)}
-                  className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-100 bg-white text-right hover:border-brand-300 hover:bg-brand-50 transition-all group active:scale-[0.98]"
+                  className="flex items-center gap-3 p-3.5 rounded-xl border border-[#eef2f6] bg-white text-right hover:border-brand-300 hover:bg-brand-50 transition-all group active:scale-[0.98]"
                 >
                   <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0 group-hover:bg-brand-100 transition-colors">
                     <TIcon className="w-5 h-5 text-gray-500 group-hover:text-brand-600 transition-colors" />
@@ -611,8 +611,8 @@ function ImportTemplateModal({ businessType, onClose, onImported }: {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" />
-      <div className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-xl border border-gray-100 w-full sm:max-w-lg max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+      <div className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-xl border border-[#eef2f6] w-full sm:max-w-lg max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-[#eef2f6]">
           <div>
             <h2 className="text-base font-bold text-gray-900">استيراد قالب جاهز</h2>
             <p className="text-xs text-gray-400 mt-0.5">
@@ -648,7 +648,7 @@ function ImportTemplateModal({ businessType, onClose, onImported }: {
                 const isSelected = selectedCategories.includes(cat.categoryName);
                 const isExpanded = expanded.includes(cat.categoryName);
                 return (
-                  <div key={cat.categoryName} className={clsx("rounded-xl border transition-all", isSelected ? "border-brand-200 bg-brand-50" : "border-gray-100")}>
+                  <div key={cat.categoryName} className={clsx("rounded-xl border transition-all", isSelected ? "border-brand-200 bg-brand-50" : "border-[#eef2f6]")}>
                     <div className="flex items-center gap-3 p-3">
                       <input type="checkbox" checked={isSelected} onChange={() => toggleCat(cat.categoryName)} className="w-4 h-4 accent-brand-500 cursor-pointer" />
                       <span className="flex-1 text-sm font-medium text-gray-900">{cat.categoryName}</span>
@@ -658,9 +658,9 @@ function ImportTemplateModal({ businessType, onClose, onImported }: {
                       </button>
                     </div>
                     {isExpanded && (
-                      <div className="border-t border-gray-100 px-3 pb-3 pt-1.5 space-y-1">
+                      <div className="border-t border-[#eef2f6] px-3 pb-3 pt-1.5 space-y-1">
                         {cat.items.map((item: any) => (
-                          <div key={item.name} className="flex items-center justify-between text-xs text-gray-600 bg-white rounded-lg px-3 py-1.5 border border-gray-100">
+                          <div key={item.name} className="flex items-center justify-between text-xs text-gray-600 bg-white rounded-lg px-3 py-1.5 border border-[#eef2f6]">
                             <span>{item.name}</span>
                             <span className="text-gray-400">{item.basePrice > 0 ? `${item.basePrice} ر.س` : "مجاناً"}</span>
                           </div>
@@ -680,8 +680,8 @@ function ImportTemplateModal({ businessType, onClose, onImported }: {
         </div>
 
         {!loading && template && (
-          <div className="flex gap-3 p-5 border-t border-gray-100">
-            <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50">
+          <div className="flex gap-3 p-5 border-t border-[#eef2f6]">
+            <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-[#eef2f6] text-gray-500 text-sm font-medium hover:bg-[#f8fafc]">
               إلغاء
             </button>
             <button
@@ -877,7 +877,7 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
           <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setShowImportModal(true)}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 font-medium hover:bg-[#f8fafc] transition-colors"
             >
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">استيراد قالب</span>
@@ -899,7 +899,7 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="بحث بالاسم أو الوصف..."
-              className="w-full bg-white border border-gray-200 rounded-xl pr-10 pl-9 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all placeholder-gray-300"
+              className="w-full bg-white border border-[#eef2f6] rounded-xl pr-10 pl-9 py-2.5 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all placeholder-gray-300"
             />
             {search && (
               <button onClick={() => setSearch("")} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500">
@@ -914,20 +914,20 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
               onClick={() => setShowSortMenu(o => !o)}
               className={clsx(
                 "flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors",
-                sortBy !== "order" ? "border-brand-200 bg-brand-50 text-brand-600" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50",
+                sortBy !== "order" ? "border-brand-200 bg-brand-50 text-brand-600" : "border-[#eef2f6] bg-white text-gray-600 hover:bg-[#f8fafc]",
               )}
             >
               <ArrowUpDown className="w-3.5 h-3.5" />
               <span className="hidden md:inline">{sortLabel}</span>
             </button>
             {showSortMenu && (
-              <div className="absolute left-0 top-full mt-1 z-30 bg-white border border-gray-100 rounded-xl shadow-lg py-1.5 w-48 text-sm">
+              <div className="absolute left-0 top-full mt-1 z-30 bg-white border border-[#eef2f6] rounded-xl shadow-lg py-1.5 w-48 text-sm">
                 {SORT_OPTIONS.map(opt => (
                   <button
                     key={opt.key}
                     onClick={() => { setSortBy(opt.key); setShowSortMenu(false); }}
                     className={clsx(
-                      "w-full text-right px-3.5 py-2 hover:bg-gray-50 transition-colors",
+                      "w-full text-right px-3.5 py-2 hover:bg-[#f8fafc] transition-colors",
                       sortBy === opt.key ? "text-brand-600 font-semibold" : "text-gray-700",
                     )}
                   >
@@ -943,7 +943,7 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
             onClick={() => setShowFiltersPanel(p => !p)}
             className={clsx(
               "flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-medium transition-colors relative",
-              activeFiltersCount > 0 ? "border-brand-200 bg-brand-50 text-brand-600" : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50",
+              activeFiltersCount > 0 ? "border-brand-200 bg-brand-50 text-brand-600" : "border-[#eef2f6] bg-white text-gray-600 hover:bg-[#f8fafc]",
             )}
           >
             <ChevronDown className={clsx("w-3.5 h-3.5 transition-transform", showFiltersPanel && "rotate-180")} />
@@ -1000,7 +1000,7 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
                 "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-all shrink-0",
                 statusFilter === tab.key
                   ? "bg-gray-900 text-white shadow-sm"
-                  : "bg-white border border-gray-200 text-gray-500 hover:border-gray-300",
+                  : "bg-white border border-[#eef2f6] text-gray-500 hover:border-[#eef2f6]",
               )}
             >
               {tab.label}
@@ -1011,7 +1011,7 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
 
       {/* ── Advanced filters panel ────────────────────────────── */}
       {showFiltersPanel && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4 space-y-4">
           {/* Category */}
           {categories.length > 2 && (
             <div>
@@ -1025,7 +1025,7 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
                       "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors border",
                       categoryFilter === cat
                         ? "bg-brand-500 text-white border-brand-500 shadow-sm"
-                        : "bg-white border-gray-200 text-gray-600 hover:border-gray-300",
+                        : "bg-white border-[#eef2f6] text-gray-600 hover:border-[#eef2f6]",
                     )}
                   >
                     {cat === "all" ? "الكل" : cat}
@@ -1047,7 +1047,7 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
                       "px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors border",
                       typeFilter === t
                         ? "bg-gray-800 text-white border-gray-800 shadow-sm"
-                        : "bg-white border-gray-200 text-gray-600 hover:border-gray-300",
+                        : "bg-white border-[#eef2f6] text-gray-600 hover:border-[#eef2f6]",
                     )}
                   >
                     {t === "all" ? "الكل" : (TYPE_LABEL[t] || t)}
@@ -1075,7 +1075,7 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
           <button onClick={() => setShowBulkDeleteConfirm(true)} className="text-xs px-3 py-1.5 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-colors font-medium">
             حذف
           </button>
-          <button onClick={() => setSelected(new Set())} className="text-xs px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors">
+          <button onClick={() => setSelected(new Set())} className="text-xs px-3 py-1.5 rounded-lg bg-white border border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc] transition-colors">
             إلغاء
           </button>
         </div>
@@ -1083,8 +1083,8 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
 
       {/* ── Empty state ───────────────────────────────────────── */}
       {filtered.length === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-14 text-center">
-          <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-14 text-center">
+          <div className="w-16 h-16 bg-[#f1f5f9] rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Package className="w-8 h-8 text-gray-300" />
           </div>
           <h3 className="text-base font-bold text-gray-900 mb-1">
@@ -1148,10 +1148,10 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
 
       {/* ── DESKTOP: List View ────────────────────────────────── */}
       {filtered.length > 0 && viewMode === "list" && (
-        <div className="hidden sm:block bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="hidden sm:block bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           {/* Table header */}
           <div className={clsx(
-            "grid items-center px-5 py-2.5 border-b border-gray-100 bg-gray-50/60",
+            "grid items-center px-5 py-2.5 border-b border-[#eef2f6] bg-gray-50/60",
             "grid-cols-[28px_1fr_auto_80px] lg:grid-cols-[28px_1fr_150px_120px_160px_80px]",
             "gap-3 lg:gap-4",
           )}>

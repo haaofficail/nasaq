@@ -75,7 +75,7 @@ function Section({ title, subtitle, icon: Icon, children }: {
   title: string; subtitle: string; icon: React.ComponentType<{ className?: string }>; children: React.ReactNode;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
       <div className="px-6 py-5 border-b border-gray-50 flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
           <Icon className="w-4 h-4 text-emerald-600" />
@@ -108,14 +108,14 @@ function TextInput({ value, onChange, placeholder, dir }: {
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
       dir={dir}
-      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-colors"
+      className="w-full rounded-xl border border-[#eef2f6] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400 transition-colors"
     />
   );
 }
 
 function ReadonlyField({ value, badge }: { value: string; badge?: string }) {
   return (
-    <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-500" dir="ltr">
+    <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#eef2f6] bg-[#f8fafc] text-sm text-gray-500" dir="ltr">
       <span>{value}</span>
       {badge && <span className="mr-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{badge}</span>}
     </div>
@@ -303,7 +303,7 @@ export function SchoolAccountPage() {
               <select
                 value={currentSchool.schoolType || ""}
                 onChange={e => sf("schoolType", e.target.value)}
-                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full rounded-xl border border-[#eef2f6] px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               >
                 <option value="">اختر النوع</option>
                 {Object.entries(SCHOOL_TYPE_MAP).map(([k, v]) => (
@@ -315,7 +315,7 @@ export function SchoolAccountPage() {
               <select
                 value={currentSchool.educationLevel || ""}
                 onChange={e => sf("educationLevel", e.target.value)}
-                className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full rounded-xl border border-[#eef2f6] px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               >
                 <option value="">اختر المرحلة</option>
                 {Object.entries(EDUCATION_LEVEL_MAP).map(([k, v]) => (
@@ -376,7 +376,7 @@ export function SchoolAccountPage() {
                       type="time"
                       value={currentTiming.sessionStartTime || "07:30"}
                       onChange={e => tf("sessionStartTime", e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      className="w-full rounded-xl border border-[#eef2f6] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                       dir="ltr"
                     />
                   </Field>
@@ -385,7 +385,7 @@ export function SchoolAccountPage() {
                       type="time"
                       value={currentTiming.sessionEndTime || "14:30"}
                       onChange={e => tf("sessionEndTime", e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      className="w-full rounded-xl border border-[#eef2f6] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                       dir="ltr"
                     />
                   </Field>
@@ -396,7 +396,7 @@ export function SchoolAccountPage() {
                       max={90}
                       value={currentTiming.periodDurationMinutes ?? 45}
                       onChange={e => tf("periodDurationMinutes", e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      className="w-full rounded-xl border border-[#eef2f6] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                     />
                   </Field>
                   <Field label="مدة الفسحة (دقيقة)">
@@ -406,7 +406,7 @@ export function SchoolAccountPage() {
                       max={45}
                       value={currentTiming.breakDurationMinutes ?? 30}
                       onChange={e => tf("breakDurationMinutes", e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      className="w-full rounded-xl border border-[#eef2f6] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                     />
                   </Field>
                   <Field label="عدد الحصص اليومية">
@@ -416,7 +416,7 @@ export function SchoolAccountPage() {
                       max={12}
                       value={currentTiming.numberOfPeriods ?? 7}
                       onChange={e => tf("numberOfPeriods", e.target.value)}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      className="w-full rounded-xl border border-[#eef2f6] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                     />
                   </Field>
                   <Field label="نوع الجدول">
@@ -428,7 +428,7 @@ export function SchoolAccountPage() {
                         if (t === "ramadan") { tf("sessionStartTime", "10:00"); tf("sessionEndTime", "14:00"); tf("periodDurationMinutes", "30"); tf("numberOfPeriods", "6"); }
                         else if (t === "summer") { tf("sessionStartTime", "07:00"); tf("sessionEndTime", "13:00"); }
                       }}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                      className="w-full rounded-xl border border-[#eef2f6] px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                     >
                       <option value="winter">جدول الشتاء</option>
                       <option value="summer">جدول الصيف</option>
@@ -462,7 +462,7 @@ export function SchoolAccountPage() {
                     value={pwd[k]}
                     onChange={e => setPwd(p => ({ ...p, [k]: e.target.value }))}
                     placeholder="••••••••••••"
-                    className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                    className="w-full rounded-xl border border-[#eef2f6] px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                   />
                   <button
                     type="button"
@@ -500,7 +500,7 @@ export function SchoolAccountPage() {
                 return (
                   <div key={s.id} className={clsx(
                     "flex items-center gap-3 px-4 py-3 rounded-xl border transition-colors",
-                    isCurrent ? "border-emerald-200 bg-emerald-50" : "border-gray-100 bg-white hover:bg-gray-50"
+                    isCurrent ? "border-emerald-200 bg-emerald-50" : "border-[#eef2f6] bg-white hover:bg-[#f8fafc]"
                   )}>
                     <DevIcon className={clsx("w-5 h-5 shrink-0", isCurrent ? "text-emerald-600" : "text-gray-400")} />
                     <div className="flex-1 min-w-0">

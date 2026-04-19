@@ -41,7 +41,7 @@ export function SchoolInvitePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center" dir="rtl">
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center" dir="rtl">
         <Loader2 className="w-8 h-8 text-brand-500 animate-spin" />
       </div>
     );
@@ -50,7 +50,7 @@ export function SchoolInvitePage() {
   if (error || !info) {
     const msg = (error as any)?.message ?? "رابط الدعوة غير صحيح أو منتهي";
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4" dir="rtl">
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4" dir="rtl">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-red-50 flex items-center justify-center mx-auto">
             <AlertCircle className="w-7 h-7 text-red-500" />
@@ -65,7 +65,7 @@ export function SchoolInvitePage() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4" dir="rtl">
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-4" dir="rtl">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center space-y-4">
           <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
             <CheckCircle2 className="w-7 h-7 text-emerald-500" />
@@ -101,7 +101,7 @@ export function SchoolInvitePage() {
                 value={password}
                 onChange={e => setPassword(e.target.value)}
                 placeholder="6 أحرف على الأقل"
-                className="w-full border border-gray-200 rounded-xl px-3 h-10 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 pr-10"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 h-10 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50 pr-10"
               />
               <button
                 type="button"
@@ -121,7 +121,7 @@ export function SchoolInvitePage() {
               onChange={e => setConfirm(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter") handleAccept(); }}
               placeholder="أعد كتابة كلمة المرور"
-              className="w-full border border-gray-200 rounded-xl px-3 h-10 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 h-10 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-50"
             />
           </div>
 

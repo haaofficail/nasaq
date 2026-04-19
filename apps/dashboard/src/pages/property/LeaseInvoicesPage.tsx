@@ -27,7 +27,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
+        <div className="flex justify-between items-center p-4 border-b border-[#eef2f6]">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
@@ -46,7 +46,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
 
 export function LeaseInvoicesPage() {
   const [statusFilter, setStatusFilter] = useState("");
@@ -147,30 +147,30 @@ export function LeaseInvoicesPage() {
                 "px-3 py-1 text-xs rounded-full border transition-colors",
                 statusFilter === t.value
                   ? "bg-emerald-600 text-white border-emerald-600"
-                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  : "bg-white text-gray-600 border-[#eef2f6] hover:bg-[#f8fafc]"
               )}
             >
               {t.label}
             </button>
           ))}
         </div>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث بالعقد..." className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث بالعقد..." className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
+      <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-x-auto">
         <table className="w-full text-sm min-w-max">
-          <thead className="bg-gray-50">
+          <thead className="bg-[#f8fafc]">
             <tr>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">رقم الفاتورة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">العقد</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الفترة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">المبلغ</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">تاريخ الاستحقاق</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">المدفوع</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الرصيد</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الحالة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الإجراءات</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">رقم الفاتورة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">العقد</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الفترة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">المبلغ</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">تاريخ الاستحقاق</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">المدفوع</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الرصيد</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الحالة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الإجراءات</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -184,17 +184,17 @@ export function LeaseInvoicesPage() {
               invoices.map((inv: any) => {
                 const balance = Number(inv.amount ?? 0) - Number(inv.paidAmount ?? 0);
                 return (
-                  <tr key={inv.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{inv.invoiceNumber}</td>
-                    <td className="px-4 py-3 text-gray-500">{inv.contractNumber ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{inv.periodLabel ?? `${inv.periodStart ?? ""} — ${inv.periodEnd ?? ""}`}</td>
-                    <td className="px-4 py-3 font-medium text-gray-900">{Number(inv.amount ?? 0).toLocaleString("en-US")} ريال</td>
-                    <td className="px-4 py-3 text-gray-500">{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("ar-SA") : "—"}</td>
-                    <td className="px-4 py-3 text-emerald-700">{Number(inv.paidAmount ?? 0).toLocaleString("en-US")} ريال</td>
+                  <tr key={inv.id} className="hover:bg-[#f8fafc]">
+                    <td className="px-[10px] py-[6px] font-medium text-gray-900">{inv.invoiceNumber}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{inv.contractNumber ?? "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500 text-xs">{inv.periodLabel ?? `${inv.periodStart ?? ""} — ${inv.periodEnd ?? ""}`}</td>
+                    <td className="px-[10px] py-[6px] font-medium text-gray-900">{Number(inv.amount ?? 0).toLocaleString("en-US")} ريال</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{inv.dueDate ? new Date(inv.dueDate).toLocaleDateString("ar-SA") : "—"}</td>
+                    <td className="px-[10px] py-[6px] text-emerald-700">{Number(inv.paidAmount ?? 0).toLocaleString("en-US")} ريال</td>
                     <td className={clsx("px-4 py-3 font-medium", balance > 0 ? "text-red-600" : "text-gray-400")}>
                       {balance.toLocaleString("en-US")} ريال
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", INVOICE_STATUS_COLORS[inv.status] ?? "bg-gray-100 text-gray-600")}>
                           {INVOICE_STATUS_AR[inv.status] ?? inv.status}
@@ -206,7 +206,7 @@ export function LeaseInvoicesPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <div className="flex gap-2">
                         {["pending", "overdue", "sent", "partial"].includes(inv.status) && (
                           <button
@@ -248,7 +248,7 @@ export function LeaseInvoicesPage() {
               <textarea className={clsx(inputCls, "h-20 resize-none")} value={payForm.notes} onChange={(e) => setPayForm({ ...payForm, notes: e.target.value })} />
             </Field>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowPay(null)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowPay(null)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handlePay} disabled={paying} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50">
                 {paying ? "جارٍ التسجيل..." : "تسجيل السداد"}
               </button>

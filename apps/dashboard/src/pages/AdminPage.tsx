@@ -180,7 +180,7 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
                   value={currentPw}
                   onChange={e => setCurrentPw(e.target.value)}
                   required
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 pr-3 pl-10"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 pr-3 pl-10"
                   placeholder="أدخل كلمة مرورك الحالية"
                 />
                 <button type="button" onClick={() => setShowCurrent(v => !v)} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -197,7 +197,7 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
                   onChange={e => setNewPw(e.target.value)}
                   required
                   minLength={8}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 pr-3 pl-10"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 pr-3 pl-10"
                   placeholder="8 أحرف على الأقل"
                 />
                 <button type="button" onClick={() => setShowNew(v => !v)} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -212,7 +212,7 @@ function ChangePasswordModal({ onClose }: { onClose: () => void }) {
                 value={confirmPw}
                 onChange={e => setConfirmPw(e.target.value)}
                 required
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400"
                 placeholder="أعد كتابة كلمة المرور الجديدة"
               />
             </div>

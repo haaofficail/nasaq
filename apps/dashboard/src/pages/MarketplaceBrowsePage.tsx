@@ -59,7 +59,7 @@ export function MarketplaceBrowsePage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200">
+      <header className="bg-white border-b border-[#eef2f6]">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-9 h-9 rounded-lg bg-brand-500 flex items-center justify-center"><Layers className="w-5 h-5 text-white" /></div>
@@ -94,16 +94,16 @@ export function MarketplaceBrowsePage() {
           <div className="flex gap-2 overflow-x-auto flex-1">
             <button onClick={() => setCategory("")}
               className={clsx("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
-                !category ? "bg-brand-500 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50")}>
+                !category ? "bg-brand-500 text-white" : "bg-white border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]")}>
               الكل
             </button>
             {categories.map(cat => (
               <button key={cat} onClick={() => setCategory(cat)}
                 className={clsx("px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors",
-                  category === cat ? "bg-brand-500 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50")}>{cat}</button>
+                  category === cat ? "bg-brand-500 text-white" : "bg-white border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]")}>{cat}</button>
             ))}
           </div>
-          <select value={sort} onChange={e => setSort(e.target.value)} className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm">
+          <select value={sort} onChange={e => setSort(e.target.value)} className="bg-white border border-[#eef2f6] rounded-lg px-3 py-2 text-sm">
             {SORT_OPTS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
           </select>
         </div>
@@ -129,7 +129,7 @@ export function MarketplaceBrowsePage() {
             <p className="text-sm text-gray-500 mb-4">{total.toLocaleString()} نتيجة</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {filtered.map(listing => (
-                <a key={listing.id} href={`/s/${listing.vendorSlug}`} className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow group">
+                <a key={listing.id} href={`/s/${listing.vendorSlug}`} className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden hover:shadow-lg transition-shadow group">
                   <div className="h-44 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center relative">
                     <Package className="w-12 h-12 text-gray-300 group-hover:scale-110 transition-transform" />
                     {listing.isFeatured && (
@@ -148,7 +148,7 @@ export function MarketplaceBrowsePage() {
                       )}
                     </div>
                     <h3 className="text-sm font-semibold text-gray-900 leading-relaxed line-clamp-2 group-hover:text-brand-600 transition-colors">{listing.service}</h3>
-                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#eef2f6]">
                       <span className="text-lg font-bold text-brand-600">
                         {Number(listing.price).toLocaleString("en-US")} <span className="text-xs text-gray-400 font-normal">ر.س</span>
                       </span>
@@ -168,7 +168,7 @@ export function MarketplaceBrowsePage() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-8 mt-12">
+      <footer className="bg-white border-t border-[#eef2f6] py-8 mt-12">
         <div className="max-w-6xl mx-auto px-4 text-center">
           <div className="flex items-center justify-center gap-2 mb-3">
             <Layers className="w-5 h-5 text-brand-500" />

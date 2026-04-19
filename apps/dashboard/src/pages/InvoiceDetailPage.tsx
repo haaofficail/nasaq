@@ -19,13 +19,13 @@ function fmt(n: any) {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  draft:          { label: "مسودة",         color: "bg-gray-100 text-gray-600 border-gray-200",        icon: Clock },
+  draft:          { label: "مسودة",         color: "bg-gray-100 text-gray-600 border-[#eef2f6]",        icon: Clock },
   issued:         { label: "صادرة",          color: "bg-blue-50 text-blue-700 border-blue-200",          icon: FileText },
   sent:           { label: "مُرسلة",         color: "bg-indigo-50 text-indigo-700 border-indigo-200",    icon: FileText },
   paid:           { label: "مدفوعة",         color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
   partially_paid: { label: "مدفوع جزئياً",  color: "bg-teal-50 text-teal-700 border-teal-200",          icon: Clock },
   overdue:        { label: "متأخرة",         color: "bg-red-50 text-red-700 border-red-200",             icon: AlertTriangle },
-  cancelled:      { label: "ملغاة",          color: "bg-gray-100 text-gray-500 border-gray-200",         icon: XCircle },
+  cancelled:      { label: "ملغاة",          color: "bg-gray-100 text-gray-500 border-[#eef2f6]",         icon: XCircle },
 };
 
 const PAY_METHOD: Record<string, string> = {
@@ -409,7 +409,7 @@ export function InvoiceDetailPage() {
       ]} />
 
       {/* ── header ──────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
           {/* left: order info */}
           <div className="flex-1">
@@ -462,13 +462,13 @@ export function InvoiceDetailPage() {
             )}
             <button
               onClick={printInvoice}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-600 text-sm font-medium hover:bg-gray-100 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f8fafc] text-gray-600 text-sm font-medium hover:bg-gray-100 transition-colors"
             >
               <Printer className="w-4 h-4" /> طباعة الفاتورة
             </button>
             <button
               onClick={printReceipt}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-50 text-gray-600 text-sm font-medium hover:bg-gray-100 transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f8fafc] text-gray-600 text-sm font-medium hover:bg-gray-100 transition-colors"
             >
               <Receipt className="w-4 h-4" /> طباعة الإيصال
             </button>
@@ -482,7 +482,7 @@ export function InvoiceDetailPage() {
             )}
             <button
               onClick={refetch}
-              className="p-1.5 rounded-lg bg-gray-50 text-gray-400 hover:bg-gray-100 transition-colors"
+              className="p-1.5 rounded-lg bg-[#f8fafc] text-gray-400 hover:bg-gray-100 transition-colors"
               title="تحديث"
             >
               <RefreshCw className="w-4 h-4" />
@@ -502,7 +502,7 @@ export function InvoiceDetailPage() {
             <p className="text-lg font-bold text-emerald-700 tabular-nums">{fmt(inv.paidAmount || 0)}</p>
             <p className="text-xs text-emerald-500">ر.س</p>
           </div>
-          <div className={clsx("rounded-xl p-3", remaining > 0 ? "bg-amber-50" : "bg-gray-50")}>
+          <div className={clsx("rounded-xl p-3", remaining > 0 ? "bg-amber-50" : "bg-[#f8fafc]")}>
             <p className={clsx("text-xs", remaining > 0 ? "text-amber-600" : "text-gray-400")}>المبلغ المتبقي</p>
             <p className={clsx("text-lg font-bold tabular-nums", remaining > 0 ? "text-amber-700" : "text-gray-500")}>{fmt(remaining)}</p>
             <p className={clsx("text-xs", remaining > 0 ? "text-amber-500" : "text-gray-400")}>ر.س</p>
@@ -516,14 +516,14 @@ export function InvoiceDetailPage() {
       </div>
 
       {/* ── tabs card ────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="flex overflow-x-auto border-b border-gray-100 px-1">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="flex overflow-x-auto border-b border-[#eef2f6] px-1">
           {TABS.map(t => (
             <button
               key={t.key}
               onClick={() => setTab(t.key)}
               className={clsx(
-                "px-5 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+                "px-5 py-[6px] text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
                 tab === t.key
                   ? "border-brand-500 text-brand-600"
                   : "border-transparent text-gray-500 hover:text-gray-700",
@@ -634,11 +634,11 @@ export function InvoiceDetailPage() {
                         <span className={clsx("tabular-nums font-medium", row.cls)}>{row.value}</span>
                       </div>
                     ))}
-                    <div className="flex justify-between text-base font-bold border-t border-gray-200 pt-2 mt-2">
+                    <div className="flex justify-between text-base font-bold border-t border-[#eef2f6] pt-2 mt-2">
                       <span>السعر الكلي شامل الضريبة</span>
                       <span className="tabular-nums text-brand-600">{fmt(inv.totalAmount)} ر.س</span>
                     </div>
-                    <div className="flex justify-between text-sm border-t border-gray-200 pt-2">
+                    <div className="flex justify-between text-sm border-t border-[#eef2f6] pt-2">
                       <span className="text-gray-400">المبلغ المدفوع</span>
                       <span className="tabular-nums text-emerald-600 font-medium">{fmt(inv.paidAmount || 0)} ر.س</span>
                     </div>
@@ -678,7 +678,7 @@ export function InvoiceDetailPage() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-gray-50">
+                      <tr className="bg-[#f8fafc]">
                         {["#", "رقم العملية", "المدفوع", "طريقة الدفع", "وقت الإنشاء", "تاريخ الدفع", "اسم المحوّل", "الرقم المرجعي", "ملاحظات"].map(h => (
                           <th key={h} className="text-right px-3 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">{h}</th>
                         ))}
@@ -686,7 +686,7 @@ export function InvoiceDetailPage() {
                     </thead>
                     <tbody>
                       {pmts.map((p: any, i: number) => (
-                        <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
+                        <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/50">
                           <td className="px-3 py-3 text-gray-400 text-xs">{i + 1}</td>
                           <td className="px-3 py-3 font-mono text-xs text-brand-500">{p.id?.substring(0, 8).toUpperCase()}</td>
                           <td className="px-3 py-3 font-bold text-emerald-600 tabular-nums">{fmt(p.amount)} ر.س</td>
@@ -722,7 +722,7 @@ export function InvoiceDetailPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-gray-50">
+                    <tr className="bg-[#f8fafc]">
                       {["#", "المبلغ المسترجع", "طريقة الدفع الأصلية", "طريقة الاسترجاع", "سبب الاسترجاع", "حالة الاسترجاع", "سبب الرفض", "تاريخ الاسترجاع"].map(h => (
                         <th key={h} className="text-right px-3 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">{h}</th>
                       ))}
@@ -744,14 +744,14 @@ export function InvoiceDetailPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="bg-gray-50">
+                    <tr className="bg-[#f8fafc]">
                       {["#", "الحالة", "المجموع الفرعي", "قيمة الضريبة", "المجموع", "تاريخ الإصدار", "طباعة"].map(h => (
                         <th key={h} className="text-right px-3 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-gray-50 hover:bg-gray-50/50">
+                    <tr className="border-b border-gray-50 hover:bg-[#f8fafc]/50">
                       <td className="px-3 py-3 font-mono text-xs text-brand-500">{inv.invoiceNumber}</td>
                       <td className="px-3 py-3">
                         <span className={clsx("inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium border", st.color)}>

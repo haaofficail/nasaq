@@ -72,7 +72,7 @@ function ReportViewer({ report, onClose }: { report: ReportCard; onClose: () => 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" dir="rtl">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2f6]">
           <h2 className="text-lg font-bold text-gray-900">{report.title}</h2>
           <button
             onClick={onClose}
@@ -91,7 +91,7 @@ function ReportViewer({ report, onClose }: { report: ReportCard; onClose: () => 
             <div className="text-center py-12 text-gray-400">لا توجد بيانات لهذا التقرير</div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="bg-gray-50">
+              <thead className="bg-[#f8fafc]">
                 <tr>
                   {columns.map((col) => (
                     <th key={col} className="text-right px-4 py-2 font-medium text-gray-600">{col}</th>
@@ -100,7 +100,7 @@ function ReportViewer({ report, onClose }: { report: ReportCard; onClose: () => 
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {rows.map((row, i) => (
-                  <tr key={i} className="hover:bg-gray-50">
+                  <tr key={i} className="hover:bg-[#f8fafc]">
                     {columns.map((col) => (
                       <td key={col} className="px-4 py-2 text-gray-700">
                         {typeof row[col] === "number"
@@ -133,9 +133,9 @@ export function PropertyReportsPage() {
         {REPORTS.map((report) => (
           <div
             key={report.id}
-            className="bg-white rounded-2xl border border-gray-100 p-6 space-y-3 hover:border-gray-200 hover:shadow-sm transition-all"
+            className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-3 hover:border-[#eef2f6] hover:shadow-sm transition-all"
           >
-            <div className={`w-10 h-10 rounded-xl ${report.bg} flex items-center justify-center`}>
+            <div className={`w-9 h-9 rounded-[10px] ${report.bg} flex items-center justify-center`}>
               <span className={`text-lg font-bold ${report.color}`}>
                 {report.title.charAt(0)}
               </span>
@@ -146,7 +146,7 @@ export function PropertyReportsPage() {
             </div>
             <button
               onClick={() => setActiveReport(report)}
-              className="w-full py-2 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+              className="w-full py-2 border border-[#eef2f6] rounded-xl text-sm text-gray-700 hover:bg-[#f8fafc] transition-colors"
             >
               عرض التقرير
             </button>

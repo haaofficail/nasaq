@@ -15,7 +15,7 @@ export function StatCard({ icon, label, value, change, changeType, unit }: StatC
   const isUp = changeType === "up" || (change !== undefined && change > 0);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md hover:border-gray-200 transition-all px-5 py-4 flex flex-col gap-3">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm hover:shadow-md hover:border-[#eef2f6] transition-all px-5 py-4 flex flex-col gap-3">
       {/* Top row */}
       <div className="flex items-start justify-between">
         <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center text-brand-400 shrink-0">

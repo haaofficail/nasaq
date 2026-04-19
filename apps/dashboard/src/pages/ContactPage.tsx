@@ -106,7 +106,7 @@ export function ContactPage() {
                       type="text"
                       value={form.name}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors"
+                      className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors"
                       placeholder="اسمك الكريم"
                       required
                     />
@@ -118,7 +118,7 @@ export function ContactPage() {
                         type="tel"
                         value={form.phone}
                         onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors"
+                        className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors"
                         placeholder="05XXXXXXXX"
                       />
                     </div>
@@ -128,7 +128,7 @@ export function ContactPage() {
                         type="email"
                         value={form.email}
                         onChange={(e) => setForm({ ...form, email: e.target.value })}
-                        className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors"
+                        className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors"
                         placeholder="email@example.com"
                       />
                     </div>
@@ -138,7 +138,7 @@ export function ContactPage() {
                     <textarea
                       value={form.message}
                       onChange={(e) => setForm({ ...form, message: e.target.value })}
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors resize-none"
+                      className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 transition-colors resize-none"
                       rows={5}
                       placeholder="كيف يمكننا مساعدتك؟"
                       required

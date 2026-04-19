@@ -53,25 +53,25 @@ export function PaymentsReportPage() {
       </div>
 
       {/* filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">من تاريخ</label>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">إلى تاريخ</label>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div className="flex gap-2 mr-auto">
             <button onClick={refetch}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">
               <RefreshCw className="w-4 h-4" /> تحديث
             </button>
             <button onClick={exportCsv}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f8fafc] border border-[#eef2f6] text-sm text-gray-600 hover:bg-gray-100 transition-colors">
               <Download className="w-4 h-4" /> تصدير CSV
             </button>
           </div>
@@ -82,19 +82,19 @@ export function PaymentsReportPage() {
         <>
           {/* summary */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center mb-3">
                 <Banknote className="w-4 h-4 text-emerald-600" />
               </div>
               <p className="text-xl font-bold tabular-nums text-emerald-700">{fmt(total)}</p>
               <p className="text-xs text-gray-400 mt-0.5">إجمالي المحصّل ر.س</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <p className="text-2xl font-bold text-gray-900">{payments.length}</p>
               <p className="text-xs text-gray-400 mt-0.5">عدد العمليات</p>
             </div>
             {byMethod.slice(0, 2).map((m: any) => (
-              <div key={m.payment_method} className="bg-white rounded-2xl border border-gray-100 p-4">
+              <div key={m.payment_method} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
                 <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center mb-3">
                   <CreditCard className="w-4 h-4 text-brand-500" />
                 </div>
@@ -106,7 +106,7 @@ export function PaymentsReportPage() {
 
           {/* by method breakdown */}
           {byMethod.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <h3 className="font-semibold text-gray-900 text-sm mb-4">توزيع طرق الدفع</h3>
               <div className="space-y-3">
                 {byMethod.map((m: any) => {
@@ -127,7 +127,7 @@ export function PaymentsReportPage() {
           )}
 
           {/* payments table */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900 text-sm">سجل المدفوعات</h2>
               <span className="text-xs text-gray-400">{payments.length} عملية</span>
@@ -149,33 +149,33 @@ export function PaymentsReportPage() {
                   </thead>
                   <tbody>
                     {payments.map((p: any) => (
-                      <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                        <td className="px-4 py-3">
+                      <tr key={p.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
+                        <td className="px-[10px] py-[6px]">
                           <Link to={`/dashboard/invoices/${p.invoice_id}`} className="text-brand-500 hover:underline font-mono text-xs">
                             {p.invoice_number}
                           </Link>
                         </td>
-                        <td className="px-4 py-3 font-medium text-gray-800">{p.buyer_name}</td>
-                        <td className="px-4 py-3 text-xs text-gray-400" dir="ltr">{p.buyer_phone || "—"}</td>
-                        <td className="px-4 py-3 tabular-nums font-bold text-emerald-700">{fmt(p.amount)} ر.س</td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px] font-medium text-gray-800">{p.buyer_name}</td>
+                        <td className="px-[10px] py-[6px] text-xs text-gray-400" dir="ltr">{p.buyer_phone || "—"}</td>
+                        <td className="px-[10px] py-[6px] tabular-nums font-bold text-emerald-700">{fmt(p.amount)} ر.س</td>
+                        <td className="px-[10px] py-[6px]">
                           <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
                             {METHOD_LABELS[p.payment_method] || p.payment_method}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-xs text-gray-500">{p.transfer_name || "—"}</td>
-                        <td className="px-4 py-3 text-xs text-gray-400 font-mono">{p.reference || "—"}</td>
-                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
+                        <td className="px-[10px] py-[6px] text-xs text-gray-500">{p.transfer_name || "—"}</td>
+                        <td className="px-[10px] py-[6px] text-xs text-gray-400 font-mono">{p.reference || "—"}</td>
+                        <td className="px-[10px] py-[6px] text-xs text-gray-400 whitespace-nowrap">
                           {p.payment_date ? fmtDate(p.payment_date) : fmtDate(p.created_at)}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
-                    <tr className="bg-gray-50 font-bold border-t border-gray-200">
-                      <td colSpan={3} className="px-4 py-3 text-gray-700">الإجمالي</td>
-                      <td className="px-4 py-3 tabular-nums text-emerald-700">{fmt(total)} ر.س</td>
-                      <td colSpan={4} className="px-4 py-3 text-xs text-gray-400">{payments.length} عملية</td>
+                    <tr className="bg-gray-50 font-bold border-t border-[#eef2f6]">
+                      <td colSpan={3} className="px-[10px] py-[6px] text-gray-700">الإجمالي</td>
+                      <td className="px-[10px] py-[6px] tabular-nums text-emerald-700">{fmt(total)} ر.س</td>
+                      <td colSpan={4} className="px-[10px] py-[6px] text-xs text-gray-400">{payments.length} عملية</td>
                     </tr>
                   </tfoot>
                 </table>
@@ -184,7 +184,7 @@ export function PaymentsReportPage() {
           </div>
 
           {/* FAQ */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
             <div className="space-y-3">
               {[
@@ -192,8 +192,8 @@ export function PaymentsReportPage() {
                 { q: "ما المقصود بـ «اسم المحوّل» و«الرقم المرجعي»؟", a: "يظهران في حالة التحويل البنكي فقط؛ اسم صاحب الحساب المحوِّل والرقم المرجعي للعملية المصرفية." },
                 { q: "لماذا لا تتطابق «إجمالي المدفوعات» مع «إجمالي المبيعات» في تقرير المبيعات؟", a: "لأن بعض الفواتير قد تكون مدفوعة جزئياً أو لا تزال بانتظار الدفع، كما أن الدفعات قد تتم في فترات مختلفة عن تاريخ إصدار الفاتورة." },
               ].map(faq => (
-                <details key={faq.q} className="border border-gray-100 rounded-xl">
-                  <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+                <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+                  <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
                   <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
                 </details>
               ))}

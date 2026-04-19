@@ -12,8 +12,8 @@ import { fmtDate } from "@/lib/utils";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-const iCls = "w-full border border-gray-200 rounded-xl px-3 h-10 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white";
-const taCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white resize-none";
+const iCls = "w-full border border-[#eef2f6] rounded-xl px-3 h-10 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white";
+const taCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white resize-none";
 const selCls = iCls + " appearance-none";
 
 function Badge({ label, color }: { label: string; color: string }) {
@@ -183,7 +183,7 @@ export function MaintenancePage() {
             <button key={s.key} onClick={() => setFilterStatus(filterStatus === s.key ? "" : s.key)}
               className={clsx(
                 "bg-white rounded-2xl border p-4 text-right transition-all",
-                filterStatus === s.key ? "border-brand-300 shadow-sm" : "border-gray-100"
+                filterStatus === s.key ? "border-brand-300 shadow-sm" : "border-[#eef2f6]"
               )}>
               <p className="text-2xl font-bold text-gray-900">{stats.byStatus[s.key] ?? 0}</p>
               <p className={clsx("text-xs font-medium mt-1 px-2 py-0.5 rounded-lg w-fit", s.color)}>{s.label}</p>
@@ -196,7 +196,7 @@ export function MaintenancePage() {
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative">
           <select value={filterType} onChange={e => setFilterType(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 h-9 text-sm outline-none focus:border-brand-300 bg-white appearance-none pl-8 pr-3">
+            className="border border-[#eef2f6] rounded-xl px-3 h-9 text-sm outline-none focus:border-brand-300 bg-white appearance-none pl-8 pr-3">
             <option value="">كل الأنواع</option>
             {MAINTENANCE_TYPES.map(t => (
               <option key={t.key} value={t.key}>{t.label}</option>
@@ -206,20 +206,20 @@ export function MaintenancePage() {
         </div>
         {(filterStatus || filterType) && (
           <button onClick={() => { setFilterStatus(""); setFilterType(""); }}
-            className="flex items-center gap-1 px-3 h-9 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors">
+            className="flex items-center gap-1 px-3 h-9 rounded-xl border border-[#eef2f6] text-sm text-gray-500 hover:bg-[#f8fafc] transition-colors">
             <X className="w-3.5 h-3.5" />
             إزالة الفلتر
           </button>
         )}
         <button onClick={() => refetch()}
-          className="flex items-center gap-1 px-3 h-9 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors mr-auto">
+          className="flex items-center gap-1 px-3 h-9 rounded-xl border border-[#eef2f6] text-sm text-gray-500 hover:bg-[#f8fafc] transition-colors mr-auto">
           <RefreshCw className="w-3.5 h-3.5" />
           تحديث
         </button>
       </div>
 
       {/* List */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-4"><SkeletonRows rows={5} /></div>
         ) : error ? (
@@ -244,7 +244,7 @@ export function MaintenancePage() {
                 <th className="text-right text-xs font-semibold text-gray-400 px-4 py-3">الحالة</th>
                 <th className="text-right text-xs font-semibold text-gray-400 px-4 py-3">المسؤول</th>
                 <th className="text-right text-xs font-semibold text-gray-400 px-4 py-3">الموعد</th>
-                <th className="px-4 py-3" />
+                <th className="px-[10px] py-[6px]" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -253,8 +253,8 @@ export function MaintenancePage() {
                 const priInfo = PRIORITY_MAP[task.priority];
                 const statusInfo = STATUS_MAP[task.status];
                 return (
-                  <tr key={task.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-4 py-3">
+                  <tr key={task.id} className="hover:bg-[#f8fafc]/50 transition-colors">
+                    <td className="px-[10px] py-[6px]">
                       <p className="font-medium text-gray-900">{task.title}</p>
                       {task.service && (
                         <p className="text-xs text-gray-400 mt-0.5">{task.service.name}</p>
@@ -265,13 +265,13 @@ export function MaintenancePage() {
                         </p>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       {typeInfo && <Badge label={typeInfo.label} color={typeInfo.color} />}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       {priInfo && <Badge label={priInfo.label} color={priInfo.color} />}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <div className="relative group">
                         <button className={clsx(
                           "inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-xs font-medium cursor-pointer",
@@ -280,11 +280,11 @@ export function MaintenancePage() {
                           {statusInfo?.label ?? task.status}
                           <ChevronDown className="w-3 h-3" />
                         </button>
-                        <div className="absolute top-full right-0 mt-1 z-10 bg-white rounded-xl border border-gray-100 shadow-lg py-1 hidden group-hover:block w-40">
+                        <div className="absolute top-full right-0 mt-1 z-10 bg-white rounded-2xl border border-[#eef2f6] shadow-lg py-1 hidden group-hover:block w-40">
                           {MAINTENANCE_STATUSES.map(s => (
                             <button key={s.key} onClick={() => changeStatus(task, s.key)}
                               className={clsx(
-                                "w-full text-right px-3 py-2 text-xs hover:bg-gray-50 transition-colors",
+                                "w-full text-right px-3 py-2 text-xs hover:bg-[#f8fafc] transition-colors",
                                 task.status === s.key ? "font-semibold text-brand-600" : "text-gray-700"
                               )}>
                               {s.label}
@@ -293,13 +293,13 @@ export function MaintenancePage() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
+                    <td className="px-[10px] py-[6px] text-xs text-gray-500">
                       {task.assignee?.name ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
+                    <td className="px-[10px] py-[6px] text-xs text-gray-500">
                       {task.scheduledAt ? fmtDate(task.scheduledAt) : "—"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <div className="flex items-center gap-1 justify-end">
                         <button onClick={() => openEdit(task)}
                           className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors">
@@ -328,7 +328,7 @@ export function MaintenancePage() {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={closeModal} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
             {/* Modal header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
               <h2 className="text-sm font-semibold text-gray-900">
                 {modal === "edit" ? "تعديل المهمة" : "مهمة جديدة"}
               </h2>
@@ -431,7 +431,7 @@ export function MaintenancePage() {
             {/* Modal footer */}
             <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-50">
               <button onClick={closeModal}
-                className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50 transition-colors">
+                className="px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-500 hover:bg-[#f8fafc] transition-colors">
                 إلغاء
               </button>
               <button onClick={save} disabled={saving}

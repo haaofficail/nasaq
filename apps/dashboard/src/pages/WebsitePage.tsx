@@ -609,15 +609,15 @@ function BlockEditor({ block, onChange, onPickImage }: {
     <div key={key}>
       <label className="block text-xs text-gray-500 mb-1">{label}</label>
       <input type={type} value={String(block.content?.[key] ?? "")} onChange={e => f(key, e.target.value)}
-        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-400" />
+        className="w-full border border-[#eef2f6] rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-400" />
     </div>
   );
   const imgField = (key: string, label: string, hint?: string) => (
     <div key={key}>
       <label className="block text-xs text-gray-500 mb-1">{label}</label>
       <div className="flex items-center gap-2">
-        {!!block.content?.[key] && <img src={String(block.content[key])} className="w-10 h-10 rounded-lg object-cover border border-gray-100 shrink-0" alt="" />}
-        <button type="button" onClick={() => onPickImage?.(key)} className="px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors">
+        {!!block.content?.[key] && <img src={String(block.content[key])} className="w-10 h-10 rounded-lg object-cover border border-[#eef2f6] shrink-0" alt="" />}
+        <button type="button" onClick={() => onPickImage?.(key)} className="px-3 py-2 rounded-lg border border-[#eef2f6] text-xs text-gray-600 hover:bg-[#f8fafc] transition-colors">
           {block.content?.[key] ? "تغيير الصورة" : "اختر صورة"}
         </button>
         {!!block.content?.[key] && <button type="button" onClick={() => f(key, "")} className="px-2.5 py-2 rounded-lg border border-red-100 text-xs text-red-400 hover:bg-red-50 transition-colors">×</button>}
@@ -650,7 +650,7 @@ function BlockEditor({ block, onChange, onPickImage }: {
             <div>
               <label className="block text-xs text-gray-500 mb-1">لون الخلفية</label>
               <input type="color" value={String(block.content?.bgColor ?? "#5b9bd5")} onChange={e => f("bgColor", e.target.value)}
-                className="w-full h-9 border border-gray-200 rounded-lg px-1 py-1 cursor-pointer" />
+                className="w-full h-9 border border-[#eef2f6] rounded-lg px-1 py-1 cursor-pointer" />
             </div>
           )}
         </div>
@@ -674,14 +674,14 @@ function BlockEditor({ block, onChange, onPickImage }: {
             <div>
               <label className="block text-xs text-gray-500 mb-1">لون الخلفية</label>
               <input type="color" value={String(block.content?.bgColor ?? "#5b9bd5")} onChange={e => f("bgColor", e.target.value)}
-                className="w-full h-9 border border-gray-200 rounded-lg px-1 py-1 cursor-pointer" />
+                className="w-full h-9 border border-[#eef2f6] rounded-lg px-1 py-1 cursor-pointer" />
             </div>
           )}
         </div>
       );
     }
     case "contact":     return <div className="space-y-1">{tog("showPhone","عرض الهاتف")}{tog("showEmail","عرض الإيميل")}{tog("showMap","عرض الخريطة")}</div>;
-    case "html":        return <div><label className="block text-xs text-gray-500 mb-1">كود HTML</label><textarea value={String(block.content?.code ?? "")} onChange={e => f("code", e.target.value)} rows={5} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-brand-400" /></div>;
+    case "html":        return <div><label className="block text-xs text-gray-500 mb-1">كود HTML</label><textarea value={String(block.content?.code ?? "")} onChange={e => f("code", e.target.value)} rows={5} className="w-full border border-[#eef2f6] rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-brand-400" /></div>;
     case "testimonials": return <div className="space-y-2">{inp("title","عنوان القسم")}{tog("showRating","عرض النجوم")}</div>;
     case "gallery": {
       const imgs = Array.isArray(block.content?.images) ? (block.content.images as string[]) : [];
@@ -701,14 +701,14 @@ function BlockEditor({ block, onChange, onPickImage }: {
               <div className="grid grid-cols-3 gap-1.5">
                 {imgs.map((url, idx) => (
                   <div key={idx} className="relative group">
-                    <img src={String(url)} className="w-full h-16 object-cover rounded-lg border border-gray-100" alt="" />
+                    <img src={String(url)} className="w-full h-16 object-cover rounded-lg border border-[#eef2f6]" alt="" />
                     <button type="button" onClick={() => f("images", imgs.filter((_, i) => i !== idx))}
                       className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">×</button>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-gray-200 py-5 flex flex-col items-center gap-1">
+              <div className="rounded-xl border border-dashed border-[#eef2f6] py-5 flex flex-col items-center gap-1">
                 <Image className="w-5 h-5 text-gray-300" />
                 <p className="text-xs text-gray-400">لم تُضف صور بعد</p>
               </div>
@@ -722,7 +722,7 @@ function BlockEditor({ block, onChange, onPickImage }: {
                   className={clsx("flex-1 py-1.5 rounded-lg border text-sm font-medium transition-colors",
                     Number(block.content?.columns ?? 3) === n
                       ? "border-brand-400 bg-brand-50 text-brand-600"
-                      : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
+                      : "border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]")}>
                   {n}
                 </button>
               ))}
@@ -1150,7 +1150,7 @@ export function WebsitePage() {
   // ── Block Builder full view ────────────────────────────────────
   if (builderPage) return (
     <div className="flex flex-col gap-4" dir="rtl">
-      <div className="flex items-center gap-3 bg-white rounded-2xl border border-gray-100 px-4 py-3">
+      <div className="flex items-center gap-3 bg-white rounded-2xl border border-[#eef2f6] px-4 py-3">
         <button onClick={() => setBuilderPage(null)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-400 hover:text-gray-600 border-0 bg-transparent cursor-pointer">
           <ChevronDown className="w-4 h-4 rotate-90" />
         </button>
@@ -1163,7 +1163,7 @@ export function WebsitePage() {
       </div>
 
       {builderBlocks.length === 0 ? (
-        <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 py-20 text-center">
+        <div className="bg-white rounded-2xl border-2 border-dashed border-[#eef2f6] py-20 text-center">
           <Layout className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-gray-400 font-medium">لا توجد أقسام بعد</p>
           <p className="text-sm text-gray-400 mt-1 mb-4">ابدأ ببناء صفحتك بإضافة أقسام</p>
@@ -1174,8 +1174,8 @@ export function WebsitePage() {
           {builderBlocks.map((block, idx) => {
             const bt = BLOCK_TYPES.find(b => b.type === block.type);
             return (
-              <div key={block.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                <div className="flex items-center gap-3 px-4 py-3 bg-gray-50/50 border-b border-gray-100">
+              <div key={block.id} className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+                <div className="flex items-center gap-3 px-4 py-3 bg-gray-50/50 border-b border-[#eef2f6]">
                   <div className="flex flex-col gap-0.5">
                     <button onClick={() => { if (idx === 0) return; const b = [...builderBlocks]; [b[idx-1], b[idx]] = [b[idx], b[idx-1]]; setBuilderBlocks(b); }} disabled={idx === 0} className="p-0.5 rounded hover:bg-gray-200 disabled:opacity-30 bg-transparent border-0 cursor-pointer"><ChevronUp className="w-3 h-3" /></button>
                     <button onClick={() => { if (idx === builderBlocks.length - 1) return; const b = [...builderBlocks]; [b[idx+1], b[idx]] = [b[idx], b[idx+1]]; setBuilderBlocks(b); }} disabled={idx === builderBlocks.length - 1} className="p-0.5 rounded hover:bg-gray-200 disabled:opacity-30 bg-transparent border-0 cursor-pointer"><ChevronDown className="w-3 h-3" /></button>
@@ -1202,7 +1202,7 @@ export function WebsitePage() {
           <div className="grid grid-cols-2 gap-2">
             {BLOCK_TYPES.map(bt => (
               <button key={bt.type} onClick={() => addBlock(bt.type)}
-                className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 hover:border-brand-400 hover:bg-brand-50/50 text-right transition-colors cursor-pointer bg-transparent">
+                className="flex items-start gap-3 p-3 rounded-xl border border-[#eef2f6] hover:border-brand-400 hover:bg-brand-50/50 text-right transition-colors cursor-pointer bg-transparent">
                 <bt.icon className="w-4 h-4 text-brand-500 mt-0.5 shrink-0" />
                 <div>
                   <p className="text-sm font-medium text-gray-900">{bt.label}</p>
@@ -1254,7 +1254,7 @@ export function WebsitePage() {
             )}
             {siteUrl && (
               <a href={siteUrl} target="_blank" rel="noreferrer"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition-colors no-underline">
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-xs font-medium hover:bg-[#f8fafc] transition-colors no-underline">
                 <ExternalLink size={12} /> معاينة
               </a>
             )}
@@ -1277,7 +1277,7 @@ export function WebsitePage() {
       {tabId === "overview" && (
         <div className="flex flex-col gap-4">
           {/* URL card */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-sm font-semibold text-gray-900">رابط موقعك</p>
@@ -1294,15 +1294,15 @@ export function WebsitePage() {
             </div>
             {siteUrl ? (
               <div className="flex items-center gap-2">
-                <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-200 min-w-0">
+                <div className="flex-1 flex items-center gap-2 bg-[#f8fafc] rounded-xl px-4 py-2.5 border border-[#eef2f6] min-w-0">
                   <Globe className="w-4 h-4 text-gray-400 shrink-0" />
                   <span className="text-sm text-gray-600 font-mono truncate">{siteUrl}</span>
                 </div>
-                <button onClick={copySiteUrl} className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-sm text-gray-600 transition-colors cursor-pointer bg-transparent shrink-0">
+                <button onClick={copySiteUrl} className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-sm text-gray-600 transition-colors cursor-pointer bg-transparent shrink-0">
                   {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                   {copied ? "تم النسخ" : "نسخ"}
                 </button>
-                <a href={siteUrl} target="_blank" rel="noreferrer" className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors">
+                <a href={siteUrl} target="_blank" rel="noreferrer" className="p-2.5 rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-600 transition-colors">
                   <ExternalLink className="w-4 h-4" />
                 </a>
               </div>
@@ -1319,7 +1319,7 @@ export function WebsitePage() {
               { label: "رسائل التواصل", value: contacts.length, sub: unreadCount > 0 ? `${unreadCount} غير مقروءة` : "الكل مقروءة", icon: MessageSquare, bg: "bg-violet-50", color: "text-violet-500" },
               { label: "القالب الحالي", value: TEMPLATES.find(t => t.id === templateId)?.name || "كلاسيكي", sub: design?.fontFamily?.split(" ")[0] || "", icon: Palette, bg: "bg-brand-50", color: "text-brand-500" },
             ].map(stat => (
-              <div key={stat.label} className="bg-white rounded-2xl border border-gray-100 p-4">
+              <div key={stat.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
                 <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-3", stat.bg)}>
                   <stat.icon className={clsx("w-4 h-4", stat.color)} />
                 </div>
@@ -1331,7 +1331,7 @@ export function WebsitePage() {
           </div>
 
           {/* Quick actions */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <p className="text-sm font-semibold text-gray-900 mb-3">إجراءات سريعة</p>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {[
@@ -1341,7 +1341,7 @@ export function WebsitePage() {
                 { label: "إعدادات الدومين", icon: Link2, action: () => setSearchParams({ tab: "settings" }) },
               ].map(action => (
                 <button key={action.label} onClick={action.action}
-                  className="flex items-center gap-2.5 p-3 rounded-xl border border-gray-200 hover:border-brand-300 hover:bg-brand-50/30 text-right transition-colors cursor-pointer bg-transparent group">
+                  className="flex items-center gap-2.5 p-3 rounded-xl border border-[#eef2f6] hover:border-brand-300 hover:bg-brand-50/30 text-right transition-colors cursor-pointer bg-transparent group">
                   <action.icon className="w-4 h-4 text-gray-400 group-hover:text-brand-500 shrink-0" />
                   <span className="text-xs font-medium text-gray-700 group-hover:text-brand-700">{action.label}</span>
                 </button>
@@ -1351,7 +1351,7 @@ export function WebsitePage() {
 
           {/* Recent contacts preview */}
           {contacts.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
                 <p className="text-sm font-semibold text-gray-900">آخر الرسائل</p>
                 <button onClick={() => setSearchParams({ tab: "contacts" })} className="text-xs text-brand-500 hover:text-brand-600 font-medium cursor-pointer bg-transparent border-0">
@@ -1387,7 +1387,7 @@ export function WebsitePage() {
               <div key={t.id} className="flex flex-col gap-1.5">
                 <div onClick={() => { setTemplateId(t.id); if (design && !design.primaryColor) d("primaryColor", t.defaultColor); }}
                   className={clsx("bg-white rounded-2xl border-2 overflow-hidden cursor-pointer transition-all",
-                    templateId === t.id ? "border-brand-400 ring-[3px] ring-brand-400/20 shadow-sm" : "border-gray-100 shadow-sm hover:border-gray-200")}>
+                    templateId === t.id ? "border-brand-400 ring-[3px] ring-brand-400/20 shadow-sm" : "border-[#eef2f6] shadow-sm hover:border-[#eef2f6]")}>
                   {/* grad is user-driven data, keep inline */}
                   <div className="h-[100px] relative flex items-center justify-center" style={{ background: t.grad }}>
                     {templateId === t.id && (
@@ -1431,7 +1431,7 @@ export function WebsitePage() {
       {/* ── Design ───────────────────────────────────────────── */}
       {tabId === "design" && design && (
         <div className="flex flex-col gap-4">
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+          <div className="bg-gray-50 border border-[#eef2f6] rounded-2xl px-4 py-3 flex items-start gap-3">
             <Palette className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
             <div>
               <p className="text-[13px] font-semibold text-gray-800">التصميم البصري للموقع</p>
@@ -1465,7 +1465,7 @@ export function WebsitePage() {
                 <div>
                   <label className="block text-xs font-medium text-gray-900 mb-1.5">نوع الخط</label>
                   <select value={design.fontFamily} onChange={e => d("fontFamily", e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] outline-none text-gray-900">
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-[13px] outline-none text-gray-900">
                     {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
                   </select>
                   <p className="text-xs text-gray-400 mt-1.5" style={{ fontFamily: design.fontFamily }}>معاينة: نص عربي احترافي — أفضل خدمة</p>
@@ -1531,13 +1531,13 @@ export function WebsitePage() {
                 <div>
                   <label className="block text-xs font-medium text-gray-900 mb-1.5">شعار الموقع</label>
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                    <div className="w-12 h-12 rounded-xl border border-[#eef2f6] bg-[#f8fafc] flex items-center justify-center overflow-hidden shrink-0">
                       {design.logoUrl
                         ? <img src={design.logoUrl} alt="logo" className="w-full h-full object-contain p-1" />
                         : <Image className="w-5 h-5 text-gray-300" />}
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => setLogoPicker(true)} className="px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 transition-colors cursor-pointer bg-transparent">
+                      <button onClick={() => setLogoPicker(true)} className="px-3 py-2 rounded-xl border border-[#eef2f6] text-xs text-gray-700 hover:bg-[#f8fafc] transition-colors cursor-pointer bg-transparent">
                         اختر من المكتبة
                       </button>
                       {design.logoUrl && (
@@ -1561,7 +1561,7 @@ export function WebsitePage() {
             <Card title="CSS مخصص">
               <p className="text-xs text-gray-400 mb-2">أنماط CSS تُطبّق مباشرة على موقعك — للمستخدمين المتقدمين</p>
               <textarea value={design.customCss} onChange={e => d("customCss", e.target.value)} rows={5}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none resize-y box-border"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-xs font-mono outline-none resize-y box-border"
                 placeholder={`.hero-section { padding: 120px 0; }\nh1 { letter-spacing: -0.04em; }`} dir="ltr" />
             </Card>
 
@@ -1569,10 +1569,10 @@ export function WebsitePage() {
           </div>
 
           {/* Live preview */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-3.5 items-center sticky top-4">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 flex flex-col gap-3.5 items-center sticky top-4">
             <div className="flex gap-2">
               {(["desktop","mobile"] as const).map(sz => (
-                <button key={sz} onClick={() => setPreviewSize(sz)} className={clsx("flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs cursor-pointer transition-colors bg-transparent", previewSize === sz ? "border-brand-400 bg-brand-50 text-brand-600" : "border-gray-200 text-gray-400")}>
+                <button key={sz} onClick={() => setPreviewSize(sz)} className={clsx("flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs cursor-pointer transition-colors bg-transparent", previewSize === sz ? "border-brand-400 bg-brand-50 text-brand-600" : "border-[#eef2f6] text-gray-400")}>
                   {sz === "desktop" ? <Monitor size={13} /> : <Smartphone size={13} />}
                   {sz === "desktop" ? "كمبيوتر" : "جوال"}
                 </button>
@@ -1606,7 +1606,7 @@ export function WebsitePage() {
                 flat: "none", bordered: `1px solid ${cardBdr}`, shadow: "none", elevated: "none",
               };
               return (
-                <div className={clsx("border border-gray-200 overflow-hidden shadow-lg w-full", previewSize === "mobile" ? "max-w-[375px] rounded-[24px]" : "max-w-[680px] rounded-xl")}>
+                <div className={clsx("border border-[#eef2f6] overflow-hidden shadow-lg w-full", previewSize === "mobile" ? "max-w-[375px] rounded-[24px]" : "max-w-[680px] rounded-xl")}>
                   {/* Hero */}
                   <div className="text-center" style={{ background: heroBg, padding: previewSize === "mobile" ? "28px 20px" : "44px 36px" }}>
                     <p className="text-white mb-2" style={{
@@ -1648,7 +1648,7 @@ export function WebsitePage() {
       {/* ── Sections ─────────────────────────────────────────── */}
       {tabId === "sections" && (
         <div className="flex flex-col gap-3">
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+          <div className="bg-gray-50 border border-[#eef2f6] rounded-2xl px-4 py-3 flex items-start gap-3">
             <Layers className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
             <div>
               <p className="text-[13px] font-semibold text-gray-800">أقسام الصفحة الرئيسية</p>
@@ -1678,8 +1678,8 @@ export function WebsitePage() {
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 mb-1.5">صورة خلفية البانر</label>
                   <div className="flex items-center gap-2">
-                    {builder.heroSettings.imageUrl && <img src={builder.heroSettings.imageUrl} className="w-12 h-12 rounded-lg object-cover border border-gray-100 shrink-0" alt="" />}
-                    <button type="button" onClick={() => setSectionPicker("hero")} className="px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors">
+                    {builder.heroSettings.imageUrl && <img src={builder.heroSettings.imageUrl} className="w-12 h-12 rounded-lg object-cover border border-[#eef2f6] shrink-0" alt="" />}
+                    <button type="button" onClick={() => setSectionPicker("hero")} className="px-3 py-2 rounded-lg border border-[#eef2f6] text-xs text-gray-600 hover:bg-[#f8fafc] transition-colors">
                       {builder.heroSettings.imageUrl ? "تغيير الصورة" : "اختر صورة"}
                     </button>
                     {builder.heroSettings.imageUrl && <button type="button" onClick={() => setB("heroSettings", { ...builder.heroSettings, imageUrl: "" })} className="px-2.5 py-2 rounded-lg border border-red-100 text-xs text-red-400 hover:bg-red-50 transition-colors">إزالة</button>}
@@ -1691,7 +1691,7 @@ export function WebsitePage() {
                   <div className="flex items-center gap-2">
                     <input type="color" value={builder.heroSettings.bgColor || design?.primaryColor || "#5b9bd5"}
                       onChange={e => setB("heroSettings", { ...builder.heroSettings, bgColor: e.target.value })}
-                      className="w-10 h-9 rounded-lg border border-gray-200 p-0.5 cursor-pointer" />
+                      className="w-10 h-9 rounded-lg border border-[#eef2f6] p-0.5 cursor-pointer" />
                     {builder.heroSettings.bgColor && (
                       <button type="button" onClick={() => setB("heroSettings", { ...builder.heroSettings, bgColor: "" })}
                         className="text-xs text-gray-400 hover:text-red-500 border-0 bg-transparent cursor-pointer">إزالة (يستخدم اللون الرئيسي)</button>
@@ -1712,7 +1712,7 @@ export function WebsitePage() {
                     ].map(o => (
                       <button key={o.id} type="button"
                         onClick={() => setB("heroSettings", { ...builder.heroSettings, layout: o.id })}
-                        className={`py-2 rounded-xl border text-xs font-medium transition-colors ${builder.heroSettings.layout === o.id ? "border-brand-400 bg-brand-50 text-brand-600" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+                        className={`py-2 rounded-xl border text-xs font-medium transition-colors ${builder.heroSettings.layout === o.id ? "border-brand-400 bg-brand-50 text-brand-600" : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]"}`}>
                         {o.label}
                       </button>
                     ))}
@@ -1753,7 +1753,7 @@ export function WebsitePage() {
                       ].map(o => (
                         <button key={o.id} type="button"
                           onClick={() => setB("servicesSettings", { ...builder.servicesSettings, layout: o.id })}
-                          className={`py-2 rounded-xl border text-xs font-medium transition-colors ${builder.servicesSettings.layout === o.id ? "border-brand-400 bg-brand-50 text-brand-600" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}>
+                          className={`py-2 rounded-xl border text-xs font-medium transition-colors ${builder.servicesSettings.layout === o.id ? "border-brand-400 bg-brand-50 text-brand-600" : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]"}`}>
                           {o.label}
                         </button>
                       ))}
@@ -1774,13 +1774,13 @@ export function WebsitePage() {
                     <label className="block text-xs font-medium text-gray-500 mb-1.5">نبذة عن المنشأة</label>
                     <textarea value={builder.aboutText} onChange={e => setB("aboutText", e.target.value)} rows={4}
                       placeholder="اكتب نبذة مختصرة عن منشأتك..."
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] resize-y outline-none box-border" />
+                      className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-[13px] resize-y outline-none box-border" />
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-gray-500 mb-1.5">صورة القسم (اختياري)</label>
                     <div className="flex items-center gap-2">
-                      {builder.aboutSettings.imageUrl && <img src={builder.aboutSettings.imageUrl} className="w-12 h-12 rounded-lg object-cover border border-gray-100 shrink-0" alt="" />}
-                      <button type="button" onClick={() => setSectionPicker("about")} className="px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors">
+                      {builder.aboutSettings.imageUrl && <img src={builder.aboutSettings.imageUrl} className="w-12 h-12 rounded-lg object-cover border border-[#eef2f6] shrink-0" alt="" />}
+                      <button type="button" onClick={() => setSectionPicker("about")} className="px-3 py-2 rounded-lg border border-[#eef2f6] text-xs text-gray-600 hover:bg-[#f8fafc] transition-colors">
                         {builder.aboutSettings.imageUrl ? "تغيير الصورة" : "اختر صورة"}
                       </button>
                       {builder.aboutSettings.imageUrl && <button type="button" onClick={() => setB("aboutSettings", { ...builder.aboutSettings, imageUrl: "" })} className="px-2.5 py-2 rounded-lg border border-red-100 text-xs text-red-400 hover:bg-red-50 transition-colors">إزالة</button>}
@@ -1792,7 +1792,7 @@ export function WebsitePage() {
                     <input type="text" value={builder.aboutSettings.features}
                       onChange={e => setB("aboutSettings", { ...builder.aboutSettings, features: e.target.value })}
                       placeholder="جودة عالية، خدمة سريعة، دعم متواصل"
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] outline-none" />
+                      className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-[13px] outline-none" />
                   </div>
                 </div>
               )}
@@ -1848,22 +1848,22 @@ export function WebsitePage() {
             <EmptyState icon={FileText} title="لا توجد صفحات بعد" desc="أنشئ صفحات مثل «من نحن» أو «تواصل معنا»"
               action={<Button icon={Plus} size="sm" onClick={() => { setPageForm({ title: "", type: "custom", isPublished: false }); setPageModal({ open: true }); }}>إنشاء أول صفحة</Button>} />
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                  <tr className="bg-gray-50/50 border-b border-[#eef2f6]">
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">الصفحة</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">الرابط</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">الأقسام</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">الحالة</th>
-                    <th className="py-3 px-4 w-36" />
+                    <th className="py-[6px] px-[10px] w-36" />
                   </tr>
                 </thead>
                 <tbody>
                   {pages.map(page => (
-                    <tr key={String(page.id)} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
-                      <td className="py-3 px-4 font-medium text-gray-900">{String(page.title)}</td>
-                      <td className="py-3 px-4">
+                    <tr key={String(page.id)} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/50">
+                      <td className="py-[6px] px-[10px] font-medium text-gray-900">{String(page.title)}</td>
+                      <td className="py-[6px] px-[10px]">
                         <div className="flex items-center gap-1.5">
                           <span className="font-mono text-xs text-gray-400">/p/{String(page.slug || "")}</span>
                           {siteUrl && !!page.slug && (
@@ -1875,11 +1875,11 @@ export function WebsitePage() {
                           )}
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-gray-500">{((page.blocks as unknown[]) || []).length} قسم</td>
-                      <td className="py-3 px-4">
+                      <td className="py-[6px] px-[10px] text-gray-500">{((page.blocks as unknown[]) || []).length} قسم</td>
+                      <td className="py-[6px] px-[10px]">
                         <StatusBadge published={!!page.isPublished} labels={["منشورة", "مسودة"]} />
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <div className="flex gap-1 justify-end">
                           <IconBtn title="تعديل المحتوى" onClick={() => openBuilder(page)} className="hover:bg-brand-50 text-brand-500"><Layout className="w-3.5 h-3.5" /></IconBtn>
                           <IconBtn title="تعديل المعلومات" onClick={() => { setPageForm({ title: String(page.title), type: String(page.type || "custom"), isPublished: !!page.isPublished }); setPageModal({ open: true, item: page }); }}><Pencil className="w-3.5 h-3.5 text-gray-400" /></IconBtn>
@@ -1913,33 +1913,33 @@ export function WebsitePage() {
             <EmptyState icon={Rss} title="لا توجد مقالات بعد" desc="ابدأ بكتابة أول مقال — المدونة تُحسّن ظهورك في Google"
               action={<Button icon={Plus} size="sm" onClick={() => { setPostForm({ title: "", excerpt: "", content: "", status: "draft", tags: [], category: "" }); setPostModal({ open: true }); }}>كتابة أول مقال</Button>} />
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                  <tr className="bg-gray-50/50 border-b border-[#eef2f6]">
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">العنوان</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">الحالة</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">المشاهدات</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">التاريخ</th>
-                    <th className="py-3 px-4 w-24" />
+                    <th className="py-[6px] px-[10px] w-24" />
                   </tr>
                 </thead>
                 <tbody>
                   {posts.map(post => (
-                    <tr key={String(post.id)} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
-                      <td className="py-3 px-4">
+                    <tr key={String(post.id)} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/50">
+                      <td className="py-[6px] px-[10px]">
                         <p className="font-medium text-gray-900">{String(post.title)}</p>
                         {!!post.category && <p className="text-xs text-gray-400 mt-0.5">{String(post.category)}</p>}
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <span className={clsx("px-2.5 py-1 rounded-full text-[10px] font-semibold",
                           post.status === "published" ? "bg-emerald-50 text-emerald-600" : post.status === "scheduled" ? "bg-amber-50 text-amber-600" : "bg-gray-100 text-gray-500")}>
                           {post.status === "published" ? "منشور" : post.status === "scheduled" ? "مجدول" : "مسودة"}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-gray-500">{Number(post.views || 0)}</td>
-                      <td className="py-3 px-4 text-gray-400 text-xs">{post.publishedAt ? fmtDate(String(post.publishedAt)) : "—"}</td>
-                      <td className="py-3 px-4">
+                      <td className="py-[6px] px-[10px] text-gray-500">{Number(post.views || 0)}</td>
+                      <td className="py-[6px] px-[10px] text-gray-400 text-xs">{post.publishedAt ? fmtDate(String(post.publishedAt)) : "—"}</td>
+                      <td className="py-[6px] px-[10px]">
                         <div className="flex gap-1 justify-end">
                           <IconBtn onClick={() => { setPostForm({ title: String(post.title), excerpt: String(post.excerpt || ""), content: String(post.content || ""), status: String(post.status), tags: (post.tags as string[]) || [], category: String(post.category || "") }); setPostModal({ open: true, item: post }); }}><Pencil className="w-3.5 h-3.5 text-gray-400" /></IconBtn>
                           <IconBtn onClick={() => deletePost(String(post.id))} className="hover:bg-red-50"><Trash2 className="w-3.5 h-3.5 text-red-400" /></IconBtn>
@@ -1957,7 +1957,7 @@ export function WebsitePage() {
       {/* ── Contacts ─────────────────────────────────────────── */}
       {tabId === "contacts" && (
         <div className="flex flex-col gap-4">
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+          <div className="bg-gray-50 border border-[#eef2f6] rounded-2xl px-4 py-3 flex items-start gap-3">
             <MessageSquare className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
             <div>
               <p className="text-[13px] font-semibold text-gray-800">رسائل التواصل</p>
@@ -1974,9 +1974,9 @@ export function WebsitePage() {
           {contacts.length === 0 ? (
             <EmptyState icon={MessageSquare} title="لا توجد رسائل بعد" desc="ستظهر هنا رسائل الزوار التي تأتي من نموذج التواصل في موقعك" />
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               {contacts.map(c => (
-                <div key={String(c.id)} className={clsx("flex items-start gap-3 px-4 py-3.5 border-b border-gray-50 last:border-0 transition-colors", !c.isRead && "bg-violet-50/30")}>
+                <div key={String(c.id)} className={clsx("flex items-start gap-3 px-4 py-[6px] border-b border-gray-50 last:border-0 transition-colors", !c.isRead && "bg-violet-50/30")}>
                   <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5", c.isRead ? "bg-gray-100" : "bg-violet-100")}>
                     <MessageSquare className={clsx("w-4 h-4", c.isRead ? "text-gray-400" : "text-violet-600")} />
                   </div>
@@ -2006,7 +2006,7 @@ export function WebsitePage() {
       {/* ── Content ──────────────────────────────────────────── */}
       {tabId === "content" && (
         <div className="flex flex-col gap-5">
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+          <div className="bg-gray-50 border border-[#eef2f6] rounded-2xl px-4 py-3 flex items-start gap-3">
             <Type className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
             <div>
               <p className="text-[13px] font-semibold text-gray-800">محتوى الصفحة الرئيسية</p>
@@ -2021,7 +2021,7 @@ export function WebsitePage() {
           </Card>
 
           {/* Custom Blocks (main page sections) */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-[13px] font-bold text-gray-900">أقسام المحتوى المخصص</p>
@@ -2031,7 +2031,7 @@ export function WebsitePage() {
             </div>
 
             {builder.customBlocks.length === 0 ? (
-              <div className="border-2 border-dashed border-gray-200 rounded-2xl py-12 text-center">
+              <div className="border-2 border-dashed border-[#eef2f6] rounded-2xl py-12 text-center">
                 <Layout className="w-8 h-8 text-gray-200 mx-auto mb-2" />
                 <p className="text-sm text-gray-400">لا توجد أقسام مخصصة بعد</p>
                 <p className="text-xs text-gray-300 mt-1 mb-4">أضف بانرات دعائية، صور، نصوص، وغيرها</p>
@@ -2042,7 +2042,7 @@ export function WebsitePage() {
                 {builder.customBlocks.map((block, idx) => {
                   const bt = BLOCK_TYPES.find(b => b.type === block.type);
                   return (
-                    <div key={block.id} className="bg-gray-50 rounded-xl border border-gray-100 overflow-hidden">
+                    <div key={block.id} className="bg-gray-50 rounded-xl border border-[#eef2f6] overflow-hidden">
                       <div className="flex items-center gap-3 px-4 py-2.5">
                         <div className="flex flex-col gap-0.5 shrink-0">
                           <button onClick={() => moveMainBlock(block.id, -1)} disabled={idx === 0} className="p-0.5 rounded hover:bg-gray-200 disabled:opacity-30 bg-transparent border-0 cursor-pointer"><ChevronUp className="w-3 h-3" /></button>
@@ -2055,7 +2055,7 @@ export function WebsitePage() {
                         <button title="تكرار القسم" onClick={() => duplicateMainBlock(block.id)} className="p-1.5 rounded-lg hover:bg-brand-50 text-brand-400 bg-transparent border-0 cursor-pointer"><Copy className="w-3.5 h-3.5" /></button>
                         <button onClick={() => removeMainBlock(block.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-400 bg-transparent border-0 cursor-pointer"><Trash2 className="w-3.5 h-3.5" /></button>
                       </div>
-                      <div className="border-t border-gray-100 px-4 pb-4 pt-3 bg-white">
+                      <div className="border-t border-[#eef2f6] px-4 pb-4 pt-3 bg-white">
                         <BlockEditor
                           block={block}
                           onChange={(content) => updateMainBlock(block.id, content)}
@@ -2070,7 +2070,7 @@ export function WebsitePage() {
           </div>
 
           {/* Stats */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-[13px] font-bold text-gray-900">إحصائيات الإنجاز</p>
@@ -2094,7 +2094,7 @@ export function WebsitePage() {
           </div>
 
           {/* FAQ */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <p className="text-[13px] font-bold text-gray-900">الأسئلة الشائعة (FAQ)</p>
@@ -2107,17 +2107,17 @@ export function WebsitePage() {
             ) : (
               <div className="flex flex-col gap-3">
                 {builder.faqItems.map((item, i) => (
-                  <div key={i} className="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                  <div key={i} className="bg-gray-50 rounded-xl p-3 border border-[#eef2f6]">
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <span className="text-[11px] text-gray-400 font-medium pt-1">س {i + 1}</span>
                       <button onClick={() => setB("faqItems", builder.faqItems.filter((_, j) => j !== i))} className="p-1 rounded-lg hover:bg-red-50 text-red-400 bg-transparent border-0 cursor-pointer shrink-0"><Trash2 className="w-3 h-3" /></button>
                     </div>
                     <input value={item.q} onChange={e => setB("faqItems", builder.faqItems.map((f, j) => j === i ? { ...f, q: e.target.value } : f))}
                       placeholder="السؤال..."
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2 text-[13px] outline-none mb-2 box-border" />
+                      className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-[13px] outline-none mb-2 box-border" />
                     <textarea value={item.a} onChange={e => setB("faqItems", builder.faqItems.map((f, j) => j === i ? { ...f, a: e.target.value } : f))}
                       placeholder="الجواب..."
-                      rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2 text-[13px] outline-none resize-none box-border" />
+                      rows={2} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-[13px] outline-none resize-none box-border" />
                   </div>
                 ))}
               </div>
@@ -2156,7 +2156,7 @@ export function WebsitePage() {
               <div className="grid grid-cols-2 gap-2">
                 {BLOCK_TYPES.map(bt => (
                   <button key={bt.type} onClick={() => addMainBlock(bt.type)}
-                    className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 hover:border-brand-400 hover:bg-brand-50/50 text-right transition-colors cursor-pointer bg-transparent">
+                    className="flex items-start gap-3 p-3 rounded-xl border border-[#eef2f6] hover:border-brand-400 hover:bg-brand-50/50 text-right transition-colors cursor-pointer bg-transparent">
                     <bt.icon className="w-4 h-4 text-brand-500 mt-0.5 shrink-0" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">{bt.label}</p>
@@ -2213,7 +2213,7 @@ export function WebsitePage() {
                 <label className="block text-xs font-medium text-gray-900 mb-1.5">وصف الصفحة</label>
                 <textarea value={settings.defaultMetaDescription} onChange={e => s("defaultMetaDescription", e.target.value)} rows={3}
                   placeholder="وصف مختصر يظهر في نتائج البحث..."
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] resize-none outline-none box-border" />
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-[13px] resize-none outline-none box-border" />
                 <p className="text-[10px] text-gray-300 mt-1">{settings.defaultMetaDescription.length} / 160 حرف</p>
               </div>
             </div>
@@ -2240,12 +2240,12 @@ export function WebsitePage() {
               <div>
                 <label className="block text-xs font-medium text-gray-900 mb-1.5">قبل نهاية &lt;head&gt;</label>
                 <textarea value={settings.customHeadCode} onChange={e => s("customHeadCode", e.target.value)} rows={3}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-mono resize-none outline-none box-border" />
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-xs font-mono resize-none outline-none box-border" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-900 mb-1.5">قبل نهاية &lt;body&gt;</label>
                 <textarea value={settings.customBodyCode} onChange={e => s("customBodyCode", e.target.value)} rows={3}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-mono resize-none outline-none box-border" />
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-xs font-mono resize-none outline-none box-border" />
               </div>
             </div>
           </Card>
@@ -2265,7 +2265,7 @@ export function WebsitePage() {
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">نوع الصفحة</label>
               <select value={pageForm.type} onChange={e => setPageForm(p => ({ ...p, type: e.target.value }))}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none">
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none">
                 <option value="home">الرئيسية</option>
                 <option value="services">الخدمات</option>
                 <option value="about">من نحن</option>
@@ -2289,7 +2289,7 @@ export function WebsitePage() {
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">الملخص</label>
               <textarea value={postForm.excerpt} onChange={e => setPostForm(p => ({ ...p, excerpt: e.target.value }))} rows={2}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none resize-none box-border" />
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none resize-none box-border" />
             </div>
             <RichTextEditor
               label="المحتوى"
@@ -2302,7 +2302,7 @@ export function WebsitePage() {
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">الحالة</label>
                 <select value={postForm.status} onChange={e => setPostForm(p => ({ ...p, status: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none">
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none">
                   <option value="draft">مسودة</option>
                   <option value="published">منشور</option>
                 </select>
@@ -2379,7 +2379,7 @@ export function WebsitePage() {
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
       <p className="text-[13px] font-bold text-gray-900 mb-3.5">{title}</p>
       {children}
     </div>
@@ -2401,9 +2401,9 @@ function ColorField({ label, value, onChange, placeholder }: { label: string; va
       <label className="block text-xs font-medium text-gray-900 mb-1.5">{label}</label>
       <div className="flex items-center gap-2.5">
         <input type="color" value={value || "#5b9bd5"} onChange={e => onChange(e.target.value)}
-          className="w-9 h-9 border border-gray-200 rounded-lg cursor-pointer p-0.5 shrink-0" />
+          className="w-9 h-9 border border-[#eef2f6] rounded-lg cursor-pointer p-0.5 shrink-0" />
         <input value={value} onChange={e => onChange(e.target.value)}
-          className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-[13px] outline-none text-gray-900"
+          className="flex-1 border border-[#eef2f6] rounded-xl px-3 py-2 text-[13px] outline-none text-gray-900"
           dir="ltr" placeholder={placeholder || "#5b9bd5"} />
       </div>
     </div>
@@ -2416,14 +2416,14 @@ function FieldInput({ label, value, onChange, placeholder, dir }: { label: strin
       <label className="block text-xs font-medium text-gray-900 mb-1.5">{label}</label>
       <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
         dir={dir}
-        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-[13px] outline-none text-gray-900 box-border" />
+        className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-[13px] outline-none text-gray-900 box-border" />
     </div>
   );
 }
 
 function EmptyState({ icon: Icon, title, desc, action }: { icon: React.ComponentType<{ className?: string }>; title: string; desc: string; action?: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border-2 border-dashed border-gray-200 py-16 text-center">
+    <div className="bg-white rounded-2xl border-2 border-dashed border-[#eef2f6] py-16 text-center">
       <Icon className="w-10 h-10 text-gray-200 mx-auto mb-3" />
       <p className="text-gray-500 font-medium">{title}</p>
       <p className="text-sm text-gray-400 mt-1 mb-4">{desc}</p>
@@ -2457,11 +2457,11 @@ function OptionsRow({ label, value, onChange, options }: {
   return (
     <div>
       <label className="block text-xs font-medium text-gray-900 mb-1.5">{label}</label>
-      <div className="flex rounded-xl border border-gray-200 overflow-hidden">
+      <div className="flex rounded-xl border border-[#eef2f6] overflow-hidden">
         {options.map(o => (
           <button key={o.id} type="button" onClick={() => onChange(o.id)}
             className={clsx("flex-1 py-2 text-[11px] font-medium transition-colors border-0 cursor-pointer leading-tight",
-              value === o.id ? "bg-brand-400 text-white" : "bg-white text-gray-500 hover:bg-gray-50")}>
+              value === o.id ? "bg-brand-400 text-white" : "bg-white text-gray-500 hover:bg-[#f8fafc]")}>
             {o.label}
           </button>
         ))}
@@ -2478,7 +2478,7 @@ function SectionRow({ section, isFirst, isLast, isHidden, expanded, onToggle, on
 }) {
   const Icon = section.icon;
   return (
-    <div className={clsx("bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden", isHidden && "opacity-55")}>
+    <div className={clsx("bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden", isHidden && "opacity-55")}>
       <div className="flex items-center gap-3 px-4 py-3">
         <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center shrink-0">
           <Icon size={15} className="text-brand-400" />
@@ -2502,13 +2502,13 @@ function SectionRow({ section, isFirst, isLast, isHidden, expanded, onToggle, on
             <ChevronDown size={15} />
           </button>
           {["hero", "services", "about", "reviews", "contact"].includes(section.id) && (
-            <button onClick={onExpand} className={clsx("px-2 py-1 rounded-lg border text-[11px] cursor-pointer transition-colors bg-transparent", expanded ? "border-brand-400 bg-brand-50 text-brand-600" : "border-gray-200 text-gray-400")}>
+            <button onClick={onExpand} className={clsx("px-2 py-1 rounded-lg border text-[11px] cursor-pointer transition-colors bg-transparent", expanded ? "border-brand-400 bg-brand-50 text-brand-600" : "border-[#eef2f6] text-gray-400")}>
               تعديل
             </button>
           )}
         </div>
       </div>
-      {children && <div className="border-t border-gray-100 px-4 pb-4">{children}</div>}
+      {children && <div className="border-t border-[#eef2f6] px-4 pb-4">{children}</div>}
     </div>
   );
 }

@@ -46,7 +46,7 @@ function LabelCard({ service, size }: LabelCardProps) {
   return (
     <div
       className={clsx(
-        "bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col items-center justify-between print:rounded-none print:border-gray-400 shrink-0",
+        "bg-white border border-[#eef2f6] rounded-xl overflow-hidden flex flex-col items-center justify-between print:rounded-none print:border-gray-400 shrink-0",
         isSmall  && "w-28 h-20 p-1 gap-0.5",
         isMedium && "w-44 h-32 p-2 gap-1",
         !isSmall && !isMedium && "w-72 h-48 p-3 gap-2"
@@ -219,7 +219,7 @@ export default function BarcodeLabelPage() {
           {/* ── Left: Service list ── */}
           <div className="lg:col-span-2 space-y-4">
             {/* Search + controls */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4 space-y-3">
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300" />
                 <input
@@ -227,7 +227,7 @@ export default function BarcodeLabelPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="بحث بالاسم أو الباركود أو SKU..."
-                  className="w-full border border-gray-200 rounded-xl py-2 pr-9 pl-3 text-sm focus:outline-none focus:border-brand-500 transition-colors"
+                  className="w-full border border-[#eef2f6] rounded-xl py-2 pr-9 pl-3 text-sm focus:outline-none focus:border-brand-500 transition-colors"
                 />
               </div>
               <div className="flex items-center gap-3 text-xs text-gray-400">
@@ -242,7 +242,7 @@ export default function BarcodeLabelPage() {
             {loading && (
               <div className="space-y-2">
                 {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 h-16 animate-pulse" />
+                  <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-4 h-16 animate-pulse" />
                 ))}
               </div>
             )}
@@ -259,13 +259,13 @@ export default function BarcodeLabelPage() {
             {!loading && !error && (
               <div className="space-y-2">
                 {filtered.length === 0 && withBarcode.length > 0 && (
-                  <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                  <div className="bg-white rounded-2xl border border-[#eef2f6] p-8 text-center">
                     <Tag className="w-8 h-8 text-gray-200 mx-auto mb-2" />
                     <p className="text-sm text-gray-400">لا توجد خدمات تطابق البحث</p>
                   </div>
                 )}
                 {filtered.length === 0 && withBarcode.length === 0 && (
-                  <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                  <div className="bg-white rounded-2xl border border-[#eef2f6] p-8 text-center">
                     <Tag className="w-8 h-8 text-gray-200 mx-auto mb-2" />
                     <p className="text-sm font-semibold text-gray-700">لا توجد خدمات بباركود</p>
                     <p className="text-xs text-gray-400 mt-1">أنشئ باركود للخدمات أدناه لتظهر هنا</p>
@@ -279,13 +279,13 @@ export default function BarcodeLabelPage() {
                       "bg-white rounded-2xl border p-4 flex items-center gap-4 cursor-pointer transition-colors",
                       selected.has(service.id)
                         ? "border-brand-500 bg-blue-50/30"
-                        : "border-gray-100 hover:border-gray-200"
+                        : "border-[#eef2f6] hover:border-[#eef2f6]"
                     )}
                   >
                     {/* Checkbox */}
                     <div className={clsx(
                       "w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-colors",
-                      selected.has(service.id) ? "bg-brand-500 border-brand-500" : "border-gray-300"
+                      selected.has(service.id) ? "bg-brand-500 border-brand-500" : "border-[#eef2f6]"
                     )}>
                       {selected.has(service.id) && (
                         <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -347,9 +347,9 @@ export default function BarcodeLabelPage() {
                 {withoutBarcode.map((service) => (
                   <div
                     key={service.id}
-                    className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 opacity-70"
+                    className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-4 opacity-70"
                   >
-                    <div className="w-5 h-5 rounded-md border-2 border-gray-200 shrink-0" />
+                    <div className="w-5 h-5 rounded-md border-2 border-[#eef2f6] shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-gray-700 truncate">{service.name}</p>
                       <p className="text-xs text-gray-300 mt-0.5">لا يوجد باركود</p>
@@ -375,7 +375,7 @@ export default function BarcodeLabelPage() {
           {/* ── Right: Options + Preview ── */}
           <div className="space-y-4">
             {/* Label size selector */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4 space-y-3">
               <h3 className="text-sm font-semibold text-gray-700">حجم البطاقة</h3>
               <div className="space-y-2">
                 {LABEL_SIZES.map((s) => (
@@ -386,7 +386,7 @@ export default function BarcodeLabelPage() {
                       "w-full flex items-center justify-between px-3 py-2 rounded-xl border text-sm transition-colors",
                       selectedSize === s.id
                         ? "border-brand-500 bg-brand-500/5 text-brand-500 font-semibold"
-                        : "border-gray-100 text-gray-600 hover:border-gray-200"
+                        : "border-[#eef2f6] text-gray-600 hover:border-[#eef2f6]"
                     )}
                   >
                     <span>{s.label}</span>
@@ -397,7 +397,7 @@ export default function BarcodeLabelPage() {
             </div>
 
             {/* Preview */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-4 space-y-3">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4 space-y-3">
               <h3 className="text-sm font-semibold text-gray-700">معاينة</h3>
               {selectedServices.length === 0 ? (
                 <div className="py-8 text-center">

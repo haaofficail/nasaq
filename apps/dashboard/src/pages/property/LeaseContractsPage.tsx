@@ -44,7 +44,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
+        <div className="flex justify-between items-center p-4 border-b border-[#eef2f6]">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
@@ -63,7 +63,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
 
 export function LeaseContractsPage() {
   const [statusFilter, setStatusFilter] = useState("");
@@ -159,34 +159,34 @@ export function LeaseContractsPage() {
                 "px-3 py-1 text-xs rounded-full border transition-colors",
                 statusFilter === t.value
                   ? "bg-emerald-600 text-white border-emerald-600"
-                  : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                  : "bg-white text-gray-600 border-[#eef2f6] hover:bg-[#f8fafc]"
               )}
             >
               {t.label}
             </button>
           ))}
         </div>
-        <select value={propFilter} onChange={(e) => setPropFilter(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <select value={propFilter} onChange={(e) => setPropFilter(e.target.value)} className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
           <option value="">كل العقارات</option>
           {properties.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث..." className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="بحث..." className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
+      <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-x-auto">
         <table className="w-full text-sm min-w-max">
-          <thead className="bg-gray-50">
+          <thead className="bg-[#f8fafc]">
             <tr>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">رقم العقد</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الوحدة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">المستأجر</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">بداية العقد</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">نهاية العقد</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الإيجار</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">حالة إيجار</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الحالة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الإجراءات</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">رقم العقد</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الوحدة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">المستأجر</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">بداية العقد</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">نهاية العقد</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الإيجار</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">حالة إيجار</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الحالة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الإجراءات</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -208,24 +208,24 @@ export function LeaseContractsPage() {
                       </td>
                     </tr>
                   )}
-                  <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{c.contractNumber}</td>
-                    <td className="px-4 py-3 text-gray-500">{c.unitName ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-500">{c.tenantName ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-500">{c.startDate ? new Date(c.startDate).toLocaleDateString("ar-SA") : "—"}</td>
-                    <td className="px-4 py-3 text-gray-500">{c.endDate ? new Date(c.endDate).toLocaleDateString("ar-SA") : "—"}</td>
-                    <td className="px-4 py-3 font-medium text-gray-900">{c.rentAmount ? `${Number(c.rentAmount).toLocaleString("en-US")} ريال` : "—"}</td>
-                    <td className="px-4 py-3">
+                  <tr key={c.id} className="hover:bg-[#f8fafc]">
+                    <td className="px-[10px] py-[6px] font-medium text-gray-900">{c.contractNumber}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{c.unitName ?? "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{c.tenantName ?? "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{c.startDate ? new Date(c.startDate).toLocaleDateString("ar-SA") : "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{c.endDate ? new Date(c.endDate).toLocaleDateString("ar-SA") : "—"}</td>
+                    <td className="px-[10px] py-[6px] font-medium text-gray-900">{c.rentAmount ? `${Number(c.rentAmount).toLocaleString("en-US")} ريال` : "—"}</td>
+                    <td className="px-[10px] py-[6px]">
                       <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", EJAR_STATUS_COLORS[c.ejarStatus ?? "not_submitted"])}>
                         {EJAR_STATUS_AR[c.ejarStatus ?? "not_submitted"]}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", CONTRACT_STATUS_COLORS[c.status] ?? "bg-gray-100 text-gray-600")}>
                         {CONTRACT_STATUS_AR[c.status] ?? c.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <div className="flex gap-2">
                         {c.status === "active" && (
                           <button onClick={() => { setShowRenew(c); setRenewForm({ startDate: "", endDate: "", rentAmount: c.rentAmount ?? "", increasePercentage: "" }); }} className="text-xs text-emerald-700 hover:underline">تجديد</button>
@@ -314,7 +314,7 @@ export function LeaseContractsPage() {
               ))}
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleCreate} disabled={creating} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50">
                 {creating ? "جارٍ الإنشاء..." : "إنشاء"}
               </button>
@@ -342,7 +342,7 @@ export function LeaseContractsPage() {
               </Field>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowRenew(null)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowRenew(null)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleRenew} disabled={renewing} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50">
                 {renewing ? "جارٍ التجديد..." : "تجديد"}
               </button>
@@ -362,7 +362,7 @@ export function LeaseContractsPage() {
               <textarea className={clsx(inputCls, "h-24 resize-none")} value={terminateForm.terminationReason} onChange={(e) => setTerminateForm({ ...terminateForm, terminationReason: e.target.value })} />
             </Field>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowTerminate(null)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowTerminate(null)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleTerminate} disabled={terminating} className="px-4 py-2 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-50">
                 {terminating ? "جارٍ الإنهاء..." : "إنهاء العقد"}
               </button>
@@ -387,7 +387,7 @@ export function LeaseContractsPage() {
               <textarea className={clsx(inputCls, "h-20 resize-none")} value={ejarForm.ejarNotes} onChange={(e) => setEjarForm({ ...ejarForm, ejarNotes: e.target.value })} />
             </Field>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowEjar(null)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowEjar(null)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleEjar} disabled={updatingEjar} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50">
                 {updatingEjar ? "جارٍ التحديث..." : "حفظ"}
               </button>

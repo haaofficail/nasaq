@@ -155,7 +155,7 @@ function StandbyModal({
       <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6] shrink-0">
           <div>
             <h2 className="text-base font-black text-gray-900">تكليف حصص الانتظار</h2>
             {absentTeacher && (
@@ -202,7 +202,7 @@ function StandbyModal({
                   <div key={p.periodNumber}
                     className={clsx(
                       "border rounded-2xl overflow-hidden transition-all",
-                      assignments[p.periodNumber] ? "border-emerald-200 bg-emerald-50/30" : "border-gray-100 bg-white"
+                      assignments[p.periodNumber] ? "border-emerald-200 bg-emerald-50/30" : "border-[#eef2f6] bg-white"
                     )}
                   >
                     <div className="flex items-center gap-3 px-4 py-3">
@@ -238,7 +238,7 @@ function StandbyModal({
                             setBulkTeacher("");
                             setAssignments(prev => ({ ...prev, [p.periodNumber]: e.target.value }));
                           }}
-                          className="w-full px-2.5 py-1.5 text-xs border border-gray-200 rounded-xl outline-none focus:border-emerald-400 bg-white"
+                          className="w-full px-2.5 py-1.5 text-xs border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 bg-white"
                         >
                           <option value="">بدون تكليف</option>
                           {availableTeachers.map(t => (
@@ -261,7 +261,7 @@ function StandbyModal({
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1.5">المعلم البديل <span className="text-red-500">*</span></label>
                 <select value={manualTeacherId} onChange={e => setManualTeacherId(e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400">
+                  className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400">
                   <option value="">اختر معلماً...</option>
                   {availableTeachers.map(t => (
                     <option key={t.id} value={t.id}>{t.fullName}{t.subject ? ` — ${t.subject}` : ""}</option>
@@ -273,7 +273,7 @@ function StandbyModal({
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1.5">الفصل</label>
                   <select value={manualClassId} onChange={e => setManualClassId(e.target.value)}
-                    className="w-full px-2.5 py-2 text-xs border border-gray-200 rounded-xl outline-none focus:border-emerald-400">
+                    className="w-full px-2.5 py-2 text-xs border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400">
                     <option value="">غير محدد</option>
                     {allClasses.map((cr: any) => (
                       <option key={cr.id} value={cr.id}>{cr.grade} — فصل {cr.name}</option>
@@ -283,7 +283,7 @@ function StandbyModal({
                 <div>
                   <label className="block text-xs font-bold text-gray-700 mb-1.5">الحصة</label>
                   <select value={manualPeriod} onChange={e => setManualPeriod(e.target.value)}
-                    className="w-full px-2.5 py-2 text-xs border border-gray-200 rounded-xl outline-none focus:border-emerald-400">
+                    className="w-full px-2.5 py-2 text-xs border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400">
                     <option value="">غير محددة</option>
                     {PERIOD_LABELS.slice(1).map((l, i) => (
                       <option key={i+1} value={`الحصة ${l}`}>الحصة {l}</option>
@@ -298,7 +298,7 @@ function StandbyModal({
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-3.5 border-t border-gray-100 flex gap-2 shrink-0 bg-white">
+        <div className="px-5 py-[6px] border-t border-[#eef2f6] flex gap-2 shrink-0 bg-white">
           {!ttLoading && (
             <button
               onClick={periods.length > 0 ? handleSaveSmart : handleSaveManual}
@@ -311,7 +311,7 @@ function StandbyModal({
                 : "تكليف وإشعار"}
             </button>
           )}
-          <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50">
+          <button onClick={onClose} className="px-5 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc]">
             إلغاء
           </button>
         </div>
@@ -442,7 +442,7 @@ export function SchoolTeacherAttendancePage() {
 
       {/* Date nav + stats */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl px-2 py-1">
+        <div className="flex items-center gap-1 bg-white border border-[#eef2f6] rounded-xl px-2 py-1">
           <button
             onClick={() => { setDate(d => shiftDate(d, -1)); setOverrides({}); }}
             className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
@@ -471,7 +471,7 @@ export function SchoolTeacherAttendancePage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="بحث باسم المعلم..."
-            className="pl-3 pr-8 py-2 border border-gray-200 rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-400/30 w-44"
+            className="pl-3 pr-8 py-2 border border-[#eef2f6] rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-400/30 w-44"
           />
           {search && (
             <button onClick={() => setSearch("")} className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -484,7 +484,7 @@ export function SchoolTeacherAttendancePage() {
         <select
           value={selectedClass}
           onChange={e => { setClass(e.target.value); setOverrides({}); }}
-          className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-400/30"
+          className="px-3 py-2 border border-[#eef2f6] rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-400/30"
         >
           <option value="">كل المعلمين</option>
           {classes.map((c: any) => (
@@ -496,7 +496,7 @@ export function SchoolTeacherAttendancePage() {
         <select
           value={selectedPeriod}
           onChange={e => setPeriod(e.target.value)}
-          className="px-3 py-2 border border-gray-200 rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-400/30"
+          className="px-3 py-2 border border-[#eef2f6] rounded-xl text-sm bg-white outline-none focus:ring-2 focus:ring-emerald-400/30"
         >
           <option value="">كل الحصص</option>
           {PERIOD_LABELS.slice(1).map((label, i) => (
@@ -504,7 +504,7 @@ export function SchoolTeacherAttendancePage() {
           ))}
         </select>
 
-        <button onClick={() => { refetchAtt(); setOverrides({}); }} className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-500">
+        <button onClick={() => { refetchAtt(); setOverrides({}); }} className="p-2 border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc] text-gray-500">
           <RefreshCw className="w-4 h-4" />
         </button>
 
@@ -531,7 +531,7 @@ export function SchoolTeacherAttendancePage() {
       )}
 
       {/* Teacher list */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
         {loading ? (
           <div className="flex items-center justify-center py-16">
             <Loader2 className="w-6 h-6 animate-spin text-gray-300" />
@@ -561,7 +561,7 @@ export function SchoolTeacherAttendancePage() {
         ) : (
           <div className="divide-y divide-gray-50">
             {/* Header row */}
-            <div className="px-5 py-2.5 bg-gray-50 grid grid-cols-[1fr_auto] gap-4">
+            <div className="px-5 py-2.5 bg-[#f8fafc] grid grid-cols-[1fr_auto] gap-4">
               <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                 المعلم
                 {displayedTeachers.length !== teachers.length && (
@@ -580,7 +580,7 @@ export function SchoolTeacherAttendancePage() {
                 <div
                   key={teacher.id}
                   className={clsx(
-                    "px-5 py-3.5 flex items-center justify-between gap-4",
+                    "px-5 py-[6px] flex items-center justify-between gap-4",
                     isNew && "bg-blue-50/40"
                   )}
                 >
@@ -589,7 +589,7 @@ export function SchoolTeacherAttendancePage() {
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-bold text-gray-800">{teacher.fullName}</p>
                       {teacher.subject && (
-                        <span className="text-[10px] text-gray-400 bg-gray-100 rounded-lg px-1.5 py-0.5">{teacher.subject}</span>
+                        <span className="text-[10px] text-gray-400 bg-[#f1f5f9] rounded-lg px-1.5 py-0.5">{teacher.subject}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-2 mt-0.5">
@@ -624,7 +624,7 @@ export function SchoolTeacherAttendancePage() {
                           "px-2.5 py-1 rounded-xl border text-xs font-bold transition-all",
                           status === opt.value
                             ? opt.color + " ring-2 ring-offset-1 ring-current/30"
-                            : "text-gray-400 bg-gray-50 border-gray-100 hover:bg-gray-100"
+                            : "text-gray-400 bg-[#f8fafc] border-[#eef2f6] hover:bg-gray-100"
                         )}
                       >
                         {opt.label}
@@ -649,8 +649,8 @@ export function SchoolTeacherAttendancePage() {
       </div>
 
       {/* Standby activations for the day */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
           <div className="flex items-center gap-2">
             <ClipboardList className="w-4 h-4 text-amber-600" />
             <h2 className="text-sm font-bold text-gray-900">حصص الانتظار</h2>

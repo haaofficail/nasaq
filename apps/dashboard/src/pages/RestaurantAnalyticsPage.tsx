@@ -64,10 +64,10 @@ export function RestaurantAnalyticsPage() {
         </div>
         <div className="flex items-center gap-2">
           <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300" />
+            className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300" />
           <span className="text-gray-400 text-sm">—</span>
           <input type="date" value={to} onChange={e => setTo(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300" />
+            className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300" />
         </div>
       </div>
 
@@ -83,8 +83,8 @@ export function RestaurantAnalyticsPage() {
               { label: "متوسط الفاتورة", value: `${parseFloat(summary?.avg_ticket || 0).toFixed(1)} ر.س`, icon: TrendingUp, color: "text-emerald-600 bg-emerald-50" },
               { label: "عملاء فريدون", value: summary?.unique_customers || 0,                             icon: Users,     color: "text-amber-600 bg-amber-50" },
             ].map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
-                <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", color.split(" ")[1])}>
+              <div key={label} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all">
+                <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0", color.split(" ")[1])}>
                   <Icon className={clsx("w-5 h-5", color.split(" ")[0])} />
                 </div>
                 <div>
@@ -97,7 +97,7 @@ export function RestaurantAnalyticsPage() {
 
           {/* Order type breakdown */}
           {summary && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <p className="text-sm font-semibold text-gray-700 mb-3">توزيع الطلبات حسب النوع</p>
               <div className="grid grid-cols-3 gap-3">
                 {[
@@ -123,7 +123,7 @@ export function RestaurantAnalyticsPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Top items */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <p className="text-sm font-semibold text-gray-700 mb-4">أكثر الأصناف مبيعاً</p>
               {topItems.length === 0 ? (
                 <p className="text-gray-400 text-sm text-center py-8">لا توجد بيانات</p>
@@ -155,7 +155,7 @@ export function RestaurantAnalyticsPage() {
             </div>
 
             {/* Peak hours */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-sm font-semibold text-gray-700">الإيرادات حسب الساعة</p>
                 {peakHour && (
@@ -173,9 +173,9 @@ export function RestaurantAnalyticsPage() {
           </div>
 
           {/* Food cost cards */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
             <button
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+              className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#f8fafc] transition-colors"
               onClick={() => setCostExpanded(e => !e)}
             >
               <p className="text-sm font-semibold text-gray-700">تكلفة الطعام لكل صنف (Food Cost %)</p>

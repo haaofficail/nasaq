@@ -27,7 +27,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
+        <div className="flex justify-between items-center p-4 border-b border-[#eef2f6]">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
@@ -46,7 +46,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 bg-white";
 
 const EMPTY_FORM = {
   clientType: "landlord", clientName: "", clientNationalId: "", clientPhone: "",
@@ -161,7 +161,7 @@ export function BrokerageContractsPage() {
           { label: "العمولات المعلقة", value: `${pendingTotal.toLocaleString("en-US")} ريال`, icon: Clock, color: "bg-yellow-50 text-yellow-600" },
           { label: "إجمالي القيمة", value: `${Number(stats.total_value ?? 0).toLocaleString("en-US")} ريال`, icon: TrendingUp, color: "bg-blue-50 text-blue-600" },
         ].map((s) => (
-          <div key={s.label} className="bg-white border border-gray-100 rounded-2xl shadow-sm p-4 flex items-center gap-3">
+          <div key={s.label} className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm p-4 flex items-center gap-3">
             <div className={clsx("w-10 h-10 rounded-2xl flex items-center justify-center shrink-0", s.color)}>
               <s.icon className="w-5 h-5" />
             </div>
@@ -181,7 +181,7 @@ export function BrokerageContractsPage() {
             onClick={() => setStatusFilter(s)}
             className={clsx(
               "px-3 py-1.5 rounded-xl text-sm font-medium transition-colors border",
-              statusFilter === s ? "bg-brand-50 text-brand-700 border-brand-200" : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+              statusFilter === s ? "bg-brand-50 text-brand-700 border-brand-200" : "bg-white text-gray-600 border-[#eef2f6] hover:bg-[#f8fafc]"
             )}
           >
             {s === "" ? "الكل" : STATUS_AR[s] ?? s}
@@ -190,17 +190,17 @@ export function BrokerageContractsPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50">
+          <thead className="bg-[#f8fafc]">
             <tr>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">رقم العقد</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">العميل</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">نوع الوساطة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">العمولة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">المدة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الحالة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">إجراءات</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">رقم العقد</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">العميل</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">نوع الوساطة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">العمولة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">المدة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الحالة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">إجراءات</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -221,14 +221,14 @@ export function BrokerageContractsPage() {
                   ? `${c.commission_percent ?? 0}%`
                   : `${Number(c.commission_amount ?? 0).toLocaleString("en-US")} ريال`;
                 return (
-                  <tr key={c.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-mono text-xs text-gray-600">{c.contract_number}</td>
-                    <td className="px-4 py-3">
+                  <tr key={c.id} className="hover:bg-[#f8fafc]">
+                    <td className="px-[10px] py-[6px] font-mono text-xs text-gray-600">{c.contract_number}</td>
+                    <td className="px-[10px] py-[6px]">
                       <div className="font-medium text-gray-900">{c.client_name}</div>
                       <div className="text-xs text-gray-400">{CLIENT_TYPE_AR[c.client_type] ?? c.client_type}</div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{BROKER_TYPE_AR[c.broker_type] ?? c.broker_type}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px] text-gray-600">{BROKER_TYPE_AR[c.broker_type] ?? c.broker_type}</td>
+                    <td className="px-[10px] py-[6px]">
                       <div className="font-medium text-gray-900">{commissionStr}</div>
                       {Number(c.total_commission) > 0 && (
                         <div className="text-xs text-gray-400">
@@ -236,16 +236,16 @@ export function BrokerageContractsPage() {
                         </div>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-500">
+                    <td className="px-[10px] py-[6px] text-xs text-gray-500">
                       <div>{c.start_date ? new Date(c.start_date).toLocaleDateString("ar-SA") : "—"}</div>
                       <div>{c.end_date ? new Date(c.end_date).toLocaleDateString("ar-SA") : "—"}</div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", STATUS_CLS[c.status] ?? "bg-gray-100 text-gray-600")}>
                         {STATUS_AR[c.status] ?? c.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <div className="flex gap-2 flex-wrap">
                         <button onClick={() => handlePrint(c)} className="text-xs text-gray-600 hover:underline">طباعة</button>
                         <button onClick={() => openEdit(c)} className="text-xs text-brand-600 hover:underline">تعديل</button>
@@ -263,8 +263,8 @@ export function BrokerageContractsPage() {
 
       {/* Commissions Section */}
       {commissions.length > 0 && (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-          <div className="px-5 py-3 border-b border-gray-100">
+        <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-5 py-3 border-b border-[#eef2f6]">
             <h3 className="text-sm font-semibold text-gray-700">العمولات المستحقة ({pendingComm.length} معلقة — {pendingTotal.toLocaleString("en-US")} ريال)</h3>
           </div>
           <div className="divide-y divide-gray-50">
@@ -376,7 +376,7 @@ export function BrokerageContractsPage() {
               <textarea className={clsx(inputCls, "h-16 resize-none")} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </Field>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleSave} disabled={saving || !form.clientName || !form.startDate || !form.endDate} className="px-4 py-2 text-sm bg-brand-500 text-white rounded-xl hover:bg-brand-600 disabled:opacity-50">
                 {saving ? "جارٍ الحفظ..." : "حفظ"}
               </button>
@@ -403,7 +403,7 @@ export function BrokerageContractsPage() {
               </select>
             </Field>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowCommModal(null)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowCommModal(null)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleAddCommission} disabled={addingComm || !commForm.amount} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50">
                 {addingComm ? "جارٍ الإضافة..." : "إضافة"}
               </button>

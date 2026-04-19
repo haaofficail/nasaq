@@ -51,15 +51,15 @@ function AnnouncementsTab() {
         }
       />
       {showForm && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-3">
           <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })}
-            placeholder="عنوان الإعلان" className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
+            placeholder="عنوان الإعلان" className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none focus:border-brand-400" />
           <textarea value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })}
             placeholder="نص الإعلان..." rows={3}
-            className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none resize-none focus:border-brand-400" />
+            className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none resize-none focus:border-brand-400" />
           <div className="grid grid-cols-2 gap-3">
             <select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}
-              className="w-full border border-gray-200 rounded-xl p-3 text-sm outline-none">
+              className="w-full border border-[#eef2f6] rounded-xl p-3 text-sm outline-none">
               <option value="info">معلومات</option>
               <option value="warning">تحذير</option>
               <option value="maintenance">صيانة</option>
@@ -67,7 +67,7 @@ function AnnouncementsTab() {
             </select>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => setShowForm(false)} className="flex-1 py-2 border border-gray-200 rounded-xl text-sm text-gray-600">إلغاء</button>
+            <button onClick={() => setShowForm(false)} className="flex-1 py-2 border border-[#eef2f6] rounded-xl text-sm text-gray-600">إلغاء</button>
             <button disabled={creating || !form.title.trim()} onClick={handleCreate}
               className="flex-1 py-2 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-50">
               {creating ? <Loader2 className="w-4 h-4 animate-spin mx-auto" /> : "نشر الإعلان"}
@@ -78,7 +78,7 @@ function AnnouncementsTab() {
       {loading ? <Spinner /> : rows.length === 0 ? <Empty icon={Megaphone} text="لا توجد إعلانات" /> : (
         <div className="space-y-2">
           {rows.map((a: any) => (
-            <div key={a.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-start gap-4">
+            <div key={a.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-start gap-4">
               <span className={clsx("text-[10px] px-2 py-0.5 rounded-full font-semibold shrink-0 mt-0.5", TYPE_COLORS[a.type])}>
                 {TYPE_LABELS[a.type] || a.type}
               </span>

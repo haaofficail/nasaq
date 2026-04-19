@@ -19,7 +19,7 @@ export function StaffAvailabilityWidget() {
   ];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 h-full">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 h-full">
       <div className="flex items-center gap-2 mb-4">
         <div className="w-8 h-8 rounded-xl bg-violet-50 flex items-center justify-center">
           <Users className="w-4 h-4 text-violet-600" />

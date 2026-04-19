@@ -104,7 +104,7 @@ export function SetupChecklist() {
 
   return (
     <div className="bg-white rounded-2xl border border-brand-100 shadow-sm overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-50">
+      <div className="flex items-center justify-between px-5 py-[6px] border-b border-gray-50">
         <button
           onClick={() => setCollapsed(v => !v)}
           className="flex items-center gap-2.5 flex-1 text-right"
@@ -149,8 +149,8 @@ export function SetupChecklist() {
               <div
                 key={step.id}
                 className={clsx(
-                  "flex items-center gap-3.5 px-5 py-3.5",
-                  !done && step.href && "cursor-pointer hover:bg-gray-50 transition-colors"
+                  "flex items-center gap-3.5 px-5 py-[6px]",
+                  !done && step.href && "cursor-pointer hover:bg-[#f8fafc] transition-colors"
                 )}
                 onClick={() => !done && step.href && navigate(step.href)}
               >

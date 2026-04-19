@@ -15,7 +15,7 @@ export function WeeklyBookingsChartWidget() {
   const trendColor = growthPct > 0 ? "text-emerald-600" : growthPct < 0 ? "text-red-500" : "text-gray-400";
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 h-full flex flex-col justify-between">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 h-full flex flex-col justify-between">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="font-semibold text-gray-900 text-sm">الحجوزات الأسبوعية</h2>
@@ -28,7 +28,7 @@ export function WeeklyBookingsChartWidget() {
 
       {loading ? (
         <div className="flex-1 flex flex-col justify-center gap-3">
-          <div className="h-12 w-24 bg-gray-100 rounded-xl animate-pulse" />
+          <div className="h-12 w-24 bg-[#f1f5f9] rounded-xl animate-pulse" />
           <div className="h-4 w-32 bg-gray-100 rounded animate-pulse" />
         </div>
       ) : (

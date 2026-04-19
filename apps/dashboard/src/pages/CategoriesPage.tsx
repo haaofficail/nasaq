@@ -102,20 +102,20 @@ export function CategoriesPage() {
       </div>
 
       {categories.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <Tag className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-gray-900 mb-1">لا توجد تصنيفات بعد</h3>
           <p className="text-sm text-gray-400 mb-4">أنشئ تصنيفات لتنظيم خدماتك</p>
           <Button icon={Plus} onClick={openCreate}>إضافة تصنيف</Button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           {parents.map((parent: any) => {
             const children = categories.filter((c) => c.parentId === parent.id);
             return (
-              <div key={parent.id} className="border-b border-gray-100 last:border-b-0">
+              <div key={parent.id} className="border-b border-[#eef2f6] last:border-b-0">
                 {/* Parent row */}
-                <div className="flex items-center justify-between px-5 py-3 bg-gray-50/60 hover:bg-gray-50 transition-colors">
+                <div className="flex items-center justify-between px-5 py-3 bg-gray-50/60 hover:bg-[#f8fafc] transition-colors">
                   <div className="flex items-center gap-3">
                     {parent.icon && <span className="text-xl">{parent.icon}</span>}
                     <Tag className="w-4 h-4 text-brand-500 shrink-0" />
@@ -151,7 +151,7 @@ export function CategoriesPage() {
                 {children.map((child: any) => (
                   <div
                     key={child.id}
-                    className="flex items-center justify-between px-5 py-2.5 border-t border-gray-50 hover:bg-gray-50/50 transition-colors"
+                    className="flex items-center justify-between px-5 py-2.5 border-t border-gray-50 hover:bg-[#f8fafc]/50 transition-colors"
                   >
                     <div className="flex items-center gap-3 pr-6">
                       <ChevronLeft className="w-3 h-3 text-gray-300" />
@@ -189,7 +189,7 @@ export function CategoriesPage() {
             .map((cat: any) => (
               <div
                 key={cat.id}
-                className="flex items-center justify-between px-5 py-3 border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors"
+                className="flex items-center justify-between px-5 py-3 border-b border-[#eef2f6] last:border-b-0 hover:bg-[#f8fafc]/50 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   {cat.icon && <span className="text-xl">{cat.icon}</span>}

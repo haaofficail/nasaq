@@ -91,7 +91,7 @@ function TemplateModal({ initial, onClose, onSave, saving }: TemplateModalProps)
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" dir="rtl">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
           <h2 className="text-base font-bold text-gray-900">
             {initial ? "تعديل القالب" : "قالب واتساب جديد"}
           </h2>
@@ -111,7 +111,7 @@ function TemplateModal({ initial, onClose, onSave, saving }: TemplateModalProps)
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="مثال: تأكيد حجز واتساب"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors"
             />
           </div>
 
@@ -122,7 +122,7 @@ function TemplateModal({ initial, onClose, onSave, saving }: TemplateModalProps)
               <select
                 value={triggerEvent}
                 onChange={(e) => setTriggerEvent(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors appearance-none bg-white"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors appearance-none bg-white"
               >
                 {TRIGGER_EVENTS.map(([val, label]) => (
                   <option key={val} value={val}>{label}</option>
@@ -139,7 +139,7 @@ function TemplateModal({ initial, onClose, onSave, saving }: TemplateModalProps)
               <select
                 value={language}
                 onChange={(e) => setLanguage(e.target.value)}
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors appearance-none bg-white"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors appearance-none bg-white"
               >
                 <option value="ar">عربي</option>
                 <option value="en">English</option>
@@ -175,7 +175,7 @@ function TemplateModal({ initial, onClose, onSave, saving }: TemplateModalProps)
               required
               rows={5}
               placeholder="مرحبا {{customer_name}}، تم تأكيد حجزك لخدمة {{service_name}} يوم {{booking_date}} الساعة {{booking_time}}"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors resize-none"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors resize-none"
             />
           </div>
 
@@ -212,10 +212,10 @@ function TemplateModal({ initial, onClose, onSave, saving }: TemplateModalProps)
         </form>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-gray-100 flex items-center gap-3">
+        <div className="px-5 py-4 border-t border-[#eef2f6] flex items-center gap-3">
           <button
             onClick={onClose}
-            className="flex-1 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex-1 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors"
           >
             إلغاء
           </button>
@@ -259,7 +259,7 @@ function TestModal({ templateId, onClose }: TestModalProps) {
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4" dir="rtl">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
           <h2 className="text-base font-bold text-gray-900">إرسال رسالة تجريبية</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100">
             <X className="w-4 h-4 text-gray-400" />
@@ -274,7 +274,7 @@ function TestModal({ templateId, onClose }: TestModalProps) {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+966501234567"
               dir="ltr"
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-brand-500 transition-colors"
             />
           </div>
           {result && (
@@ -376,9 +376,9 @@ function WhatsappConnectionPanel() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 animate-pulse">
         <div className="h-5 bg-gray-100 rounded w-40 mb-4" />
-        <div className="h-32 bg-gray-100 rounded-xl" />
+        <div className="h-32 bg-[#f1f5f9] rounded-xl" />
       </div>
     );
   }
@@ -387,7 +387,7 @@ function WhatsappConnectionPanel() {
   const isPendingQr = conn?.status === "pending_qr";
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -422,7 +422,7 @@ function WhatsappConnectionPanel() {
             onClick={() => setMode("api")}
             className={clsx(
               "flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-right",
-              mode === "api" ? "border-brand-500 bg-brand-500/5" : "border-gray-100 hover:border-gray-200"
+              mode === "api" ? "border-brand-500 bg-brand-500/5" : "border-[#eef2f6] hover:border-[#eef2f6]"
             )}
           >
             <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", mode === "api" ? "bg-brand-500 text-white" : "bg-gray-100 text-gray-400")}>
@@ -437,7 +437,7 @@ function WhatsappConnectionPanel() {
             onClick={() => setMode("qr")}
             className={clsx(
               "flex-1 flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-right",
-              mode === "qr" ? "border-brand-500 bg-brand-500/5" : "border-gray-100 hover:border-gray-200"
+              mode === "qr" ? "border-brand-500 bg-brand-500/5" : "border-[#eef2f6] hover:border-[#eef2f6]"
             )}
           >
             <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", mode === "qr" ? "bg-brand-500 text-white" : "bg-gray-100 text-gray-400")}>
@@ -462,7 +462,7 @@ function WhatsappConnectionPanel() {
               onChange={(e) => setPhoneId(e.target.value)}
               placeholder="من Meta Business Dashboard"
               dir="ltr"
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-500 font-mono"
+              className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-500 font-mono"
             />
           </div>
           <div>
@@ -473,7 +473,7 @@ function WhatsappConnectionPanel() {
               onChange={(e) => setAccessToken(e.target.value)}
               placeholder="••••••••••••••••••••"
               dir="ltr"
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-500 font-mono"
+              className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-500 font-mono"
             />
           </div>
           <div>
@@ -484,7 +484,7 @@ function WhatsappConnectionPanel() {
               onChange={(e) => setWebhookVerify(e.target.value)}
               placeholder="nasaq_webhook_secret"
               dir="ltr"
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-500 font-mono"
+              className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-500 font-mono"
             />
           </div>
           <button
@@ -503,7 +503,7 @@ function WhatsappConnectionPanel() {
         <div className="space-y-4">
           {!isPendingQr ? (
             <div className="text-center py-6">
-              <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+              <div className="w-16 h-16 bg-[#f8fafc] rounded-2xl flex items-center justify-center mx-auto mb-3">
                 <QrCode className="w-8 h-8 text-gray-300" />
               </div>
               <p className="text-sm text-gray-500 mb-1">اربط رقم واتساب الخاص بمنشأتك</p>
@@ -521,7 +521,7 @@ function WhatsappConnectionPanel() {
             <div className="text-center space-y-3">
               {conn?.qr_code ? (
                 <>
-                  <div className="inline-block p-3 bg-white border-2 border-gray-100 rounded-2xl">
+                  <div className="inline-block p-3 bg-white border-2 border-[#eef2f6] rounded-2xl">
                     <img src={conn.qr_code} alt="WhatsApp QR Code" className="w-52 h-52" />
                   </div>
                   <p className="text-sm text-gray-600 font-medium">افتح واتساب ← المزيد ← الأجهزة المرتبطة ← ربط جهاز</p>
@@ -572,7 +572,7 @@ function WhatsappConnectionPanel() {
                 onChange={(e) => setTestPhone(e.target.value)}
                 placeholder="9665XXXXXXXX"
                 dir="ltr"
-                className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-500 font-mono"
+                className="flex-1 px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-500 font-mono"
               />
               <button
                 onClick={handleTestSend}
@@ -654,7 +654,7 @@ function WhatsappTemplatesTab() {
   if (loading) return (
     <div className="space-y-3">
       {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="bg-white rounded-2xl border border-gray-100 h-20 animate-pulse" />
+        <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] h-20 animate-pulse" />
       ))}
     </div>
   );
@@ -681,7 +681,7 @@ function WhatsappTemplatesTab() {
 
       {/* Empty state */}
       {templates.length === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <MessageCircle className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-sm font-semibold text-gray-700">لا توجد قوالب واتساب</p>
           <p className="text-xs text-gray-400 mt-1">أنشئ قوالب لإرسال رسائل تلقائية عند كل حدث</p>
@@ -696,7 +696,7 @@ function WhatsappTemplatesTab() {
 
       {/* Template list */}
       {templates.map((tpl) => (
-        <div key={tpl.id} className="bg-white rounded-2xl border border-gray-100 p-4 hover:border-gray-200 transition-colors">
+        <div key={tpl.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 hover:border-[#eef2f6] transition-colors">
           <div className="flex items-start gap-4">
             {/* Icon */}
             <div className={clsx(
@@ -820,7 +820,7 @@ export function AutomationPage() {
           { label: "قوالب واتساب", value: waTemplates.length, color: "text-brand-500",    bg: "bg-brand-500/10", icon: MessageCircle },
           { label: "رسائل مرسلة",  value: logs.length,        color: "text-emerald-600",  bg: "bg-emerald-50",  icon: FileText },
         ].map((s, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-3", s.bg)}>
               <s.icon className={clsx("w-4 h-4", s.color)} />
             </div>
@@ -831,14 +831,14 @@ export function AutomationPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-white rounded-2xl border border-gray-100 p-1">
+      <div className="flex gap-1 bg-white rounded-2xl border border-[#eef2f6] p-1">
         {tabs.map((t, i) => (
           <button
             key={i}
             onClick={() => setActiveTab(i)}
             className={clsx(
               "flex-1 py-2.5 rounded-xl text-sm font-medium transition-colors",
-              activeTab === i ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-gray-50"
+              activeTab === i ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-[#f8fafc]"
             )}
           >
             {t}
@@ -850,13 +850,13 @@ export function AutomationPage() {
       {activeTab === 0 && (
         <div className="space-y-3">
           {rules.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-10 text-center">
               <Zap className="w-9 h-9 text-gray-200 mx-auto mb-2" />
               <p className="text-sm text-gray-400">لا توجد قواعد أتمتة</p>
             </div>
           ) : (
             rules.map((rule: any) => (
-              <div key={rule.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:border-gray-200 transition-colors">
+              <div key={rule.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-4 hover:border-[#eef2f6] transition-colors">
                 <div className={clsx(
                   "w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
                   rule.isActive ? "bg-emerald-50" : "bg-gray-100"
@@ -887,13 +887,13 @@ export function AutomationPage() {
       {activeTab === 1 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {templates.length === 0 ? (
-            <div className="col-span-full bg-white rounded-2xl border border-gray-100 p-10 text-center">
+            <div className="col-span-full bg-white rounded-2xl border border-[#eef2f6] p-10 text-center">
               <Bell className="w-9 h-9 text-gray-200 mx-auto mb-2" />
               <p className="text-sm text-gray-400">لا توجد قوالب</p>
             </div>
           ) : (
             templates.map((tpl: any) => (
-              <div key={tpl.id} className="bg-white rounded-2xl border border-gray-100 p-4 hover:border-gray-200 transition-colors">
+              <div key={tpl.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 hover:border-[#eef2f6] transition-colors">
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center">
                     <Bell className="w-4 h-4 text-brand-500" />
@@ -919,7 +919,7 @@ export function AutomationPage() {
 
       {/* Logs tab */}
       {activeTab === 3 && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           {logs.length === 0 ? (
             <div className="p-10 text-center">
               <FileText className="w-9 h-9 text-gray-200 mx-auto mb-2" />
@@ -928,7 +928,7 @@ export function AutomationPage() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
+                <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                   <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold uppercase tracking-wide">القالب</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">المستلم</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold uppercase tracking-wide">الحالة</th>
@@ -937,12 +937,12 @@ export function AutomationPage() {
               </thead>
               <tbody>
                 {logs.slice(0, 50).map((log: any) => (
-                  <tr key={log.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
+                  <tr key={log.id} className="border-b border-gray-50 hover:bg-[#f8fafc]/50 transition-colors">
                     <td className="py-3 px-5 font-medium text-gray-900">{log.templateName || "—"}</td>
-                    <td className="py-3 px-4 text-gray-500 text-xs" dir="ltr">
+                    <td className="py-[6px] px-[10px] text-gray-500 text-xs" dir="ltr">
                       {log.recipientPhone || log.recipientEmail || "—"}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-[6px] px-[10px]">
                       <span className={clsx(
                         "px-2 py-0.5 rounded-full text-[10px] font-semibold",
                         log.status === "sent"
@@ -952,7 +952,7 @@ export function AutomationPage() {
                         {log.status === "sent" ? "مرسل" : "فشل"}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-xs text-gray-400">
+                    <td className="py-[6px] px-[10px] text-xs text-gray-400">
                       {log.createdAt ? new Date(log.createdAt).toLocaleString("en-US") : "—"}
                     </td>
                   </tr>

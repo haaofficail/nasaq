@@ -154,7 +154,7 @@ export function AbandonedCartsPage() {
 
       {/* ── Stats row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center mb-3">
             <ShoppingCart className="w-4 h-4 text-amber-500" />
           </div>
@@ -162,7 +162,7 @@ export function AbandonedCartsPage() {
           <p className="text-xs text-gray-400 mt-0.5">إجمالي العربات المتروكة</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center mb-3">
             <TrendingUp className="w-4 h-4 text-emerald-500" />
           </div>
@@ -172,7 +172,7 @@ export function AbandonedCartsPage() {
           <p className="text-xs text-gray-400 mt-0.5">معدل الاسترجاع</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center mb-3">
             <DollarSign className="w-4 h-4 text-blue-500" />
           </div>
@@ -182,7 +182,7 @@ export function AbandonedCartsPage() {
           <p className="text-xs text-gray-400 mt-0.5">إجمالي القيمة</p>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <div className="w-8 h-8 rounded-xl bg-violet-50 flex items-center justify-center mb-3">
             <CheckCircle className="w-4 h-4 text-violet-500" />
           </div>
@@ -194,7 +194,7 @@ export function AbandonedCartsPage() {
       </div>
 
       {/* ── Filter tabs ── */}
-      <div className="flex items-center gap-1 border-b border-gray-100 overflow-x-auto">
+      <div className="flex items-center gap-1 border-b border-[#eef2f6] overflow-x-auto">
         {STATUS_FILTERS.map((f) => (
           <button
             key={f.id}
@@ -219,30 +219,30 @@ export function AbandonedCartsPage() {
           description="العربات المتروكة ستظهر هنا عند إضافة عملاء خدمات دون إكمال الحجز"
         />
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-100">
+              <thead className="bg-gray-50 border-b border-[#eef2f6]">
                 <tr>
-                  <th className="px-5 py-3.5 text-right text-xs font-medium text-gray-500">
+                  <th className="px-5 py-[6px] text-right text-xs font-medium text-gray-500">
                     الجوال / البريد
                   </th>
-                  <th className="px-5 py-3.5 text-right text-xs font-medium text-gray-500">
+                  <th className="px-5 py-[6px] text-right text-xs font-medium text-gray-500">
                     المنتجات
                   </th>
-                  <th className="px-5 py-3.5 text-right text-xs font-medium text-gray-500">
+                  <th className="px-5 py-[6px] text-right text-xs font-medium text-gray-500">
                     المبلغ
                   </th>
-                  <th className="px-5 py-3.5 text-right text-xs font-medium text-gray-500">
+                  <th className="px-5 py-[6px] text-right text-xs font-medium text-gray-500">
                     الحالة
                   </th>
-                  <th className="px-5 py-3.5 text-right text-xs font-medium text-gray-500">
+                  <th className="px-5 py-[6px] text-right text-xs font-medium text-gray-500">
                     التذكيرات
                   </th>
-                  <th className="px-5 py-3.5 text-right text-xs font-medium text-gray-500">
+                  <th className="px-5 py-[6px] text-right text-xs font-medium text-gray-500">
                     التاريخ
                   </th>
-                  <th className="px-5 py-3.5 text-right text-xs font-medium text-gray-500">
+                  <th className="px-5 py-[6px] text-right text-xs font-medium text-gray-500">
                     الإجراءات
                   </th>
                 </tr>
@@ -255,7 +255,7 @@ export function AbandonedCartsPage() {
                     cart.recoveryStatus === "reminder_sent";
 
                   return (
-                    <tr key={cart.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={cart.id} className="hover:bg-[#f8fafc] transition-colors">
                       {/* Contact */}
                       <td className="px-5 py-4">
                         <p className="text-gray-900 tabular-nums" dir="ltr">
@@ -329,7 +329,7 @@ export function AbandonedCartsPage() {
       )}
 
       {/* FAQ */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
         <div className="space-y-3">
           {[
@@ -338,8 +338,8 @@ export function AbandonedCartsPage() {
             { q: "ما «معدل الاسترجاع»؟", a: "نسبة السلات التي أكمل أصحابها عملية الحجز بعد التذكير من إجمالي السلات المتروكة." },
             { q: "كيف أحسّن معدل استرجاع السلات؟", a: "أرسل رسائل تذكير مخصصة في أقل من ساعة من ترك السلة، وقدّم كوبون خصم صغيراً لتشجيع الإتمام." },
           ].map(faq => (
-            <details key={faq.q} className="border border-gray-100 rounded-xl">
-              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+            <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+              <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
               <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
             </details>
           ))}

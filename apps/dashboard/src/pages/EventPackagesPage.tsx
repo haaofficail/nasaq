@@ -156,7 +156,7 @@ export function EventPackagesPage({ embedded }: { embedded?: boolean } = {}) {
 
       {/* Empty */}
       {packages.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <Package className="w-12 h-12 text-gray-200 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-gray-900 mb-1">لا توجد خطط تجهيز بعد</h3>
           <p className="text-sm text-gray-400 mb-5">أنشئ خطة تجهيز لكوش زواج أو استقبال مولود — تُطبَّق تلقائياً على المشاريع</p>
@@ -226,7 +226,7 @@ function PackageCard({ pkg, onSelect, onEdit, onDelete }: {
   return (
     <div
       onClick={onSelect}
-      className="bg-white rounded-2xl border border-gray-100 p-5 cursor-pointer hover:border-brand-200 hover:shadow-sm transition-all"
+      className="bg-white rounded-2xl border border-[#eef2f6] p-5 cursor-pointer hover:border-brand-200 hover:shadow-sm transition-all"
     >
       <div className="flex items-start justify-between mb-3">
         <span className={clsx("text-xs font-semibold px-2.5 py-1 rounded-full", color)}>
@@ -388,8 +388,8 @@ function PackageDetail({ pkg, onBack, onEdit, onDelete, onRefresh }: {
             const typeMeta = ITEM_TYPES.find(t => t.value === type)!;
             const TypeIcon = typeMeta.icon;
             return (
-              <div key={type} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 border-b border-gray-100">
+              <div key={type} className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+                <div className="flex items-center gap-2 px-4 py-3 bg-[#f8fafc] border-b border-[#eef2f6]">
                   <TypeIcon className="w-4 h-4 text-gray-500" />
                   <span className="text-sm font-semibold text-gray-700">{typeMeta.label}</span>
                   <span className="text-xs text-gray-400 mr-auto">{typeItems.length} بند</span>
@@ -427,7 +427,7 @@ function PackageDetail({ pkg, onBack, onEdit, onDelete, onRefresh }: {
       {/* Add Item Button */}
       <button
         onClick={() => setShowAddItem(true)}
-        className="w-full py-3 rounded-2xl border-2 border-dashed border-gray-200 text-sm text-gray-400 hover:border-brand-300 hover:text-brand-500 transition-colors flex items-center justify-center gap-2"
+        className="w-full py-3 rounded-2xl border-2 border-dashed border-[#eef2f6] text-sm text-gray-400 hover:border-brand-300 hover:text-brand-500 transition-colors flex items-center justify-center gap-2"
       >
         <Plus className="w-4 h-4" /> إضافة بند لخطة التجهيز
       </button>

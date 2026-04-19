@@ -37,17 +37,17 @@ export function PeakTimesReportPage() {
         <span className="text-gray-700 font-medium">تقرير أوقات الذروة</span>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">من تاريخ</label>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">إلى تاريخ</label>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
         </div>
       </div>
@@ -62,7 +62,7 @@ export function PeakTimesReportPage() {
             ].map(card => {
               const Icon = card.icon;
               return (
-                <div key={card.label} className="bg-white rounded-2xl border border-gray-100 p-4">
+                <div key={card.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
                   <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-3", card.bg)}>
                     <Icon className={clsx("w-4 h-4", card.color)} />
                   </div>
@@ -75,7 +75,7 @@ export function PeakTimesReportPage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* By Day */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-50">
                 <h2 className="font-semibold text-gray-900 text-sm">الحجوزات حسب يوم الأسبوع</h2>
               </div>
@@ -100,7 +100,7 @@ export function PeakTimesReportPage() {
             </div>
 
             {/* By Hour */}
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <div className="px-5 py-4 border-b border-gray-50">
                 <h2 className="font-semibold text-gray-900 text-sm">الحجوزات حسب ساعة اليوم</h2>
               </div>
@@ -126,7 +126,7 @@ export function PeakTimesReportPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
             <div className="space-y-3">
               {[
@@ -134,8 +134,8 @@ export function PeakTimesReportPage() {
                 { q: "لماذا قد تظهر بعض الساعات فارغة؟", a: "هذه الساعات لا يوجد فيها حجوزات في الفترة المحددة. حاول توسيع نطاق التاريخ للحصول على صورة أشمل." },
                 { q: "هل الأوقات بالتوقيت المحلي؟", a: "نعم، تُعرض الأوقات بتوقيت المنطقة الزمنية للخادم. تحقق من إعداد المنطقة الزمنية في الإعدادات إذا كانت هناك فروقات." },
               ].map(faq => (
-                <details key={faq.q} className="border border-gray-100 rounded-xl">
-                  <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+                <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+                  <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
                   <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
                 </details>
               ))}

@@ -114,19 +114,19 @@ function EmployeeModal({ initial, onClose, onSaved }: { initial?: any; onClose: 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4" dir="rtl">
         <div>
           <label className="text-xs text-gray-500 block mb-1">الاسم الكامل *</label>
-          <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.fullName} onChange={setF("fullName")} />
+          <input className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.fullName} onChange={setF("fullName")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">الاسم بالإنجليزية</label>
-          <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.fullNameEn} onChange={setF("fullNameEn")} />
+          <input className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.fullNameEn} onChange={setF("fullNameEn")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">رقم الهوية / الإقامة</label>
-          <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.nationalId} onChange={setF("nationalId")} />
+          <input className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.nationalId} onChange={setF("nationalId")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">الجنسية</label>
-          <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.nationality} onChange={setF("nationality")}>
+          <select className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.nationality} onChange={setF("nationality")}>
             <option value="SA">سعودي</option>
             <option value="EG">مصري</option>
             <option value="IN">هندي</option>
@@ -142,7 +142,7 @@ function EmployeeModal({ initial, onClose, onSaved }: { initial?: any; onClose: 
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">الجنس</label>
-          <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.gender} onChange={setF("gender")}>
+          <select className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.gender} onChange={setF("gender")}>
             <option value="">-- اختر --</option>
             <option value="male">ذكر</option>
             <option value="female">أنثى</option>
@@ -150,27 +150,27 @@ function EmployeeModal({ initial, onClose, onSaved }: { initial?: any; onClose: 
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">تاريخ الميلاد</label>
-          <input type="date" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.dateOfBirth} onChange={setF("dateOfBirth")} />
+          <input type="date" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.dateOfBirth} onChange={setF("dateOfBirth")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">الجوال</label>
-          <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.phone} onChange={setF("phone")} />
+          <input className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.phone} onChange={setF("phone")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">البريد الإلكتروني</label>
-          <input type="email" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.email} onChange={setF("email")} />
+          <input type="email" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.email} onChange={setF("email")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">المسمى الوظيفي</label>
-          <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.jobTitle} onChange={setF("jobTitle")} />
+          <input className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.jobTitle} onChange={setF("jobTitle")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">القسم / الإدارة</label>
-          <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.department} onChange={setF("department")} />
+          <input className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.department} onChange={setF("department")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">نوع التوظيف</label>
-          <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.employmentType} onChange={setF("employmentType")}>
+          <select className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.employmentType} onChange={setF("employmentType")}>
             <option value="full_time">دوام كامل</option>
             <option value="part_time">دوام جزئي</option>
             <option value="contract">عقد محدد المدة</option>
@@ -179,27 +179,27 @@ function EmployeeModal({ initial, onClose, onSaved }: { initial?: any; onClose: 
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">تاريخ التعيين *</label>
-          <input type="date" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.hireDate} onChange={setF("hireDate")} />
+          <input type="date" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.hireDate} onChange={setF("hireDate")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">الراتب الأساسي (ر.س) *</label>
-          <input type="number" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.basicSalary} onChange={setF("basicSalary")} />
+          <input type="number" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.basicSalary} onChange={setF("basicSalary")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">بدل السكن (ر.س)</label>
-          <input type="number" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.housingAllowance} onChange={setF("housingAllowance")} />
+          <input type="number" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.housingAllowance} onChange={setF("housingAllowance")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">بدل المواصلات (ر.س)</label>
-          <input type="number" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.transportAllowance} onChange={setF("transportAllowance")} />
+          <input type="number" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.transportAllowance} onChange={setF("transportAllowance")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">اسم البنك</label>
-          <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.bankName} onChange={setF("bankName")} />
+          <input className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.bankName} onChange={setF("bankName")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">رقم الآيبان</label>
-          <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.iban} onChange={setF("iban")} />
+          <input className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.iban} onChange={setF("iban")} />
         </div>
         <div className="flex items-center gap-4 md:col-span-2">
           <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
@@ -214,7 +214,7 @@ function EmployeeModal({ initial, onClose, onSaved }: { initial?: any; onClose: 
         {isEdit && (
           <div>
             <label className="text-xs text-gray-500 block mb-1">الحالة</label>
-            <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.status} onChange={setF("status")}>
+            <select className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.status} onChange={setF("status")}>
               <option value="active">نشط</option>
               <option value="inactive">غير نشط</option>
               <option value="on_leave">في إجازة</option>
@@ -224,11 +224,11 @@ function EmployeeModal({ initial, onClose, onSaved }: { initial?: any; onClose: 
         )}
         <div className="md:col-span-2">
           <label className="text-xs text-gray-500 block mb-1">ملاحظات</label>
-          <textarea className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none" rows={2} value={form.notes} onChange={setF("notes")} />
+          <textarea className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm resize-none" rows={2} value={form.notes} onChange={setF("notes")} />
         </div>
       </div>
       <div className="flex justify-end gap-3 px-4 pb-4 border-t pt-4">
-        <button onClick={onClose} className="px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50">إلغاء</button>
+        <button onClick={onClose} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">إلغاء</button>
         <button onClick={handleSave} disabled={saving} className="px-5 py-2 text-sm bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-60">
           {saving ? "جاري الحفظ..." : isEdit ? "حفظ التغييرات" : "إضافة الموظف"}
         </button>
@@ -299,14 +299,14 @@ function LeaveModal({ onClose, onSaved, employees }: { onClose: () => void; onSa
       <div className="space-y-4 p-4" dir="rtl">
         <div>
           <label className="text-xs text-gray-500 block mb-1">الموظف *</label>
-          <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.employeeId} onChange={handleEmployeeChange}>
+          <select className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.employeeId} onChange={handleEmployeeChange}>
             <option value="">-- اختر الموظف --</option>
             {employees.map((e) => <option key={e.id} value={e.id}>{e.fullName}</option>)}
           </select>
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">نوع الإجازة *</label>
-          <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.leaveType} onChange={handleLeaveTypeChange}>
+          <select className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.leaveType} onChange={handleLeaveTypeChange}>
             <option value="annual">سنوية</option>
             <option value="sick">مرضية</option>
             <option value="emergency">طارئة</option>
@@ -327,20 +327,20 @@ function LeaveModal({ onClose, onSaved, employees }: { onClose: () => void; onSa
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-gray-500 block mb-1">من *</label>
-            <input type="date" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.startDate} onChange={setF("startDate")} />
+            <input type="date" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.startDate} onChange={setF("startDate")} />
           </div>
           <div>
             <label className="text-xs text-gray-500 block mb-1">إلى *</label>
-            <input type="date" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.endDate} onChange={setF("endDate")} />
+            <input type="date" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.endDate} onChange={setF("endDate")} />
           </div>
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">السبب</label>
-          <textarea className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none" rows={2} value={form.reason} onChange={setF("reason")} />
+          <textarea className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm resize-none" rows={2} value={form.reason} onChange={setF("reason")} />
         </div>
       </div>
       <div className="flex justify-end gap-3 px-4 pb-4 border-t pt-4">
-        <button onClick={onClose} className="px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50">إلغاء</button>
+        <button onClick={onClose} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">إلغاء</button>
         <button onClick={handleSave} disabled={saving} className="px-5 py-2 text-sm bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-60">
           {saving ? "جاري الإرسال..." : "إرسال الطلب"}
         </button>
@@ -374,30 +374,30 @@ function LoanModal({ onClose, onSaved, employees }: { onClose: () => void; onSav
       <div className="space-y-4 p-4" dir="rtl">
         <div>
           <label className="text-xs text-gray-500 block mb-1">الموظف *</label>
-          <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.employeeId} onChange={setF("employeeId")}>
+          <select className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.employeeId} onChange={setF("employeeId")}>
             <option value="">-- اختر الموظف --</option>
             {employees.map((e) => <option key={e.id} value={e.id}>{e.fullName}</option>)}
           </select>
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">المبلغ (ر.س) *</label>
-          <input type="number" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.amount} onChange={setF("amount")} />
+          <input type="number" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.amount} onChange={setF("amount")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">الغرض</label>
-          <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.purpose} onChange={setF("purpose")} />
+          <input className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.purpose} onChange={setF("purpose")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">عدد الأقساط</label>
-          <input type="number" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.totalInstallments} onChange={setF("totalInstallments")} />
+          <input type="number" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.totalInstallments} onChange={setF("totalInstallments")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">شهر بداية الخصم (YYYY-MM)</label>
-          <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="2026-05" value={form.startMonth} onChange={setF("startMonth")} />
+          <input className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" placeholder="2026-05" value={form.startMonth} onChange={setF("startMonth")} />
         </div>
       </div>
       <div className="flex justify-end gap-3 px-4 pb-4 border-t pt-4">
-        <button onClick={onClose} className="px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50">إلغاء</button>
+        <button onClick={onClose} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">إلغاء</button>
         <button onClick={handleSave} disabled={saving} className="px-5 py-2 text-sm bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-60">
           {saving ? "جاري الحفظ..." : "تسجيل الطلب"}
         </button>
@@ -462,18 +462,18 @@ function PayrollGenerateModal({ onClose, onSaved }: { onClose: () => void; onSav
           <div className="space-y-4 p-4" dir="rtl">
             <div>
               <label className="text-xs text-gray-500 block mb-1">الشهر (YYYY-MM) *</label>
-              <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" placeholder="2026-04" value={form.month} onChange={(e) => setForm((f) => ({ ...f, month: e.target.value }))} />
+              <input className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" placeholder="2026-04" value={form.month} onChange={(e) => setForm((f) => ({ ...f, month: e.target.value }))} />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">تاريخ صرف الرواتب *</label>
-              <input type="date" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.payrollDate} onChange={(e) => setForm((f) => ({ ...f, payrollDate: e.target.value }))} />
+              <input type="date" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.payrollDate} onChange={(e) => setForm((f) => ({ ...f, payrollDate: e.target.value }))} />
             </div>
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-700">
               سيتم احتساب رواتب جميع الموظفين النشطين لهذا الشهر مع الحسومات والإضافات المسجلة.
             </div>
           </div>
           <div className="flex justify-end gap-3 px-4 pb-4 border-t pt-4">
-            <button onClick={onClose} className="px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50">إلغاء</button>
+            <button onClick={onClose} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">إلغاء</button>
             <button onClick={handlePreview} disabled={loadingPreview} className="px-5 py-2 text-sm bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-60">
               {loadingPreview ? "جاري التحميل..." : "معاينة الرواتب"}
             </button>
@@ -482,8 +482,8 @@ function PayrollGenerateModal({ onClose, onSaved }: { onClose: () => void; onSav
       ) : (
         <>
           <div className="p-4" dir="rtl">
-            <div className="border border-gray-200 rounded-2xl overflow-hidden">
-              <div className="bg-gray-50 px-4 py-3 border-b border-gray-100">
+            <div className="border border-[#eef2f6] rounded-2xl overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 border-b border-[#eef2f6]">
                 <span className="font-semibold text-gray-800 text-sm">معاينة الرواتب — {monthLabel(form.month)}</span>
               </div>
               <div className="divide-y divide-gray-50">
@@ -506,7 +506,7 @@ function PayrollGenerateModal({ onClose, onSaved }: { onClose: () => void; onSav
             </p>
           </div>
           <div className="flex justify-between gap-3 px-4 pb-4 border-t pt-4">
-            <button onClick={() => setStep("form")} className="px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50">رجوع</button>
+            <button onClick={() => setStep("form")} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">رجوع</button>
             <button onClick={handleGenerate} disabled={saving} className="px-5 py-2 text-sm bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-60">
               {saving ? "جاري الإنشاء..." : "تأكيد الإنشاء"}
             </button>
@@ -561,12 +561,12 @@ function EmployeesTab() {
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
-              className="w-full border border-gray-200 rounded-xl pr-9 pl-3 py-2 text-sm focus:ring-2 focus:ring-brand-200 outline-none"
+              className="w-full border border-[#eef2f6] rounded-xl pr-9 pl-3 py-2 text-sm focus:ring-2 focus:ring-brand-200 outline-none"
               placeholder="بحث بالاسم أو الرقم..."
               value={search} onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <select className="border border-gray-200 rounded-xl px-3 py-2 text-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <select className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="">جميع الحالات</option>
             <option value="active">نشط</option>
             <option value="on_leave">في إجازة</option>
@@ -587,7 +587,7 @@ function EmployeesTab() {
           <p>لا يوجد موظفون</p>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 text-xs">
               <tr>
@@ -596,28 +596,28 @@ function EmployeesTab() {
                 <th className="text-right px-4 py-3 font-medium">الراتب الأساسي</th>
                 <th className="text-right px-4 py-3 font-medium">تاريخ التعيين</th>
                 <th className="text-right px-4 py-3 font-medium">الحالة</th>
-                <th className="px-4 py-3" />
+                <th className="px-[10px] py-[6px]" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
               {employees.map((emp) => {
                 const s = STATUS_EMP[emp.status] ?? { label: emp.status, cls: "bg-gray-100 text-gray-500" };
                 return (
-                  <tr key={emp.id} className="hover:bg-gray-50 cursor-pointer" onClick={() => navigate(`/dashboard/hr/employees/${emp.id}`)}>
-                    <td className="px-4 py-3">
+                  <tr key={emp.id} className="hover:bg-[#f8fafc] cursor-pointer" onClick={() => navigate(`/dashboard/hr/employees/${emp.id}`)}>
+                    <td className="px-[10px] py-[6px]">
                       <div className="font-medium text-gray-800">{emp.fullName}</div>
                       <div className="text-xs text-gray-400">{emp.employeeNumber}</div>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-[10px] py-[6px] text-gray-600">
                       <div>{emp.jobTitle || "—"}</div>
                       <div className="text-xs text-gray-400">{emp.department || ""}</div>
                     </td>
-                    <td className="px-4 py-3 text-gray-700 font-medium">{SAR(emp.basicSalary)}</td>
-                    <td className="px-4 py-3 text-gray-500">{emp.hireDate}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px] text-gray-700 font-medium">{SAR(emp.basicSalary)}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{emp.hireDate}</td>
+                    <td className="px-[10px] py-[6px]">
                       <span className={clsx("text-xs px-2 py-1 rounded-full font-medium", s.cls)}>{s.label}</span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                         <button onClick={() => navigate(`/dashboard/hr/employees/${emp.id}`)} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-brand-600">
                           <Eye className="w-4 h-4" />
@@ -684,28 +684,28 @@ function ManualAttendanceModal({ onClose, onSaved, employees }: { onClose: () =>
       <div className="space-y-4 p-4" dir="rtl">
         <div>
           <label className="text-xs text-gray-500 block mb-1">الموظف *</label>
-          <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.employeeId} onChange={setF("employeeId")}>
+          <select className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.employeeId} onChange={setF("employeeId")}>
             <option value="">-- اختر الموظف --</option>
             {employees.map((e) => <option key={e.id} value={e.id}>{e.fullName}</option>)}
           </select>
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">التاريخ *</label>
-          <input type="date" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.date} onChange={setF("date")} />
+          <input type="date" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.date} onChange={setF("date")} />
         </div>
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-gray-500 block mb-1">وقت الدخول</label>
-            <input type="time" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.checkIn} onChange={setF("checkIn")} />
+            <input type="time" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.checkIn} onChange={setF("checkIn")} />
           </div>
           <div>
             <label className="text-xs text-gray-500 block mb-1">وقت الخروج (اختياري)</label>
-            <input type="time" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.checkOut} onChange={setF("checkOut")} />
+            <input type="time" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.checkOut} onChange={setF("checkOut")} />
           </div>
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">الحالة *</label>
-          <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.status} onChange={setF("status")}>
+          <select className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.status} onChange={setF("status")}>
             <option value="present">حاضر</option>
             <option value="absent">غائب</option>
             <option value="late">متأخر</option>
@@ -714,11 +714,11 @@ function ManualAttendanceModal({ onClose, onSaved, employees }: { onClose: () =>
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">ملاحظات (اختياري)</label>
-          <textarea className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none" rows={2} value={form.notes} onChange={setF("notes")} />
+          <textarea className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm resize-none" rows={2} value={form.notes} onChange={setF("notes")} />
         </div>
       </div>
       <div className="flex justify-end gap-3 px-4 pb-4 border-t pt-4">
-        <button onClick={onClose} className="px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50">إلغاء</button>
+        <button onClick={onClose} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">إلغاء</button>
         <button onClick={handleSave} disabled={saving} className="px-5 py-2 text-sm bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-60">
           {saving ? "جاري الحفظ..." : "حفظ"}
         </button>
@@ -778,10 +778,10 @@ function AttendanceTab() {
       <div>
         <div className="flex items-center gap-3 mb-3">
           <h3 className="text-sm font-medium text-gray-700">ملخص شهري</h3>
-          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm" />
+          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="border border-[#eef2f6] rounded-xl px-3 py-1.5 text-sm" />
         </div>
         {loadingSummary ? <SkeletonRows /> : (
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
             {!summaryRes?.data?.employees?.length ? (
               <div className="text-center py-12 text-gray-400 text-sm">لا توجد بيانات حضور لهذا الشهر</div>
             ) : (
@@ -797,12 +797,12 @@ function AttendanceTab() {
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {(summaryRes.data.employees as any[]).map((e: any) => (
-                    <tr key={e.employeeId} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 font-medium text-gray-800">{e.fullName}</td>
-                      <td className="px-4 py-3 text-emerald-700">{e.presentDays}</td>
-                      <td className="px-4 py-3 text-red-600">{e.absentDays}</td>
-                      <td className="px-4 py-3 text-amber-700">{e.lateMinutes}</td>
-                      <td className="px-4 py-3 text-blue-600">{e.overtimeHours}</td>
+                    <tr key={e.employeeId} className="hover:bg-[#f8fafc]">
+                      <td className="px-[10px] py-[6px] font-medium text-gray-800">{e.fullName}</td>
+                      <td className="px-[10px] py-[6px] text-emerald-700">{e.presentDays}</td>
+                      <td className="px-[10px] py-[6px] text-red-600">{e.absentDays}</td>
+                      <td className="px-[10px] py-[6px] text-amber-700">{e.lateMinutes}</td>
+                      <td className="px-[10px] py-[6px] text-blue-600">{e.overtimeHours}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -982,12 +982,12 @@ function LeavesTab() {
       ) : leaves.length === 0 ? (
         <div className="text-center py-12 text-gray-400 text-sm">لا توجد إجازات</div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 text-xs">
               <tr>
                 {statusFilter === "pending" && (
-                  <th className="px-4 py-3 w-8">
+                  <th className="px-[10px] py-[6px] w-8">
                     <input
                       type="checkbox"
                       className="w-4 h-4 rounded cursor-pointer"
@@ -1003,7 +1003,7 @@ function LeavesTab() {
                 <th className="text-right px-4 py-3 font-medium">إلى</th>
                 <th className="text-right px-4 py-3 font-medium">الأيام</th>
                 <th className="text-right px-4 py-3 font-medium">الحالة</th>
-                <th className="px-4 py-3" />
+                <th className="px-[10px] py-[6px]" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -1011,9 +1011,9 @@ function LeavesTab() {
                 const s = STATUS_LEAVE[lv.status] ?? { label: lv.status, cls: "bg-gray-100 text-gray-500" };
                 const isSelected = selectedIds.has(lv.id);
                 return (
-                  <tr key={lv.id} className={clsx("hover:bg-gray-50", isSelected && "bg-blue-50")}>
+                  <tr key={lv.id} className={clsx("hover:bg-[#f8fafc]", isSelected && "bg-blue-50")}>
                     {statusFilter === "pending" && (
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px]">
                         {lv.status === "pending" && (
                           <input
                             type="checkbox"
@@ -1024,15 +1024,15 @@ function LeavesTab() {
                         )}
                       </td>
                     )}
-                    <td className="px-4 py-3 font-medium text-gray-800">{lv.employee?.fullName ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-600">{lv.leaveType}</td>
-                    <td className="px-4 py-3 text-gray-500">{lv.startDate}</td>
-                    <td className="px-4 py-3 text-gray-500">{lv.endDate}</td>
-                    <td className="px-4 py-3 text-gray-700 font-medium">{lv.daysCount} أيام</td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px] font-medium text-gray-800">{lv.employee?.fullName ?? "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-600">{lv.leaveType}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{lv.startDate}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{lv.endDate}</td>
+                    <td className="px-[10px] py-[6px] text-gray-700 font-medium">{lv.daysCount} أيام</td>
+                    <td className="px-[10px] py-[6px]">
                       <span className={clsx("text-xs px-2 py-1 rounded-full font-medium", s.cls)}>{s.label}</span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       {lv.status === "pending" && (
                         <div className="flex items-center gap-1">
                           <button onClick={() => handleApprove(lv.id)} className="p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-600">
@@ -1064,7 +1064,7 @@ function LeavesTab() {
         footer={<><Button variant="secondary" onClick={() => { setRejectTarget(null); setRejectReason(""); }}>تراجع</Button><Button variant="danger" onClick={doReject}>رفض الطلب</Button></>}>
         <div className="space-y-3">
           <p className="text-sm text-gray-600">أدخل سبب الرفض (اختياري):</p>
-          <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="مثال: لا يتوفر بديل في هذه الفترة" rows={2} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all resize-none" />
+          <textarea value={rejectReason} onChange={e => setRejectReason(e.target.value)} placeholder="مثال: لا يتوفر بديل في هذه الفترة" rows={2} className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all resize-none" />
         </div>
       </Modal>
 
@@ -1079,7 +1079,7 @@ function LeavesTab() {
         footer={<><Button variant="secondary" onClick={() => { setBulkRejectConfirm(false); setBulkRejectReason(""); }}>تراجع</Button><Button variant="danger" onClick={doBulkReject}>رفض {selectedIds.size} طلب</Button></>}>
         <div className="space-y-3">
           <p className="text-sm text-gray-600">أدخل سبب الرفض (سيُطبق على جميع الطلبات المحددة):</p>
-          <textarea value={bulkRejectReason} onChange={e => setBulkRejectReason(e.target.value)} placeholder="سبب الرفض..." rows={2} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all resize-none" />
+          <textarea value={bulkRejectReason} onChange={e => setBulkRejectReason(e.target.value)} placeholder="سبب الرفض..." rows={2} className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all resize-none" />
         </div>
       </Modal>
     </div>
@@ -1129,7 +1129,7 @@ function PayrollTab() {
           {payrolls.map((pr) => {
             const s = STATUS_PAYROLL[pr.status] ?? { label: pr.status, cls: "bg-gray-100 text-gray-500" };
             return (
-              <div key={pr.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4">
+              <div key={pr.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-1">
                     <span className="font-semibold text-gray-800">{pr.payrollNumber}</span>
@@ -1233,7 +1233,7 @@ function LoansTab() {
       ) : loans.length === 0 ? (
         <div className="text-center py-12 text-gray-400 text-sm">لا توجد سلف</div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <p className="text-xs text-gray-400 px-4 pt-3 pb-1">انقر على أي صف لعرض جدول الأقساط</p>
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 text-xs">
@@ -1244,7 +1244,7 @@ function LoansTab() {
                 <th className="text-right px-4 py-3 font-medium">الأقساط</th>
                 <th className="text-right px-4 py-3 font-medium">الرصيد المتبقي</th>
                 <th className="text-right px-4 py-3 font-medium">الحالة</th>
-                <th className="px-4 py-3" />
+                <th className="px-[10px] py-[6px]" />
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -1284,7 +1284,7 @@ function LoansTab() {
         footer={<><Button variant="secondary" onClick={() => { setLoanRejectTarget(null); setLoanRejectReason(""); }}>تراجع</Button><Button variant="danger" onClick={doRejectLoan}>رفض الطلب</Button></>}>
         <div className="space-y-3">
           <p className="text-sm text-gray-600">أدخل سبب الرفض (اختياري):</p>
-          <textarea value={loanRejectReason} onChange={e => setLoanRejectReason(e.target.value)} placeholder="سبب الرفض..." rows={2} className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all resize-none" />
+          <textarea value={loanRejectReason} onChange={e => setLoanRejectReason(e.target.value)} placeholder="سبب الرفض..." rows={2} className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all resize-none" />
         </div>
       </Modal>
     </div>
@@ -1299,20 +1299,20 @@ function LoanExpandableRow({ ln, s, remainingAmount, monthlyPayment, startMonth,
   const [expanded, setExpanded] = useState(false);
   return (
     <>
-      <tr className="hover:bg-gray-50 cursor-pointer" onClick={() => setExpanded((v) => !v)}>
-        <td className="px-4 py-3 font-medium text-gray-800">{ln.employee?.fullName ?? "—"}</td>
-        <td className="px-4 py-3 text-gray-500 font-mono text-xs">{ln.loanNumber}</td>
-        <td className="px-4 py-3 font-bold text-gray-800">{SAR(ln.amount)}</td>
-        <td className="px-4 py-3 text-gray-600">{ln.paidInstallments ?? 0} / {ln.totalInstallments}</td>
-        <td className="px-4 py-3">
+      <tr className="hover:bg-[#f8fafc] cursor-pointer" onClick={() => setExpanded((v) => !v)}>
+        <td className="px-[10px] py-[6px] font-medium text-gray-800">{ln.employee?.fullName ?? "—"}</td>
+        <td className="px-[10px] py-[6px] text-gray-500 font-mono text-xs">{ln.loanNumber}</td>
+        <td className="px-[10px] py-[6px] font-bold text-gray-800">{SAR(ln.amount)}</td>
+        <td className="px-[10px] py-[6px] text-gray-600">{ln.paidInstallments ?? 0} / {ln.totalInstallments}</td>
+        <td className="px-[10px] py-[6px]">
           <span className={clsx("font-semibold text-sm", remainingAmount <= 0 ? "text-emerald-700" : "text-gray-800")}>
             {SAR(Math.max(0, remainingAmount))}
           </span>
         </td>
-        <td className="px-4 py-3">
+        <td className="px-[10px] py-[6px]">
           <span className={clsx("text-xs px-2 py-1 rounded-full font-medium", s.cls)}>{s.label}</span>
         </td>
-        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+        <td className="px-[10px] py-[6px]" onClick={(e) => e.stopPropagation()}>
           {ln.approvalStatus === "pending" && (
             <div className="flex items-center gap-1">
               <button onClick={() => onApprove(ln.id)} className="p-1.5 rounded-lg hover:bg-emerald-50 text-emerald-600"><CheckCircle className="w-4 h-4" /></button>
@@ -1324,7 +1324,7 @@ function LoanExpandableRow({ ln, s, remainingAmount, monthlyPayment, startMonth,
       {expanded && (
         <tr>
           <td colSpan={7} className="px-4 pb-3 pt-0 bg-gray-50">
-            <div className="border border-gray-200 rounded-xl p-3 text-xs text-gray-600 space-y-1">
+            <div className="border border-[#eef2f6] rounded-xl p-3 text-xs text-gray-600 space-y-1">
               <div className="font-medium text-gray-700 mb-2">جدول الأقساط</div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 <div>
@@ -1429,7 +1429,7 @@ function ComplianceTab() {
   return (
     <div className="space-y-6">
       {/* Nitaqat */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <Shield className="w-4 h-4 text-brand-600" /> نطاقات (Nitaqat)
         </h3>
@@ -1480,10 +1480,10 @@ function ComplianceTab() {
       </div>
 
       {/* WPS */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex items-center gap-3 mb-4">
           <h3 className="font-semibold text-gray-800 flex-1">نظام حماية الأجور (WPS)</h3>
-          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm" />
+          <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="border border-[#eef2f6] rounded-xl px-3 py-1.5 text-sm" />
         </div>
         {loadingW ? <SkeletonRows /> : (
           <>
@@ -1519,7 +1519,7 @@ function ComplianceTab() {
       </div>
 
       {/* GOSI */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
           <BadgeCheck className="w-4 h-4 text-brand-600" /> التأمينات الاجتماعية (GOSI)
         </h3>
@@ -1578,7 +1578,7 @@ export function HRPage() {
     <div className="p-6 space-y-6 max-w-7xl mx-auto" dir="rtl">
       <PageHeader title="الموارد البشرية" description="إدارة الموظفين والرواتب والحضور والامتثال" />
 
-      <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 w-fit flex-wrap">
+      <div className="flex gap-1 bg-[#f1f5f9] rounded-2xl p-1 w-fit flex-wrap">
         {TABS.map(({ key, label, icon: Icon }) => (
           <button
             key={key}

@@ -89,7 +89,7 @@ export function PricingPage() {
           <h1 className="text-5xl font-black text-gray-900 mb-4">أسعار شفافة وبسيطة</h1>
           <p className="text-xl text-gray-500 mb-8">اختر الخطة المناسبة لحجم عملك</p>
           {/* Toggle */}
-          <div className="inline-flex items-center gap-4 bg-gray-100 rounded-xl p-1.5">
+          <div className="inline-flex items-center gap-4 bg-[#f1f5f9] rounded-xl p-1.5">
             <button
               onClick={() => setYearly(false)}
               className={`px-5 py-2.5 rounded-lg text-sm font-bold transition-all ${!yearly ? "bg-white shadow text-gray-900" : "text-gray-500"}`}
@@ -115,7 +115,7 @@ export function PricingPage() {
                 className={`rounded-2xl p-8 flex flex-col ${
                   plan.highlight
                     ? "bg-brand-500 text-white shadow-2xl scale-105"
-                    : "bg-white border border-gray-200"
+                    : "bg-white border border-[#eef2f6]"
                 }`}
               >
                 {plan.highlight && (
@@ -158,7 +158,7 @@ export function PricingPage() {
                 </ul>
                 <Link
                   to={plan.href}
-                  className={`text-center py-3.5 rounded-xl font-bold text-sm transition-colors ${
+                  className={`text-center py-[6px] rounded-xl font-bold text-sm transition-colors ${
                     plan.highlight
                       ? "bg-white text-brand-500 hover:bg-gray-100"
                       : "bg-brand-500 text-white hover:bg-blue-700"
@@ -176,7 +176,7 @@ export function PricingPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-gray-200">
+                  <tr className="border-b border-[#eef2f6]">
                     <th className="text-right py-4 pr-4 text-sm font-semibold text-gray-500 w-1/2">الميزة</th>
                     <th className="text-center py-4 text-sm font-semibold text-gray-700">الأساسي</th>
                     <th className="text-center py-4 text-sm font-bold text-brand-500">المتقدم</th>
@@ -194,11 +194,11 @@ export function PricingPage() {
                       return <span className={highlight ? "font-semibold text-brand-500" : ""}>{v}</span>;
                     };
                     return (
-                      <tr key={row.feature} className={i % 2 === 0 ? "bg-gray-50" : "bg-white"}>
-                        <td className="py-3.5 pr-4 text-sm text-gray-700">{row.feature}</td>
-                        <td className="py-3.5 text-center text-sm text-gray-500">{cell(row.basic)}</td>
-                        <td className="py-3.5 text-center text-sm">{cell(row.advanced, true)}</td>
-                        <td className="py-3.5 text-center text-sm text-gray-500">{cell(row.enterprise)}</td>
+                      <tr key={row.feature} className={i % 2 === 0 ? "bg-[#f8fafc]" : "bg-white"}>
+                        <td className="py-[6px] pr-4 text-sm text-gray-700">{row.feature}</td>
+                        <td className="py-[6px] text-center text-sm text-gray-500">{cell(row.basic)}</td>
+                        <td className="py-[6px] text-center text-sm">{cell(row.advanced, true)}</td>
+                        <td className="py-[6px] text-center text-sm text-gray-500">{cell(row.enterprise)}</td>
                       </tr>
                     );
                   })}
@@ -212,7 +212,7 @@ export function PricingPage() {
             <h2 className="text-3xl font-black text-gray-900 text-center mb-10">أسئلة شائعة</h2>
             <div className="space-y-4">
               {faqs.map((faq) => (
-                <details key={faq.q} className="bg-white rounded-xl border border-gray-200 group">
+                <details key={faq.q} className="bg-white rounded-2xl border border-[#eef2f6] group">
                   <summary className="px-6 py-4 cursor-pointer font-semibold text-gray-900 flex items-center justify-between list-none">
                     {faq.q}
                     <ChevronDown className="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform shrink-0" />

@@ -22,7 +22,7 @@ function OverviewTab({ onNav }: { onNav: (section: string) => void }) {
     <div className="space-y-6">
       <SectionHeader title="نظرة عامة" sub="ملخص المنصة في الوقت الفعلي"
         action={
-          <button onClick={refetch} className="flex items-center gap-1.5 text-sm text-gray-500 border border-gray-200 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors">
+          <button onClick={refetch} className="flex items-center gap-1.5 text-sm text-gray-500 border border-[#eef2f6] px-3 py-1.5 rounded-xl hover:bg-[#f8fafc] transition-colors">
             <RefreshCw className="w-3.5 h-3.5" /> تحديث
           </button>
         }
@@ -31,7 +31,7 @@ function OverviewTab({ onNav }: { onNav: (section: string) => void }) {
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
         {kpis.map((k) => (
-          <div key={k.label} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4 hover:shadow-sm transition-shadow">
+          <div key={k.label} className="bg-white rounded-2xl border border-[#eef2f6] p-5 flex items-center gap-4 hover:shadow-sm transition-shadow">
             <div className={clsx("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", k.bg)}>
               <k.icon className={clsx("w-5 h-5", k.color)} />
             </div>
@@ -45,7 +45,7 @@ function OverviewTab({ onNav }: { onNav: (section: string) => void }) {
 
       {/* Plan distribution */}
       {!loading && (stats?.planDistribution?.length ?? 0) > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
           <h3 className="text-sm font-semibold text-gray-700 mb-5">توزيع الباقات</h3>
           <div className="space-y-4">
             {stats!.planDistribution.map((p: any) => {
@@ -70,9 +70,9 @@ function OverviewTab({ onNav }: { onNav: (section: string) => void }) {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[
           { label: "إضافة منشأة", icon: Plus, section: "orgs", cls: "bg-brand-500 text-white hover:bg-brand-600" },
-          { label: "إعلان جديد", icon: Megaphone, section: "announce", cls: "bg-white border border-gray-100 text-gray-700 hover:bg-gray-50" },
-          { label: "تذاكر الدعم", icon: Headphones, section: "support", cls: "bg-white border border-gray-100 text-gray-700 hover:bg-gray-50" },
-          { label: "صحة النظام", icon: Activity, section: "system", cls: "bg-white border border-gray-100 text-gray-700 hover:bg-gray-50" },
+          { label: "إعلان جديد", icon: Megaphone, section: "announce", cls: "bg-white border border-[#eef2f6] text-gray-700 hover:bg-[#f8fafc]" },
+          { label: "تذاكر الدعم", icon: Headphones, section: "support", cls: "bg-white border border-[#eef2f6] text-gray-700 hover:bg-[#f8fafc]" },
+          { label: "صحة النظام", icon: Activity, section: "system", cls: "bg-white border border-[#eef2f6] text-gray-700 hover:bg-[#f8fafc]" },
         ].map((a) => (
           <button key={a.label} onClick={() => onNav(a.section)}
             className={clsx("flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-medium transition-colors", a.cls)}>

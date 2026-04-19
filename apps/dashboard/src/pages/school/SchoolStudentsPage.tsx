@@ -122,7 +122,7 @@ export function SchoolStudentsPage() {
         <div className="flex gap-2">
           <button
             onClick={() => navigate("/school/import")}
-            className="flex items-center gap-2 px-3 py-2 border border-gray-200 text-gray-600 rounded-xl text-sm hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-3 py-2 border border-[#eef2f6] text-gray-600 rounded-xl text-sm hover:bg-[#f8fafc] transition-colors"
           >
             <Upload className="w-4 h-4" />
             <span className="hidden sm:inline">استيراد</span>
@@ -146,7 +146,7 @@ export function SchoolStudentsPage() {
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             placeholder="بحث بالاسم، الرقم، أو الهوية..."
-            className="w-full pr-9 pl-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+            className="w-full pr-9 pl-3 py-2 rounded-xl border border-[#eef2f6] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
           />
         </div>
 
@@ -154,7 +154,7 @@ export function SchoolStudentsPage() {
         <select
           value={gradeFilter}
           onChange={(e) => { setGradeFilter(e.target.value); setClassRoomFilter(""); setPage(1); }}
-          className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+          className="px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
         >
           <option value="">كل الصفوف</option>
           {GRADE_GROUPS.map((group) => (
@@ -170,7 +170,7 @@ export function SchoolStudentsPage() {
         <select
           value={classRoomFilter}
           onChange={(e) => { setClassRoomFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+          className="px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
         >
           <option value="">كل الفصول</option>
           {classRooms
@@ -186,7 +186,7 @@ export function SchoolStudentsPage() {
           className={`flex items-center gap-1.5 px-3 py-2 rounded-xl border text-sm transition-colors ${
             unassignedOnly
               ? "bg-amber-50 border-amber-300 text-amber-700 font-semibold"
-              : "border-gray-200 text-gray-600 hover:bg-gray-50"
+              : "border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]"
           }`}
         >
           <AlertTriangle className="w-3.5 h-3.5" />
@@ -196,7 +196,7 @@ export function SchoolStudentsPage() {
         {(search || classRoomFilter || gradeFilter || unassignedOnly) && (
           <button
             onClick={resetFilters}
-            className="px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-500 hover:bg-gray-50"
+            className="px-3 py-2 rounded-xl border border-[#eef2f6] text-xs text-gray-500 hover:bg-[#f8fafc]"
           >
             مسح الفلاتر
           </button>
@@ -207,13 +207,13 @@ export function SchoolStudentsPage() {
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(9)].map((_, i) => (
-            <div key={i} className="animate-pulse bg-white rounded-2xl border border-gray-100 h-36" />
+            <div key={i} className="animate-pulse bg-white rounded-2xl border border-[#eef2f6] h-36" />
           ))}
         </div>
       ) : error ? (
         <div className="bg-white rounded-2xl border border-red-100 py-12 text-center text-red-400 text-sm">{error}</div>
       ) : students.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 py-16 flex flex-col items-center gap-3 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] py-16 flex flex-col items-center gap-3 text-center">
           <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center">
             <GraduationCap className="w-7 h-7 text-emerald-500" />
           </div>
@@ -252,7 +252,7 @@ export function SchoolStudentsPage() {
               return (
                 <div
                   key={s.id}
-                  className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:border-emerald-200 hover:shadow-md transition-all"
+                  className="group relative bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4 hover:border-emerald-200 hover:shadow-md transition-all"
                 >
                   {/* Number badge */}
                   <span className="absolute top-3 left-3 text-[10px] font-bold text-gray-300 tabular-nums">
@@ -261,7 +261,7 @@ export function SchoolStudentsPage() {
 
                   {/* Top row: avatar + name + grade badge */}
                   <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-600/10 flex items-center justify-center shrink-0 text-emerald-700 font-bold text-sm select-none">
+                    <div className="w-9 h-9 rounded-[10px] bg-emerald-600/10 flex items-center justify-center shrink-0 text-emerald-700 font-bold text-sm select-none">
                       {initials}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -303,21 +303,21 @@ export function SchoolStudentsPage() {
                   <div className="absolute top-3 right-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button
                       onClick={() => navigate(`/school/students/${s.id}`)}
-                      className="p-1.5 rounded-lg bg-white border border-gray-100 shadow-sm hover:bg-blue-50 hover:border-blue-200 text-gray-400 hover:text-blue-600 transition-colors"
+                      className="p-1.5 rounded-lg bg-white border border-[#eef2f6] shadow-sm hover:bg-blue-50 hover:border-blue-200 text-gray-400 hover:text-blue-600 transition-colors"
                       title="ملف الطالب"
                     >
                       <IdCard className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => openEdit(s)}
-                      className="p-1.5 rounded-lg bg-white border border-gray-100 shadow-sm hover:bg-emerald-50 hover:border-emerald-200 text-gray-400 hover:text-emerald-600 transition-colors"
+                      className="p-1.5 rounded-lg bg-white border border-[#eef2f6] shadow-sm hover:bg-emerald-50 hover:border-emerald-200 text-gray-400 hover:text-emerald-600 transition-colors"
                     >
                       <Pencil className="w-3.5 h-3.5" />
                     </button>
                     <button
                       onClick={() => handleDelete(s.id, s.fullName)}
                       disabled={deleting === s.id}
-                      className="p-1.5 rounded-lg bg-white border border-gray-100 shadow-sm hover:bg-red-50 hover:border-red-200 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                      className="p-1.5 rounded-lg bg-white border border-[#eef2f6] shadow-sm hover:bg-red-50 hover:border-red-200 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
                     >
                       {deleting === s.id ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -333,7 +333,7 @@ export function SchoolStudentsPage() {
 
           {/* Pagination */}
           {pages > 1 && (
-            <div className="flex items-center justify-between bg-white rounded-2xl border border-gray-100 px-4 py-3">
+            <div className="flex items-center justify-between bg-white rounded-2xl border border-[#eef2f6] px-4 py-3">
               <span className="text-xs text-gray-500">
                 صفحة {page} من {pages} · {total} طالب
               </span>
@@ -384,7 +384,7 @@ export function SchoolStudentsPage() {
           <>
             <button
               onClick={() => setModal({ open: false, mode: "add" })}
-              className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50"
+              className="px-4 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc]"
             >
               إلغاء
             </button>
@@ -405,7 +405,7 @@ export function SchoolStudentsPage() {
               <input
                 value={form.fullName}
                 onChange={(e) => setForm((f) => ({ ...f, fullName: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 placeholder="الاسم الرباعي"
               />
             </div>
@@ -414,7 +414,7 @@ export function SchoolStudentsPage() {
               <input
                 value={form.studentNumber}
                 onChange={(e) => setForm((f) => ({ ...f, studentNumber: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 placeholder="مثال: 2024001"
               />
             </div>
@@ -423,7 +423,7 @@ export function SchoolStudentsPage() {
               <input
                 value={form.nationalId}
                 onChange={(e) => setForm((f) => ({ ...f, nationalId: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 placeholder="10 أرقام"
               />
             </div>
@@ -432,7 +432,7 @@ export function SchoolStudentsPage() {
               <select
                 value={form.classRoomId}
                 onChange={(e) => setForm((f) => ({ ...f, classRoomId: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+                className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
               >
                 <option value="">اختر الفصل (اختياري)</option>
                 {GRADE_GROUPS.map((group) => {
@@ -452,7 +452,7 @@ export function SchoolStudentsPage() {
             </div>
           </div>
 
-          <div className="border-t border-gray-100 pt-4">
+          <div className="border-t border-[#eef2f6] pt-4">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">بيانات ولي الأمر</p>
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -460,7 +460,7 @@ export function SchoolStudentsPage() {
                 <input
                   value={form.guardianName}
                   onChange={(e) => setForm((f) => ({ ...f, guardianName: e.target.value }))}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 />
               </div>
               <div>
@@ -468,7 +468,7 @@ export function SchoolStudentsPage() {
                 <input
                   value={form.guardianPhone}
                   onChange={(e) => setForm((f) => ({ ...f, guardianPhone: e.target.value }))}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                   placeholder="05xxxxxxxx"
                 />
               </div>
@@ -477,7 +477,7 @@ export function SchoolStudentsPage() {
                 <select
                   value={form.guardianRelation}
                   onChange={(e) => setForm((f) => ({ ...f, guardianRelation: e.target.value }))}
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+                  className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
                 >
                   <option value="">اختر الصلة</option>
                   {GUARDIAN_RELATIONS.map((r) => (

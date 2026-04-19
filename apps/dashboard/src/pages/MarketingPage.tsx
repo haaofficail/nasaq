@@ -172,7 +172,7 @@ export function MarketingPage() {
           { label: "التقييمات",     value: stats.total ?? reviews.length, color: "text-amber-600", bg: "bg-amber-50", icon: Star },
           { label: "متوسط التقييم", value: stats.avg ? stats.avg.toFixed(1) : "—", color: "text-amber-600", bg: "bg-amber-50", icon: BarChart2 },
         ].map((s, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center mb-3", s.bg)}>
               <s.icon className={clsx("w-4 h-4", s.color)} />
             </div>
@@ -186,7 +186,7 @@ export function MarketingPage() {
       {tabId === "retention" && (
         <div className="space-y-6 max-w-4xl">
           {/* Header & Main Toggle */}
-          <div className={clsx("rounded-2xl border p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 transition-colors shadow-sm", retentionActive ? "bg-white border-brand-200" : "bg-gray-50 border-gray-100")}>
+          <div className={clsx("rounded-2xl border p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 transition-colors shadow-sm", retentionActive ? "bg-white border-brand-200" : "bg-gray-50 border-[#eef2f6]")}>
             <div className="flex items-center gap-4">
               <div className={clsx("w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-inner", retentionActive ? "bg-gradient-to-br from-brand-400 to-brand-600 text-white" : "bg-gray-200 text-gray-400")}>
                 <RefreshCw className={clsx("w-7 h-7", retentionActive && "animate-[spin_4s_linear_infinite]")} />
@@ -197,7 +197,7 @@ export function MarketingPage() {
               </div>
             </div>
             
-            <div className="flex items-center gap-3 shrink-0 bg-white px-4 py-2 rounded-xl shadow-sm border border-gray-100">
+            <div className="flex items-center gap-3 shrink-0 bg-white px-4 py-2 rounded-xl shadow-sm border border-[#eef2f6]">
               <span className={clsx("text-sm font-bold", retentionActive ? "text-brand-600" : "text-gray-400")}>
                 {retentionActive ? "المحرك يراقب ويعمل الان" : "المحرك متوقف"}
               </span>
@@ -214,7 +214,7 @@ export function MarketingPage() {
           <div className={clsx("grid grid-cols-1 md:grid-cols-2 gap-6 transition-opacity duration-300", !retentionActive && "opacity-50 pointer-events-none")}>
             
             {/* Condition & Channel */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-6">
               <div className="flex items-center gap-2 mb-2 pb-3 border-b border-gray-50">
                 <div className="w-6 h-6 rounded-lg bg-gray-100 flex items-center justify-center text-gray-600"><Clock className="w-3.5 h-3.5" /></div>
                 <h3 className="font-bold text-gray-900">شروط الإطلاق</h3>
@@ -224,7 +224,7 @@ export function MarketingPage() {
                 <label className="block text-sm font-semibold text-gray-700 mb-2">عدد أيام الانقطاع لاسترجاع العميل</label>
                 <div className="relative">
                   <input type="number" value={retentionDays} onChange={e => setRetentionDays(Number(e.target.value))} 
-                         className="w-full pl-16 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-brand-500 outline-none text-xl font-bold" />
+                         className="w-full pl-16 pr-4 py-3 bg-[#f8fafc] border border-[#eef2f6] rounded-xl focus:bg-white focus:border-brand-500 outline-none text-xl font-bold" />
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium select-none">يوم</span>
                 </div>
                 <p className="text-xs text-gray-400 mt-2">سيعمل المحرك على استهداف من تجاوز انقطاعهم {retentionDays} يوماً بدقة.</p>
@@ -236,8 +236,8 @@ export function MarketingPage() {
                   {Object.entries({ whatsapp: "واتساب", sms: "رسالة نصية", email: "الإيميل" }).map(([key, label]) => (
                     <button key={key} onClick={() => setRetentionChannels(p => ({ ...p, [key]: !(p as any)[key] }))}
                             className={clsx("flex items-center gap-2 px-4 py-2 border rounded-xl transition-all cursor-pointer",
-                              (retentionChannels as any)[key] ? "border-brand-500 bg-brand-50 text-brand-700 ring-1 ring-brand-500" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
-                      <div className={clsx("w-4 h-4 rounded-md border flex items-center justify-center", (retentionChannels as any)[key] ? "bg-brand-500 border-brand-500 text-white" : "border-gray-300")}>
+                              (retentionChannels as any)[key] ? "border-brand-500 bg-brand-50 text-brand-700 ring-1 ring-brand-500" : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]")}>
+                      <div className={clsx("w-4 h-4 rounded-md border flex items-center justify-center", (retentionChannels as any)[key] ? "bg-brand-500 border-brand-500 text-white" : "border-[#eef2f6]")}>
                          {(retentionChannels as any)[key] && <CheckCircle className="w-3 h-3" />}
                       </div>
                       <span className="text-sm font-bold">{label}</span>
@@ -248,7 +248,7 @@ export function MarketingPage() {
             </div>
 
             {/* AI Coupon Generator */}
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-6">
               <div className="flex items-center gap-2 mb-2 pb-3 border-b border-gray-50">
                 <div className="w-6 h-6 rounded-lg bg-orange-100 flex items-center justify-center text-orange-600"><Tag className="w-3.5 h-3.5" /></div>
                 <h3 className="font-bold text-gray-900">الكوبون التعويضي</h3>
@@ -287,7 +287,7 @@ export function MarketingPage() {
             </div>
 
             {/* Template */}
-            <div className="md:col-span-2 bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+            <div className="md:col-span-2 bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-gray-50">
                 <div className="w-6 h-6 rounded-lg bg-blue-100 flex items-center justify-center text-blue-600"><MessageCircle className="w-3.5 h-3.5" /></div>
                 <h3 className="font-bold text-gray-900">نص الرسالة المطاطي التلقائي</h3>
@@ -302,7 +302,7 @@ export function MarketingPage() {
                 </div>
                 <textarea rows={4} value={retentionMsg} onChange={e => setRetentionMsg(e.target.value)}
                           placeholder="مرحباً {{customer_name}}، مضى {{absent_days}} يوم ولم نرك..."
-                          className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 outline-none focus:bg-white focus:border-brand-500 transition-colors resize-none text-sm leading-relaxed" />
+                          className="w-full bg-[#f8fafc] border border-[#eef2f6] rounded-xl px-4 py-3 outline-none focus:bg-white focus:border-brand-500 transition-colors resize-none text-sm leading-relaxed" />
               </div>
 
               <div className="flex justify-end pt-2">
@@ -320,9 +320,9 @@ export function MarketingPage() {
       {tabId === "campaigns" && (
         <div className="space-y-3">
           {cLoading ? (
-            [...Array(3)].map((_, i) => <div key={i} className="h-16 bg-gray-100 rounded-2xl animate-pulse" />)
+            [...Array(3)].map((_, i) => <div key={i} className="h-16 bg-[#f1f5f9] rounded-2xl animate-pulse" />)
           ) : campaigns.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
               <Megaphone className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-sm font-semibold text-gray-500 mb-1">لا توجد حملات</p>
               <p className="text-xs text-gray-400 mb-4">أنشئ حملتك الأولى للتواصل مع عملائك</p>
@@ -332,8 +332,8 @@ export function MarketingPage() {
             campaigns.map((c: any) => {
               const st = STATUS_LABELS[c.status] ?? STATUS_LABELS.draft;
               return (
-                <div key={c.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4 hover:border-gray-200 transition-colors">
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                <div key={c.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-4 hover:border-[#eef2f6] transition-colors">
+                  <div className="w-9 h-9 rounded-[10px] bg-blue-50 flex items-center justify-center shrink-0">
                     <Megaphone className="w-5 h-5 text-brand-500" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -367,7 +367,7 @@ export function MarketingPage() {
 
       {/* ── COUPONS ─────────────────────────────────────── */}
       {tabId === "coupons" && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           {coLoading ? (
             <div className="p-8 flex justify-center"><div className="w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" /></div>
           ) : coupons.length === 0 ? (
@@ -380,7 +380,7 @@ export function MarketingPage() {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/60">
+                <tr className="border-b border-[#eef2f6] bg-gray-50/60">
                   {["الكود", "الاسم", "الخصم", "الحد الأدنى", "الاستخدام", "الانتهاء", "الحالة", ""].map(h => (
                     <th key={h} className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">{h}</th>
                   ))}
@@ -388,22 +388,22 @@ export function MarketingPage() {
               </thead>
               <tbody>
                 {coupons.map((c: any) => (
-                  <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <td className="py-3 px-4 font-mono font-bold text-brand-500">{c.code}</td>
-                    <td className="py-3 px-4 font-medium text-gray-900">{c.name}</td>
-                    <td className="py-3 px-4 tabular-nums">
+                  <tr key={c.id} className="border-b border-gray-50 hover:bg-[#f8fafc]/50 transition-colors">
+                    <td className="py-[6px] px-[10px] font-mono font-bold text-brand-500">{c.code}</td>
+                    <td className="py-[6px] px-[10px] font-medium text-gray-900">{c.name}</td>
+                    <td className="py-[6px] px-[10px] tabular-nums">
                       {c.discountType === "percentage" ? `${c.discountValue}%` : `${c.discountValue} ر.س`}
                     </td>
-                    <td className="py-3 px-4 text-gray-500 tabular-nums">
+                    <td className="py-[6px] px-[10px] text-gray-500 tabular-nums">
                       {c.minOrderAmount ? `${c.minOrderAmount} ر.س` : "—"}
                     </td>
-                    <td className="py-3 px-4 text-gray-500 tabular-nums">
+                    <td className="py-[6px] px-[10px] text-gray-500 tabular-nums">
                       {c.timesUsed || 0}{c.maxUses ? `/${c.maxUses}` : ""}
                     </td>
-                    <td className="py-3 px-4 text-gray-400 text-xs">
+                    <td className="py-[6px] px-[10px] text-gray-400 text-xs">
                       {c.expiresAt ? new Date(c.expiresAt).toLocaleDateString("ar-SA") : "—"}
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-[6px] px-[10px]">
                       <button
                         onClick={async () => { await toggleCoupon(c); refetchCoupons(); }}
                         className={clsx(
@@ -415,7 +415,7 @@ export function MarketingPage() {
                         {c.isActive ? "فعّال" : "موقوف"}
                       </button>
                     </td>
-                    <td className="py-3 px-4">
+                    <td className="py-[6px] px-[10px]">
                       <button onClick={async () => { await deleteCoupon(c.id); refetchCoupons(); }} className="p-1.5 text-gray-300 hover:text-red-400 transition-colors rounded-lg hover:bg-red-50">
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -433,7 +433,7 @@ export function MarketingPage() {
         <div className="space-y-4">
           {/* Stats bar */}
           {stats.total > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <div className="flex items-center gap-6 flex-wrap">
                 <div className="text-center">
                   <p className="text-3xl font-black text-amber-500">{stats.avg?.toFixed(1) ?? "—"}</p>
@@ -471,9 +471,9 @@ export function MarketingPage() {
           )}
 
           {rLoading ? (
-            [...Array(3)].map((_, i) => <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />)
+            [...Array(3)].map((_, i) => <div key={i} className="h-24 bg-[#f1f5f9] rounded-2xl animate-pulse" />)
           ) : reviews.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
               <Star className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-sm font-semibold text-gray-500 mb-1">لا توجد تقييمات</p>
               <p className="text-xs text-gray-400 mb-4">أرسل طلب تقييم لعملائك لبدء جمع الآراء</p>
@@ -481,7 +481,7 @@ export function MarketingPage() {
             </div>
           ) : (
             reviews.map((r: any) => (
-              <div key={r.id} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3 hover:border-gray-200 transition-colors">
+              <div key={r.id} className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-3 hover:border-[#eef2f6] transition-colors">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
@@ -534,7 +534,7 @@ export function MarketingPage() {
                       value={replyText}
                       onChange={e => setReplyText(e.target.value)}
                       placeholder="اكتب ردك..."
-                      className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-brand-500 transition-colors"
+                      className="flex-1 rounded-xl border border-[#eef2f6] px-3 py-2 text-sm outline-none focus:border-brand-500 transition-colors"
                     />
                     <button
                       onClick={handleReply}
@@ -555,19 +555,19 @@ export function MarketingPage() {
       {tabId === "abandoned" && (
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {[
-            { label: "إجمالي السلات المتروكة", value: cartStats.total ?? 0, icon: ShoppingCart, color: "text-gray-700", bg: "bg-gray-50" },
+            { label: "إجمالي السلات المتروكة", value: cartStats.total ?? 0, icon: ShoppingCart, color: "text-gray-700", bg: "bg-[#f8fafc]" },
             { label: "تم استرداده", value: cartStats.recovered ?? 0, icon: CheckCircle, color: "text-emerald-600", bg: "bg-emerald-50" },
             { label: "معدل الاسترداد", value: `${cartStats.recoveryRate ?? 0}%`, icon: BarChart2, color: "text-brand-500", bg: "bg-blue-50" },
           ].map((s, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5">
-              <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center mb-3", s.bg)}>
+            <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-5">
+              <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center mb-3", s.bg)}>
                 <s.icon className={clsx("w-5 h-5", s.color)} />
               </div>
               <p className={clsx("text-3xl font-bold tabular-nums", s.color)}>{s.value}</p>
               <p className="text-sm text-gray-400 mt-1">{s.label}</p>
             </div>
           ))}
-          <div className="sm:col-span-3 bg-white rounded-2xl border border-gray-100 p-8 text-center">
+          <div className="sm:col-span-3 bg-white rounded-2xl border border-[#eef2f6] p-8 text-center">
             <ShoppingCart className="w-10 h-10 text-gray-200 mx-auto mb-3" />
             <p className="text-sm text-gray-500">
               السلات المتروكة تُسجَّل تلقائياً عندما يبدأ عميل عملية حجز ولا يكملها.<br />
@@ -628,7 +628,7 @@ export function MarketingPage() {
               onChange={e => setCampForm(f => ({ ...f, body: e.target.value }))}
               rows={4}
               placeholder="أهلاً {customer_name}، لدينا عرض خاص لك..."
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors resize-none"
+              className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors resize-none"
             />
             <p className="text-xs text-gray-400 mt-1">{campForm.body.length} حرف</p>
           </div>

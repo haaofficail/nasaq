@@ -24,7 +24,7 @@ export function Pagination({ page, pageSize, total, onPage, label = "نتيجة"
         <button
           onClick={() => onPage(Math.max(1, page - 1))}
           disabled={page === 1}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#eef2f6] text-gray-500 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
@@ -34,7 +34,7 @@ export function Pagination({ page, pageSize, total, onPage, label = "نتيجة"
         <button
           onClick={() => onPage(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
-          className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 text-gray-500 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#eef2f6] text-gray-500 hover:bg-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
         >
           <ChevronLeft className="w-4 h-4" />
         </button>

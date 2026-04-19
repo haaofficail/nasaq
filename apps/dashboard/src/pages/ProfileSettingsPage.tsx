@@ -29,7 +29,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 function Section({ title, subtitle, icon: Icon, children }: { title: string; subtitle?: string; icon: any; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-3">
         <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
           <Icon className="w-4 h-4 text-brand-500" />
@@ -120,11 +120,11 @@ export function ProfileSettingsPage() {
     return (
       <div className="space-y-5">
         {[...Array(3)].map((_, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 animate-pulse space-y-4">
+          <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-6 animate-pulse space-y-4">
             <div className="h-4 w-32 bg-gray-100 rounded" />
             <div className="grid grid-cols-2 gap-4">
-              <div className="h-10 bg-gray-100 rounded-xl" />
-              <div className="h-10 bg-gray-100 rounded-xl" />
+              <div className="h-10 bg-[#f1f5f9] rounded-xl" />
+              <div className="h-10 bg-[#f1f5f9] rounded-xl" />
             </div>
           </div>
         ))}
@@ -145,7 +145,7 @@ export function ProfileSettingsPage() {
         <div className="flex gap-2">
           {dirty && (
             <button onClick={() => { refetch(); setDirty(false); }}
-              className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
+              className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500 transition-colors">
               <RefreshCw className="w-4 h-4" />
             </button>
           )}
@@ -172,7 +172,7 @@ export function ProfileSettingsPage() {
               onChange={e => f("nameEn", e.target.value)} placeholder="Nasaq Events Co." dir="ltr" />
           </div>
           {org?.slug && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-xl text-xs text-gray-500">
+            <div className="flex items-center gap-2 px-3 py-2 bg-[#f8fafc] rounded-xl text-xs text-gray-500">
               <Globe className="w-3.5 h-3.5 shrink-0" />
               <span>رابط الحجز: <span className="font-mono text-brand-600 select-all">nasaq.sa/{org.slug}</span></span>
             </div>
@@ -184,7 +184,7 @@ export function ProfileSettingsPage() {
       <Section title="شعار المنشأة" subtitle="يظهر في الموقع والفواتير وصفحة الحجز" icon={ImageIcon}>
         <div className="flex items-start gap-5">
           {/* Preview */}
-          <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50 shrink-0">
+          <div className="w-24 h-24 rounded-2xl border-2 border-dashed border-[#eef2f6] flex items-center justify-center overflow-hidden bg-[#f8fafc] shrink-0">
             {form.logo
               ? <img src={form.logo} alt="logo" className="w-full h-full object-contain p-1" />
               : <ImageIcon className="w-8 h-8 text-gray-300" />
@@ -196,7 +196,7 @@ export function ProfileSettingsPage() {
             <div className="flex gap-2 flex-wrap">
               <button
                 onClick={() => setLogoPicker(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-700 hover:bg-[#f8fafc] transition-colors"
               >
                 <Upload className="w-3.5 h-3.5" /> اختر من المكتبة
               </button>
@@ -273,7 +273,7 @@ export function ProfileSettingsPage() {
               <div className="flex items-center gap-3">
                 <input type="color" value={form.primaryColor}
                   onChange={e => f("primaryColor", e.target.value)}
-                  className="w-10 h-10 rounded-xl border border-gray-200 cursor-pointer p-0.5" />
+                  className="w-9 h-9 rounded-[10px] border border-[#eef2f6] cursor-pointer p-0.5" />
                 <Input name="primaryColorHex" value={form.primaryColor}
                   onChange={e => f("primaryColor", e.target.value)} dir="ltr" placeholder="#5b9bd5" />
               </div>
@@ -283,13 +283,13 @@ export function ProfileSettingsPage() {
               <div className="flex items-center gap-3">
                 <input type="color" value={form.secondaryColor}
                   onChange={e => f("secondaryColor", e.target.value)}
-                  className="w-10 h-10 rounded-xl border border-gray-200 cursor-pointer p-0.5" />
+                  className="w-9 h-9 rounded-[10px] border border-[#eef2f6] cursor-pointer p-0.5" />
                 <Input name="secondaryColorHex" value={form.secondaryColor}
                   onChange={e => f("secondaryColor", e.target.value)} dir="ltr" placeholder="#C8A951" />
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100">
+          <div className="flex items-center gap-3 p-3 rounded-xl border border-[#eef2f6]">
             <div className="w-8 h-8 rounded-xl" style={{ background: form.primaryColor }} />
             <div className="w-8 h-8 rounded-xl" style={{ background: form.secondaryColor }} />
             <span className="text-xs text-gray-500">معاينة الألوان</span>

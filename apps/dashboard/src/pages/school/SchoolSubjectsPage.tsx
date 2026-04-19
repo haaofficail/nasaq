@@ -47,7 +47,7 @@ function SubjectModal({ editing, onClose, onSaved }: { editing: any | null; onCl
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
           <h2 className="text-base font-black text-gray-900">{editing ? "تعديل المادة" : "إضافة مادة دراسية"}</h2>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-4 h-4" /></button>
         </div>
@@ -64,7 +64,7 @@ function SubjectModal({ editing, onClose, onSaved }: { editing: any | null; onCl
               onChange={(e) => setName(e.target.value)}
               placeholder="مثال: رياضيات"
               autoFocus
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
             />
           </div>
           <div>
@@ -78,7 +78,7 @@ function SubjectModal({ editing, onClose, onSaved }: { editing: any | null; onCl
                     "flex-1 py-2 rounded-xl text-sm font-medium border transition-all",
                     type === t
                       ? `${SUBJECT_TYPES[t].bg} ${SUBJECT_TYPES[t].color} ${SUBJECT_TYPES[t].border}`
-                      : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                      : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]"
                   )}
                 >
                   {SUBJECT_TYPES[t].label}
@@ -92,7 +92,7 @@ function SubjectModal({ editing, onClose, onSaved }: { editing: any | null; onCl
               type="number"
               value={sortOrder}
               onChange={(e) => setSortOrder(Number(e.target.value))}
-              className="w-24 px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400"
+              className="w-24 px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400"
               dir="ltr"
             />
           </div>
@@ -101,7 +101,7 @@ function SubjectModal({ editing, onClose, onSaved }: { editing: any | null; onCl
               className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors">
               {saving ? "جاري الحفظ..." : editing ? "حفظ التعديلات" : "إضافة المادة"}
             </button>
-            <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">إلغاء</button>
+            <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc] transition-colors">إلغاء</button>
           </div>
         </div>
       </div>
@@ -133,7 +133,7 @@ function GradeLevelModal({ editing, onClose, onSaved }: { editing: any | null; o
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
           <h2 className="text-base font-black text-gray-900">{editing ? "تعديل الصف" : "إضافة صف دراسي"}</h2>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-4 h-4" /></button>
         </div>
@@ -150,7 +150,7 @@ function GradeLevelModal({ editing, onClose, onSaved }: { editing: any | null; o
               onChange={(e) => setName(e.target.value)}
               placeholder="مثال: الأول المتوسط"
               autoFocus
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+              className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
             />
           </div>
           <div>
@@ -159,7 +159,7 @@ function GradeLevelModal({ editing, onClose, onSaved }: { editing: any | null; o
               {STAGES.map((s) => (
                 <button key={s} onClick={() => setStage(s)}
                   className={clsx("flex-1 py-2 rounded-xl text-sm font-medium border transition-all",
-                    stage === s ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                    stage === s ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]"
                   )}>
                   {s}
                 </button>
@@ -169,14 +169,14 @@ function GradeLevelModal({ editing, onClose, onSaved }: { editing: any | null; o
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">ترتيب العرض</label>
             <input type="number" value={sortOrder} onChange={(e) => setSortOrder(Number(e.target.value))}
-              className="w-24 px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400" dir="ltr" />
+              className="w-24 px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400" dir="ltr" />
           </div>
           <div className="flex gap-3 pt-1">
             <button onClick={handleSave} disabled={saving}
               className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors">
               {saving ? "جاري الحفظ..." : editing ? "حفظ التعديلات" : "إضافة الصف"}
             </button>
-            <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">إلغاء</button>
+            <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc] transition-colors">إلغاء</button>
           </div>
         </div>
       </div>
@@ -212,7 +212,7 @@ function LinkSubjectModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
           <div>
             <h2 className="text-base font-black text-gray-900">إضافة مادة للصف</h2>
             <p className="text-xs text-gray-500 mt-0.5">{gradeName}</p>
@@ -232,7 +232,7 @@ function LinkSubjectModal({
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">المادة الدراسية <span className="text-red-400">*</span></label>
                 <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}
-                  className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 bg-white">
+                  className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 bg-white">
                   <option value="">اختر المادة...</option>
                   {["core","skill","activity"].map((type) => {
                     const group = unlinked.filter((s) => s.type === type);
@@ -248,14 +248,14 @@ function LinkSubjectModal({
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">الحصص الأسبوعية</label>
                 <input type="number" min={1} max={40} value={weeklyHours} onChange={(e) => setWeeklyHours(Number(e.target.value))}
-                  className="w-24 px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400" dir="ltr" />
+                  className="w-24 px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400" dir="ltr" />
               </div>
               <div className="flex gap-3 pt-1">
                 <button onClick={handleLink} disabled={saving}
                   className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors">
                   {saving ? "جاري الإضافة..." : "إضافة للصف"}
                 </button>
-                <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">إلغاء</button>
+                <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc] transition-colors">إلغاء</button>
               </div>
             </>
           )}
@@ -317,10 +317,10 @@ function GradeSubjectsPanel({
 
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {[...Array(6)].map((_, i) => <div key={i} className="h-14 bg-gray-100 rounded-xl animate-pulse" />)}
+          {[...Array(6)].map((_, i) => <div key={i} className="h-14 bg-[#f1f5f9] rounded-xl animate-pulse" />)}
         </div>
       ) : linked.length === 0 ? (
-        <div className="bg-gray-50 rounded-2xl border border-gray-100 py-12 flex flex-col items-center gap-3 text-center">
+        <div className="bg-gray-50 rounded-2xl border border-[#eef2f6] py-12 flex flex-col items-center gap-3 text-center">
           <div className="w-12 h-12 rounded-xl bg-gray-100 flex items-center justify-center">
             <BookOpen className="w-6 h-6 text-gray-300" />
           </div>
@@ -343,8 +343,8 @@ function GradeSubjectsPanel({
                   {list.map((s: any) => (
                     <div key={s.id}
                       className={clsx("flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all group",
-                        SUBJECT_TYPES[s.type]?.bg ?? "bg-gray-50",
-                        SUBJECT_TYPES[s.type]?.border ?? "border-gray-200"
+                        SUBJECT_TYPES[s.type]?.bg ?? "bg-[#f8fafc]",
+                        SUBJECT_TYPES[s.type]?.border ?? "border-[#eef2f6]"
                       )}>
                       <div>
                         <p className={clsx("text-sm font-semibold", SUBJECT_TYPES[s.type]?.color ?? "text-gray-700")}>{s.name}</p>
@@ -456,10 +456,10 @@ export function SchoolSubjectsPage() {
         </div>
       </div>
 
-      <div className="p-6 space-y-5 bg-gray-50 min-h-full">
+      <div className="p-6 space-y-5 bg-[#f8fafc] min-h-full">
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-white rounded-2xl border border-gray-100 p-1 w-fit -mt-5 relative z-10 shadow-sm">
+        <div className="flex gap-1 bg-white rounded-2xl border border-[#eef2f6] p-1 w-fit -mt-5 relative z-10 shadow-sm">
           {([
             { key: "matrix",   label: "الصفوف والمواد", icon: Link2 },
             { key: "subjects", label: "المواد الدراسية", icon: BookOpen },
@@ -467,7 +467,7 @@ export function SchoolSubjectsPage() {
           ] as const).map(({ key, label, icon: Icon }) => (
             <button key={key} onClick={() => setTab(key)}
               className={clsx("px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-1.5",
-                tab === key ? "bg-blue-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-gray-50")}>
+                tab === key ? "bg-blue-600 text-white shadow-sm" : "text-gray-500 hover:text-gray-700 hover:bg-[#f8fafc]")}>
               <Icon className="w-3.5 h-3.5" />{label}
             </button>
           ))}
@@ -483,7 +483,7 @@ export function SchoolSubjectsPage() {
                 {STAGES.map((s) => (
                   <button key={s} onClick={() => { setFilterStage(s); setSelectedGradeId(null); }}
                     className={clsx("px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all",
-                      filterStage === s ? "bg-blue-600 text-white border-blue-600" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
+                      filterStage === s ? "bg-blue-600 text-white border-blue-600" : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]")}>
                     {s}
                   </button>
                 ))}
@@ -491,9 +491,9 @@ export function SchoolSubjectsPage() {
             </div>
 
             {gradesLoading ? (
-              <div className="h-32 bg-white rounded-2xl border border-gray-100 animate-pulse" />
+              <div className="h-32 bg-white rounded-2xl border border-[#eef2f6] animate-pulse" />
             ) : grades.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 py-16 flex flex-col items-center gap-4 text-center">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] py-16 flex flex-col items-center gap-4 text-center">
                 <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
                   <Layers className="w-7 h-7 text-blue-400" />
                 </div>
@@ -518,7 +518,7 @@ export function SchoolSubjectsPage() {
                         "shrink-0 px-4 py-2.5 rounded-xl text-sm font-semibold border transition-all whitespace-nowrap",
                         activeGradeId === g.id
                           ? "bg-blue-600 text-white border-blue-600 shadow-sm"
-                          : "bg-white border-gray-200 text-gray-600 hover:border-blue-300"
+                          : "bg-white border-[#eef2f6] text-gray-600 hover:border-blue-300"
                       )}>
                       {g.name}
                     </button>
@@ -527,7 +527,7 @@ export function SchoolSubjectsPage() {
 
                 {/* Subjects for selected grade */}
                 {activeGradeId && (
-                  <div className="bg-white rounded-2xl border border-gray-100 p-5">
+                  <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
                     <div className="flex items-center gap-2 mb-4">
                       <GraduationCap className="w-4 h-4 text-blue-600" />
                       <h3 className="text-sm font-black text-gray-900">
@@ -559,10 +559,10 @@ export function SchoolSubjectsPage() {
 
             {subjectsLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {[...Array(6)].map((_, i) => <div key={i} className="h-20 bg-white rounded-2xl border border-gray-100 animate-pulse" />)}
+                {[...Array(6)].map((_, i) => <div key={i} className="h-20 bg-white rounded-2xl border border-[#eef2f6] animate-pulse" />)}
               </div>
             ) : subjects_.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 py-16 flex flex-col items-center gap-3 text-center">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] py-16 flex flex-col items-center gap-3 text-center">
                 <BookOpen className="w-8 h-8 text-gray-300" />
                 <p className="font-bold text-gray-900">لا توجد مواد بعد</p>
                 <button onClick={() => { setEditSubject(null); setShowSubjectForm(true); }}
@@ -573,11 +573,11 @@ export function SchoolSubjectsPage() {
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {subjects_.map((s: any) => (
-                  <div key={s.id} className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-sm transition-all group">
+                  <div key={s.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 hover:shadow-sm transition-all group">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
                         <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
-                          SUBJECT_TYPES[s.type]?.bg ?? "bg-gray-50")}>
+                          SUBJECT_TYPES[s.type]?.bg ?? "bg-[#f8fafc]")}>
                           <BookOpen className={clsx("w-4 h-4", SUBJECT_TYPES[s.type]?.color ?? "text-gray-400")} />
                         </div>
                         <div>
@@ -613,7 +613,7 @@ export function SchoolSubjectsPage() {
                   {STAGES.map((s) => (
                     <button key={s} onClick={() => setFilterStage(s)}
                       className={clsx("px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all",
-                        filterStage === s ? "bg-blue-600 text-white border-blue-600" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
+                        filterStage === s ? "bg-blue-600 text-white border-blue-600" : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]")}>
                       {s}
                     </button>
                   ))}
@@ -636,17 +636,17 @@ export function SchoolSubjectsPage() {
 
             {gradesLoading ? (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {[...Array(3)].map((_, i) => <div key={i} className="h-20 bg-white rounded-2xl border border-gray-100 animate-pulse" />)}
+                {[...Array(3)].map((_, i) => <div key={i} className="h-20 bg-white rounded-2xl border border-[#eef2f6] animate-pulse" />)}
               </div>
             ) : grades.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 py-16 flex flex-col items-center gap-3 text-center">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] py-16 flex flex-col items-center gap-3 text-center">
                 <GraduationCap className="w-8 h-8 text-gray-300" />
                 <p className="font-bold text-gray-900">لا توجد صفوف دراسية بعد</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {grades.map((g: any) => (
-                  <div key={g.id} className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-sm transition-all group">
+                  <div key={g.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 hover:shadow-sm transition-all group">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">

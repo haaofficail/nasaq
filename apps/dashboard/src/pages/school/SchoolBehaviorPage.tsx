@@ -23,7 +23,7 @@ const DEGREE_LABELS: Record<string, { label: string; bg: string; text: string; b
 const INCIDENT_STATUS_LABELS: Record<string, { label: string; cls: string }> = {
   open:      { label: "مفتوحة",    cls: "bg-amber-50 text-amber-700 border-amber-100" },
   resolved:  { label: "محلولة",    cls: "bg-emerald-50 text-emerald-700 border-emerald-100" },
-  cancelled: { label: "ملغية",     cls: "bg-gray-100 text-gray-500 border-gray-200" },
+  cancelled: { label: "ملغية",     cls: "bg-gray-100 text-gray-500 border-[#eef2f6]" },
 };
 
 const NOTIF_TYPE_LABELS: Record<string, string> = {
@@ -107,7 +107,7 @@ function OverviewTab() {
       {/* By Degree + Top Violations */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Degree distribution */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4">
           <p className="text-sm font-bold text-gray-900 mb-3">الحوادث بالدرجة</p>
           <div className="space-y-2">
             {(overview.byDegree ?? []).length === 0 ? (
@@ -133,7 +133,7 @@ function OverviewTab() {
         </div>
 
         {/* Top violations */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4">
           <p className="text-sm font-bold text-gray-900 mb-3">أكثر المخالفات</p>
           <div className="space-y-2">
             {(overview.topViolations ?? []).length === 0 ? (
@@ -236,7 +236,7 @@ function IncidentsTab() {
             const deg    = DEGREE_LABELS[inc.degree] ?? DEGREE_LABELS["1"];
             const status = INCIDENT_STATUS_LABELS[inc.status] ?? INCIDENT_STATUS_LABELS.open;
             return (
-              <div key={inc.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+              <div key={inc.id} className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4">
                 <div className="flex items-start gap-3">
                   <div
                     className="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-bold shrink-0"
@@ -311,7 +311,7 @@ function IncidentForm({
   const deductionPreview = deductions[form.degree] ?? 0;
 
   return (
-    <div className="bg-gray-50 rounded-2xl border border-gray-200 p-4 space-y-3">
+    <div className="bg-gray-50 rounded-2xl border border-[#eef2f6] p-4 space-y-3">
       <p className="text-sm font-bold text-gray-900">تسجيل حادثة سلوكية</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
@@ -319,7 +319,7 @@ function IncidentForm({
           <select
             value={form.studentId}
             onChange={(e) => setForm((p: any) => ({ ...p, studentId: e.target.value }))}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
           >
             <option value="">اختر الطالب</option>
             {allStudents.map((s: any) => (
@@ -332,7 +332,7 @@ function IncidentForm({
           <select
             value={form.categoryId}
             onChange={(e) => setForm((p: any) => ({ ...p, categoryId: e.target.value }))}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
           >
             <option value="">بدون تصنيف</option>
             {categories.map((c: any) => (
@@ -345,7 +345,7 @@ function IncidentForm({
           <select
             value={form.degree}
             onChange={(e) => setForm((p: any) => ({ ...p, degree: e.target.value }))}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
           >
             {["1","2","3","4","5"].map((d) => (
               <option key={d} value={d}>درجة {d} — خصم {deductions[d] ?? 0} نقطة</option>
@@ -359,7 +359,7 @@ function IncidentForm({
             value={form.incidentDate}
             max={new Date().toISOString().split("T")[0]}
             onChange={(e) => setForm((p: any) => ({ ...p, incidentDate: e.target.value }))}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
           />
         </div>
         <div className="sm:col-span-2">
@@ -368,7 +368,7 @@ function IncidentForm({
             value={form.description}
             onChange={(e) => setForm((p: any) => ({ ...p, description: e.target.value }))}
             rows={2}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/30 resize-none"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/30 resize-none"
             placeholder="تفاصيل الحادثة..."
           />
         </div>
@@ -378,7 +378,7 @@ function IncidentForm({
             type="text"
             value={form.actionTaken}
             onChange={(e) => setForm((p: any) => ({ ...p, actionTaken: e.target.value }))}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/30"
             placeholder="ما الإجراء الذي تم اتخاذه؟"
           />
         </div>
@@ -392,7 +392,7 @@ function IncidentForm({
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
           تسجيل
         </button>
-        <button onClick={onCancel} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+        <button onClick={onCancel} className="px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">
           إلغاء
         </button>
       </div>
@@ -464,7 +464,7 @@ function CompensationsTab() {
       ) : (
         <div className="space-y-2">
           {compensations.map((comp: any) => (
-            <div key={comp.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-start gap-3">
+            <div key={comp.id} className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4 flex items-start gap-3">
               <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
                 <Star className="w-4 h-4 text-emerald-600" />
               </div>
@@ -498,7 +498,7 @@ function CompensationForm({ form, setForm, compTypes, saving, onSubmit, onCancel
   const allStudents: any[] = (studentsData as any)?.data ?? [];
 
   return (
-    <div className="bg-gray-50 rounded-2xl border border-gray-200 p-4 space-y-3">
+    <div className="bg-gray-50 rounded-2xl border border-[#eef2f6] p-4 space-y-3">
       <p className="text-sm font-bold text-gray-900">إضافة تعويض سلوكي</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
@@ -506,7 +506,7 @@ function CompensationForm({ form, setForm, compTypes, saving, onSubmit, onCancel
           <select
             value={form.studentId}
             onChange={(e) => setForm((p: any) => ({ ...p, studentId: e.target.value }))}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none"
           >
             <option value="">اختر الطالب</option>
             {allStudents.map((s: any) => (
@@ -519,7 +519,7 @@ function CompensationForm({ form, setForm, compTypes, saving, onSubmit, onCancel
           <select
             value={form.compensationType}
             onChange={(e) => setForm((p: any) => ({ ...p, compensationType: e.target.value }))}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none"
           >
             {compTypes.length > 0 ? compTypes.map((t: any) => (
               <option key={t.value} value={t.value}>{t.label}</option>
@@ -541,7 +541,7 @@ function CompensationForm({ form, setForm, compTypes, saving, onSubmit, onCancel
             max={20}
             value={form.pointsAdded}
             onChange={(e) => setForm((p: any) => ({ ...p, pointsAdded: Number(e.target.value) }))}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none"
           />
         </div>
         <div>
@@ -551,7 +551,7 @@ function CompensationForm({ form, setForm, compTypes, saving, onSubmit, onCancel
             value={form.compensationDate}
             max={new Date().toISOString().split("T")[0]}
             onChange={(e) => setForm((p: any) => ({ ...p, compensationDate: e.target.value }))}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none"
           />
         </div>
         <div className="sm:col-span-2">
@@ -560,7 +560,7 @@ function CompensationForm({ form, setForm, compTypes, saving, onSubmit, onCancel
             type="text"
             value={form.description}
             onChange={(e) => setForm((p: any) => ({ ...p, description: e.target.value }))}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none"
             placeholder="تفاصيل إضافية..."
           />
         </div>
@@ -574,7 +574,7 @@ function CompensationForm({ form, setForm, compTypes, saving, onSubmit, onCancel
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Star className="w-4 h-4" />}
           إضافة
         </button>
-        <button onClick={onCancel} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+        <button onClick={onCancel} className="px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">
           إلغاء
         </button>
       </div>
@@ -613,7 +613,7 @@ function AttendanceTab() {
   return (
     <div className="space-y-5">
       {/* Escalation guide */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4">
         <p className="text-sm font-bold text-gray-900 mb-3">جدول تصعيد الغياب</p>
         <div className="space-y-2">
           {escalation.map((step: any, i: number) => (
@@ -658,7 +658,7 @@ function AttendanceTab() {
         ) : (
           <div className="space-y-2">
             {notifications.map((n: any) => (
-              <div key={n.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex items-start gap-3">
+              <div key={n.id} className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-3 flex items-start gap-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
                   <Bell className="w-4 h-4 text-blue-500" />
                 </div>
@@ -687,7 +687,7 @@ function NotifForm({ form, setForm, saving, onSubmit, onCancel }: any) {
   const allStudents: any[] = (studentsData as any)?.data ?? [];
 
   return (
-    <div className="bg-gray-50 rounded-2xl border border-gray-200 p-4 space-y-3 mb-3">
+    <div className="bg-gray-50 rounded-2xl border border-[#eef2f6] p-4 space-y-3 mb-3">
       <p className="text-sm font-bold text-gray-900">إشعار لولي أمر</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
@@ -695,7 +695,7 @@ function NotifForm({ form, setForm, saving, onSubmit, onCancel }: any) {
           <select
             value={form.studentId}
             onChange={(e) => setForm((p: any) => ({ ...p, studentId: e.target.value }))}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none"
           >
             <option value="">اختر الطالب</option>
             {allStudents.map((s: any) => (
@@ -708,7 +708,7 @@ function NotifForm({ form, setForm, saving, onSubmit, onCancel }: any) {
           <select
             value={form.notificationType}
             onChange={(e) => setForm((p: any) => ({ ...p, notificationType: e.target.value }))}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none"
           >
             <option value="sms">رسالة نصية</option>
             <option value="call">اتصال هاتفي</option>
@@ -723,7 +723,7 @@ function NotifForm({ form, setForm, saving, onSubmit, onCancel }: any) {
             value={form.sentTo}
             onChange={(e) => setForm((p: any) => ({ ...p, sentTo: e.target.value }))}
             placeholder="اسم أو رقم ولي الأمر"
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none"
           />
         </div>
         <div>
@@ -733,7 +733,7 @@ function NotifForm({ form, setForm, saving, onSubmit, onCancel }: any) {
             value={form.message}
             onChange={(e) => setForm((p: any) => ({ ...p, message: e.target.value }))}
             placeholder="نص الإشعار..."
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none"
           />
         </div>
       </div>
@@ -746,7 +746,7 @@ function NotifForm({ form, setForm, saving, onSubmit, onCancel }: any) {
           {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bell className="w-4 h-4" />}
           تسجيل الإشعار
         </button>
-        <button onClick={onCancel} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+        <button onClick={onCancel} className="px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">
           إلغاء
         </button>
       </div>
@@ -778,7 +778,7 @@ function ScoresTab() {
         <button
           onClick={handleRecalculate}
           disabled={recalculating}
-          className="flex items-center gap-2 px-3 py-2 border border-gray-200 text-gray-600 rounded-xl text-xs font-medium hover:bg-gray-50 disabled:opacity-50 transition-colors"
+          className="flex items-center gap-2 px-3 py-2 border border-[#eef2f6] text-gray-600 rounded-xl text-xs font-medium hover:bg-[#f8fafc] disabled:opacity-50 transition-colors"
         >
           {recalculating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
           إعادة الحساب
@@ -793,7 +793,7 @@ function ScoresTab() {
       ) : (
         <div className="space-y-2">
           {scores.map((s: any, i: number) => (
-            <div key={s.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+            <div key={s.id} className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4">
               <div className="flex items-center gap-3">
                 <span className="text-xs text-gray-300 font-bold w-5 text-center shrink-0">{i + 1}</span>
                 <div className="flex-1 min-w-0">
@@ -839,7 +839,7 @@ function LoadingSkeleton() {
   return (
     <div className="space-y-2">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="animate-pulse bg-gray-100 rounded-2xl h-20" />
+        <div key={i} className="animate-pulse bg-[#f1f5f9] rounded-2xl h-20" />
       ))}
     </div>
   );
@@ -847,8 +847,8 @@ function LoadingSkeleton() {
 
 function EmptyState({ icon: Icon, text }: { icon: React.ElementType; text: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 py-16 flex flex-col items-center gap-3">
-      <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] py-16 flex flex-col items-center gap-3">
+      <div className="w-14 h-14 rounded-2xl bg-[#f8fafc] flex items-center justify-center">
         <Icon className="w-7 h-7 text-gray-300" />
       </div>
       <p className="text-sm font-medium text-gray-400">{text}</p>
@@ -874,7 +874,7 @@ export function SchoolBehaviorPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 overflow-x-auto">
+      <div className="flex gap-1 bg-[#f1f5f9] rounded-2xl p-1 overflow-x-auto">
         {TABS.map((tab) => {
           const Icon   = tab.icon;
           const active = activeTab === tab.id;

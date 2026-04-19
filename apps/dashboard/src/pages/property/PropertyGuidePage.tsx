@@ -572,12 +572,12 @@ function AccordionSection({ section }: { section: Section }) {
   const Icon = section.icon;
 
   return (
-    <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+    <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-hidden">
       <button
         className="w-full flex items-center gap-4 px-5 py-4 text-right"
         onClick={() => setOpen(!open)}
       >
-        <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", section.bg)}>
+        <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0", section.bg)}>
           <Icon className={clsx("w-5 h-5", section.color)} />
         </div>
         <div className="flex-1 min-w-0">
@@ -675,7 +675,7 @@ export function PropertyGuidePage() {
               <button
                 key={a.href}
                 onClick={() => navigate(a.href)}
-                className="flex flex-col items-center gap-1.5 p-3 bg-white border border-gray-100 rounded-xl hover:border-gray-200 hover:shadow-sm transition-all text-center"
+                className="flex flex-col items-center gap-1.5 p-3 bg-white border border-[#eef2f6] rounded-xl hover:border-[#eef2f6] hover:shadow-sm transition-all text-center"
               >
                 <div className={clsx("w-8 h-8 rounded-lg flex items-center justify-center", a.bg)}>
                   <Icon className="w-4 h-4 text-white" />
@@ -731,7 +731,7 @@ export function PropertyGuidePage() {
       </div>
 
       {/* Workflow Summary */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5">
+      <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm p-5">
         <h2 className="font-semibold text-gray-800 text-sm mb-4">المسار المثالي لعقد جديد</h2>
         <div className="flex flex-wrap gap-2 items-center">
           {[
@@ -740,7 +740,7 @@ export function PropertyGuidePage() {
             "أرسل التذكير", "سجّل الدفع", "سند قبض PDF",
           ].map((step, i, arr) => (
             <div key={step} className="flex items-center gap-2">
-              <span className="bg-gray-50 border border-gray-200 text-gray-700 text-xs rounded-lg px-3 py-1.5 font-medium">
+              <span className="bg-gray-50 border border-[#eef2f6] text-gray-700 text-xs rounded-lg px-3 py-1.5 font-medium">
                 {step}
               </span>
               {i < arr.length - 1 && (

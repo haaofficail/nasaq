@@ -135,7 +135,7 @@ function PackageModal({ item, onClose, onSave }: { item?: any; onClose: () => vo
               {CATEGORY_TAGS.filter(t => t.value).map(t => (
                 <button key={t.value} onClick={() => f("categoryTag", t.value)}
                   className={clsx("px-3 py-1.5 rounded-xl border text-xs font-medium transition-all",
-                    form.categoryTag === t.value ? "bg-brand-500 border-brand-500 text-white" : "border-gray-200 text-gray-600 hover:border-gray-300")}>
+                    form.categoryTag === t.value ? "bg-brand-500 border-brand-500 text-white" : "border-[#eef2f6] text-gray-600 hover:border-[#eef2f6]")}>
                   {t.label}
                 </button>
               ))}
@@ -161,10 +161,10 @@ function PackageModal({ item, onClose, onSave }: { item?: any; onClose: () => vo
                       onClick={() => selected ? removeFlower(v.id) : addFlower(v.id)}
                       className={clsx(
                         "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-colors text-right",
-                        selected ? "border-brand-400 bg-brand-50 text-brand-700" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                        selected ? "border-brand-400 bg-brand-50 text-brand-700" : "border-[#eef2f6] bg-white text-gray-600 hover:border-[#eef2f6]"
                       )}
                     >
-                      <span className={clsx("w-3 h-3 rounded-sm border flex-shrink-0", selected ? "bg-brand-500 border-brand-500" : "border-gray-300")} />
+                      <span className={clsx("w-3 h-3 rounded-sm border flex-shrink-0", selected ? "bg-brand-500 border-brand-500" : "border-[#eef2f6]")} />
                       <span className="truncate">{v.displayNameAr ?? v.flowerType}</span>
                     </button>
                   );
@@ -216,9 +216,9 @@ function PackageModal({ item, onClose, onSave }: { item?: any; onClose: () => vo
                         <button key={id} onClick={() => toggleExtra(id)}
                           className={clsx(
                             "flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-medium transition-colors",
-                            on ? "border-violet-400 bg-violet-50 text-violet-700" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                            on ? "border-violet-400 bg-violet-50 text-violet-700" : "border-[#eef2f6] bg-white text-gray-600 hover:border-[#eef2f6]"
                           )}>
-                          <span className={clsx("w-3 h-3 rounded-sm border flex-shrink-0", on ? "bg-violet-500 border-violet-500" : "border-gray-300")} />
+                          <span className={clsx("w-3 h-3 rounded-sm border flex-shrink-0", on ? "bg-violet-500 border-violet-500" : "border-[#eef2f6]")} />
                           {opt.name}
                           {parseFloat(opt.price ?? "0") > 0 && <span className="text-gray-400">+{parseFloat(opt.price).toFixed(0)}</span>}
                         </button>
@@ -236,11 +236,11 @@ function PackageModal({ item, onClose, onSave }: { item?: any; onClose: () => vo
           <label className="block text-xs font-medium text-gray-600 mb-1.5">وصف الباقة</label>
           <textarea value={form.description} onChange={e => f("description", e.target.value)} rows={2}
             placeholder="صف محتوى الباقة للعميل..."
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 resize-none leading-relaxed" />
+            className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 resize-none leading-relaxed" />
         </div>
 
         {/* Price */}
-        <div className="p-3 bg-gray-50 rounded-xl space-y-2">
+        <div className="p-3 bg-[#f8fafc] rounded-xl space-y-2">
           <div className="flex items-center gap-3 text-xs">
             <span className="font-medium text-gray-700">السعر</span>
             <label className="flex items-center gap-1.5 cursor-pointer">
@@ -269,7 +269,7 @@ function PackageModal({ item, onClose, onSave }: { item?: any; onClose: () => vo
 
         <div className="flex gap-3 pt-1">
           <Button className="flex-1" onClick={handleSave}>حفظ الباقة</Button>
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">إلغاء</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">إلغاء</button>
         </div>
       </div>
     </Modal>
@@ -299,7 +299,7 @@ function CatalogItemModal({ item, onClose, onSave }: { item?: any; onClose: () =
             {CATALOG_TYPES.map(t => (
               <button key={t.value} onClick={() => f("type", t.value)}
                 className={clsx("flex items-center gap-2 px-3 py-2.5 rounded-xl border text-sm font-medium transition-all",
-                  form.type === t.value ? "bg-brand-500 border-brand-500 text-white" : "border-gray-200 text-gray-600 hover:border-gray-300")}>
+                  form.type === t.value ? "bg-brand-500 border-brand-500 text-white" : "border-[#eef2f6] text-gray-600 hover:border-[#eef2f6]")}>
                 <t.icon className="w-4 h-4" />{t.label}
               </button>
             ))}
@@ -315,7 +315,7 @@ function CatalogItemModal({ item, onClose, onSave }: { item?: any; onClose: () =
             onChange={e => f("price", e.target.value)} placeholder="0" dir="ltr" />
           <div>
             <p className="text-sm font-medium text-gray-700 mb-1.5">الأيقونة</p>
-            <div className="grid grid-cols-8 gap-1 p-2 border border-gray-200 rounded-xl">
+            <div className="grid grid-cols-8 gap-1 p-2 border border-[#eef2f6] rounded-xl">
               {ICON_OPTIONS.map(({ name, icon: Icon }) => (
                 <button key={name} type="button" onClick={() => f("icon", name)}
                   title={name}
@@ -332,7 +332,7 @@ function CatalogItemModal({ item, onClose, onSave }: { item?: any; onClose: () =
             <label className="text-sm text-gray-700">أقصى كمية:</label>
             <input type="number" min={1} max={10} value={form.maxQuantity}
               onChange={e => f("maxQuantity", parseInt(e.target.value) || 1)}
-              className="w-16 border border-gray-200 rounded-xl px-2 py-1.5 text-sm text-center outline-none focus:border-brand-300" dir="ltr" />
+              className="w-16 border border-[#eef2f6] rounded-xl px-2 py-1.5 text-sm text-center outline-none focus:border-brand-300" dir="ltr" />
           </div>
         )}
         <Input label="وصف مختصر" name="description" value={form.description} onChange={e => f("description", e.target.value)} placeholder="اختياري" />
@@ -349,7 +349,7 @@ function CatalogItemModal({ item, onClose, onSave }: { item?: any; onClose: () =
         </div>
         <div className="flex gap-3 pt-1">
           <Button className="flex-1" onClick={() => { if (form.name.trim()) onSave({ ...form, price: parseFloat(form.price) || 0 }); }}>حفظ</Button>
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">إلغاء</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">إلغاء</button>
         </div>
       </div>
     </Modal>
@@ -478,7 +478,7 @@ function PackagesTab() {
           { label: "متوسط السعر",  value: stats?.avgPrice ? `${stats.avgPrice} ر.س` : "—",    icon: TrendingUp, color: "text-violet-600 bg-violet-50" },
           { label: "إجمالي الطلبات", value: stats?.totalOrders ?? 0,                           icon: ShoppingBag, color: "text-amber-600 bg-amber-50" },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-2", s.color)}>
               <s.icon className="w-4 h-4" />
             </div>
@@ -493,13 +493,13 @@ function PackagesTab() {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث في الباقات..."
-            className="w-full bg-white border border-gray-200 rounded-xl pr-10 pl-4 py-2.5 text-sm outline-none focus:border-brand-500" />
+            className="w-full bg-white border border-[#eef2f6] rounded-xl pr-10 pl-4 py-2.5 text-sm outline-none focus:border-brand-500" />
         </div>
         <div className="flex gap-1.5 flex-wrap">
           {CATEGORY_TAGS.map(t => (
             <button key={t.value} onClick={() => setTag(t.value)}
               className={clsx("px-3 py-2 rounded-xl border text-sm font-medium transition-all",
-                tag === t.value ? "bg-brand-500 border-brand-500 text-white shadow-sm" : "border-gray-200 text-gray-600 hover:border-gray-300 bg-white")}>
+                tag === t.value ? "bg-brand-500 border-brand-500 text-white shadow-sm" : "border-[#eef2f6] text-gray-600 hover:border-[#eef2f6] bg-white")}>
               {t.label}
             </button>
           ))}
@@ -518,10 +518,10 @@ function PackagesTab() {
       {/* Grid */}
       {loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(3)].map((_, i) => <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse h-44" />)}
+          {[...Array(3)].map((_, i) => <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-5 animate-pulse h-44" />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="py-16 text-center bg-white rounded-2xl border border-gray-100 space-y-4">
+        <div className="py-16 text-center bg-white rounded-2xl border border-[#eef2f6] space-y-4">
           <Flower2 className="w-12 h-12 mx-auto text-gray-200" />
           <div>
             <p className="text-sm font-medium text-gray-600">لا توجد باقات</p>
@@ -534,7 +534,7 @@ function PackagesTab() {
               استيراد {STARTER_PACKAGES.length} باقة جاهزة
             </button>
             <button onClick={() => setModal({ open: true })}
-              className="flex items-center gap-2 border border-gray-200 text-gray-600 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+              className="flex items-center gap-2 border border-[#eef2f6] text-gray-600 px-5 py-2.5 rounded-xl text-sm font-medium hover:bg-[#f8fafc] transition-colors">
               <Plus className="w-4 h-4" /> باقة مخصصة
             </button>
           </div>
@@ -543,7 +543,7 @@ function PackagesTab() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((item: any) => (
             <div key={item.id} className={clsx("bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all",
-              item.isActive ? "border-gray-100" : "border-gray-100 opacity-60")}>
+              item.isActive ? "border-[#eef2f6]" : "border-[#eef2f6] opacity-60")}>
               <div className="flex items-center justify-between px-4 pt-4 pb-2">
                 <span className={clsx("px-2.5 py-1 rounded-lg text-xs font-medium",
                   CATEGORY_TAGS.find(t => t.value === item.categoryTag)?.color || "bg-gray-100 text-gray-600")}>
@@ -572,21 +572,21 @@ function PackagesTab() {
                 <div className="flex items-center gap-2">
                   <button onClick={() => handleToggle(item)}
                     className={clsx("flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-all",
-                      item.isActive ? "border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100" : "border-gray-200 text-gray-500 bg-gray-50 hover:bg-gray-100")}>
+                      item.isActive ? "border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100" : "border-[#eef2f6] text-gray-500 bg-[#f8fafc] hover:bg-gray-100")}>
                     {item.isActive ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
                     {item.isActive ? "إخفاء" : "تفعيل"}
                   </button>
                   <button onClick={() => setModal({ open: true, item })}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition-colors">
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[#eef2f6] text-gray-600 text-xs font-medium hover:bg-[#f8fafc] transition-colors">
                     <Pencil className="w-3 h-3" /> تعديل
                   </button>
                   <button onClick={() => handleDuplicate(item)}
                     title="تكرار الباقة"
-                    className="w-7 h-7 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:text-brand-600 hover:border-brand-200 hover:bg-brand-50 transition-colors">
+                    className="w-7 h-7 flex items-center justify-center rounded-xl border border-[#eef2f6] text-gray-400 hover:text-brand-600 hover:border-brand-200 hover:bg-brand-50 transition-colors">
                     <Copy className="w-3 h-3" />
                   </button>
                   <button onClick={() => handleDelete(item)}
-                    className="w-7 h-7 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors mr-auto">
+                    className="w-7 h-7 flex items-center justify-center rounded-xl border border-[#eef2f6] text-gray-400 hover:text-red-500 hover:border-red-200 hover:bg-red-50 transition-colors mr-auto">
                     <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
@@ -634,7 +634,7 @@ function FlowerInventoryModal({ item, onClose, onSave }: { item?: any; onClose: 
         </div>
         <div className="flex gap-3 pt-1">
           <Button className="flex-1" onClick={() => onSave(form)}>حفظ</Button>
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">إلغاء</button>
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">إلغاء</button>
         </div>
       </div>
     </Modal>
@@ -724,7 +724,7 @@ function BuilderConfigTab() {
           return (
             <button key={t.value} onClick={() => setActiveType(t.value)}
               className={clsx("flex items-center gap-3 p-4 rounded-2xl border text-right transition-all",
-                activeType === t.value ? "bg-brand-500 border-brand-500 text-white shadow-sm" : "bg-white border-gray-100 hover:border-gray-200 text-gray-700")}>
+                activeType === t.value ? "bg-brand-500 border-brand-500 text-white shadow-sm" : "bg-white border-[#eef2f6] hover:border-[#eef2f6] text-gray-700")}>
               <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
                 activeType === t.value ? "bg-white/20" : t.color)}>
                 <t.icon className="w-4 h-4" />
@@ -739,7 +739,7 @@ function BuilderConfigTab() {
       </div>
 
       {/* Items list */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
           <div className="flex items-center gap-2">
             <curType.icon className="w-4 h-4 text-gray-500" />
@@ -761,7 +761,7 @@ function BuilderConfigTab() {
         ) : (
           <div className="divide-y divide-gray-50">
             {curItems.map((item: any) => (
-              <div key={item.id} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50/40 transition-colors">
+              <div key={item.id} className="flex items-center gap-4 px-5 py-3 hover:bg-[#f8fafc]/40 transition-colors">
                 <span className="w-8 flex items-center justify-center">
                   <CatalogIcon name={item.icon} />
                 </span>
@@ -794,7 +794,7 @@ function BuilderConfigTab() {
       </div>
 
       {/* Flower Inventory Management */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
           <h3 className="font-semibold text-gray-900 text-sm flex items-center gap-2">
             <Flower2 className="w-4 h-4 text-pink-500" /> الورود المعروضة في صفحة العملاء
@@ -816,12 +816,12 @@ function BuilderConfigTab() {
               const sellP  = fl.sell_price ?? fl.sellPrice ?? 0;
               const hidden = fl.is_hidden  ?? fl.isHidden  ?? false;
               return (
-                <div key={fl.id} className="flex items-center gap-4 px-5 py-3 hover:bg-gray-50/40 transition-colors">
+                <div key={fl.id} className="flex items-center gap-4 px-5 py-3 hover:bg-[#f8fafc]/40 transition-colors">
                   {imgUrl ? (
                     <img src={imgUrl} alt={fl.name}
-                      className="w-10 h-10 rounded-xl object-cover border border-gray-100 shrink-0" />
+                      className="w-9 h-9 rounded-[10px] object-cover border border-[#eef2f6] shrink-0" />
                   ) : (
-                    <div className="w-10 h-10 rounded-xl bg-pink-50 flex items-center justify-center shrink-0">
+                    <div className="w-9 h-9 rounded-[10px] bg-pink-50 flex items-center justify-center shrink-0">
                       <Flower2 className="w-5 h-5 text-pink-300" />
                     </div>
                   )}
@@ -910,7 +910,7 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
   if (loading || !cfg) return (
     <div className="space-y-4">
       {[...Array(4)].map((_, i) => (
-        <div key={i} className="h-24 bg-white rounded-2xl border border-gray-100 animate-pulse" />
+        <div key={i} className="h-24 bg-white rounded-2xl border border-[#eef2f6] animate-pulse" />
       ))}
     </div>
   );
@@ -954,7 +954,7 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
         </div>
         <div className="flex items-center gap-2">
           <a href={publicUrl} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc] transition-colors">
             <Eye className="w-3.5 h-3.5" /> معاينة
           </a>
           <Button icon={Save} onClick={handleSave} loading={saving} disabled={!dirty}>
@@ -971,7 +971,7 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
       )}
 
       {/* Hero section */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-amber-500" />
           <h3 className="font-semibold text-gray-900 text-sm">قسم الترحيب</h3>
@@ -980,24 +980,24 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">العنوان الرئيسي</label>
             <input value={cfg.heroTitle} onChange={e => set("heroTitle", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" />
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">العنوان الفرعي</label>
             <input value={cfg.heroSubtitle} onChange={e => set("heroSubtitle", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" />
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">رسالة الشكر (بعد تأكيد الطلب)</label>
             <textarea value={cfg.thankYouMessage} onChange={e => set("thankYouMessage", e.target.value)}
-              rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 resize-none" />
+              rows={2} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 resize-none" />
           </div>
           <ImageUpload label="صورة الغلاف (Hero)" value={cfg.heroImage || ""} onChange={v => set("heroImage", v || null)} aspectRatio="wide" />
         </div>
       </div>
 
       {/* Color */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
           <Palette className="w-4 h-4 text-violet-500" />
           <h3 className="font-semibold text-gray-900 text-sm">اللون الرئيسي</h3>
@@ -1013,9 +1013,9 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
           </div>
           <div className="flex items-center gap-3">
             <input type="color" value={cfg.accentColor} onChange={e => set("accentColor", e.target.value)}
-              className="w-10 h-10 rounded-xl cursor-pointer border border-gray-200" />
+              className="w-9 h-9 rounded-[10px] cursor-pointer border border-[#eef2f6]" />
             <input value={cfg.accentColor} onChange={e => set("accentColor", e.target.value)}
-              className="w-28 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 font-mono" dir="ltr" />
+              className="w-28 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 font-mono" dir="ltr" />
             <div className="flex-1 h-10 rounded-xl shadow-sm"
               style={{ background: `linear-gradient(135deg, ${cfg.accentColor}, ${cfg.accentColor}99)` }} />
           </div>
@@ -1023,7 +1023,7 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
       </div>
 
       {/* Page Visibility */}
-      <div className={clsx("rounded-2xl border overflow-hidden", cfg.isPublic ? "bg-emerald-50 border-emerald-200" : "bg-white border-gray-100")}>
+      <div className={clsx("rounded-2xl border overflow-hidden", cfg.isPublic ? "bg-emerald-50 border-emerald-200" : "bg-white border-[#eef2f6]")}>
         <div className="px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Globe className={clsx("w-4 h-4", cfg.isPublic ? "text-emerald-600" : "text-gray-400")} />
@@ -1039,7 +1039,7 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
       </div>
 
       {/* Features */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
           <Sliders className="w-4 h-4 text-emerald-500" />
           <h3 className="font-semibold text-gray-900 text-sm">الميزات المفعّلة</h3>
@@ -1065,7 +1065,7 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
       </div>
 
       {/* Flower limits */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
           <Flower2 className="w-4 h-4 text-pink-500" />
           <h3 className="font-semibold text-gray-900 text-sm">قيود الورود</h3>
@@ -1075,19 +1075,19 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
             <label className="block text-xs font-medium text-gray-600 mb-1.5">الحد الأدنى للورود</label>
             <input type="number" min={1} max={50} value={cfg.minFlowers}
               onChange={e => set("minFlowers", parseInt(e.target.value) || 1)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 text-center tabular-nums" dir="ltr" />
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 text-center tabular-nums" dir="ltr" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">الحد الأقصى للورود</label>
             <input type="number" min={5} max={200} value={cfg.maxFlowers}
               onChange={e => set("maxFlowers", parseInt(e.target.value) || 50)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 text-center tabular-nums" dir="ltr" />
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 text-center tabular-nums" dir="ltr" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1.5">عتبة اقتراح الباقة (عدد الورود)</label>
             <input type="number" min={1} max={20} value={cfg.upsellThreshold}
               onChange={e => set("upsellThreshold", parseInt(e.target.value) || 5)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 text-center tabular-nums" dir="ltr" />
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 text-center tabular-nums" dir="ltr" />
             <p className="text-xs text-gray-400 mt-1">عند تجاوزه يُقترح للعميل الترقية لباقة جاهزة</p>
           </div>
           <div className="flex items-center justify-between pt-4">
@@ -1101,7 +1101,7 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
       </div>
 
       {/* Card templates */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-sky-500" />
           <h3 className="font-semibold text-gray-900 text-sm">قوالب رسائل الكرت</h3>
@@ -1122,7 +1122,7 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
             <input value={newTemplate} onChange={e => setNewTemplate(e.target.value)}
               onKeyDown={e => e.key === "Enter" && addTemplate()}
               placeholder="أضف قالب رسالة جديد..."
-              className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-sky-300" />
+              className="flex-1 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-sky-300" />
             <button onClick={addTemplate}
               className="px-4 py-2 rounded-xl bg-sky-500 text-white text-sm font-medium hover:bg-sky-600 transition-colors">
               <Plus className="w-4 h-4" />
@@ -1132,7 +1132,7 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
       </div>
 
       {/* Delivery note */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
           <Truck className="w-4 h-4 text-emerald-500" />
           <h3 className="font-semibold text-gray-900 text-sm">ملاحظة التوصيل</h3>
@@ -1140,12 +1140,12 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
         <div className="p-5">
           <textarea value={cfg.deliveryNote} onChange={e => set("deliveryNote", e.target.value)}
             rows={3} placeholder="مثال: التوصيل داخل المدينة خلال 3-5 ساعات. يُرجى التواصل للتنسيق مع الفريق..."
-            className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-300 resize-none" />
+            className="w-full border border-[#eef2f6] rounded-xl px-4 py-3 text-sm outline-none focus:border-brand-300 resize-none" />
         </div>
       </div>
 
       {/* Delivery Zones */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4 text-rose-500" />
@@ -1169,13 +1169,13 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
                 zones[i] = { ...zones[i], name: e.target.value };
                 set("deliveryZones", zones);
               }} placeholder="اسم المنطقة (حي / مدينة)"
-                className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300" />
+                className="flex-1 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300" />
               <input type="number" min={0} value={z.fee} onChange={e => {
                 const zones = [...(cfg.deliveryZones || [])];
                 zones[i] = { ...zones[i], fee: parseFloat(e.target.value) || 0 };
                 set("deliveryZones", zones);
               }} placeholder="0"
-                className="w-24 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 text-center" dir="ltr" />
+                className="w-24 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 text-center" dir="ltr" />
               <span className="text-xs text-gray-400 shrink-0">ر.س</span>
               <button onClick={() => set("deliveryZones", (cfg.deliveryZones || []).filter((_: any, idx: number) => idx !== i))}
                 className="p-1.5 text-gray-300 hover:text-red-400 transition-colors">
@@ -1187,16 +1187,16 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
       </div>
 
       {/* QR Code */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
           <Globe className="w-4 h-4 text-brand-500" />
           <h3 className="font-semibold text-gray-900 text-sm">رمز QR — صفحة العملاء</h3>
         </div>
         <div className="p-5 flex flex-col sm:flex-row items-center gap-6">
           {qrDataUrl ? (
-            <img src={qrDataUrl} alt="QR Code" className="w-32 h-32 rounded-xl border border-gray-100" />
+            <img src={qrDataUrl} alt="QR Code" className="w-32 h-32 rounded-xl border border-[#eef2f6]" />
           ) : (
-            <div className="w-32 h-32 rounded-xl bg-gray-50 border border-gray-100 animate-pulse" />
+            <div className="w-32 h-32 rounded-xl bg-[#f8fafc] border border-[#eef2f6] animate-pulse" />
           )}
           <div className="flex-1 space-y-3">
             <div>
@@ -1210,7 +1210,7 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
                 href={publicUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-xs hover:bg-[#f8fafc] transition-colors"
               >
                 <ExternalLink className="w-3.5 h-3.5" /> فتح الصفحة
               </a>
@@ -1225,7 +1225,7 @@ function PageSettingsTab({ orgSlug }: { orgSlug: string }) {
               )}
               <button
                 onClick={() => { navigator.clipboard.writeText(`${window.location.origin}${publicUrl}`); toast.success("تم نسخ الرابط"); }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-xs hover:bg-[#f8fafc] transition-colors"
               >
                 نسخ الرابط
               </button>
@@ -1273,7 +1273,7 @@ export function ArrangementsPage() {
         </div>
         {orgSlug && (
           <a href={`/flowers/${orgSlug}`} target="_blank" rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc] transition-colors">
             <ExternalLink className="w-4 h-4" /> عرض صفحة العميل
           </a>
         )}

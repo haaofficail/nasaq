@@ -44,7 +44,7 @@ function fmtDate(d: string) {
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 
 function Skel({ className }: { className?: string }) {
-  return <div className={clsx("animate-pulse bg-gray-100 rounded-lg", className)} />;
+  return <div className={clsx("animate-pulse bg-[#f1f5f9] rounded-lg", className)} />;
 }
 
 // ─── Create Ticket Modal ──────────────────────────────────────────────────────
@@ -83,7 +83,7 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center">
               <LifeBuoy className="w-4 h-4 text-brand-500" />
@@ -108,7 +108,7 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
                   className={clsx("flex items-center gap-2 px-3 py-2.5 rounded-xl border text-xs font-medium transition-all text-right",
                     form.category === cat.value
                       ? "border-brand-400 bg-brand-50 text-brand-700"
-                      : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                      : "border-[#eef2f6] text-gray-600 hover:border-[#eef2f6] hover:bg-[#f8fafc]"
                   )}>
                   <cat.icon className={clsx("w-3.5 h-3.5 shrink-0", form.category === cat.value ? "text-brand-500" : "text-gray-400")} />
                   {cat.label}
@@ -125,7 +125,7 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
             <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
               placeholder="مثال: لا يمكنني إضافة خدمة جديدة"
               className={clsx("w-full border rounded-xl px-3 h-10 text-sm outline-none transition-all bg-white placeholder:text-gray-300",
-                errors.subject ? "border-red-300 focus:border-red-400" : "border-gray-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60"
+                errors.subject ? "border-red-300 focus:border-red-400" : "border-[#eef2f6] focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60"
               )} />
             {errors.subject && <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.subject}</p>}
           </div>
@@ -138,7 +138,7 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
             <textarea value={form.body} onChange={e => setForm(f => ({ ...f, body: e.target.value }))} rows={4}
               placeholder="اشرح المشكلة بالتفصيل، وضّح ما حدث وما الذي توقعت حدوثه..."
               className={clsx("w-full border rounded-xl px-3 py-2.5 text-sm outline-none resize-none transition-all bg-white placeholder:text-gray-300",
-                errors.body ? "border-red-300 focus:border-red-400" : "border-gray-200 focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60"
+                errors.body ? "border-red-300 focus:border-red-400" : "border-[#eef2f6] focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60"
               )} />
             {errors.body && <p className="text-[11px] text-red-500 mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{errors.body}</p>}
           </div>
@@ -152,7 +152,7 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
                   className={clsx("flex-1 py-1.5 rounded-xl text-xs font-medium border transition-all",
                     form.priority === p.value
                       ? "border-brand-400 bg-brand-50 text-brand-700"
-                      : "border-gray-200 text-gray-500 hover:border-gray-300"
+                      : "border-[#eef2f6] text-gray-500 hover:border-[#eef2f6]"
                   )}>
                   {p.label}
                 </button>
@@ -162,7 +162,7 @@ function CreateModal({ onClose, onCreated }: CreateModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-gray-100 bg-gray-50/50">
+        <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-[#eef2f6] bg-gray-50/50">
           <button onClick={onClose} className="px-4 py-2 rounded-xl text-sm text-gray-600 hover:bg-gray-100 transition-colors">إلغاء</button>
           <button onClick={submit} disabled={saving}
             className="flex items-center gap-2 px-5 py-2 rounded-xl bg-brand-500 text-white text-sm font-medium hover:bg-brand-600 disabled:opacity-60 transition-colors">
@@ -233,7 +233,7 @@ function DetailPanel({ ticketId, onClose, onRefresh }: DetailPanelProps) {
       <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
       <div className="relative mr-auto w-full max-w-xl bg-white h-full flex flex-col shadow-2xl">
         {/* Header */}
-        <div className="flex items-start justify-between px-5 py-4 border-b border-gray-100 bg-white shrink-0">
+        <div className="flex items-start justify-between px-5 py-4 border-b border-[#eef2f6] bg-white shrink-0">
           <div className="flex-1 min-w-0 ml-3">
             {loading ? (
               <><Skel className="h-4 w-48 mb-2" /><Skel className="h-3 w-32" /></>
@@ -280,7 +280,7 @@ function DetailPanel({ ticketId, onClose, onRefresh }: DetailPanelProps) {
                 <div className="flex gap-3">
                   <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-xs shrink-0">أ</div>
                   <div className="flex-1">
-                    <div className="bg-white border border-gray-100 rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm">
+                    <div className="bg-white border border-[#eef2f6] rounded-2xl rounded-tr-sm px-4 py-3 shadow-sm">
                       <p className="text-sm text-gray-800 leading-relaxed whitespace-pre-wrap">{ticket.body}</p>
                     </div>
                     <p className="text-[10px] text-gray-400 mt-1 mr-1">{ticket.createdAt ? fmtDate(ticket.createdAt) : ""} · رسالتك الأولى</p>
@@ -301,7 +301,7 @@ function DetailPanel({ ticketId, onClose, onRefresh }: DetailPanelProps) {
                     <div className={clsx("flex-1", isAdmin && "flex flex-col items-end")}>
                       <div className={clsx(
                         "border rounded-2xl px-4 py-3 shadow-sm max-w-[85%]",
-                        isAdmin ? "bg-brand-500 border-brand-500 rounded-tl-sm" : "bg-white border-gray-100 rounded-tr-sm"
+                        isAdmin ? "bg-brand-500 border-brand-500 rounded-tl-sm" : "bg-white border-[#eef2f6] rounded-tr-sm"
                       )}>
                         {isAdmin && <p className="text-[10px] font-semibold text-brand-200 mb-1">{msg.senderName || "فريق الدعم"}</p>}
                         <p className={clsx("text-sm leading-relaxed whitespace-pre-wrap", isAdmin ? "text-white" : "text-gray-800")}>{msg.message}</p>
@@ -323,7 +323,7 @@ function DetailPanel({ ticketId, onClose, onRefresh }: DetailPanelProps) {
         </div>
 
         {/* Reply / Actions */}
-        <div className="border-t border-gray-100 p-4 bg-white shrink-0">
+        <div className="border-t border-[#eef2f6] p-4 bg-white shrink-0">
           {isClosed ? (
             <div className="flex items-center justify-center gap-2 py-2 text-sm text-gray-400">
               <Archive className="w-4 h-4" />
@@ -334,7 +334,7 @@ function DetailPanel({ ticketId, onClose, onRefresh }: DetailPanelProps) {
               <textarea value={reply} onChange={e => setReply(e.target.value)} rows={3}
                 onKeyDown={e => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) sendReply(); }}
                 placeholder="اكتب ردّك هنا... (Ctrl+Enter للإرسال)"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none resize-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 bg-white placeholder:text-gray-300 transition-all" />
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none resize-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 bg-white placeholder:text-gray-300 transition-all" />
               <div className="flex items-center justify-between">
                 <button onClick={closeTicket} disabled={closing}
                   className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50">
@@ -364,7 +364,7 @@ function TicketCard({ ticket, onClick }: { ticket: any; onClick: () => void }) {
   const msgCount = Array.isArray(ticket.messages) ? ticket.messages.length : 0;
 
   return (
-    <button onClick={onClick} className="w-full bg-white border border-gray-100 rounded-2xl p-4 text-right hover:border-brand-200 hover:shadow-sm transition-all group">
+    <button onClick={onClick} className="w-full bg-white border border-[#eef2f6] rounded-2xl p-4 text-right hover:border-brand-200 hover:shadow-sm transition-all group">
       <div className="flex items-start gap-3">
         <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition-colors", cat.color)}>
           <cat.icon className="w-4 h-4" />
@@ -381,7 +381,7 @@ function TicketCard({ ticket, onClick }: { ticket: any; onClick: () => void }) {
             </span>
             <span className={clsx("text-[10px] font-semibold px-2 py-0.5 rounded-full", pri.color)}>{pri.label}</span>
             {msgCount > 0 && (
-              <span className="flex items-center gap-1 text-[10px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">
+              <span className="flex items-center gap-1 text-[10px] text-gray-400 bg-[#f8fafc] px-2 py-0.5 rounded-full">
                 <MessageSquare className="w-3 h-3" />{msgCount} رد
               </span>
             )}
@@ -452,10 +452,10 @@ export function SupportPage() {
           { label: "مفتوحة",       val: totalOpen,       icon: Circle,       bg: "bg-blue-50",     color: "text-blue-600",    ring: "ring-blue-100"    },
           { label: "قيد المعالجة", val: totalInProgress, icon: RefreshCw,    bg: "bg-amber-50",    color: "text-amber-600",   ring: "ring-amber-100"   },
           { label: "محلولة",       val: totalResolved,   icon: CheckCircle2, bg: "bg-emerald-50",  color: "text-emerald-600", ring: "ring-emerald-100" },
-          { label: "مغلقة",        val: totalClosed,     icon: Archive,      bg: "bg-gray-50",     color: "text-gray-500",    ring: "ring-gray-100"    },
+          { label: "مغلقة",        val: totalClosed,     icon: Archive,      bg: "bg-[#f8fafc]",     color: "text-gray-500",    ring: "ring-gray-100"    },
         ].map(s => (
           <button key={s.label} onClick={() => { setStatusFilter(STATUSES.find(x => x.label === s.label)?.value ?? ""); setPage(1); }}
-            className="bg-white border border-gray-100 rounded-2xl p-4 text-right hover:border-brand-100 hover:shadow-sm transition-all">
+            className="bg-white border border-[#eef2f6] rounded-2xl p-4 text-right hover:border-brand-100 hover:shadow-sm transition-all">
             <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-2", s.bg)}>
               <s.icon className={clsx("w-4 h-4", s.color)} />
             </div>
@@ -468,10 +468,10 @@ export function SupportPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white border border-gray-100 rounded-2xl p-3">
+      <div className="bg-white border border-[#eef2f6] rounded-2xl p-3">
         <div className="flex items-center gap-2 flex-wrap">
           {/* Status tabs */}
-          <div className="flex gap-1 bg-gray-50 rounded-xl p-1">
+          <div className="flex gap-1 bg-[#f8fafc] rounded-xl p-1">
             {STATUSES.map(s => (
               <button key={s.value} onClick={() => { setStatusFilter(s.value); setPage(1); }}
                 className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
@@ -483,7 +483,7 @@ export function SupportPage() {
           </div>
 
           <div className="flex-1 flex items-center gap-2 min-w-[180px]">
-            <div className="flex-1 flex items-center gap-2 border border-gray-200 rounded-xl px-3 h-9 bg-gray-50 focus-within:border-brand-300 focus-within:bg-white transition-all">
+            <div className="flex-1 flex items-center gap-2 border border-[#eef2f6] rounded-xl px-3 h-9 bg-[#f8fafc] focus-within:border-brand-300 focus-within:bg-white transition-all">
               <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث في التذاكر..."
                 className="flex-1 bg-transparent border-none outline-none text-sm text-gray-700 placeholder:text-gray-300" />
@@ -491,7 +491,7 @@ export function SupportPage() {
 
             <button onClick={() => setShowFilters(!showFilters)}
               className={clsx("flex items-center gap-1.5 h-9 px-3 rounded-xl border text-xs font-medium transition-all",
-                showFilters ? "border-brand-300 bg-brand-50 text-brand-600" : "border-gray-200 text-gray-500 hover:border-gray-300"
+                showFilters ? "border-brand-300 bg-brand-50 text-brand-600" : "border-[#eef2f6] text-gray-500 hover:border-[#eef2f6]"
               )}>
               <Filter className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">تصفية</span>
@@ -499,7 +499,7 @@ export function SupportPage() {
             </button>
 
             <button onClick={() => { refetch(); toast.success("تم تحديث القائمة"); }}
-              className="h-9 w-9 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 hover:text-brand-500 hover:border-brand-200 transition-all">
+              className="h-9 w-9 flex items-center justify-center rounded-xl border border-[#eef2f6] text-gray-400 hover:text-brand-500 hover:border-brand-200 transition-all">
               <RefreshCw className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -507,16 +507,16 @@ export function SupportPage() {
 
         {/* Category filter */}
         {showFilters && (
-          <div className="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 flex-wrap">
+          <div className="mt-3 pt-3 border-t border-[#eef2f6] flex items-center gap-2 flex-wrap">
             <span className="text-xs text-gray-500 font-medium">التصنيف:</span>
             <button onClick={() => setCategoryFilter("")}
               className={clsx("px-3 py-1 rounded-xl text-xs font-medium border transition-all",
-                !categoryFilter ? "border-brand-400 bg-brand-50 text-brand-700" : "border-gray-200 text-gray-500 hover:border-gray-300"
+                !categoryFilter ? "border-brand-400 bg-brand-50 text-brand-700" : "border-[#eef2f6] text-gray-500 hover:border-[#eef2f6]"
               )}>الكل</button>
             {CATEGORIES.map(cat => (
               <button key={cat.value} onClick={() => setCategoryFilter(cat.value === categoryFilter ? "" : cat.value)}
                 className={clsx("flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-medium border transition-all",
-                  categoryFilter === cat.value ? "border-brand-400 bg-brand-50 text-brand-700" : "border-gray-200 text-gray-500 hover:border-gray-300"
+                  categoryFilter === cat.value ? "border-brand-400 bg-brand-50 text-brand-700" : "border-[#eef2f6] text-gray-500 hover:border-[#eef2f6]"
                 )}>
                 <cat.icon className="w-3 h-3" />{cat.label}
               </button>
@@ -531,7 +531,7 @@ export function SupportPage() {
           {[1,2,3].map(i => <Skel key={i} className="h-24 w-full rounded-2xl" />)}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white border border-gray-100 rounded-2xl p-12 flex flex-col items-center text-center">
+        <div className="bg-white border border-[#eef2f6] rounded-2xl p-12 flex flex-col items-center text-center">
           <div className="w-14 h-14 rounded-2xl bg-brand-50 flex items-center justify-center mb-4">
             <Headphones className="w-7 h-7 text-brand-400" />
           </div>
@@ -564,14 +564,14 @@ export function SupportPage() {
       {pagination && pagination.totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-            className="px-3 py-1.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors">
+            className="px-3 py-1.5 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] disabled:opacity-40 transition-colors">
             <ArrowRight className="w-4 h-4" />
           </button>
           <span className="text-sm text-gray-600 font-medium">
             صفحة {page} من {pagination.totalPages}
           </span>
           <button disabled={page >= pagination.totalPages} onClick={() => setPage(p => p + 1)}
-            className="px-3 py-1.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 transition-colors">
+            className="px-3 py-1.5 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] disabled:opacity-40 transition-colors">
             <ChevronDown className="w-4 h-4 -rotate-90" />
           </button>
         </div>
@@ -579,7 +579,7 @@ export function SupportPage() {
 
       {/* Help banner */}
       <div className="bg-gradient-to-l from-brand-500 to-brand-600 rounded-2xl p-5 flex items-center gap-4">
-        <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 rounded-[10px] bg-white/20 flex items-center justify-center shrink-0">
           <LifeBuoy className="w-5 h-5 text-white" />
         </div>
         <div className="flex-1">

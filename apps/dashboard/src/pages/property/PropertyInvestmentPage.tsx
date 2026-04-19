@@ -28,7 +28,7 @@ export function PropertyInvestmentPage() {
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-40 bg-gray-100 rounded-2xl animate-pulse" />
+              <div key={i} className="h-40 bg-[#f1f5f9] rounded-2xl animate-pulse" />
             ))}
           </div>
           <SkeletonRows rows={5} />
@@ -36,7 +36,7 @@ export function PropertyInvestmentPage() {
       ) : error ? (
         <div className="p-6 bg-red-50 border border-red-200 text-red-700 rounded-2xl">{error}</div>
       ) : analysis.length === 0 ? (
-        <div className="p-12 text-center bg-white rounded-2xl border border-gray-100">
+        <div className="p-12 text-center bg-white rounded-2xl border border-[#eef2f6]">
           <p className="text-gray-400 text-lg">لا توجد بيانات استثمارية</p>
           <p className="text-gray-300 text-sm mt-1">أضف عقارات وعقوداً لتحليل العوائد</p>
         </div>
@@ -47,7 +47,7 @@ export function PropertyInvestmentPage() {
             {analysis.map((item: any) => {
               const rec = getRecommendation(item);
               return (
-                <div key={item.propertyId ?? item.id} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+                <div key={item.propertyId ?? item.id} className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-4">
                   <div>
                     <h3 className="font-semibold text-gray-900">{item.propertyName ?? "عقار"}</h3>
                     <p className="text-gray-500 text-xs">{item.propertyType ?? ""}</p>
@@ -83,12 +83,12 @@ export function PropertyInvestmentPage() {
           </div>
 
           {/* Comparison Table */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-            <div className="px-4 py-3 border-b border-gray-100">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+            <div className="px-[10px] py-[6px] border-b border-[#eef2f6]">
               <h2 className="font-semibold text-gray-800">مقارنة جدولية</h2>
             </div>
             <table className="w-full text-sm">
-              <thead className="bg-gray-50">
+              <thead className="bg-[#f8fafc]">
                 <tr>
                   <th className="text-right px-4 py-3 font-medium text-gray-600">العقار</th>
                   <th className="text-right px-4 py-3 font-medium text-gray-600">إيراد سنوي</th>
@@ -101,24 +101,24 @@ export function PropertyInvestmentPage() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {analysis.map((item: any) => (
-                  <tr key={item.propertyId ?? item.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-900">{item.propertyName ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-600">
+                  <tr key={item.propertyId ?? item.id} className="hover:bg-[#f8fafc] transition-colors">
+                    <td className="px-[10px] py-[6px] font-medium text-gray-900">{item.propertyName ?? "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-600">
                       {Number(item.annualIncome ?? 0).toLocaleString("en-US")} ر.س
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-[10px] py-[6px] text-gray-600">
                       {Number(item.annualExpenses ?? 0).toLocaleString("en-US")} ر.س
                     </td>
-                    <td className="px-4 py-3 font-medium text-emerald-700">
+                    <td className="px-[10px] py-[6px] font-medium text-emerald-700">
                       {Number(item.netIncome ?? 0).toLocaleString("en-US")} ر.س
                     </td>
-                    <td className="px-4 py-3 font-semibold text-blue-700">
+                    <td className="px-[10px] py-[6px] font-semibold text-blue-700">
                       {Number(item.annualYield ?? 0).toFixed(1)}%
                     </td>
-                    <td className="px-4 py-3 font-semibold text-violet-700">
+                    <td className="px-[10px] py-[6px] font-semibold text-violet-700">
                       {Number(item.roi ?? 0).toFixed(1)}%
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-[10px] py-[6px] text-gray-600">
                       {Number(item.paybackPeriod ?? 0).toFixed(1)} سنة
                     </td>
                   </tr>

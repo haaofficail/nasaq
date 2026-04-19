@@ -115,7 +115,7 @@ function PageSkeleton() {
   return (
     <div dir="rtl" className="space-y-8 pb-10">
       {/* Header skeleton */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
         <div className="flex items-center justify-between mb-6">
           <div className="space-y-2">
             <Skeleton className="h-6 w-40" />
@@ -135,7 +135,7 @@ function PageSkeleton() {
       {/* Cards skeleton */}
       <div className="space-y-3">
         {[1, 2, 3].map(i => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 flex gap-4">
+          <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-5 flex gap-4">
             <Skeleton className="w-16 h-16 rounded-2xl shrink-0" />
             <div className="flex-1 space-y-2">
               <Skeleton className="h-4 w-40" />
@@ -148,7 +148,7 @@ function PageSkeleton() {
       {/* Grid skeleton */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
         {[...Array(8)].map((_, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+          <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-3">
             <Skeleton className="w-12 h-12 rounded-xl" />
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-3 w-16" />
@@ -297,7 +297,7 @@ export function FlowerOccasionsPage() {
       {/* ════════════════════════════════════════
           Hero Header
          ════════════════════════════════════════ */}
-      <div className="relative overflow-hidden bg-gradient-to-bl from-brand-50 via-white to-blue-50/50 rounded-2xl border border-gray-100 shadow-sm">
+      <div className="relative overflow-hidden bg-gradient-to-bl from-brand-50 via-white to-blue-50/50 rounded-2xl border border-[#eef2f6] shadow-sm">
         {/* Decorative elements */}
         <div className="absolute top-0 left-0 w-40 h-40 bg-brand-100/30 rounded-full -translate-x-1/2 -translate-y-1/2 blur-2xl" />
         <div className="absolute bottom-0 right-0 w-32 h-32 bg-violet-100/20 rounded-full translate-x-1/3 translate-y-1/3 blur-2xl" />
@@ -306,7 +306,7 @@ export function FlowerOccasionsPage() {
           <div className="flex items-start justify-between flex-wrap gap-4 mb-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-sm shadow-brand-200">
+                <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center shadow-sm shadow-brand-200">
                   <Calendar className="w-5 h-5 text-white" />
                 </div>
                 <div>
@@ -317,7 +317,7 @@ export function FlowerOccasionsPage() {
             </div>
             <div className="flex items-center gap-2">
               <button onClick={() => { upcomingApi.refetch(); allApi.refetch(); }}
-                className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 bg-white/80 backdrop-blur-sm hover:bg-white text-gray-400 hover:text-gray-600 transition-all shadow-sm">
+                className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] bg-white/80 backdrop-blur-sm hover:bg-white text-gray-400 hover:text-gray-600 transition-all shadow-sm">
                 <RefreshCw className="w-4 h-4" />
               </button>
               <Button icon={Plus} onClick={openCreate}>اضافة مناسبة</Button>
@@ -407,7 +407,7 @@ export function FlowerOccasionsPage() {
         {upcomingApi.loading ? (
           <div className="space-y-3">
             {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 flex gap-4">
+              <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-5 flex gap-4">
                 <Skeleton className="w-16 h-16 rounded-2xl shrink-0" />
                 <div className="flex-1 space-y-2">
                   <Skeleton className="h-4 w-40" />
@@ -422,8 +422,8 @@ export function FlowerOccasionsPage() {
             <AlertTriangle className="w-4 h-4 shrink-0" />{upcomingApi.error}
           </div>
         ) : upcomingList.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center shadow-sm">
-            <div className="w-16 h-16 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-4">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center shadow-sm">
+            <div className="w-16 h-16 rounded-2xl bg-[#f8fafc] flex items-center justify-center mx-auto mb-4">
               <Calendar className="w-7 h-7 text-gray-300" />
             </div>
             <p className="text-sm font-semibold text-gray-500 mb-1">لا مناسبات قريبة</p>
@@ -449,7 +449,7 @@ export function FlowerOccasionsPage() {
                     "group bg-white rounded-2xl border p-5 flex gap-5 items-center transition-all duration-200 hover:shadow-md",
                     urg === "critical" ? "border-red-200 shadow-sm shadow-red-100/50" :
                     urg === "warning" ? "border-amber-200 shadow-sm shadow-amber-100/50" :
-                    "border-gray-100 shadow-sm hover:border-gray-200",
+                    "border-[#eef2f6] shadow-sm hover:border-[#eef2f6]",
                   )}>
                   {/* Countdown ring */}
                   <CountdownRing days={occ.days_until} urgency={urg} />
@@ -495,7 +495,7 @@ export function FlowerOccasionsPage() {
                   </div>
 
                   {/* Tip card */}
-                  <div className="hidden sm:flex items-start gap-2 bg-gray-50 rounded-xl px-4 py-3 max-w-[220px] border border-gray-100">
+                  <div className="hidden sm:flex items-start gap-2 bg-[#f8fafc] rounded-xl px-4 py-3 max-w-[220px] border border-[#eef2f6]">
                     <Info className="w-4 h-4 text-brand-400 shrink-0 mt-0.5" />
                     <span className="text-[11px] text-gray-500 leading-relaxed">
                       اطلب {occ.stock_increase_pct}% اكثر من المعتاد قبل {occ.lead_days} يوم
@@ -515,7 +515,7 @@ export function FlowerOccasionsPage() {
         <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
           <h2 className="text-base font-bold text-gray-900">المناسبات النظامية</h2>
           {/* Category filter pills */}
-          <div className="flex gap-1.5 bg-gray-50 p-1.5 rounded-xl border border-gray-100">
+          <div className="flex gap-1.5 bg-[#f8fafc] p-1.5 rounded-xl border border-[#eef2f6]">
             {CATEGORY_TABS.map(t => {
               const count = t.id === "all" ? systemList.length : systemList.filter((o: any) => o.category === t.id).length;
               return (
@@ -523,7 +523,7 @@ export function FlowerOccasionsPage() {
                   className={clsx(
                     "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200",
                     catFilter === t.id
-                      ? "bg-white text-gray-900 shadow-sm border border-gray-200/50 font-semibold"
+                      ? "bg-white text-gray-900 shadow-sm border border-[#eef2f6]/50 font-semibold"
                       : "text-gray-500 hover:text-gray-700 hover:bg-white/50"
                   )}>
                   <t.icon className="w-3.5 h-3.5" />
@@ -543,7 +543,7 @@ export function FlowerOccasionsPage() {
         {allApi.loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {[...Array(8)].map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+              <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-3">
                 <Skeleton className="w-12 h-12 rounded-xl" />
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-3 w-16" />
@@ -551,8 +551,8 @@ export function FlowerOccasionsPage() {
             ))}
           </div>
         ) : filteredSystem.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center shadow-sm">
-            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center shadow-sm">
+            <div className="w-14 h-14 rounded-2xl bg-[#f8fafc] flex items-center justify-center mx-auto mb-3">
               <Calendar className="w-6 h-6 text-gray-300" />
             </div>
             <p className="text-sm font-semibold text-gray-500 mb-1">لا توجد مناسبات</p>
@@ -578,7 +578,7 @@ export function FlowerOccasionsPage() {
                 <div key={occ.id ?? idx}
                   className={clsx(
                     "group relative bg-white rounded-2xl border p-5 flex flex-col gap-3 overflow-hidden transition-all duration-200 hover:shadow-md",
-                    isSoon ? "border-amber-200 shadow-sm" : "border-gray-100 hover:border-gray-200",
+                    isSoon ? "border-amber-200 shadow-sm" : "border-[#eef2f6] hover:border-[#eef2f6]",
                   )}>
                   {/* Subtle gradient overlay at top */}
                   <div className={clsx("absolute inset-x-0 top-0 h-1 bg-gradient-to-l", cc.gradient)} />
@@ -599,13 +599,13 @@ export function FlowerOccasionsPage() {
                     <p className="font-bold text-sm text-gray-900 leading-snug mb-0.5">{occ.name_ar}</p>
                     <p className="text-xs text-gray-400">{dateStr}</p>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-gray-100/80">
+                  <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-[#eef2f6]/80">
                     <span className={clsx("inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg", ml.cls)}>
                       <TrendingUp className="w-2.5 h-2.5" />
                       {ml.label}
                     </span>
                     {occ.category && (
-                      <span className="text-[10px] font-medium text-gray-400 bg-gray-50 px-1.5 py-0.5 rounded-lg border border-gray-100">
+                      <span className="text-[10px] font-medium text-gray-400 bg-[#f8fafc] px-1.5 py-0.5 rounded-lg border border-[#eef2f6]">
                         {occ.category}
                       </span>
                     )}
@@ -640,7 +640,7 @@ export function FlowerOccasionsPage() {
         {allApi.loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+              <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-3">
                 <Skeleton className="w-12 h-12 rounded-xl" />
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-3 w-16" />
@@ -648,7 +648,7 @@ export function FlowerOccasionsPage() {
             ))}
           </div>
         ) : customList.length === 0 ? (
-          <div className="relative overflow-hidden bg-gradient-to-br from-violet-50/50 via-white to-pink-50/30 rounded-2xl border-2 border-dashed border-gray-200 p-12 text-center hover:border-brand-300 transition-all duration-300 cursor-pointer group" onClick={openCreate}>
+          <div className="relative overflow-hidden bg-gradient-to-br from-violet-50/50 via-white to-pink-50/30 rounded-2xl border-2 border-dashed border-[#eef2f6] p-12 text-center hover:border-brand-300 transition-all duration-300 cursor-pointer group" onClick={openCreate}>
             <div className="absolute top-0 right-0 w-32 h-32 bg-violet-100/20 rounded-full translate-x-1/3 -translate-y-1/3 blur-2xl" />
             <div className="relative">
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-100 to-brand-50 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-300 shadow-sm">
@@ -671,18 +671,18 @@ export function FlowerOccasionsPage() {
 
               return (
                 <div key={occ.id ?? idx}
-                  className="group relative bg-white rounded-2xl border border-gray-100 p-5 flex flex-col gap-3 overflow-hidden transition-all duration-200 hover:shadow-md hover:border-gray-200">
+                  className="group relative bg-white rounded-2xl border border-[#eef2f6] p-5 flex flex-col gap-3 overflow-hidden transition-all duration-200 hover:shadow-md hover:border-[#eef2f6]">
                   {/* Color accent */}
                   <div className={clsx("absolute inset-x-0 top-0 h-1 bg-gradient-to-l", cc.gradient)} />
 
                   {/* Action buttons (visible on hover) */}
                   <div className="absolute top-3 left-3 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <button onClick={() => openEdit(occ)}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-brand-600 hover:border-brand-200 transition-colors shadow-sm">
+                      className="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-[#eef2f6] text-gray-400 hover:text-brand-600 hover:border-brand-200 transition-colors shadow-sm">
                       <Edit2 className="w-3 h-3" />
                     </button>
                     <button onClick={() => handleDelete(occ)} disabled={deleteMutation.loading}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-gray-200 text-gray-400 hover:text-red-600 hover:border-red-200 transition-colors shadow-sm disabled:opacity-50">
+                      className="w-7 h-7 flex items-center justify-center rounded-lg bg-white border border-[#eef2f6] text-gray-400 hover:text-red-600 hover:border-red-200 transition-colors shadow-sm disabled:opacity-50">
                       <Trash2 className="w-3 h-3" />
                     </button>
                   </div>
@@ -694,7 +694,7 @@ export function FlowerOccasionsPage() {
                     <p className="font-bold text-sm text-gray-900 leading-snug mb-0.5">{occ.name_ar}</p>
                     <p className="text-xs text-gray-400">{dateStr}</p>
                   </div>
-                  <div className="pt-2 border-t border-gray-100/80">
+                  <div className="pt-2 border-t border-[#eef2f6]/80">
                     <span className={clsx("inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg", ml.cls)}>
                       <TrendingUp className="w-2.5 h-2.5" />
                       {ml.label} مبيعات
@@ -705,8 +705,8 @@ export function FlowerOccasionsPage() {
             })}
             {/* Add card */}
             <button onClick={openCreate}
-              className="group/add rounded-2xl border-2 border-dashed border-gray-200 p-5 flex flex-col items-center justify-center gap-3 text-gray-400 hover:border-brand-300 hover:text-brand-500 hover:bg-brand-50/20 transition-all duration-200 min-h-[180px]">
-              <div className="w-12 h-12 rounded-xl bg-gray-50 group-hover/add:bg-brand-50 flex items-center justify-center transition-colors">
+              className="group/add rounded-2xl border-2 border-dashed border-[#eef2f6] p-5 flex flex-col items-center justify-center gap-3 text-gray-400 hover:border-brand-300 hover:text-brand-500 hover:bg-brand-50/20 transition-all duration-200 min-h-[180px]">
+              <div className="w-12 h-12 rounded-xl bg-[#f8fafc] group-hover/add:bg-brand-50 flex items-center justify-center transition-colors">
                 <Plus className="w-5 h-5" />
               </div>
               <span className="text-xs font-semibold">اضافة مناسبة</span>
@@ -746,7 +746,7 @@ export function FlowerOccasionsPage() {
               options={DAY_OPTIONS} placeholder="اليوم" required error={errors.dateDay} />
           </div>
 
-          <div className="bg-gray-50 rounded-xl p-4 space-y-3 border border-gray-100">
+          <div className="bg-gray-50 rounded-xl p-4 space-y-3 border border-[#eef2f6]">
             <p className="text-xs font-semibold text-gray-600 mb-2">اعدادات التنبيه والمخزون</p>
             <div className="grid grid-cols-2 gap-3">
               <Input label="قبل كم يوم تنبّه" name="leadDays" type="number"
@@ -770,7 +770,7 @@ export function FlowerOccasionsPage() {
                       "flex items-center gap-1.5 px-3.5 py-2 rounded-xl border text-xs transition-all duration-200",
                       form.color === opt.value
                         ? "border-brand-400 bg-brand-50 text-brand-700 font-semibold shadow-sm"
-                        : "border-gray-200 text-gray-600 hover:bg-gray-50 hover:border-gray-300",
+                        : "border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc] hover:border-[#eef2f6]",
                     )}>
                     <span className={clsx("w-3.5 h-3.5 rounded-full shadow-sm", cc.circle)} />
                     {opt.label}
@@ -786,7 +786,7 @@ export function FlowerOccasionsPage() {
             </label>
             <textarea value={form.notes} onChange={e => handleField("notes", e.target.value)} rows={3}
               placeholder="اي تفاصيل اضافية..."
-              className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none resize-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all" />
+              className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none resize-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all" />
           </div>
         </div>
       </Modal>

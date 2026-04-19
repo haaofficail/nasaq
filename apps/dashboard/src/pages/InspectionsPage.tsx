@@ -17,7 +17,7 @@ const CONDITION_COLORS: Record<string, string> = {
   fair: "text-amber-600 bg-amber-50", poor: "text-red-500 bg-red-50",
 };
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300";
 const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
     <label className="text-xs font-semibold text-gray-500 mb-1 block">{label}</label>
@@ -80,7 +80,7 @@ export function InspectionsPage() {
           <button
             onClick={() => setDamageOnly(d => !d)}
             className={clsx("flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border transition-colors",
-              damageOnly ? "bg-red-500 text-white border-red-500" : "border-gray-200 text-gray-600 hover:bg-gray-50"
+              damageOnly ? "bg-red-500 text-white border-red-500" : "border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]"
             )}
           >
             <Filter className="w-3.5 h-3.5" /> الأضرار فقط
@@ -99,7 +99,7 @@ export function InspectionsPage() {
           { label: "بها أضرار",        value: withDamage,         icon: AlertTriangle, color: "text-red-500 bg-red-50" },
           { label: "أضرار غير مستردة", value: unrecovered,        icon: AlertTriangle, color: "text-orange-600 bg-orange-50" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
+          <div key={label} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all">
             <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", color.split(" ")[1])}>
               <Icon className={clsx("w-4 h-4", color.split(" ")[0])} />
             </div>
@@ -125,7 +125,7 @@ export function InspectionsPage() {
       {loading ? (
         <SkeletonRows />
       ) : inspections.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16">
           <ClipboardList className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-gray-400">لا توجد سجلات تفتيش</p>
         </div>
@@ -135,7 +135,7 @@ export function InspectionsPage() {
             <div
               key={i.id}
               className={clsx("bg-white rounded-2xl border px-5 py-4",
-                i.damage_found && !i.damage_recovered ? "border-red-200" : i.damage_found ? "border-orange-100" : "border-gray-100"
+                i.damage_found && !i.damage_recovered ? "border-red-200" : i.damage_found ? "border-orange-100" : "border-[#eef2f6]"
               )}
             >
               <div className="flex items-center justify-between gap-3">
@@ -186,7 +186,7 @@ export function InspectionsPage() {
       {createModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100 sticky top-0 bg-white">
+            <div className="flex items-center justify-between p-5 border-b border-[#eef2f6] sticky top-0 bg-white">
               <h3 className="font-bold text-gray-900">تفتيش جديد</h3>
               <button onClick={() => setCreateModal(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-4 h-4" /></button>
             </div>
@@ -235,7 +235,7 @@ export function InspectionsPage() {
               </Field>
               <div className="flex gap-2">
                 <button onClick={save} disabled={createMut.loading || !form.assetName.trim()} className="flex-1 bg-brand-500 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-brand-600 disabled:opacity-60">حفظ</button>
-                <button onClick={() => setCreateModal(false)} className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-medium">إلغاء</button>
+                <button onClick={() => setCreateModal(false)} className="flex-1 border border-[#eef2f6] text-gray-600 rounded-xl py-2.5 text-sm font-medium">إلغاء</button>
               </div>
             </div>
           </div>

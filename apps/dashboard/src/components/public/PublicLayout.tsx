@@ -20,7 +20,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
       {/* Sticky Header */}
       <header
         className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
-          scrolled ? "bg-white shadow-sm border-b border-gray-100" : "bg-transparent"
+          scrolled ? "bg-white shadow-sm border-b border-[#eef2f6]" : "bg-transparent"
         }`}
       >
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -63,13 +63,13 @@ export function PublicLayout({ children }: { children: ReactNode }) {
 
         {/* Mobile Nav */}
         {mobileOpen && (
-          <div className="md:hidden bg-white border-t border-gray-100 px-6 py-4 space-y-3">
+          <div className="md:hidden bg-white border-t border-[#eef2f6] px-6 py-4 space-y-3">
             <Link to="/features" className="block text-sm font-medium text-gray-700 py-2" onClick={() => setMobileOpen(false)}>الميزات</Link>
             <Link to="/pricing" className="block text-sm font-medium text-gray-700 py-2" onClick={() => setMobileOpen(false)}>الأسعار</Link>
             <Link to="/about" className="block text-sm font-medium text-gray-700 py-2" onClick={() => setMobileOpen(false)}>من نحن</Link>
             <Link to="/contact" className="block text-sm font-medium text-gray-700 py-2" onClick={() => setMobileOpen(false)}>تواصل</Link>
             <div className="flex gap-3 pt-2">
-              <Link to="/login" className="flex-1 text-center border border-gray-200 text-sm font-medium text-gray-700 py-2.5 rounded-xl" onClick={() => setMobileOpen(false)}>سجّل دخول</Link>
+              <Link to="/login" className="flex-1 text-center border border-[#eef2f6] text-sm font-medium text-gray-700 py-2.5 rounded-xl" onClick={() => setMobileOpen(false)}>سجّل دخول</Link>
               <Link to="/register" className="flex-1 text-center bg-[#5b9bd5] text-white text-sm font-bold py-2.5 rounded-xl" onClick={() => setMobileOpen(false)}>ابدأ مجاناً</Link>
             </div>
           </div>

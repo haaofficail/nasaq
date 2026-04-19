@@ -17,7 +17,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between p-5 border-b border-[#eef2f6] shrink-0">
           <h3 className="font-bold text-gray-900">{title}</h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
             <X className="w-4 h-4" />
@@ -79,7 +79,7 @@ function ModifierGroupsPanel({ itemId }: { itemId: string }) {
   return (
     <div className="space-y-3">
       {groups.length === 0 && !newGroup && (
-        <div className="border-2 border-dashed border-gray-100 rounded-2xl p-6 text-center">
+        <div className="border-2 border-dashed border-[#eef2f6] rounded-2xl p-6 text-center">
           <Settings2 className="w-7 h-7 text-gray-200 mx-auto mb-2" />
           <p className="text-sm text-gray-400 font-medium">لا توجد مجموعات تخصيص بعد</p>
           <p className="text-xs text-gray-300 mt-1">مثال: الحجم، الإضافات، درجة الحلاوة</p>
@@ -87,13 +87,13 @@ function ModifierGroupsPanel({ itemId }: { itemId: string }) {
       )}
 
       {groups.map(g => (
-        <div key={g.id} className="border border-gray-100 rounded-2xl overflow-hidden">
+        <div key={g.id} className="border border-[#eef2f6] rounded-2xl overflow-hidden">
           {/* Group header */}
           <div className="flex items-center gap-2 px-4 py-3 bg-gray-50">
             <button onClick={() => setExpanded(p => ({ ...p, [g.id]: !p[g.id] }))} className="flex items-center gap-2 flex-1 min-w-0">
               {expanded[g.id] ? <ChevronDown className="w-4 h-4 text-gray-400 shrink-0" /> : <ChevronRight className="w-4 h-4 text-gray-400 shrink-0" />}
               <span className="text-sm font-semibold text-gray-800">{g.name}</span>
-              <span className="text-xs bg-white border border-gray-200 text-gray-500 px-2 py-0.5 rounded-full">
+              <span className="text-xs bg-white border border-[#eef2f6] text-gray-500 px-2 py-0.5 rounded-full">
                 {g.selection_type === "single" ? "اختيار واحد" : "اختيار متعدد"}
               </span>
               {g.is_required && <span className="text-xs bg-red-50 text-red-500 px-2 py-0.5 rounded-full">مطلوب</span>}
@@ -108,7 +108,7 @@ function ModifierGroupsPanel({ itemId }: { itemId: string }) {
           {expanded[g.id] && (
             <div className="p-3 space-y-1.5">
               {(g.modifiers || []).map(m => (
-                <div key={m.id} className="flex items-center gap-3 px-3 py-2.5 bg-white border border-gray-100 rounded-xl group">
+                <div key={m.id} className="flex items-center gap-3 px-3 py-2.5 bg-white border border-[#eef2f6] rounded-xl group">
                   <GripVertical className="w-3.5 h-3.5 text-gray-300 shrink-0" />
                   <span className="flex-1 text-sm text-gray-800">{m.name}</span>
                   {m.price_delta > 0
@@ -131,17 +131,17 @@ function ModifierGroupsPanel({ itemId }: { itemId: string }) {
                     onChange={e => setAddModState(p => p ? { ...p, name: e.target.value } : p)}
                     onKeyDown={e => { if (e.key === "Enter") saveMod(); if (e.key === "Escape") setAddModState(null); }}
                     placeholder="اسم الخيار (مثال: كبير)"
-                    className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
+                    className="flex-1 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
                   />
                   <input
                     type="number"
                     value={addModState.priceDelta}
                     onChange={e => setAddModState(p => p ? { ...p, priceDelta: e.target.value } : p)}
                     placeholder="إضافة سعر"
-                    className="w-28 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
+                    className="w-28 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
                   />
                   <button onClick={saveMod} className="bg-brand-500 text-white rounded-xl px-3 py-2 text-xs font-medium hover:bg-brand-600">إضافة</button>
-                  <button onClick={() => setAddModState(null)} className="border border-gray-200 text-gray-500 rounded-xl px-3 py-2 text-xs hover:bg-gray-50">إلغاء</button>
+                  <button onClick={() => setAddModState(null)} className="border border-[#eef2f6] text-gray-500 rounded-xl px-3 py-2 text-xs hover:bg-[#f8fafc]">إلغاء</button>
                 </div>
               ) : (
                 <button
@@ -164,15 +164,15 @@ function ModifierGroupsPanel({ itemId }: { itemId: string }) {
             value={newGroup.name}
             onChange={e => setNewGroup(p => p ? { ...p, name: e.target.value } : p)}
             placeholder="اسم المجموعة (مثال: الحجم، الإضافات)"
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 bg-white"
+            className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 bg-white"
           />
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl p-1">
+            <div className="flex items-center gap-1 bg-white border border-[#eef2f6] rounded-xl p-1">
               {(["single", "multiple"] as const).map(t => (
                 <button
                   key={t}
                   onClick={() => setNewGroup(p => p ? { ...p, selectionType: t } : p)}
-                  className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium transition-colors", newGroup.selectionType === t ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-gray-50")}
+                  className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium transition-colors", newGroup.selectionType === t ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-[#f8fafc]")}
                 >{t === "single" ? "اختيار واحد" : "اختيار متعدد"}</button>
               ))}
             </div>
@@ -185,7 +185,7 @@ function ModifierGroupsPanel({ itemId }: { itemId: string }) {
           </div>
           <div className="flex gap-2">
             <button onClick={saveGroup} disabled={createGroup.loading} className="flex-1 bg-brand-500 text-white rounded-xl py-2 text-sm font-medium hover:bg-brand-600 disabled:opacity-60">حفظ المجموعة</button>
-            <button onClick={() => setNewGroup(null)} className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2 text-sm hover:bg-gray-50">إلغاء</button>
+            <button onClick={() => setNewGroup(null)} className="flex-1 border border-[#eef2f6] text-gray-600 rounded-xl py-2 text-sm hover:bg-[#f8fafc]">إلغاء</button>
           </div>
         </div>
       ) : (
@@ -325,7 +325,7 @@ export function MenuPage() {
           <p className="text-sm text-gray-400 mt-0.5">{categories.length} تصنيف · {allItems.length} صنف</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex items-center gap-1.5 bg-white border border-gray-100 rounded-xl px-3 py-2 w-44">
+          <div className="flex items-center gap-1.5 bg-white border border-[#eef2f6] rounded-xl px-3 py-2 w-44">
             <Search className="w-3.5 h-3.5 text-gray-400 shrink-0" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث..." className="bg-transparent outline-none text-sm text-gray-700 w-full" />
           </div>
@@ -338,7 +338,7 @@ export function MenuPage() {
       {(catLoading || itemLoading) && <SkeletonRows />}
 
       {!catLoading && categories.length === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16">
           <UtensilsCrossed className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-gray-400 font-medium mb-1">لا توجد تصنيفات بعد</p>
           <p className="text-xs text-gray-300 mb-4">أضف تصنيفاً مثل "المشروبات" أو "الحلويات"</p>
@@ -362,7 +362,7 @@ export function MenuPage() {
                   onClick={() => setSelectedCat(cat.id)}
                   className={clsx(
                     "group flex items-center justify-between px-3 py-2.5 rounded-xl cursor-pointer transition-colors",
-                    active ? "bg-brand-500 text-white" : "bg-white border border-gray-100 hover:border-brand-200"
+                    active ? "bg-brand-500 text-white" : "bg-white border border-[#eef2f6] hover:border-brand-200"
                   )}
                 >
                   <div className="flex-1 min-w-0">
@@ -400,7 +400,7 @@ export function MenuPage() {
             </div>
 
             {catItems.length === 0 && !itemLoading && (
-              <div className="bg-white rounded-2xl border-2 border-dashed border-gray-100 text-center py-12 cursor-pointer hover:border-brand-200 transition-colors" onClick={() => activeCatId && openItemModal(activeCatId)}>
+              <div className="bg-white rounded-2xl border-2 border-dashed border-[#eef2f6] text-center py-12 cursor-pointer hover:border-brand-200 transition-colors" onClick={() => activeCatId && openItemModal(activeCatId)}>
                 <Plus className="w-8 h-8 text-gray-200 mx-auto mb-2" />
                 <p className="text-gray-400 text-sm font-medium">لا توجد أصناف هنا بعد</p>
                 <p className="text-xs text-gray-300 mt-1">اضغط لإضافة أول صنف في هذا التصنيف</p>
@@ -409,7 +409,7 @@ export function MenuPage() {
 
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {catItems.map(item => (
-                <div key={item.id} className={clsx("bg-white rounded-2xl border overflow-hidden group transition-shadow hover:shadow-md", item.is_available !== false ? "border-gray-100" : "border-red-100 opacity-70")}>
+                <div key={item.id} className={clsx("bg-white rounded-2xl border overflow-hidden group transition-shadow hover:shadow-md", item.is_available !== false ? "border-[#eef2f6]" : "border-red-100 opacity-70")}>
                   <div className="aspect-video relative overflow-hidden bg-gray-50">
                     {item.image_url ? (
                       <img src={item.image_url} alt={item.name} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = "none"; }} loading="lazy" />
@@ -460,15 +460,15 @@ export function MenuPage() {
           <div className="space-y-4">
             <div>
               <label className="text-xs font-semibold text-gray-500 mb-1 block">اسم التصنيف *</label>
-              <input value={catForm.name} onChange={e => setCatForm(p => ({ ...p, name: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" placeholder="مثال: المشروبات الباردة" autoFocus />
+              <input value={catForm.name} onChange={e => setCatForm(p => ({ ...p, name: e.target.value }))} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" placeholder="مثال: المشروبات الباردة" autoFocus />
             </div>
             <div>
               <label className="text-xs font-semibold text-gray-500 mb-1 block">الوصف (اختياري)</label>
-              <input value={catForm.description} onChange={e => setCatForm(p => ({ ...p, description: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" placeholder="وصف مختصر" />
+              <input value={catForm.description} onChange={e => setCatForm(p => ({ ...p, description: e.target.value }))} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" placeholder="وصف مختصر" />
             </div>
             <div className="flex gap-2 pt-1">
               <button onClick={saveCat} disabled={createCat.loading || updateCat.loading} className="flex-1 bg-brand-500 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-brand-600 disabled:opacity-60 transition-colors">حفظ</button>
-              <button onClick={() => setCatModal({ open: false })} className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">إلغاء</button>
+              <button onClick={() => setCatModal({ open: false })} className="flex-1 border border-[#eef2f6] text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-[#f8fafc] transition-colors">إلغاء</button>
             </div>
           </div>
         </Modal>
@@ -479,7 +479,7 @@ export function MenuPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col">
             {/* Header */}
-            <div className="flex items-center justify-between p-5 border-b border-gray-100 shrink-0">
+            <div className="flex items-center justify-between p-5 border-b border-[#eef2f6] shrink-0">
               <h3 className="font-bold text-gray-900">{itemModal.item ? "تعديل الصنف" : "صنف جديد"}</h3>
               <button onClick={() => setItemModal({ open: false })} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
                 <X className="w-4 h-4" />
@@ -487,7 +487,7 @@ export function MenuPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-gray-100 px-5 shrink-0">
+            <div className="flex border-b border-[#eef2f6] px-5 shrink-0">
               {[
                 { key: "info",      label: "المعلومات الأساسية" },
                 { key: "modifiers", label: "التخصيص (الحجم والإضافات)" },
@@ -497,7 +497,7 @@ export function MenuPage() {
                   disabled={t.key === "modifiers" && !itemModal.item}
                   onClick={() => setItemModal(p => ({ ...p, tab: t.key as "info" | "modifiers" }))}
                   className={clsx(
-                    "px-4 py-3 text-sm font-medium border-b-2 transition-colors -mb-px",
+                    "px-[10px] py-[6px] text-sm font-medium border-b-2 transition-colors -mb-px",
                     (itemModal.tab || "info") === t.key
                       ? "border-brand-500 text-brand-600"
                       : "border-transparent text-gray-500 hover:text-gray-700",
@@ -517,21 +517,21 @@ export function MenuPage() {
                   <ImageUpload label="صورة الصنف" value={itemForm.image_url} onChange={url => setItemForm(p => ({ ...p, image_url: url }))} aspectRatio="video" />
                   <div>
                     <label className="text-xs font-semibold text-gray-500 mb-1 block">اسم الصنف *</label>
-                    <input value={itemForm.name} onChange={e => setItemForm(p => ({ ...p, name: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" placeholder="مثال: كابتشينو" autoFocus />
+                    <input value={itemForm.name} onChange={e => setItemForm(p => ({ ...p, name: e.target.value }))} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" placeholder="مثال: كابتشينو" autoFocus />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-xs font-semibold text-gray-500 mb-1 block">السعر الأساسي (ر.س) *</label>
-                      <input type="number" value={itemForm.price} onChange={e => setItemForm(p => ({ ...p, price: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" placeholder="0" />
+                      <input type="number" value={itemForm.price} onChange={e => setItemForm(p => ({ ...p, price: e.target.value }))} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" placeholder="0" />
                     </div>
                     <div>
                       <label className="text-xs font-semibold text-gray-500 mb-1 block">وقت التحضير (دقيقة)</label>
-                      <input type="number" value={itemForm.preparation_time} onChange={e => setItemForm(p => ({ ...p, preparation_time: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" placeholder="5" />
+                      <input type="number" value={itemForm.preparation_time} onChange={e => setItemForm(p => ({ ...p, preparation_time: e.target.value }))} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300" placeholder="5" />
                     </div>
                   </div>
                   <div>
                     <label className="text-xs font-semibold text-gray-500 mb-1 block">الوصف</label>
-                    <textarea value={itemForm.description} onChange={e => setItemForm(p => ({ ...p, description: e.target.value }))} rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 resize-none" placeholder="وصف الصنف..." />
+                    <textarea value={itemForm.description} onChange={e => setItemForm(p => ({ ...p, description: e.target.value }))} rows={2} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-300 resize-none" placeholder="وصف الصنف..." />
                   </div>
                   <div className="flex items-center gap-5">
                     <label className="flex items-center gap-2 cursor-pointer">
@@ -555,14 +555,14 @@ export function MenuPage() {
 
             {/* Footer */}
             {(itemModal.tab || "info") === "info" && (
-              <div className="p-5 border-t border-gray-100 flex gap-2 shrink-0">
+              <div className="p-5 border-t border-[#eef2f6] flex gap-2 shrink-0">
                 <button onClick={saveItem} disabled={createItem.loading || updateItem.loading} className="flex-1 bg-brand-500 text-white rounded-xl py-2.5 text-sm font-medium hover:bg-brand-600 disabled:opacity-60 transition-colors">
                   {createItem.loading || updateItem.loading ? "جاري الحفظ..." : "حفظ"}
                 </button>
                 {!itemModal.item && (
                   <p className="text-xs text-gray-400 self-center">بعد الحفظ يمكنك إضافة خيارات التخصيص</p>
                 )}
-                <button onClick={() => setItemModal({ open: false })} className="px-5 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">إلغاء</button>
+                <button onClick={() => setItemModal({ open: false })} className="px-5 border border-[#eef2f6] text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-[#f8fafc] transition-colors">إلغاء</button>
               </div>
             )}
           </div>

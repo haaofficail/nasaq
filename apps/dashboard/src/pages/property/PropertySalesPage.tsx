@@ -90,7 +90,7 @@ export function PropertySalesPage() {
         </button>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         {loading ? (
           <div className="p-4"><SkeletonRows rows={6} /></div>
         ) : error ? (
@@ -102,7 +102,7 @@ export function PropertySalesPage() {
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-[#f8fafc]">
               <tr>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">المشتري</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">العقار</th>
@@ -117,28 +117,28 @@ export function PropertySalesPage() {
                 const method = PAYMENT_METHODS.find((m) => m.value === sale.paymentMethod);
                 const status = SALE_STATUSES[sale.status] ?? { label: sale.status, color: "bg-gray-100 text-gray-600" };
                 return (
-                  <tr key={sale.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3">
+                  <tr key={sale.id} className="hover:bg-[#f8fafc] transition-colors">
+                    <td className="px-[10px] py-[6px]">
                       <div className="font-medium text-gray-900">{sale.buyerName ?? "—"}</div>
                       {sale.buyerPhone && <div className="text-xs text-gray-500">{sale.buyerPhone}</div>}
                     </td>
-                    <td className="px-4 py-3 text-gray-700">{sale.propertyName ?? "—"}</td>
-                    <td className="px-4 py-3 font-semibold text-emerald-700">
+                    <td className="px-[10px] py-[6px] text-gray-700">{sale.propertyName ?? "—"}</td>
+                    <td className="px-[10px] py-[6px] font-semibold text-emerald-700">
                       {Number(sale.salePrice).toLocaleString("en-US")} ر.س
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       {method && (
                         <span className={`text-xs px-2 py-0.5 rounded-full ${method.color}`}>
                           {method.label}
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${status.color}`}>
                         {status.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       {sale.status !== "completed" && sale.status !== "cancelled" && (
                         <button
                           onClick={() => handleComplete(sale.id)}
@@ -170,7 +170,7 @@ export function PropertySalesPage() {
                 <select
                   value={form.propertyId}
                   onChange={(e) => setForm({ ...form, propertyId: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 >
                   <option value="">اختر العقار</option>
                   {properties.map((p: any) => (
@@ -185,7 +185,7 @@ export function PropertySalesPage() {
                   value={form.buyerName}
                   onChange={(e) => setForm({ ...form, buyerName: e.target.value })}
                   placeholder="الاسم الكامل"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
 
@@ -195,7 +195,7 @@ export function PropertySalesPage() {
                   value={form.buyerPhone}
                   onChange={(e) => setForm({ ...form, buyerPhone: e.target.value })}
                   placeholder="05xxxxxxxx"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
 
@@ -205,7 +205,7 @@ export function PropertySalesPage() {
                   value={form.buyerNationalId}
                   onChange={(e) => setForm({ ...form, buyerNationalId: e.target.value })}
                   placeholder="1xxxxxxxxx"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
 
@@ -216,7 +216,7 @@ export function PropertySalesPage() {
                   value={form.salePrice}
                   onChange={(e) => setForm({ ...form, salePrice: e.target.value })}
                   placeholder="0"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
 
@@ -225,7 +225,7 @@ export function PropertySalesPage() {
                 <select
                   value={form.paymentMethod}
                   onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 >
                   {PAYMENT_METHODS.map((m) => (
                     <option key={m.value} value={m.value}>{m.label}</option>
@@ -242,7 +242,7 @@ export function PropertySalesPage() {
                   placeholder="2"
                   min="0"
                   max="100"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
                 />
               </div>
             </div>
@@ -258,7 +258,7 @@ export function PropertySalesPage() {
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50"
+                className="flex-1 py-2 border border-[#eef2f6] text-gray-700 rounded-xl text-sm hover:bg-[#f8fafc]"
               >
                 إلغاء
               </button>

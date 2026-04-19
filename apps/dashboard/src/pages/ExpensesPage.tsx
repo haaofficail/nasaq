@@ -16,7 +16,7 @@ const CATEGORIES: Record<string, { label: string; color: string; bg: string }> =
   marketing:   { label: "تسويق",     color: "text-pink-700",   bg: "bg-pink-50 border-pink-200" },
   utilities:   { label: "خدمات",     color: "text-teal-700",   bg: "bg-teal-50 border-teal-200" },
   supplies:    { label: "مستلزمات",  color: "text-lime-700",   bg: "bg-lime-50 border-lime-200" },
-  other:       { label: "أخرى",      color: "text-gray-600",   bg: "bg-gray-100 border-gray-200" },
+  other:       { label: "أخرى",      color: "text-gray-600",   bg: "bg-gray-100 border-[#eef2f6]" },
 };
 
 const EMPTY = {
@@ -124,7 +124,7 @@ export function ExpensesPage() {
           <p className="text-sm text-gray-400 mt-0.5">تتبع وإدارة مصاريف المنشأة</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={refetch} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
+          <button onClick={refetch} className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500 transition-colors">
             <RefreshCw className="w-4 h-4" />
           </button>
           <Button icon={Plus} onClick={openCreate}>مصروف جديد</Button>
@@ -139,7 +139,7 @@ export function ExpensesPage() {
           { label: "أعلى فئة إنفاقاً",  value: byCategory[0]?.label || "—",                                 color: "text-amber-700",  bg: "bg-amber-50" },
           { label: "صافي الربح (الشهر)", value: pnl.netProfit ? `${fmt(pnl.netProfit)} ر.س` : "—",          color: "text-emerald-600",bg: "bg-emerald-50" },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-2", s.bg)}>
               <TrendingDown className={clsx("w-4 h-4", s.color)} />
             </div>
@@ -151,7 +151,7 @@ export function ExpensesPage() {
 
       {/* Search + Category chips */}
       {byCategory.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <h2 className="text-sm font-semibold text-gray-700 mb-3">التوزيع حسب الفئة</h2>
           <div className="mb-3">
             <input
@@ -159,13 +159,13 @@ export function ExpensesPage() {
               placeholder="ابحث في المصروفات..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full sm:w-64 px-3 py-2 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-brand-200"
+              className="w-full sm:w-64 px-3 py-2 text-sm border border-[#eef2f6] rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-brand-200"
             />
           </div>
           <div className="flex flex-wrap gap-2">
             <button onClick={() => setCatFilter("all")}
               className={clsx("px-3 py-1.5 rounded-xl border text-xs font-medium transition-all",
-                catFilter === "all" ? "bg-brand-500 border-brand-500 text-white" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
+                catFilter === "all" ? "bg-brand-500 border-brand-500 text-white" : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]")}>
               الكل ({expenses.length})
             </button>
             {byCategory.map(c => (
@@ -182,8 +182,8 @@ export function ExpensesPage() {
       )}
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="px-5 py-[6px] border-b border-gray-50 flex items-center justify-between">
           <h2 className="font-semibold text-gray-900 text-sm">سجل المصروفات</h2>
           <span className="text-xs text-gray-400">{filtered.length} سجل</span>
         </div>
@@ -218,30 +218,30 @@ export function ExpensesPage() {
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">الوصف</th>
                   <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden md:table-cell">رقم الإيصال</th>
                   <th className="text-left  py-3 px-5 text-xs text-gray-400 font-semibold">المبلغ</th>
-                  <th className="py-3 px-4 w-20" />
+                  <th className="py-[6px] px-[10px] w-20" />
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((e: any) => {
                   const cat = CATEGORIES[e.category] || CATEGORIES.other;
                   return (
-                    <tr key={e.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                      <td className="py-3.5 px-5 text-xs text-gray-500 tabular-nums whitespace-nowrap">{fmtDate(e.expenseDate)}</td>
-                      <td className="py-3.5 px-4">
+                    <tr key={e.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
+                      <td className="py-[6px] px-5 text-xs text-gray-500 tabular-nums whitespace-nowrap">{fmtDate(e.expenseDate)}</td>
+                      <td className="py-[6px] px-[10px]">
                         <span className={clsx("px-2 py-0.5 rounded-full text-[11px] font-medium border", cat.bg, cat.color)}>
                           {cat.label}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <p className="text-sm text-gray-900 font-medium">{e.description}</p>
                         {e.subcategory && <p className="text-xs text-gray-400 mt-0.5">{e.subcategory}</p>}
                       </td>
-                      <td className="py-3.5 px-4 text-xs text-gray-400 font-mono hidden md:table-cell">{e.receiptNumber || "—"}</td>
-                      <td className="py-3.5 px-5 text-left">
+                      <td className="py-[6px] px-[10px] text-xs text-gray-400 font-mono hidden md:table-cell">{e.receiptNumber || "—"}</td>
+                      <td className="py-[6px] px-5 text-left">
                         <span className="text-sm font-bold text-red-600 tabular-nums">{fmt(e.amount)}</span>
                         <span className="text-xs text-gray-400 mr-1">ر.س</span>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <div className="flex gap-1 justify-end">
                           <button onClick={() => openEdit(e)} className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors">
                             <Pencil className="w-3.5 h-3.5 text-brand-500" />
@@ -256,7 +256,7 @@ export function ExpensesPage() {
                 })}
               </tbody>
               <tfoot>
-                <tr className="border-t border-gray-100 bg-gray-50/40">
+                <tr className="border-t border-[#eef2f6] bg-gray-50/40">
                   <td colSpan={4} className="px-5 py-3 text-xs font-semibold text-gray-500">الإجمالي</td>
                   <td className="px-5 py-3 text-left">
                     <span className="text-sm font-bold text-red-600 tabular-nums">{fmt(totalMonth)}</span>

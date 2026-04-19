@@ -113,7 +113,7 @@ export function PropertyPortfolioPage() {
       {/* Pie chart + table */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Pie */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white border border-[#eef2f6] rounded-2xl p-5 shadow-sm">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">توزيع أنواع العقارات</h3>
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
@@ -129,15 +129,15 @@ export function PropertyPortfolioPage() {
         </div>
 
         {/* Properties table */}
-        <div className="md:col-span-2 bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="md:col-span-2 bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-[#f8fafc]">
               <tr>
-                <th className="px-4 py-3 text-right font-medium text-gray-500">العقار</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-500">النوع</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-500">المدينة</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-500">الوحدات</th>
-                <th className="px-4 py-3 text-right font-medium text-gray-500">الإشغال</th>
+                <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">العقار</th>
+                <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">النوع</th>
+                <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">المدينة</th>
+                <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الوحدات</th>
+                <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الإشغال</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -146,12 +146,12 @@ export function PropertyPortfolioPage() {
                   ? Math.round(((p.occupiedUnits ?? 0) / p.totalUnits) * 100)
                   : 0;
                 return (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{p.name}</td>
-                    <td className="px-4 py-3 text-gray-500">{PROPERTY_TYPE_AR[p.type] ?? p.type}</td>
-                    <td className="px-4 py-3 text-gray-500">{p.city ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-500">{p.totalUnits ?? 0}</td>
-                    <td className="px-4 py-3">
+                  <tr key={p.id} className="hover:bg-[#f8fafc]">
+                    <td className="px-[10px] py-[6px] font-medium text-gray-900">{p.name}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{PROPERTY_TYPE_AR[p.type] ?? p.type}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{p.city ?? "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">{p.totalUnits ?? 0}</td>
+                    <td className="px-[10px] py-[6px]">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                           <div

@@ -55,13 +55,13 @@ const GRADE_DIRECTION_AR: Record<string, string> = { up: "ترقية", same: "م
 function MasterTableSkeleton({ cols = 6 }: { cols?: number }) {
   return (
     <div className="overflow-hidden">
-      <div className="bg-gray-50 px-4 py-3 flex gap-6 border-b border-gray-100">
+      <div className="bg-gray-50 px-4 py-3 flex gap-6 border-b border-[#eef2f6]">
         {Array.from({ length: cols }).map((_, i) => (
           <div key={i} className="h-3 bg-gray-100 rounded w-16 animate-pulse" />
         ))}
       </div>
       {Array.from({ length: 5 }).map((_, i) => (
-        <div key={i} className="px-4 py-3.5 border-t border-gray-50 flex items-center gap-6 animate-pulse">
+        <div key={i} className="px-[10px] py-[6px] border-t border-gray-50 flex items-center gap-6 animate-pulse">
           {Array.from({ length: cols }).map((_, j) => (
             <div key={j} className="h-4 bg-gray-100 rounded flex-1" />
           ))}
@@ -77,7 +77,7 @@ function Modal({ title, onClose, children, wide }: {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className={clsx("bg-white rounded-2xl shadow-2xl w-full", wide ? "max-w-2xl" : "max-w-lg")}>
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+        <div className="flex items-center justify-between p-5 border-b border-[#eef2f6]">
           <h3 className="font-bold text-gray-900">{title}</h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
             <X className="w-4 h-4" />
@@ -181,9 +181,9 @@ function VariantsTab() {
       {loading ? (
         <MasterTableSkeleton cols={10} />
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-[#f8fafc]">
               <tr>
                 {["الصنف","اللون","المنشأ","الدرجة","المرحلة","السعر الأساسي","البنش","الصلاحية","الحالة",""].map((h) => (
                   <th key={h} className="text-right px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>
@@ -194,14 +194,14 @@ function VariantsTab() {
               {filtered.length === 0 ? (
                 <tr><td colSpan={9} className="text-center py-10 text-gray-400">لا توجد أصناف</td></tr>
               ) : filtered.map((v) => (
-                <tr key={v.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">
+                <tr key={v.id} className="hover:bg-[#f8fafc]">
+                  <td className="px-[10px] py-[6px] font-medium text-gray-900">
                     <div>{v.displayNameAr ?? v.flowerType}</div>
                     <div className="text-xs text-gray-400">{v.size}</div>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{v.color}</td>
-                  <td className="px-4 py-3 text-gray-600">{v.origin}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px] text-gray-600">{v.color}</td>
+                  <td className="px-[10px] py-[6px] text-gray-600">{v.origin}</td>
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("px-2 py-0.5 rounded-full text-xs font-medium",
                       v.grade === "premium_plus" ? "bg-purple-100 text-purple-700" :
                       v.grade === "premium" ? "bg-blue-100 text-blue-700" :
@@ -209,16 +209,16 @@ function VariantsTab() {
                       v.grade === "grade_b" ? "bg-yellow-100 text-yellow-700" : "bg-gray-100 text-gray-600"
                     )}>{v.grade}</span>
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{BLOOM_AR[v.bloomStage] ?? v.bloomStage}</td>
-                  <td className="px-4 py-3 font-medium">{v.basePricePerStem ? `${v.basePricePerStem} ر.س` : "—"}</td>
-                  <td className="px-4 py-3 text-gray-600">{v.bunchSize ? `${v.bunchSize} ساق` : "—"}</td>
-                  <td className="px-4 py-3 text-gray-600">{v.shelfLifeDays} يوم</td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px] text-gray-600">{BLOOM_AR[v.bloomStage] ?? v.bloomStage}</td>
+                  <td className="px-[10px] py-[6px] font-medium">{v.basePricePerStem ? `${v.basePricePerStem} ر.س` : "—"}</td>
+                  <td className="px-[10px] py-[6px] text-gray-600">{v.bunchSize ? `${v.bunchSize} ساق` : "—"}</td>
+                  <td className="px-[10px] py-[6px] text-gray-600">{v.shelfLifeDays} يوم</td>
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("px-2 py-0.5 rounded-full text-xs",
                       v.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
                     )}>{v.isActive ? "نشط" : "غير نشط"}</span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <div className="flex gap-1">
                       <button onClick={() => openEdit(v)}
                         className="text-xs text-blue-600 hover:underline px-2 py-1">تعديل</button>
@@ -303,7 +303,7 @@ function VariantsTab() {
               {modal.item ? "حفظ التعديلات" : "إنشاء الصنف"}
             </button>
             <button onClick={() => setModal({ open: false })}
-              className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm text-gray-600 hover:bg-gray-50">
+              className="flex-1 border border-[#eef2f6] rounded-xl py-2.5 text-sm text-gray-600 hover:bg-[#f8fafc]">
               إلغاء
             </button>
           </div>
@@ -350,12 +350,12 @@ function BatchesTab() {
       {loading ? (
         <MasterTableSkeleton cols={9} />
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+          <div className="px-[10px] py-[6px] bg-[#f8fafc] border-b border-[#eef2f6]">
             <p className="text-xs text-gray-500 font-medium">مرتبة حسب الأقدم صلاحية أولاً</p>
           </div>
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-[#f8fafc]">
               <tr>
                 {["رقم الدفعة","الصنف","المستلم","المتبقي","التكلفة","انتهاء الصلاحية","مرحلة التفتح","الجودة",""].map((h) => (
                   <th key={h} className="text-right px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>
@@ -366,15 +366,15 @@ function BatchesTab() {
               {batches.length === 0 ? (
                 <tr><td colSpan={9} className="text-center py-10 text-gray-400">لا توجد دُفعات</td></tr>
               ) : batches.map((b) => (
-                <tr key={b.id} className={clsx("hover:bg-gray-50", b.daysUntilExpiry !== undefined && b.daysUntilExpiry <= 3 && "bg-orange-50")}>
-                  <td className="px-4 py-3 font-mono text-xs">{b.batchNumber}</td>
-                  <td className="px-4 py-3 text-gray-900 font-medium">
+                <tr key={b.id} className={clsx("hover:bg-[#f8fafc]", b.daysUntilExpiry !== undefined && b.daysUntilExpiry <= 3 && "bg-orange-50")}>
+                  <td className="px-[10px] py-[6px] font-mono text-xs">{b.batchNumber}</td>
+                  <td className="px-[10px] py-[6px] text-gray-900 font-medium">
                     {b.variant?.displayNameAr ?? b.variantId.slice(0, 8)}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{b.quantityReceived} ساق</td>
-                  <td className="px-4 py-3 font-semibold">{b.quantityRemaining} ساق</td>
-                  <td className="px-4 py-3 text-gray-600">{b.unitCost ? `${b.unitCost} ر.س` : "—"}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px] text-gray-600">{b.quantityReceived} ساق</td>
+                  <td className="px-[10px] py-[6px] font-semibold">{b.quantityRemaining} ساق</td>
+                  <td className="px-[10px] py-[6px] text-gray-600">{b.unitCost ? `${b.unitCost} ر.س` : "—"}</td>
+                  <td className="px-[10px] py-[6px]">
                     <div className={clsx("text-sm", b.daysUntilExpiry !== undefined && b.daysUntilExpiry <= 1 ? "text-red-600 font-bold" : b.daysUntilExpiry !== undefined && b.daysUntilExpiry <= 3 ? "text-orange-600 font-medium" : "text-gray-600")}>
                       {fmtDate(b.expiryEstimated)}
                     </div>
@@ -384,20 +384,20 @@ function BatchesTab() {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{BLOOM_AR[b.currentBloomStage] ?? b.currentBloomStage}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px] text-gray-600">{BLOOM_AR[b.currentBloomStage] ?? b.currentBloomStage}</td>
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("px-2 py-0.5 rounded-full text-xs font-medium", QUALITY_COLORS[b.qualityStatus] ?? "bg-gray-100 text-gray-600")}>
                       {QUALITY_AR[b.qualityStatus] ?? b.qualityStatus}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <select
                       value={b.qualityStatus}
                       onChange={async (e) => {
                         await updateMut.mutate({ id: b.id, qualityStatus: e.target.value });
                         refetch();
                       }}
-                      className="text-xs border border-gray-200 rounded-lg px-2 py-1"
+                      className="text-xs border border-[#eef2f6] rounded-lg px-2 py-1"
                     >
                       {["fresh","good","acceptable","expiring","expired","damaged"].map((q) => (
                         <option key={q} value={q}>{QUALITY_AR[q]}</option>
@@ -491,9 +491,9 @@ function PricingTab() {
       )}
 
       {loading ? <MasterTableSkeleton cols={6} /> : (
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-[#f8fafc]">
               <tr>
                 {["الصنف","سعر البيع / ساق","التكلفة / ساق","هامش الربح","ملاحظات",""].map((h) => (
                   <th key={h} className="text-right px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>
@@ -508,19 +508,19 @@ function PricingTab() {
                   ? (((parseFloat(p.pricePerStem) - parseFloat(p.costPerStem)) / parseFloat(p.pricePerStem)) * 100).toFixed(1)
                   : null;
                 return (
-                  <tr key={p.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{getVariantName(p.variantId)}</td>
-                    <td className="px-4 py-3 font-bold text-brand-600">{p.pricePerStem} ر.س</td>
-                    <td className="px-4 py-3 text-gray-600">{p.costPerStem ? `${p.costPerStem} ر.س` : "—"}</td>
-                    <td className="px-4 py-3">
+                  <tr key={p.id} className="hover:bg-[#f8fafc]">
+                    <td className="px-[10px] py-[6px] font-medium">{getVariantName(p.variantId)}</td>
+                    <td className="px-[10px] py-[6px] font-bold text-brand-600">{p.pricePerStem} ر.س</td>
+                    <td className="px-[10px] py-[6px] text-gray-600">{p.costPerStem ? `${p.costPerStem} ر.س` : "—"}</td>
+                    <td className="px-[10px] py-[6px]">
                       {margin ? (
                         <span className={clsx("text-xs font-medium", parseFloat(margin) >= 30 ? "text-green-600" : parseFloat(margin) >= 15 ? "text-yellow-600" : "text-red-600")}>
                           {margin}%
                         </span>
                       ) : "—"}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{p.notes ?? "—"}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px] text-gray-500 text-xs">{p.notes ?? "—"}</td>
+                    <td className="px-[10px] py-[6px]">
                       <div className="flex gap-2">
                         <button onClick={() => openEdit(p)} className="text-xs text-blue-600 hover:underline">تعديل</button>
                         <button onClick={async () => { await deleteMut.mutate(p.id); refetch(); }}
@@ -563,7 +563,7 @@ function PricingTab() {
                 {editTarget ? "حفظ التعديلات" : "حفظ السعر"}
               </button>
               <button onClick={() => setModal(false)}
-                className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm text-gray-600 hover:bg-gray-50">
+                className="flex-1 border border-[#eef2f6] rounded-xl py-2.5 text-sm text-gray-600 hover:bg-[#f8fafc]">
                 إلغاء
               </button>
             </div>
@@ -612,9 +612,9 @@ function SubstitutionsTab() {
       </div>
 
       {loading ? <MasterTableSkeleton cols={6} /> : (
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-[#f8fafc]">
               <tr>
                 {["الصنف الأصلي","البديل","اتجاه الدرجة","درجة التوافق","آلية",""].map((h) => (
                   <th key={h} className="text-right px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>
@@ -625,16 +625,16 @@ function SubstitutionsTab() {
               {subs.length === 0 ? (
                 <tr><td colSpan={6} className="text-center py-10 text-gray-400">لا توجد بدائل مضافة</td></tr>
               ) : subs.map((s) => (
-                <tr key={s.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{getVariantName(s.primaryVariantId)}</td>
-                  <td className="px-4 py-3 text-blue-700 font-medium">{getVariantName(s.substituteVariantId)}</td>
-                  <td className="px-4 py-3">
+                <tr key={s.id} className="hover:bg-[#f8fafc]">
+                  <td className="px-[10px] py-[6px] font-medium">{getVariantName(s.primaryVariantId)}</td>
+                  <td className="px-[10px] py-[6px] text-blue-700 font-medium">{getVariantName(s.substituteVariantId)}</td>
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("px-2 py-0.5 rounded-full text-xs",
                       s.gradeDirection === "up" ? "bg-green-100 text-green-700" :
                       s.gradeDirection === "down" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-600"
                     )}>{GRADE_DIRECTION_AR[s.gradeDirection] ?? s.gradeDirection}</span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <div className="flex items-center gap-2">
                       <div className="w-20 h-1.5 bg-gray-100 rounded-full">
                         <div className="h-full bg-brand-500 rounded-full" style={{ width: `${s.compatibilityScore * 10}%` }} />
@@ -642,12 +642,12 @@ function SubstitutionsTab() {
                       <span className="text-xs text-gray-600">{s.compatibilityScore}/10</span>
                     </div>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("text-xs", s.isAutoAllowed ? "text-green-600" : "text-gray-400")}>
                       {s.isAutoAllowed ? "تلقائي" : "يدوي"}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <button onClick={async () => { await deleteMut.mutate(s.id); refetch(); }}
                       className="text-xs text-red-500 hover:underline">حذف</button>
                   </td>
@@ -704,7 +704,7 @@ function SubstitutionsTab() {
                 إضافة البديل
               </button>
               <button onClick={() => setModal(false)}
-                className="flex-1 border border-gray-200 rounded-xl py-2.5 text-sm text-gray-600 hover:bg-gray-50">
+                className="flex-1 border border-[#eef2f6] rounded-xl py-2.5 text-sm text-gray-600 hover:bg-[#f8fafc]">
                 إلغاء
               </button>
             </div>
@@ -731,28 +731,28 @@ function ReportsTab() {
     <div className="space-y-6">
       {/* KPI cards */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl border border-gray-200 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <p className="text-xs text-gray-500">إجمالي المخزون</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">{totalStock.toLocaleString("ar")} ساق</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <p className="text-xs text-gray-500">أصناف نشطة</p>
           <p className="text-2xl font-bold text-gray-900 mt-1">{stockRows.length}</p>
         </div>
-        <div className={clsx("rounded-2xl border p-4", totalExpiring > 0 ? "bg-orange-50 border-orange-200" : "bg-white border-gray-200")}>
+        <div className={clsx("rounded-2xl border p-4", totalExpiring > 0 ? "bg-orange-50 border-orange-200" : "bg-white border-[#eef2f6]")}>
           <p className="text-xs text-gray-500">تنتهي صلاحيتها قريباً</p>
           <p className={clsx("text-2xl font-bold mt-1", totalExpiring > 0 ? "text-orange-600" : "text-gray-900")}>{totalExpiring.toLocaleString("ar")} ساق</p>
         </div>
       </div>
 
       {/* Stock by variant */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#eef2f6]">
           <h3 className="font-semibold text-gray-900">المخزون حسب الصنف</h3>
         </div>
         {stockLoading ? <MasterTableSkeleton cols={6} /> : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-[#f8fafc]">
               <tr>
                 {["الصنف","المتبقي","جيد","قارب الانتهاء","دفعات نشطة","أقرب انتهاء"].map((h) => (
                   <th key={h} className="text-right px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>
@@ -761,13 +761,13 @@ function ReportsTab() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {stockRows.slice(0, 15).map((r: any) => (
-                <tr key={r.variant_id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{r.display_name}</td>
-                  <td className="px-4 py-3 font-bold">{r.total_remaining}</td>
-                  <td className="px-4 py-3 text-green-600">{r.good_stock}</td>
-                  <td className="px-4 py-3 text-orange-500">{r.expiring_stock}</td>
-                  <td className="px-4 py-3 text-gray-500">{r.active_batches}</td>
-                  <td className="px-4 py-3 text-gray-500 text-xs">
+                <tr key={r.variant_id} className="hover:bg-[#f8fafc]">
+                  <td className="px-[10px] py-[6px] font-medium text-gray-900">{r.display_name}</td>
+                  <td className="px-[10px] py-[6px] font-bold">{r.total_remaining}</td>
+                  <td className="px-[10px] py-[6px] text-green-600">{r.good_stock}</td>
+                  <td className="px-[10px] py-[6px] text-orange-500">{r.expiring_stock}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">{r.active_batches}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500 text-xs">
                     {r.next_expiry ? fmtDate(r.next_expiry) : "—"}
                   </td>
                 </tr>
@@ -779,13 +779,13 @@ function ReportsTab() {
 
       {/* Origin + Grade side by side */}
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#eef2f6]">
             <h3 className="font-semibold text-gray-900">تحليل المنشأ</h3>
           </div>
           {originsLoading ? <div className="p-6 text-center text-gray-400">...</div> : (
             <table className="w-full text-sm">
-              <thead className="bg-gray-50">
+              <thead className="bg-[#f8fafc]">
                 <tr>
                   {["المنشأ","المخزون","متوسط التكلفة","القيمة"].map((h) => (
                     <th key={h} className="text-right px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>
@@ -794,11 +794,11 @@ function ReportsTab() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {originRows.map((r: any) => (
-                  <tr key={r.origin} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{r.origin}</td>
-                    <td className="px-4 py-3">{r.total_stock} ساق</td>
-                    <td className="px-4 py-3 text-gray-600">{parseFloat(r.avg_unit_cost || 0).toFixed(2)} ر.س</td>
-                    <td className="px-4 py-3 text-brand-600 font-medium">{parseFloat(r.total_stock_value || 0).toFixed(0)} ر.س</td>
+                  <tr key={r.origin} className="hover:bg-[#f8fafc]">
+                    <td className="px-[10px] py-[6px] font-medium">{r.origin}</td>
+                    <td className="px-[10px] py-[6px]">{r.total_stock} ساق</td>
+                    <td className="px-[10px] py-[6px] text-gray-600">{parseFloat(r.avg_unit_cost || 0).toFixed(2)} ر.س</td>
+                    <td className="px-[10px] py-[6px] text-brand-600 font-medium">{parseFloat(r.total_stock_value || 0).toFixed(0)} ر.س</td>
                   </tr>
                 ))}
               </tbody>
@@ -806,13 +806,13 @@ function ReportsTab() {
           )}
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+          <div className="px-5 py-4 border-b border-[#eef2f6]">
             <h3 className="font-semibold text-gray-900">تحليل الدرجة</h3>
           </div>
           {gradesLoading ? <div className="p-6 text-center text-gray-400">...</div> : (
             <table className="w-full text-sm">
-              <thead className="bg-gray-50">
+              <thead className="bg-[#f8fafc]">
                 <tr>
                   {["الدرجة","المخزون","سعر البيع","التكلفة"].map((h) => (
                     <th key={h} className="text-right px-4 py-3 text-xs font-semibold text-gray-500">{h}</th>
@@ -821,11 +821,11 @@ function ReportsTab() {
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {gradeRows.map((r: any) => (
-                  <tr key={r.grade} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{r.grade}</td>
-                    <td className="px-4 py-3">{r.total_stock} ساق</td>
-                    <td className="px-4 py-3 text-brand-600">{parseFloat(r.avg_selling_price || 0).toFixed(2)} ر.س</td>
-                    <td className="px-4 py-3 text-gray-600">{parseFloat(r.avg_cost || 0).toFixed(2)} ر.س</td>
+                  <tr key={r.grade} className="hover:bg-[#f8fafc]">
+                    <td className="px-[10px] py-[6px] font-medium">{r.grade}</td>
+                    <td className="px-[10px] py-[6px]">{r.total_stock} ساق</td>
+                    <td className="px-[10px] py-[6px] text-brand-600">{parseFloat(r.avg_selling_price || 0).toFixed(2)} ر.س</td>
+                    <td className="px-[10px] py-[6px] text-gray-600">{parseFloat(r.avg_cost || 0).toFixed(2)} ر.س</td>
                   </tr>
                 ))}
               </tbody>
@@ -863,8 +863,8 @@ export function FlowerMasterPage() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="flex border-b border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="flex border-b border-[#eef2f6]">
           {TABS.map((t) => {
             const Icon = t.icon;
             return (
@@ -872,10 +872,10 @@ export function FlowerMasterPage() {
                 key={t.id}
                 onClick={() => setTab(t.id)}
                 className={clsx(
-                  "flex items-center gap-2 px-5 py-3.5 text-sm font-medium transition-colors border-b-2 -mb-px",
+                  "flex items-center gap-2 px-5 py-[6px] text-sm font-medium transition-colors border-b-2 -mb-px",
                   tab === t.id
                     ? "border-brand-500 text-brand-600 bg-brand-50/40"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-[#f8fafc]"
                 )}
               >
                 <Icon className="w-4 h-4" />

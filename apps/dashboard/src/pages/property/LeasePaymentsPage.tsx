@@ -46,7 +46,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
+        <div className="flex justify-between items-center p-4 border-b border-[#eef2f6]">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
@@ -65,7 +65,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
 
 export function LeasePaymentsPage() {
   const [methodFilter, setMethodFilter] = useState("");
@@ -116,31 +116,31 @@ export function LeasePaymentsPage() {
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
-        <select value={methodFilter} onChange={(e) => setMethodFilter(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <select value={methodFilter} onChange={(e) => setMethodFilter(e.target.value)} className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
           <option value="">كل الطرق</option>
           {Object.entries(METHOD_AR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <select value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value)} className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
           <option value="">كل المصادر</option>
           {Object.entries(SOURCE_AR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-x-auto">
+      <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-x-auto">
         <table className="w-full text-sm min-w-max">
-          <thead className="bg-gray-50">
+          <thead className="bg-[#f8fafc]">
             <tr>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">رقم السند</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">العقد</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">المبلغ</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الطريقة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">المصدر</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">التاريخ</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">المستلم</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الإجراءات</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">رقم السند</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">العقد</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">المبلغ</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الطريقة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">المصدر</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">التاريخ</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">المستلم</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الإجراءات</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -152,27 +152,27 @@ export function LeasePaymentsPage() {
               <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">لا توجد مدفوعات</td></tr>
             ) : (
               payments.map((p: any) => (
-                <tr key={p.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{p.receiptNumber ?? p.id?.slice(0, 8)}</td>
-                  <td className="px-4 py-3 text-gray-500">{p.contractNumber ?? "—"}</td>
-                  <td className="px-4 py-3 font-medium text-emerald-700">{Number(p.amount ?? 0).toLocaleString("en-US")} ريال</td>
-                  <td className="px-4 py-3">
+                <tr key={p.id} className="hover:bg-[#f8fafc]">
+                  <td className="px-[10px] py-[6px] font-medium text-gray-900">{p.receiptNumber ?? p.id?.slice(0, 8)}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">{p.contractNumber ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] font-medium text-emerald-700">{Number(p.amount ?? 0).toLocaleString("en-US")} ريال</td>
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium inline-flex items-center gap-1", METHOD_COLORS[p.method] ?? "bg-gray-100 text-gray-600")}>
                       <span className="font-mono text-xs">{METHOD_ICONS[p.method] ?? "—"}</span>
                       {METHOD_AR[p.method] ?? p.method}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium inline-flex items-center gap-1", SOURCE_COLORS[p.paymentSource] ?? "bg-gray-100 text-gray-600")}>
                       <span className="font-mono text-xs">{SOURCE_ICONS[p.paymentSource] ?? "—"}</span>
                       {SOURCE_AR[p.paymentSource] ?? p.paymentSource ?? "—"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-gray-500">
+                  <td className="px-[10px] py-[6px] text-gray-500">
                     {p.paidAt ? new Date(p.paidAt).toLocaleDateString("ar-SA") : "—"}
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{p.receivedBy ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-400 text-xs">—</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">{p.receivedBy ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-gray-400 text-xs">—</td>
                 </tr>
               ))
             )}
@@ -207,7 +207,7 @@ export function LeasePaymentsPage() {
               <textarea className={clsx(inputCls, "h-20 resize-none")} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </Field>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleSave} disabled={creating} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50">
                 {creating ? "جارٍ التسجيل..." : "تسجيل"}
               </button>

@@ -12,7 +12,7 @@ import { SkeletonRows } from "@/components/ui/Skeleton";
 // ─── shared primitives ────────────────────────────────────────────────────────
 
 const inputCls =
-  "w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 transition-colors";
+  "w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 transition-colors";
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
@@ -78,7 +78,7 @@ function Stepper({
       <button
         type="button"
         onClick={() => onChange(Math.max(min, value - step))}
-        className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors"
+        className="w-8 h-8 rounded-xl border border-[#eef2f6] flex items-center justify-center hover:bg-[#f8fafc] text-gray-600 transition-colors"
       >
         <ChevronDown className="w-3.5 h-3.5" />
       </button>
@@ -88,12 +88,12 @@ function Stepper({
         min={min}
         max={max}
         onChange={e => onChange(Math.min(max, Math.max(min, parseInt(e.target.value) || min)))}
-        className="w-16 border border-gray-200 rounded-xl text-center text-sm font-semibold py-1.5 outline-none focus:border-brand-400"
+        className="w-16 border border-[#eef2f6] rounded-xl text-center text-sm font-semibold py-1.5 outline-none focus:border-brand-400"
       />
       <button
         type="button"
         onClick={() => onChange(Math.min(max, value + step))}
-        className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center hover:bg-gray-50 text-gray-600 transition-colors"
+        className="w-8 h-8 rounded-xl border border-[#eef2f6] flex items-center justify-center hover:bg-[#f8fafc] text-gray-600 transition-colors"
       >
         <ChevronUp className="w-3.5 h-3.5" />
       </button>
@@ -269,7 +269,7 @@ export function RestaurantBookingSettingsPage() {
           {tab === "general" && (
             <div className="space-y-4">
               {/* Capacity card */}
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
                   <Users className="w-4 h-4 text-brand-500" />
                   <p className="font-semibold text-gray-800 text-sm">طاقة الاستيعاب</p>
@@ -291,7 +291,7 @@ export function RestaurantBookingSettingsPage() {
               </div>
 
               {/* Booking behaviour */}
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
                   <Armchair className="w-4 h-4 text-brand-500" />
                   <p className="font-semibold text-gray-800 text-sm">سلوك الحجز</p>
@@ -339,7 +339,7 @@ export function RestaurantBookingSettingsPage() {
               </div>
 
               {/* Notes */}
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
                   <BookOpen className="w-4 h-4 text-brand-500" />
                   <p className="font-semibold text-gray-800 text-sm">ملاحظات تظهر للضيف</p>
@@ -362,7 +362,7 @@ export function RestaurantBookingSettingsPage() {
           {/* ── SECTIONS TAB ─────────────────────────────────────── */}
           {tab === "sections" && (
             <div className="space-y-4">
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <MapPin className="w-4 h-4 text-brand-500" />
@@ -389,7 +389,7 @@ export function RestaurantBookingSettingsPage() {
                       <div key={sec.id} className="flex items-center gap-3 px-5 py-4">
                         <div
                           className={clsx(
-                            "w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold border shrink-0",
+                            "w-9 h-9 rounded-[10px] flex items-center justify-center text-sm font-bold border shrink-0",
                             SECTION_COLORS[idx % SECTION_COLORS.length]
                           )}
                         >
@@ -410,7 +410,7 @@ export function RestaurantBookingSettingsPage() {
                             onClick={() => handleToggle(sec.id)}
                             className={clsx(
                               "p-2 rounded-xl transition-colors",
-                              sec.is_active ? "text-brand-500 hover:bg-brand-50" : "text-gray-400 hover:bg-gray-50"
+                              sec.is_active ? "text-brand-500 hover:bg-brand-50" : "text-gray-400 hover:bg-[#f8fafc]"
                             )}
                             title={sec.is_active ? "تعطيل القسم" : "تفعيل القسم"}
                           >
@@ -420,7 +420,7 @@ export function RestaurantBookingSettingsPage() {
                           </button>
                           <button
                             onClick={() => setSectionModal({ id: sec.id, name: sec.name, nameEn: sec.name_en || "", capacity: sec.capacity, notes: sec.notes || "" })}
-                            className="p-2 rounded-xl text-gray-400 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+                            className="p-2 rounded-xl text-gray-400 hover:bg-[#f8fafc] hover:text-gray-700 transition-colors"
                           >
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
@@ -455,7 +455,7 @@ export function RestaurantBookingSettingsPage() {
           {tab === "timing" && (
             <div className="space-y-4">
               {/* Slot duration */}
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-brand-500" />
                   <p className="font-semibold text-gray-800 text-sm">مدة كل جلسة</p>
@@ -472,7 +472,7 @@ export function RestaurantBookingSettingsPage() {
                           "px-4 py-2 rounded-xl text-sm font-medium border transition-all",
                           config.slotDurationMin === mins
                             ? "bg-brand-500 text-white border-brand-500 shadow-sm"
-                            : "border-gray-200 text-gray-600 hover:border-brand-300 hover:text-brand-600"
+                            : "border-[#eef2f6] text-gray-600 hover:border-brand-300 hover:text-brand-600"
                         )}
                       >
                         {mins >= 60 ? `${mins / 60} ساعة` : `${mins} دقيقة`}
@@ -486,7 +486,7 @@ export function RestaurantBookingSettingsPage() {
                         onChange={e => set("slotDurationMin", parseInt(e.target.value) || 30)}
                         min={15}
                         max={480}
-                        className="w-20 border border-gray-200 rounded-xl text-center text-sm py-2 outline-none focus:border-brand-400"
+                        className="w-20 border border-[#eef2f6] rounded-xl text-center text-sm py-2 outline-none focus:border-brand-400"
                       />
                       <span className="text-xs text-gray-400">دقيقة</span>
                     </div>
@@ -495,7 +495,7 @@ export function RestaurantBookingSettingsPage() {
               </div>
 
               {/* Booking window */}
-              <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
                 <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
                   <CalendarCog className="w-4 h-4 text-brand-500" />
                   <p className="font-semibold text-gray-800 text-sm">نافذة الحجز</p>
@@ -531,7 +531,7 @@ export function RestaurantBookingSettingsPage() {
               </div>
 
               {/* Summary pill */}
-              <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+              <div className="bg-gray-50 border border-[#eef2f6] rounded-2xl p-4">
                 <p className="text-xs font-semibold text-gray-500 mb-2">ملخص الإعدادات الحالية</p>
                 <div className="flex flex-wrap gap-2">
                   {[
@@ -541,7 +541,7 @@ export function RestaurantBookingSettingsPage() {
                     { label: "الإلغاء المجاني", value: `${config.cancellationHours} ساعة` },
                     { label: "وقت التحضير", value: `${config.turnoverTimeMin} دقيقة` },
                   ].map(({ label, value }) => (
-                    <div key={label} className="bg-white border border-gray-100 rounded-xl px-3 py-1.5 flex items-center gap-2">
+                    <div key={label} className="bg-white border border-[#eef2f6] rounded-xl px-3 py-1.5 flex items-center gap-2">
                       <span className="text-xs text-gray-400">{label}</span>
                       <span className="text-xs font-semibold text-gray-700">{value}</span>
                     </div>
@@ -559,7 +559,7 @@ export function RestaurantBookingSettingsPage() {
       {sectionModal !== null && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+            <div className="flex items-center justify-between p-5 border-b border-[#eef2f6]">
               <h3 className="font-bold text-gray-900">
                 {sectionModal.id ? "تعديل القسم" : "قسم جديد"}
               </h3>
@@ -612,7 +612,7 @@ export function RestaurantBookingSettingsPage() {
                 </button>
                 <button
                   onClick={() => setSectionModal(null)}
-                  className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50"
+                  className="flex-1 border border-[#eef2f6] text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-[#f8fafc]"
                 >
                   إلغاء
                 </button>

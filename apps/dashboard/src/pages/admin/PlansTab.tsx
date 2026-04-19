@@ -28,7 +28,7 @@ function PlansTab() {
       <SectionHeader title="الباقات والأسعار" sub="تحكم كامل في التسعير والمميزات" />
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {plans.map((plan) => (
-          <div key={plan.id} className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div key={plan.id} className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2">
@@ -49,38 +49,38 @@ function PlansTab() {
                   <div>
                     <label className="text-xs text-gray-400 block mb-1">الاسم العربي</label>
                     <input value={editForm.nameAr} onChange={(e) => setEditForm({ ...editForm, nameAr: e.target.value })}
-                      className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none" />
+                      className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none" />
                   </div>
                   <div>
                     <label className="text-xs text-gray-400 block mb-1">أيام التجربة</label>
                     <input type="number" value={editForm.trialDays} onChange={(e) => setEditForm({ ...editForm, trialDays: e.target.value })}
-                      className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none" />
+                      className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none" />
                   </div>
                   <div>
                     <label className="text-xs text-gray-400 block mb-1">السعر الشهري (ر.س)</label>
                     <input type="number" value={editForm.priceMonthly} onChange={(e) => setEditForm({ ...editForm, priceMonthly: e.target.value })}
-                      className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none" />
+                      className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none" />
                   </div>
                   <div>
                     <label className="text-xs text-gray-400 block mb-1">السعر السنوي (ر.س)</label>
                     <input type="number" value={editForm.priceYearly} onChange={(e) => setEditForm({ ...editForm, priceYearly: e.target.value })}
-                      className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none" />
+                      className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none" />
                   </div>
                   <div>
                     <label className="text-xs text-gray-400 block mb-1">أقصى مستخدمين</label>
                     <input type="number" value={editForm.maxUsers} onChange={(e) => setEditForm({ ...editForm, maxUsers: e.target.value })}
-                      className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none" />
+                      className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none" />
                   </div>
                   <div>
                     <label className="text-xs text-gray-400 block mb-1">أقصى فروع</label>
                     <input type="number" value={editForm.maxLocations} onChange={(e) => setEditForm({ ...editForm, maxLocations: e.target.value })}
-                      className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none" />
+                      className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none" />
                   </div>
                 </div>
                 <div>
                   <label className="text-xs text-gray-400 block mb-1">المميزات (كل ميزة في سطر)</label>
                   <textarea value={editForm.features} onChange={(e) => setEditForm({ ...editForm, features: e.target.value })}
-                    rows={4} className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none resize-none" />
+                    rows={4} className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none resize-none" />
                 </div>
                 <button disabled={saving} onClick={async () => {
                   await savePlan({ id: plan.id, nameAr: editForm.nameAr, priceMonthly: parseFloat(editForm.priceMonthly), priceYearly: parseFloat(editForm.priceYearly), trialDays: parseInt(editForm.trialDays), maxUsers: parseInt(editForm.maxUsers), maxLocations: parseInt(editForm.maxLocations), features: editForm.features.split("\n").filter(Boolean) });

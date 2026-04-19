@@ -34,8 +34,8 @@ export function EventQuotationsWidget() {
   const acceptedCount = quotations.filter((q) => q.status === "accepted").length;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden h-full">
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-50">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden h-full">
+      <div className="flex items-center justify-between px-5 py-[6px] border-b border-gray-50">
         <h3 className="text-sm font-semibold text-gray-800 flex items-center gap-2">
           <FileText className="w-4 h-4 text-blue-500" />
           عروض الأسعار
@@ -77,7 +77,7 @@ export function EventQuotationsWidget() {
       ) : (
         <div className="divide-y divide-gray-50">
           {quotations.slice(0, 5).map((q: any) => (
-            <div key={q.id} className="flex items-center gap-3 px-5 py-3 hover:bg-gray-50/60 transition-colors">
+            <div key={q.id} className="flex items-center gap-3 px-5 py-3 hover:bg-[#f8fafc]/60 transition-colors">
               <div className="w-7 h-7 rounded-xl flex items-center justify-center bg-blue-50 shrink-0">
                 {statusIcon(q.status)}
               </div>

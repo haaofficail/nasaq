@@ -101,7 +101,7 @@ function PreparationSheet({
           onChange={v => setForm(f => ({ ...f, resources: v }))} placeholder="كتاب، شريحة، ..." />
         <div className="flex gap-2 pt-1">
           <button onClick={() => { setForm(f => ({ ...f, status: "draft" })); save(); }}
-            className="flex-1 py-3 rounded-xl border border-gray-200 text-sm text-gray-600 font-medium active:opacity-70">
+            className="flex-1 py-3 rounded-xl border border-[#eef2f6] text-sm text-gray-600 font-medium active:opacity-70">
             حفظ كمسودة
           </button>
           <button onClick={() => { setForm(f => ({ ...f, status: "ready" })); save(); }}
@@ -179,7 +179,7 @@ function DailyLogSheet({
                   "flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors",
                   form.studentEngagement === level
                     ? "bg-brand-500 text-white border-brand-500"
-                    : "bg-white text-gray-600 border-gray-200"
+                    : "bg-white text-gray-600 border-[#eef2f6]"
                 )}>
                 {ENGAGEMENT_LABELS[level]}
               </button>
@@ -257,7 +257,7 @@ function ViolationSheet({
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="بحث عن طالب..."
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-3 outline-none focus:border-brand-500"
+            className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm mb-3 outline-none focus:border-brand-500"
           />
           <div className="space-y-1 max-h-64 overflow-y-auto">
             {filteredStudents.map(s => (
@@ -292,7 +292,7 @@ function ViolationSheet({
                     "flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors",
                     degree === d
                       ? "bg-orange-500 text-white border-orange-500"
-                      : "bg-white text-gray-600 border-gray-200"
+                      : "bg-white text-gray-600 border-[#eef2f6]"
                   )}>
                   {DEGREE_LABELS[d]}
                 </button>
@@ -372,7 +372,7 @@ function StudentNoteSheet({
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="بحث عن طالب..."
-            className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm mb-3 outline-none focus:border-brand-500"
+            className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm mb-3 outline-none focus:border-brand-500"
           />
           <div className="space-y-1 max-h-64 overflow-y-auto">
             {filteredStudents.map(s => (
@@ -404,7 +404,7 @@ function StudentNoteSheet({
                     "px-3 py-2 rounded-xl text-sm font-medium border transition-colors",
                     noteType === t
                       ? "bg-brand-500 text-white border-brand-500"
-                      : "bg-white text-gray-600 border-gray-200"
+                      : "bg-white text-gray-600 border-[#eef2f6]"
                   )}>
                   {NOTE_LABELS[t]}
                 </button>
@@ -431,7 +431,7 @@ function BottomSheet({ title, onClose, children }: { title: string; onClose: () 
     <div className="fixed inset-0 z-50 flex flex-col justify-end" dir="rtl">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white rounded-t-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100">
+        <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-[#eef2f6]">
           <h3 className="text-base font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100">
             <X size={18} />
@@ -455,12 +455,12 @@ function Field({ label, value, onChange, placeholder, required, rows = 1 }: {
       {rows > 1 ? (
         <textarea
           value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows}
-          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500 resize-none"
+          className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500 resize-none"
         />
       ) : (
         <input
           type="text" value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-          className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+          className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500"
         />
       )}
     </div>
@@ -471,10 +471,10 @@ function Field({ label, value, onChange, placeholder, required, rows = 1 }: {
 
 function CurrentPeriodBanner({ status, current, next }: DashboardData["currentStatus"]) {
   const STATUS_CONFIG = {
-    before_school: { bg: "bg-gray-50", text: "text-gray-600", label: "لم يبدأ الدوام" },
+    before_school: { bg: "bg-[#f8fafc]", text: "text-gray-600", label: "لم يبدأ الدوام" },
     in_period:     { bg: "bg-blue-50",  text: "text-blue-800", label: "داخل حصة" },
     in_break:      { bg: "bg-amber-50", text: "text-amber-800", label: "استراحة" },
-    after_school:  { bg: "bg-gray-50",  text: "text-gray-600", label: "انتهى الدوام" },
+    after_school:  { bg: "bg-[#f8fafc]",  text: "text-gray-600", label: "انتهى الدوام" },
   };
   const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.before_school;
 
@@ -514,9 +514,9 @@ function PeriodRow({
 
   const STATUS_STYLES = {
     current:  "bg-blue-50 border-blue-200",
-    passed:   "bg-white border-gray-100",
-    upcoming: "bg-white border-gray-100",
-    break:    "bg-gray-50 border-gray-100",
+    passed:   "bg-white border-[#eef2f6]",
+    upcoming: "bg-white border-[#eef2f6]",
+    break:    "bg-gray-50 border-[#eef2f6]",
   };
 
   return (
@@ -732,7 +732,7 @@ export function SchoolTeacherWorkPage() {
         <div>
           <p className="text-xs font-medium text-gray-500 mb-2">حصص اليوم</p>
           {todayEntries.length === 0 ? (
-            <div className="text-center py-8 bg-white rounded-2xl border border-gray-100">
+            <div className="text-center py-8 bg-white rounded-2xl border border-[#eef2f6]">
               <p className="text-sm text-gray-400">لا يوجد جدول لهذا اليوم</p>
             </div>
           ) : (

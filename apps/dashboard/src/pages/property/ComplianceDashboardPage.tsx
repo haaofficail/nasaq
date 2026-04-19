@@ -115,13 +115,13 @@ export function ComplianceDashboardPage() {
       )}
 
       {/* Property Selector */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-4">
         <div>
           <label className="text-sm font-medium text-gray-700 block mb-1">اختر العقار</label>
           <select
             value={selectedPropertyId}
             onChange={(e) => setSelectedPropertyId(e.target.value)}
-            className="w-full max-w-sm border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
+            className="w-full max-w-sm border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-200"
           >
             <option value="">اختر عقاراً للمراجعة</option>
             {properties.map((p: any) => (
@@ -155,7 +155,7 @@ export function ComplianceDashboardPage() {
 
       {/* Compliance Items */}
       {selectedPropertyId && (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           {loading ? (
             <div className="p-4"><SkeletonRows rows={9} /></div>
           ) : error ? (
@@ -165,7 +165,7 @@ export function ComplianceDashboardPage() {
               {COMPLIANCE_ITEMS.map((item) => {
                 const passed = complianceRecord[item.id] === true;
                 return (
-                  <div key={item.id} className="px-5 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
+                  <div key={item.id} className="px-5 py-4 flex items-center justify-between hover:bg-[#f8fafc] transition-colors">
                     <div className="flex items-center gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
                         passed ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-600"
@@ -197,7 +197,7 @@ export function ComplianceDashboardPage() {
       )}
 
       {!selectedPropertyId && (
-        <div className="p-12 text-center bg-white rounded-2xl border border-gray-100">
+        <div className="p-12 text-center bg-white rounded-2xl border border-[#eef2f6]">
           <p className="text-gray-400 text-lg">اختر عقاراً لعرض حالة الامتثال</p>
         </div>
       )}
@@ -235,7 +235,7 @@ export function ComplianceDashboardPage() {
 
             <button
               onClick={() => setActionItem(null)}
-              className="w-full py-2 border border-gray-200 text-gray-700 rounded-xl text-sm hover:bg-gray-50"
+              className="w-full py-2 border border-[#eef2f6] text-gray-700 rounded-xl text-sm hover:bg-[#f8fafc]"
             >
               إغلاق
             </button>

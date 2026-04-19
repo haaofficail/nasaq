@@ -57,7 +57,7 @@ const BUSINESS_LABELS: Record<string, string> = {
   general: "عام",
 };
 
-const cls = "w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all";
+const cls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all";
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 mt-6 first:mt-0">{children}</h3>;
@@ -126,11 +126,11 @@ export function WebsiteSettingsPage() {
         </Button>
       </div>
 
-      <div className="flex gap-1 bg-white rounded-2xl border border-gray-100 p-1 overflow-x-auto">
+      <div className="flex gap-1 bg-white rounded-2xl border border-[#eef2f6] p-1 overflow-x-auto">
         {TABS.map((tab, i) => (
           <button key={tab.key} onClick={() => setActiveTab(i)}
             className={clsx("flex-1 min-w-max flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-sm font-medium whitespace-nowrap transition-colors",
-              activeTab === i ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-gray-50"
+              activeTab === i ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-[#f8fafc]"
             )}>
             <tab.icon className="w-4 h-4" />{tab.label}
           </button>
@@ -139,7 +139,7 @@ export function WebsiteSettingsPage() {
 
       {/* ── الهوية البصرية ── */}
       {activeTab === 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <Field label="اسم النشاط"><input className={cls} value={profile.name || ""} onChange={(e) => sp("name", e.target.value)} /></Field>
             <Field label="الشعار النصي (Tagline)"><input className={cls} value={profile.tagline || ""} onChange={(e) => sp("tagline", e.target.value)} placeholder="شعار قصير..." /></Field>
@@ -151,7 +151,7 @@ export function WebsiteSettingsPage() {
                 <input type="color"
                   value={config?.primaryColor || profile.primaryColor || "#5b9bd5"}
                   onChange={(e) => { sp("primaryColor", e.target.value); sc("primaryColor", e.target.value); }}
-                  className="w-10 h-10 rounded-xl border border-gray-100 cursor-pointer p-1" />
+                  className="w-9 h-9 rounded-[10px] border border-[#eef2f6] cursor-pointer p-1" />
                 <input className={cls + " font-mono"}
                   value={config?.primaryColor || profile.primaryColor || "#5b9bd5"}
                   onChange={(e) => { sp("primaryColor", e.target.value); sc("primaryColor", e.target.value); }}
@@ -163,7 +163,7 @@ export function WebsiteSettingsPage() {
                 <input type="color"
                   value={config?.secondaryColor || profile.secondaryColor || "#C8A951"}
                   onChange={(e) => { sp("secondaryColor", e.target.value); sc("secondaryColor", e.target.value); }}
-                  className="w-10 h-10 rounded-xl border border-gray-100 cursor-pointer p-1" />
+                  className="w-9 h-9 rounded-[10px] border border-[#eef2f6] cursor-pointer p-1" />
                 <input className={cls + " font-mono"}
                   value={config?.secondaryColor || profile.secondaryColor || "#C8A951"}
                   onChange={(e) => { sp("secondaryColor", e.target.value); sc("secondaryColor", e.target.value); }}
@@ -184,14 +184,14 @@ export function WebsiteSettingsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <Field label="شعار المنشأة">
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-xl border border-gray-100 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                <div className="w-14 h-14 rounded-xl border border-[#eef2f6] bg-[#f8fafc] flex items-center justify-center overflow-hidden shrink-0">
                   {(profile.logo || config?.logoUrl)
                     ? <img src={profile.logo || config?.logoUrl} alt="logo" className="w-full h-full object-contain p-1" />
                     : <Upload className="w-5 h-5 text-gray-300" />
                   }
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => setLogoPicker(true)} className="px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors">اختر من المكتبة</button>
+                  <button onClick={() => setLogoPicker(true)} className="px-3 py-2 rounded-xl border border-[#eef2f6] text-xs text-gray-600 hover:bg-[#f8fafc] transition-colors">اختر من المكتبة</button>
                   {(profile.logo || config?.logoUrl) && (
                     <button onClick={() => sp("logo", "")} className="px-2.5 py-2 rounded-xl border border-red-100 text-xs text-red-400 hover:bg-red-50 transition-colors"><X className="w-3 h-3" /></button>
                   )}
@@ -201,10 +201,10 @@ export function WebsiteSettingsPage() {
             <Field label="صورة الغلاف">
               <div className="space-y-2">
                 {(profile.coverImage || profile.cover_image) && (
-                  <img src={profile.coverImage || profile.cover_image} alt="cover" className="w-full h-20 rounded-xl object-cover border border-gray-100" />
+                  <img src={profile.coverImage || profile.cover_image} alt="cover" className="w-full h-20 rounded-xl object-cover border border-[#eef2f6]" />
                 )}
                 <div className="flex gap-2">
-                  <button onClick={() => setCoverPicker(true)} className="px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors">اختر من المكتبة</button>
+                  <button onClick={() => setCoverPicker(true)} className="px-3 py-2 rounded-xl border border-[#eef2f6] text-xs text-gray-600 hover:bg-[#f8fafc] transition-colors">اختر من المكتبة</button>
                   {(profile.coverImage || profile.cover_image) && (
                     <button onClick={() => sp("coverImage", "")} className="px-2.5 py-2 rounded-xl border border-red-100 text-xs text-red-400 hover:bg-red-50 transition-colors"><X className="w-3 h-3" /></button>
                   )}
@@ -217,7 +217,7 @@ export function WebsiteSettingsPage() {
 
       {/* ── التواصل ── */}
       {activeTab === 1 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-5">
           <SectionTitle>معلومات الاتصال</SectionTitle>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <Field label="رقم الجوال"><input className={cls} value={profile.phone || ""} onChange={(e) => sp("phone", e.target.value)} placeholder="05xxxxxxxx" dir="ltr" /></Field>
@@ -250,15 +250,15 @@ export function WebsiteSettingsPage() {
 
       {/* ── الموقع العام ── */}
       {activeTab === 2 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-4">
           <SectionTitle>إعدادات الموقع</SectionTitle>
           <Toggle value={!!(profile.isActive ?? profile.is_active ?? true)} onChange={(v) => sp("isActive", v)} label="تفعيل الموقع العام" />
           <Toggle value={!!(profile.settings?.showPrices ?? true)} onChange={(v) => ss("showPrices", v)} label="إظهار الأسعار" />
           <Toggle value={!!(profile.settings?.showBookingButton ?? true)} onChange={(v) => ss("showBookingButton", v)} label="إظهار زر الحجز" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2">
             <Field label="الرابط المختصر (slug)">
-              <div className="flex items-center gap-0 border border-gray-100 rounded-xl overflow-hidden">
-                <span className="px-3 py-2 bg-gray-50 text-xs text-gray-400 border-l border-gray-100">nasaq.app/</span>
+              <div className="flex items-center gap-0 border border-[#eef2f6] rounded-xl overflow-hidden">
+                <span className="px-3 py-2 bg-[#f8fafc] text-xs text-gray-400 border-l border-[#eef2f6]">nasaq.app/</span>
                 <input className="flex-1 px-3 py-2 text-sm outline-none" value={profile.slug || ""} onChange={(e) => sp("slug", e.target.value)} dir="ltr" />
               </div>
             </Field>
@@ -285,7 +285,7 @@ export function WebsiteSettingsPage() {
 
       {/* ── إعدادات النشاط ── */}
       {activeTab === 3 && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-6">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
           <div className="inline-flex items-center gap-2 bg-brand-50 text-brand-600 text-xs font-semibold px-3 py-1.5 rounded-full mb-5">
             {BUSINESS_LABELS[bType] || bType}
           </div>
@@ -315,9 +315,9 @@ export function WebsiteSettingsPage() {
                       <span className="text-sm text-gray-700 w-16">{d.label}</span>
                       {day.open ? (
                         <>
-                          <input type="time" value={day.from} onChange={(e) => sbs("workingHours", { ...wh, [d.key]: { ...day, from: e.target.value } })} className="border border-gray-100 rounded-lg px-2 py-1 text-sm outline-none focus:border-brand-300" dir="ltr" />
+                          <input type="time" value={day.from} onChange={(e) => sbs("workingHours", { ...wh, [d.key]: { ...day, from: e.target.value } })} className="border border-[#eef2f6] rounded-lg px-2 py-1 text-sm outline-none focus:border-brand-300" dir="ltr" />
                           <span className="text-gray-400 text-xs">—</span>
-                          <input type="time" value={day.to} onChange={(e) => sbs("workingHours", { ...wh, [d.key]: { ...day, to: e.target.value } })} className="border border-gray-100 rounded-lg px-2 py-1 text-sm outline-none focus:border-brand-300" dir="ltr" />
+                          <input type="time" value={day.to} onChange={(e) => sbs("workingHours", { ...wh, [d.key]: { ...day, to: e.target.value } })} className="border border-[#eef2f6] rounded-lg px-2 py-1 text-sm outline-none focus:border-brand-300" dir="ltr" />
                         </>
                       ) : <span className="text-xs text-gray-400">مغلق</span>}
                     </div>
@@ -417,9 +417,9 @@ export function WebsiteSettingsPage() {
                       <span className="text-sm text-gray-700 w-16">{d.label}</span>
                       {day.open ? (
                         <>
-                          <input type="time" value={day.from} onChange={(e) => sbs("workingHours", { ...wh, [d.key]: { ...day, from: e.target.value } })} className="border border-gray-100 rounded-lg px-2 py-1 text-sm outline-none focus:border-brand-300" dir="ltr" />
+                          <input type="time" value={day.from} onChange={(e) => sbs("workingHours", { ...wh, [d.key]: { ...day, from: e.target.value } })} className="border border-[#eef2f6] rounded-lg px-2 py-1 text-sm outline-none focus:border-brand-300" dir="ltr" />
                           <span className="text-gray-400 text-xs">—</span>
-                          <input type="time" value={day.to} onChange={(e) => sbs("workingHours", { ...wh, [d.key]: { ...day, to: e.target.value } })} className="border border-gray-100 rounded-lg px-2 py-1 text-sm outline-none focus:border-brand-300" dir="ltr" />
+                          <input type="time" value={day.to} onChange={(e) => sbs("workingHours", { ...wh, [d.key]: { ...day, to: e.target.value } })} className="border border-[#eef2f6] rounded-lg px-2 py-1 text-sm outline-none focus:border-brand-300" dir="ltr" />
                         </>
                       ) : <span className="text-xs text-gray-400">مغلق</span>}
                     </div>

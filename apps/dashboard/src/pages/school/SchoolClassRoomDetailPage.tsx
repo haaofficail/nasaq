@@ -59,7 +59,7 @@ function TransferModal({
           <select
             value={targetId}
             onChange={(e) => setTargetId(e.target.value)}
-            className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           >
             <option value="">— اختر الفصل —</option>
             {available.map((r) => (
@@ -75,7 +75,7 @@ function TransferModal({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="مثال: طلب ولي الأمر، مشكلة تنظيمية..."
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           />
         </div>
         {errMsg && <p className="text-xs text-red-500 bg-red-50 rounded-lg px-3 py-2">{errMsg}</p>}
@@ -89,7 +89,7 @@ function TransferModal({
           </button>
           <button
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+            className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc] transition-colors"
           >
             إلغاء
           </button>
@@ -177,10 +177,10 @@ function AddStudentModal({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="ابحث باسم الطالب أو رقمه..."
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 pr-9 text-sm focus:outline-none focus:border-emerald-400"
+                className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 pr-9 text-sm focus:outline-none focus:border-emerald-400"
               />
             </div>
-            <div className="max-h-52 overflow-y-auto rounded-xl border border-gray-200 divide-y divide-gray-50">
+            <div className="max-h-52 overflow-y-auto rounded-xl border border-[#eef2f6] divide-y divide-gray-50">
               {unassigned.length === 0 ? (
                 <p className="py-6 text-sm text-gray-400 text-center">
                   {query ? "لا توجد نتائج" : "لا يوجد طلاب غير مسجلين في فصل"}
@@ -191,7 +191,7 @@ function AddStudentModal({
                   onClick={() => setSelectedId(s.id)}
                   className={clsx(
                     "w-full text-right px-3 py-2 text-sm transition-colors flex items-center justify-between",
-                    selectedId === s.id ? "bg-emerald-50 text-emerald-700 font-semibold" : "hover:bg-gray-50 text-gray-700",
+                    selectedId === s.id ? "bg-emerald-50 text-emerald-700 font-semibold" : "hover:bg-[#f8fafc] text-gray-700",
                   )}
                 >
                   <span>{s.fullName}</span>
@@ -218,7 +218,7 @@ function AddStudentModal({
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   placeholder="اسم الطالب"
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
+                  className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
                 />
               </div>
               <div>
@@ -227,7 +227,7 @@ function AddStudentModal({
                   value={newNum}
                   onChange={(e) => setNewNum(e.target.value)}
                   placeholder="S-001"
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
+                  className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:border-emerald-400"
                 />
               </div>
             </div>
@@ -315,10 +315,10 @@ export function SchoolClassRoomDetailPage() {
   const loading = crLoading || stuLoading;
 
   return (
-    <div dir="rtl" className="min-h-screen bg-gray-50 flex flex-col">
+    <div dir="rtl" className="min-h-screen bg-[#f8fafc] flex flex-col">
 
       {/* ── Header ── */}
-      <div className="bg-white border-b border-gray-100 px-6 py-4 flex items-center justify-between shrink-0">
+      <div className="bg-white border-b border-[#eef2f6] px-6 py-4 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-4">
           <Link
             to="/school/classes"
@@ -329,7 +329,7 @@ export function SchoolClassRoomDetailPage() {
           </Link>
           <div className="h-5 w-px bg-gray-200" />
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-[10px] bg-emerald-100 flex items-center justify-center">
               <DoorOpen className="w-5 h-5 text-emerald-600" />
             </div>
             <div>
@@ -369,7 +369,7 @@ export function SchoolClassRoomDetailPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="بحث باسم الطالب أو رقمه..."
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 pr-9 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+            className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 pr-9 text-sm bg-white focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
           />
           {search && (
             <button
@@ -439,11 +439,11 @@ export function SchoolClassRoomDetailPage() {
               {filtered.map((s, idx) => (
                 <div
                   key={s.id}
-                  className="group relative bg-white rounded-2xl border border-gray-100 shadow-sm p-4 hover:border-emerald-200 hover:shadow-md transition-all"
+                  className="group relative bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4 hover:border-emerald-200 hover:shadow-md transition-all"
                 >
                   {/* Avatar + number */}
                   <div className="flex items-start gap-2.5 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-base shrink-0">
+                    <div className="w-9 h-9 rounded-[10px] bg-emerald-100 flex items-center justify-center text-emerald-700 font-black text-base shrink-0">
                       {idx + 1}
                     </div>
                     <div className="min-w-0">
@@ -505,7 +505,7 @@ export function SchoolClassRoomDetailPage() {
 
       {/* ── Footer ── */}
       {!loading && classRoom && (
-        <div className="bg-white border-t border-gray-100 px-6 py-3 flex items-center justify-between text-xs text-gray-500 shrink-0">
+        <div className="bg-white border-t border-[#eef2f6] px-6 py-3 flex items-center justify-between text-xs text-gray-500 shrink-0">
           <span>
             {filtered.length} طالب
             {search && ` (نتائج البحث من ${students.length})`}

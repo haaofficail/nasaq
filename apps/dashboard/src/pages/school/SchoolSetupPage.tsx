@@ -142,7 +142,7 @@ function Step1({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
             value={data.schoolName}
             onChange={(e) => onChange({ schoolName: e.target.value })}
             placeholder="مثال: مدرسة الملك عبدالله المتوسطة"
-            className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
+            className="w-full px-4 py-3 rounded-2xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:border-emerald-400"
           />
         </div>
         <div>
@@ -155,7 +155,7 @@ function Step1({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
                 className={`py-3 rounded-2xl border text-sm font-semibold transition-all ${
                   data.schoolGender === g
                     ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300"
+                    : "bg-white text-gray-600 border-[#eef2f6] hover:border-emerald-300"
                 }`}
               >
                 {g}
@@ -173,7 +173,7 @@ function Step1({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
                 className={`py-3 rounded-2xl border text-sm font-semibold transition-all ${
                   data.educationLevel === s
                     ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                    : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300"
+                    : "bg-white text-gray-600 border-[#eef2f6] hover:border-emerald-300"
                 }`}
               >
                 {s === "ابتدائي" ? "ابتدائي" : s === "متوسط" ? "متوسط" : "ثانوي"}
@@ -213,7 +213,7 @@ function Step2({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
           const count = data.classroomsPerGrade[grade] ?? 1;
           const idx   = GRADE_STAGE_INDEX[grade] ?? 0;
           return (
-            <div key={grade} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4">
+            <div key={grade} className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4 flex items-center gap-4">
               <div className="flex-1">
                 <p className="text-sm font-semibold text-gray-900">{grade}</p>
                 <p className="text-xs text-gray-400 mt-0.5">
@@ -224,14 +224,14 @@ function Step2({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
                 <button
                   onClick={() => set(grade, count - 1)}
                   disabled={count <= 1}
-                  className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 disabled:opacity-30 transition-colors"
+                  className="w-8 h-8 rounded-xl border border-[#eef2f6] flex items-center justify-center text-gray-500 hover:bg-[#f8fafc] disabled:opacity-30 transition-colors"
                 >
                   <span className="text-lg font-bold leading-none">-</span>
                 </button>
                 <span className="w-8 text-center text-sm font-bold tabular-nums">{toArabicNum(count)}</span>
                 <button
                   onClick={() => set(grade, count + 1)}
-                  className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
+                  className="w-8 h-8 rounded-xl border border-[#eef2f6] flex items-center justify-center text-gray-500 hover:bg-[#f8fafc] transition-colors"
                 >
                   <Plus className="w-4 h-4" />
                 </button>
@@ -267,11 +267,11 @@ function Step3({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
         <h2 className="text-lg font-bold text-gray-900">الأسابيع الدراسية</h2>
         <p className="text-sm text-gray-500 mt-0.5">كم عدد الأسابيع في العام الدراسي؟</p>
       </div>
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-6">
         <div className="flex items-center justify-center gap-6">
           <button
             onClick={() => onChange({ weekCount: Math.max(10, data.weekCount - 1) })}
-            className="w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors text-xl font-bold"
+            className="w-12 h-12 rounded-2xl border border-[#eef2f6] flex items-center justify-center text-gray-500 hover:bg-[#f8fafc] transition-colors text-xl font-bold"
           >
             -
           </button>
@@ -281,7 +281,7 @@ function Step3({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
           </div>
           <button
             onClick={() => onChange({ weekCount: Math.min(52, data.weekCount + 1) })}
-            className="w-12 h-12 rounded-2xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 transition-colors"
+            className="w-12 h-12 rounded-2xl border border-[#eef2f6] flex items-center justify-center text-gray-500 hover:bg-[#f8fafc] transition-colors"
           >
             <Plus className="w-5 h-5" />
           </button>
@@ -294,7 +294,7 @@ function Step3({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
               className={`px-4 py-2 rounded-xl border text-xs font-semibold transition-all ${
                 data.weekCount === n
                   ? "bg-emerald-600 text-white border-emerald-600"
-                  : "bg-white text-gray-600 border-gray-200 hover:border-emerald-300"
+                  : "bg-white text-gray-600 border-[#eef2f6] hover:border-emerald-300"
               }`}
             >
               {toArabicNum(n)} أسبوع
@@ -337,7 +337,7 @@ function Step4({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
         {data.calendar.length < 2 && (
           <button
             onClick={addCalendar}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#eef2f6] text-xs font-semibold text-gray-600 hover:bg-[#f8fafc] transition-colors"
           >
             <Plus className="w-3.5 h-3.5" />
             إضافة فترة
@@ -346,7 +346,7 @@ function Step4({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
       </div>
 
       {data.calendar.map((cal, idx) => (
-        <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+        <div key={idx} className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex gap-2">
               {(["winter", "summer"] as const).map((t) => (
@@ -356,7 +356,7 @@ function Step4({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
                   className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all ${
                     cal.sessionType === t
                       ? "bg-emerald-600 text-white border-emerald-600"
-                      : "bg-gray-50 text-gray-500 border-gray-200"
+                      : "bg-gray-50 text-gray-500 border-[#eef2f6]"
                   }`}
                 >
                   {t === "winter" ? "شتوي" : "صيفي"}
@@ -374,37 +374,37 @@ function Step4({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
             <div>
               <label className="block text-xs text-gray-500 mb-1">تاريخ البداية</label>
               <input type="date" value={cal.startDate} onChange={(e) => setCalendar(idx, "startDate", e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
+                className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">تاريخ النهاية</label>
               <input type="date" value={cal.endDate} onChange={(e) => setCalendar(idx, "endDate", e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
+                className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">وقت بداية اليوم</label>
               <input type="time" value={cal.dayStartTime} onChange={(e) => setCalendar(idx, "dayStartTime", e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
+                className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30" />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">عدد الحصص</label>
               <input type="number" min={3} max={10} value={cal.periodCount} onChange={(e) => setCalendar(idx, "periodCount", Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none" />
+                className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none" />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">مدة الحصة (دقيقة)</label>
               <input type="number" min={20} max={90} value={cal.periodDuration} onChange={(e) => setCalendar(idx, "periodDuration", Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none" />
+                className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none" />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">مدة الفسحة (دقيقة)</label>
               <input type="number" min={5} max={60} value={cal.breakDuration} onChange={(e) => setCalendar(idx, "breakDuration", Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none" />
+                className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none" />
             </div>
             <div>
               <label className="block text-xs text-gray-500 mb-1">الفسحة بعد الحصة رقم</label>
               <select value={cal.breakAfterPeriod} onChange={(e) => setCalendar(idx, "breakAfterPeriod", Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none">
+                className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none">
                 {Array.from({ length: cal.periodCount - 1 }, (_, i) => i + 1).map((n) => (
                   <option key={n} value={n}>بعد الحصة {toArabicNum(n)}</option>
                 ))}
@@ -455,7 +455,7 @@ function Step5({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
       </div>
 
       {/* Add teacher form */}
-      <div className="bg-gray-50 rounded-2xl border border-gray-200 p-4 space-y-3">
+      <div className="bg-gray-50 rounded-2xl border border-[#eef2f6] p-4 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
             <label className="block text-xs text-gray-500 mb-1">اسم المعلم</label>
@@ -465,7 +465,7 @@ function Step5({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && addTeacher()}
               placeholder="خالد محمد العتيبي"
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              className="w-full px-3 py-2.5 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
             />
           </div>
           <div>
@@ -473,7 +473,7 @@ function Step5({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
             <select
               value={newSubject}
               onChange={(e) => setNewSubject(e.target.value)}
-              className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              className="w-full px-3 py-2.5 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
             >
               <option value="">اختر المادة</option>
               {subjects.map((s) => (
@@ -488,7 +488,7 @@ function Step5({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
             type="text"
             placeholder="اكتب اسم المادة"
             onChange={(e) => setNewSubject(e.target.value)}
-            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none"
+            className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none"
           />
         )}
         <button
@@ -503,14 +503,14 @@ function Step5({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
 
       {/* Teachers list */}
       {data.teachers.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-dashed border-gray-200 py-10 text-center">
+        <div className="bg-white rounded-2xl border border-dashed border-[#eef2f6] py-10 text-center">
           <p className="text-sm text-gray-400">لم يتم إضافة أي معلم بعد</p>
           <p className="text-xs text-gray-400 mt-1">يمكنك المتابعة وإضافة المعلمين لاحقاً</p>
         </div>
       ) : (
         <div className="space-y-2">
           {data.teachers.map((t, i) => (
-            <div key={t.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-3 flex items-center justify-between gap-3">
+            <div key={t.id} className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700 font-bold text-sm shrink-0">
                   {toArabicNum(i + 1)}
@@ -565,7 +565,7 @@ function Step6({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
         <div>
           <h2 className="text-lg font-bold text-gray-900">إسناد المعلمين للفصول</h2>
         </div>
-        <div className="bg-white rounded-2xl border border-dashed border-gray-200 py-12 text-center">
+        <div className="bg-white rounded-2xl border border-dashed border-[#eef2f6] py-12 text-center">
           <p className="text-sm text-gray-400">لم يتم إضافة معلمين في الخطوة السابقة</p>
           <p className="text-xs text-gray-400 mt-1">ارجع للخطوة السابقة وأضف المعلمين أولاً</p>
         </div>
@@ -582,7 +582,7 @@ function Step6({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
 
       <div className="space-y-4">
         {data.teachers.map((t) => (
-          <div key={t.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-3">
+          <div key={t.id} className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4 space-y-3">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700 font-bold text-sm shrink-0">
                 {t.fullName[0]}
@@ -613,7 +613,7 @@ function Step6({ data, onChange }: { data: WizardData; onChange: (d: Partial<Wiz
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold cursor-pointer transition-all select-none ${
                               checked
                                 ? "bg-emerald-600 text-white border-emerald-600"
-                                : "bg-gray-50 text-gray-600 border-gray-200 hover:border-emerald-300 hover:bg-emerald-50"
+                                : "bg-gray-50 text-gray-600 border-[#eef2f6] hover:border-emerald-300 hover:bg-emerald-50"
                             }`}
                           >
                             <input
@@ -673,7 +673,7 @@ function Step7({ data }: { data: WizardData }) {
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {stats.map((s) => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+          <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4 text-center">
             <p className="text-2xl font-black text-gray-900">{s.value}</p>
             <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
           </div>
@@ -681,7 +681,7 @@ function Step7({ data }: { data: WizardData }) {
       </div>
 
       {/* Classrooms preview */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4">
         <p className="text-xs font-bold text-gray-700 mb-3">الفصول المزمع إنشاؤها</p>
         <div className="flex flex-wrap gap-1.5">
           {grades.flatMap((g) =>
@@ -696,7 +696,7 @@ function Step7({ data }: { data: WizardData }) {
 
       {/* Teachers & assignments */}
       {data.teachers.length > 0 && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4">
           <p className="text-xs font-bold text-gray-700 mb-3">المعلمون والإسناد</p>
           <div className="space-y-2">
             {data.teachers.map((t) => (
@@ -714,7 +714,7 @@ function Step7({ data }: { data: WizardData }) {
 
       {/* Calendar */}
       {data.calendar.map((cal, i) => (
-        <div key={i} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+        <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4">
           <p className="text-xs font-bold text-gray-700 mb-2">جدول {cal.sessionType === "winter" ? "شتوي" : "صيفي"}</p>
           <div className="grid grid-cols-3 gap-2 text-xs text-gray-600">
             <div>من: <span className="font-semibold">{cal.startDate || "—"}</span></div>
@@ -810,9 +810,9 @@ export function SchoolSetupPage() {
   ];
 
   return (
-    <div dir="rtl" className="min-h-screen bg-gray-50 flex flex-col">
+    <div dir="rtl" className="min-h-screen bg-[#f8fafc] flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b border-gray-100 px-6 py-4">
+      <div className="bg-white border-b border-[#eef2f6] px-6 py-4">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -838,12 +838,12 @@ export function SchoolSetupPage() {
       </div>
 
       {/* Footer */}
-      <div className="bg-white border-t border-gray-100 px-6 py-4 sticky bottom-0">
+      <div className="bg-white border-t border-[#eef2f6] px-6 py-4 sticky bottom-0">
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           {step > 0 && (
             <button
               onClick={() => setStep((s) => s - 1)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors"
             >
               <ChevronRight className="w-4 h-4" />
               السابق

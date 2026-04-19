@@ -151,7 +151,7 @@ export function FlowerAssetsPage() {
             { key: "pending_inspection", label: "بانتظار الفحص",    color: "text-purple-600" },
             { key: "damaged",            label: "تالف",              color: "text-red-600" },
           ].map(s => (
-            <div key={s.key} className="bg-white rounded-2xl border border-gray-100 p-3 text-center">
+            <div key={s.key} className="bg-white rounded-2xl border border-[#eef2f6] p-3 text-center">
               <p className={`text-2xl font-bold ${s.color}`}>{stats[s.key] ?? 0}</p>
               <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
             </div>
@@ -164,7 +164,7 @@ export function FlowerAssetsPage() {
         <select
           value={filterStatus}
           onChange={e => setFilterStatus(e.target.value)}
-          className="text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 bg-white focus:outline-none focus:border-brand-400"
+          className="text-sm border border-[#eef2f6] rounded-xl px-3 py-2 text-gray-700 bg-white focus:outline-none focus:border-brand-400"
         >
           <option value="">جميع الحالات</option>
           {Object.entries(STATUS_CONFIG).map(([v, c]) => (
@@ -174,7 +174,7 @@ export function FlowerAssetsPage() {
         <select
           value={filterCategory}
           onChange={e => setFilterCategory(e.target.value)}
-          className="text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 bg-white focus:outline-none focus:border-brand-400"
+          className="text-sm border border-[#eef2f6] rounded-xl px-3 py-2 text-gray-700 bg-white focus:outline-none focus:border-brand-400"
         >
           <option value="">جميع التصنيفات</option>
           {CATEGORIES.map(cat => (
@@ -185,23 +185,23 @@ export function FlowerAssetsPage() {
 
       {/* Table */}
       {assets.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <Package className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-gray-900 mb-1">لا توجد أصول بعد</h3>
           <p className="text-sm text-gray-400 mb-4">أضف ستاندات، خلفيات، وقطع ديكور قابلة لإعادة الاستخدام</p>
           <Button icon={Plus} onClick={openCreate}>إضافة أصل</Button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-100">
+            <thead className="bg-gray-50 border-b border-[#eef2f6]">
               <tr>
-                <th className="px-4 py-3 text-right font-semibold text-gray-500">الأصل</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-500">التصنيف</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-500">الموقع</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-500">الحالة</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-500">مرتبط بـ</th>
-                <th className="px-4 py-3 text-right font-semibold text-gray-500">الإجراءات</th>
+                <th className="px-[10px] py-[6px] text-right font-semibold text-gray-500">الأصل</th>
+                <th className="px-[10px] py-[6px] text-right font-semibold text-gray-500">التصنيف</th>
+                <th className="px-[10px] py-[6px] text-right font-semibold text-gray-500">الموقع</th>
+                <th className="px-[10px] py-[6px] text-right font-semibold text-gray-500">الحالة</th>
+                <th className="px-[10px] py-[6px] text-right font-semibold text-gray-500">مرتبط بـ</th>
+                <th className="px-[10px] py-[6px] text-right font-semibold text-gray-500">الإجراءات</th>
               </tr>
             </thead>
             <tbody>
@@ -209,15 +209,15 @@ export function FlowerAssetsPage() {
                 const sc = STATUS_CONFIG[a.status] ?? STATUS_CONFIG.available;
                 const Icon = sc.icon;
                 return (
-                  <tr key={a.id} className="border-t border-gray-50 hover:bg-gray-50/50 transition-colors">
-                    <td className="px-4 py-3">
+                  <tr key={a.id} className="border-t border-gray-50 hover:bg-[#f8fafc]/50 transition-colors">
+                    <td className="px-[10px] py-[6px]">
                       <p className="font-medium text-gray-800">{a.name}</p>
                       {a.code && <p className="text-xs text-gray-400">{a.code}</p>}
                     </td>
-                    <td className="px-4 py-3 text-gray-500">
+                    <td className="px-[10px] py-[6px] text-gray-500">
                       {CATEGORIES.find(c => c.value === a.category)?.label ?? a.category}
                     </td>
-                    <td className="px-4 py-3 text-gray-500">
+                    <td className="px-[10px] py-[6px] text-gray-500">
                       <div>
                         <p>{a.location ?? "—"}</p>
                         <p className="text-xs text-gray-400">
@@ -225,13 +225,13 @@ export function FlowerAssetsPage() {
                         </p>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <span className={clsx("inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full", sc.color)}>
                         <Icon className="w-3 h-3" />
                         {sc.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       {a.linked_order_number ? (
                         <a
                           href={`/dashboard/flower-service-orders`}
@@ -244,7 +244,7 @@ export function FlowerAssetsPage() {
                         <span className="text-xs text-gray-300">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <div className="flex items-center gap-1">
                         {(a.status === "maintenance" || a.status === "pending_inspection") && (
                           <button

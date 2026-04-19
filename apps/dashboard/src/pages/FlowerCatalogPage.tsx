@@ -89,7 +89,7 @@ function ServiceCard({
   const hasTemplate = !!service.template;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col gap-2.5 hover:border-brand-200 transition-all group">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4 flex flex-col gap-2.5 hover:border-brand-200 transition-all group">
       {/* Row 1: Name + Status */}
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
@@ -114,7 +114,7 @@ function ServiceCard({
           {formatPrice(service.basePrice)}
         </span>
         {duration && (
-          <span className="flex items-center gap-1 text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded-full">
+          <span className="flex items-center gap-1 text-[11px] text-gray-500 bg-[#f8fafc] px-2 py-0.5 rounded-full">
             <Clock className="w-3 h-3" />{duration}
           </span>
         )}
@@ -209,8 +209,8 @@ function CatalogSkeleton() {
       {/* Stats skeleton */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-3 space-y-2">
-            <div className="h-6 bg-gray-100 rounded-lg w-10" />
+          <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-3 space-y-2">
+            <div className="h-6 bg-[#f1f5f9] rounded-lg w-10" />
             <div className="h-3 bg-gray-100 rounded w-16" />
           </div>
         ))}
@@ -218,7 +218,7 @@ function CatalogSkeleton() {
       {/* Cards skeleton */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 space-y-2.5">
+          <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-4 space-y-2.5">
             <div className="flex justify-between">
               <div className="h-4 bg-gray-100 rounded w-32" />
               <div className="h-4 bg-gray-100 rounded-full w-14" />
@@ -418,7 +418,7 @@ export function FlowerCatalogPage() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="بحث..."
-                className="w-full border border-gray-200 rounded-lg pr-9 pl-3 h-9 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all bg-white"
+                className="w-full border border-[#eef2f6] rounded-lg pr-9 pl-3 h-9 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all bg-white"
               />
               {search && (
                 <button
@@ -440,7 +440,7 @@ export function FlowerCatalogPage() {
                     "px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors",
                     statusFilter === opt.value
                       ? "bg-brand-500 text-white shadow-sm"
-                      : "bg-white border border-gray-200 text-gray-600 hover:border-brand-300",
+                      : "bg-white border border-[#eef2f6] text-gray-600 hover:border-brand-300",
                   )}
                 >
                   {opt.label}
@@ -490,8 +490,8 @@ export function FlowerCatalogPage() {
 
           {/* Empty */}
           {!svcLoading && !svcError && filtered.length === 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 py-12 text-center">
-              <div className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center mx-auto mb-3">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] py-12 text-center">
+              <div className="w-12 h-12 rounded-full bg-[#f8fafc] flex items-center justify-center mx-auto mb-3">
                 <MapPin className="w-6 h-6 text-gray-300" />
               </div>
               {hasFilters ? (
@@ -539,7 +539,7 @@ export function FlowerCatalogPage() {
       {/* ── Settings Tab (merged: addons + categories) ──────────────────── */}
       {tab === "settings" && (
         <div className="space-y-3">
-          <div className="flex gap-1 border-b border-gray-100 pb-2">
+          <div className="flex gap-1 border-b border-[#eef2f6] pb-2">
             <button
               onClick={() => setSettingsSubTab("addons")}
               className={clsx(

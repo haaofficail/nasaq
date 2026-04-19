@@ -24,14 +24,14 @@ const PRIORITIES: Record<string, { label: string; color: string; bg: string; bor
   urgent: { label: "عاجل",   color: "text-red-700",    bg: "bg-red-50",    border: "border-red-200" },
   high:   { label: "مرتفع",  color: "text-orange-700", bg: "bg-orange-50", border: "border-orange-200" },
   normal: { label: "عادي",   color: "text-blue-700",   bg: "bg-blue-50",   border: "border-blue-200" },
-  low:    { label: "منخفض",  color: "text-gray-600",   bg: "bg-gray-100",  border: "border-gray-200" },
+  low:    { label: "منخفض",  color: "text-gray-600",   bg: "bg-gray-100",  border: "border-[#eef2f6]" },
 };
 
 const STATUSES: Record<string, { label: string; color: string; bg: string; border: string }> = {
   open:        { label: "مفتوح",     color: "text-yellow-700", bg: "bg-yellow-50", border: "border-yellow-200" },
   in_progress: { label: "قيد المتابعة", color: "text-blue-700", bg: "bg-blue-50",   border: "border-blue-200" },
   resolved:    { label: "محلول",     color: "text-emerald-700", bg: "bg-emerald-50", border: "border-emerald-200" },
-  closed:      { label: "مغلق",      color: "text-gray-600",   bg: "bg-gray-100",  border: "border-gray-200" },
+  closed:      { label: "مغلق",      color: "text-gray-600",   bg: "bg-gray-100",  border: "border-[#eef2f6]" },
 };
 
 function PriorityBadge({ priority }: { priority: string }) {
@@ -171,7 +171,7 @@ export function SchoolCasesPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+          className="px-3 py-2 rounded-xl border border-[#eef2f6] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
         >
           <option value="">كل الحالات</option>
           {Object.entries(STATUSES).map(([k, v]) => (
@@ -181,7 +181,7 @@ export function SchoolCasesPage() {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value)}
-          className="px-3 py-2 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+          className="px-3 py-2 rounded-xl border border-[#eef2f6] text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
         >
           <option value="">كل الفئات</option>
           {CATEGORIES.map((c) => (
@@ -191,11 +191,11 @@ export function SchoolCasesPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-6 space-y-3">
             {[...Array(5)].map((_, i) => (
-              <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-10 w-full" />
+              <div key={i} className="animate-pulse bg-[#f1f5f9] rounded-xl h-10 w-full" />
             ))}
           </div>
         ) : error ? (
@@ -228,21 +228,21 @@ export function SchoolCasesPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {cases.map((c: any) => (
-                  <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-900 max-w-48 truncate">{c.title}</td>
-                    <td className="px-4 py-3 text-gray-700">{c.studentName ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-700">
+                  <tr key={c.id} className="hover:bg-[#f8fafc] transition-colors">
+                    <td className="px-[10px] py-[6px] font-medium text-gray-900 max-w-48 truncate">{c.title}</td>
+                    <td className="px-[10px] py-[6px] text-gray-700">{c.studentName ?? "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-700">
                       {c.classRoomGrade && c.classRoomName ? `${c.classRoomGrade} / ${c.classRoomName}` : "—"}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-[10px] py-[6px] text-gray-600">
                       {CATEGORIES.find((x) => x.value === c.category)?.label ?? c.category}
                     </td>
-                    <td className="px-4 py-3"><PriorityBadge priority={c.priority} /></td>
-                    <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
-                    <td className="px-4 py-3 text-gray-500 tabular-nums">
+                    <td className="px-[10px] py-[6px]"><PriorityBadge priority={c.priority} /></td>
+                    <td className="px-[10px] py-[6px]"><StatusBadge status={c.status} /></td>
+                    <td className="px-[10px] py-[6px] text-gray-500 tabular-nums">
                       {fmtHijri(c.createdAt)}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <button
                         onClick={() => setDetailModal({ open: true, caseId: c.id })}
                         className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
@@ -270,7 +270,7 @@ export function SchoolCasesPage() {
           <>
             <button
               onClick={() => setAddModal(false)}
-              className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50"
+              className="px-4 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc]"
             >
               إلغاء
             </button>
@@ -290,7 +290,7 @@ export function SchoolCasesPage() {
             <input
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
@@ -299,7 +299,7 @@ export function SchoolCasesPage() {
               <select
                 value={form.category}
                 onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+                className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
               >
                 <option value="">اختر الفئة</option>
                 {CATEGORIES.map((c) => (
@@ -312,7 +312,7 @@ export function SchoolCasesPage() {
               <select
                 value={form.priority}
                 onChange={(e) => setForm((f) => ({ ...f, priority: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+                className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
               >
                 {Object.entries(PRIORITIES).map(([k, v]) => (
                   <option key={k} value={k}>{v.label}</option>
@@ -325,7 +325,7 @@ export function SchoolCasesPage() {
             <select
               value={form.student_id}
               onChange={(e) => setForm((f) => ({ ...f, student_id: e.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+              className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
             >
               <option value="">بدون طالب محدد</option>
               {students.map((s: any) => (
@@ -341,7 +341,7 @@ export function SchoolCasesPage() {
               value={form.description}
               onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               rows={3}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 resize-none"
+              className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 resize-none"
             />
           </div>
           {createError && <p className="text-sm text-red-500 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{createError}</p>}
@@ -358,7 +358,7 @@ export function SchoolCasesPage() {
         {detailLoading ? (
           <div className="space-y-3">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-10 w-full" />
+              <div key={i} className="animate-pulse bg-[#f1f5f9] rounded-xl h-10 w-full" />
             ))}
           </div>
         ) : !caseDetail ? null : (
@@ -384,7 +384,7 @@ export function SchoolCasesPage() {
                   onClick={() => handleUpdateStatus(k)}
                   className={clsx(
                     "px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all disabled:opacity-40",
-                    caseDetail.status === k ? `${v.bg} ${v.color} ${v.border}` : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                    caseDetail.status === k ? `${v.bg} ${v.color} ${v.border}` : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]"
                   )}
                 >
                   {v.label}
@@ -415,14 +415,14 @@ export function SchoolCasesPage() {
             </div>
 
             {/* Add step */}
-            <div className="border-t border-gray-100 pt-4">
+            <div className="border-t border-[#eef2f6] pt-4">
               <p className="text-sm font-semibold text-gray-700 mb-2">إضافة خطوة جديدة</p>
               <div className="flex gap-2">
                 <input
                   value={stepText}
                   onChange={(e) => setStepText(e.target.value)}
                   placeholder="وصف الخطوة أو الإجراء..."
-                  className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                  className="flex-1 rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                   onKeyDown={(e) => { if (e.key === "Enter") handleAddStep(); }}
                 />
                 <button

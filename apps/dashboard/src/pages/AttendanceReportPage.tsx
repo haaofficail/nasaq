@@ -56,25 +56,25 @@ export function AttendanceReportPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">من تاريخ</label>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">إلى تاريخ</label>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div className="flex gap-2 mr-auto">
             <button onClick={refetch}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">
               <RefreshCw className="w-4 h-4" /> تحديث
             </button>
             <button onClick={exportCsv}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f8fafc] border border-[#eef2f6] text-sm text-gray-600 hover:bg-gray-100 transition-colors">
               <Download className="w-4 h-4" /> تصدير CSV
             </button>
           </div>
@@ -85,28 +85,28 @@ export function AttendanceReportPage() {
         <>
           {/* Summary */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center mb-3">
                 <CalendarCheck className="w-4 h-4 text-brand-500" />
               </div>
               <p className="text-xl font-bold tabular-nums text-brand-600">{total}</p>
               <p className="text-xs text-gray-400 mt-0.5">إجمالي الحجوزات</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center mb-3">
                 <TrendingUp className="w-4 h-4 text-emerald-600" />
               </div>
               <p className="text-xl font-bold tabular-nums text-emerald-700">{attendanceRate}%</p>
               <p className="text-xs text-gray-400 mt-0.5">نسبة الحضور</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center mb-3">
                 <UserX className="w-4 h-4 text-amber-500" />
               </div>
               <p className="text-xl font-bold tabular-nums text-amber-600">{noShow}</p>
               <p className="text-xs text-gray-400 mt-0.5">غياب ({noShowRate}%)</p>
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center mb-3">
                 <XCircle className="w-4 h-4 text-red-500" />
               </div>
@@ -117,7 +117,7 @@ export function AttendanceReportPage() {
 
           {/* Donut-style summary bar */}
           {total > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <h3 className="text-sm font-semibold text-gray-900 mb-4">توزيع الحجوزات</h3>
               <div className="h-3 rounded-full overflow-hidden flex bg-gray-100">
                 <div className="bg-emerald-400 h-full transition-all" style={{ width: `${(completed / total) * 100}%` }} />
@@ -140,7 +140,7 @@ export function AttendanceReportPage() {
           )}
 
           {/* By-service table */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900 text-sm">تفصيل حسب الخدمة</h2>
               <span className="text-xs text-gray-400">{byService.length} خدمة</span>
@@ -162,13 +162,13 @@ export function AttendanceReportPage() {
                   </thead>
                   <tbody>
                     {byService.map((r: any, i: number) => (
-                      <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                        <td className="px-4 py-3 font-medium text-gray-800">{r.serviceName}</td>
-                        <td className="px-4 py-3 tabular-nums text-gray-700">{r.total}</td>
-                        <td className="px-4 py-3 tabular-nums text-emerald-700 font-medium">{r.completed}</td>
-                        <td className="px-4 py-3 tabular-nums text-amber-600">{r.noShow}</td>
-                        <td className="px-4 py-3 tabular-nums text-red-500">{r.cancelled}</td>
-                        <td className="px-4 py-3 min-w-[120px]">
+                      <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
+                        <td className="px-[10px] py-[6px] font-medium text-gray-800">{r.serviceName}</td>
+                        <td className="px-[10px] py-[6px] tabular-nums text-gray-700">{r.total}</td>
+                        <td className="px-[10px] py-[6px] tabular-nums text-emerald-700 font-medium">{r.completed}</td>
+                        <td className="px-[10px] py-[6px] tabular-nums text-amber-600">{r.noShow}</td>
+                        <td className="px-[10px] py-[6px] tabular-nums text-red-500">{r.cancelled}</td>
+                        <td className="px-[10px] py-[6px] min-w-[120px]">
                           <RateBar value={r.rate} color={r.rate >= 70 ? "bg-emerald-400" : r.rate >= 40 ? "bg-amber-400" : "bg-red-400"} />
                         </td>
                       </tr>
@@ -180,7 +180,7 @@ export function AttendanceReportPage() {
           </div>
 
           {/* FAQ */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
             <div className="space-y-3">
               {[
@@ -189,8 +189,8 @@ export function AttendanceReportPage() {
                 { q: "كيف أُقلل نسبة الغياب؟", a: "فعّل التذكيرات التلقائية قبل الموعد بـ 24 ساعة وقبل ساعة، واطلب عربوناً مسبقاً للحجوزات ذات الطلب العالي." },
                 { q: "هل يمكن تصفية التقرير حسب موظف معين؟", a: "سيُضاف تصفية حسب الموظف في تحديث قادم. حالياً التقرير يُجمع حسب الخدمة." },
               ].map(faq => (
-                <details key={faq.q} className="border border-gray-100 rounded-xl">
-                  <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+                <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+                  <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
                   <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
                 </details>
               ))}

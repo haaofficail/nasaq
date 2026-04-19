@@ -236,7 +236,7 @@ const QUESTION_TYPES: { value: QuestionType; label: string; icon: React.ElementT
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
-const iCls = "w-full border border-gray-200 h-10 rounded-xl px-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300";
+const iCls = "w-full border border-[#eef2f6] h-10 rounded-xl px-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300";
 
 function Err({ msg }: { msg?: string }) {
   if (!msg) return null;
@@ -606,7 +606,7 @@ export function ServiceCreateWizard() {
                     "w-10 h-10 rounded-full flex items-center justify-center transition-all border-2",
                     isDone ? "bg-brand-500 border-brand-500 text-white" :
                     isActive ? "bg-white border-brand-500 text-brand-600 shadow-md" :
-                    "bg-white border-gray-200 text-gray-300",
+                    "bg-white border-[#eef2f6] text-gray-300",
                   )}>
                     {isDone ? <Check className="w-4 h-4" /> : <Icon className="w-4 h-4" />}
                   </div>
@@ -627,7 +627,7 @@ export function ServiceCreateWizard() {
 
         {/* ══════════════════ STEP 0: TYPE PICKER ══════════════════════ */}
         {step === 0 && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 space-y-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-6 space-y-5">
             <div className="text-center">
               <h2 className="text-base font-bold text-gray-900 mb-1">ما نوع الخدمة؟</h2>
               <p className="text-sm text-gray-400">اختر النوع الأقرب لخدمتك — يحدد الحقول والإعدادات</p>
@@ -642,7 +642,7 @@ export function ServiceCreateWizard() {
                     onClick={() => { setForm(f => ({ ...f, serviceType: t.value })); setErrors(p => ({ ...p, serviceType: "" })); }}
                     className={clsx(
                       "flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all hover:border-brand-300 hover:bg-brand-50/30",
-                      active ? "border-brand-500 bg-brand-50 shadow-sm" : "border-gray-100 bg-white",
+                      active ? "border-brand-500 bg-brand-50 shadow-sm" : "border-[#eef2f6] bg-white",
                     )}
                   >
                     <div className={clsx(
@@ -684,7 +684,7 @@ export function ServiceCreateWizard() {
 
             {/* Service mode toggle */}
             {canToggleMode && (
-              <div className="flex items-center justify-between px-4 py-3 bg-white border border-gray-100 rounded-xl">
+              <div className="flex items-center justify-between px-4 py-3 bg-white border border-[#eef2f6] rounded-xl">
                 <div className="flex items-center gap-2">
                   <Layers className="w-4 h-4 text-gray-400" />
                   <div>
@@ -694,7 +694,7 @@ export function ServiceCreateWizard() {
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-0.5 bg-gray-100 rounded-xl p-0.5">
+                <div className="flex gap-0.5 bg-[#f1f5f9] rounded-xl p-0.5">
                   {([{ v: "booking" as const, l: "حجز" }, { v: "execution" as const, l: "تنفيذ" }]).map(m => (
                     <button key={m.v} type="button" onClick={() => setForm(f => ({ ...f, serviceMode: m.v }))}
                       className={clsx("px-4 py-1.5 rounded-lg text-xs font-medium transition-all",
@@ -706,7 +706,7 @@ export function ServiceCreateWizard() {
             )}
 
             {/* Basics Card */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5 space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-gray-50">
                 <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
                   <FileText className="w-4 h-4 text-brand-500" />
@@ -790,7 +790,7 @@ export function ServiceCreateWizard() {
               {/* Pricing mode */}
               <div>
                 <label className="text-xs font-medium text-gray-700 block mb-1.5">طريقة التسعير</label>
-                <div className="flex gap-0.5 bg-gray-100 rounded-xl p-0.5 w-fit">
+                <div className="flex gap-0.5 bg-[#f1f5f9] rounded-xl p-0.5 w-fit">
                   {[{ v: "fixed", l: "سعر ثابت" }, { v: "from_price", l: "يبدأ من" }, { v: "variable", l: "متغير" }].map(pm => (
                     <button key={pm.v} type="button" onClick={() => setForm(f => ({ ...f, servicePricingMode: pm.v }))}
                       className={clsx("px-3.5 py-1.5 rounded-lg text-xs font-medium transition-all",
@@ -804,7 +804,7 @@ export function ServiceCreateWizard() {
               <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none w-fit">
                 <div className={clsx(
                   "w-4 h-4 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
-                  form.vatInclusive ? "bg-brand-500 border-brand-500" : "border-gray-300 bg-white"
+                  form.vatInclusive ? "bg-brand-500 border-brand-500" : "border-[#eef2f6] bg-white"
                 )}>
                   {form.vatInclusive && <svg viewBox="0 0 10 8" className="w-2.5 h-2.5 fill-none stroke-white stroke-2"><polyline points="1,4 4,7 9,1" /></svg>}
                 </div>
@@ -821,7 +821,7 @@ export function ServiceCreateWizard() {
         {step === 2 && (
           <div className="space-y-4">
             {/* Description & Category */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5 space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-gray-50">
                 <div className="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center">
                   <Settings className="w-4 h-4 text-purple-500" />
@@ -872,7 +872,7 @@ export function ServiceCreateWizard() {
 
             {/* Booking rules */}
             {typeConfig.showBookingRules && !isExecutionMode && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-0">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5 space-y-0">
                 <div className="flex items-center gap-2 pb-3 border-b border-gray-50 mb-3">
                   <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
                     <Clock className="w-4 h-4 text-blue-500" />
@@ -937,7 +937,7 @@ export function ServiceCreateWizard() {
             )}
 
             {/* Visibility & Branches */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5 space-y-3">
               <div className="flex items-center gap-2 pb-3 border-b border-gray-50">
                 <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center">
                   <Eye className="w-4 h-4 text-green-500" />
@@ -956,7 +956,7 @@ export function ServiceCreateWizard() {
                 { key: "isVisibleOnline" as const, label: "المتجر الإلكتروني", desc: "المتجر" },
               ].map(({ key, label, desc }) => (
                 <label key={key}
-                  className="flex items-center justify-between py-2 px-3 rounded-xl cursor-pointer select-none hover:bg-gray-50 transition-colors">
+                  className="flex items-center justify-between py-2 px-3 rounded-xl cursor-pointer select-none hover:bg-[#f8fafc] transition-colors">
                   <div>
                     <p className="text-sm font-medium text-gray-800">{label}</p>
                     <p className="text-[11px] text-gray-400">{desc}</p>
@@ -980,7 +980,7 @@ export function ServiceCreateWizard() {
                           onClick={() => setAllowedBranches(p => active ? p.filter(x => x !== b.id) : [...p, b.id])}
                           className={clsx(
                             "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
-                            active ? "bg-brand-50 text-brand-700 border-brand-300" : "bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300"
+                            active ? "bg-brand-50 text-brand-700 border-brand-300" : "bg-gray-50 text-gray-500 border-[#eef2f6] hover:border-[#eef2f6]"
                           )}>
                           {b.name}
                         </button>
@@ -993,7 +993,7 @@ export function ServiceCreateWizard() {
               {/* Status */}
               <div className="pt-2 border-t border-gray-50">
                 <label className="text-xs font-medium text-gray-600 block mb-2">الحالة عند الإنشاء</label>
-                <div className="flex gap-0.5 bg-gray-100 rounded-xl p-0.5 w-fit">
+                <div className="flex gap-0.5 bg-[#f1f5f9] rounded-xl p-0.5 w-fit">
                   {[{ v: "active", l: "نشطة" }, { v: "draft", l: "مسودة" }].map(s => (
                     <button key={s.v} type="button" onClick={() => setForm(f => ({ ...f, status: s.v }))}
                       className={clsx("px-4 py-1.5 rounded-lg text-xs font-medium transition-all",
@@ -1010,7 +1010,7 @@ export function ServiceCreateWizard() {
         {step === 3 && (
           <div className="space-y-4">
             {/* Images */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5 space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-gray-50">
                 <div className="w-8 h-8 rounded-lg bg-pink-50 flex items-center justify-center">
                   <Image className="w-4 h-4 text-pink-500" />
@@ -1022,7 +1022,7 @@ export function ServiceCreateWizard() {
               </div>
               <div className="flex flex-wrap gap-3">
                 {mediaItems.map((m, i) => (
-                  <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200 group">
+                  <div key={i} className="relative w-24 h-24 rounded-2xl overflow-hidden border border-[#eef2f6] group">
                     <img src={m.preview} alt="" className="w-full h-full object-cover" />
                     {m.uploading && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -1052,7 +1052,7 @@ export function ServiceCreateWizard() {
                   </div>
                 ))}
                 <button type="button" onClick={() => fileRef.current?.click()}
-                  className="flex flex-col items-center justify-center w-24 h-24 rounded-xl border-2 border-dashed border-gray-200 hover:border-brand-300 hover:bg-brand-50/20 transition-all">
+                  className="flex flex-col items-center justify-center w-24 h-24 rounded-xl border-2 border-dashed border-[#eef2f6] hover:border-brand-300 hover:bg-brand-50/20 transition-all">
                   <Upload className="w-5 h-5 text-gray-300 mb-1" />
                   <span className="text-[11px] text-gray-400">إضافة</span>
                 </button>
@@ -1064,7 +1064,7 @@ export function ServiceCreateWizard() {
 
             {/* Staff — only for execution/staff types */}
             {typeConfig.showStaff && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5 space-y-3">
                 <div className="flex items-center gap-2 pb-3 border-b border-gray-50">
                   <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
                     <Package className="w-4 h-4 text-indigo-500" />
@@ -1107,7 +1107,7 @@ export function ServiceCreateWizard() {
 
             {/* Components */}
             {typeConfig.showComponents && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5 space-y-3">
                 <div className="flex items-center justify-between pb-3 border-b border-gray-50">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center">
@@ -1127,9 +1127,9 @@ export function ServiceCreateWizard() {
                   <p className="text-xs text-gray-400 py-1">لا توجد مكونات بعد</p>
                 )}
                 {componentDrafts.map((c, i) => (
-                  <div key={i} className="border border-gray-100 rounded-xl p-3 space-y-2">
+                  <div key={i} className="border border-[#eef2f6] rounded-xl p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
+                      <div className="flex gap-0.5 bg-[#f1f5f9] rounded-lg p-0.5">
                         {(["manual", "inventory"] as const).map(t => (
                           <button key={t} type="button"
                             onClick={() => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, sourceType: t, inventoryItemId: "", name: "" } : x))}
@@ -1184,7 +1184,7 @@ export function ServiceCreateWizard() {
 
             {/* Addons — hidden in execution mode */}
             {typeConfig.showAddons && !isExecutionMode && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5 space-y-3">
                 <div className="flex items-center justify-between pb-3 border-b border-gray-50">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-lg bg-teal-50 flex items-center justify-center">
@@ -1204,10 +1204,10 @@ export function ServiceCreateWizard() {
                   <p className="text-xs text-gray-400 py-1">لا توجد إضافات بعد</p>
                 )}
                 {addonDrafts.map((a, i) => (
-                  <div key={i} className="border border-gray-100 rounded-xl p-3 space-y-2">
+                  <div key={i} className="border border-[#eef2f6] rounded-xl p-3 space-y-2">
                     <div className="flex gap-3 items-start">
                       {a.imageUrl ? (
-                        <div className="relative w-12 h-12 rounded-xl overflow-hidden border border-gray-200 shrink-0">
+                        <div className="relative w-12 h-12 rounded-2xl overflow-hidden border border-[#eef2f6] shrink-0">
                           <img src={a.imageUrl} className="w-full h-full object-cover" alt="" />
                           <button onClick={() => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, imageUrl: "" } : x))}
                             className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded flex items-center justify-center">
@@ -1216,7 +1216,7 @@ export function ServiceCreateWizard() {
                         </div>
                       ) : (
                         <button type="button" onClick={() => { setAddonUploadIdx(i); addonFileRef.current?.click(); }}
-                          className="w-12 h-12 rounded-xl border-2 border-dashed border-gray-200 hover:border-brand-300 flex items-center justify-center shrink-0">
+                          className="w-12 h-12 rounded-xl border-2 border-dashed border-[#eef2f6] hover:border-brand-300 flex items-center justify-center shrink-0">
                           <Upload className="w-3.5 h-3.5 text-gray-300" />
                         </button>
                       )}
@@ -1237,7 +1237,7 @@ export function ServiceCreateWizard() {
                       <div className="flex items-center gap-2">
                         <input type="checkbox" id={`addon-req-${i}`} checked={a.type === "required"}
                           onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.checked ? "required" : "optional" } : x))}
-                          className="w-4 h-4 rounded border-gray-300 accent-brand-500 cursor-pointer" />
+                          className="w-4 h-4 rounded border-[#eef2f6] accent-brand-500 cursor-pointer" />
                         <label htmlFor={`addon-req-${i}`} className="text-sm text-gray-700 cursor-pointer">إلزامي</label>
                       </div>
                     </div>
@@ -1249,7 +1249,7 @@ export function ServiceCreateWizard() {
             )}
 
             {/* Questions */}
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5 space-y-3">
               <div className="flex items-center justify-between pb-3 border-b border-gray-50">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center">
@@ -1269,7 +1269,7 @@ export function ServiceCreateWizard() {
                 <p className="text-xs text-gray-400 py-1">لا توجد أسئلة بعد</p>
               )}
               {questionDrafts.map((q, i) => (
-                <div key={i} className="border border-gray-100 rounded-xl p-3 space-y-2">
+                <div key={i} className="border border-[#eef2f6] rounded-xl p-3 space-y-2">
                   <div className="flex gap-2 items-end">
                     <div className="flex-1">
                       <input value={q.question} placeholder="نص السؤال"
@@ -1277,7 +1277,7 @@ export function ServiceCreateWizard() {
                     </div>
                     <div className="relative shrink-0">
                       <button type="button" onClick={() => setQuestionPickerIdx(questionPickerIdx === i ? null : i)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:border-brand-300 text-sm text-gray-700 min-w-[120px]">
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#eef2f6] bg-white hover:border-brand-300 text-sm text-gray-700 min-w-[120px]">
                         {(() => { const t = QUESTION_TYPES.find(x => x.value === q.type); const Icon = t?.icon; return Icon ? <Icon className="w-3.5 h-3.5 text-gray-400" /> : null; })()}
                         <span className="flex-1 text-right text-xs">{QUESTION_TYPES.find(x => x.value === q.type)?.label || "اختر"}</span>
                         <ChevronDown className="w-3 h-3 text-gray-400" />
@@ -1285,7 +1285,7 @@ export function ServiceCreateWizard() {
                       {questionPickerIdx === i && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setQuestionPickerIdx(null)} />
-                          <div className="absolute z-20 mt-1 right-0 p-2 bg-white border border-gray-200 rounded-xl shadow-lg min-w-[240px]">
+                          <div className="absolute z-20 mt-1 right-0 p-2 bg-white border border-[#eef2f6] rounded-xl shadow-lg min-w-[240px]">
                             <div className="grid grid-cols-2 gap-1.5">
                               {QUESTION_TYPES.map(t => {
                                 const Icon = t.icon;
@@ -1312,11 +1312,11 @@ export function ServiceCreateWizard() {
                   <div className="flex items-center gap-2">
                     <button type="button" onClick={() => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, isRequired: !x.isRequired } : x))}
                       className={clsx("px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all",
-                        q.isRequired ? "bg-red-50 text-red-600 border-red-200" : "bg-gray-50 text-gray-400 border-gray-200"
+                        q.isRequired ? "bg-red-50 text-red-600 border-red-200" : "bg-gray-50 text-gray-400 border-[#eef2f6]"
                       )}>إلزامي</button>
                     <button type="button" onClick={() => setQuestionDrafts(d => d.map((x, j) => j === i ? { ...x, isPaid: !x.isPaid } : x))}
                       className={clsx("px-2.5 py-1 rounded-lg text-[11px] font-medium border transition-all",
-                        q.isPaid ? "bg-green-50 text-green-600 border-green-200" : "bg-gray-50 text-gray-400 border-gray-200"
+                        q.isPaid ? "bg-green-50 text-green-600 border-green-200" : "bg-gray-50 text-gray-400 border-[#eef2f6]"
                       )}>بمقابل</button>
                     {q.isPaid && (
                       <input type="number" min={0} value={q.price} placeholder="الرسوم" dir="ltr"
@@ -1349,7 +1349,7 @@ export function ServiceCreateWizard() {
 
             {/* Execution template */}
             {isExecutionMode && templates.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5 space-y-3">
                 <div className="flex items-center gap-2 pb-3 border-b border-gray-50">
                   <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center">
                     <Package className="w-4 h-4 text-violet-500" />
@@ -1371,7 +1371,7 @@ export function ServiceCreateWizard() {
         {/* ══════════════════ STEP 4: REVIEW ══════════════════════════ */}
         {step === 4 && (
           <div className="space-y-4">
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5 space-y-4">
               <div className="flex items-center gap-2 pb-3 border-b border-gray-50">
                 <div className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
                   <Eye className="w-4 h-4 text-brand-500" />
@@ -1385,7 +1385,7 @@ export function ServiceCreateWizard() {
               {/* Summary sections */}
               <div className="space-y-3">
                 {/* Basics */}
-                <div className="flex items-start justify-between bg-gray-50 rounded-xl p-3.5">
+                <div className="flex items-start justify-between bg-[#f8fafc] rounded-xl p-3.5">
                   <div className="space-y-1.5">
                     <div className="flex items-center gap-2">
                       {selType && (() => { const Icon = selType.icon; return <Icon className="w-3.5 h-3.5 text-brand-500" />; })()}
@@ -1396,7 +1396,7 @@ export function ServiceCreateWizard() {
                     <div className="flex flex-wrap items-center gap-3 pt-1">
                       <span className="text-sm font-bold text-brand-600">{formatPrice(form.basePrice)}</span>
                       {formatDuration() && (
-                        <span className="flex items-center gap-1 text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full border border-gray-100">
+                        <span className="flex items-center gap-1 text-xs text-gray-500 bg-white px-2 py-0.5 rounded-full border border-[#eef2f6]">
                           <Clock className="w-3 h-3" />{formatDuration()}
                         </span>
                       )}
@@ -1409,41 +1409,41 @@ export function ServiceCreateWizard() {
                 </div>
 
                 {/* Details */}
-                <div className="flex items-start justify-between bg-gray-50 rounded-xl p-3.5">
+                <div className="flex items-start justify-between bg-[#f8fafc] rounded-xl p-3.5">
                   <div className="space-y-1">
                     <p className="text-xs font-semibold text-gray-600">التفاصيل</p>
                     <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-                      {categoryName && <span className="bg-white px-2 py-0.5 rounded-full border border-gray-100">{categoryName}</span>}
-                      <span className="bg-white px-2 py-0.5 rounded-full border border-gray-100">
+                      {categoryName && <span className="bg-white px-2 py-0.5 rounded-full border border-[#eef2f6]">{categoryName}</span>}
+                      <span className="bg-white px-2 py-0.5 rounded-full border border-[#eef2f6]">
                         {form.status === "active" ? "نشطة" : "مسودة"}
                       </span>
-                      {form.isBookable && <span className="bg-white px-2 py-0.5 rounded-full border border-gray-100">حجز</span>}
-                      {form.isVisibleInPOS && <span className="bg-white px-2 py-0.5 rounded-full border border-gray-100">كاشير</span>}
-                      {form.isVisibleOnline && <span className="bg-white px-2 py-0.5 rounded-full border border-gray-100">متجر</span>}
-                      {form.vatInclusive && <span className="bg-white px-2 py-0.5 rounded-full border border-gray-100">شامل الضريبة</span>}
+                      {form.isBookable && <span className="bg-white px-2 py-0.5 rounded-full border border-[#eef2f6]">حجز</span>}
+                      {form.isVisibleInPOS && <span className="bg-white px-2 py-0.5 rounded-full border border-[#eef2f6]">كاشير</span>}
+                      {form.isVisibleOnline && <span className="bg-white px-2 py-0.5 rounded-full border border-[#eef2f6]">متجر</span>}
+                      {form.vatInclusive && <span className="bg-white px-2 py-0.5 rounded-full border border-[#eef2f6]">شامل الضريبة</span>}
                     </div>
                   </div>
                   <button onClick={() => setStep(2)} className="text-xs text-brand-500 hover:text-brand-700 underline shrink-0">تعديل</button>
                 </div>
 
                 {/* Media & Extras */}
-                <div className="flex items-start justify-between bg-gray-50 rounded-xl p-3.5">
+                <div className="flex items-start justify-between bg-[#f8fafc] rounded-xl p-3.5">
                   <div className="space-y-1">
                     <p className="text-xs font-semibold text-gray-600">الوسائط والمكونات</p>
                     <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-                      <span className="bg-white px-2 py-0.5 rounded-full border border-gray-100">
+                      <span className="bg-white px-2 py-0.5 rounded-full border border-[#eef2f6]">
                         {mediaItems.filter(m => m.url).length} صورة
                       </span>
-                      <span className="bg-white px-2 py-0.5 rounded-full border border-gray-100">
+                      <span className="bg-white px-2 py-0.5 rounded-full border border-[#eef2f6]">
                         {componentDrafts.length} مكون
                       </span>
-                      <span className="bg-white px-2 py-0.5 rounded-full border border-gray-100">
+                      <span className="bg-white px-2 py-0.5 rounded-full border border-[#eef2f6]">
                         {addonDrafts.filter(a => a.name.trim()).length} إضافة
                       </span>
-                      <span className="bg-white px-2 py-0.5 rounded-full border border-gray-100">
+                      <span className="bg-white px-2 py-0.5 rounded-full border border-[#eef2f6]">
                         {questionDrafts.filter(q => q.question.trim()).length} سؤال
                       </span>
-                      <span className="bg-white px-2 py-0.5 rounded-full border border-gray-100">
+                      <span className="bg-white px-2 py-0.5 rounded-full border border-[#eef2f6]">
                         {pendingStaffIds.length} موظف
                       </span>
                     </div>
@@ -1455,7 +1455,7 @@ export function ServiceCreateWizard() {
                 {mediaItems.filter(m => m.url).length > 0 && (
                   <div className="flex gap-2 overflow-x-auto py-1">
                     {mediaItems.filter(m => m.url).map((m, i) => (
-                      <img key={i} src={m.preview} alt="" className="w-16 h-16 rounded-lg object-cover border border-gray-100 shrink-0" />
+                      <img key={i} src={m.preview} alt="" className="w-16 h-16 rounded-lg object-cover border border-[#eef2f6] shrink-0" />
                     ))}
                   </div>
                 )}
@@ -1474,11 +1474,11 @@ export function ServiceCreateWizard() {
 
       {/* ── Bottom Navigation Bar ─────────────────────────────────────── */}
       {step >= 1 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-100 py-3 px-6 z-10">
+        <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-[#eef2f6] py-3 px-6 z-10">
           <div className="max-w-2xl mx-auto flex items-center justify-between">
             {/* Right side: back */}
             <button onClick={goBack}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#eef2f6] text-sm font-medium text-gray-600 hover:bg-[#f8fafc] transition-colors">
               <ArrowRight className="w-4 h-4" />
               {step === 1 && !typeFromUrl ? "نوع الخدمة" : "السابق"}
             </button>

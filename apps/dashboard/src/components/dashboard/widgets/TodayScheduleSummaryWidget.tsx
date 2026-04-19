@@ -36,7 +36,7 @@ export function TodayScheduleSummaryWidget() {
   });
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100">
+    <div className="bg-white rounded-2xl border border-[#eef2f6]">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
         <div className="flex items-center gap-2">
@@ -98,7 +98,7 @@ export function TodayScheduleSummaryWidget() {
                 <Link
                   key={b.id ?? i}
                   to="/dashboard/schedule"
-                  className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-gray-50 transition-colors"
+                  className="flex items-center gap-2.5 rounded-xl px-2.5 py-2 hover:bg-[#f8fafc] transition-colors"
                 >
                   <div className={clsx("w-7 h-7 rounded-lg flex items-center justify-center shrink-0", sc.bg)}>
                     <Clock className={clsx("w-3 h-3", sc.color)} />

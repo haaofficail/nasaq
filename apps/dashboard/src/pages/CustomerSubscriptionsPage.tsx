@@ -11,7 +11,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   active:    { label: "نشط",    color: "bg-emerald-50 text-emerald-700 border-emerald-200" },
   paused:    { label: "موقوف",  color: "bg-amber-50 text-amber-700 border-amber-200" },
   cancelled: { label: "ملغى",   color: "bg-red-50 text-red-600 border-red-200" },
-  expired:   { label: "منتهي",  color: "bg-gray-100 text-gray-500 border-gray-200" },
+  expired:   { label: "منتهي",  color: "bg-gray-100 text-gray-500 border-[#eef2f6]" },
 };
 
 const TABS = [
@@ -61,22 +61,22 @@ export function CustomerSubscriptionsPage() {
           <p className="text-sm text-gray-400 mt-0.5">إدارة باقات واشتراكات العملاء المُفعّلة</p>
         </div>
         <button onClick={refetch}
-          className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
+          className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500 transition-colors">
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
       {/* stats */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <p className="text-2xl font-bold text-gray-900">{subs.length}</p>
           <p className="text-xs text-gray-400 mt-0.5">إجمالي الاشتراكات</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <p className="text-2xl font-bold text-emerald-600">{activeSubs.length}</p>
           <p className="text-xs text-gray-400 mt-0.5">اشتراكات نشطة</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-4">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
           <p className="text-2xl font-bold text-brand-600 tabular-nums">
             {totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
           </p>
@@ -85,11 +85,11 @@ export function CustomerSubscriptionsPage() {
       </div>
 
       {/* tabs + table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="flex items-center border-b border-gray-50 px-5 overflow-x-auto">
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-              className={clsx("px-4 py-3.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
+              className={clsx("px-4 py-[6px] text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
                 tab === t.key ? "border-brand-500 text-brand-600" : "border-transparent text-gray-500 hover:text-gray-700")}>
               {t.label}
             </button>
@@ -119,21 +119,21 @@ export function CustomerSubscriptionsPage() {
                   const st = STATUS_LABELS[sub.status] || STATUS_LABELS.active;
                   const usagePct = sub.max_usage > 0 ? Math.round((sub.current_usage / sub.max_usage) * 100) : 0;
                   return (
-                    <tr key={sub.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                      <td className="px-4 py-3">
+                    <tr key={sub.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
+                      <td className="px-[10px] py-[6px]">
                         <p className="font-medium text-gray-800">{sub.customer_name || "—"}</p>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-400" dir="ltr">{sub.customer_phone || "—"}</td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px] text-xs text-gray-400" dir="ltr">{sub.customer_phone || "—"}</td>
+                      <td className="px-[10px] py-[6px]">
                         <p className="font-medium text-gray-700 text-sm">{sub.name}</p>
                         {sub.service_name && sub.service_name !== sub.name && (
                           <p className="text-xs text-gray-400">{sub.service_name}</p>
                         )}
                       </td>
-                      <td className="px-4 py-3 tabular-nums text-gray-700">
+                      <td className="px-[10px] py-[6px] tabular-nums text-gray-700">
                         {sub.price ? `${Number(sub.price).toLocaleString()} ر.س` : "—"}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px]">
                         {sub.max_usage ? (
                           <div>
                             <div className="flex items-center gap-1.5 mb-1">
@@ -146,16 +146,16 @@ export function CustomerSubscriptionsPage() {
                           </div>
                         ) : <span className="text-gray-300">—</span>}
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
+                      <td className="px-[10px] py-[6px] text-xs text-gray-400 whitespace-nowrap">
                         {sub.start_date ? fmtDate(sub.start_date) : "—"}
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">
+                      <td className="px-[10px] py-[6px] text-xs text-gray-400 whitespace-nowrap">
                         {sub.next_billing_date ? fmtDate(sub.next_billing_date) : "—"}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px]">
                         <span className={clsx("text-[11px] px-2 py-0.5 rounded-full font-medium border", st.color)}>{st.label}</span>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-[10px] py-[6px]">
                         <div className="flex items-center gap-1">
                           {sub.status === "active" && (
                             <button onClick={() => handleCancel(sub.id)} title="إلغاء"
@@ -181,7 +181,7 @@ export function CustomerSubscriptionsPage() {
       </div>
 
       {/* FAQ */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
         <div className="space-y-3">
           {[
@@ -190,8 +190,8 @@ export function CustomerSubscriptionsPage() {
             { q: "كيف أضيف اشتراكاً جديداً لعميل؟", a: "ابتع باقة من قسم «الباقات» أو من ملف العميل مباشرة، وستظهر الاشتراكات هنا تلقائياً." },
             { q: "ما «تاريخ الفوترة التالي»؟", a: "هو الموعد المجدول للتجديد التلقائي أو إشعار العميل بانتهاء اشتراكه." },
           ].map(faq => (
-            <details key={faq.q} className="border border-gray-100 rounded-xl">
-              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+            <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+              <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
               <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
             </details>
           ))}

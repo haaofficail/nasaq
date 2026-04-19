@@ -72,7 +72,7 @@ export function RentalAnalyticsPage() {
 
           {/* Revenue by asset type */}
           {revenueByType.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <p className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-brand-500" /> الإيرادات حسب نوع الأصل
               </p>
@@ -104,7 +104,7 @@ export function RentalAnalyticsPage() {
 
           {/* Asset utilization */}
           {utilization.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <p className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-brand-500" /> معدل استخدام الأصول (أيام الإيجار)
               </p>
@@ -143,7 +143,7 @@ export function RentalAnalyticsPage() {
 
           {/* Maintenance costs */}
           {maintenance.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <p className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-brand-500" /> تكلفة الصيانة حسب نوع الأصل
               </p>
@@ -164,7 +164,7 @@ export function RentalAnalyticsPage() {
           )}
 
           {!revenueByType.length && !overdue.length && (
-            <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16">
               <BarChart3 className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400">لا توجد بيانات بعد — أضف عقوداً وأصولاً لرؤية التحليلات</p>
             </div>

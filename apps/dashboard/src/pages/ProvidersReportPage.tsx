@@ -38,20 +38,20 @@ export function ProvidersReportPage() {
         <span className="text-gray-700 font-medium">تقارير مقدمي الخدمة</span>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">من تاريخ</label>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">إلى تاريخ</label>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <button onClick={exportCsv}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors mr-auto">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f8fafc] border border-[#eef2f6] text-sm text-gray-600 hover:bg-gray-100 transition-colors mr-auto">
             <Download className="w-4 h-4" /> تصدير CSV
           </button>
         </div>
@@ -67,7 +67,7 @@ export function ProvidersReportPage() {
             ].map(card => {
               const Icon = card.icon;
               return (
-                <div key={card.label} className="bg-white rounded-2xl border border-gray-100 p-4">
+                <div key={card.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
                   <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-3", card.bg)}>
                     <Icon className={clsx("w-4 h-4", card.color)} />
                   </div>
@@ -78,7 +78,7 @@ export function ProvidersReportPage() {
             })}
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900 text-sm">أداء مقدمي الخدمة</h2>
               <span className="text-xs text-gray-400">{providers.length} موظف</span>
@@ -102,12 +102,12 @@ export function ProvidersReportPage() {
                     {providers.map((p: any, i: number) => {
                       const rate = p.bookingCount > 0 ? Math.round((p.completedCount / p.bookingCount) * 100) : 0;
                       return (
-                        <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                          <td className="px-4 py-3 font-medium text-gray-800">{p.providerName}</td>
-                          <td className="px-4 py-3 text-center tabular-nums text-gray-600">{p.bookingCount}</td>
-                          <td className="px-4 py-3 text-center tabular-nums text-emerald-600">{p.completedCount}</td>
-                          <td className="px-4 py-3 text-center tabular-nums text-red-400">{p.cancelledCount}</td>
-                          <td className="px-4 py-3">
+                        <tr key={i} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
+                          <td className="px-[10px] py-[6px] font-medium text-gray-800">{p.providerName}</td>
+                          <td className="px-[10px] py-[6px] text-center tabular-nums text-gray-600">{p.bookingCount}</td>
+                          <td className="px-[10px] py-[6px] text-center tabular-nums text-emerald-600">{p.completedCount}</td>
+                          <td className="px-[10px] py-[6px] text-center tabular-nums text-red-400">{p.cancelledCount}</td>
+                          <td className="px-[10px] py-[6px]">
                             <div className="flex items-center gap-2">
                               <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
                                 <div className={clsx("h-full rounded-full", rate >= 80 ? "bg-emerald-400" : rate >= 50 ? "bg-amber-400" : "bg-red-400")}
@@ -116,8 +116,8 @@ export function ProvidersReportPage() {
                               <span className="text-xs text-gray-500">{rate}%</span>
                             </div>
                           </td>
-                          <td className="px-4 py-3 tabular-nums font-semibold text-gray-900">{fmt(p.totalRevenue)} ر.س</td>
-                          <td className="px-4 py-3 tabular-nums text-gray-500">{fmt(p.avgBookingValue)} ر.س</td>
+                          <td className="px-[10px] py-[6px] tabular-nums font-semibold text-gray-900">{fmt(p.totalRevenue)} ر.س</td>
+                          <td className="px-[10px] py-[6px] tabular-nums text-gray-500">{fmt(p.avgBookingValue)} ر.س</td>
                         </tr>
                       );
                     })}
@@ -127,7 +127,7 @@ export function ProvidersReportPage() {
             )}
           </div>
 
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
             <div className="space-y-3">
               {[
@@ -135,8 +135,8 @@ export function ProvidersReportPage() {
                 { q: "لماذا يظهر موظف بصفر حجوزات؟", a: "هذا الموظف لم يُسنَد له أي حجوز في الفترة المحددة. تحقق من إعدادات تعيين الحجوزات." },
                 { q: "كيف أستخدم هذا التقرير لتقييم الفريق؟", a: "قارن معدل الإنجاز وإجمالي الإيرادات بين الموظفين. استخدمه في مراجعات الأداء الدورية." },
               ].map(faq => (
-                <details key={faq.q} className="border border-gray-100 rounded-xl">
-                  <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+                <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+                  <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
                   <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
                 </details>
               ))}

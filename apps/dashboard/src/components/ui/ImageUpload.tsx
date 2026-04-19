@@ -112,7 +112,7 @@ export function ImageUpload({ value, onChange, className, label = "صورة", as
         className={clsx(
           "relative rounded-2xl border-2 border-dashed overflow-hidden cursor-pointer group transition-colors",
           aspectClass,
-          uploading ? "border-brand-300 bg-brand-50" : "border-gray-200 hover:border-brand-300 hover:bg-gray-50"
+          uploading ? "border-brand-300 bg-brand-50" : "border-[#eef2f6] hover:border-brand-300 hover:bg-[#f8fafc]"
         )}
         onClick={() => !uploading && inputRef.current?.click()}
         onDrop={handleDrop}

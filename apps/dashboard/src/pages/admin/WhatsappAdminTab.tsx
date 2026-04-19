@@ -163,7 +163,7 @@ export default function WhatsappAdminTab() {
       </div>
 
       {/* Status card */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
             {status === "connected"
@@ -189,7 +189,7 @@ export default function WhatsappAdminTab() {
             <img
               src={state.qrBase64}
               alt="QR واتساب الأدمن"
-              className="w-48 h-48 rounded-2xl border border-gray-200 shadow-sm"
+              className="w-48 h-48 rounded-2xl border border-[#eef2f6] shadow-sm"
             />
           </div>
         )}
@@ -211,7 +211,7 @@ export default function WhatsappAdminTab() {
             <button
               onClick={reconnect}
               disabled={acting}
-              className="flex items-center gap-2 border border-gray-200 hover:border-gray-300 text-gray-700 text-sm font-medium rounded-xl px-4 py-2 transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 border border-[#eef2f6] hover:border-[#eef2f6] text-gray-700 text-sm font-medium rounded-xl px-4 py-2 transition-colors disabled:opacity-50"
             >
               {acting ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
               إعادة اتصال

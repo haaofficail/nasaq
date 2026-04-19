@@ -32,7 +32,7 @@ function OtpDebugPanel() {
 
   return (
     <div className="bg-white rounded-2xl border border-amber-200 overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-amber-100 bg-amber-50/40">
+      <div className="flex items-center justify-between px-5 py-[6px] border-b border-amber-100 bg-amber-50/40">
         <div className="flex items-center gap-2">
           <Hash className="w-4 h-4 text-amber-600" />
           <h3 className="text-sm font-semibold text-amber-800">رموز التحقق (OTP)</h3>
@@ -48,14 +48,14 @@ function OtpDebugPanel() {
             type="text" value={phone} placeholder="ابحث برقم الجوال..."
             onChange={e => setPhone(e.target.value)}
             onKeyDown={e => e.key === "Enter" && fetchOtps(phone)}
-            className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400" dir="ltr"
+            className="flex-1 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400" dir="ltr"
           />
           <button onClick={() => fetchOtps(phone)} disabled={loading}
             className="px-4 py-2 bg-brand-500 text-white rounded-xl text-sm font-semibold hover:bg-brand-600 disabled:opacity-50">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
           </button>
           <button onClick={() => { setPhone(""); fetchOtps(); }}
-            className="px-3 py-2 border border-gray-200 rounded-xl text-sm text-gray-500 hover:bg-gray-50">
+            className="px-3 py-2 border border-[#eef2f6] rounded-xl text-sm text-gray-500 hover:bg-[#f8fafc]">
             الكل
           </button>
         </div>
@@ -66,7 +66,7 @@ function OtpDebugPanel() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 border-b border-gray-100">
+                <tr className="bg-gray-50 border-b border-[#eef2f6]">
                   <th className="text-right py-2 px-3 text-xs text-gray-400 font-semibold">الجوال</th>
                   <th className="text-right py-2 px-3 text-xs text-gray-400 font-semibold">الرمز</th>
                   <th className="text-right py-2 px-3 text-xs text-gray-400 font-semibold">الغرض</th>
@@ -80,7 +80,7 @@ function OtpDebugPanel() {
                   const expired = new Date(otp.expiresAt) < new Date();
                   const used = !!otp.usedAt;
                   return (
-                    <tr key={otp.id} className="border-b border-gray-50 hover:bg-gray-50/40">
+                    <tr key={otp.id} className="border-b border-gray-50 hover:bg-[#f8fafc]/40">
                       <td className="py-2 px-3 font-mono text-xs text-gray-700">{otp.phone}</td>
                       <td className="py-2 px-3">
                         <span className="px-2 py-1 bg-brand-50 text-brand-700 rounded-lg text-sm font-mono font-bold tracking-widest">
@@ -180,7 +180,7 @@ function SystemTab() {
       <SectionHeader title="صحة النظام" sub="فحص شامل للبنية التحتية والبيانات والأمان"
         action={
           <div className="flex items-center gap-2">
-            <button onClick={() => { refetch(); refetchErrors(); }} className="flex items-center gap-1.5 text-sm text-gray-500 border border-gray-200 px-3 py-1.5 rounded-xl hover:bg-gray-50">
+            <button onClick={() => { refetch(); refetchErrors(); }} className="flex items-center gap-1.5 text-sm text-gray-500 border border-[#eef2f6] px-3 py-1.5 rounded-xl hover:bg-[#f8fafc]">
               <RefreshCw className="w-3.5 h-3.5" /> تحديث
             </button>
             <button onClick={runDiag} disabled={diagLoading}
@@ -199,9 +199,9 @@ function SystemTab() {
             { label: "زمن استجابة DB", value: `${sys?.dbLatencyMs ?? "—"} ms`, icon: Activity, bg: sys?.dbLatencyMs < 100 ? "bg-emerald-50" : "bg-orange-50", color: sys?.dbLatencyMs < 100 ? "text-emerald-600" : "text-orange-600" },
             { label: "جلسات نشطة", value: sys?.activeSessions ?? 0, icon: Users, bg: "bg-blue-50", color: "text-blue-600" },
             { label: "سجلات الصحة", value: sys?.history?.length ?? 0, icon: ClipboardList, bg: "bg-purple-50", color: "text-purple-600" },
-            { label: "أخطاء الخادم (500)", value: errors.length, icon: AlertTriangle, bg: errors.length > 0 ? "bg-red-50" : "bg-gray-50", color: errors.length > 0 ? "text-red-600" : "text-gray-400" },
+            { label: "أخطاء الخادم (500)", value: errors.length, icon: AlertTriangle, bg: errors.length > 0 ? "bg-red-50" : "bg-[#f8fafc]", color: errors.length > 0 ? "text-red-600" : "text-gray-400" },
           ].map((k) => (
-            <div key={k.label} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
+            <div key={k.label} className="bg-white rounded-2xl border border-[#eef2f6] p-5 flex items-center gap-4">
               <div className={clsx("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", k.bg)}>
                 <k.icon className={clsx("w-5 h-5", k.color)} />
               </div>
@@ -218,7 +218,7 @@ function SystemTab() {
       {(diagResult || diagLoading || diagError) && (
         <div className="space-y-3">
           {diagResult && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <div className="flex items-center justify-between flex-wrap gap-3">
                 <div className="flex items-center gap-3">
                   <Stethoscope className="w-5 h-5 text-brand-500" />
@@ -272,10 +272,10 @@ function SystemTab() {
               : checks.some((c: any) => c.status === "warn") ? "warn" : "ok";
 
             return (
-              <div key={cat} className={clsx("bg-white rounded-2xl border overflow-hidden", hasIssue ? "border-amber-200" : "border-gray-100")}>
+              <div key={cat} className={clsx("bg-white rounded-2xl border overflow-hidden", hasIssue ? "border-amber-200" : "border-[#eef2f6]")}>
                 <button
                   onClick={() => toggleCategory(cat)}
-                  className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-gray-50/50 transition-colors"
+                  className="w-full flex items-center justify-between px-5 py-[6px] hover:bg-[#f8fafc]/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", meta.bg)}>
@@ -300,7 +300,7 @@ function SystemTab() {
                   </div>
                 </button>
                 {isOpen && (
-                  <div className="border-t border-gray-100 divide-y divide-gray-50">
+                  <div className="border-t border-[#eef2f6] divide-y divide-gray-50">
                     {checks.map((check: any) => {
                       const sm = STATUS_META[check.status];
                       return (
@@ -323,7 +323,7 @@ function SystemTab() {
                             {check.details && check.status !== "info" && (
                               <details className="mt-1">
                                 <summary className="text-[10px] text-gray-400 cursor-pointer hover:text-gray-600">تفاصيل</summary>
-                                <pre className="text-[10px] text-gray-500 font-mono bg-gray-50 rounded p-2 mt-1 overflow-auto max-h-24 whitespace-pre-wrap">
+                                <pre className="text-[10px] text-gray-500 font-mono bg-[#f8fafc] rounded p-2 mt-1 overflow-auto max-h-24 whitespace-pre-wrap">
                                   {JSON.stringify(check.details, null, 2)}
                                 </pre>
                               </details>
@@ -343,8 +343,8 @@ function SystemTab() {
       <OtpDebugPanel />
 
       {/* Error Log */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-[6px] border-b border-[#eef2f6]">
           <div className="flex items-center gap-2">
             <AlertTriangle className="w-4 h-4 text-red-500" />
             <h3 className="text-sm font-semibold text-gray-700">سجل أخطاء الخادم</h3>
@@ -363,7 +363,7 @@ function SystemTab() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50/60 border-b border-gray-100">
+                <tr className="bg-gray-50/60 border-b border-[#eef2f6]">
                   <th className="text-right py-2.5 px-4 text-xs text-gray-400 font-semibold">الكود</th>
                   <th className="text-right py-2.5 px-4 text-xs text-gray-400 font-semibold">المسار</th>
                   <th className="text-right py-2.5 px-4 text-xs text-gray-400 font-semibold">الرسالة</th>
@@ -404,8 +404,8 @@ function SystemTab() {
       </div>
 
       {/* Health Snapshots */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-[6px] border-b border-[#eef2f6]">
           <div className="flex items-center gap-2">
             <Activity className="w-4 h-4 text-brand-500" />
             <h3 className="text-sm font-semibold text-gray-700">سجل الفحص الدوري</h3>
@@ -418,7 +418,7 @@ function SystemTab() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50/60 border-b border-gray-100">
+                <tr className="bg-gray-50/60 border-b border-[#eef2f6]">
                   <th className="text-right py-2.5 px-4 text-xs text-gray-400 font-semibold">الوقت</th>
                   <th className="text-right py-2.5 px-4 text-xs text-gray-400 font-semibold">DB (ms)</th>
                   <th className="text-right py-2.5 px-4 text-xs text-gray-400 font-semibold">جلسات</th>
@@ -431,7 +431,7 @@ function SystemTab() {
                 {sys.history.map((h: any, i: number) => {
                   const warn = h.dbLatencyMs > 500 || Number(h.errorRate) > 5;
                   return (
-                    <tr key={i} className={clsx("border-b border-gray-50", warn ? "bg-amber-50/40" : "hover:bg-gray-50/40")}>
+                    <tr key={i} className={clsx("border-b border-gray-50", warn ? "bg-amber-50/40" : "hover:bg-[#f8fafc]/40")}>
                       <td className="py-2 px-4 text-xs text-gray-500 font-mono whitespace-nowrap">
                         {h.recordedAt ? new Date(h.recordedAt).toLocaleString("en-US") : "—"}
                       </td>

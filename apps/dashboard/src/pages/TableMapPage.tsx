@@ -155,7 +155,7 @@ export function TableMapPage() {
         {Object.entries(counts).map(([status, count]) => {
           const meta = STATUS_META[status];
           return (
-            <div key={status} className={clsx("rounded-2xl border p-4 flex items-center gap-3", meta.bg, meta.border)}>
+            <div key={status} className={clsx("rounded-2xl border p-4 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all", meta.bg, meta.border)}>
               <Armchair className={clsx("w-5 h-5", meta.color)} />
               <div>
                 <p className={clsx("text-lg font-bold tabular-nums", meta.color)}>{count}</p>
@@ -174,7 +174,7 @@ export function TableMapPage() {
               key={s}
               onClick={() => setSectionFilter(s)}
               className={clsx("px-4 py-1.5 rounded-xl text-sm font-medium border transition-colors",
-                sectionFilter === s ? "bg-brand-500 text-white border-brand-500" : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                sectionFilter === s ? "bg-brand-500 text-white border-brand-500" : "border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]"
               )}
             >
               {s === "all" ? "الكل" : s}
@@ -185,7 +185,7 @@ export function TableMapPage() {
 
       {/* Table grid */}
       {tables.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16">
           <Armchair className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-gray-400 mb-4">لا توجد طاولات — أضف طاولة للبدء</p>
           <button onClick={() => setShowAddModal(true)} className="bg-brand-500 text-white px-4 py-2 rounded-xl text-sm">
@@ -204,7 +204,7 @@ export function TableMapPage() {
       {activeTable && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
               <h3 className="font-bold text-gray-900">طاولة {activeTable.number}</h3>
               <button onClick={() => setActiveTable(null)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
@@ -213,9 +213,9 @@ export function TableMapPage() {
                 <>
                   <label className="text-sm text-gray-600">عدد الضيوف</label>
                   <div className="flex items-center gap-3">
-                    <button onClick={() => setSeatGuests(g => Math.max(1, g - 1))} className="w-9 h-9 rounded-xl border border-gray-200 text-gray-700 font-bold text-lg">−</button>
+                    <button onClick={() => setSeatGuests(g => Math.max(1, g - 1))} className="w-9 h-9 rounded-xl border border-[#eef2f6] text-gray-700 font-bold text-lg">−</button>
                     <span className="text-lg font-bold tabular-nums w-8 text-center">{seatGuests}</span>
-                    <button onClick={() => setSeatGuests(g => Math.min(activeTable.capacity, g + 1))} className="w-9 h-9 rounded-xl border border-gray-200 text-gray-700 font-bold text-lg">+</button>
+                    <button onClick={() => setSeatGuests(g => Math.min(activeTable.capacity, g + 1))} className="w-9 h-9 rounded-xl border border-[#eef2f6] text-gray-700 font-bold text-lg">+</button>
                   </div>
                   <button onClick={handleSeat} disabled={seatMut.loading} className="w-full bg-emerald-500 text-white py-2.5 rounded-xl font-medium text-sm hover:bg-emerald-600 disabled:opacity-60">
                     تسكين الضيوف
@@ -247,7 +247,7 @@ export function TableMapPage() {
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm shadow-xl">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
               <h3 className="font-bold text-gray-900">إضافة طاولة</h3>
               <button onClick={() => setShowAddModal(false)}><X className="w-5 h-5 text-gray-400" /></button>
             </div>
@@ -259,7 +259,7 @@ export function TableMapPage() {
                   value={newTable.number}
                   onChange={e => setNewTable(t => ({ ...t, number: e.target.value }))}
                   placeholder="مثال: 1 أو A3 أو VIP-1"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
                 />
               </div>
               <div>
@@ -270,7 +270,7 @@ export function TableMapPage() {
                   onChange={e => setNewTable(t => ({ ...t, section: e.target.value }))}
                   placeholder="اختر أو اكتب اسم القسم"
                   list="section-presets"
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
                 />
                 <datalist id="section-presets">
                   <option value="داخلي" />
@@ -292,12 +292,12 @@ export function TableMapPage() {
                   max={50}
                   value={newTable.capacity}
                   onChange={e => setNewTable(t => ({ ...t, capacity: parseInt(e.target.value) || 4 }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300"
                 />
               </div>
             </div>
             <div className="px-5 pb-5 flex justify-end gap-2">
-              <button onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600">إلغاء</button>
+              <button onClick={() => setShowAddModal(false)} className="px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600">إلغاء</button>
               <button onClick={handleCreate} disabled={createMut.loading || !newTable.number.trim()} className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-500 text-white text-sm font-medium disabled:opacity-60">
                 <Check className="w-4 h-4" /> إضافة
               </button>

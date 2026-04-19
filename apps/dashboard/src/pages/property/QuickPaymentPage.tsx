@@ -87,13 +87,13 @@ export function QuickPaymentPage() {
 
         {/* Step 1: Select Contract */}
         {step === 1 && (
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 space-y-4">
+          <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm p-5 space-y-4">
             <h2 className="text-base font-semibold text-gray-800">اختر العقد</h2>
             <input
               value={contractSearch}
               onChange={(e) => setContractSearch(e.target.value)}
               placeholder="ابحث باسم المستأجر أو رقم الوحدة..."
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
             />
             {contractsLoading && contractSearch.length >= 2 && (
               <SkeletonRows rows={3} />
@@ -110,7 +110,7 @@ export function QuickPaymentPage() {
                   <button
                     key={c.id}
                     onClick={() => selectContract(c)}
-                    className="w-full text-right bg-gray-50 hover:bg-brand-50 border border-gray-100 hover:border-brand-200 rounded-xl p-3 transition-colors"
+                    className="w-full text-right bg-[#f8fafc] hover:bg-brand-50 border border-[#eef2f6] hover:border-brand-200 rounded-xl p-3 transition-colors"
                   >
                     <div className="flex justify-between items-start">
                       <div>
@@ -128,7 +128,7 @@ export function QuickPaymentPage() {
 
         {/* Step 2: Amount + Method */}
         {step === 2 && selectedContract && (
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-5 space-y-4">
+          <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm p-5 space-y-4">
             <div className="bg-brand-50 border border-brand-100 rounded-xl p-3">
               <p className="text-xs text-brand-600 font-medium">العقد المحدد</p>
               <p className="text-sm font-bold text-gray-800 mt-1">{selectedContract.tenantName} — {selectedContract.unitName}</p>
@@ -142,7 +142,7 @@ export function QuickPaymentPage() {
                   type="number"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
                 />
               </div>
               <div>
@@ -156,7 +156,7 @@ export function QuickPaymentPage() {
                         "border rounded-xl py-2 text-xs font-medium transition-colors",
                         method === k
                           ? "bg-brand-500 text-white border-brand-500"
-                          : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                          : "border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]"
                       )}
                     >
                       {v}
@@ -170,7 +170,7 @@ export function QuickPaymentPage() {
                   <input
                     value={transferReference}
                     onChange={(e) => setTransferReference(e.target.value)}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400"
                   />
                 </div>
               )}
@@ -179,7 +179,7 @@ export function QuickPaymentPage() {
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 h-20 resize-none"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-400 h-20 resize-none"
                 />
               </div>
             </div>
@@ -187,7 +187,7 @@ export function QuickPaymentPage() {
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => setStep(1)}
-                className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50"
+                className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]"
               >
                 رجوع
               </button>
@@ -204,7 +204,7 @@ export function QuickPaymentPage() {
 
         {/* Step 3: Success */}
         {step === 3 && receipt && (
-          <div className="bg-white border border-gray-100 rounded-2xl shadow-sm p-8 text-center space-y-4">
+          <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm p-8 text-center space-y-4">
             <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto">
               <span className="text-3xl text-emerald-600">✓</span>
             </div>
@@ -230,7 +230,7 @@ export function QuickPaymentPage() {
             <div className="flex gap-2 justify-center pt-2">
               <button
                 onClick={() => { setStep(1); setSelectedContract(null); setContractSearch(""); setAmount(""); setReceipt(null); }}
-                className="border border-gray-200 text-gray-600 hover:bg-gray-50 px-4 py-2 rounded-xl text-sm font-medium"
+                className="border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc] px-4 py-2 rounded-xl text-sm font-medium"
               >
                 دفعة جديدة
               </button>

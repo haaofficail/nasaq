@@ -3,6 +3,8 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
 import { BUSINESS_TYPE_LIST } from "@/lib/constants";
 import { normalizePhone } from "@/lib/normalize-input";
+import { BRAND } from "@/lib/branding";
+import { PlatformBrandStatic } from "@/components/branding/PlatformLogo";
 
 const businessTypes = BUSINESS_TYPE_LIST.map(b => ({ value: b.key, label: b.name }));
 
@@ -123,12 +125,77 @@ export function RegisterPage() {
   const otpTarget = form.email || regData?.phone || form.phone;
 
   return (
-    <div dir="rtl" className="min-h-screen bg-gray-50 flex items-center justify-center p-4 font-[Tajawal,sans-serif]">
-      <div className="w-full max-w-lg">
-        {/* Logo */}
-        <div className="text-center mb-8">
+    <div dir="rtl" className="min-h-screen flex overflow-hidden">
+
+      {/* ── Brand panel (hidden on mobile) ────────────────── */}
+      <div className="hidden lg:flex w-[480px] shrink-0 relative flex-col justify-between p-11 overflow-hidden bg-[#0d1117]">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute inset-0" style={{
+            background: [
+              "radial-gradient(ellipse 80% 60% at 15% 25%, rgba(91,155,213,0.18) 0%, transparent 70%)",
+              "radial-gradient(ellipse 60% 50% at 85% 75%, rgba(155,143,196,0.12) 0%, transparent 65%)",
+            ].join(","),
+          }} />
+          <div className="absolute inset-0" style={{
+            backgroundImage: "radial-gradient(rgba(255,255,255,0.04) 1px, transparent 1px)",
+            backgroundSize: "28px 28px",
+          }} />
+        </div>
+        <div className="relative z-10 flex items-center gap-2.5">
+          <PlatformBrandStatic logoSize={30} textSize="lg" variant="dark" showText={false} />
+          <span className="text-[17px] font-bold text-white/90">{BRAND.nameAr}</span>
+          <span className="text-[9px] font-semibold text-[#5b9bd5] bg-[rgba(91,155,213,0.15)] border border-[rgba(91,155,213,0.25)] px-1.5 py-0.5 rounded-md">Vendor OS</span>
+        </div>
+        <div className="relative z-10">
+          <h2 className="text-[38px] font-bold text-white/95 leading-tight tracking-tight mb-4">
+            ابدأ مجاناً<br /><span className="text-[#5b9bd5]">لا تحتاج بطاقة</span>
+          </h2>
+          <p className="text-sm text-white/40 leading-relaxed max-w-[300px] mb-8">
+            أنشئ حسابك في دقيقتين وابدأ باستقبال الحجوزات فوراً — 15 حجز مجاني بدون قيود.
+          </p>
+          <div className="space-y-2">
+            {[
+              { color: "#5b9bd5", bg: "rgba(91,155,213,0.15)",  text: "إعداد سريع — أقل من دقيقتين" },
+              { color: "#1a9e72", bg: "rgba(26,158,114,0.15)",  text: "لا بطاقة ائتمانية مطلوبة" },
+              { color: "#d4b06a", bg: "rgba(212,176,106,0.15)", text: "يدعم 8 قطاعات مختلفة" },
+            ].map((pill, i) => (
+              <div key={i} className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl border border-white/7 bg-white/4">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0" style={{ background: pill.bg }}>
+                  <div className="w-2 h-2 rounded-full" style={{ background: pill.color }} />
+                </div>
+                <span className="text-[12px] text-white/65 font-medium">{pill.text}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="relative z-10">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/20 mb-2">يدعم القطاعات</p>
+          <div className="flex flex-wrap gap-3">
+            {[
+              { label: "مطعم", color: "#7eb5d4" }, { label: "صالون", color: "#d4917e" },
+              { label: "فعاليات", color: "#9b8fc4" }, { label: "زهور", color: "#7fb09b" },
+              { label: "متجر", color: "#d4b06a" }, { label: "فندق", color: "#c98b8b" },
+            ].map(s => (
+              <span key={s.label} className="flex items-center gap-1.5 text-[10px]" style={{ color: `${s.color}b3` }}>
+                <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: s.color }} />
+                {s.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Form panel ─────────────────────────────────────── */}
+      <div className="flex-1 bg-[#f8fafc] flex items-center justify-center p-6 relative overflow-y-auto">
+        <div className="absolute inset-0 pointer-events-none" style={{
+          background: "radial-gradient(ellipse 70% 50% at 50% 0%, rgba(91,155,213,0.05) 0%, transparent 60%)",
+        }} />
+
+      <div className="w-full max-w-lg relative z-10">
+        {/* Mobile-only logo */}
+        <div className="lg:hidden text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2">
-            <div className="w-10 h-10 rounded-xl bg-brand-500 flex items-center justify-center">
+            <div className="w-9 h-9 rounded-[10px] bg-brand-500 flex items-center justify-center">
               <span className="text-white font-black">ت</span>
             </div>
             <span className="text-2xl font-black text-gray-900">ترميز OS</span>
@@ -141,17 +208,17 @@ export function RegisterPage() {
             {[1, 2, 3].map((s) => (
               <div key={s} className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
-                  s < step ? "bg-green-500 text-white" : s === step ? "bg-brand-500 text-white" : "bg-gray-200 text-gray-400"
+                  s < step ? "bg-green-500 text-white" : s === step ? "bg-brand-500 text-white" : "bg-[#eef2f6] text-[#94a3b8]"
                 }`}>
                   {s < step ? <CheckCircle className="w-4 h-4" /> : s}
                 </div>
-                {s < 3 && <div className={`w-12 h-0.5 ${s < step ? "bg-green-500" : "bg-gray-200"}`} />}
+                {s < 3 && <div className={`w-12 h-0.5 ${s < step ? "bg-green-500" : "bg-[#eef2f6]"}`} />}
               </div>
             ))}
           </div>
         )}
 
-        <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-8 shadow-sm">
           {/* Step 1: Business info */}
           {step === 1 && (
             <>
@@ -165,7 +232,7 @@ export function RegisterPage() {
                     value={form.businessName}
                     onChange={(e) => update("businessName", e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && goToStep2()}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors"
+                    className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors"
                     placeholder="مثال: شركة الأمجاد للفعاليات"
                     autoFocus
                   />
@@ -181,7 +248,7 @@ export function RegisterPage() {
                         className={`px-3 py-3 rounded-xl border text-sm font-medium transition-all text-right ${
                           form.businessType === bt.value
                             ? "border-brand-500 bg-blue-50 text-brand-500"
-                            : "border-gray-200 text-gray-600 hover:border-gray-300"
+                            : "border-[#eef2f6] text-gray-600 hover:border-[#eef2f6]"
                         }`}
                       >
                         {bt.label}
@@ -214,7 +281,7 @@ export function RegisterPage() {
                     value={form.phone}
                     onChange={(e) => update("phone", normalizePhone(e.target.value))}
                     onKeyDown={(e) => e.key === "Enter" && goToStep3()}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors"
+                    className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors"
                     placeholder="05XXXXXXXX"
                     dir="ltr"
                     autoFocus
@@ -227,14 +294,14 @@ export function RegisterPage() {
                     value={form.email}
                     onChange={(e) => update("email", e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && goToStep3()}
-                    className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors"
+                    className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors"
                     placeholder="email@example.com"
                     dir="ltr"
                   />
                 </div>
               </div>
               <div className="flex gap-3 mt-6">
-                <button onClick={() => { setError(""); setStep(1); }} className="px-6 py-4 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">
+                <button onClick={() => { setError(""); setStep(1); }} className="px-6 py-4 rounded-xl border border-[#eef2f6] text-sm font-medium text-gray-600 hover:bg-[#f8fafc] transition-colors">
                   السابق
                 </button>
                 <button
@@ -263,7 +330,7 @@ export function RegisterPage() {
                   value={form.otp}
                   onChange={(e) => update("otp", e.target.value.replace(/\D/g, "").slice(0, 6))}
                   onKeyDown={(e) => e.key === "Enter" && form.otp.length === 6 && handleVerify()}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-center text-2xl font-black tracking-widest outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors"
+                  className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-center text-2xl font-black tracking-widest outline-none focus:border-brand-500 focus:ring-1 focus:ring-blue-100 transition-colors"
                   placeholder="000000"
                   maxLength={6}
                   dir="ltr"
@@ -310,6 +377,7 @@ export function RegisterPage() {
             </Link>
           </p>
         )}
+      </div>
       </div>
     </div>
   );

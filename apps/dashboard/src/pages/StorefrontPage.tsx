@@ -50,7 +50,7 @@ function BlockEditor({ block, onChange, onPickImage }: {
     <div>
       <label className="block text-xs text-gray-500 mb-1">{label}</label>
       <input type={type} value={block.content?.[key] ?? ""} onChange={e => f(key, e.target.value)}
-        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-400" />
+        className="w-full border border-[#eef2f6] rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-400" />
     </div>
   );
   const imageField = (key: string, label: string) => (
@@ -58,10 +58,10 @@ function BlockEditor({ block, onChange, onPickImage }: {
       <label className="block text-xs text-gray-500 mb-1">{label}</label>
       <div className="flex items-center gap-2">
         {block.content?.[key] && (
-          <img src={block.content[key]} className="w-10 h-10 rounded-lg object-cover border border-gray-100 shrink-0" alt="" />
+          <img src={block.content[key]} className="w-10 h-10 rounded-lg object-cover border border-[#eef2f6] shrink-0" alt="" />
         )}
         <button type="button" onClick={() => onPickImage?.(key)}
-          className="px-3 py-2 rounded-lg border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors">
+          className="px-3 py-2 rounded-lg border border-[#eef2f6] text-xs text-gray-600 hover:bg-[#f8fafc] transition-colors">
           {block.content?.[key] ? "تغيير الصورة" : "اختر صورة"}
         </button>
         {block.content?.[key] && (
@@ -86,11 +86,11 @@ function BlockEditor({ block, onChange, onPickImage }: {
   switch (block.type) {
     case "hero": return <div className="space-y-3">{input("title","العنوان")}{input("subtitle","العنوان الفرعي")}{input("buttonText","نص الزر")}{imageField("imageUrl","صورة الخلفية")}{input("bgColor","لون الخلفية","color")}</div>;
     case "services": return <div className="space-y-3">{input("title","العنوان")}{input("subtitle","العنوان الفرعي")}</div>;
-    case "text": return <div className="space-y-3">{input("title","العنوان (اختياري)")}<div><label className="block text-xs text-gray-500 mb-1">المحتوى</label><textarea value={block.content?.content ?? ""} onChange={e => f("content", e.target.value)} rows={4} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-400" /></div></div>;
+    case "text": return <div className="space-y-3">{input("title","العنوان (اختياري)")}<div><label className="block text-xs text-gray-500 mb-1">المحتوى</label><textarea value={block.content?.content ?? ""} onChange={e => f("content", e.target.value)} rows={4} className="w-full border border-[#eef2f6] rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-400" /></div></div>;
     case "image": return <div className="space-y-3">{imageField("url","الصورة")}{input("alt","وصف الصورة")}{input("caption","تعليق الصورة")}</div>;
     case "booking_cta": return <div className="space-y-3">{input("title","العنوان")}{input("subtitle","العنوان الفرعي")}{input("buttonText","نص الزر")}{input("bgColor","لون الخلفية","color")}</div>;
     case "contact": return <div className="space-y-2">{toggle("showPhone","عرض الهاتف")}{toggle("showEmail","عرض الإيميل")}{toggle("showMap","عرض الخريطة")}</div>;
-    case "html": return <div><label className="block text-xs text-gray-500 mb-1">كود HTML</label><textarea value={block.content?.code ?? ""} onChange={e => f("code", e.target.value)} rows={5} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-brand-400" /></div>;
+    case "html": return <div><label className="block text-xs text-gray-500 mb-1">كود HTML</label><textarea value={block.content?.code ?? ""} onChange={e => f("code", e.target.value)} rows={5} className="w-full border border-[#eef2f6] rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-brand-400" /></div>;
     default: return <p className="text-sm text-gray-400 py-2">لا توجد إعدادات لهذا القسم</p>;
   }
 }
@@ -352,7 +352,7 @@ export function StorefrontPage() {
         </div>
 
         {builderBlocks.length === 0 ? (
-          <div className="bg-white rounded-xl border-2 border-dashed border-gray-200 py-20 text-center">
+          <div className="bg-white rounded-xl border-2 border-dashed border-[#eef2f6] py-20 text-center">
             <Layout className="w-10 h-10 text-gray-200 mx-auto mb-3" />
             <p className="text-gray-400 font-medium">لا توجد أقسام بعد</p>
             <p className="text-sm text-gray-400 mt-1 mb-4">ابدأ ببناء صفحتك بإضافة أقسام</p>
@@ -363,8 +363,8 @@ export function StorefrontPage() {
             {builderBlocks.map((block, idx) => {
               const bt = BLOCK_TYPES.find(b => b.type === block.type);
               return (
-                <div key={block.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50/50 border-b border-gray-100">
+                <div key={block.id} className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+                  <div className="flex items-center gap-3 px-4 py-3 bg-gray-50/50 border-b border-[#eef2f6]">
                     <div className="flex flex-col gap-0.5">
                       <button onClick={() => { if (idx === 0) return; const b = [...builderBlocks]; [b[idx-1], b[idx]] = [b[idx], b[idx-1]]; setBuilderBlocks(b); }} disabled={idx === 0} className="p-0.5 rounded hover:bg-gray-200 disabled:opacity-30"><ChevronUp className="w-3 h-3" /></button>
                       <button onClick={() => { if (idx === builderBlocks.length - 1) return; const b = [...builderBlocks]; [b[idx+1], b[idx]] = [b[idx], b[idx+1]]; setBuilderBlocks(b); }} disabled={idx === builderBlocks.length - 1} className="p-0.5 rounded hover:bg-gray-200 disabled:opacity-30"><ChevronDown className="w-3 h-3" /></button>
@@ -391,7 +391,7 @@ export function StorefrontPage() {
             <div className="grid grid-cols-2 gap-2">
               {BLOCK_TYPES.map(bt => (
                 <button key={bt.type} onClick={() => addBlock(bt.type)}
-                  className="flex items-start gap-3 p-3 rounded-xl border border-gray-200 hover:border-brand-400 hover:bg-brand-50/50 text-right transition-colors">
+                  className="flex items-start gap-3 p-3 rounded-xl border border-[#eef2f6] hover:border-brand-400 hover:bg-brand-50/50 text-right transition-colors">
                   <bt.icon className="w-4 h-4 text-brand-500 mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-gray-900">{bt.label}</p>
@@ -424,7 +424,7 @@ export function StorefrontPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 gap-1">
+      <div className="flex border-b border-[#eef2f6] gap-1">
         {tabs.map(tab => (
           <button key={tab.key} onClick={() => setActiveTab(tab.key)}
             className={clsx("flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition-colors",
@@ -446,7 +446,7 @@ export function StorefrontPage() {
             </div>
           </div>
           {/* URL Card */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-gray-900">رابط موقعك</h3>
               <span className={clsx("text-xs px-2.5 py-1 rounded-full font-medium",
@@ -456,15 +456,15 @@ export function StorefrontPage() {
             </div>
             {siteUrl ? (
               <div className="flex items-center gap-2">
-                <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-200">
+                <div className="flex-1 flex items-center gap-2 bg-[#f8fafc] rounded-xl px-4 py-2.5 border border-[#eef2f6]">
                   <Globe className="w-4 h-4 text-gray-400 flex-shrink-0" />
                   <span className="text-sm text-gray-600 font-mono truncate">{siteUrl}</span>
                 </div>
-                <button onClick={copySiteUrl} className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-sm text-gray-600 transition-colors">
+                <button onClick={copySiteUrl} className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-sm text-gray-600 transition-colors">
                   {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                   {copied ? "تم النسخ" : "نسخ"}
                 </button>
-                <a href={siteUrl} target="_blank" rel="noreferrer" className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors">
+                <a href={siteUrl} target="_blank" rel="noreferrer" className="p-2.5 rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-600 transition-colors">
                   <ExternalLink className="w-4 h-4" />
                 </a>
               </div>
@@ -481,7 +481,7 @@ export function StorefrontPage() {
               { label: "القالب المستخدم", value: TEMPLATES.find(t => t.id === (config?.templateId || "default"))?.name || "عصري", icon: Palette, color: "purple" },
               { label: "الخط المستخدم", value: (config?.fontFamily || "IBM Plex Sans Arabic").split(" ")[0], icon: Type, color: "gray" },
             ].map(s => (
-              <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-4">
+              <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
                 <div className={clsx("w-8 h-8 rounded-lg flex items-center justify-center mb-3",
                   s.color === "blue" ? "bg-blue-50" : s.color === "indigo" ? "bg-indigo-50" : s.color === "purple" ? "bg-purple-50" : "bg-gray-100")}>
                   <s.icon className={clsx("w-4 h-4", s.color === "blue" ? "text-blue-500" : s.color === "indigo" ? "text-indigo-500" : s.color === "purple" ? "text-purple-500" : "text-gray-500")} />
@@ -494,7 +494,7 @@ export function StorefrontPage() {
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4">إجراءات سريعة</h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {[
@@ -504,7 +504,7 @@ export function StorefrontPage() {
                 { label: "إعدادات الدومين", icon: Link2, action: () => setActiveTab("settings") },
               ].map(action => (
                 <button key={action.label} onClick={action.action}
-                  className="flex items-center gap-3 p-3.5 rounded-xl border border-gray-200 hover:border-brand-300 hover:bg-brand-50/30 text-right transition-colors group">
+                  className="flex items-center gap-3 p-3.5 rounded-xl border border-[#eef2f6] hover:border-brand-300 hover:bg-brand-50/30 text-right transition-colors group">
                   <action.icon className="w-4 h-4 text-gray-400 group-hover:text-brand-500 flex-shrink-0" />
                   <span className="text-sm font-medium text-gray-700 group-hover:text-brand-700">{action.label}</span>
                 </button>
@@ -525,21 +525,21 @@ export function StorefrontPage() {
             </div>
           </div>
           {/* Link card */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
             <h3 className="text-sm font-bold text-gray-900 mb-4">رابط صفحتك العامة</h3>
             <div className="flex items-center gap-2">
-              <div className="flex-1 flex items-center gap-2 bg-gray-50 rounded-xl px-4 py-2.5 border border-gray-200 font-mono text-sm text-gray-600 truncate">
+              <div className="flex-1 flex items-center gap-2 bg-[#f8fafc] rounded-xl px-4 py-2.5 border border-[#eef2f6] font-mono text-sm text-gray-600 truncate">
                 {siteUrl || "—"}
               </div>
               {siteUrl && (
                 <>
                   <button onClick={() => { navigator.clipboard.writeText(siteUrl); setQrCopied(true); setTimeout(() => setQrCopied(false), 2000); }}
-                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-sm text-gray-600 transition-colors">
+                    className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-sm text-gray-600 transition-colors">
                     {qrCopied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                     {qrCopied ? "تم" : "نسخ"}
                   </button>
                   <a href={siteUrl} target="_blank" rel="noreferrer"
-                    className="p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-600 transition-colors">
+                    className="p-2.5 rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-600 transition-colors">
                     <ExternalLink className="w-4 h-4" />
                   </a>
                 </>
@@ -568,7 +568,7 @@ export function StorefrontPage() {
                     className="px-4 py-2 bg-brand-500 text-white rounded-xl text-sm font-medium hover:bg-brand-600 transition-colors">
                     {sfSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : "حفظ"}
                   </button>
-                  <button onClick={() => setSfSlugEditing(false)} className="px-3 py-2 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">
+                  <button onClick={() => setSfSlugEditing(false)} className="px-3 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-500 hover:bg-[#f8fafc]">
                     إلغاء
                   </button>
                 </div>
@@ -582,11 +582,11 @@ export function StorefrontPage() {
           </div>
 
           {/* QR Code */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
             <h3 className="text-sm font-bold text-gray-900 mb-4">QR Code</h3>
             {qrDataUrl ? (
               <div className="flex flex-col items-center gap-4">
-                <div className="p-4 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                <div className="p-4 bg-white rounded-2xl border border-[#eef2f6] shadow-sm">
                   <img src={qrDataUrl} alt="QR Code" className="w-40 h-40" />
                 </div>
                 <div className="flex gap-2">
@@ -596,7 +596,7 @@ export function StorefrontPage() {
                   </a>
                   {printUrl && (
                     <a href={printUrl} target="_blank" rel="noreferrer"
-                      className="flex items-center gap-1.5 px-4 py-2 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                      className="flex items-center gap-1.5 px-4 py-2 border border-[#eef2f6] text-gray-700 rounded-xl text-sm font-medium hover:bg-[#f8fafc] transition-colors">
                       <Printer className="w-4 h-4" /> المطبوعات
                     </a>
                   )}
@@ -610,7 +610,7 @@ export function StorefrontPage() {
           </div>
 
           {/* Print exports */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
             <h3 className="text-sm font-bold text-gray-900 mb-1">تصدير المطبوعات</h3>
             <p className="text-xs text-gray-400 mb-4">3 عناصر طباعة جاهزة للطباعة أو التحميل</p>
             {printUrl ? (
@@ -621,7 +621,7 @@ export function StorefrontPage() {
                   { label: "ملصق الرف", desc: "80×50mm — يُثبَّت على المنتجات", id: "label" },
                 ].map(item => (
                   <a key={item.id} href={printUrl} target="_blank" rel="noreferrer"
-                    className="flex flex-col items-center gap-2 p-4 border border-gray-200 rounded-2xl hover:border-brand-300 hover:bg-brand-50/30 transition-colors text-center group">
+                    className="flex flex-col items-center gap-2 p-4 border border-[#eef2f6] rounded-2xl hover:border-brand-300 hover:bg-brand-50/30 transition-colors text-center group">
                     <QrCode className="w-8 h-8 text-gray-300 group-hover:text-brand-400 transition-colors" />
                     <p className="text-sm font-semibold text-gray-800">{item.label}</p>
                     <p className="text-[11px] text-gray-400">{item.desc}</p>
@@ -638,7 +638,7 @@ export function StorefrontPage() {
       {/* ── Tab: Pages ─────────────────────────────────────────── */}
       {activeTab === "pages" && (
         <div className="space-y-4">
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+          <div className="bg-gray-50 border border-[#eef2f6] rounded-2xl px-4 py-3 flex items-start gap-3">
             <FileText className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
             <div>
               <p className="text-[13px] font-semibold text-gray-800">صفحات إضافية</p>
@@ -653,37 +653,37 @@ export function StorefrontPage() {
           </div>
 
           {pages.length === 0 ? (
-            <div className="bg-white rounded-xl border-2 border-dashed border-gray-200 py-16 text-center">
+            <div className="bg-white rounded-xl border-2 border-dashed border-[#eef2f6] py-16 text-center">
               <FileText className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400 font-medium">لا توجد صفحات بعد</p>
               <p className="text-sm text-gray-400 mt-1 mb-4">أنشئ صفحات مثل "من نحن" أو "تواصل معنا"</p>
               <Button icon={Plus} size="sm" onClick={() => { setPageForm({ title: "", type: "custom", isPublished: false }); setPageModal({ open: true }); }}>إنشاء أول صفحة</Button>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                  <tr className="bg-gray-50/50 border-b border-[#eef2f6]">
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">الصفحة</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">الرابط</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">الأقسام</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">الحالة</th>
-                    <th className="py-3 px-4 w-32"></th>
+                    <th className="py-[6px] px-[10px] w-32"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {pages.map(page => (
-                    <tr key={page.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
-                      <td className="py-3 px-4 font-medium text-gray-900">{page.title}</td>
-                      <td className="py-3 px-4 font-mono text-xs text-gray-400">/{page.slug}</td>
-                      <td className="py-3 px-4 text-gray-500">{(page.blocks || []).length} قسم</td>
-                      <td className="py-3 px-4">
+                    <tr key={page.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/50">
+                      <td className="py-[6px] px-[10px] font-medium text-gray-900">{page.title}</td>
+                      <td className="py-[6px] px-[10px] font-mono text-xs text-gray-400">/{page.slug}</td>
+                      <td className="py-[6px] px-[10px] text-gray-500">{(page.blocks || []).length} قسم</td>
+                      <td className="py-[6px] px-[10px]">
                         <span className={clsx("px-2.5 py-1 rounded-full text-[10px] font-semibold",
                           page.isPublished ? "bg-green-50 text-green-600" : "bg-gray-100 text-gray-500")}>
                           {page.isPublished ? "منشورة" : "مسودة"}
                         </span>
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <div className="flex gap-1 justify-end">
                           <button onClick={() => openBuilder(page)} className="p-1.5 rounded-lg hover:bg-brand-50 text-brand-500" title="تعديل المحتوى"><Layout className="w-3.5 h-3.5" /></button>
                           <button onClick={() => { setPageForm({ title: page.title, type: page.type || "custom", isPublished: page.isPublished }); setPageModal({ open: true, item: page }); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400" title="تعديل المعلومات"><Pencil className="w-3.5 h-3.5" /></button>
@@ -703,7 +703,7 @@ export function StorefrontPage() {
       {/* ── Tab: Design ─────────────────────────────────────────── */}
       {activeTab === "design" && designForm && (
         <div className="space-y-6 max-w-2xl">
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+          <div className="bg-gray-50 border border-[#eef2f6] rounded-2xl px-4 py-3 flex items-start gap-3">
             <Palette className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
             <div>
               <p className="text-[13px] font-semibold text-gray-800">هوية بصرية الصفحة</p>
@@ -711,14 +711,14 @@ export function StorefrontPage() {
             </div>
           </div>
           {/* Templates */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-1">القالب</h3>
             <p className="text-xs text-gray-400 mb-4">اختر الشكل العام لموقعك</p>
             <div className="grid grid-cols-3 gap-3">
               {TEMPLATES.map(t => (
                 <button key={t.id} onClick={() => d("templateId", t.id)}
                   className={clsx("rounded-xl border-2 overflow-hidden text-right transition-all",
-                    designForm.templateId === t.id ? "border-brand-500 ring-2 ring-brand-200" : "border-gray-200 hover:border-gray-300")}>
+                    designForm.templateId === t.id ? "border-brand-500 ring-2 ring-brand-200" : "border-[#eef2f6] hover:border-[#eef2f6]")}>
                   <div className={clsx("h-16", t.preview)} />
                   <div className="p-2.5">
                     <p className="text-xs font-semibold text-gray-900">{t.name}</p>
@@ -733,7 +733,7 @@ export function StorefrontPage() {
           </div>
 
           {/* Colors */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-1">الألوان</h3>
             <p className="text-xs text-gray-400 mb-4">اختر من لوحة الألوان أو أدخل كود HEX مخصص</p>
 
@@ -769,7 +769,7 @@ export function StorefrontPage() {
                           onClick={() => { d("primaryColor", p.primary); d("secondaryColor", p.secondary); }}
                           className={clsx(
                             "relative h-10 rounded-xl overflow-hidden border-2 transition-all",
-                            i === active ? "border-gray-800 scale-105 shadow-md" : "border-transparent hover:scale-105 hover:border-gray-300"
+                            i === active ? "border-gray-800 scale-105 shadow-md" : "border-transparent hover:scale-105 hover:border-[#eef2f6]"
                           )}
                           style={{ background: `linear-gradient(135deg, ${p.primary} 0%, ${p.secondary} 100%)` }}
                         >
@@ -792,7 +792,7 @@ export function StorefrontPage() {
                           onClick={() => { d("primaryColor", p.primary); d("secondaryColor", p.secondary); }}
                           className={clsx(
                             "relative h-10 rounded-xl overflow-hidden border-2 transition-all",
-                            i + SEMANTIC_PALETTES.length === active ? "border-gray-800 scale-105 shadow-md" : "border-transparent hover:scale-105 hover:border-gray-300"
+                            i + SEMANTIC_PALETTES.length === active ? "border-gray-800 scale-105 shadow-md" : "border-transparent hover:scale-105 hover:border-[#eef2f6]"
                           )}
                           style={{ background: `linear-gradient(135deg, ${p.primary} 0%, ${p.secondary} 100%)` }}
                         >
@@ -810,25 +810,25 @@ export function StorefrontPage() {
             })()}
 
             {/* Manual inputs */}
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[#eef2f6]">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">اللون الأساسي</label>
                 <div className="flex items-center gap-2">
-                  <input type="color" value={designForm.primaryColor} onChange={e => d("primaryColor", e.target.value)} className="w-9 h-9 rounded-lg border border-gray-200 cursor-pointer shrink-0" />
-                  <input type="text" value={designForm.primaryColor} onChange={e => d("primaryColor", e.target.value)} className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono outline-none focus:border-brand-400" />
+                  <input type="color" value={designForm.primaryColor} onChange={e => d("primaryColor", e.target.value)} className="w-9 h-9 rounded-lg border border-[#eef2f6] cursor-pointer shrink-0" />
+                  <input type="text" value={designForm.primaryColor} onChange={e => d("primaryColor", e.target.value)} className="flex-1 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm font-mono outline-none focus:border-brand-400" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">اللون الثانوي</label>
                 <div className="flex items-center gap-2">
-                  <input type="color" value={designForm.secondaryColor || "#C8A951"} onChange={e => d("secondaryColor", e.target.value)} className="w-9 h-9 rounded-lg border border-gray-200 cursor-pointer shrink-0" />
-                  <input type="text" value={designForm.secondaryColor || ""} onChange={e => d("secondaryColor", e.target.value)} className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm font-mono outline-none focus:border-brand-400" />
+                  <input type="color" value={designForm.secondaryColor || "#C8A951"} onChange={e => d("secondaryColor", e.target.value)} className="w-9 h-9 rounded-lg border border-[#eef2f6] cursor-pointer shrink-0" />
+                  <input type="text" value={designForm.secondaryColor || ""} onChange={e => d("secondaryColor", e.target.value)} className="flex-1 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm font-mono outline-none focus:border-brand-400" />
                 </div>
               </div>
             </div>
 
             {/* Live preview */}
-            <div className="mt-4 rounded-xl overflow-hidden border border-gray-100">
+            <div className="mt-4 rounded-2xl overflow-hidden border border-[#eef2f6]">
               <div style={{ background: `linear-gradient(160deg, ${designForm.primaryColor} 0%, ${designForm.secondaryColor || designForm.primaryColor} 100%)`, padding: "16px 20px" }}>
                 <div className="text-white font-bold text-sm">معاينة الهيدر</div>
                 <div className="text-white/70 text-xs mt-0.5">هكذا يظهر التدرج للعملاء</div>
@@ -837,12 +837,12 @@ export function StorefrontPage() {
           </div>
 
           {/* Typography & Logo */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4">الخط والشعار</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">نوع الخط</label>
-                <select value={designForm.fontFamily} onChange={e => d("fontFamily", e.target.value)} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400">
+                <select value={designForm.fontFamily} onChange={e => d("fontFamily", e.target.value)} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400">
                   {FONTS.map(f => <option key={f} value={f}>{f}</option>)}
                 </select>
                 <p className="text-xs text-gray-400 mt-1.5" style={{ fontFamily: designForm.fontFamily }}>معاينة: نص عربي احترافي</p>
@@ -850,7 +850,7 @@ export function StorefrontPage() {
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">شعار الموقع</label>
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-xl border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                  <div className="w-14 h-14 rounded-xl border border-[#eef2f6] bg-[#f8fafc] flex items-center justify-center overflow-hidden shrink-0">
                     {designForm.logoUrl
                       ? <img src={designForm.logoUrl} alt="logo" className="w-full h-full object-contain p-1" />
                       : <Image className="w-6 h-6 text-gray-300" />
@@ -858,7 +858,7 @@ export function StorefrontPage() {
                   </div>
                   <div className="flex gap-2">
                     <button onClick={() => setLogoPicker(true)}
-                      className="px-3 py-2 rounded-xl border border-gray-200 text-xs text-gray-700 hover:bg-gray-50 transition-colors">
+                      className="px-3 py-2 rounded-xl border border-[#eef2f6] text-xs text-gray-700 hover:bg-[#f8fafc] transition-colors">
                       اختر من المكتبة
                     </button>
                     {designForm.logoUrl && (
@@ -874,7 +874,7 @@ export function StorefrontPage() {
           </div>
 
           {/* Header config */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4">إعدادات الرأس (Header)</h3>
             <div className="space-y-1">
               {[
@@ -900,7 +900,7 @@ export function StorefrontPage() {
       {/* ── Tab: Blog ──────────────────────────────────────────── */}
       {activeTab === "blog" && (
         <div className="space-y-4">
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+          <div className="bg-gray-50 border border-[#eef2f6] rounded-2xl px-4 py-3 flex items-start gap-3">
             <Rss className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
             <div>
               <p className="text-[13px] font-semibold text-gray-800">مقالات وتدوينات</p>
@@ -915,40 +915,40 @@ export function StorefrontPage() {
           </div>
 
           {posts.length === 0 ? (
-            <div className="bg-white rounded-xl border-2 border-dashed border-gray-200 py-16 text-center">
+            <div className="bg-white rounded-xl border-2 border-dashed border-[#eef2f6] py-16 text-center">
               <Rss className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400 font-medium">لا توجد مقالات بعد</p>
               <p className="text-sm text-gray-400 mt-1 mb-4">المدونة تُحسّن ظهورك في محركات البحث</p>
               <Button icon={Plus} size="sm" onClick={() => { setPostForm({ title: "", excerpt: "", content: "", status: "draft", tags: [], category: "" }); setPostModal({ open: true }); }}>كتابة أول مقال</Button>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                  <tr className="bg-gray-50/50 border-b border-[#eef2f6]">
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">العنوان</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">الحالة</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">المشاهدات</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">التاريخ</th>
-                    <th className="py-3 px-4 w-24"></th>
+                    <th className="py-[6px] px-[10px] w-24"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {posts.map(post => (
-                    <tr key={post.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
-                      <td className="py-3 px-4">
+                    <tr key={post.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/50">
+                      <td className="py-[6px] px-[10px]">
                         <p className="font-medium text-gray-900">{post.title}</p>
                         {post.category && <p className="text-xs text-gray-400 mt-0.5">{post.category}</p>}
                       </td>
-                      <td className="py-3 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <span className={clsx("px-2.5 py-1 rounded-full text-[10px] font-semibold",
                           post.status === "published" ? "bg-green-50 text-green-600" : post.status === "scheduled" ? "bg-amber-50 text-amber-600" : "bg-gray-100 text-gray-500")}>
                           {post.status === "published" ? "منشور" : post.status === "scheduled" ? "مجدول" : "مسودة"}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-gray-500">{post.views || 0}</td>
-                      <td className="py-3 px-4 text-gray-400 text-xs">{post.publishedAt ? fmtDate(post.publishedAt) : "—"}</td>
-                      <td className="py-3 px-4">
+                      <td className="py-[6px] px-[10px] text-gray-500">{post.views || 0}</td>
+                      <td className="py-[6px] px-[10px] text-gray-400 text-xs">{post.publishedAt ? fmtDate(post.publishedAt) : "—"}</td>
+                      <td className="py-[6px] px-[10px]">
                         <div className="flex gap-1 justify-end">
                           <button onClick={() => { setPostForm({ title: post.title, excerpt: post.excerpt || "", content: post.content || "", status: post.status, tags: post.tags || [], category: post.category || "" }); setPostModal({ open: true, item: post }); }} className="p-1.5 rounded-lg hover:bg-gray-100"><Pencil className="w-3.5 h-3.5 text-gray-400" /></button>
                           <button onClick={() => deletePost(post.id)} className="p-1.5 rounded-lg hover:bg-red-50"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
@@ -966,7 +966,7 @@ export function StorefrontPage() {
       {/* ── Tab: Settings ─────────────────────────────────────── */}
       {activeTab === "settings" && settingsForm && (
         <div className="space-y-5 max-w-2xl">
-          <div className="bg-gray-50 border border-gray-200 rounded-2xl px-4 py-3 flex items-start gap-3">
+          <div className="bg-gray-50 border border-[#eef2f6] rounded-2xl px-4 py-3 flex items-start gap-3">
             <Settings2 className="w-4 h-4 text-gray-500 mt-0.5 shrink-0" />
             <div>
               <p className="text-[13px] font-semibold text-gray-800">إعدادات الصفحة</p>
@@ -974,13 +974,13 @@ export function StorefrontPage() {
             </div>
           </div>
           {/* Domain */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-1">الدومين المخصص</h3>
             <p className="text-xs text-gray-400 mb-4">اربط دومينك الخاص بالموقع</p>
             <div className="space-y-3">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">الدومين</label>
-                <input type="text" value={settingsForm.customDomain} onChange={e => s("customDomain", e.target.value)} placeholder="www.yoursite.com" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:border-brand-400" />
+                <input type="text" value={settingsForm.customDomain} onChange={e => s("customDomain", e.target.value)} placeholder="www.yoursite.com" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:border-brand-400" />
               </div>
               <div className="bg-amber-50 rounded-xl p-3 text-xs text-amber-700">
                 بعد إضافة الدومين، وجّه DNS Record من نوع CNAME إلى: <span className="font-mono font-bold">tarmizos.com</span>
@@ -989,23 +989,23 @@ export function StorefrontPage() {
           </div>
 
           {/* SEO */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4">تحسين محركات البحث (SEO)</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">العنوان الافتراضي</label>
-                <input type="text" value={settingsForm.defaultMetaTitle} onChange={e => s("defaultMetaTitle", e.target.value)} placeholder="اسم منشأتك — وصف قصير" className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
+                <input type="text" value={settingsForm.defaultMetaTitle} onChange={e => s("defaultMetaTitle", e.target.value)} placeholder="اسم منشأتك — وصف قصير" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">الوصف الافتراضي</label>
-                <textarea value={settingsForm.defaultMetaDescription} onChange={e => s("defaultMetaDescription", e.target.value)} rows={2} placeholder="وصف قصير يظهر في نتائج البحث..." className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 resize-none" />
+                <textarea value={settingsForm.defaultMetaDescription} onChange={e => s("defaultMetaDescription", e.target.value)} rows={2} placeholder="وصف قصير يظهر في نتائج البحث..." className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 resize-none" />
                 <p className="text-[10px] text-gray-400 mt-1">{settingsForm.defaultMetaDescription?.length || 0} / 160 حرف</p>
               </div>
             </div>
           </div>
 
           {/* Analytics */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4">التتبع والتحليلات</h3>
             <div className="space-y-3">
               {[
@@ -1017,23 +1017,23 @@ export function StorefrontPage() {
               ].map(f => (
                 <div key={f.key}>
                   <label className="block text-xs font-medium text-gray-600 mb-1.5">{f.label}</label>
-                  <input type="text" value={settingsForm[f.key]} onChange={e => s(f.key, e.target.value)} placeholder={f.placeholder} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:border-brand-400" />
+                  <input type="text" value={settingsForm[f.key]} onChange={e => s(f.key, e.target.value)} placeholder={f.placeholder} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm font-mono outline-none focus:border-brand-400" />
                 </div>
               ))}
             </div>
           </div>
 
           {/* Custom Code */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4">كود مخصص</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">قبل نهاية &lt;head&gt;</label>
-                <textarea value={settingsForm.customHeadCode} onChange={e => s("customHeadCode", e.target.value)} rows={3} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-400 resize-none" />
+                <textarea value={settingsForm.customHeadCode} onChange={e => s("customHeadCode", e.target.value)} rows={3} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-400 resize-none" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-2">قبل نهاية &lt;body&gt;</label>
-                <textarea value={settingsForm.customBodyCode} onChange={e => s("customBodyCode", e.target.value)} rows={3} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-400 resize-none" />
+                <textarea value={settingsForm.customBodyCode} onChange={e => s("customBodyCode", e.target.value)} rows={3} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-xs font-mono outline-none focus:border-brand-400 resize-none" />
               </div>
             </div>
           </div>
@@ -1049,11 +1049,11 @@ export function StorefrontPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">عنوان الصفحة *</label>
-              <input type="text" value={pageForm.title} onChange={e => setPageForm(p => ({ ...p, title: e.target.value }))} placeholder="من نحن، تواصل معنا..." className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
+              <input type="text" value={pageForm.title} onChange={e => setPageForm(p => ({ ...p, title: e.target.value }))} placeholder="من نحن، تواصل معنا..." className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">نوع الصفحة</label>
-              <select value={pageForm.type} onChange={e => setPageForm(p => ({ ...p, type: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400">
+              <select value={pageForm.type} onChange={e => setPageForm(p => ({ ...p, type: e.target.value }))} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400">
                 <option value="home">الرئيسية</option>
                 <option value="services">الخدمات</option>
                 <option value="about">من نحن</option>
@@ -1079,24 +1079,24 @@ export function StorefrontPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">العنوان *</label>
-              <input type="text" value={postForm.title} onChange={e => setPostForm(p => ({ ...p, title: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
+              <input type="text" value={postForm.title} onChange={e => setPostForm(p => ({ ...p, title: e.target.value }))} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">الملخص</label>
-              <textarea value={postForm.excerpt} onChange={e => setPostForm(p => ({ ...p, excerpt: e.target.value }))} rows={2} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 resize-none" />
+              <textarea value={postForm.excerpt} onChange={e => setPostForm(p => ({ ...p, excerpt: e.target.value }))} rows={2} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 resize-none" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">المحتوى</label>
-              <textarea value={postForm.content} onChange={e => setPostForm(p => ({ ...p, content: e.target.value }))} rows={6} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 resize-none" />
+              <textarea value={postForm.content} onChange={e => setPostForm(p => ({ ...p, content: e.target.value }))} rows={6} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400 resize-none" />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">التصنيف</label>
-                <input type="text" value={postForm.category} onChange={e => setPostForm(p => ({ ...p, category: e.target.value }))} placeholder="نصائح، أخبار..." className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
+                <input type="text" value={postForm.category} onChange={e => setPostForm(p => ({ ...p, category: e.target.value }))} placeholder="نصائح، أخبار..." className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 mb-1.5">الحالة</label>
-                <select value={postForm.status} onChange={e => setPostForm(p => ({ ...p, status: e.target.value }))} className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400">
+                <select value={postForm.status} onChange={e => setPostForm(p => ({ ...p, status: e.target.value }))} className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400">
                   <option value="draft">مسودة</option>
                   <option value="published">منشور</option>
                 </select>

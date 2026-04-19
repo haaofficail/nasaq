@@ -117,10 +117,10 @@ function Pagination({ page, totalPages, setPage }: { page: number; totalPages: n
   return (
     <div className="flex items-center justify-center gap-2">
       <button disabled={page <= 1} onClick={() => setPage(page - 1)}
-        className="px-3 py-1.5 text-sm border border-gray-200 rounded-xl disabled:opacity-40 hover:bg-gray-50">السابق</button>
+        className="px-3 py-1.5 text-sm border border-[#eef2f6] rounded-xl disabled:opacity-40 hover:bg-[#f8fafc]">السابق</button>
       <span className="text-sm text-gray-500">{page} / {totalPages}</span>
       <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}
-        className="px-3 py-1.5 text-sm border border-gray-200 rounded-xl disabled:opacity-40 hover:bg-gray-50">التالي</button>
+        className="px-3 py-1.5 text-sm border border-[#eef2f6] rounded-xl disabled:opacity-40 hover:bg-[#f8fafc]">التالي</button>
     </div>
   );
 }
@@ -153,29 +153,29 @@ function PaymentsSection() {
       <div className="flex flex-wrap gap-2">
         <input value={orgId} onChange={e => { setOrgId(e.target.value); setPage(1); }}
           placeholder="معرّف المنشأة..."
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none w-48 font-mono" dir="ltr" />
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none w-48 font-mono" dir="ltr" />
         <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
           <option value="">كل الحالات</option>
           {PAYMENT_STATUSES.map(s => <option key={s} value={s}>{PAYMENT_STATUS_LABELS[s]}</option>)}
         </select>
         <select value={method} onChange={e => { setMethod(e.target.value); setPage(1); }}
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
           <option value="">كل الطرق</option>
           {METHODS.map(m => <option key={m} value={m}>{METHOD_LABELS[m]}</option>)}
         </select>
         {hasFilters && (
-          <button onClick={handleReset} className="px-3 py-2 text-xs text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">
+          <button onClick={handleReset} className="px-3 py-2 text-xs text-gray-500 border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">
             <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
       {loading ? <Spinner /> : rows.length === 0 ? <Empty icon={Wallet} text="لا توجد مدفوعات" /> : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
+              <tr className="border-b border-[#eef2f6] bg-[#f8fafc] text-xs text-gray-500">
                 <th className="text-right px-4 py-3 font-semibold">المنشأة</th>
                 <th className="text-right px-4 py-3 font-semibold">المبلغ</th>
                 <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">الطريقة</th>
@@ -188,21 +188,21 @@ function PaymentsSection() {
             </thead>
             <tbody>
               {rows.map((r: any) => (
-                <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                  <td className="px-4 py-3 text-xs font-medium text-gray-700">{r.orgName ?? r.orgId?.slice(0, 8)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 tabular-nums">
+                <tr key={r.id} className="border-b border-gray-50 hover:bg-[#f8fafc] last:border-0">
+                  <td className="px-[10px] py-[6px] text-xs font-medium text-gray-700">{r.orgName ?? r.orgId?.slice(0, 8)}</td>
+                  <td className="px-[10px] py-[6px] text-sm text-gray-900 tabular-nums">
                     {r.amount ? `${Number(r.amount).toLocaleString("en-US")} ر.س` : "—"}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell">{METHOD_LABELS[r.method] ?? r.method}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden md:table-cell">{METHOD_LABELS[r.method] ?? r.method}</td>
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("text-xs font-medium px-2 py-0.5 rounded-lg", PAYMENT_STATUS_COLORS[r.status] ?? "bg-gray-100 text-gray-600")}>
                       {PAYMENT_STATUS_LABELS[r.status] ?? r.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell">{r.type ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell">{r.gatewayProvider ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell font-mono" dir="ltr">{r.receiptNumber ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs text-gray-400 hidden md:table-cell">
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden md:table-cell">{r.type ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden lg:table-cell">{r.gatewayProvider ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden lg:table-cell font-mono" dir="ltr">{r.receiptNumber ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-400 hidden md:table-cell">
                     {r.paidAt ? new Date(r.paidAt).toLocaleDateString("ar") : "—"}
                   </td>
                 </tr>
@@ -245,29 +245,29 @@ function JournalEntriesSection() {
       <div className="flex flex-wrap gap-2">
         <input value={orgId} onChange={e => { setOrgId(e.target.value); setPage(1); }}
           placeholder="معرّف المنشأة..."
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none w-48 font-mono" dir="ltr" />
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none w-48 font-mono" dir="ltr" />
         <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
           <option value="">كل الحالات</option>
           {JE_STATUSES.map(s => <option key={s} value={s}>{JE_STATUS_LABELS[s]}</option>)}
         </select>
         <select value={sourceType} onChange={e => { setSourceType(e.target.value); setPage(1); }}
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
           <option value="">كل المصادر</option>
           {SOURCE_TYPES.map(s => <option key={s} value={s}>{SOURCE_TYPE_LABELS[s]}</option>)}
         </select>
         {hasFilters && (
-          <button onClick={handleReset} className="px-3 py-2 text-xs text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">
+          <button onClick={handleReset} className="px-3 py-2 text-xs text-gray-500 border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">
             <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
       {loading ? <Spinner /> : rows.length === 0 ? <Empty icon={BookOpen} text="لا توجد قيود يومية" /> : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
+              <tr className="border-b border-[#eef2f6] bg-[#f8fafc] text-xs text-gray-500">
                 <th className="text-right px-4 py-3 font-semibold">المنشأة</th>
                 <th className="text-right px-4 py-3 font-semibold">رقم القيد</th>
                 <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">الوصف</th>
@@ -278,17 +278,17 @@ function JournalEntriesSection() {
             </thead>
             <tbody>
               {rows.map((r: any) => (
-                <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                  <td className="px-4 py-3 text-xs font-medium text-gray-700">{r.orgName ?? r.orgId?.slice(0, 8)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 font-mono" dir="ltr">{r.entryNumber}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell">{r.description ?? "—"}</td>
-                  <td className="px-4 py-3">
+                <tr key={r.id} className="border-b border-gray-50 hover:bg-[#f8fafc] last:border-0">
+                  <td className="px-[10px] py-[6px] text-xs font-medium text-gray-700">{r.orgName ?? r.orgId?.slice(0, 8)}</td>
+                  <td className="px-[10px] py-[6px] text-sm text-gray-900 font-mono" dir="ltr">{r.entryNumber}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden md:table-cell">{r.description ?? "—"}</td>
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("text-xs font-medium px-2 py-0.5 rounded-lg", JE_STATUS_COLORS[r.status] ?? "bg-gray-100 text-gray-600")}>
                       {JE_STATUS_LABELS[r.status] ?? r.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell">{SOURCE_TYPE_LABELS[r.sourceType] ?? r.sourceType ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs text-gray-400 hidden md:table-cell">
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden md:table-cell">{SOURCE_TYPE_LABELS[r.sourceType] ?? r.sourceType ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-400 hidden md:table-cell">
                     {r.date ? new Date(r.date).toLocaleDateString("ar") : "—"}
                   </td>
                 </tr>
@@ -330,24 +330,24 @@ function ExpensesSection() {
       <div className="flex flex-wrap gap-2">
         <input value={orgId} onChange={e => { setOrgId(e.target.value); setPage(1); }}
           placeholder="معرّف المنشأة..."
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none w-48 font-mono" dir="ltr" />
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none w-48 font-mono" dir="ltr" />
         <select value={category} onChange={e => { setCategory(e.target.value); setPage(1); }}
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
           <option value="">كل التصنيفات</option>
           {EXPENSE_CATEGORIES.map(c => <option key={c} value={c}>{EXPENSE_CATEGORY_LABELS[c]}</option>)}
         </select>
         {hasFilters && (
-          <button onClick={handleReset} className="px-3 py-2 text-xs text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">
+          <button onClick={handleReset} className="px-3 py-2 text-xs text-gray-500 border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">
             <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
       {loading ? <Spinner /> : rows.length === 0 ? <Empty icon={ArrowDownCircle} text="لا توجد مصروفات" /> : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
+              <tr className="border-b border-[#eef2f6] bg-[#f8fafc] text-xs text-gray-500">
                 <th className="text-right px-4 py-3 font-semibold">المنشأة</th>
                 <th className="text-right px-4 py-3 font-semibold">التصنيف</th>
                 <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">الوصف</th>
@@ -358,19 +358,19 @@ function ExpensesSection() {
             </thead>
             <tbody>
               {rows.map((r: any) => (
-                <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                  <td className="px-4 py-3 text-xs font-medium text-gray-700">{r.orgName ?? r.orgId?.slice(0, 8)}</td>
-                  <td className="px-4 py-3">
+                <tr key={r.id} className="border-b border-gray-50 hover:bg-[#f8fafc] last:border-0">
+                  <td className="px-[10px] py-[6px] text-xs font-medium text-gray-700">{r.orgName ?? r.orgId?.slice(0, 8)}</td>
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("text-xs font-medium px-2 py-0.5 rounded-lg", EXPENSE_CATEGORY_COLORS[r.category] ?? "bg-gray-100 text-gray-600")}>
                       {EXPENSE_CATEGORY_LABELS[r.category] ?? r.category}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell">{r.description ?? "—"}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900 tabular-nums">
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden md:table-cell">{r.description ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-sm text-gray-900 tabular-nums">
                     {r.amount ? `${Number(r.amount).toLocaleString("en-US")} ر.س` : "—"}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell font-mono" dir="ltr">{r.receiptNumber ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs text-gray-400 hidden md:table-cell">
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden lg:table-cell font-mono" dir="ltr">{r.receiptNumber ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-400 hidden md:table-cell">
                     {r.expenseDate ? new Date(r.expenseDate).toLocaleDateString("ar") : "—"}
                   </td>
                 </tr>
@@ -412,24 +412,24 @@ function CampaignsSection() {
       <div className="flex flex-wrap gap-2">
         <input value={orgId} onChange={e => { setOrgId(e.target.value); setPage(1); }}
           placeholder="معرّف المنشأة..."
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none w-48 font-mono" dir="ltr" />
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none w-48 font-mono" dir="ltr" />
         <select value={status} onChange={e => { setStatus(e.target.value); setPage(1); }}
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
           <option value="">كل الحالات</option>
           {CAMPAIGN_STATUSES.map(s => <option key={s} value={s}>{CAMPAIGN_STATUS_LABELS[s]}</option>)}
         </select>
         {hasFilters && (
-          <button onClick={handleReset} className="px-3 py-2 text-xs text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">
+          <button onClick={handleReset} className="px-3 py-2 text-xs text-gray-500 border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">
             <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
       {loading ? <Spinner /> : rows.length === 0 ? <Empty icon={Megaphone} text="لا توجد حملات" /> : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
+              <tr className="border-b border-[#eef2f6] bg-[#f8fafc] text-xs text-gray-500">
                 <th className="text-right px-4 py-3 font-semibold">المنشأة</th>
                 <th className="text-right px-4 py-3 font-semibold">اسم الحملة</th>
                 <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">القناة</th>
@@ -442,21 +442,21 @@ function CampaignsSection() {
             </thead>
             <tbody>
               {rows.map((r: any) => (
-                <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                  <td className="px-4 py-3 text-xs font-medium text-gray-700">{r.orgName ?? r.orgId?.slice(0, 8)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{r.name}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell">{r.channel ?? "—"}</td>
-                  <td className="px-4 py-3">
+                <tr key={r.id} className="border-b border-gray-50 hover:bg-[#f8fafc] last:border-0">
+                  <td className="px-[10px] py-[6px] text-xs font-medium text-gray-700">{r.orgName ?? r.orgId?.slice(0, 8)}</td>
+                  <td className="px-[10px] py-[6px] text-sm text-gray-900">{r.name}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden md:table-cell">{r.channel ?? "—"}</td>
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("text-xs font-medium px-2 py-0.5 rounded-lg", CAMPAIGN_STATUS_COLORS[r.status] ?? "bg-gray-100 text-gray-600")}>
                       {CAMPAIGN_STATUS_LABELS[r.status] ?? r.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell tabular-nums">{r.totalSent ?? 0}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden lg:table-cell tabular-nums">{r.totalConverted ?? 0}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell tabular-nums">
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden lg:table-cell tabular-nums">{r.totalSent ?? 0}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden lg:table-cell tabular-nums">{r.totalConverted ?? 0}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden md:table-cell tabular-nums">
                     {r.cost ? `${Number(r.cost).toLocaleString("en-US")} ر.س` : "—"}
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-400 hidden md:table-cell">
+                  <td className="px-[10px] py-[6px] text-xs text-gray-400 hidden md:table-cell">
                     {r.scheduledAt ? new Date(r.scheduledAt).toLocaleDateString("ar") : "—"}
                   </td>
                 </tr>
@@ -480,7 +480,7 @@ function FinanceAdminTab() {
   return (
     <div className="space-y-5">
       {/* Subtab pills */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+      <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1">
         {SUBTABS.map(tab => {
           const Icon = tab.icon;
           return (

@@ -101,7 +101,7 @@ function Section({
   title, subtitle, icon: Icon, children,
 }: { title: string; subtitle?: string; icon: React.ElementType; children: React.ReactNode }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden shadow-sm">
       <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-3">
         <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
           <Icon className="w-4 h-4 text-brand-500" />
@@ -131,7 +131,7 @@ function PasswordInput({
           onChange={e => onChange(e.target.value)}
           placeholder={placeholder || "••••••••••••"}
           dir="ltr"
-          className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400 pr-10 transition-all"
+          className="w-full px-4 py-2.5 rounded-xl border border-[#eef2f6] text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-300 focus:border-brand-400 pr-10 transition-all"
         />
         <button
           type="button"
@@ -268,7 +268,7 @@ export function AccountPage() {
       </div>
 
       {/* ── Profile Card ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-6">
           {/* Avatar row */}
           <div className="flex items-center gap-4 mb-5">
             <div className="relative shrink-0">
@@ -280,7 +280,7 @@ export function AccountPage() {
               </div>
               <button
                 onClick={() => setAvatarPicker(true)}
-                className="absolute -bottom-0.5 -left-0.5 w-6 h-6 rounded-full bg-white border border-gray-200 shadow-sm flex items-center justify-center hover:bg-gray-50 transition-colors"
+                className="absolute -bottom-0.5 -left-0.5 w-6 h-6 rounded-full bg-white border border-[#eef2f6] shadow-sm flex items-center justify-center hover:bg-[#f8fafc] transition-colors"
               >
                 <Upload className="w-3 h-3 text-gray-500" />
               </button>
@@ -316,7 +316,7 @@ export function AccountPage() {
               />
               <div className="space-y-1.5">
                 <label className="block text-sm font-medium text-gray-700">رقم الجوال</label>
-                <div className="flex items-center px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-500 gap-2" dir="ltr">
+                <div className="flex items-center px-4 py-2.5 rounded-xl border border-[#eef2f6] bg-[#f8fafc] text-sm text-gray-500 gap-2" dir="ltr">
                   <span>{storedUser.phone || "—"}</span>
                   <span className="mr-auto text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">لا يمكن التغيير</span>
                 </div>
@@ -345,8 +345,8 @@ export function AccountPage() {
             />
 
             {profile.avatar && (
-              <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 bg-gray-50">
-                <img src={profile.avatar} className="w-10 h-10 rounded-xl object-cover border border-gray-200" />
+              <div className="flex items-center gap-3 p-3 rounded-xl border border-[#eef2f6] bg-gray-50">
+                <img src={profile.avatar} className="w-9 h-9 rounded-[10px] object-cover border border-[#eef2f6]" />
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-gray-500 truncate">{profile.avatar}</p>
                 </div>
@@ -538,8 +538,8 @@ export function AccountPage() {
         {sessionsLoading ? (
           <div className="space-y-3">
             {[1,2].map(i => (
-              <div key={i} className="flex items-center gap-3 p-4 rounded-xl border border-gray-100 animate-pulse">
-                <div className="w-10 h-10 rounded-xl bg-gray-100 shrink-0" />
+              <div key={i} className="flex items-center gap-3 p-4 rounded-xl border border-[#eef2f6] animate-pulse">
+                <div className="w-9 h-9 rounded-[10px] bg-gray-100 shrink-0" />
                 <div className="flex-1 space-y-2">
                   <div className="h-3 w-40 bg-gray-100 rounded" />
                   <div className="h-3 w-28 bg-gray-100 rounded" />
@@ -563,11 +563,11 @@ export function AccountPage() {
                     "flex items-center gap-4 p-4 rounded-xl border transition-colors",
                     isCurrent
                       ? "border-brand-200 bg-brand-50"
-                      : "border-gray-100 bg-white hover:bg-gray-50"
+                      : "border-[#eef2f6] bg-white hover:bg-[#f8fafc]"
                   )}
                 >
                   <div className={clsx(
-                    "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
+                    "w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0",
                     isCurrent ? "bg-brand-100" : "bg-gray-100"
                   )}>
                     <DeviceIcon className={clsx("w-5 h-5", isCurrent ? "text-brand-500" : "text-gray-400")} />
@@ -622,7 +622,7 @@ export function AccountPage() {
         )}
 
         {sessions.filter((s: any) => s.token !== currentToken && !s.isCurrent).length > 1 && (
-          <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="mt-4 pt-4 border-t border-[#eef2f6]">
             <button
               onClick={async () => {
                 const others = sessions.filter((s: any) => s.token !== currentToken && !s.isCurrent);

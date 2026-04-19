@@ -115,7 +115,7 @@ export function MediaPickerModal({
         />
 
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2f6] shrink-0">
           <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
             <Images className="w-4 h-4 text-brand-500" /> {title}
           </h2>
@@ -146,7 +146,7 @@ export function MediaPickerModal({
               placeholder="ابحث باسم الملف..."
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full pl-4 pr-10 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
+              className="w-full pl-4 pr-10 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100"
               autoFocus
             />
           </div>
@@ -164,7 +164,7 @@ export function MediaPickerModal({
           {loading && assets.length === 0 ? (
             <div className="grid grid-cols-4 sm:grid-cols-6 gap-3">
               {Array.from({ length: 18 }).map((_, i) => (
-                <div key={i} className="aspect-square bg-gray-100 rounded-xl animate-pulse" />
+                <div key={i} className="aspect-square bg-[#f1f5f9] rounded-xl animate-pulse" />
               ))}
             </div>
           ) : assets.length === 0 ? (
@@ -236,12 +236,12 @@ export function MediaPickerModal({
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between shrink-0 bg-gray-50 rounded-b-2xl">
+        <div className="px-6 py-4 border-t border-[#eef2f6] flex items-center justify-between shrink-0 bg-[#f8fafc] rounded-b-2xl">
           <div>
             {selected ? (
               <div className="flex items-center gap-2">
                 {selected.fileType === "image" && (
-                  <img src={selected.fileUrl} alt="" className="w-8 h-8 rounded-lg object-cover border border-gray-200" />
+                  <img src={selected.fileUrl} alt="" className="w-8 h-8 rounded-lg object-cover border border-[#eef2f6]" />
                 )}
                 <div>
                   <p className="text-xs font-semibold text-gray-800 truncate max-w-[180px]">{selected.name}</p>
@@ -255,7 +255,7 @@ export function MediaPickerModal({
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-white transition-colors"
+              className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-white transition-colors"
             >
               إلغاء
             </button>

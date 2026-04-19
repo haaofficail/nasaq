@@ -33,7 +33,7 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 function Sk({ className }: { className?: string }) {
-  return <div className={clsx("animate-pulse bg-gray-100 rounded-lg", className)} />;
+  return <div className={clsx("animate-pulse bg-[#f1f5f9] rounded-lg", className)} />;
 }
 
 function GrowthBadge({ value }: { value: number }) {
@@ -195,22 +195,22 @@ export function ReportsPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={exportCSV}
-              className="px-3 py-1.5 rounded-xl text-sm font-medium border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-all"
+              className="px-3 py-1.5 rounded-xl text-sm font-medium border border-[#eef2f6] bg-white text-gray-600 hover:bg-[#f8fafc] transition-all"
             >
               تصدير CSV
             </button>
-            <div className="flex gap-1 bg-white border border-gray-100 rounded-xl p-1">
+            <div className="flex gap-1 bg-white border border-[#eef2f6] rounded-xl p-1">
               {PERIODS.map((p) => (
                 <button key={p.value} onClick={() => { setPeriod(p.value); setActivePeriod(p.value); setCustomRange(false); }}
                   className={clsx("px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
-                    activePeriod === p.value ? "bg-brand-500 text-white shadow-sm" : "text-gray-500 hover:bg-gray-50")}>
+                    activePeriod === p.value ? "bg-brand-500 text-white shadow-sm" : "text-gray-500 hover:bg-[#f8fafc]")}>
                   {p.label}
                 </button>
               ))}
               <button
                 onClick={() => setCustomRange(v => !v)}
                 className={clsx("px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
-                  customRange ? "bg-brand-500 text-white shadow-sm" : "text-gray-500 hover:bg-gray-50")}
+                  customRange ? "bg-brand-500 text-white shadow-sm" : "text-gray-500 hover:bg-[#f8fafc]")}
               >
                 مخصص
               </button>
@@ -231,12 +231,12 @@ export function ReportsPage() {
       )}
 
       {customRange && (
-        <div className="flex gap-2 items-center flex-wrap bg-white border border-gray-100 rounded-2xl p-3">
+        <div className="flex gap-2 items-center flex-wrap bg-white border border-[#eef2f6] rounded-2xl p-3">
           <input
             type="date"
             value={dateFrom}
             onChange={e => setDateFrom(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none focus:border-brand-300"
+            className="border border-[#eef2f6] rounded-xl px-3 py-1.5 text-sm outline-none focus:border-brand-300"
             dir="ltr"
           />
           <span className="text-gray-400">—</span>
@@ -244,7 +244,7 @@ export function ReportsPage() {
             type="date"
             value={dateTo}
             onChange={e => setDateTo(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm outline-none focus:border-brand-300"
+            className="border border-[#eef2f6] rounded-xl px-3 py-1.5 text-sm outline-none focus:border-brand-300"
             dir="ltr"
           />
           <button
@@ -265,7 +265,7 @@ export function ReportsPage() {
               const Icon = rpt.icon;
               return (
                 <Link key={rpt.href} to={rpt.href}
-                  className="bg-white rounded-2xl border border-gray-100 p-4 hover:shadow-sm hover:border-gray-200 transition-all group">
+                  className="bg-white rounded-2xl border border-[#eef2f6] p-4 hover:shadow-sm hover:border-[#eef2f6] transition-all group">
                   <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center mb-3", rpt.bg)}>
                     <Icon className={clsx("w-4 h-4", rpt.color)} />
                   </div>
@@ -282,12 +282,12 @@ export function ReportsPage() {
       ))}
 
       {/* divider */}
-      <div className="border-t border-gray-100 pt-2">
+      <div className="border-t border-[#eef2f6] pt-2">
         <h2 className="text-sm font-semibold text-gray-500 mb-3">نظرة عامة سريعة</h2>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+      <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1 w-fit">
         {TABS.map((t) => (
           <button key={t.id} onClick={() => setTab(t.id)}
             className={clsx("px-4 py-1.5 rounded-lg text-sm font-medium transition-all",
@@ -313,7 +313,7 @@ export function ReportsPage() {
                 { label: biz.terminology.clients,   value: totalCustomers.toLocaleString("en-US"),     icon: Users,         bg: "bg-violet-50",  ic: "text-violet-600", g: null },
                 { label: "متوسط الحجز", value: `${Math.round(avgValue).toLocaleString("en-US")} ر.س`, icon: TrendingUp, bg: "bg-amber-50", ic: "text-amber-600", g: null },
               ].map((kpi, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
+                <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
                   <div className="flex items-center justify-between mb-3">
                     <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center", kpi.bg)}>
                       <kpi.icon className={clsx("w-4.5 h-4.5", kpi.ic)} />
@@ -329,7 +329,7 @@ export function ReportsPage() {
 
           {/* Trend + Booking funnel */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="font-semibold text-gray-900 text-sm">اتجاه الإيرادات (6 أشهر)</h2>
                 <BarChart3 className="w-4 h-4 text-gray-300" />
@@ -337,7 +337,7 @@ export function ReportsPage() {
               {trendData.length > 0 ? <TrendChart data={trendData} /> : <Sk className="h-28" />}
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <h2 className="font-semibold text-gray-900 text-sm mb-4">توزيع الحجوزات</h2>
               <div className="space-y-3">
                 {[
@@ -362,38 +362,38 @@ export function ReportsPage() {
 
           {/* Top services */}
           {topServices.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
                 <h2 className="font-semibold text-gray-900 text-sm">أداء الخدمات</h2>
                 <span className="text-xs text-gray-400">{services.length} {biz.terminology.item}</span>
               </div>
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/50">
+                  <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                     <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold">#</th>
                     <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">الخدمة</th>
                     <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden md:table-cell">التصنيف</th>
                     <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">الحجوزات</th>
                     <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden lg:table-cell">السعر</th>
-                    <th className="py-3 px-4 hidden lg:table-cell w-32" />
+                    <th className="py-[6px] px-[10px] hidden lg:table-cell w-32" />
                   </tr>
                 </thead>
                 <tbody>
                   {topServices.map((s: any, idx: number) => (
-                    <tr key={s.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60">
-                      <td className="py-3.5 px-5">
+                    <tr key={s.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/60">
+                      <td className="py-[6px] px-5">
                         <span className="w-6 h-6 rounded-lg bg-brand-50 text-brand-600 flex items-center justify-center text-xs font-bold">{idx + 1}</span>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <div className="flex items-center gap-2">
                           <Package className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                           <span className="font-medium text-gray-900 line-clamp-1">{s.name}</span>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4 text-gray-500 text-xs hidden md:table-cell">{s.categoryName || "—"}</td>
-                      <td className="py-3.5 px-4 font-semibold text-gray-700 tabular-nums">{s.totalBookings || 0}</td>
-                      <td className="py-3.5 px-4 text-gray-600 tabular-nums hidden lg:table-cell">{Number(s.basePrice || 0).toLocaleString()} ر.س</td>
-                      <td className="py-3.5 px-4 hidden lg:table-cell">
+                      <td className="py-[6px] px-[10px] text-gray-500 text-xs hidden md:table-cell">{s.categoryName || "—"}</td>
+                      <td className="py-[6px] px-[10px] font-semibold text-gray-700 tabular-nums">{s.totalBookings || 0}</td>
+                      <td className="py-[6px] px-[10px] text-gray-600 tabular-nums hidden lg:table-cell">{Number(s.basePrice || 0).toLocaleString()} ر.س</td>
+                      <td className="py-[6px] px-[10px] hidden lg:table-cell">
                         <div className="w-full h-1.5 bg-gray-100 rounded-full overflow-hidden">
                           <div className="h-full bg-brand-300 rounded-full" style={{ width: `${Math.round(((s.totalBookings || 0) / maxBookings) * 100)}%` }} />
                         </div>
@@ -411,7 +411,7 @@ export function ReportsPage() {
       {tab === "growth" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* Growth comparison */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h2 className="font-semibold text-gray-900 text-sm mb-4">مقارنة الأداء مع الفترة السابقة</h2>
             {growth.revenue ? (
               <div className="space-y-4">
@@ -433,7 +433,7 @@ export function ReportsPage() {
           </div>
 
           {/* Customer retention */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h2 className="font-semibold text-gray-900 text-sm mb-4">استبقاء العملاء</h2>
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -462,14 +462,14 @@ export function ReportsPage() {
           </div>
 
           {/* Source breakdown */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 lg:col-span-2">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 lg:col-span-2">
             <h2 className="font-semibold text-gray-900 text-sm mb-4">مصادر اكتساب العملاء</h2>
             {sourceBreakdown.length > 0 ? (
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
                 {sourceBreakdown.sort((a: any, b: any) => b.count - a.count).map((s: any) => {
                   const pct = maxSource > 0 ? Math.round((Number(s.count) / maxSource) * 100) : 0;
                   return (
-                    <div key={s.source} className="p-3 rounded-xl border border-gray-100">
+                    <div key={s.source} className="p-3 rounded-xl border border-[#eef2f6]">
                       <p className="text-xs text-gray-500 mb-1">{SOURCE_LABELS[s.source] || s.source}</p>
                       <p className="text-xl font-bold text-gray-900 tabular-nums">{s.count}</p>
                       <div className="mt-2 h-1.5 bg-gray-100 rounded-full overflow-hidden">
@@ -495,8 +495,8 @@ export function ReportsPage() {
             { label: "عدد التقييمات",     value: siteStats.reviewCount ?? 0,     icon: Star,          color: "text-amber-600",   bg: "bg-amber-50" },
             { label: "متوسط التقييم",     value: siteStats.avgRating ?? "—",     icon: Star,          color: "text-amber-600",   bg: "bg-amber-50", suffix: "/5" },
           ].map((card, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5">
-              <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center mb-3", card.bg)}>
+            <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-5">
+              <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center mb-3", card.bg)}>
                 <card.icon className={clsx("w-5 h-5", card.color)} />
               </div>
               <p className={clsx("text-2xl font-bold tabular-nums", card.color)}>

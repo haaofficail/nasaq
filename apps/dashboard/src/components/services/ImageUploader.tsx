@@ -72,7 +72,7 @@ export function ImageUploader({ serviceId, media, onUpload, onReorder, onSetCove
         onClick={() => fileRef.current?.click()}
         className={clsx(
           "border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors",
-          dragging ? "border-brand-400 bg-brand-50" : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+          dragging ? "border-brand-400 bg-brand-50" : "border-[#eef2f6] hover:border-[#eef2f6] hover:bg-[#f8fafc]"
         )}
       >
         <input
@@ -130,7 +130,7 @@ export function ImageUploader({ serviceId, media, onUpload, onReorder, onSetCove
 
                 {/* Set as cover */}
                 {!item.isCover && (
-                  <button onClick={() => onSetCover?.(item.id)} className="p-2 bg-white rounded-lg shadow hover:bg-gray-50" title="تعيين كغلاف">
+                  <button onClick={() => onSetCover?.(item.id)} className="p-2 bg-white rounded-lg shadow hover:bg-[#f8fafc]" title="تعيين كغلاف">
                     <Star className="w-4 h-4 text-amber-500" />
                   </button>
                 )}

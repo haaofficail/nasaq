@@ -60,7 +60,7 @@ export function Modal({
       <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" onClick={onClose} />
       <div ref={ref} className={clsx("relative bg-white/95 backdrop-blur-3xl border border-white shadow-token-xl rounded-3xl w-full flex flex-col max-h-[90vh]", sizes[size])}>
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+        <div className="flex items-center justify-between p-5 border-b border-[#eef2f6]">
           <h2 className="text-lg font-bold text-gray-900">{title}</h2>
           <button onClick={onClose} className="p-2.5 rounded-lg hover:bg-gray-100 text-gray-400">
             <X className="w-5 h-5" />
@@ -69,7 +69,7 @@ export function Modal({
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-5">{children}</div>
         {/* Footer */}
-        {footer && <div className="p-5 border-t border-gray-100 flex items-center justify-end gap-3">{footer}</div>}
+        {footer && <div className="p-5 border-t border-[#eef2f6] flex items-center justify-end gap-3">{footer}</div>}
       </div>
     </div>
   );
@@ -119,7 +119,7 @@ export function Input({
           max={isNumeric ? undefined : max}
           step={isNumeric ? undefined : step}
           className={clsx(
-            "w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2.5 text-sm outline-none transition-all",
+            "w-full rounded-xl border border-[#eef2f6] bg-gray-50/50 px-3 py-2.5 text-sm outline-none transition-all",
             error ? "border-red-300 bg-red-50/30 focus:border-red-500 focus:ring-4 focus:ring-red-100" : "focus:bg-white focus:border-brand-400 focus:ring-4 focus:ring-brand-50/50",
             disabled && "bg-gray-100/50 text-gray-400 cursor-not-allowed",
             prefix && "pr-10", suffix && "pl-16",
@@ -155,7 +155,7 @@ export function TextArea({
         id={name} name={name} value={value} onChange={onChange}
         placeholder={placeholder} rows={rows}
         className={clsx(
-          "w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-3 text-sm outline-none transition-all resize-none",
+          "w-full rounded-xl border border-[#eef2f6] bg-gray-50/50 px-3 py-3 text-sm outline-none transition-all resize-none",
           error ? "border-red-300 bg-red-50/30 focus:border-red-500 focus:ring-4 focus:ring-red-100" : "focus:bg-white focus:border-brand-400 focus:ring-4 focus:ring-brand-50/50",
         )}
       />
@@ -186,7 +186,7 @@ export function Select({
       <select
         id={name} name={name} value={value} onChange={onChange}
         className={clsx(
-          "w-full rounded-xl border border-gray-200 bg-gray-50/50 px-3 py-2.5 text-sm outline-none transition-all appearance-none",
+          "w-full rounded-xl border border-[#eef2f6] bg-gray-50/50 px-3 py-2.5 text-sm outline-none transition-all appearance-none",
           error ? "border-red-300 focus:border-red-500 focus:ring-4 focus:ring-red-100" : "focus:bg-white focus:border-brand-400 focus:ring-4 focus:ring-brand-50/50",
           !value && "text-gray-400",
         )}
@@ -216,7 +216,7 @@ export function Button({
 }) {
   const variants = {
     primary: "bg-brand-500 text-white shadow-token-md hover:shadow-glow hover:-translate-y-[1px] hover:bg-brand-600 border border-brand-400/20",
-    secondary: "bg-white text-gray-700 border border-gray-200 shadow-token-xs hover:border-gray-300 hover:shadow-token-sm hover:-translate-y-[1px]",
+    secondary: "bg-white text-gray-700 border border-[#eef2f6] shadow-token-xs hover:border-[#eef2f6] hover:shadow-token-sm hover:-translate-y-[1px]",
     danger: "bg-red-500 text-white shadow-token-sm hover:shadow-lg hover:bg-red-600 hover:-translate-y-[1px]",
     ghost: "text-gray-600 hover:bg-gray-100",
   };
@@ -288,11 +288,11 @@ export function EmptyState({
   return (
     <div className={clsx(
       "flex flex-col items-center justify-center text-center p-8 sm:p-12 transition-all duration-500 ease-out",
-      variant === "dashed" && "border-2 border-dashed border-gray-200 rounded-3xl bg-gray-50/30",
+      variant === "dashed" && "border-2 border-dashed border-[#eef2f6] rounded-3xl bg-gray-50/30",
       variant === "card" && "elegant-card",
       variant === "default" && "py-16"
     )}>
-      <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mb-5 ring-8 ring-gray-50/50">
+      <div className="w-16 h-16 bg-[#f8fafc] rounded-full flex items-center justify-center mb-5 ring-8 ring-gray-50/50">
         <Icon className="w-8 h-8 text-gray-400" />
       </div>
       <h3 className="text-lg font-bold text-gray-900 mb-1.5">{title}</h3>
@@ -332,7 +332,7 @@ export function PageHeader({
         {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
       </div>
       {tabs && tabs.length > 0 && (
-        <div className="flex items-center gap-1 mt-4 border-b border-gray-100">
+        <div className="flex items-center gap-1 mt-4 border-b border-[#eef2f6]">
           {tabs.map((tab) => (
             <button
               key={tab.id}
@@ -488,7 +488,7 @@ export function ConfirmDialogHost() {
         <div className="flex gap-3 w-full">
           <button
             onClick={() => resolve(false)}
-            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex-1 py-2.5 rounded-xl border border-[#eef2f6] text-sm font-medium text-gray-600 hover:bg-[#f8fafc] transition-colors"
           >
             {opts.cancelLabel ?? "إلغاء"}
           </button>

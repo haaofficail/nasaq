@@ -117,7 +117,7 @@ export function Modal({ open, onClose, title, children, width = "max-w-lg" }: { 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className={clsx("bg-white rounded-2xl shadow-2xl w-full overflow-hidden", width)} onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2f6]">
           <h3 className="text-base font-bold text-gray-900">{title}</h3>
           <button onClick={onClose} className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-4 h-4" /></button>
         </div>
@@ -136,7 +136,7 @@ export function InfoRow({ label, value }: { label: string; value: React.ReactNod
 }
 export function TabPill({ tabs, active, onChange }: { tabs: { id: string; label: string }[]; active: string; onChange: (id: string) => void }) {
   return (
-    <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-5">
+    <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1 mb-5">
       {tabs.map((t) => (
         <button key={t.id} onClick={() => onChange(t.id)}
           className={clsx("flex-1 py-1.5 rounded-lg text-xs font-medium transition-all",

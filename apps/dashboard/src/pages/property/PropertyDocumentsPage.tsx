@@ -61,14 +61,14 @@ function DocThumbnail({ url, title }: { url?: string; title: string }) {
   if (isImage(url)) {
     return (
       <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 group">
-        <img src={url} alt={title} className="w-9 h-9 rounded-lg object-cover border border-gray-100 group-hover:opacity-80 transition-opacity" />
+        <img src={url} alt={title} className="w-9 h-9 rounded-lg object-cover border border-[#eef2f6] group-hover:opacity-80 transition-opacity" />
         <span className="text-sm font-medium text-gray-800 group-hover:text-brand-600 transition-colors truncate max-w-[180px]">{title}</span>
       </a>
     );
   }
   return (
     <a href={url} target="_blank" rel="noreferrer" className="flex items-center gap-2 group">
-      <div className="w-9 h-9 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center shrink-0">
+      <div className="w-9 h-9 rounded-lg bg-[#f8fafc] border border-[#eef2f6] flex items-center justify-center shrink-0">
         {fileIcon(url)}
       </div>
       <span className="text-sm font-medium text-brand-600 group-hover:underline truncate max-w-[180px]">{title}</span>
@@ -135,7 +135,7 @@ function UploadZone({ onFileReady }: UploadZoneProps) {
 
   if (preview) {
     return (
-      <div className="rounded-2xl border border-gray-100 overflow-hidden bg-gray-50">
+      <div className="rounded-2xl border border-[#eef2f6] overflow-hidden bg-gray-50">
         {isImage(preview.url) ? (
           <div className="relative">
             <img src={preview.url} alt={preview.name} className="w-full max-h-48 object-cover" />
@@ -159,7 +159,7 @@ function UploadZone({ onFileReady }: UploadZoneProps) {
           </div>
         ) : (
           <div className="flex items-center gap-3 p-4">
-            <div className="w-11 h-11 rounded-xl bg-white border border-gray-100 flex items-center justify-center shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-white border border-[#eef2f6] flex items-center justify-center shrink-0">
               {fileIcon(preview.url)}
             </div>
             <div className="flex-1 min-w-0">
@@ -168,7 +168,7 @@ function UploadZone({ onFileReady }: UploadZoneProps) {
             </div>
             <div className="flex gap-1.5 shrink-0">
               <a href={preview.url} target="_blank" rel="noreferrer"
-                className="w-8 h-8 rounded-xl bg-white border border-gray-100 flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-colors">
+                className="w-8 h-8 rounded-xl bg-white border border-[#eef2f6] flex items-center justify-center hover:bg-brand-50 hover:border-brand-200 transition-colors">
                 <Download className="w-3.5 h-3.5 text-gray-500" />
               </a>
               <button onClick={clear}
@@ -189,7 +189,7 @@ function UploadZone({ onFileReady }: UploadZoneProps) {
           "border-2 border-dashed rounded-2xl p-7 text-center cursor-pointer transition-all select-none",
           dragging
             ? "border-brand-400 bg-brand-50"
-            : "border-gray-200 hover:border-brand-300 hover:bg-gray-50/60"
+            : "border-[#eef2f6] hover:border-brand-300 hover:bg-[#f8fafc]/60"
         )}
         onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
@@ -241,7 +241,7 @@ function UploadZone({ onFileReady }: UploadZoneProps) {
 // MAIN PAGE
 // ══════════════════════════════════════════════════════════════
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 bg-white";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 bg-white";
 
 export function PropertyDocumentsPage() {
   const [propertyId, setPropertyId] = useState("");
@@ -327,7 +327,7 @@ export function PropertyDocumentsPage() {
         <select
           value={propertyId}
           onChange={(e) => setPropertyId(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 bg-white"
+          className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 bg-white"
         >
           <option value="">كل العقارات</option>
           {properties.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -335,21 +335,21 @@ export function PropertyDocumentsPage() {
         <select
           value={docType}
           onChange={(e) => setDocType(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 bg-white"
+          className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-200 bg-white"
         >
           {DOC_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         {loading ? (
           <div className="p-4"><SkeletonRows rows={6} /></div>
         ) : error ? (
           <div className="p-6 text-red-600 bg-red-50 text-sm rounded-2xl">{error}</div>
         ) : docs.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mb-3">
+            <div className="w-14 h-14 rounded-2xl bg-[#f8fafc] flex items-center justify-center mb-3">
               <FileText className="w-6 h-6 text-gray-300" />
             </div>
             <p className="text-gray-500 font-medium">لا توجد وثائق</p>
@@ -361,28 +361,28 @@ export function PropertyDocumentsPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-gray-50 border-b border-gray-100">
+              <thead className="bg-gray-50 border-b border-[#eef2f6]">
                 <tr>
                   <th className="text-right px-4 py-3 font-semibold text-gray-600 text-xs">الوثيقة</th>
                   <th className="text-right px-4 py-3 font-semibold text-gray-600 text-xs">النوع</th>
                   <th className="text-right px-4 py-3 font-semibold text-gray-600 text-xs">العقار</th>
                   <th className="text-right px-4 py-3 font-semibold text-gray-600 text-xs">تاريخ الانتهاء</th>
                   <th className="text-right px-4 py-3 font-semibold text-gray-600 text-xs">الحالة</th>
-                  <th className="px-4 py-3" />
+                  <th className="px-[10px] py-[6px]" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {docs.map((doc: any) => (
-                  <tr key={doc.id} className="hover:bg-gray-50/60 transition-colors">
-                    <td className="px-4 py-3">
+                  <tr key={doc.id} className="hover:bg-[#f8fafc]/60 transition-colors">
+                    <td className="px-[10px] py-[6px]">
                       <DocThumbnail url={doc.fileUrl} title={doc.title} />
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">
+                    <td className="px-[10px] py-[6px] text-gray-500 text-xs">
                       {DOC_TYPES.find((t) => t.value === doc.docType)?.label ?? doc.docType}
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-xs">{doc.propertyName ?? "—"}</td>
-                    <td className="px-4 py-3"><ExpiryBadge expiryDate={doc.expiryDate} /></td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px] text-gray-500 text-xs">{doc.propertyName ?? "—"}</td>
+                    <td className="px-[10px] py-[6px]"><ExpiryBadge expiryDate={doc.expiryDate} /></td>
+                    <td className="px-[10px] py-[6px]">
                       <span className={clsx(
                         "inline-flex px-2 py-0.5 rounded-full text-xs font-medium",
                         doc.status === "active"  ? "bg-emerald-100 text-emerald-700" :
@@ -392,7 +392,7 @@ export function PropertyDocumentsPage() {
                         {doc.status === "active" ? "ساري" : doc.status === "expired" ? "منتهي" : doc.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       {doc.fileUrl && (
                         <a href={doc.fileUrl} target="_blank" rel="noreferrer"
                           className="w-8 h-8 rounded-lg bg-gray-100 hover:bg-brand-50 flex items-center justify-center transition-colors">
@@ -413,7 +413,7 @@ export function PropertyDocumentsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" dir="rtl">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] flex flex-col">
             {/* Modal header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#eef2f6] shrink-0">
               <h2 className="text-base font-bold text-gray-900">رفع وثيقة جديدة</h2>
               <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-xl hover:bg-gray-100 flex items-center justify-center transition-colors">
                 <X className="w-4 h-4 text-gray-500" />
@@ -481,7 +481,7 @@ export function PropertyDocumentsPage() {
             </div>
 
             {/* Modal footer */}
-            <div className="flex gap-3 px-6 py-4 border-t border-gray-100 shrink-0">
+            <div className="flex gap-3 px-6 py-4 border-t border-[#eef2f6] shrink-0">
               <button
                 onClick={handleSave}
                 disabled={saving}
@@ -491,7 +491,7 @@ export function PropertyDocumentsPage() {
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                className="px-5 py-2.5 border border-[#eef2f6] text-gray-700 rounded-xl text-sm font-medium hover:bg-[#f8fafc] transition-colors"
               >
                 إلغاء
               </button>

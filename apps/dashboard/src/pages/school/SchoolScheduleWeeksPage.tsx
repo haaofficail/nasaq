@@ -51,7 +51,7 @@ function WeekModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
           <h2 className="text-base font-black text-gray-900">{editing ? "تعديل الأسبوع" : "إضافة أسبوع"}</h2>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-4 h-4" /></button>
         </div>
@@ -67,7 +67,7 @@ function WeekModal({
               <input
                 type="number" min={1} value={weekNumber}
                 onChange={(e) => setWeekNumber(Number(e.target.value))}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 dir="ltr"
               />
             </div>
@@ -76,7 +76,7 @@ function WeekModal({
               <input
                 value={label} onChange={(e) => setLabel(e.target.value)}
                 placeholder="مثال: الأسبوع الأول"
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
               />
             </div>
           </div>
@@ -84,20 +84,20 @@ function WeekModal({
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">تاريخ البداية <span className="text-red-400">*</span></label>
               <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 dir="ltr" />
             </div>
             <div>
               <label className="block text-xs font-semibold text-gray-600 mb-1.5">تاريخ النهاية <span className="text-red-400">*</span></label>
               <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
+                className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100"
                 dir="ltr" />
             </div>
           </div>
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">قالب الدوام</label>
             <select value={templateId} onChange={(e) => setTemplateId(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 bg-white">
+              className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 bg-white">
               <option value="">بدون قالب محدد</option>
               {templates.map((t: any) => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
@@ -105,7 +105,7 @@ function WeekModal({
           <div>
             <label className="block text-xs font-semibold text-gray-600 mb-1.5">الفصل الدراسي</label>
             <select value={semesterId} onChange={(e) => setSemesterId(e.target.value)}
-              className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 bg-white">
+              className="w-full px-3 py-2.5 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 bg-white">
               <option value="">بدون فصل محدد</option>
               {semesters.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
@@ -115,7 +115,7 @@ function WeekModal({
               className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 disabled:opacity-50 transition-colors">
               {saving ? "جاري الحفظ..." : editing ? "حفظ التعديلات" : "إضافة الأسبوع"}
             </button>
-            <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors">إلغاء</button>
+            <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc] transition-colors">إلغاء</button>
           </div>
         </div>
       </div>
@@ -202,13 +202,13 @@ export function SchoolScheduleWeeksPage() {
         </div>
       </div>
 
-      <div className="p-6 space-y-5 bg-gray-50 min-h-full">
+      <div className="p-6 space-y-5 bg-[#f8fafc] min-h-full">
 
         {/* Loading */}
         {weeksLoading && (
           <div className="space-y-2">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-16 bg-white rounded-2xl border border-gray-100 animate-pulse" />
+              <div key={i} className="h-16 bg-white rounded-2xl border border-[#eef2f6] animate-pulse" />
             ))}
           </div>
         )}
@@ -227,7 +227,7 @@ export function SchoolScheduleWeeksPage() {
 
         {/* Empty */}
         {!weeksLoading && !weeksError && weeks.length === 0 && (
-          <div className="bg-white rounded-2xl border border-gray-100 py-20 flex flex-col items-center gap-4 text-center">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] py-20 flex flex-col items-center gap-4 text-center">
             <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center">
               <CalendarDays className="w-7 h-7 text-emerald-400" />
             </div>
@@ -252,11 +252,11 @@ export function SchoolScheduleWeeksPage() {
               <p className="text-sm text-gray-500">{weeks.length} أسبوع دراسي</p>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50/50">
+                    <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                       <th className="text-right px-4 py-3 text-xs font-bold text-gray-500">رقم الأسبوع</th>
                       <th className="text-right px-4 py-3 text-xs font-bold text-gray-500">الفترة</th>
                       <th className="text-right px-4 py-3 text-xs font-bold text-gray-500">القالب</th>
@@ -267,8 +267,8 @@ export function SchoolScheduleWeeksPage() {
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {[...weeks].sort((a, b) => a.weekNumber - b.weekNumber).map((week: any) => (
-                      <tr key={week.id} className={clsx("hover:bg-gray-50/50 transition-colors", week.isActive && "bg-emerald-50/30")}>
-                        <td className="px-4 py-3">
+                      <tr key={week.id} className={clsx("hover:bg-[#f8fafc]/50 transition-colors", week.isActive && "bg-emerald-50/30")}>
+                        <td className="px-[10px] py-[6px]">
                           <div className="flex items-center gap-2">
                             <span className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold flex items-center justify-center">
                               {week.weekNumber}
@@ -276,10 +276,10 @@ export function SchoolScheduleWeeksPage() {
                             {week.label && <span className="text-gray-600 text-sm">{week.label}</span>}
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-gray-600" dir="ltr">
+                        <td className="px-[10px] py-[6px] text-gray-600" dir="ltr">
                           <span className="text-xs">{formatDate(week.startDate)} — {formatDate(week.endDate)}</span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           {week.templateId ? (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
                               {getTemplateName(week.templateId)}
@@ -288,14 +288,14 @@ export function SchoolScheduleWeeksPage() {
                             <span className="text-gray-400 text-xs">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           {week.semesterId ? (
                             <span className="text-sm text-gray-600">{getSemesterName(week.semesterId)}</span>
                           ) : (
                             <span className="text-gray-400 text-xs">—</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           {week.isActive ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700 border border-emerald-200">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
@@ -305,7 +305,7 @@ export function SchoolScheduleWeeksPage() {
                             <span className="text-gray-400 text-xs">غير نشط</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           <div className="flex items-center gap-1.5">
                             {!week.isActive && (
                               <button

@@ -72,7 +72,7 @@ function RenderBlock({ block, primary, font }: {
           <div className="max-w-5xl mx-auto px-4 text-center">
             {!!c.title && <h1 className="text-3xl md:text-4xl font-extrabold text-white mb-3" style={{ fontFamily: font }}>{String(c.title)}</h1>}
             {!!c.subtitle && <p className="text-white/80 text-lg mb-6">{String(c.subtitle)}</p>}
-            {!!c.buttonText && <a href={safeHref(String(c.buttonLink || "#"))} className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl font-bold text-sm bg-white" style={{ color: bg }}>{String(c.buttonText)}</a>}
+            {!!c.buttonText && <a href={safeHref(String(c.buttonLink || "#"))} className="inline-flex items-center gap-2 px-8 py-[6px] rounded-xl font-bold text-sm bg-white" style={{ color: bg }}>{String(c.buttonText)}</a>}
           </div>
         </section>
       );
@@ -128,7 +128,7 @@ function RenderBlock({ block, primary, font }: {
               {!!c.title && <p className="text-2xl md:text-3xl font-extrabold text-white mb-2" style={{ fontFamily: font }}>{String(c.title)}</p>}
               {!!c.subtitle && <p className="text-white/75 text-base mb-8">{String(c.subtitle)}</p>}
               {!!c.buttonText && (
-                <a href={safeHref(String(c.buttonLink || "#"))} className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl font-bold text-sm bg-white shadow-lg" style={{ color: bg }}>
+                <a href={safeHref(String(c.buttonLink || "#"))} className="inline-flex items-center gap-2 px-8 py-[6px] rounded-xl font-bold text-sm bg-white shadow-lg" style={{ color: bg }}>
                   {String(c.buttonText)}
                 </a>
               )}
@@ -181,7 +181,7 @@ export function PublicPagePage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50" dir="rtl">
-        <div className="w-10 h-10 border-4 border-gray-200 rounded-full animate-spin" style={{ borderTopColor: "#5b9bd5" }} />
+        <div className="w-10 h-10 border-4 border-[#eef2f6] rounded-full animate-spin" style={{ borderTopColor: "#5b9bd5" }} />
       </div>
     );
   }

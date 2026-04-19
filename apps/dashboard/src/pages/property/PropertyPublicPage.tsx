@@ -30,14 +30,14 @@ export function PropertyPublicPage() {
   return (
     <div className="min-h-screen bg-gray-50" dir="rtl">
       {/* Header */}
-      <header className="bg-white border-b border-gray-200 px-6 py-4">
+      <header className="bg-white border-b border-[#eef2f6] px-6 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <div>
             <h1 className="text-xl font-bold text-gray-900">{orgName || "الوحدات المتاحة"}</h1>
             <p className="text-gray-500 text-sm">وحدات للتأجير</p>
           </div>
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold"
+            className="w-9 h-9 rounded-[10px] flex items-center justify-center text-white font-bold"
             style={{ backgroundColor: "#5b9bd5" }}
           >
             {orgName?.charAt(0) ?? "ن"}
@@ -71,7 +71,7 @@ export function PropertyPublicPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {listings.map((listing: any) => (
-              <div key={listing.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+              <div key={listing.id} className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden hover:shadow-md transition-shadow">
                 {listing.imageUrl ? (
                   <img
                     src={listing.imageUrl}
@@ -125,7 +125,7 @@ export function PropertyPublicPage() {
         )}
       </main>
 
-      <footer className="mt-12 py-6 text-center text-gray-400 text-xs border-t border-gray-100">
+      <footer className="mt-12 py-6 text-center text-gray-400 text-xs border-t border-[#eef2f6]">
         مدعوم بواسطة ترميز OS
       </footer>
     </div>

@@ -91,7 +91,7 @@ export function FlowerQuickSetupPage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-1">متجرك جاهز</h1>
           <p className="text-sm text-gray-400">{result?.profile}</p>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 text-right">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 text-right">
           <p className="text-xs font-semibold text-gray-500 mb-3">ما تم إنشاؤه:</p>
           <div className="grid grid-cols-2 gap-2 text-sm">
             {[
@@ -111,7 +111,7 @@ export function FlowerQuickSetupPage() {
             ))}
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 p-5 text-right space-y-3">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 text-right space-y-3">
           <p className="text-sm font-semibold text-gray-700 mb-3">الخطوات التالية:</p>
           {[
             { text: "عدّل أسماء الخدمات وأسعارها", href: "/dashboard/flower-catalog" },
@@ -189,12 +189,12 @@ export function FlowerQuickSetupPage() {
                   "flex items-start gap-3 text-right rounded-2xl border p-4 transition-colors",
                   selectedProfile === p.profile_key
                     ? "border-brand-400 bg-brand-50"
-                    : "border-gray-100 bg-white hover:border-gray-200"
+                    : "border-[#eef2f6] bg-white hover:border-[#eef2f6]"
                 )}
               >
                 <div className={clsx(
                   "w-4 h-4 rounded-full border-2 shrink-0 mt-0.5 transition-colors",
-                  selectedProfile === p.profile_key ? "border-brand-500 bg-brand-500" : "border-gray-300"
+                  selectedProfile === p.profile_key ? "border-brand-500 bg-brand-500" : "border-[#eef2f6]"
                 )} />
                 <div>
                   <p className="text-sm font-semibold text-gray-900">{p.name}</p>
@@ -224,7 +224,7 @@ export function FlowerQuickSetupPage() {
       </div>
 
       {/* What will be created */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h2 className="text-sm font-semibold text-gray-800 mb-3">ما الذي سيُنشأ تلقائياً:</h2>
         <div className="space-y-2 text-sm text-gray-600">
           {[

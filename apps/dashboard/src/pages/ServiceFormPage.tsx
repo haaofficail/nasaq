@@ -275,15 +275,15 @@ const INIT_COMP: ComponentDraft = { sourceType: "manual", inventoryItemId: "", a
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const iCls = "w-full border border-gray-200 h-10 rounded-xl px-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300";
-const taCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300 resize-none";
+const iCls = "w-full border border-[#eef2f6] h-10 rounded-xl px-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300";
+const taCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300 resize-none";
 
 function FilePreviewInput({ accept, icon, label }: { accept: string; icon: React.ReactNode; label: string }) {
   const [fileName, setFileName] = useState<string | null>(null);
   return (
     <label className={clsx(
       "flex items-center gap-2 px-3 py-2 rounded-lg border text-sm cursor-pointer transition-colors w-fit max-w-full",
-      fileName ? "border-brand-300 bg-brand-50 text-brand-600" : "border-gray-200 bg-white text-gray-500 hover:border-brand-300",
+      fileName ? "border-brand-300 bg-brand-50 text-brand-600" : "border-[#eef2f6] bg-white text-gray-500 hover:border-brand-300",
     )}>
       {icon}
       <span className="truncate max-w-[200px]">{fileName ?? label}</span>
@@ -315,11 +315,11 @@ function FormSection({ title, icon: Icon, children, defaultOpen = true }: {
 }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#f8fafc] transition-colors"
       >
         <div className="flex items-center gap-2">
           <Icon className="w-4 h-4 text-brand-500" />
@@ -770,7 +770,7 @@ export function ServiceFormPage() {
           {isEdit && (
             <button
               onClick={() => navigate(`/dashboard/services/${id}`)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg border border-[#eef2f6] text-sm font-medium text-gray-500 hover:bg-[#f8fafc] transition-colors"
               title="موظفون، متطلبات، وصفة، أسئلة..."
             >
               <Settings className="w-3.5 h-3.5" />
@@ -778,7 +778,7 @@ export function ServiceFormPage() {
             </button>
           )}
           <button onClick={cancel}
-            className="px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
+            className="px-3.5 py-1.5 rounded-lg border border-[#eef2f6] text-sm font-medium text-gray-500 hover:bg-[#f8fafc] transition-colors">
             إلغاء
           </button>
           <button onClick={save} disabled={saving || !showForm}
@@ -793,7 +793,7 @@ export function ServiceFormPage() {
 
         {/* ── Type selection (create only, hidden if type came from picker) ── */}
         {!isEdit && !typeAlreadyPicked && (
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5">
             <h2 className="text-sm font-semibold text-gray-900 mb-1">نوع الخدمة <span className="text-red-400">*</span></h2>
             <p className="text-xs text-gray-400 mb-4">اختر نوع الخدمة التي تقدمها — يؤثر على حقول الحجز والتسعير</p>
             {errors.serviceType && (
@@ -811,7 +811,7 @@ export function ServiceFormPage() {
                       "flex flex-col items-center gap-1.5 py-3 px-1 rounded-xl border text-center transition-all hover:border-brand-300 hover:bg-brand-50/40",
                       form.serviceType === t.value
                         ? "border-brand-500 bg-brand-50"
-                        : "border-gray-100 bg-white"
+                        : "border-[#eef2f6] bg-white"
                     )}
                   >
                     <Icon className={clsx("w-5 h-5", form.serviceType === t.value ? "text-brand-500" : "text-gray-400")} />
@@ -846,7 +846,7 @@ export function ServiceFormPage() {
 
             {/* Service Mode toggle */}
             {canToggleMode && (
-              <div className="flex items-center justify-between px-4 py-3 bg-white border border-gray-100 rounded-xl">
+              <div className="flex items-center justify-between px-4 py-3 bg-white border border-[#eef2f6] rounded-xl">
                 <div className="flex items-center gap-2">
                   <Layers className="w-4 h-4 text-gray-400" />
                   <div>
@@ -858,7 +858,7 @@ export function ServiceFormPage() {
                     </p>
                   </div>
                 </div>
-                <div className="flex gap-0.5 bg-gray-100 rounded-xl p-0.5">
+                <div className="flex gap-0.5 bg-[#f1f5f9] rounded-xl p-0.5">
                   {([
                     { v: "booking",   l: "حجز" },
                     { v: "execution", l: "تنفيذ" },
@@ -954,7 +954,7 @@ export function ServiceFormPage() {
                           setForm(f => ({ ...f, barcode: `NSQ${ts}${rand}` }));
                         }
                       }}
-                      className="px-3 py-2 rounded-xl border border-gray-200 text-gray-500 hover:text-brand-600 hover:border-brand-200 hover:bg-brand-50 transition-colors shrink-0"
+                      className="px-3 py-2 rounded-xl border border-[#eef2f6] text-gray-500 hover:text-brand-600 hover:border-brand-200 hover:bg-brand-50 transition-colors shrink-0"
                       title="توليد باركود جديد">
                       <RefreshCw size={14} />
                     </button>
@@ -968,7 +968,7 @@ export function ServiceFormPage() {
               <div className="space-y-3">
                 <div>
                   <label className="text-xs font-medium text-gray-700 block mb-1.5">طريقة التسعير</label>
-                  <div className="flex gap-0.5 bg-gray-100 rounded-xl p-0.5 w-fit">
+                  <div className="flex gap-0.5 bg-[#f1f5f9] rounded-xl p-0.5 w-fit">
                     {[
                       { v: "fixed",      l: "سعر ثابت" },
                       { v: "from_price", l: "يبدأ من" },
@@ -1037,7 +1037,7 @@ export function ServiceFormPage() {
                     <div>
                       <label className="text-xs font-medium text-gray-700 block mb-1.5">{typeConfig.durationLabel || "مدة التأجير"}</label>
                       <p className="text-[11px] text-gray-400 mb-2">حدد كيف تُحسب مدة التأجير — ثابتة لكل طلب أو يحددها العميل عند الطلب</p>
-                      <div className="flex gap-0.5 bg-gray-100 rounded-xl p-0.5 w-fit">
+                      <div className="flex gap-0.5 bg-[#f1f5f9] rounded-xl p-0.5 w-fit">
                         {([
                           { v: "fixed",    l: "مدة ثابتة" },
                           { v: "on_order", l: "يُحدد عند الطلب (من → إلى)" },
@@ -1072,7 +1072,7 @@ export function ServiceFormPage() {
                       </div>
                     )}
                     {form.rentalDurationMode === "on_order" && (
-                      <div className="flex items-start gap-2.5 px-3 py-2.5 bg-gray-50 border border-gray-100 rounded-xl text-xs text-gray-500">
+                      <div className="flex items-start gap-2.5 px-3 py-2.5 bg-[#f8fafc] border border-[#eef2f6] rounded-xl text-xs text-gray-500">
                         <Clock className="w-3.5 h-3.5 shrink-0 mt-0.5 text-gray-400" />
                         <span>العميل يحدد تاريخ البداية والنهاية عند إنشاء الطلب — لا توجد مدة ثابتة مسبقة</span>
                       </div>
@@ -1082,7 +1082,7 @@ export function ServiceFormPage() {
                 <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer select-none w-fit">
                   <div className={clsx(
                     "w-4 h-4 rounded-md border-2 flex items-center justify-center transition-colors shrink-0",
-                    form.vatInclusive ? "bg-brand-500 border-brand-500" : "border-gray-300 bg-white"
+                    form.vatInclusive ? "bg-brand-500 border-brand-500" : "border-[#eef2f6] bg-white"
                   )}>
                     {form.vatInclusive && <svg viewBox="0 0 10 8" className="w-2.5 h-2.5 fill-none stroke-white stroke-2"><polyline points="1,4 4,7 9,1" /></svg>}
                   </div>
@@ -1154,7 +1154,7 @@ export function ServiceFormPage() {
 
             {/* Card: Amenities — only for rental types */}
             {["rental", "event_rental"].includes(form.serviceType) && (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-5">
                 <h2 className="text-sm font-semibold text-gray-900 mb-1 pb-3 border-b border-gray-50">المرافق والمميزات</h2>
                 <p className="text-[11px] text-gray-400 mb-4">حدد المرافق المتاحة — تظهر للعميل عند الحجز</p>
                 <div className="space-y-5">
@@ -1179,7 +1179,7 @@ export function ServiceFormPage() {
                                   "px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
                                   checked
                                     ? "bg-brand-50 border-brand-300 text-brand-700"
-                                    : "bg-white border-gray-200 text-gray-500 hover:border-brand-200 hover:text-brand-600"
+                                    : "bg-white border-[#eef2f6] text-gray-500 hover:border-brand-200 hover:text-brand-600"
                                 )}>
                                 {a.label}
                               </button>
@@ -1216,7 +1216,7 @@ export function ServiceFormPage() {
                   </div>
                   <div className="flex flex-wrap gap-3">
                     {mediaItems.map((m, i) => (
-                      <div key={i} className="relative w-24 h-24 rounded-xl overflow-hidden border border-gray-200 group">
+                      <div key={i} className="relative w-24 h-24 rounded-2xl overflow-hidden border border-[#eef2f6] group">
                         <img src={m.preview} alt="" className="w-full h-full object-cover" />
                         {m.uploading && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -1251,7 +1251,7 @@ export function ServiceFormPage() {
                     ))}
                     {/* Add button */}
                     <button type="button" onClick={() => fileRef.current?.click()}
-                      className="flex flex-col items-center justify-center w-24 h-24 rounded-xl border-2 border-dashed border-gray-200 hover:border-brand-300 hover:bg-brand-50/20 transition-all">
+                      className="flex flex-col items-center justify-center w-24 h-24 rounded-xl border-2 border-dashed border-[#eef2f6] hover:border-brand-300 hover:bg-brand-50/20 transition-all">
                       <Upload className="w-5 h-5 text-gray-300 mb-1" />
                       <span className="text-[11px] text-gray-400">إضافة صورة</span>
                     </button>
@@ -1262,7 +1262,7 @@ export function ServiceFormPage() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-gray-600 block mb-2">الحالة</label>
-                  <div className="flex gap-0.5 bg-gray-100 rounded-xl p-0.5 w-fit">
+                  <div className="flex gap-0.5 bg-[#f1f5f9] rounded-xl p-0.5 w-fit">
                     {[
                       { v: "active", l: "نشطة" },
                       { v: "draft",  l: "مسودة" },
@@ -1288,7 +1288,7 @@ export function ServiceFormPage() {
                   { key: "isVisibleOnline", label: "المتجر الإلكتروني",  desc: "يظهر في المتجر" },
                 ].map(({ key, label, desc }) => (
                   <label key={key}
-                    className="flex items-center justify-between py-2.5 px-3 rounded-xl cursor-pointer select-none hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100">
+                    className="flex items-center justify-between py-2.5 px-3 rounded-xl cursor-pointer select-none hover:bg-[#f8fafc] transition-colors border border-transparent hover:border-[#eef2f6]">
                     <div>
                       <p className="text-sm font-medium text-gray-800">{label}</p>
                       <p className="text-[11px] text-gray-400">{desc}</p>
@@ -1319,7 +1319,7 @@ export function ServiceFormPage() {
                     الفروع <span className="text-gray-400 font-normal normal-case">— اتركها فارغة لتظهر في كل الفروع</span>
                   </label>
                   {branches.length === 0 ? (
-                    <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-[#f8fafc] rounded-xl border border-dashed border-[#eef2f6]">
                       <MapPin className="w-3.5 h-3.5 shrink-0" />
                       <span>لا توجد فروع مضافة —{" "}
                         <Link to="/dashboard/settings" className="text-brand-500 hover:text-brand-700 font-medium underline underline-offset-2 transition-colors">
@@ -1340,7 +1340,7 @@ export function ServiceFormPage() {
                               "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all",
                               active
                                 ? "bg-brand-50 text-brand-700 border-brand-300"
-                                : "bg-gray-50 text-gray-500 border-gray-200 hover:border-gray-300"
+                                : "bg-gray-50 text-gray-500 border-[#eef2f6] hover:border-[#eef2f6]"
                             )}>
                             {b.name}
                             {b.isMainBranch && (
@@ -1361,7 +1361,7 @@ export function ServiceFormPage() {
                 <div>
                   <label className="text-xs font-medium text-gray-700 block mb-1.5">القسم</label>
                   {categories.length === 0 ? (
-                    <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                    <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-[#f8fafc] rounded-xl border border-dashed border-[#eef2f6]">
                       <Layers className="w-3.5 h-3.5 shrink-0" />
                       <span>لا توجد أقسام —{" "}
                         <Link to="/dashboard/catalog?tab=categories" className="text-brand-500 hover:text-brand-700 font-medium underline underline-offset-2 transition-colors">
@@ -1384,7 +1384,7 @@ export function ServiceFormPage() {
               <FormSection title="قالب التنفيذ الافتراضي" icon={Package} defaultOpen={false}>
                 <p className="text-xs text-gray-400 -mt-2 mb-3">خطة داخلية لتجهيز الخدمة (العناصر، الكميات، العمال) — تُطبَّق تلقائياً عند إنشاء الطلب</p>
                 {templates.length === 0 ? (
-                  <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                  <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-[#f8fafc] rounded-xl border border-dashed border-[#eef2f6]">
                     <Package className="w-3.5 h-3.5 shrink-0" />
                     <span>لا توجد قوالب تنفيذ —{" "}
                       <Link to="/dashboard/event-packages" className="text-brand-500 hover:text-brand-700 font-medium underline underline-offset-2 transition-colors">
@@ -1480,7 +1480,7 @@ export function ServiceFormPage() {
                 </select>
               )}
               {staffMembers.length === 0 && loadedStaff.length === 0 && pendingStaffIds.length === 0 && (
-                <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-[#f8fafc] rounded-xl border border-dashed border-[#eef2f6]">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   <span>لا يوجد موظفون —{" "}
                     <Link to="/dashboard/team" className="text-brand-500 hover:text-brand-700 font-medium underline underline-offset-2 transition-colors">
@@ -1505,7 +1505,7 @@ export function ServiceFormPage() {
               {isEdit && loadedComponents.length > 0 && (
                 <div className="space-y-2 mb-4">
                   {loadedComponents.map((c: any) => (
-                    <div key={c.id} className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-xl text-sm">
+                    <div key={c.id} className="flex items-center gap-3 px-3 py-2.5 bg-[#f8fafc] rounded-xl text-sm">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <p className="font-medium text-gray-800">{c.customerLabel || c.name}</p>
@@ -1584,10 +1584,10 @@ export function ServiceFormPage() {
               {componentDrafts.length > 0 && (
                 <div className="space-y-3">
                   {componentDrafts.map((c, i) => (
-                    <div key={i} className="border border-gray-100 rounded-xl p-4 space-y-3">
+                    <div key={i} className="border border-[#eef2f6] rounded-xl p-4 space-y-3">
                       {/* Source type + delete */}
                       <div className="flex items-center justify-between">
-                        <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
+                        <div className="flex gap-0.5 bg-[#f1f5f9] rounded-lg p-0.5">
                           {(["manual", "inventory", "asset"] as const).map(t => (
                             <button key={t} type="button"
                               onClick={() => setComponentDrafts(d => d.map((x, j) => j === i ? { ...x, sourceType: t, inventoryItemId: "", assetId: "", name: "", unitCost: t === "asset" ? "0" : x.unitCost } : x))}
@@ -1619,7 +1619,7 @@ export function ServiceFormPage() {
                         <div>
                           <label className="text-xs font-medium text-gray-700 block mb-1.5">المنتج من المخزون <span className="text-red-400">*</span></label>
                           {products.length === 0 ? (
-                            <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                            <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-[#f8fafc] rounded-xl border border-dashed border-[#eef2f6]">
                               <Package className="w-3.5 h-3.5 shrink-0" />
                               <span>لا توجد منتجات في المخزون —{" "}
                                 <Link to="/dashboard/inventory" className="text-brand-500 hover:text-brand-700 font-medium underline underline-offset-2 transition-colors">
@@ -1658,7 +1658,7 @@ export function ServiceFormPage() {
                         <div>
                           <label className="text-xs font-medium text-gray-700 block mb-1.5">الأصل / المعدة <span className="text-red-400">*</span></label>
                           {assetsList.length === 0 ? (
-                            <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                            <div className="flex items-center gap-2 text-xs text-gray-400 py-2 px-3 bg-[#f8fafc] rounded-xl border border-dashed border-[#eef2f6]">
                               <Wrench className="w-3.5 h-3.5 shrink-0" />
                               <span>لا توجد أصول مسجلة —{" "}
                                 <Link to="/dashboard/inventory?tab=assets" className="text-brand-500 hover:text-brand-700 font-medium underline underline-offset-2 transition-colors">
@@ -1758,7 +1758,7 @@ export function ServiceFormPage() {
               {isEdit && loadedAddons.length > 0 && (
                 <div className="space-y-2 mb-4">
                   {loadedAddons.map((a: any) => (
-                    <div key={a.id} className="flex items-center gap-3 px-3 py-2.5 bg-gray-50 rounded-xl">
+                    <div key={a.id} className="flex items-center gap-3 px-3 py-2.5 bg-[#f8fafc] rounded-xl">
                       {a.image && <img src={a.image} className="w-9 h-9 rounded-lg object-cover shrink-0" alt="" />}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-800">{a.name}</p>
@@ -1786,13 +1786,13 @@ export function ServiceFormPage() {
               {addonDrafts.length > 0 && (
                 <div className="space-y-3">
                   {addonDrafts.map((a, i) => (
-                    <div key={i} className="border border-gray-100 rounded-xl p-4 space-y-3">
+                    <div key={i} className="border border-[#eef2f6] rounded-xl p-4 space-y-3">
                       {/* Header row: image + name + delete */}
                       <div className="flex gap-3 items-start">
                         {/* Image */}
                         <div className="shrink-0">
                           {a.imageUrl ? (
-                            <div className="relative w-14 h-14 rounded-xl overflow-hidden border border-gray-200">
+                            <div className="relative w-14 h-14 rounded-2xl overflow-hidden border border-[#eef2f6]">
                               <img src={a.imageUrl} className="w-full h-full object-cover" alt="" />
                               <button onClick={() => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, imageUrl: "" } : x))}
                                 className="absolute top-0.5 right-0.5 w-4 h-4 bg-black/60 rounded flex items-center justify-center">
@@ -1802,7 +1802,7 @@ export function ServiceFormPage() {
                           ) : (
                             <button type="button"
                               onClick={() => { setAddonUploadIdx(i); addonFileRef.current?.click(); }}
-                              className="w-14 h-14 rounded-xl border-2 border-dashed border-gray-200 hover:border-brand-300 flex flex-col items-center justify-center gap-0.5 transition-colors">
+                              className="w-14 h-14 rounded-xl border-2 border-dashed border-[#eef2f6] hover:border-brand-300 flex flex-col items-center justify-center gap-0.5 transition-colors">
                               <Upload className="w-4 h-4 text-gray-300" />
                               <span className="text-[9px] text-gray-400">صورة</span>
                             </button>
@@ -1841,7 +1841,7 @@ export function ServiceFormPage() {
                             id={`addon-req-${i}`}
                             checked={a.type === "required"}
                             onChange={e => setAddonDrafts(d => d.map((x, j) => j === i ? { ...x, type: e.target.checked ? "required" : "optional" } : x))}
-                            className="w-4 h-4 rounded border-gray-300 accent-brand-500 cursor-pointer"
+                            className="w-4 h-4 rounded border-[#eef2f6] accent-brand-500 cursor-pointer"
                           />
                           <label htmlFor={`addon-req-${i}`} className="text-sm text-gray-700 cursor-pointer select-none">إلزامي</label>
                         </div>
@@ -1875,7 +1875,7 @@ export function ServiceFormPage() {
               {questionDrafts.length > 0 && (
                 <div className="space-y-2">
                   {questionDrafts.map((q, i) => (
-                    <div key={i} className="p-4 bg-gray-50 rounded-xl space-y-3 border border-gray-100">
+                    <div key={i} className="p-4 bg-[#f8fafc] rounded-xl space-y-3 border border-[#eef2f6]">
                       {/* Row: question text + type + delete */}
                       <div className="flex gap-3 items-end">
                         <div className="flex-1">
@@ -1890,7 +1890,7 @@ export function ServiceFormPage() {
                           <label className="text-xs font-medium text-gray-700 block mb-1.5">نوع الإجابة</label>
                           <button type="button"
                             onClick={() => setQuestionPickerIdx(questionPickerIdx === i ? null : i)}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:border-brand-300 transition-all text-sm text-gray-700 min-w-[140px]">
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-[#eef2f6] bg-white hover:border-brand-300 transition-all text-sm text-gray-700 min-w-[140px]">
                             {(() => { const t = QUESTION_TYPES.find(x => x.value === q.type); const Icon = t?.icon; return Icon ? <Icon className="w-3.5 h-3.5 text-gray-400" /> : null; })()}
                             <span className="flex-1 text-right">{QUESTION_TYPES.find(x => x.value === q.type)?.label || "اختر"}</span>
                             <ChevronDown className="w-3 h-3 text-gray-400" />
@@ -1910,7 +1910,7 @@ export function ServiceFormPage() {
                           className={clsx("px-3 py-1 rounded-lg text-xs font-medium transition-all border",
                             q.isRequired
                               ? "bg-red-50 text-red-600 border-red-200"
-                              : "bg-gray-50 text-gray-400 border-gray-200 hover:text-gray-600"
+                              : "bg-gray-50 text-gray-400 border-[#eef2f6] hover:text-gray-600"
                           )}>
                           إلزامي
                         </button>
@@ -1919,7 +1919,7 @@ export function ServiceFormPage() {
                           className={clsx("px-3 py-1 rounded-lg text-xs font-medium transition-all border",
                             q.isPaid
                               ? "bg-green-50 text-green-600 border-green-200"
-                              : "bg-gray-50 text-gray-400 border-gray-200 hover:text-gray-600"
+                              : "bg-gray-50 text-gray-400 border-[#eef2f6] hover:text-gray-600"
                           )}>
                           بمقابل مالي
                         </button>
@@ -1936,7 +1936,7 @@ export function ServiceFormPage() {
                         </div>
                       )}
                       {/* Answer preview / options builder */}
-                      <div className="rounded-xl border border-dashed border-gray-200 p-3 bg-gray-50/60">
+                      <div className="rounded-xl border border-dashed border-[#eef2f6] p-3 bg-gray-50/60">
                         <div className="flex items-center gap-1.5 mb-2">
                           <p className="text-[10px] font-semibold text-gray-500">معاينة حقل الإجابة</p>
                           <span className="text-[9px] bg-gray-200 text-gray-500 px-1.5 py-0.5 rounded-full">كما يراه العميل</span>
@@ -1944,19 +1944,19 @@ export function ServiceFormPage() {
 
                         {(q.type === "text" || q.type === "location") && (
                           <input placeholder="يكتب العميل إجابته هنا..."
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white" />
+                            className="w-full rounded-lg border border-[#eef2f6] px-3 py-2 text-sm bg-white" />
                         )}
                         {q.type === "textarea" && (
                           <textarea rows={2} placeholder="يكتب العميل إجابته هنا..."
-                            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white resize-none" />
+                            className="w-full rounded-lg border border-[#eef2f6] px-3 py-2 text-sm bg-white resize-none" />
                         )}
                         {q.type === "number" && (
                           <input type="number" placeholder="0"
-                            className="w-32 rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white" dir="ltr" />
+                            className="w-32 rounded-lg border border-[#eef2f6] px-3 py-2 text-sm bg-white" dir="ltr" />
                         )}
                         {q.type === "date" && (
                           <input type="date"
-                            className="rounded-lg border border-gray-200 px-3 py-2 text-sm bg-white" dir="ltr" />
+                            className="rounded-lg border border-[#eef2f6] px-3 py-2 text-sm bg-white" dir="ltr" />
                         )}
                         {(q.type === "file" || q.type === "image") && (
                           <FilePreviewInput
@@ -1971,7 +1971,7 @@ export function ServiceFormPage() {
                             <p className="text-[10px] text-gray-400 mb-1">أضف الخيارات:</p>
                             {q.options.map((opt, oi) => (
                               <div key={oi} className="flex items-center gap-2">
-                                <div className={clsx("w-4 h-4 shrink-0 border-2 border-gray-300",
+                                <div className={clsx("w-4 h-4 shrink-0 border-2 border-[#eef2f6]",
                                   q.type === "multi" ? "rounded" : "rounded-full")} />
                                 <input value={opt} placeholder={`خيار ${oi + 1}`}
                                   onChange={e => {
@@ -2019,7 +2019,7 @@ export function ServiceFormPage() {
                       {questionPickerIdx === i && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setQuestionPickerIdx(null)} />
-                          <div className="relative z-20 mt-2 p-3 bg-white border border-gray-200 rounded-xl shadow-lg">
+                          <div className="relative z-20 mt-2 p-3 bg-white border border-[#eef2f6] rounded-xl shadow-lg">
                           <div className="grid grid-cols-2 gap-2">
                             {QUESTION_TYPES.map(t => {
                               const Icon = t.icon;
@@ -2083,11 +2083,11 @@ export function ServiceFormPage() {
       </div>
 
       {/* Sticky save bar */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-gray-100 py-3 px-6 flex items-center justify-between z-10">
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-[#eef2f6] py-3 px-6 flex items-center justify-between z-10">
         <p className="text-xs text-gray-400">{isEdit ? "أي تعديل لن يُحفظ حتى تضغط حفظ" : "ستُنشأ الخدمة فور الضغط"}</p>
         <div className="flex items-center gap-2">
           <button onClick={cancel}
-            className="px-3.5 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
+            className="px-3.5 py-1.5 rounded-lg border border-[#eef2f6] text-sm font-medium text-gray-500 hover:bg-[#f8fafc] transition-colors">
             إلغاء
           </button>
           <button onClick={save} disabled={saving || !showForm}

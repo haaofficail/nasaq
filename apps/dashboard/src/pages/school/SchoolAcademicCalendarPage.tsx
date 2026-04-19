@@ -19,7 +19,7 @@ const EVENT_TYPES: Record<string, { label: string; color: string; icon: typeof F
   national_day:{ label: "مناسبة وطنية",    color: "#10b981", bg: "bg-emerald-50 border-emerald-200 text-emerald-700", icon: Star },
   exam:        { label: "اختبار",          color: "#8b5cf6", bg: "bg-violet-50 border-violet-200 text-violet-700", icon: GraduationCap },
   activity:    { label: "نشاط مدرسي",      color: "#f59e0b", bg: "bg-amber-50 border-amber-200 text-amber-700", icon: PartyPopper },
-  other:       { label: "أخرى",            color: "#6b7280", bg: "bg-gray-50 border-gray-200 text-gray-600",  icon: CalendarDays },
+  other:       { label: "أخرى",            color: "#6b7280", bg: "bg-gray-50 border-[#eef2f6] text-gray-600",  icon: CalendarDays },
 };
 
 const SEMESTER_LABELS: Record<number, string> = { 1: "الفصل الدراسي الأول", 2: "الفصل الدراسي الثاني" };
@@ -209,7 +209,7 @@ function SemesterModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md" dir="rtl">
-        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#eef2f6]">
           <h2 className="text-base font-black text-gray-900">
             {initial?.id ? "تعديل الفصل الدراسي" : "إضافة فصل دراسي"}
           </h2>
@@ -221,12 +221,12 @@ function SemesterModal({
               <label className="block text-xs font-bold text-gray-600 mb-1">السنة الدراسية</label>
               <input value={form.yearLabel} onChange={e => set("yearLabel", e.target.value)}
                 placeholder="1446-1447"
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500" dir="ltr" />
+                className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-brand-500" dir="ltr" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">رقم الفصل</label>
               <select value={form.semesterNumber} onChange={e => set("semesterNumber", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500">
+                className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-brand-500">
                 <option value={1}>الأول</option>
                 <option value={2}>الثاني</option>
               </select>
@@ -237,26 +237,26 @@ function SemesterModal({
             <label className="block text-xs font-bold text-gray-600 mb-1">التسمية (اختياري)</label>
             <input value={form.label} onChange={e => set("label", e.target.value)}
               placeholder="الفصل الدراسي الأول"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500" />
+              className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-brand-500" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">تاريخ البداية</label>
               <input type="date" value={form.startDate} onChange={e => set("startDate", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500" dir="ltr" />
+                className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-brand-500" dir="ltr" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">تاريخ النهاية</label>
               <input type="date" value={form.endDate} onChange={e => set("endDate", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500" dir="ltr" />
+                className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-brand-500" dir="ltr" />
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-gray-600 mb-1">ملاحظات</label>
             <textarea value={form.notes} onChange={e => set("notes", e.target.value)} rows={2}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500 resize-none" />
+              className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-brand-500 resize-none" />
           </div>
 
           {err && <p className="text-xs text-red-600">{err}</p>}
@@ -267,7 +267,7 @@ function SemesterModal({
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             حفظ
           </button>
-          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-500 hover:bg-[#f8fafc]">
             إلغاء
           </button>
         </div>
@@ -324,7 +324,7 @@ function EventModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md" dir="rtl">
-        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#eef2f6]">
           <h2 className="text-base font-black text-gray-900">
             {initial?.id ? "تعديل الحدث" : "إضافة حدث"}
           </h2>
@@ -338,7 +338,7 @@ function EventModal({
                 <button key={k} onClick={() => set("eventType", k)}
                   className={clsx(
                     "flex flex-col items-center gap-0.5 p-2 rounded-xl border text-[10px] font-bold transition-all",
-                    form.eventType === k ? v.bg + " border-current" : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                    form.eventType === k ? v.bg + " border-current" : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]"
                   )}>
                   <v.icon className="w-4 h-4" />
                   {v.label}
@@ -351,26 +351,26 @@ function EventModal({
             <label className="block text-xs font-bold text-gray-600 mb-1">العنوان</label>
             <input value={form.title} onChange={e => set("title", e.target.value)}
               placeholder="مثال: إجازة اليوم الوطني"
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500" />
+              className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-brand-500" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">تاريخ البداية</label>
               <input type="date" value={form.startDate} onChange={e => set("startDate", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500" dir="ltr" />
+                className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-brand-500" dir="ltr" />
             </div>
             <div>
               <label className="block text-xs font-bold text-gray-600 mb-1">تاريخ النهاية (اختياري)</label>
               <input type="date" value={form.endDate} onChange={e => set("endDate", e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500" dir="ltr" />
+                className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-brand-500" dir="ltr" />
             </div>
           </div>
 
           <div>
             <label className="block text-xs font-bold text-gray-600 mb-1">الوصف (اختياري)</label>
             <textarea value={form.description} onChange={e => set("description", e.target.value)} rows={2}
-              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-brand-500 resize-none" />
+              className="w-full px-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-brand-500 resize-none" />
           </div>
 
           <label className="flex items-center gap-2 cursor-pointer">
@@ -387,7 +387,7 @@ function EventModal({
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
             حفظ
           </button>
-          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">
+          <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-500 hover:bg-[#f8fafc]">
             إلغاء
           </button>
         </div>
@@ -681,7 +681,7 @@ function SchoolYearSetupModal({ onClose, onDone }: { onClose: () => void; onDone
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto" dir="rtl">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl my-4">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-[#eef2f6]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center">
               <Wand2 className="w-5 h-5 text-emerald-600" />
@@ -722,7 +722,7 @@ function SchoolYearSetupModal({ onClose, onDone }: { onClose: () => void; onDone
                         "px-4 py-2.5 rounded-xl border text-xs font-bold transition-all",
                         yearKey === y
                           ? "bg-emerald-600 text-white border-emerald-600"
-                          : "bg-white text-gray-600 border-gray-200 hover:border-gray-300"
+                          : "bg-white text-gray-600 border-[#eef2f6] hover:border-[#eef2f6]"
                       )}>
                       {y}هـ
                     </button>
@@ -736,7 +736,7 @@ function SchoolYearSetupModal({ onClose, onDone }: { onClose: () => void; onDone
                 <select
                   value={city}
                   onChange={e => setCity(e.target.value)}
-                  className="w-full px-4 py-3 text-sm border border-gray-200 rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 bg-white"
+                  className="w-full px-4 py-3 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100 bg-white"
                 >
                   <option value="">-- اختر المدينة / المحافظة --</option>
                   {Object.entries(regionGroups).map(([region, cities]) => (
@@ -769,7 +769,7 @@ function SchoolYearSetupModal({ onClose, onDone }: { onClose: () => void; onDone
                   className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700 disabled:opacity-40">
                   التالي — مراجعة المواقيت
                 </button>
-                <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">
+                <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-500 hover:bg-[#f8fafc]">
                   إلغاء
                 </button>
               </div>
@@ -793,32 +793,32 @@ function SchoolYearSetupModal({ onClose, onDone }: { onClose: () => void; onDone
                       <div>
                         <label className="block text-[10px] font-bold text-gray-600 mb-1">بداية الدوام</label>
                         <input type="time" value={s.start} onChange={e => updateSchedule(season,"start",e.target.value)} dir="ltr"
-                          className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-current bg-white" />
+                          className="w-full px-2 py-1.5 text-xs border border-[#eef2f6] rounded-lg outline-none focus:border-current bg-white" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-600 mb-1">نهاية الدوام</label>
                         <input type="time" value={s.end} onChange={e => updateSchedule(season,"end",e.target.value)} dir="ltr"
-                          className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-current bg-white" />
+                          className="w-full px-2 py-1.5 text-xs border border-[#eef2f6] rounded-lg outline-none focus:border-current bg-white" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-600 mb-1">عدد الحصص</label>
                         <input type="number" min={2} max={12} value={s.periods} onChange={e => updateSchedule(season,"periods",e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-current bg-white" />
+                          className="w-full px-2 py-1.5 text-xs border border-[#eef2f6] rounded-lg outline-none focus:border-current bg-white" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-600 mb-1">مدة الحصة (دقيقة)</label>
                         <input type="number" min={20} max={90} value={s.periodMins} onChange={e => updateSchedule(season,"periodMins",e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-current bg-white" />
+                          className="w-full px-2 py-1.5 text-xs border border-[#eef2f6] rounded-lg outline-none focus:border-current bg-white" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-600 mb-1">مدة الفسحة (دقيقة)</label>
                         <input type="number" min={0} max={45} value={s.breakMins} onChange={e => updateSchedule(season,"breakMins",e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-current bg-white" />
+                          className="w-full px-2 py-1.5 text-xs border border-[#eef2f6] rounded-lg outline-none focus:border-current bg-white" />
                       </div>
                       <div>
                         <label className="block text-[10px] font-bold text-gray-600 mb-1">الفسحة بعد الحصة</label>
                         <input type="number" min={1} max={10} value={s.breakAfter} onChange={e => updateSchedule(season,"breakAfter",e.target.value)}
-                          className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg outline-none focus:border-current bg-white" />
+                          className="w-full px-2 py-1.5 text-xs border border-[#eef2f6] rounded-lg outline-none focus:border-current bg-white" />
                       </div>
                     </div>
                     <p className="text-[10px] text-gray-400 mt-2">
@@ -832,7 +832,7 @@ function SchoolYearSetupModal({ onClose, onDone }: { onClose: () => void; onDone
                   className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-sm font-bold hover:bg-emerald-700">
                   التالي — تأكيد الإعداد
                 </button>
-                <button onClick={() => setStep(1)} className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">
+                <button onClick={() => setStep(1)} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-500 hover:bg-[#f8fafc]">
                   رجوع
                 </button>
               </div>
@@ -865,7 +865,7 @@ function SchoolYearSetupModal({ onClose, onDone }: { onClose: () => void; onDone
 
               {/* Progress */}
               {(running || done) && (
-                <div className="space-y-1.5 bg-gray-50 rounded-2xl p-4 max-h-64 overflow-y-auto">
+                <div className="space-y-1.5 bg-[#f8fafc] rounded-2xl p-4 max-h-64 overflow-y-auto">
                   {progress.map((p, i) => (
                     <div key={i} className={clsx(
                       "flex items-center gap-2 text-xs",
@@ -897,7 +897,7 @@ function SchoolYearSetupModal({ onClose, onDone }: { onClose: () => void; onDone
                   </button>
                 )}
                 {!running && !done && (
-                  <button onClick={() => setStep(2)} className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">
+                  <button onClick={() => setStep(2)} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-500 hover:bg-[#f8fafc]">
                     رجوع
                   </button>
                 )}
@@ -961,7 +961,7 @@ function ImportCalendarModal({ onClose, onImported }: { onClose: () => void; onI
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg my-4" dir="rtl">
-        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-[#eef2f6]">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-brand-500/10 flex items-center justify-center">
               <Download className="w-4 h-4 text-brand-500" />
@@ -976,7 +976,7 @@ function ImportCalendarModal({ onClose, onImported }: { onClose: () => void; onI
 
         <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
           {OFFICIAL_CALENDAR_1446_1447.semesters.map((sem, si) => (
-            <div key={si} className="border border-gray-100 rounded-2xl overflow-hidden">
+            <div key={si} className="border border-[#eef2f6] rounded-2xl overflow-hidden">
               <div className={clsx(
                 "px-4 py-2.5 flex items-center gap-2",
                 si === 0 ? "bg-brand-500/8 border-b border-brand-500/10" : "bg-amber-50/60 border-b border-amber-100"
@@ -1049,7 +1049,7 @@ function ImportCalendarModal({ onClose, onImported }: { onClose: () => void; onI
             </button>
           )}
           {!done && (
-            <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-500 hover:bg-gray-50">
+            <button onClick={onClose} className="px-4 py-2.5 rounded-xl border border-[#eef2f6] text-sm text-gray-500 hover:bg-[#f8fafc]">
               إلغاء
             </button>
           )}
@@ -1169,11 +1169,11 @@ export function SchoolAcademicCalendarPage() {
       {semLoading ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[1, 2].map(i => (
-            <div key={i} className="h-28 bg-gray-100 rounded-2xl animate-pulse" />
+            <div key={i} className="h-28 bg-[#f1f5f9] rounded-2xl animate-pulse" />
           ))}
         </div>
       ) : semesters.length === 0 ? (
-        <div className="bg-white border border-dashed border-gray-200 rounded-2xl p-10 text-center">
+        <div className="bg-white border border-dashed border-[#eef2f6] rounded-2xl p-10 text-center">
           <CalendarRange className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-sm text-gray-500 font-medium">لا توجد فصول دراسية بعد</p>
           <p className="text-xs text-gray-400 mt-1">أضف الفصل الدراسي الأول والثاني لبدء التخطيط</p>
@@ -1199,7 +1199,7 @@ export function SchoolAcademicCalendarPage() {
                   "text-right p-4 rounded-2xl border transition-all",
                   isSelected
                     ? "border-brand-500 bg-brand-500/5 ring-2 ring-[#5b9bd5]/20"
-                    : "border-gray-100 bg-white hover:border-brand-500/40"
+                    : "border-[#eef2f6] bg-white hover:border-brand-500/40"
                 )}
               >
                 <div className="flex items-start justify-between gap-2 mb-2">
@@ -1266,7 +1266,7 @@ export function SchoolAcademicCalendarPage() {
 
       {/* Detail panel — only if a semester is selected */}
       {selectedSem && (
-        <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-hidden">
 
           {/* Panel header */}
           <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between gap-4">
@@ -1282,7 +1282,7 @@ export function SchoolAcademicCalendarPage() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex gap-1 bg-gray-100 rounded-xl p-1">
+              <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1">
                 {([
                   { id: "weeks",  label: "الأسابيع",  icon: CalendarRange },
                   { id: "events", label: "الأحداث",   icon: CalendarDays },
@@ -1334,7 +1334,7 @@ export function SchoolAcademicCalendarPage() {
                   return (
                     <>
                       {/* إحصاء سريع */}
-                      <div className="flex items-center gap-3 px-5 py-3 bg-gray-50/60 border-b border-gray-100 flex-wrap">
+                      <div className="flex items-center gap-3 px-5 py-3 bg-gray-50/60 border-b border-[#eef2f6] flex-wrap">
                         <div className="flex items-center gap-1.5 text-xs font-bold text-brand-500">
                           <div className="w-3 h-3 rounded-full bg-brand-500" />
                           {weekWithEvents.length} أسبوع إجمالاً
@@ -1354,7 +1354,7 @@ export function SchoolAcademicCalendarPage() {
                       <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                           <thead>
-                            <tr className="border-b border-gray-100 bg-gray-50/60">
+                            <tr className="border-b border-[#eef2f6] bg-gray-50/60">
                               <th className="text-right py-2.5 px-5 font-bold text-gray-600 text-xs w-24">الأسبوع</th>
                               <th className="text-right py-2.5 px-5 font-bold text-gray-600 text-xs">من</th>
                               <th className="text-right py-2.5 px-5 font-bold text-gray-600 text-xs">إلى</th>
@@ -1371,7 +1371,7 @@ export function SchoolAcademicCalendarPage() {
                                     "transition-colors",
                                     hasFullHoliday  ? "bg-red-50/40 hover:bg-red-50/60"    :
                                     hasPartialHoliday? "bg-amber-50/30 hover:bg-amber-50/50" :
-                                    "hover:bg-gray-50/50"
+                                    "hover:bg-[#f8fafc]/50"
                                   )}>
                                   <td className="py-3 px-5">
                                     <div className="flex items-center gap-2">
@@ -1468,7 +1468,7 @@ export function SchoolAcademicCalendarPage() {
                     {events.map((e: any) => {
                       const et = EVENT_TYPES[e.eventType] ?? EVENT_TYPES.other;
                       return (
-                        <div key={e.id} className="flex items-start gap-4 px-5 py-4 hover:bg-gray-50/50 transition-colors">
+                        <div key={e.id} className="flex items-start gap-4 px-5 py-4 hover:bg-[#f8fafc]/50 transition-colors">
                           <div className={clsx("p-2 rounded-xl border shrink-0 mt-0.5", et.bg)}>
                             <et.icon className="w-4 h-4" />
                           </div>

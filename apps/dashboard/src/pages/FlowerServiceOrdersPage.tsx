@@ -110,7 +110,7 @@ export function FlowerServiceOrdersPage() {
           { label: "قيد التنفيذ",   value: stats.in_progress ?? 0,     color: "text-blue-600" },
           { label: "بانتظار الفحص", value: stats.pending_inspection ?? 0, color: "text-amber-600" },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+          <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4 text-center">
             <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
             <p className="text-xs text-gray-400 mt-0.5">{s.label}</p>
           </div>
@@ -120,12 +120,12 @@ export function FlowerServiceOrdersPage() {
       {/* Filters */}
       <div className="flex gap-2 flex-wrap">
         <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-          className="text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 bg-white focus:outline-none focus:border-brand-400">
+          className="text-sm border border-[#eef2f6] rounded-xl px-3 py-2 text-gray-700 bg-white focus:outline-none focus:border-brand-400">
           <option value="">جميع الحالات</option>
           {Object.entries(STATUS_CONFIG).map(([v, c]) => <option key={v} value={v}>{c.label}</option>)}
         </select>
         <select value={filterType} onChange={e => setFilterType(e.target.value)}
-          className="text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 bg-white focus:outline-none focus:border-brand-400">
+          className="text-sm border border-[#eef2f6] rounded-xl px-3 py-2 text-gray-700 bg-white focus:outline-none focus:border-brand-400">
           <option value="">جميع الأنواع</option>
           {ORDER_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
@@ -133,7 +133,7 @@ export function FlowerServiceOrdersPage() {
 
       {/* Orders list */}
       {orders.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <Calendar className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-gray-900 mb-1">لا توجد طلبات خدمات بعد</h3>
           <p className="text-sm text-gray-400 mb-4">أنشئ كوشة أو طلب استقبال مولود أو تنسيق مخصص</p>
@@ -146,7 +146,7 @@ export function FlowerServiceOrdersPage() {
             const typeInfo = ORDER_TYPES.find(t => t.value === o.type);
             return (
               <div key={o.id}
-                className="bg-white rounded-2xl border border-gray-100 p-4 hover:border-brand-200 transition-colors cursor-pointer"
+                className="bg-white rounded-2xl border border-[#eef2f6] p-4 hover:border-brand-200 transition-colors cursor-pointer"
                 onClick={() => setSelectedOrder(o)}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -347,7 +347,7 @@ function OrderDetailModal({
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-1 border-b border-gray-100 pb-0">
+          <div className="flex gap-1 border-b border-[#eef2f6] pb-0">
             {TABS.map(t => (
               <button key={t.id} onClick={() => setTab(t.id as any)}
                 className={clsx("flex items-center gap-1.5 text-xs font-medium px-3 py-2 border-b-2 transition-colors -mb-px",
@@ -603,7 +603,7 @@ function OrderDetailModal({
                       <p className="text-xs font-semibold text-gray-500 mb-2">حالة الأصول بعد العودة:</p>
                       <div className="space-y-1">
                         {Object.entries(detail.inspection.assets_inspection as Record<string, any>).map(([assetId, info]: [string, any]) => (
-                          <div key={assetId} className="flex items-center justify-between text-sm bg-gray-50 rounded-xl p-2.5">
+                          <div key={assetId} className="flex items-center justify-between text-sm bg-[#f8fafc] rounded-xl p-2.5">
                             <span className="text-gray-700">{info.asset_name ?? assetId}</span>
                             <span className={clsx("text-xs px-2 py-0.5 rounded-full",
                               info.condition === "ok" ? "bg-green-100 text-green-700" :
@@ -843,7 +843,7 @@ function AddItemModal({ orderId, onClose, onAdded }: {
                 variant_id: "", asset_id: "",
               }))}
                 className={clsx("text-xs font-medium p-2 rounded-xl border-2 transition-all text-right",
-                  form.item_type === t.value ? "border-brand-400 bg-brand-50" : "border-gray-100 hover:border-gray-200"
+                  form.item_type === t.value ? "border-brand-400 bg-brand-50" : "border-[#eef2f6] hover:border-[#eef2f6]"
                 )}>
                 <span className={clsx("inline-block px-1.5 py-0.5 rounded text-[10px] mb-1", t.color)}>{t.label}</span>
               </button>
@@ -862,7 +862,7 @@ function AddItemModal({ orderId, onClose, onAdded }: {
                   description: v ? (v.display_name_ar ?? `${v.flower_type} ${v.color}`) : f.description,
                 }));
               }}
-              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-brand-400">
+              className="w-full text-sm border border-[#eef2f6] rounded-xl px-3 py-2 focus:outline-none focus:border-brand-400">
               <option value="">اختر نوع الورد...</option>
               {variants.map((v: any) => (
                 <option key={v.id} value={v.id}>
@@ -885,7 +885,7 @@ function AddItemModal({ orderId, onClose, onAdded }: {
                   description: a ? a.name : f.description,
                 }));
               }}
-              className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 focus:outline-none focus:border-brand-400">
+              className="w-full text-sm border border-[#eef2f6] rounded-xl px-3 py-2 focus:outline-none focus:border-brand-400">
               <option value="">اختر أصل متاح...</option>
               {assets.map((a: any) => (
                 <option key={a.id} value={a.id}>{a.name} — {a.location ?? "المستودع"}</option>
@@ -958,7 +958,7 @@ function ApplyPackageModal({ orderId, onClose, onApplied }: {
           packages.map(pkg => (
             <button key={pkg.id} onClick={() => setSelectedId(pkg.id)}
               className={clsx("w-full text-right p-3 rounded-xl border-2 transition-all",
-                selectedId === pkg.id ? "border-brand-400 bg-brand-50" : "border-gray-100 hover:border-gray-200"
+                selectedId === pkg.id ? "border-brand-400 bg-brand-50" : "border-[#eef2f6] hover:border-[#eef2f6]"
               )}>
               <p className="font-medium text-sm text-gray-800">{pkg.name}</p>
               <p className="text-xs text-gray-400 mt-0.5">
@@ -1016,7 +1016,7 @@ function InspectFormModal({ orderId, assets, onClose, onSaved }: {
                   <span className="text-sm text-gray-700 flex-1">{a.asset_name}</span>
                   <select value={conditions[a.asset_id] ?? "ok"}
                     onChange={e => setConditions(c => ({ ...c, [a.asset_id]: e.target.value }))}
-                    className="text-xs border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:border-brand-400">
+                    className="text-xs border border-[#eef2f6] rounded-lg px-2 py-1 focus:outline-none focus:border-brand-400">
                     <option value="ok">سليم</option>
                     <option value="damaged">تالف</option>
                     <option value="missing">مفقود</option>
@@ -1031,7 +1031,7 @@ function InspectFormModal({ orderId, assets, onClose, onSaved }: {
           <label className="block text-sm font-medium text-gray-700 mb-1.5">ملاحظات الفحص</label>
           <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3}
             placeholder="ملاحظات عامة عن حالة الأصول والمواد..."
-            className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-brand-400 resize-none" />
+            className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:border-brand-400 resize-none" />
         </div>
       </div>
     </Modal>

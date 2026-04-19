@@ -350,14 +350,14 @@ export function ServiceDetailPage() {
         >
           <ShoppingCart className="w-4 h-4" /> حجز الخدمة
         </button>
-        <button onClick={() => navigate(`/dashboard/services/${id}/edit`)} className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm hover:bg-gray-50"><Pencil className="w-4 h-4" /> تعديل</button>
+        <button onClick={() => navigate(`/dashboard/services/${id}/edit`)} className="flex items-center gap-2 bg-white border border-[#eef2f6] rounded-xl px-4 py-2 text-sm hover:bg-[#f8fafc]"><Pencil className="w-4 h-4" /> تعديل</button>
         <button onClick={handleDuplicate} className="p-2 rounded-lg hover:bg-gray-100"><Copy className="w-4 h-4 text-gray-400" /></button>
         <button onClick={handleDelete} disabled={deleting} className="p-2 rounded-lg hover:bg-red-50"><Trash2 className="w-4 h-4 text-red-400" /></button>
       </div>
 
       {/* Execution readiness banner */}
       {isExecService && !executionReady && (
-        <div className="flex items-start gap-3 px-4 py-3.5 bg-amber-50 border border-amber-200 rounded-xl">
+        <div className="flex items-start gap-3 px-4 py-[6px] bg-amber-50 border border-amber-200 rounded-xl">
           <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
           <div>
             <p className="text-sm font-semibold text-amber-800">
@@ -379,7 +379,7 @@ export function ServiceDetailPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 gap-1">
+      <div className="flex border-b border-[#eef2f6] gap-1">
         {tabs.map((tab) => (
           <button
             key={tab.key}
@@ -402,7 +402,7 @@ export function ServiceDetailPage() {
       {activeTab === "basics" && (
         <div className="space-y-4">
           {/* Service details */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-gray-900">معلومات الخدمة</h2>
               <button onClick={() => navigate(`/dashboard/services/${id}/edit`)}
@@ -449,7 +449,7 @@ export function ServiceDetailPage() {
               </div>
             </div>
             {service.description && (
-              <div className="mt-4 pt-4 border-t border-gray-100">
+              <div className="mt-4 pt-4 border-t border-[#eef2f6]">
                 <span className="text-gray-400 text-sm">الوصف</span>
                 <p className="text-sm text-gray-600 mt-1 leading-relaxed">{service.description}</p>
               </div>
@@ -457,7 +457,7 @@ export function ServiceDetailPage() {
           </div>
 
           {/* Stats */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-3">الإحصائيات</h3>
             <div className="divide-y divide-gray-50 text-sm">
               <div className="flex items-center justify-between py-2.5"><span className="text-gray-500 flex items-center gap-2"><CalendarCheck className="w-4 h-4" /> الحجوزات</span><span className="font-bold text-gray-900">{service.totalBookings || 0}</span></div>
@@ -469,7 +469,7 @@ export function ServiceDetailPage() {
 
           {/* Includes / excludes */}
           {(service.includes?.length > 0 || service.excludes?.length > 0) && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
               <h2 className="font-semibold text-gray-900 mb-4">يشمل / لا يشمل</h2>
               <div className="space-y-3">
                 {service.includes?.length > 0 && (
@@ -501,7 +501,7 @@ export function ServiceDetailPage() {
           )}
 
           {/* Extra info */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-3">معلومات إضافية</h3>
             <div className="divide-y divide-gray-50 text-sm">
               <div className="flex items-center justify-between py-2.5"><span className="text-gray-400">الرابط</span><span className="font-mono text-xs text-brand-500">/book/{service.slug}</span></div>
@@ -512,49 +512,49 @@ export function ServiceDetailPage() {
 
           {/* Booking settings — merged into Basics tab */}
           {bsForm && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6 max-w-xl">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 max-w-xl">
               <h3 className="font-semibold text-gray-900 mb-4">إعدادات الحجز</h3>
               <div className="space-y-5">
-                <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                <div className="flex items-center justify-between py-3 border-b border-[#eef2f6]">
                   <div>
                     <p className="font-medium text-gray-900 text-sm">السماح بالحجز المتأخر</p>
                     <p className="text-xs text-gray-400 mt-0.5">قبول الحجوزات في نفس اليوم</p>
                   </div>
                   <Toggle checked={bsForm.allowLateBooking} onChange={(v) => setBsForm({ ...bsForm, allowLateBooking: v })} />
                 </div>
-                <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                <div className="flex items-center justify-between py-3 border-b border-[#eef2f6]">
                   <div>
                     <p className="font-medium text-gray-900 text-sm">حجز يوم كامل</p>
                     <p className="text-xs text-gray-400 mt-0.5">الخدمة تشغل اليوم بالكامل</p>
                   </div>
                   <Toggle checked={bsForm.fullDayBooking} onChange={(v) => setBsForm({ ...bsForm, fullDayBooking: v })} />
                 </div>
-                <div className="flex items-center justify-between py-3 border-b border-gray-100">
+                <div className="flex items-center justify-between py-3 border-b border-[#eef2f6]">
                   <div>
                     <p className="font-medium text-gray-900 text-sm">السماح باختيار المزود</p>
                     <p className="text-xs text-gray-400 mt-0.5">يختار العميل مزود الخدمة</p>
                   </div>
                   <Toggle checked={bsForm.allowProviderSelection} onChange={(v) => setBsForm({ ...bsForm, allowProviderSelection: v })} />
                 </div>
-                <div className="py-3 border-b border-gray-100">
+                <div className="py-3 border-b border-[#eef2f6]">
                   <label className="block text-sm font-medium text-gray-900 mb-2">وقت الفاصل (دقيقة)</label>
                   <input
                     type="number"
                     min={0}
                     value={bsForm.bufferMinutes}
                     onChange={(e) => setBsForm({ ...bsForm, bufferMinutes: parseInt(e.target.value) || 0 })}
-                    className="w-32 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-500"
+                    className="w-32 border border-[#eef2f6] rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-500"
                   />
                   <p className="text-xs text-gray-400 mt-1">فترة الراحة بين الحجوزات</p>
                 </div>
-                <div className="py-3 border-b border-gray-100">
+                <div className="py-3 border-b border-[#eef2f6]">
                   <label className="block text-sm font-medium text-gray-900 mb-2">الحجوزات المتزامنة</label>
                   <input
                     type="number"
                     min={1}
                     value={bsForm.maxConcurrentBookings}
                     onChange={(e) => setBsForm({ ...bsForm, maxConcurrentBookings: parseInt(e.target.value) || 1 })}
-                    className="w-32 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-500"
+                    className="w-32 border border-[#eef2f6] rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-500"
                   />
                   <p className="text-xs text-gray-400 mt-1">أقصى عدد حجوزات في نفس الوقت</p>
                 </div>
@@ -565,12 +565,12 @@ export function ServiceDetailPage() {
                     min={1}
                     value={bsForm.advanceBookingDays}
                     onChange={(e) => setBsForm({ ...bsForm, advanceBookingDays: parseInt(e.target.value) || 365 })}
-                    className="w-32 border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-500"
+                    className="w-32 border border-[#eef2f6] rounded-lg px-3 py-2 text-sm outline-none focus:border-brand-500"
                   />
                   <p className="text-xs text-gray-400 mt-1">كم يوماً مسبقاً يمكن الحجز</p>
                 </div>
               </div>
-              <div className="mt-6 pt-4 border-t border-gray-100">
+              <div className="mt-6 pt-4 border-t border-[#eef2f6]">
                 <Button onClick={handleSaveBS} loading={bsSaving} icon={Save}>حفظ الإعدادات</Button>
               </div>
             </div>
@@ -587,7 +587,7 @@ export function ServiceDetailPage() {
           </div>
 
           {questions.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 py-16 text-center">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] py-16 text-center">
               <HelpCircle className="w-12 h-12 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400 font-medium">لا توجد أسئلة مخصصة</p>
               <p className="text-sm text-gray-400 mt-1">أضف أسئلة لجمع معلومات إضافية من العملاء</p>
@@ -595,7 +595,7 @@ export function ServiceDetailPage() {
           ) : (
             <div className="space-y-3">
               {questions.map((q: any, idx: number) => (
-                <div key={q.id} className="bg-white rounded-xl border border-gray-200 p-4 flex items-center gap-4">
+                <div key={q.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-4">
                   <div className="flex flex-col gap-1">
                     <button onClick={() => handleMoveQ(idx, "up")} disabled={idx === 0} className="p-1 rounded hover:bg-gray-100 disabled:opacity-30"><ChevronUp className="w-3 h-3" /></button>
                     <button onClick={() => handleMoveQ(idx, "down")} disabled={idx === questions.length - 1} className="p-1 rounded hover:bg-gray-100 disabled:opacity-30"><ChevronDown className="w-3 h-3" /></button>
@@ -646,7 +646,7 @@ export function ServiceDetailPage() {
                   highlight: service?.basePrice && Number(service.basePrice) > componentsTotalCost,
                 },
               ].map(s => (
-                <div key={s.label} className="bg-white rounded-xl border border-gray-200 p-4">
+                <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
                   <p className="text-xs text-gray-400 mb-1">{s.label}</p>
                   <p className={clsx("text-lg font-bold", (s as any).highlight ? "text-green-600" : "text-gray-900")}>{s.value}</p>
                   {s.sub && <p className="text-xs text-gray-400 mt-0.5">{s.sub}</p>}
@@ -657,22 +657,22 @@ export function ServiceDetailPage() {
 
           {/* Components list */}
           {components.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 py-16 text-center">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] py-16 text-center">
               <Boxes className="w-12 h-12 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400 font-medium">لا توجد مكونات</p>
               <p className="text-sm text-gray-400 mt-1">أضف الأصول والمواد التي تحتاجها هذه الخدمة</p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                  <tr className="bg-gray-50/50 border-b border-[#eef2f6]">
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">المكوّن</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">النوع</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">الكمية</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">التكلفة/وحدة</th>
                     <th className="text-right py-3 px-4 text-xs font-semibold text-gray-400">الإجمالي</th>
-                    <th className="py-3 px-4 w-20"></th>
+                    <th className="py-[6px] px-[10px] w-20"></th>
                   </tr>
                 </thead>
                 <tbody>
@@ -685,8 +685,8 @@ export function ServiceDetailPage() {
                     };
                     const src = srcConfig[comp.sourceType] ?? srcConfig.manual;
                     return (
-                      <tr key={comp.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50">
-                        <td className="py-3 px-4">
+                      <tr key={comp.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/50">
+                        <td className="py-[6px] px-[10px]">
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-gray-900">{comp.name}</p>
                             {comp.isOptional && <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-full font-medium">اختياري</span>}
@@ -696,16 +696,16 @@ export function ServiceDetailPage() {
                           )}
                           {comp.description && <p className="text-xs text-gray-400 truncate max-w-xs">{comp.description}</p>}
                         </td>
-                        <td className="py-3 px-4">
+                        <td className="py-[6px] px-[10px]">
                           <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium", src.cls)}>
                             <src.icon className="w-3 h-3" />
                             {src.label}
                           </span>
                         </td>
-                        <td className="py-3 px-4 tabular-nums text-gray-700">{Number(comp.quantity).toLocaleString()} {comp.unit}</td>
-                        <td className="py-3 px-4 tabular-nums text-gray-700">{Number(comp.unitCost).toLocaleString()} ر.س</td>
-                        <td className="py-3 px-4 tabular-nums font-semibold text-gray-900">{total.toLocaleString()} ر.س</td>
-                        <td className="py-3 px-4">
+                        <td className="py-[6px] px-[10px] tabular-nums text-gray-700">{Number(comp.quantity).toLocaleString()} {comp.unit}</td>
+                        <td className="py-[6px] px-[10px] tabular-nums text-gray-700">{Number(comp.unitCost).toLocaleString()} ر.س</td>
+                        <td className="py-[6px] px-[10px] tabular-nums font-semibold text-gray-900">{total.toLocaleString()} ر.س</td>
+                        <td className="py-[6px] px-[10px]">
                           <div className="flex gap-1">
                             <button onClick={() => openEditComp(comp)} className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors"><Pencil className="w-3.5 h-3.5 text-brand-500" /></button>
                             <button onClick={() => handleDeleteComp(comp.id)} className="p-1.5 rounded-lg hover:bg-red-50 transition-colors"><Trash2 className="w-3.5 h-3.5 text-red-400" /></button>
@@ -716,9 +716,9 @@ export function ServiceDetailPage() {
                   })}
                 </tbody>
                 <tfoot>
-                  <tr className="bg-gray-50/50 border-t border-gray-200">
-                    <td colSpan={4} className="py-3 px-4 text-sm font-semibold text-gray-700">إجمالي التكلفة</td>
-                    <td className="py-3 px-4 font-bold text-brand-600 tabular-nums">{componentsTotalCost.toLocaleString()} ر.س</td>
+                  <tr className="bg-gray-50/50 border-t border-[#eef2f6]">
+                    <td colSpan={4} className="py-[6px] px-[10px] text-sm font-semibold text-gray-700">إجمالي التكلفة</td>
+                    <td className="py-[6px] px-[10px] font-bold text-brand-600 tabular-nums">{componentsTotalCost.toLocaleString()} ر.س</td>
                     <td></td>
                   </tr>
                 </tfoot>
@@ -733,8 +733,8 @@ export function ServiceDetailPage() {
         const textReqs = requirements.filter(r => r.requirementType === "text");
 
         const ReqSection = ({ title, icon: Icon, color, items, type, emptyMsg }: any) => (
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className={clsx("flex items-center justify-between px-5 py-4 border-b border-gray-100")}>
+          <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+            <div className={clsx("flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]")}>
               <div className="flex items-center gap-2.5">
                 <div className={clsx("w-8 h-8 rounded-lg flex items-center justify-center", color.bg)}>
                   <Icon className={clsx("w-4 h-4", color.text)} />
@@ -756,7 +756,7 @@ export function ServiceDetailPage() {
             ) : (
               <div className="divide-y divide-gray-50">
                 {items.map((r: any) => (
-                  <div key={r.id} className="flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/50">
+                  <div key={r.id} className="flex items-center gap-4 px-5 py-[6px] hover:bg-[#f8fafc]/50">
                     {type === "employee" && (
                       <div className={clsx("w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold flex-shrink-0", color.avatar)}>
                         {(r.userName || r.label || "م")[0]}
@@ -841,7 +841,7 @@ export function ServiceDetailPage() {
               color={{
                 bg: "bg-gray-100", text: "text-gray-600", badge: "bg-gray-200 text-gray-700",
                 avatar: "bg-gray-100 text-gray-600",
-                btnBorder: "border-gray-200", btnText: "text-gray-600", btnHover: "hover:bg-gray-50",
+                btnBorder: "border-[#eef2f6]", btnText: "text-gray-600", btnHover: "hover:bg-[#f8fafc]",
               }}
             />
           </div>
@@ -857,11 +857,11 @@ export function ServiceDetailPage() {
 
           {/* Add recipe row */}
           {supplies.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <p className="text-xs font-semibold text-gray-500 mb-3">إضافة مستلزم للوصفة</p>
               <div className="flex gap-2 flex-wrap">
                 <select
-                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white"
+                  className="flex-1 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm bg-white"
                   value={recipeForm.supplyId}
                   onChange={e => setRecipeForm(f => ({ ...f, supplyId: e.target.value }))}
                 >
@@ -874,7 +874,7 @@ export function ServiceDetailPage() {
                   type="number"
                   min="0.01"
                   step="0.01"
-                  className="w-24 border border-gray-200 rounded-xl px-3 py-2 text-sm"
+                  className="w-24 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm"
                   value={recipeForm.quantity}
                   onChange={e => setRecipeForm(f => ({ ...f, quantity: e.target.value }))}
                   placeholder="الكمية"
@@ -903,13 +903,13 @@ export function ServiceDetailPage() {
 
           {/* Recipes list */}
           {recipes.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 text-center py-12">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-12">
               <FlaskConical className="w-10 h-10 text-gray-200 mx-auto mb-2" />
               <p className="text-sm text-gray-400">لم تُحدَّد مستلزمات لهذه الخدمة</p>
               <p className="text-xs text-gray-300 mt-1">أضف مستلزمات لتُخصم تلقائياً عند إتمام الحجز</p>
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-50">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] divide-y divide-gray-50">
               {recipes.map((r: any) => {
                 const supply = supplies.find((s: any) => s.id === r.supplyId);
                 return (
@@ -927,7 +927,7 @@ export function ServiceDetailPage() {
                           await deleteRecipe(r.id);
                           refetchRecipes();
                         }}
-                        className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-red-50 hover:border-red-200 text-gray-400 hover:text-red-500"
+                        className="w-7 h-7 rounded-lg border border-[#eef2f6] flex items-center justify-center hover:bg-red-50 hover:border-red-200 text-gray-400 hover:text-red-500"
                       >
                         ×
                       </button>
@@ -956,7 +956,7 @@ export function ServiceDetailPage() {
 
           {/* Add staff from members not yet assigned */}
           {membersList.filter(m => !serviceStaff.find(ss => ss.userId === m.id)).length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
               <p className="text-xs font-semibold text-gray-500 mb-3">إضافة موظف</p>
               <div className="flex flex-wrap gap-2">
                 {membersList
@@ -968,7 +968,7 @@ export function ServiceDetailPage() {
                         await servicesApi.addStaff(id!, { userId: m.id, commissionMode: "inherit" });
                         refetchServiceStaff();
                       }}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-gray-200 hover:border-brand-300 hover:bg-brand-50 text-sm transition-colors"
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[#eef2f6] hover:border-brand-300 hover:bg-brand-50 text-sm transition-colors"
                     >
                       <div className="w-6 h-6 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold shrink-0">
                         {m.name?.[0] || "م"}
@@ -983,7 +983,7 @@ export function ServiceDetailPage() {
 
           {/* Assigned staff list */}
           {serviceStaff.length === 0 ? (
-            <div className="bg-white rounded-xl border border-gray-200 text-center py-12">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-12">
               <Users className="w-10 h-10 text-gray-200 mx-auto mb-2" />
               <p className="text-sm text-gray-400">لم يُعيَّن موظفون لهذه الخدمة بعد</p>
               {service.assignmentMode === "open" && (
@@ -991,7 +991,7 @@ export function ServiceDetailPage() {
               )}
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-50">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] divide-y divide-gray-50">
               {serviceStaff.map((ss: any) => {
                 const isOrphan = !ss.userName;
                 return (
@@ -1014,7 +1014,7 @@ export function ServiceDetailPage() {
                         await servicesApi.updateStaff(id!, ss.userId, { commissionMode: e.target.value });
                         refetchServiceStaff();
                       }}
-                      className="border border-gray-200 rounded-xl px-2 py-1 text-xs bg-white"
+                      className="border border-[#eef2f6] rounded-xl px-2 py-1 text-xs bg-white"
                     >
                       <option value="inherit">يرث من الخدمة</option>
                       <option value="none">بلا عمولة</option>
@@ -1031,7 +1031,7 @@ export function ServiceDetailPage() {
                           await servicesApi.updateStaff(id!, ss.userId, { commissionMode: ss.commissionMode, commissionValue: parseFloat(e.target.value) || 0 });
                           refetchServiceStaff();
                         }}
-                        className="w-20 border border-gray-200 rounded-xl px-2 py-1 text-xs"
+                        className="w-20 border border-[#eef2f6] rounded-xl px-2 py-1 text-xs"
                         placeholder={ss.commissionMode === "percentage" ? "%" : "ر.س"}
                       />
                     )}
@@ -1040,7 +1040,7 @@ export function ServiceDetailPage() {
                         await servicesApi.removeStaff(id!, ss.userId);
                         refetchServiceStaff();
                       }}
-                      className="w-7 h-7 rounded-lg border border-gray-200 flex items-center justify-center hover:bg-red-50 hover:border-red-200 text-gray-400 hover:text-red-500 text-sm"
+                      className="w-7 h-7 rounded-lg border border-[#eef2f6] flex items-center justify-center hover:bg-red-50 hover:border-red-200 text-gray-400 hover:text-red-500 text-sm"
                     >
                       ×
                     </button>
@@ -1084,7 +1084,7 @@ export function ServiceDetailPage() {
                       "flex-1 flex flex-col items-center justify-center gap-1.5 py-3 rounded-xl border text-xs font-medium transition-colors",
                       reqForm.requirementType === opt.v
                         ? "border-brand-400 bg-brand-50 text-brand-700"
-                        : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                        : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]"
                     )}
                   >
                     <opt.icon className="w-4 h-4" />
@@ -1105,7 +1105,7 @@ export function ServiceDetailPage() {
                       const m = membersList.find((u: any) => u.id === e.target.value);
                       setReqForm((p: any) => ({ ...p, userId: e.target.value, label: m?.name ?? p.label }));
                     }}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
                   >
                     <option value="">— اختر موظفاً —</option>
                     {membersList.map((m: any) => (
@@ -1134,7 +1134,7 @@ export function ServiceDetailPage() {
                       const a = assetsList.find((x: any) => x.id === e.target.value);
                       setReqForm((p: any) => ({ ...p, assetId: e.target.value, assetTypeId: "", label: a ? (a.name || a.serialNumber || a.assetTypeName) : p.label }));
                     }}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
                   >
                     <option value="">— اختر أصلاً بعينه —</option>
                     {assetsList.map((a: any) => (
@@ -1155,7 +1155,7 @@ export function ServiceDetailPage() {
                       const t = assetTypes.find((x: any) => x.id === e.target.value);
                       setReqForm((p: any) => ({ ...p, assetTypeId: e.target.value, assetId: "", label: t?.name ?? p.label }));
                     }}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
                   >
                     <option value="">— اختر نوع أصل —</option>
                     {assetTypes.map((t: any) => (
@@ -1238,7 +1238,7 @@ export function ServiceDetailPage() {
                       "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-medium transition-colors",
                       compForm.sourceType === opt.v
                         ? "border-brand-400 bg-brand-50 text-brand-700"
-                        : "border-gray-200 text-gray-600 hover:bg-gray-50"
+                        : "border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]"
                     )}
                   >
                     <opt.icon className="w-4 h-4" />
@@ -1258,7 +1258,7 @@ export function ServiceDetailPage() {
                     const t = assetTypes.find((a: any) => a.id === e.target.value);
                     setCompForm((p: any) => ({ ...p, inventoryItemId: e.target.value, name: t?.name ?? p.name }));
                   }}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
                 >
                   <option value="">اختر نوع الأصل</option>
                   {assetTypes.map((t: any) => (
@@ -1293,7 +1293,7 @@ export function ServiceDetailPage() {
                 <select
                   value={compForm.unit}
                   onChange={e => setCompForm((p: any) => ({ ...p, unit: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-400"
                 >
                   {["حبة", "قطعة", "متر", "كيلو", "لتر", "يوم", "ساعة", "طن"].map(u => (
                     <option key={u} value={u}>{u}</option>
@@ -1367,7 +1367,7 @@ export function ServiceDetailPage() {
                   onChange={(e) => setOptionInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addOption(); } }}
                   placeholder="أدخل خياراً واضغط Enter"
-                  className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-500"
+                  className="flex-1 border border-[#eef2f6] rounded-lg px-3 py-2.5 text-sm outline-none focus:border-brand-500"
                 />
                 <button onClick={addOption} className="px-4 py-2.5 bg-brand-500 text-white rounded-lg text-sm font-medium hover:bg-brand-600">
                   إضافة
@@ -1375,7 +1375,7 @@ export function ServiceDetailPage() {
               </div>
               <div className="space-y-1">
                 {qForm.options.map((opt: string, i: number) => (
-                  <div key={i} className="flex items-center justify-between bg-gray-50 rounded-lg px-3 py-2">
+                  <div key={i} className="flex items-center justify-between bg-[#f8fafc] rounded-lg px-3 py-2">
                     <span className="text-sm text-gray-700">{opt}</span>
                     <button onClick={() => removeOption(i)} className="text-gray-400 hover:text-red-500"><span className="text-xs">✕</span></button>
                   </div>

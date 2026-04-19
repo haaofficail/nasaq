@@ -85,7 +85,7 @@ function DocModal({ employeeId, onClose, onSaved }: { employeeId: string; onClos
       <div className="space-y-4 p-4" dir="rtl">
         <div>
           <label className="text-xs text-gray-500 block mb-1">نوع الوثيقة</label>
-          <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.documentType} onChange={setF("documentType")}>
+          <select className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.documentType} onChange={setF("documentType")}>
             <option value="iqama">إقامة</option>
             <option value="passport">جواز سفر</option>
             <option value="national_id">هوية وطنية</option>
@@ -97,11 +97,11 @@ function DocModal({ employeeId, onClose, onSaved }: { employeeId: string; onClos
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">اسم الوثيقة *</label>
-          <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.documentName} onChange={setF("documentName")} />
+          <input className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.documentName} onChange={setF("documentName")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">رقم الوثيقة</label>
-          <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.documentNumber} onChange={setF("documentNumber")} />
+          <input className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.documentNumber} onChange={setF("documentNumber")} />
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">رفع المستند (PDF أو صورة)</label>
@@ -116,20 +116,20 @@ function DocModal({ employeeId, onClose, onSaved }: { employeeId: string; onClos
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="text-xs text-gray-500 block mb-1">تاريخ الإصدار</label>
-            <input type="date" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.issueDate} onChange={setF("issueDate")} />
+            <input type="date" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.issueDate} onChange={setF("issueDate")} />
           </div>
           <div>
             <label className="text-xs text-gray-500 block mb-1">تاريخ الانتهاء</label>
-            <input type="date" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.expiryDate} onChange={setF("expiryDate")} />
+            <input type="date" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.expiryDate} onChange={setF("expiryDate")} />
           </div>
         </div>
         <div>
           <label className="text-xs text-gray-500 block mb-1">تنبيه قبل (أيام)</label>
-          <input type="number" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={form.reminderDays} onChange={setF("reminderDays")} />
+          <input type="number" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={form.reminderDays} onChange={setF("reminderDays")} />
         </div>
       </div>
       <div className="flex justify-end gap-3 px-4 pb-4 border-t pt-4">
-        <button onClick={onClose} className="px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50">إلغاء</button>
+        <button onClick={onClose} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">إلغاء</button>
         <button onClick={handleSave} disabled={saving} className="px-5 py-2 text-sm bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-60">
           {saving ? "جاري الرفع والحفظ..." : "إضافة"}
         </button>
@@ -153,14 +153,14 @@ function ProfileTab({ emp, onEdit }: { emp: any; onEdit: () => void }) {
       <div className="flex justify-end">
         <button
           onClick={onEdit}
-          className="flex items-center gap-2 px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600"
+          className="flex items-center gap-2 px-4 py-2 text-sm border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc] text-gray-600"
         >
           <Pencil className="w-4 h-4" />
           تعديل
         </button>
       </div>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h3 className="font-semibold text-gray-700 text-sm mb-4">البيانات الشخصية</h3>
         <dl>
           <InfoRow label="الاسم الكامل" value={emp.fullName} />
@@ -174,7 +174,7 @@ function ProfileTab({ emp, onEdit }: { emp: any; onEdit: () => void }) {
         </dl>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h3 className="font-semibold text-gray-700 text-sm mb-4">بيانات التوظيف</h3>
         <dl>
           <InfoRow label="الرقم الوظيفي" value={emp.employeeNumber} />
@@ -193,7 +193,7 @@ function ProfileTab({ emp, onEdit }: { emp: any; onEdit: () => void }) {
         </dl>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h3 className="font-semibold text-gray-700 text-sm mb-4">الراتب والبنك</h3>
         <dl>
           <InfoRow label="الراتب الأساسي" value={SAR(emp.basicSalary)} />
@@ -247,12 +247,12 @@ function AttendanceTab({ employeeId }: { employeeId: string }) {
     <div className="space-y-4">
       <div className="flex items-center gap-3">
         <h3 className="text-sm font-medium text-gray-700">سجل الحضور</h3>
-        <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm" />
+        <input type="month" value={month} onChange={(e) => setMonth(e.target.value)} className="border border-[#eef2f6] rounded-xl px-3 py-1.5 text-sm" />
       </div>
       {loading ? <SkeletonRows /> : records.length === 0 ? (
         <div className="text-center py-12 text-gray-400 text-sm">لا توجد سجلات لهذا الشهر</div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-gray-500 text-xs">
               <tr>
@@ -270,13 +270,13 @@ function AttendanceTab({ employeeId }: { employeeId: string }) {
                 const effectiveStatus = onApprovedLeave ? "on_leave" : r.status;
                 const s = ATT_STATUS[effectiveStatus] ?? { label: r.status, cls: "bg-gray-100 text-gray-500" };
                 return (
-                  <tr key={r.id} className="hover:bg-gray-50">
-                    <td className="px-4 py-3 text-gray-700">{r.attendanceDate}</td>
-                    <td className="px-4 py-3 text-gray-600">{r.checkIn ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-600">{r.checkOut ?? "—"}</td>
-                    <td className="px-4 py-3 text-amber-600">{r.lateMinutes ? `${r.lateMinutes} د` : "—"}</td>
-                    <td className="px-4 py-3 text-blue-600">{r.overtimeMinutes ? `${r.overtimeMinutes} د` : "—"}</td>
-                    <td className="px-4 py-3">
+                  <tr key={r.id} className="hover:bg-[#f8fafc]">
+                    <td className="px-[10px] py-[6px] text-gray-700">{r.attendanceDate}</td>
+                    <td className="px-[10px] py-[6px] text-gray-600">{r.checkIn ?? "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-600">{r.checkOut ?? "—"}</td>
+                    <td className="px-[10px] py-[6px] text-amber-600">{r.lateMinutes ? `${r.lateMinutes} د` : "—"}</td>
+                    <td className="px-[10px] py-[6px] text-blue-600">{r.overtimeMinutes ? `${r.overtimeMinutes} د` : "—"}</td>
+                    <td className="px-[10px] py-[6px]">
                       <span className={clsx("text-xs px-2 py-1 rounded-full font-medium", s.cls)}>{s.label}</span>
                     </td>
                   </tr>
@@ -338,7 +338,7 @@ function LeavesTab({ employeeId }: { employeeId: string }) {
           <h3 className="text-sm font-medium text-gray-700 mb-3">رصيد الإجازات {currentYear}</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {balances.map((b) => (
-              <div key={b.leaveType} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+              <div key={b.leaveType} className="bg-white rounded-2xl border border-[#eef2f6] p-4 text-center">
                 <div className="text-xs text-gray-500 mb-1">{b.leaveType}</div>
                 <div className="text-lg font-bold text-gray-800">{b.remainingDays}</div>
                 <div className="text-xs text-gray-400">متبقي / {b.entitledDays}</div>
@@ -363,7 +363,7 @@ function LeavesTab({ employeeId }: { employeeId: string }) {
         ) : (
           <div className="space-y-2">
             {leaves.map((lv) => (
-              <div key={lv.id} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4">
+              <div key={lv.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-4">
                 <div className="flex-1">
                   <div className="font-medium text-gray-800 text-sm">{lv.leaveType}</div>
                   <div className="text-xs text-gray-400 mt-0.5">{lv.startDate} — {lv.endDate} ({lv.daysCount} أيام)</div>
@@ -385,24 +385,24 @@ function LeavesTab({ employeeId }: { employeeId: string }) {
           <div className="space-y-4 p-4" dir="rtl">
             <div>
               <label className="text-xs text-gray-500 block mb-1">نوع الإجازة</label>
-              <select className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={leaveForm.leaveType} onChange={setLF("leaveType")}>
+              <select className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={leaveForm.leaveType} onChange={setLF("leaveType")}>
                 {LEAVE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs text-gray-500 block mb-1">من تاريخ *</label>
-                <input type="date" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={leaveForm.startDate} onChange={setLF("startDate")} />
+                <input type="date" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={leaveForm.startDate} onChange={setLF("startDate")} />
               </div>
               <div>
                 <label className="text-xs text-gray-500 block mb-1">إلى تاريخ *</label>
-                <input type="date" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={leaveForm.endDate} onChange={setLF("endDate")} />
+                <input type="date" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={leaveForm.endDate} onChange={setLF("endDate")} />
               </div>
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">السبب</label>
               <textarea
-                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm resize-none"
                 rows={3}
                 value={leaveForm.reason}
                 onChange={setLF("reason")}
@@ -411,7 +411,7 @@ function LeavesTab({ employeeId }: { employeeId: string }) {
             </div>
           </div>
           <div className="flex justify-end gap-3 px-4 pb-4 border-t pt-4">
-            <button onClick={() => setShowLeaveModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50">إلغاء</button>
+            <button onClick={() => setShowLeaveModal(false)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">إلغاء</button>
             <button onClick={handleSubmitLeave} disabled={submitting} className="px-5 py-2 text-sm bg-brand-600 text-white rounded-xl hover:bg-brand-700 disabled:opacity-60">
               {submitting ? "جاري الإرسال..." : "إرسال الطلب"}
             </button>
@@ -437,13 +437,13 @@ function PayslipsTab({ employeeId }: { employeeId: string }) {
         <div className="text-center py-12 text-gray-400 text-sm">لا توجد قسائم راتب بعد</div>
       ) : (
         payslips.map((ps: any) => (
-          <div key={ps.payrollId} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-4">
+          <div key={ps.payrollId} className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-4">
             <div className="flex-1">
               <div className="font-semibold text-gray-800">{ps.payrollMonth}</div>
               <div className="text-xs text-gray-400 mt-0.5">صافي الراتب: {SAR(ps.netSalary)}</div>
             </div>
             <button onClick={() => setSelected(ps.payrollId)}
-              className="px-3 py-1.5 text-xs border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-600">
+              className="px-3 py-1.5 text-xs border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc] text-gray-600">
               عرض القسيمة
             </button>
           </div>
@@ -492,7 +492,7 @@ function LoanRow({ ln }: { ln: any }) {
   const schedule = buildInstallmentSchedule(ln);
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
       <div className="flex items-center gap-3 mb-3">
         <span className="font-semibold text-gray-800">{ln.loanNumber}</span>
         <span className={clsx("text-xs px-2 py-0.5 rounded-full font-medium",
@@ -502,7 +502,7 @@ function LoanRow({ ln }: { ln: any }) {
         </span>
         <button
           onClick={() => setExpanded((v) => !v)}
-          className="mr-auto flex items-center gap-1 text-xs text-gray-500 hover:text-brand-600 px-2 py-1 rounded-lg hover:bg-gray-50"
+          className="mr-auto flex items-center gap-1 text-xs text-gray-500 hover:text-brand-600 px-2 py-1 rounded-lg hover:bg-[#f8fafc]"
         >
           {expanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
           جدول الأقساط
@@ -528,7 +528,7 @@ function LoanRow({ ln }: { ln: any }) {
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
-                <tr className="text-gray-400 border-b border-gray-100">
+                <tr className="text-gray-400 border-b border-[#eef2f6]">
                   <th className="text-right py-2 px-2 font-medium">الدفعة</th>
                   <th className="text-right py-2 px-2 font-medium">الشهر</th>
                   <th className="text-right py-2 px-2 font-medium">المبلغ</th>
@@ -537,7 +537,7 @@ function LoanRow({ ln }: { ln: any }) {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {schedule.map((inst) => (
-                  <tr key={inst.index} className="hover:bg-gray-50">
+                  <tr key={inst.index} className="hover:bg-[#f8fafc]">
                     <td className="py-2 px-2 text-gray-600">{inst.index}</td>
                     <td className="py-2 px-2 text-gray-700">{inst.label}</td>
                     <td className="py-2 px-2 text-gray-700">{SAR(inst.amount)}</td>
@@ -613,7 +613,7 @@ function DocumentsTab({ employeeId }: { employeeId: string }) {
           {docs.map((doc: any) => {
             const days = daysLeft(doc.expiryDate);
             const expClass = days !== null && days <= 30 ? "bg-red-50 border-red-200" :
-              days !== null && days <= 90 ? "bg-amber-50 border-amber-200" : "bg-white border-gray-100";
+              days !== null && days <= 90 ? "bg-amber-50 border-amber-200" : "bg-white border-[#eef2f6]";
             return (
               <div key={doc.id} className={clsx("rounded-2xl border p-4 flex items-start gap-3", expClass)}>
                 <FileText className="w-5 h-5 text-gray-400 shrink-0 mt-0.5" />
@@ -664,7 +664,7 @@ function PerformanceTab({ employeeId }: { employeeId: string }) {
         <div className="text-center py-12 text-gray-400 text-sm">لا توجد تقييمات</div>
       ) : (
         reviews.map((rv: any) => (
-          <div key={rv.id} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={rv.id} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <span className="font-semibold text-gray-800">{rv.reviewYear}</span>
@@ -714,11 +714,11 @@ function GratuityTab({ employeeId }: { employeeId: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h3 className="font-semibold text-gray-800 mb-4">حساب مكافأة نهاية الخدمة</h3>
         <div className="mb-4">
           <label className="text-xs text-gray-500 block mb-1">سبب إنهاء الخدمة</label>
-          <select className="border border-gray-200 rounded-xl px-3 py-2 text-sm" value={reason} onChange={(e) => setReason(e.target.value as typeof reason)}>
+          <select className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={reason} onChange={(e) => setReason(e.target.value as typeof reason)}>
             <option value="fired">فصل / إنهاء من صاحب العمل</option>
             <option value="resigned">استقالة</option>
             <option value="end_of_contract">انتهاء العقد</option>
@@ -751,19 +751,19 @@ function GratuityTab({ employeeId }: { employeeId: string }) {
           <div className="space-y-4 p-4" dir="rtl">
             <div>
               <label className="text-xs text-gray-500 block mb-1">تاريخ الإنهاء *</label>
-              <input type="date" className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={settleForm.terminationDate} onChange={setF("terminationDate")} />
+              <input type="date" className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={settleForm.terminationDate} onChange={setF("terminationDate")} />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">سبب الإنهاء</label>
-              <input className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm" value={settleForm.terminationReason} onChange={setF("terminationReason")} />
+              <input className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm" value={settleForm.terminationReason} onChange={setF("terminationReason")} />
             </div>
             <div>
               <label className="text-xs text-gray-500 block mb-1">ملاحظات</label>
-              <textarea className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm resize-none" rows={2} value={settleForm.notes} onChange={setF("notes")} />
+              <textarea className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm resize-none" rows={2} value={settleForm.notes} onChange={setF("notes")} />
             </div>
           </div>
           <div className="flex justify-end gap-3 px-4 pb-4 border-t pt-4">
-            <button onClick={() => setShowSettle(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50">إلغاء</button>
+            <button onClick={() => setShowSettle(false)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">إلغاء</button>
             <button onClick={handleSettle} disabled={settling} className="px-5 py-2 text-sm bg-red-600 text-white rounded-xl hover:bg-red-700 disabled:opacity-60">
               {settling ? "جاري الحفظ..." : "تأكيد الإنهاء"}
             </button>
@@ -789,7 +789,7 @@ export function HREmployeePage() {
   if (loading) return (
     <div className="p-6 space-y-4" dir="rtl">
       <div className="h-8 w-48 bg-gray-200 rounded-xl animate-pulse" />
-      <div className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
+      <div className="h-24 bg-[#f1f5f9] rounded-2xl animate-pulse" />
       <SkeletonRows />
     </div>
   );
@@ -809,7 +809,7 @@ export function HREmployeePage() {
         العودة إلى الموارد البشرية
       </button>
 
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 flex items-center gap-4">
         <div className="w-14 h-14 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 text-xl font-bold shrink-0">
           {emp.fullName?.charAt(0) ?? "?"}
         </div>
@@ -830,7 +830,7 @@ export function HREmployeePage() {
         </div>
       </div>
 
-      <div className="flex gap-1 bg-gray-100 rounded-2xl p-1 overflow-x-auto">
+      <div className="flex gap-1 bg-[#f1f5f9] rounded-2xl p-1 overflow-x-auto">
         {TABS.map(({ key, label, icon: Icon }) => (
           <button
             key={key}

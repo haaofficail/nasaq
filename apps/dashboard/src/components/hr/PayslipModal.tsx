@@ -12,8 +12,8 @@ function SAR(v: any) {
 function Row({ label, value, bold }: { label: string; value: string; bold?: boolean }) {
   return (
     <tr className={bold ? "font-bold bg-gray-50" : ""}>
-      <td className="py-1.5 px-3 text-sm text-gray-700 border-b border-gray-100">{label}</td>
-      <td className="py-1.5 px-3 text-sm text-gray-800 text-left border-b border-gray-100">{value}</td>
+      <td className="py-1.5 px-3 text-sm text-gray-700 border-b border-[#eef2f6]">{label}</td>
+      <td className="py-1.5 px-3 text-sm text-gray-800 text-left border-b border-[#eef2f6]">{value}</td>
     </tr>
   );
 }
@@ -74,7 +74,7 @@ export function PayslipModal({
         <>
           {/* Actions */}
           <div className="flex justify-end gap-2 px-4 py-3 border-b">
-            <button onClick={handlePrint} className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-200 rounded-xl hover:bg-gray-50">
+            <button onClick={handlePrint} className="flex items-center gap-2 px-3 py-1.5 text-sm border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">
               <Printer className="w-4 h-4" /> طباعة
             </button>
           </div>
@@ -89,7 +89,7 @@ export function PayslipModal({
 
             {/* Employee info */}
             <div className="section">
-              <div className="section-title bg-gray-50 px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 mb-2">بيانات الموظف</div>
+              <div className="section-title bg-[#f8fafc] px-3 py-1.5 rounded-xl text-xs font-semibold text-gray-600 mb-2">بيانات الموظف</div>
               <table className="w-full">
                 <tbody>
                   <Row label="الاسم" value={slip.employee?.fullName ?? "—"} />

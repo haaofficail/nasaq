@@ -8,7 +8,7 @@ import { WORK_ORDER_STATUSES } from "@/lib/constants";
 const STATUS_MAP = Object.fromEntries(WORK_ORDER_STATUSES.map(s => [s.key, s]));
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={clsx("animate-pulse bg-gray-100 rounded-lg", className)} />;
+  return <div className={clsx("animate-pulse bg-[#f1f5f9] rounded-lg", className)} />;
 }
 
 export function WorkOrdersWidget() {
@@ -20,7 +20,7 @@ export function WorkOrdersWidget() {
   const loading = loadingStats || loadingList;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100">
+    <div className="bg-white rounded-2xl border border-[#eef2f6]">
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
         <h2 className="font-semibold text-gray-900 text-sm">أوامر العمل</h2>
         <Link
@@ -78,7 +78,7 @@ export function WorkOrdersWidget() {
                 <Link
                   key={o.id}
                   to="/dashboard/work-orders"
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50/50 transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-[#f8fafc]/50 transition-colors"
                 >
                   <div className="w-8 h-8 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
                     <Wrench className="w-4 h-4 text-brand-500" />

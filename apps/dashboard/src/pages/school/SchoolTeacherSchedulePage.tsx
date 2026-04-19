@@ -90,13 +90,13 @@ function ScheduleGrid({ entries }: { entries: any[] }) {
       <table className="w-full text-sm border-collapse">
         <thead>
           <tr>
-            <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 rounded-tl-xl border-b border-gray-100 w-28">
+            <th className="text-right px-3 py-2 text-xs font-semibold text-gray-500 bg-[#f8fafc] rounded-tl-xl border-b border-[#eef2f6] w-28">
               الحصة
             </th>
             {DAYS.map((d) => (
               <th
                 key={d.key}
-                className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b border-gray-100 text-center"
+                className="px-3 py-2 text-xs font-semibold text-gray-500 bg-[#f8fafc] border-b border-[#eef2f6] text-center"
               >
                 {d.label}
               </th>
@@ -105,7 +105,7 @@ function ScheduleGrid({ entries }: { entries: any[] }) {
         </thead>
         <tbody>
           {periods.map((p) => (
-            <tr key={p.periodId} className="border-b border-gray-50 hover:bg-gray-50/50">
+            <tr key={p.periodId} className="border-b border-gray-50 hover:bg-[#f8fafc]/50">
               <td className="px-3 py-2 text-right">
                 <p className="text-xs font-semibold text-gray-700">
                   {p.label ?? `الحصة ${p.periodNumber}`}
@@ -128,7 +128,7 @@ function ScheduleGrid({ entries }: { entries: any[] }) {
                         </p>
                       </div>
                     ) : (
-                      <div className="h-10 rounded-xl bg-gray-50 border border-dashed border-gray-100" />
+                      <div className="h-10 rounded-xl bg-[#f8fafc] border border-dashed border-[#eef2f6]" />
                     )}
                   </td>
                 );
@@ -205,7 +205,7 @@ export function SchoolTeacherSchedulePage() {
       {loading ? (
         <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="animate-pulse bg-gray-100 rounded-2xl h-20 w-full" />
+            <div key={i} className="animate-pulse bg-[#f1f5f9] rounded-2xl h-20 w-full" />
           ))}
         </div>
       ) : error ? (
@@ -260,7 +260,7 @@ export function SchoolTeacherSchedulePage() {
             </div>
 
             {assignments.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm py-10 flex flex-col items-center gap-2 text-gray-400">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm py-10 flex flex-col items-center gap-2 text-gray-400">
                 <BookOpen className="w-8 h-8" />
                 <p className="text-sm">لا يوجد ارتباط مضاف بعد</p>
                 <button
@@ -271,20 +271,20 @@ export function SchoolTeacherSchedulePage() {
                 </button>
               </div>
             ) : (
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-gray-50 text-gray-500 text-xs">
                       <th className="text-right px-4 py-3 font-medium">النطاق</th>
                       <th className="text-right px-4 py-3 font-medium">المادة</th>
                       <th className="text-right px-4 py-3 font-medium">ملاحظات</th>
-                      <th className="px-4 py-3" />
+                      <th className="px-[10px] py-[6px]" />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50">
                     {assignments.map((a: any) => (
-                      <tr key={a.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3">
+                      <tr key={a.id} className="hover:bg-[#f8fafc] transition-colors">
+                        <td className="px-[10px] py-[6px]">
                           <div className="flex items-center gap-2">
                             {a.classRoomId ? (
                               <LayoutGrid className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
@@ -296,9 +296,9 @@ export function SchoolTeacherSchedulePage() {
                             <span className="font-medium text-gray-800">{scopeLabel(a)}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-gray-700">{a.subject}</td>
-                        <td className="px-4 py-3 text-gray-400 text-xs">{a.notes ?? "—"}</td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px] text-gray-700">{a.subject}</td>
+                        <td className="px-[10px] py-[6px] text-gray-400 text-xs">{a.notes ?? "—"}</td>
+                        <td className="px-[10px] py-[6px]">
                           <button
                             onClick={() => handleDelete(a.id)}
                             disabled={deleting === a.id}
@@ -332,7 +332,7 @@ export function SchoolTeacherSchedulePage() {
           <>
             <button
               onClick={() => { setAddModal(false); setForm({ ...emptyForm }); }}
-              className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50"
+              className="px-4 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc]"
             >
               إلغاء
             </button>
@@ -365,7 +365,7 @@ export function SchoolTeacherSchedulePage() {
                       "flex flex-col items-center gap-1 p-3 rounded-xl border text-xs font-medium transition-all",
                       form.scopeType === opt.key
                         ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                        : "border-gray-200 text-gray-500 hover:border-gray-300"
+                        : "border-[#eef2f6] text-gray-500 hover:border-[#eef2f6]"
                     )}
                   >
                     <Icon className="w-4 h-4" />
@@ -383,7 +383,7 @@ export function SchoolTeacherSchedulePage() {
               <select
                 value={form.classRoomId}
                 onChange={(e) => setForm((f) => ({ ...f, classRoomId: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+                className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
               >
                 <option value="">اختر الفصل</option>
                 {classRooms.map((cr: any) => (
@@ -401,7 +401,7 @@ export function SchoolTeacherSchedulePage() {
               <select
                 value={form.grade}
                 onChange={(e) => setForm((f) => ({ ...f, grade: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+                className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
               >
                 <option value="">اختر الصف</option>
                 {GRADES.map((g) => (
@@ -417,7 +417,7 @@ export function SchoolTeacherSchedulePage() {
               <select
                 value={form.stage}
                 onChange={(e) => setForm((f) => ({ ...f, stage: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+                className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
               >
                 <option value="">اختر المرحلة</option>
                 {STAGES.map((s) => (
@@ -434,7 +434,7 @@ export function SchoolTeacherSchedulePage() {
               <select
                 value={form.subject}
                 onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+                className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
               >
                 <option value="">اختر المادة...</option>
                 {subjectOptions.map((s) => (
@@ -445,7 +445,7 @@ export function SchoolTeacherSchedulePage() {
               <input
                 value={form.subject}
                 onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))}
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+                className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 placeholder="مثال: رياضيات، عربي، علوم"
               />
             )}
@@ -457,7 +457,7 @@ export function SchoolTeacherSchedulePage() {
             <input
               value={form.notes}
               onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               placeholder="ملاحظة إضافية"
             />
           </div>

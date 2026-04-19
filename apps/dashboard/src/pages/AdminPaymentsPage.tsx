@@ -134,7 +134,7 @@ export function AdminPaymentsPage() {
       {/* KPIs */}
       {statsLoading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />)}
+          {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-[#f1f5f9] rounded-2xl animate-pulse" />)}
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -146,7 +146,7 @@ export function AdminPaymentsPage() {
       )}
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 gap-1">
+      <div className="flex border-b border-[#eef2f6] gap-1">
         {([
           { id: "transactions", label: "المعاملات" },
           { id: "settlements",  label: "التسويات" },
@@ -164,11 +164,11 @@ export function AdminPaymentsPage() {
       {/* ── Transactions ── */}
       {activeTab === "transactions" && (
         txLoading ? (
-          <div className="space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-14 bg-gray-100 rounded-2xl animate-pulse" />)}</div>
+          <div className="space-y-3">{[...Array(5)].map((_, i) => <div key={i} className="h-14 bg-[#f1f5f9] rounded-2xl animate-pulse" />)}</div>
         ) : txList.length === 0 ? (
           <EmptyState icon={<CreditCard />} label="لا توجد معاملات" />
         ) : (
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
             <table className="w-full text-sm">
               <thead className="bg-gray-50 text-gray-500 text-xs">
                 <tr>
@@ -184,17 +184,17 @@ export function AdminPaymentsPage() {
                 {txList.map((row: any) => {
                   const tx = row.tx ?? row; const org = row.org ?? {};
                   return (
-                    <tr key={tx.id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3 text-gray-700">{org.name ?? "—"}</td>
-                      <td className="px-4 py-3 font-medium">{Number(tx.amount).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td>
-                      <td className="px-4 py-3 text-brand-500 font-medium">{Number(tx.platformFee).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td>
-                      <td className="px-4 py-3">
+                    <tr key={tx.id} className="hover:bg-[#f8fafc]">
+                      <td className="px-[10px] py-[6px] text-gray-700">{org.name ?? "—"}</td>
+                      <td className="px-[10px] py-[6px] font-medium">{Number(tx.amount).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td>
+                      <td className="px-[10px] py-[6px] text-brand-500 font-medium">{Number(tx.platformFee).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td>
+                      <td className="px-[10px] py-[6px]">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${TX_STATUS_COLORS[tx.status] ?? "bg-gray-100"}`}>
                           {TX_STATUS_LABELS[tx.status] ?? tx.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-gray-500 capitalize">{tx.paymentMethod || "—"}</td>
-                      <td className="px-4 py-3 text-gray-400 text-xs">{new Date(tx.createdAt).toLocaleDateString("ar-SA")}</td>
+                      <td className="px-[10px] py-[6px] text-gray-500 capitalize">{tx.paymentMethod || "—"}</td>
+                      <td className="px-[10px] py-[6px] text-gray-400 text-xs">{new Date(tx.createdAt).toLocaleDateString("ar-SA")}</td>
                     </tr>
                   );
                 })}
@@ -216,27 +216,27 @@ export function AdminPaymentsPage() {
           </div>
 
           {newSettlement && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-4">
               <h3 className="font-semibold text-gray-800">تسوية جديدة</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-2">
                   <label className="block text-xs text-gray-500 mb-1">معرّف المنشأة (orgId)</label>
                   <input value={settlementForm.orgId} onChange={sf("orgId")} placeholder="UUID المنشأة" dir="ltr"
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">بداية الفترة</label>
                   <input type="date" value={settlementForm.periodStart} onChange={sf("periodStart")}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">نهاية الفترة</label>
                   <input type="date" value={settlementForm.periodEnd} onChange={sf("periodEnd")}
-                    className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+                    className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
                 </div>
               </div>
               <input value={settlementForm.adminNote} onChange={sf("adminNote")} placeholder="ملاحظة (اختياري)"
-                className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30" />
               <div className="flex items-center gap-3">
                 <button onClick={handleCreateSettlement} disabled={creating}
                   className="flex items-center gap-2 px-5 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-medium disabled:opacity-50">
@@ -249,11 +249,11 @@ export function AdminPaymentsPage() {
           )}
 
           {settlementsLoading ? (
-            <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-gray-100 rounded-2xl animate-pulse" />)}</div>
+            <div className="space-y-3">{[...Array(3)].map((_, i) => <div key={i} className="h-16 bg-[#f1f5f9] rounded-2xl animate-pulse" />)}</div>
           ) : settlements.length === 0 ? (
             <EmptyState icon={<DollarSign />} label="لا توجد تسويات بعد" />
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-gray-500 text-xs">
                   <tr>
@@ -269,19 +269,19 @@ export function AdminPaymentsPage() {
                   {settlements.map((row: any) => {
                     const s = row.settlement ?? row; const org = row.org ?? {};
                     return (
-                      <tr key={s.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 text-gray-700">{org.name ?? "—"}</td>
-                        <td className="px-4 py-3 font-bold text-green-700">{Number(s.netAmount).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td>
-                        <td className="px-4 py-3 text-brand-500">{Number(s.totalPlatformFee).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td>
-                        <td className="px-4 py-3 text-gray-400 text-xs">
+                      <tr key={s.id} className="hover:bg-[#f8fafc]">
+                        <td className="px-[10px] py-[6px] text-gray-700">{org.name ?? "—"}</td>
+                        <td className="px-[10px] py-[6px] font-bold text-green-700">{Number(s.netAmount).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td>
+                        <td className="px-[10px] py-[6px] text-brand-500">{Number(s.totalPlatformFee).toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س</td>
+                        <td className="px-[10px] py-[6px] text-gray-400 text-xs">
                           {new Date(s.periodStart).toLocaleDateString("ar-SA")} — {new Date(s.periodEnd).toLocaleDateString("ar-SA")}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[s.status] ?? "bg-gray-100"}`}>
                             {STATUS_LABELS[s.status] ?? s.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-[10px] py-[6px]">
                           {s.status === "pending"    && <ActionBtn id={s.id} label="بدء المعالجة"  nextStatus="processing" onUpdate={handleUpdateSettlement} updatingId={updatingId} color="text-brand-500" />}
                           {s.status === "processing" && <ActionBtn id={s.id} label="تأكيد الإتمام" nextStatus="completed"  onUpdate={handleUpdateSettlement} updatingId={updatingId} color="text-green-600" />}
                         </td>
@@ -298,7 +298,7 @@ export function AdminPaymentsPage() {
       {/* ── Org Control ── */}
       {activeTab === "org_control" && (
         <div className="space-y-5">
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-4">
             <div>
               <h2 className="font-semibold text-gray-800 mb-1">تحكم في بوابات الدفع لمنشأة</h2>
               <p className="text-sm text-gray-400">ابحث بمعرّف المنشأة (orgId) لتفعيل أو تعطيل خيارات الدفع.</p>
@@ -311,7 +311,7 @@ export function AdminPaymentsPage() {
                 onKeyDown={e => e.key === "Enter" && handleLoadOrgCaps()}
                 placeholder="أدخل orgId للمنشأة..."
                 dir="ltr"
-                className="flex-1 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                className="flex-1 border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
               />
               <button
                 onClick={handleLoadOrgCaps}
@@ -329,7 +329,7 @@ export function AdminPaymentsPage() {
           </div>
 
           {orgCaps && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-5">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-semibold text-gray-800">خيارات الدفع</h3>
@@ -347,7 +347,7 @@ export function AdminPaymentsPage() {
                   const isEnabled = (orgCaps.enabledCapabilities ?? []).includes(cap.key);
                   const isToggling = togglingCap === cap.key;
                   return (
-                    <div key={cap.key} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl">
+                    <div key={cap.key} className="flex items-center gap-4 p-4 bg-[#f8fafc] rounded-2xl">
                       <div className={`w-10 h-10 ${cap.bg} rounded-xl flex items-center justify-center shrink-0`}>
                         {cap.icon}
                       </div>
@@ -374,7 +374,7 @@ export function AdminPaymentsPage() {
                 })}
               </div>
 
-              <div className="pt-2 border-t border-gray-100">
+              <div className="pt-2 border-t border-[#eef2f6]">
                 <p className="text-xs text-gray-400 font-medium mb-2">كل الصلاحيات الممنوحة</p>
                 <div className="flex flex-wrap gap-1.5">
                   {(orgCaps.enabledCapabilities ?? []).map((c: string) => (
@@ -413,7 +413,7 @@ function EmptyState({ icon, label }: { icon: React.ReactNode; label: string }) {
 
 function KpiCard({ icon, bg, label, value }: { icon: React.ReactNode; bg: string; label: string; value: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
       <div className={`w-9 h-9 ${bg} rounded-xl flex items-center justify-center mb-3`}>{icon}</div>
       <p className="text-xs text-gray-400 mb-1">{label}</p>
       <p className="text-lg font-bold text-gray-800">{value}</p>

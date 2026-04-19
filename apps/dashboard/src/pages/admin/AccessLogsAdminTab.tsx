@@ -35,27 +35,27 @@ function AccessLogsAdminTab() {
       <div className="flex flex-wrap gap-2">
         <input value={orgId} onChange={e => { setOrgId(e.target.value); setPage(1); }}
           placeholder="معرّف المنشأة..."
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none w-48 font-mono" dir="ltr" />
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none w-48 font-mono" dir="ltr" />
         <select value={granted} onChange={e => { setGranted(e.target.value); setPage(1); }}
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none text-gray-700">
           <option value="">مسموح + مرفوض</option>
           <option value="true">مسموح فقط</option>
           <option value="false">مرفوض فقط</option>
         </select>
         <input type="date" value={date} onChange={e => { setDate(e.target.value); setPage(1); }}
-          className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none" />
+          className="bg-white border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none" />
         {(orgId || granted || date) && (
-          <button onClick={handleReset} className="px-3 py-2 text-xs text-gray-500 border border-gray-200 rounded-xl hover:bg-gray-50">
+          <button onClick={handleReset} className="px-3 py-2 text-xs text-gray-500 border border-[#eef2f6] rounded-xl hover:bg-[#f8fafc]">
             <X className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
       {loading ? <Spinner /> : rows.length === 0 ? <Empty icon={ShieldCheck} text="لا يوجد سجل دخول" /> : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500">
+              <tr className="border-b border-[#eef2f6] bg-[#f8fafc] text-xs text-gray-500">
                 <th className="text-right px-4 py-3 font-semibold">المنشأة</th>
                 <th className="text-right px-4 py-3 font-semibold">العميل</th>
                 <th className="text-right px-4 py-3 font-semibold hidden md:table-cell">الطريقة</th>
@@ -66,19 +66,19 @@ function AccessLogsAdminTab() {
             </thead>
             <tbody>
               {rows.map((r: any) => (
-                <tr key={r.id} className="border-b border-gray-50 hover:bg-gray-50 last:border-0">
-                  <td className="px-4 py-3 text-xs font-medium text-gray-700">{r.orgName ?? r.orgId?.slice(0, 8)}</td>
-                  <td className="px-4 py-3 text-sm text-gray-900">{r.customerName ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs text-gray-500 hidden md:table-cell">{r.method}</td>
-                  <td className="px-4 py-3">
+                <tr key={r.id} className="border-b border-gray-50 hover:bg-[#f8fafc] last:border-0">
+                  <td className="px-[10px] py-[6px] text-xs font-medium text-gray-700">{r.orgName ?? r.orgId?.slice(0, 8)}</td>
+                  <td className="px-[10px] py-[6px] text-sm text-gray-900">{r.customerName ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-500 hidden md:table-cell">{r.method}</td>
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("text-xs font-medium px-2 py-0.5 rounded-lg",
                       r.granted ? "bg-emerald-50 text-emerald-700" : "bg-red-50 text-red-600"
                     )}>
                       {r.granted ? "مسموح" : "مرفوض"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-gray-400 hidden lg:table-cell">{r.denyReason ?? "—"}</td>
-                  <td className="px-4 py-3 text-xs text-gray-400">
+                  <td className="px-[10px] py-[6px] text-xs text-gray-400 hidden lg:table-cell">{r.denyReason ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-xs text-gray-400">
                     {r.accessedAt ? new Date(r.accessedAt).toLocaleString("ar") : "—"}
                   </td>
                 </tr>
@@ -91,10 +91,10 @@ function AccessLogsAdminTab() {
       {totalPages > 1 && (
         <div className="flex items-center justify-center gap-2">
           <button disabled={page <= 1} onClick={() => setPage(page - 1)}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-xl disabled:opacity-40 hover:bg-gray-50">السابق</button>
+            className="px-3 py-1.5 text-sm border border-[#eef2f6] rounded-xl disabled:opacity-40 hover:bg-[#f8fafc]">السابق</button>
           <span className="text-sm text-gray-500">{page} / {totalPages}</span>
           <button disabled={page >= totalPages} onClick={() => setPage(page + 1)}
-            className="px-3 py-1.5 text-sm border border-gray-200 rounded-xl disabled:opacity-40 hover:bg-gray-50">التالي</button>
+            className="px-3 py-1.5 text-sm border border-[#eef2f6] rounded-xl disabled:opacity-40 hover:bg-[#f8fafc]">التالي</button>
         </div>
       )}
     </div>

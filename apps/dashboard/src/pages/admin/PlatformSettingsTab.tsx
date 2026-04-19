@@ -51,7 +51,7 @@ function UploadZone({
         onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
         onClick={() => fileRef.current?.click()}
         className={`relative border-2 border-dashed rounded-2xl p-6 text-center cursor-pointer transition-all ${
-          dragging ? "border-brand-400 bg-brand-50" : "border-gray-200 hover:border-brand-300 hover:bg-gray-50"
+          dragging ? "border-brand-400 bg-brand-50" : "border-[#eef2f6] hover:border-brand-300 hover:bg-[#f8fafc]"
         }`}
       >
         {uploading && (
@@ -116,7 +116,7 @@ export default function PlatformSettingsTab() {
       />
 
       {/* Logo */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-6">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-6">
         <h3 className="text-sm font-semibold text-gray-800 border-b border-gray-50 pb-3">الهوية البصرية</h3>
 
         <UploadZone
@@ -147,7 +147,7 @@ export default function PlatformSettingsTab() {
       </div>
 
       {/* Text settings */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-6 space-y-5">
         <h3 className="text-sm font-semibold text-gray-800 border-b border-gray-50 pb-3">الإعدادات العامة</h3>
 
         <div className="grid grid-cols-2 gap-4">
@@ -156,12 +156,12 @@ export default function PlatformSettingsTab() {
             <input
               value={f.platformName ?? "ترميز OS"}
               onChange={(e) => setForm((prev: any) => ({ ...(prev ?? config), platformName: e.target.value }))}
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-300"
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-300"
             />
           </div>
           <div>
             <label className="text-xs text-gray-500 block mb-1.5">اللون الأساسي</label>
-            <div className="flex items-center gap-2 border border-gray-200 rounded-xl p-2 pr-3">
+            <div className="flex items-center gap-2 border border-[#eef2f6] rounded-xl p-2 pr-3">
               <input
                 type="color"
                 value={f.primaryColor ?? "#5b9bd5"}
@@ -177,7 +177,7 @@ export default function PlatformSettingsTab() {
               value={f.supportEmail ?? ""}
               onChange={(e) => setForm((prev: any) => ({ ...(prev ?? config), supportEmail: e.target.value }))}
               placeholder="support@tarmizos.com"
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-300"
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-300"
               dir="ltr"
             />
           </div>
@@ -187,7 +187,7 @@ export default function PlatformSettingsTab() {
               value={f.supportPhone ?? ""}
               onChange={(e) => setForm((prev: any) => ({ ...(prev ?? config), supportPhone: e.target.value }))}
               placeholder="0532064321"
-              className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:border-brand-300"
+              className="w-full border border-[#eef2f6] rounded-xl p-2.5 text-sm outline-none focus:border-brand-300"
               dir="ltr"
             />
           </div>
@@ -206,7 +206,7 @@ export default function PlatformSettingsTab() {
       </div>
 
       {/* Preview */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
         <h3 className="text-sm font-semibold text-gray-800 mb-4 border-b border-gray-50 pb-3">معاينة الـ Sidebar</h3>
         <div className="bg-gray-900 rounded-2xl p-4 w-48">
           <div className="flex items-center gap-2.5">

@@ -149,7 +149,7 @@ export function Layout() {
       {/* ── Sidebar ── */}
       <aside
         className={clsx(
-          "fixed inset-y-0 right-0 z-50 flex flex-col bg-white border-l border-gray-100 transition-all duration-300 ease-in-out md:static shadow-xl md:shadow-none",
+          "fixed inset-y-0 right-0 z-50 flex flex-col bg-white border-l border-[#eef2f6] transition-all duration-300 ease-in-out md:static shadow-xl md:shadow-none",
           collapsed ? "w-[68px]" : "w-[220px]",
           mobileOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
         )}
@@ -157,7 +157,7 @@ export function Layout() {
       >
         {/* Logo */}
         <div className={clsx(
-          "flex items-center border-b border-gray-100 h-16 px-4 shrink-0",
+          "flex items-center border-b border-[#eef2f6] h-16 px-4 shrink-0",
           collapsed ? "justify-center" : "justify-between"
         )}>
           {!collapsed && (
@@ -193,7 +193,7 @@ export function Layout() {
                     className={clsx(
                       "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                       collapsed && "justify-center px-2",
-                      active ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      active ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-[#f8fafc] hover:text-gray-900"
                     )}
                   >
                     <item.icon className={clsx("w-4 h-4 shrink-0", active ? "text-brand-500" : "text-gray-400")} />
@@ -233,7 +233,7 @@ export function Layout() {
                           className={clsx(
                             "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                             collapsed && "justify-center px-2",
-                            active ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                            active ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-[#f8fafc] hover:text-gray-900"
                           )}
                         >
                           <item.icon className={clsx("w-4 h-4 shrink-0", active ? "text-brand-500" : "text-gray-400")} />
@@ -256,7 +256,7 @@ export function Layout() {
                     className={({ isActive: a }) => clsx(
                       "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all",
                       collapsed && "justify-center px-2",
-                      a ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      a ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-[#f8fafc] hover:text-gray-900"
                     )}
                   >
                     {({ isActive: a }) => (
@@ -288,7 +288,7 @@ export function Layout() {
                         className={clsx(
                           "flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150",
                           collapsed && "justify-center px-2",
-                          active ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          active ? "bg-brand-50 text-brand-600" : "text-gray-600 hover:bg-[#f8fafc] hover:text-gray-900"
                         )}
                       >
                         <item.icon className={clsx("w-4 h-4 shrink-0", active ? "text-brand-500" : "text-gray-400")} />
@@ -303,10 +303,10 @@ export function Layout() {
         </nav>
 
         {/* User footer */}
-        <div className={clsx("border-t border-gray-100 p-2 shrink-0 space-y-1", collapsed && "flex flex-col items-center space-y-1")}>
+        <div className={clsx("border-t border-[#eef2f6] p-2 shrink-0 space-y-1", collapsed && "flex flex-col items-center space-y-1")}>
           {/* Subscription badge */}
           {!isSuperAdmin && sub && !collapsed && (
-            <NavLink to="/dashboard/subscription" className="block px-2 py-1.5 rounded-lg hover:bg-gray-50 transition-colors">
+            <NavLink to="/dashboard/subscription" className="block px-2 py-1.5 rounded-lg hover:bg-[#f8fafc] transition-colors">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-gray-600">{PLAN_MAP[sub.plan]?.name ?? sub.plan}</span>
                 <span className={clsx(
@@ -329,7 +329,7 @@ export function Layout() {
             className={({ isActive }) => clsx(
               "flex items-center gap-3 p-2 rounded-lg transition-colors w-full",
               collapsed && "justify-center w-auto",
-              isActive ? "bg-brand-50 text-brand-600" : "hover:bg-gray-50 text-gray-700"
+              isActive ? "bg-brand-50 text-brand-600" : "hover:bg-[#f8fafc] text-gray-700"
             )}
           >
             <div className="w-8 h-8 rounded-full bg-brand-100 flex items-center justify-center text-brand-600 font-bold text-sm shrink-0 overflow-hidden">
@@ -404,7 +404,7 @@ export function Layout() {
 
         {/* Header */}
         <header
-          className="h-16 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-5 shrink-0 overflow-visible relative z-30"
+          className="h-16 bg-white border-b border-[#eef2f6] flex items-center justify-between px-4 md:px-5 shrink-0 overflow-visible relative z-30"
           style={{ paddingTop: "var(--safe-area-top)" }}
         >
           <div className="flex items-center gap-3">
@@ -419,7 +419,7 @@ export function Layout() {
           </div>
 
           <div className="flex items-center gap-2">
-            <div className="hidden sm:flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 w-52 focus-within:border-brand-200 focus-within:bg-white transition-all">
+            <div className="hidden sm:flex items-center gap-2 bg-[#f8fafc] border border-[#eef2f6] rounded-xl px-3 py-2 w-52 focus-within:border-brand-200 focus-within:bg-white transition-all">
               <Search className="w-4 h-4 text-gray-400 shrink-0" />
               <input type="text" placeholder="بحث..." className="bg-transparent border-none outline-none text-sm text-gray-600 placeholder-gray-400 w-full" />
             </div>
@@ -434,7 +434,7 @@ export function Layout() {
                 <Plus className="w-4 h-4" />
               </button>
               {quickOpen && (
-                <div className="absolute left-0 top-11 w-52 bg-white border border-gray-100 rounded-2xl shadow-xl z-[200] overflow-hidden" dir="rtl">
+                <div className="absolute left-0 top-11 w-52 bg-white border border-[#eef2f6] rounded-2xl shadow-xl z-[200] overflow-hidden" dir="rtl">
                   <div className="px-3 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-50">
                     إجراءات سريعة
                   </div>
@@ -472,9 +472,9 @@ export function Layout() {
               </button>
 
               {bellOpen && (
-                <div className="absolute left-0 top-11 w-80 bg-white border border-gray-100 rounded-2xl shadow-xl shadow-black/8 z-[200] overflow-hidden" dir="rtl">
+                <div className="absolute left-0 top-11 w-80 bg-white border border-[#eef2f6] rounded-2xl shadow-xl shadow-black/8 z-[200] overflow-hidden" dir="rtl">
                   {/* Header */}
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef2f6]">
                     <div className="flex items-center gap-2">
                       <Bell className="w-4 h-4 text-brand-500" />
                       <span className="text-sm font-bold text-gray-900">الإشعارات</span>
@@ -506,7 +506,7 @@ export function Layout() {
                           }}
                           className={clsx(
                             "flex items-start gap-3 px-4 py-3 border-b border-gray-50 transition-colors cursor-pointer",
-                            !a.isRead ? "bg-brand-50/40 hover:bg-brand-50" : "hover:bg-gray-50"
+                            !a.isRead ? "bg-brand-50/40 hover:bg-brand-50" : "hover:bg-[#f8fafc]"
                           )}
                         >
                           <div className={clsx(
@@ -532,7 +532,7 @@ export function Layout() {
                   </div>
 
                   {/* Footer */}
-                  <div className="px-4 py-2.5 bg-gray-50/60 border-t border-gray-100">
+                  <div className="px-4 py-2.5 bg-gray-50/60 border-t border-[#eef2f6]">
                     <button onClick={() => { navigate("/dashboard/support"); setBellOpen(false); }}
                       className="w-full text-center text-xs text-brand-500 hover:text-brand-600 font-medium transition-colors">
                       عرض بوابة الدعم

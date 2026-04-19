@@ -209,7 +209,7 @@ function ConnectionTab() {
       <div className="bg-amber-50 border border-amber-200 rounded-2xl overflow-hidden">
         <button
           onClick={() => setNoticeOpen((p) => !p)}
-          className="w-full flex items-center justify-between px-5 py-3.5 hover:bg-amber-100/50 transition-colors"
+          className="w-full flex items-center justify-between px-5 py-[6px] hover:bg-amber-100/50 transition-colors"
         >
           <div className="flex items-center gap-2.5">
             <div className="w-6 h-6 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
@@ -255,12 +255,12 @@ function ConnectionTab() {
         "bg-white rounded-2xl border p-6 transition-all",
         isConnected
           ? "border-emerald-200 shadow-sm shadow-emerald-100"
-          : "border-gray-100"
+          : "border-[#eef2f6]"
       )}>
         <div className="flex items-center gap-5">
           <div className={clsx(
             "w-16 h-16 rounded-2xl flex items-center justify-center shrink-0",
-            isConnected ? "bg-emerald-50" : "bg-gray-50"
+            isConnected ? "bg-emerald-50" : "bg-[#f8fafc]"
           )}>
             {loading ? (
               <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
@@ -365,7 +365,7 @@ function ConnectionTab() {
       </Modal>
 
       {/* Test Send */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-4">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-4">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-brand-500/10 flex items-center justify-center">
             <Send className="w-4 h-4 text-brand-500" />
@@ -387,7 +387,7 @@ function ConnectionTab() {
               type="text"
               value={testMsg}
               onChange={(e) => setTestMsg(e.target.value)}
-              className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
+              className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
             />
           </div>
         </div>
@@ -518,7 +518,7 @@ function TemplatesTab() {
   return (
     <div className="space-y-3">
       {/* Business-type context + reseed action */}
-      <div className="bg-brand-500/5 border border-brand-500/20 rounded-2xl px-4 py-3.5 flex items-center justify-between gap-3">
+      <div className="bg-brand-500/5 border border-brand-500/20 rounded-2xl px-4 py-[6px] flex items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-xl bg-brand-500/10 flex items-center justify-center shrink-0">
             <FileText className="w-3.5 h-3.5 text-brand-500" />
@@ -533,7 +533,7 @@ function TemplatesTab() {
         <button
           onClick={handleReseed}
           disabled={reseeding}
-          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-brand-500 bg-white border border-gray-100 hover:border-brand-500/30 px-3 py-1.5 rounded-xl transition-colors shrink-0"
+          className="flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-brand-500 bg-white border border-[#eef2f6] hover:border-brand-500/30 px-3 py-1.5 rounded-xl transition-colors shrink-0"
         >
           {reseeding ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RotateCcw className="w-3.5 h-3.5" />}
           إعادة توليد القوالب
@@ -541,8 +541,8 @@ function TemplatesTab() {
       </div>
 
       {categories.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-14 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-14 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-[#f8fafc] flex items-center justify-center mx-auto mb-3">
             <FileText className="w-7 h-7 text-gray-200" />
           </div>
           <p className="text-sm font-medium text-gray-400">لا توجد قوالب</p>
@@ -553,10 +553,10 @@ function TemplatesTab() {
           const isOpen = openCats[cat] !== false;
           const accentColor = CATEGORY_COLORS[cat] || "bg-gray-400";
           return (
-            <div key={cat} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div key={cat} className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <button
                 onClick={() => toggleCat(cat)}
-                className="w-full flex items-center justify-between px-4 py-4 hover:bg-gray-50/70 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-4 hover:bg-[#f8fafc]/70 transition-colors"
               >
                 <div className="flex items-center gap-3">
                   <span className={clsx("w-1 h-6 rounded-full shrink-0", accentColor)} />
@@ -643,7 +643,7 @@ function TemplatesTab() {
                             <select
                               value={ed.send_to}
                               onChange={(e) => setField(tpl.id, "send_to", e.target.value)}
-                              className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 bg-white transition-all"
+                              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 bg-white transition-all"
                             >
                               {SEND_TO_OPTIONS.map((o) => (
                                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -662,13 +662,13 @@ function TemplatesTab() {
                                   const factor = DELAY_UNIT_OPTIONS.find(u => u.value === unit)!.factor;
                                   setField(tpl.id, "delay_minutes", Number(e.target.value) * factor);
                                 }}
-                                className="w-20 border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
+                                className="w-20 border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
                                 dir="ltr"
                               />
                               <select
                                 value={getDelayUnit(tpl.id)}
                                 onChange={(e) => setDelayUnits(p => ({ ...p, [tpl.id]: e.target.value as any }))}
-                                className="flex-1 border border-gray-100 rounded-xl px-2 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 bg-white transition-all"
+                                className="flex-1 border border-[#eef2f6] rounded-xl px-2 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 bg-white transition-all"
                               >
                                 {DELAY_UNIT_OPTIONS.map(o => (
                                   <option key={o.value} value={o.value}>{o.label}</option>
@@ -694,14 +694,14 @@ function TemplatesTab() {
                               rows={3}
                               value={ed.message_ar}
                               onChange={(e) => setField(tpl.id, "message_ar", e.target.value)}
-                              className="w-full border border-gray-100 rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all resize-none font-mono leading-relaxed"
+                              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all resize-none font-mono leading-relaxed"
                               dir="rtl"
                             />
                           </div>
                         ) : (
                           <div>
                             <label className="text-xs text-gray-400 font-medium mb-1.5 block">معاينة الرسالة</label>
-                            <div className="bg-gray-50 rounded-xl p-3.5 text-sm text-gray-700 whitespace-pre-wrap font-mono border border-gray-100 leading-relaxed">
+                            <div className="bg-gray-50 rounded-xl p-3.5 text-sm text-gray-700 whitespace-pre-wrap font-mono border border-[#eef2f6] leading-relaxed">
                               {renderPreview(ed.message_ar)}
                             </div>
                           </div>
@@ -811,7 +811,7 @@ function SettingsTab() {
     <div className="space-y-4">
 
       {/* General */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-1">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-1">
         <SectionTitle>إعدادات عامة</SectionTitle>
         <div className="divide-y divide-gray-50">
           <Toggle field="is_enabled" label="تفعيل الرسائل التلقائية" />
@@ -828,7 +828,7 @@ function SettingsTab() {
                     "px-3 py-1.5 rounded-xl text-xs font-medium transition-colors border",
                     form[`wh_${d.key}`]
                       ? "bg-brand-500 text-white border-brand-500"
-                      : "bg-white text-gray-500 border-gray-100 hover:border-gray-200"
+                      : "bg-white text-gray-500 border-[#eef2f6] hover:border-[#eef2f6]"
                   )}
                 >
                   {d.label}
@@ -842,7 +842,7 @@ function SettingsTab() {
                   type="time"
                   value={form.business_hours_start || "09:00"}
                   onChange={(e) => set("business_hours_start", e.target.value)}
-                  className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
                   dir="ltr"
                 />
               </div>
@@ -852,7 +852,7 @@ function SettingsTab() {
                   type="time"
                   value={form.business_hours_end || "22:00"}
                   onChange={(e) => set("business_hours_end", e.target.value)}
-                  className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
                   dir="ltr"
                 />
               </div>
@@ -862,7 +862,7 @@ function SettingsTab() {
       </div>
 
       {/* Limits */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-3">
         <SectionTitle>الحدود اليومية</SectionTitle>
         <div className="grid grid-cols-2 gap-4 pt-1">
           <div>
@@ -872,7 +872,7 @@ function SettingsTab() {
               min={1}
               value={form.daily_limit || 100}
               onChange={(e) => set("daily_limit", Number(e.target.value))}
-              className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
               dir="ltr"
             />
           </div>
@@ -883,7 +883,7 @@ function SettingsTab() {
               min={0}
               value={form.min_delay_seconds || 3}
               onChange={(e) => set("min_delay_seconds", Number(e.target.value))}
-              className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
               dir="ltr"
             />
           </div>
@@ -891,7 +891,7 @@ function SettingsTab() {
       </div>
 
       {/* Booking reminders */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-1">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-1">
         <SectionTitle>تذكيرات الحجز</SectionTitle>
         <div className="divide-y divide-gray-50">
           <Toggle field="booking_reminder_enabled" label="تفعيل تذكيرات الحجز" />
@@ -905,7 +905,7 @@ function SettingsTab() {
                 min={1}
                 value={form.reminder_hours_before || 24}
                 onChange={(e) => set("reminder_hours_before", Number(e.target.value))}
-                className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
                 dir="ltr"
               />
             </div>
@@ -916,7 +916,7 @@ function SettingsTab() {
                 min={0}
                 value={form.second_reminder_hours || 2}
                 onChange={(e) => set("second_reminder_hours", Number(e.target.value))}
-                className="w-full border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
+                className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
                 dir="ltr"
               />
             </div>
@@ -925,7 +925,7 @@ function SettingsTab() {
       </div>
 
       {/* Follow-up */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-1">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-1">
         <SectionTitle>رسائل المتابعة</SectionTitle>
         <div className="divide-y divide-gray-50">
           <Toggle field="followup_enabled" label="تفعيل رسائل المتابعة" />
@@ -938,7 +938,7 @@ function SettingsTab() {
               min={1}
               value={form.followup_hours_after || 24}
               onChange={(e) => set("followup_hours_after", Number(e.target.value))}
-              className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all max-w-[180px]"
+              className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all max-w-[180px]"
               dir="ltr"
             />
           </div>
@@ -946,7 +946,7 @@ function SettingsTab() {
       </div>
 
       {/* Owner notifications */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-1">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-1">
         <SectionTitle>إشعارات المالك</SectionTitle>
         <div className="divide-y divide-gray-50">
           <Toggle field="notify_owner_new_booking" label="حجز جديد" />
@@ -957,7 +957,7 @@ function SettingsTab() {
       </div>
 
       {/* Staff notifications */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-1">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-1">
         <SectionTitle>إشعارات الموظفين</SectionTitle>
         <div className="divide-y divide-gray-50">
           <Toggle field="notify_staff_assignment" label="تكليف بمهمة جديدة" />
@@ -1037,8 +1037,8 @@ function LogsTab() {
         {statCards.map((s) => {
           const Icon = s.icon;
           return (
-            <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-5">
-              <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center mb-3", s.iconBg)}>
+            <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] p-5">
+              <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center mb-3", s.iconBg)}>
                 <Icon className={clsx("w-5 h-5", s.iconCls)} />
               </div>
               <p className={clsx("text-3xl font-bold tabular-nums leading-none", s.numCls)}>{s.value}</p>
@@ -1049,7 +1049,7 @@ function LogsTab() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 px-4 py-3 flex flex-wrap gap-3 items-center">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] px-4 py-3 flex flex-wrap gap-3 items-center">
         <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium shrink-0">
           <List className="w-3.5 h-3.5" />
           فلترة:
@@ -1057,7 +1057,7 @@ function LogsTab() {
         <select
           value={filters.status}
           onChange={(e) => setFilter("status", e.target.value)}
-          className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 bg-white transition-all"
+          className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 bg-white transition-all"
         >
           <option value="">كل الحالات</option>
           <option value="sent">مرسل</option>
@@ -1068,7 +1068,7 @@ function LogsTab() {
         <select
           value={filters.category}
           onChange={(e) => setFilter("category", e.target.value)}
-          className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 bg-white transition-all"
+          className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 bg-white transition-all"
         >
           <option value="">كل الفئات</option>
           {Object.entries(CATEGORY_LABELS).map(([k, v]) => (
@@ -1079,13 +1079,13 @@ function LogsTab() {
           type="date"
           value={filters.date}
           onChange={(e) => setFilter("date", e.target.value)}
-          className="border border-gray-100 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
+          className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-500/40 focus:ring-2 focus:ring-brand-500/10 transition-all"
           dir="ltr"
         />
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-3">
             <Loader2 className="w-7 h-7 animate-spin text-brand-500" />
@@ -1093,7 +1093,7 @@ function LogsTab() {
           </div>
         ) : logs.length === 0 ? (
           <div className="p-14 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center mx-auto mb-3">
+            <div className="w-14 h-14 rounded-2xl bg-[#f8fafc] flex items-center justify-center mx-auto mb-3">
               <MessageCircle className="w-7 h-7 text-gray-200" />
             </div>
             <p className="text-sm font-medium text-gray-400">لا توجد رسائل</p>
@@ -1103,7 +1103,7 @@ function LogsTab() {
           <>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/60">
+                <tr className="border-b border-[#eef2f6] bg-gray-50/60">
                   <th className="text-right py-3 px-5 text-[10px] text-gray-400 font-semibold uppercase tracking-widest">التاريخ</th>
                   <th className="text-right py-3 px-4 text-[10px] text-gray-400 font-semibold uppercase tracking-widest">المستلم</th>
                   <th className="text-right py-3 px-4 text-[10px] text-gray-400 font-semibold uppercase tracking-widest">الحدث</th>
@@ -1121,22 +1121,22 @@ function LogsTab() {
                         idx % 2 === 0 ? "bg-white" : "bg-gray-50/30"
                       )}
                     >
-                      <td className="py-3.5 px-5 text-gray-400 tabular-nums text-xs">
+                      <td className="py-[6px] px-5 text-gray-400 tabular-nums text-xs">
                         {log.sent_at ? new Date(log.sent_at).toLocaleString("en-US") : "—"}
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <div>
                           <p className="font-semibold text-gray-800 text-xs">{log.recipient_name || "—"}</p>
                           <p className="text-[10px] text-gray-400 font-mono mt-0.5">{log.phone_number}</p>
                         </div>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <p className="text-xs text-gray-600 font-medium">{log.event_type || log.template_id}</p>
                         {log.error_message && (
                           <p className="text-[10px] text-red-400 mt-0.5 truncate max-w-[200px]">{log.error_message}</p>
                         )}
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <span className={clsx("px-2.5 py-1 rounded-full text-[10px] font-semibold", badge.cls)}>
                           {badge.label}
                         </span>
@@ -1149,7 +1149,7 @@ function LogsTab() {
 
             {/* Pagination */}
             {total > PER_PAGE && (
-              <div className="flex items-center justify-between px-5 py-3.5 border-t border-gray-50">
+              <div className="flex items-center justify-between px-5 py-[6px] border-t border-gray-50">
                 <p className="text-xs text-gray-400 tabular-nums">
                   {page * PER_PAGE + 1}–{Math.min((page + 1) * PER_PAGE, total)} من {total}
                 </p>
@@ -1157,14 +1157,14 @@ function LogsTab() {
                   <button
                     onClick={() => setPage((p) => Math.max(0, p - 1))}
                     disabled={page === 0}
-                    className="px-3.5 py-1.5 rounded-xl text-xs border border-gray-100 hover:bg-gray-50 hover:border-gray-200 disabled:opacity-40 transition-colors font-medium text-gray-600"
+                    className="px-3.5 py-1.5 rounded-xl text-xs border border-[#eef2f6] hover:bg-[#f8fafc] hover:border-[#eef2f6] disabled:opacity-40 transition-colors font-medium text-gray-600"
                   >
                     السابق
                   </button>
                   <button
                     onClick={() => setPage((p) => p + 1)}
                     disabled={(page + 1) * PER_PAGE >= total}
-                    className="px-3.5 py-1.5 rounded-xl text-xs border border-gray-100 hover:bg-gray-50 hover:border-gray-200 disabled:opacity-40 transition-colors font-medium text-gray-600"
+                    className="px-3.5 py-1.5 rounded-xl text-xs border border-[#eef2f6] hover:bg-[#f8fafc] hover:border-[#eef2f6] disabled:opacity-40 transition-colors font-medium text-gray-600"
                   >
                     التالي
                   </button>
@@ -1196,18 +1196,18 @@ export function MessagingSettingsPage() {
       </div>
 
       {/* Tabs — underline style */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="border-b border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="border-b border-[#eef2f6]">
           <div className="flex gap-0 overflow-x-auto">
             {TABS.map((tab, i) => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(i)}
                 className={clsx(
-                  "flex items-center gap-2 px-5 py-3.5 text-sm font-medium border-b-2 transition-all -mb-px whitespace-nowrap",
+                  "flex items-center gap-2 px-5 py-[6px] text-sm font-medium border-b-2 transition-all -mb-px whitespace-nowrap",
                   activeTab === i
                     ? "border-brand-500 text-brand-500"
-                    : "border-transparent text-gray-400 hover:text-gray-600 hover:border-gray-200"
+                    : "border-transparent text-gray-400 hover:text-gray-600 hover:border-[#eef2f6]"
                 )}
               >
                 <tab.icon className="w-4 h-4" />

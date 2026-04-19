@@ -36,7 +36,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-4 border-b border-gray-100">
+        <div className="flex justify-between items-center p-4 border-b border-[#eef2f6]">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
@@ -55,7 +55,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500";
 
 const EMPTY_FORM = {
   propertyId: "", unitNumber: "", floor: "", type: "apartment", areaSqm: "",
@@ -176,35 +176,35 @@ export function PropertyUnitsPage() {
 
       {/* Filters */}
       <div className="flex gap-3 flex-wrap">
-        <select value={propFilter} onChange={(e) => setPropFilter(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <select value={propFilter} onChange={(e) => setPropFilter(e.target.value)} className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
           <option value="">كل العقارات</option>
           {properties.map((p: any) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
           <option value="">كل الحالات</option>
           {Object.entries(UNIT_STATUS_AR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
+        <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
           <option value="">كل الأنواع</option>
           {Object.entries(UNIT_TYPE_AR).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
-        <input value={minRent} onChange={(e) => setMinRent(e.target.value)} placeholder="الإيجار الأدنى" type="number" className="border border-gray-200 rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-        <input value={maxRent} onChange={(e) => setMaxRent(e.target.value)} placeholder="الإيجار الأعلى" type="number" className="border border-gray-200 rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        <input value={minRent} onChange={(e) => setMinRent(e.target.value)} placeholder="الإيجار الأدنى" type="number" className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+        <input value={maxRent} onChange={(e) => setMaxRent(e.target.value)} placeholder="الإيجار الأعلى" type="number" className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-emerald-500" />
       </div>
 
       {/* Table */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-gray-50">
+          <thead className="bg-[#f8fafc]">
             <tr>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">رقم الوحدة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">العقار</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">النوع</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الطابق</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">المساحة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الإيجار الشهري</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الحالة</th>
-              <th className="px-4 py-3 text-right font-medium text-gray-500">الإجراءات</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">رقم الوحدة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">العقار</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">النوع</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الطابق</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">المساحة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الإيجار الشهري</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الحالة</th>
+              <th className="px-[10px] py-[6px] text-right font-medium text-gray-500">الإجراءات</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -216,34 +216,34 @@ export function PropertyUnitsPage() {
               <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">لا توجد وحدات مطابقة</td></tr>
             ) : (
               units.map((u: any) => (
-                <tr key={u.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{u.unitNumber}</td>
-                  <td className="px-4 py-3 text-gray-500">{u.propertyName ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500">{UNIT_TYPE_AR[u.type] ?? u.type}</td>
-                  <td className="px-4 py-3 text-gray-500">{u.floor ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500">{u.areaSqm ? `${u.areaSqm} م²` : "—"}</td>
-                  <td className="px-4 py-3 font-medium text-gray-900">
+                <tr key={u.id} className="hover:bg-[#f8fafc]">
+                  <td className="px-[10px] py-[6px] font-medium text-gray-900">{u.unitNumber}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">{u.propertyName ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">{UNIT_TYPE_AR[u.type] ?? u.type}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">{u.floor ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">{u.areaSqm ? `${u.areaSqm} م²` : "—"}</td>
+                  <td className="px-[10px] py-[6px] font-medium text-gray-900">
                     {u.monthlyRent ? `${Number(u.monthlyRent).toLocaleString("en-US")} ريال` : "—"}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <span className={clsx("rounded-full px-2 py-0.5 text-xs font-medium", UNIT_STATUS_COLORS[u.status] ?? "bg-gray-100 text-gray-600")}>
                       {UNIT_STATUS_AR[u.status] ?? u.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-[10px] py-[6px]">
                     <div className="flex gap-2 items-center flex-wrap">
                       <button onClick={() => openEdit(u)} className="text-xs text-emerald-700 hover:underline">تعديل</button>
                       <div className="relative group">
                         <button className="text-xs text-brand-600 border border-brand-200 rounded-lg px-2 py-1 hover:bg-brand-50 transition-colors">
                           تغيير الحالة
                         </button>
-                        <div className="absolute left-0 mt-1 w-32 bg-white border border-gray-100 rounded-xl shadow-lg z-10 hidden group-hover:block">
+                        <div className="absolute left-0 mt-1 w-32 bg-white border border-[#eef2f6] rounded-xl shadow-lg z-10 hidden group-hover:block">
                           {Object.entries(UNIT_STATUS_AR).map(([k, v]) => (
                             k !== u.status && (
                               <button
                                 key={k}
                                 onClick={() => handleStatusChange(u.id, k)}
-                                className="block w-full text-right px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
+                                className="block w-full text-right px-3 py-2 text-xs text-gray-700 hover:bg-[#f8fafc]"
                               >
                                 {v}
                               </button>
@@ -318,7 +318,7 @@ export function PropertyUnitsPage() {
               </Field>
             </div>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50">
                 {saving ? "جارٍ الحفظ..." : "حفظ"}
               </button>
@@ -347,7 +347,7 @@ export function PropertyUnitsPage() {
               />
             </Field>
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setShowBulkModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50">إلغاء</button>
+              <button onClick={() => setShowBulkModal(false)} className="px-4 py-2 text-sm border border-[#eef2f6] rounded-xl text-gray-600 hover:bg-[#f8fafc]">إلغاء</button>
               <button onClick={handleBulk} disabled={bulking || !bulkPropertyId} className="px-4 py-2 text-sm bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50">
                 {bulking ? "جارٍ الإضافة..." : "إضافة"}
               </button>

@@ -33,7 +33,7 @@ export function BookingStatusWidget() {
   const total = bookings.length || 1;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="font-semibold text-gray-900 text-sm">{"حالة " + biz.terminology.bookings}</h2>
         <p className="text-xs text-gray-400">التوزيع الحالي</p>

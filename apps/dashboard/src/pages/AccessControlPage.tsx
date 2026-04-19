@@ -11,7 +11,7 @@ import { fmtDate } from "@/lib/utils";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const iCls = "w-full border border-gray-200 rounded-xl px-3 h-10 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white";
+const iCls = "w-full border border-[#eef2f6] rounded-xl px-3 h-10 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 transition-all bg-white";
 const selCls = iCls + " appearance-none";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -113,8 +113,8 @@ export function AccessControlPage() {
 
       {/* Stat cards */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center shrink-0">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-[10px] bg-emerald-50 flex items-center justify-center shrink-0">
             <CheckCircle2 className="w-5 h-5 text-emerald-600" />
           </div>
           <div>
@@ -122,8 +122,8 @@ export function AccessControlPage() {
             <p className="text-xs text-gray-400">دخول مسموح اليوم</p>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center shrink-0">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-[10px] bg-red-50 flex items-center justify-center shrink-0">
             <XCircle className="w-5 h-5 text-red-500" />
           </div>
           <div>
@@ -131,8 +131,8 @@ export function AccessControlPage() {
             <p className="text-xs text-gray-400">دخول مرفوض اليوم</p>
           </div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4 flex items-center gap-3">
+          <div className="w-9 h-9 rounded-[10px] bg-brand-50 flex items-center justify-center shrink-0">
             <Users className="w-5 h-5 text-brand-500" />
           </div>
           <div>
@@ -150,11 +150,11 @@ export function AccessControlPage() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="بحث باسم العميل..."
-            className="w-full border border-gray-200 rounded-xl pr-9 pl-3 h-9 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 bg-white"
+            className="w-full border border-[#eef2f6] rounded-xl pr-9 pl-3 h-9 text-sm outline-none focus:border-brand-300 focus:ring-2 focus:ring-brand-50 bg-white"
           />
         </div>
         <select value={filterGranted} onChange={e => setFilterGranted(e.target.value as any)}
-          className="border border-gray-200 rounded-xl px-3 h-9 text-sm bg-white appearance-none min-w-32">
+          className="border border-[#eef2f6] rounded-xl px-3 h-9 text-sm bg-white appearance-none min-w-32">
           <option value="">كل الحالات</option>
           <option value="true">مسموح</option>
           <option value="false">مرفوض</option>
@@ -163,16 +163,16 @@ export function AccessControlPage() {
           type="date"
           value={filterDate}
           onChange={e => setFilterDate(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 h-9 text-sm bg-white"
+          className="border border-[#eef2f6] rounded-xl px-3 h-9 text-sm bg-white"
           dir="ltr"
         />
-        <button onClick={() => { refetch(); refetchStats(); }} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-xl transition-colors">
+        <button onClick={() => { refetch(); refetchStats(); }} className="p-2 text-gray-400 hover:text-gray-600 hover:bg-[#f8fafc] rounded-xl transition-colors">
           <RefreshCw className="w-4 h-4" />
         </button>
       </div>
 
       {/* Log table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-6"><SkeletonRows rows={8} /></div>
         ) : error ? (
@@ -182,7 +182,7 @@ export function AccessControlPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3">
-            <div className="w-14 h-14 bg-gray-50 rounded-2xl flex items-center justify-center">
+            <div className="w-14 h-14 bg-[#f8fafc] rounded-2xl flex items-center justify-center">
               <ShieldCheck className="w-7 h-7 text-gray-300" />
             </div>
             <p className="text-sm font-medium text-gray-500">لا توجد سجلات دخول</p>
@@ -192,7 +192,7 @@ export function AccessControlPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 text-xs text-gray-400 bg-gray-50/50">
+                <tr className="border-b border-[#eef2f6] text-xs text-gray-400 bg-gray-50/50">
                   <th className="text-right font-medium px-4 py-3">الحالة</th>
                   <th className="text-right font-medium px-4 py-3">العميل</th>
                   <th className="text-right font-medium px-4 py-3">الطريقة</th>
@@ -202,8 +202,8 @@ export function AccessControlPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filtered.map((l: any) => (
-                  <tr key={l.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-4 py-3">
+                  <tr key={l.id} className="hover:bg-[#f8fafc]/50 transition-colors">
+                    <td className="px-[10px] py-[6px]">
                       {l.granted ? (
                         <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-lg">
                           <CheckCircle2 className="w-3.5 h-3.5" /> مسموح
@@ -214,12 +214,12 @@ export function AccessControlPage() {
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-900">{l.customerName || "—"}</td>
-                    <td className="px-4 py-3 text-gray-500">
+                    <td className="px-[10px] py-[6px] font-medium text-gray-900">{l.customerName || "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500">
                       {l.method === "qr" ? "QR" : l.method === "card" ? "بطاقة" : "يدوي"}
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">{l.denyReason || "—"}</td>
-                    <td className="px-4 py-3 text-gray-400 text-xs tabular-nums">{fmtDate(l.accessedAt)}</td>
+                    <td className="px-[10px] py-[6px] text-gray-400 text-xs">{l.denyReason || "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-400 text-xs tabular-nums">{fmtDate(l.accessedAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -266,7 +266,7 @@ export function AccessControlPage() {
                     "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border text-sm font-medium transition-colors",
                     manualForm.granted
                       ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                      : "border-gray-200 text-gray-500 hover:bg-gray-50",
+                      : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]",
                   )}
                 >
                   <CheckCircle2 className="w-4 h-4" /> سماح
@@ -277,7 +277,7 @@ export function AccessControlPage() {
                     "flex-1 flex items-center justify-center gap-2 h-10 rounded-xl border text-sm font-medium transition-colors",
                     !manualForm.granted
                       ? "border-red-300 bg-red-50 text-red-700"
-                      : "border-gray-200 text-gray-500 hover:bg-gray-50",
+                      : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]",
                   )}
                 >
                   <XCircle className="w-4 h-4" /> رفض
@@ -299,7 +299,7 @@ export function AccessControlPage() {
                 {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                 تسجيل
               </button>
-              <button onClick={() => setModal(null)} className="flex-1 border border-gray-200 text-sm text-gray-600 h-10 rounded-xl hover:bg-gray-50 transition-colors">إلغاء</button>
+              <button onClick={() => setModal(null)} className="flex-1 border border-[#eef2f6] text-sm text-gray-600 h-10 rounded-xl hover:bg-[#f8fafc] transition-colors">إلغاء</button>
             </div>
           </div>
         </div>

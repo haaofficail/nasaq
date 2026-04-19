@@ -27,8 +27,8 @@ export class ErrorBoundary extends Component<Props, State> {
     if (!this.state.hasError) return this.props.children;
 
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6" dir="rtl">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8 max-w-md w-full text-center space-y-5">
+      <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center p-6" dir="rtl">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-8 max-w-md w-full text-center space-y-5">
           <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mx-auto">
             <AlertTriangle className="w-7 h-7 text-red-500" />
           </div>
@@ -37,7 +37,7 @@ export class ErrorBoundary extends Component<Props, State> {
             <p className="text-sm text-gray-500 mt-1">يرجى تحديث الصفحة أو المحاولة لاحقاً</p>
             <p className="text-xs text-gray-400 mt-2">إذا استمرت المشكلة، تواصل مع الدعم الفني من خلال قائمة «الدعم الفني» في الشريط الجانبي</p>
             {this.state.message && (
-              <p className="mt-3 text-xs text-gray-400 bg-gray-50 rounded-lg p-3 text-start font-mono break-all">
+              <p className="mt-3 text-xs text-gray-400 bg-[#f8fafc] rounded-lg p-3 text-start font-mono break-all">
                 {this.state.message}
               </p>
             )}

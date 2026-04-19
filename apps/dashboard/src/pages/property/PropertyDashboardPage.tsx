@@ -16,12 +16,12 @@ export function PropertyDashboardPage() {
         <div className="h-8 w-48 bg-gray-200 rounded-xl animate-pulse" />
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-24 bg-gray-100 rounded-2xl animate-pulse" />
+            <div key={i} className="h-24 bg-[#f1f5f9] rounded-2xl animate-pulse" />
           ))}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="h-64 bg-gray-100 rounded-2xl animate-pulse" />
-          <div className="h-64 bg-gray-100 rounded-2xl animate-pulse" />
+          <div className="h-64 bg-[#f1f5f9] rounded-2xl animate-pulse" />
+          <div className="h-64 bg-[#f1f5f9] rounded-2xl animate-pulse" />
         </div>
         <SkeletonRows />
       </div>
@@ -107,7 +107,7 @@ export function PropertyDashboardPage() {
       {/* Charts */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Revenue vs Expenses */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+        <div className="bg-white border border-[#eef2f6] rounded-2xl p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">الإيرادات مقابل المصروفات (آخر 12 شهر)</h3>
           {revenueChart.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
@@ -127,7 +127,7 @@ export function PropertyDashboardPage() {
         </div>
 
         {/* Occupancy Trend */}
-        <div className="bg-white border border-gray-100 rounded-2xl p-4 shadow-sm">
+        <div className="bg-white border border-[#eef2f6] rounded-2xl p-4 shadow-sm">
           <h3 className="text-sm font-semibold text-gray-700 mb-4">معدل الإشغال الشهري</h3>
           {occupancyTrend.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
@@ -154,7 +154,7 @@ export function PropertyDashboardPage() {
               key={i}
               className={clsx(
                 "rounded-2xl border px-4 py-3 text-sm",
-                alertColors[alert.type] ?? "bg-gray-50 border-gray-200 text-gray-700"
+                alertColors[alert.type] ?? "bg-gray-50 border-[#eef2f6] text-gray-700"
               )}
             >
               {alert.message}
@@ -164,15 +164,15 @@ export function PropertyDashboardPage() {
       )}
 
       {/* Recent Payments */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-100">
+      <div className="bg-white border border-[#eef2f6] rounded-2xl shadow-sm overflow-hidden">
+        <div className="px-[10px] py-[6px] border-b border-[#eef2f6]">
           <h3 className="text-sm font-semibold text-gray-700">آخر المدفوعات</h3>
         </div>
         {recentPayments.length === 0 ? (
           <div className="text-center py-10 text-gray-400 text-sm">لا توجد مدفوعات حديثة</div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-[#f8fafc]">
               <tr>
                 <th className="px-4 py-2 text-right font-medium text-gray-500">المستأجر</th>
                 <th className="px-4 py-2 text-right font-medium text-gray-500">العقار</th>
@@ -183,16 +183,16 @@ export function PropertyDashboardPage() {
             </thead>
             <tbody className="divide-y divide-gray-50">
               {recentPayments.slice(0, 10).map((p: any) => (
-                <tr key={p.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium text-gray-900">{p.tenantName ?? "—"}</td>
-                  <td className="px-4 py-3 text-gray-500">{p.propertyName ?? "—"}</td>
-                  <td className="px-4 py-3 font-medium text-emerald-700">
+                <tr key={p.id} className="hover:bg-[#f8fafc]">
+                  <td className="px-[10px] py-[6px] font-medium text-gray-900">{p.tenantName ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">{p.propertyName ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] font-medium text-emerald-700">
                     {Number(p.amount ?? 0).toLocaleString("en-US")} ريال
                   </td>
-                  <td className="px-4 py-3 text-gray-500">
+                  <td className="px-[10px] py-[6px] text-gray-500">
                     {p.paidAt ? new Date(p.paidAt).toLocaleDateString("ar-SA") : "—"}
                   </td>
-                  <td className="px-4 py-3 text-gray-500">{p.method ?? "—"}</td>
+                  <td className="px-[10px] py-[6px] text-gray-500">{p.method ?? "—"}</td>
                 </tr>
               ))}
             </tbody>

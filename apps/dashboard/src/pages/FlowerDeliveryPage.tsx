@@ -57,7 +57,7 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string; b
   cancelled:        { label: "ملغي",        bg: "bg-red-50",    text: "text-red-600",    border: "border-red-200",   dot: "bg-red-400" },
 };
 
-const inputCls = "w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500";
+const inputCls = "w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 function parseItems(raw: any): any[] {
@@ -88,7 +88,7 @@ function fmtTime(dateStr?: string): string {
 
 // ─── Status Badge ───────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
-  const cfg = STATUS_CONFIG[status] ?? { label: status, bg: "bg-gray-100", text: "text-gray-600", border: "border-gray-200", dot: "bg-gray-400" };
+  const cfg = STATUS_CONFIG[status] ?? { label: status, bg: "bg-gray-100", text: "text-gray-600", border: "border-[#eef2f6]", dot: "bg-gray-400" };
   return (
     <span className={clsx("inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border", cfg.bg, cfg.text, cfg.border)}>
       <span className={clsx("w-1.5 h-1.5 rounded-full", cfg.dot)} />
@@ -100,17 +100,17 @@ function StatusBadge({ status }: { status: string }) {
 // ─── Skeleton ───────────────────────────────────────────────────────────────────
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden animate-pulse">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden animate-pulse">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
         <div className="flex items-center gap-2">
           <div className="h-4 bg-gray-100 rounded w-20" />
-          <div className="h-5 bg-gray-100 rounded-lg w-14" />
+          <div className="h-5 bg-[#f1f5f9] rounded-lg w-14" />
         </div>
-        <div className="h-6 bg-gray-100 rounded-lg w-20" />
+        <div className="h-6 bg-[#f1f5f9] rounded-lg w-20" />
       </div>
       {/* Body */}
-      <div className="px-4 py-3 space-y-2.5">
+      <div className="px-[10px] py-[6px] space-y-2.5">
         <div className="flex items-center gap-2">
           <div className="w-3.5 h-3.5 bg-gray-100 rounded-full shrink-0" />
           <div className="h-4 bg-gray-100 rounded w-32" />
@@ -129,11 +129,11 @@ function SkeletonCard() {
         </div>
       </div>
       {/* Footer */}
-      <div className="px-4 py-3 border-t border-gray-50 flex items-center justify-between">
+      <div className="px-[10px] py-[6px] border-t border-gray-50 flex items-center justify-between">
         <div className="h-5 bg-gray-100 rounded w-20" />
         <div className="flex items-center gap-2">
-          <div className="h-9 bg-gray-100 rounded-xl w-24" />
-          <div className="h-9 bg-gray-100 rounded-xl w-24" />
+          <div className="h-9 bg-[#f1f5f9] rounded-xl w-24" />
+          <div className="h-9 bg-[#f1f5f9] rounded-xl w-24" />
         </div>
       </div>
     </div>
@@ -142,7 +142,7 @@ function SkeletonCard() {
 
 function SkeletonKpiCard() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 animate-pulse">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-4 animate-pulse">
       <div className="w-9 h-9 rounded-xl bg-gray-100 mb-3" />
       <div className="h-7 bg-gray-100 rounded w-10 mb-1.5" />
       <div className="h-3 bg-gray-100 rounded w-16" />
@@ -193,7 +193,7 @@ function StaffSelectModal({ title, filterKeyword, onClose, onConfirm, loading }:
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+        <div className="flex items-center justify-between p-5 border-b border-[#eef2f6]">
           <h3 className="font-bold text-gray-900">{title}</h3>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">
             <X className="w-4 h-4" />
@@ -203,9 +203,9 @@ function StaffSelectModal({ title, filterKeyword, onClose, onConfirm, loading }:
           <div>
             <label className="block text-xs font-medium text-gray-600 mb-1">اختر الموظف *</label>
             {staffLoading ? (
-              <div className="h-10 bg-gray-100 rounded-xl animate-pulse" />
+              <div className="h-10 bg-[#f1f5f9] rounded-xl animate-pulse" />
             ) : allStaff.length === 0 ? (
-              <p className="text-xs text-gray-400 bg-gray-50 rounded-xl px-3 py-2.5">لا يوجد موظفون مسجلون</p>
+              <p className="text-xs text-gray-400 bg-[#f8fafc] rounded-xl px-3 py-2.5">لا يوجد موظفون مسجلون</p>
             ) : (
               <select value={selectedId} onChange={e => setSelectedId(e.target.value)} className={inputCls}>
                 <option value="">— اختر الموظف —</option>
@@ -237,7 +237,7 @@ function StaffSelectModal({ title, filterKeyword, onClose, onConfirm, loading }:
             />
           </div>
           <div className="flex gap-3 pt-1">
-            <button onClick={onClose} className="flex-1 border border-gray-200 text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-gray-50 transition-colors">
+            <button onClick={onClose} className="flex-1 border border-[#eef2f6] text-gray-600 rounded-xl py-2.5 text-sm font-medium hover:bg-[#f8fafc] transition-colors">
               إلغاء
             </button>
             <button
@@ -418,19 +418,19 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
 
   return (
     <>
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         {/* Card Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-50">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-bold text-gray-800">{order.order_number}</span>
-            <span className="text-[11px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded-lg">{fmtTime(order.created_at)}</span>
+            <span className="text-[11px] text-gray-400 bg-[#f8fafc] px-2 py-0.5 rounded-lg">{fmtTime(order.created_at)}</span>
             {order.delivery_type && <DeliveryTypeBadge type={order.delivery_type} />}
           </div>
           <StatusBadge status={order.status} />
         </div>
 
         {/* Card Body */}
-        <div className="px-4 py-3 space-y-2.5">
+        <div className="px-[10px] py-[6px] space-y-2.5">
           {/* Customer */}
           <div className="flex items-start gap-2">
             <User className="w-3.5 h-3.5 mt-0.5 text-gray-400 shrink-0" />
@@ -530,7 +530,7 @@ function OrderCard({ order, onRefresh }: { order: FlowerOrder; onRefresh: () => 
         </div>
 
         {/* Card Footer */}
-        <div className="px-4 py-3 border-t border-gray-50 flex items-center justify-between gap-3">
+        <div className="px-[10px] py-[6px] border-t border-gray-50 flex items-center justify-between gap-3">
           <span className="text-sm font-bold text-gray-900 tabular-nums">
             {total.toLocaleString("en-US")} <span className="text-xs font-normal text-gray-400">ر.س</span>
           </span>
@@ -654,7 +654,7 @@ export function FlowerDeliveryPage() {
           )}
           <button
             onClick={refetch}
-            className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-100 hover:bg-gray-50 text-gray-400 transition-colors"
+            className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-400 transition-colors"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
@@ -668,28 +668,28 @@ export function FlowerDeliveryPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center mb-3">
               <Package className="w-4 h-4 text-brand-500" />
             </div>
             <p className="text-2xl font-bold text-brand-500 tabular-nums">{todayOrders.length}</p>
             <p className="text-xs text-gray-400 mt-0.5">اجمالي طلبات اليوم</p>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center mb-3">
               <Clock className="w-4 h-4 text-blue-500" />
             </div>
             <p className="text-2xl font-bold text-blue-600 tabular-nums">{pendingDeliveries}</p>
             <p className="text-xs text-gray-400 mt-0.5">بانتظار التوصيل</p>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className="w-9 h-9 rounded-xl bg-amber-50 flex items-center justify-center mb-3">
               <Truck className="w-4 h-4 text-amber-500" />
             </div>
             <p className="text-2xl font-bold text-amber-600 tabular-nums">{countByStatus("out_for_delivery")}</p>
             <p className="text-xs text-gray-400 mt-0.5">في الطريق</p>
           </div>
-          <div className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className="w-9 h-9 rounded-xl bg-green-50 flex items-center justify-center mb-3">
               <CheckCircle2 className="w-4 h-4 text-green-500" />
             </div>
@@ -700,7 +700,7 @@ export function FlowerDeliveryPage() {
       )}
 
       {/* Delivery Type Segment */}
-      <div className="flex items-center gap-2 bg-white border border-gray-100 rounded-2xl px-4 py-3">
+      <div className="flex items-center gap-2 bg-white border border-[#eef2f6] rounded-2xl px-4 py-3">
         <div className="flex gap-1.5 flex-wrap">
           {TYPE_TABS.map(t => (
             <button
@@ -730,13 +730,13 @@ export function FlowerDeliveryPage() {
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           placeholder="بحث باسم العميل، رقم الجوال، رقم الطلب، أو اسم المندوب..."
-          className="w-full bg-white border border-gray-100 rounded-2xl pr-10 pl-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500"
+          className="w-full bg-white border border-[#eef2f6] rounded-2xl pr-10 pl-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300/30 focus:border-brand-500"
         />
       </div>
 
       {/* Status Filter Tabs */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="flex items-center gap-1 px-4 pt-3 border-b border-gray-100 overflow-x-auto">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="flex items-center gap-1 px-4 pt-3 border-b border-[#eef2f6] overflow-x-auto">
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.value}
@@ -769,7 +769,7 @@ export function FlowerDeliveryPage() {
             </div>
           ) : orders.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 gap-3">
-              <div className="w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center">
+              <div className="w-14 h-14 rounded-2xl bg-[#f8fafc] flex items-center justify-center">
                 <Truck className="w-7 h-7 text-gray-300" />
               </div>
               <div className="text-center">

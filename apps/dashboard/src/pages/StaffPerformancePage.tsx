@@ -60,17 +60,17 @@ export function StaffPerformancePage() {
         </div>
         <div className="flex items-center gap-2">
           <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm" />
+            className="border border-[#eef2f6] rounded-xl px-3 py-1.5 text-sm" />
           <span className="text-gray-400 text-xs">—</span>
           <input type="date" value={to} onChange={e => setTo(e.target.value)}
-            className="border border-gray-200 rounded-xl px-3 py-1.5 text-sm" />
+            className="border border-[#eef2f6] rounded-xl px-3 py-1.5 text-sm" />
         </div>
       </div>
 
       {loading ? (
         <SkeletonRows />
       ) : perf.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16">
           <Users className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <p className="text-gray-400">لا توجد حجوزات مكتملة في هذه الفترة</p>
           <p className="text-xs text-gray-300 mt-1">{from} — {to}</p>
@@ -83,7 +83,7 @@ export function StaffPerformancePage() {
             const completionRate = p.totalBookings > 0 ? Math.round((p.completed / p.totalBookings) * 100) : 0;
 
             return (
-              <div key={p.staffId} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+              <div key={p.staffId} className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
                 {/* Header row */}
                 <div className="flex items-center gap-3 px-5 py-4">
                   {/* Rank */}

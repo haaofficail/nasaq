@@ -128,7 +128,7 @@ function GroupedClassRooms({
                     <div
                       key={cr.id}
                       onClick={() => onOpen(cr)}
-                      className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-right hover:border-emerald-300 hover:shadow-md transition-all space-y-2.5 group relative cursor-pointer"
+                      className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4 text-right hover:border-emerald-300 hover:shadow-md transition-all space-y-2.5 group relative cursor-pointer"
                     >
                       <div className="flex items-center justify-between">
                         <div className="w-9 h-9 rounded-xl bg-emerald-50 group-hover:bg-emerald-100 flex items-center justify-center transition-colors">
@@ -169,7 +169,7 @@ function GroupedClassRooms({
       {unknownRooms.length > 0 && (
         <div>
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-xs font-black text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-3 py-1">أخرى</span>
+            <span className="text-xs font-black text-gray-500 bg-gray-100 border border-[#eef2f6] rounded-full px-3 py-1">أخرى</span>
             <div className="flex-1 h-px bg-gray-100" />
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
@@ -177,10 +177,10 @@ function GroupedClassRooms({
               <div
                 key={cr.id}
                 onClick={() => onOpen(cr)}
-                className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 text-right hover:border-emerald-300 hover:shadow-md transition-all space-y-2.5 group relative cursor-pointer"
+                className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm p-4 text-right hover:border-emerald-300 hover:shadow-md transition-all space-y-2.5 group relative cursor-pointer"
               >
                 <div className="flex items-center justify-between">
-                  <div className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center">
+                  <div className="w-9 h-9 rounded-xl bg-[#f8fafc] flex items-center justify-center">
                     <DoorOpen className="w-4 h-4 text-gray-400" />
                   </div>
                   <span className="text-lg font-black text-gray-900">{cr.name}</span>
@@ -316,7 +316,7 @@ function UnassignedStudentsPanel({
             <select
               value={targetRoom}
               onChange={(e) => setTargetRoom(e.target.value)}
-              className="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm bg-white focus:outline-none focus:border-emerald-400"
+              className="flex-1 rounded-xl border border-[#eef2f6] px-3 py-2 text-sm bg-white focus:outline-none focus:border-emerald-400"
             >
               <option value="">— اختر الفصل المستهدف —</option>
               {classRooms.map((r) => (
@@ -333,8 +333,8 @@ function UnassignedStudentsPanel({
           </div>
 
           {/* Student list with checkboxes */}
-          <div className="bg-white rounded-xl border border-gray-100 max-h-64 overflow-y-auto">
-            <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-100 bg-gray-50 rounded-t-xl">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] max-h-64 overflow-y-auto">
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-[#eef2f6] bg-[#f8fafc] rounded-t-xl">
               <input
                 type="checkbox"
                 checked={selected.size === unassigned.length}
@@ -344,7 +344,7 @@ function UnassignedStudentsPanel({
               <span className="text-xs font-semibold text-gray-600">تحديد الكل ({unassigned.length})</span>
             </div>
             {unassigned.map((s) => (
-              <label key={s.id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-gray-50 cursor-pointer border-b border-gray-50 last:border-0">
+              <label key={s.id} className="flex items-center gap-3 px-3 py-2.5 hover:bg-[#f8fafc] cursor-pointer border-b border-gray-50 last:border-0">
                 <input
                   type="checkbox"
                   checked={selected.has(s.id)}
@@ -457,7 +457,7 @@ export function SchoolClassesPage() {
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {[...Array(8)].map((_, i) => (
-            <div key={i} className="animate-pulse bg-gray-100 rounded-2xl h-36 w-full" />
+            <div key={i} className="animate-pulse bg-[#f1f5f9] rounded-2xl h-36 w-full" />
           ))}
         </div>
       ) : error ? (
@@ -495,7 +495,7 @@ export function SchoolClassesPage() {
           <>
             <button
               onClick={() => setModal({ open: false, mode: "add" })}
-              className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50"
+              className="px-4 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc]"
             >
               إلغاء
             </button>
@@ -515,7 +515,7 @@ export function SchoolClassesPage() {
             <select
               value={form.grade}
               onChange={(e) => setForm((f) => ({ ...f, grade: e.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
+              className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30 bg-white"
             >
               <option value="">اختر الصف الدراسي</option>
               {GRADE_GROUPS.map((group) => (
@@ -532,7 +532,7 @@ export function SchoolClassesPage() {
             <input
               value={form.name}
               onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               placeholder="مثال: أ، ب، ج"
             />
           </div>
@@ -543,7 +543,7 @@ export function SchoolClassesPage() {
               min={1}
               value={form.capacity}
               onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))}
-              className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
+              className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
               placeholder="30"
             />
           </div>

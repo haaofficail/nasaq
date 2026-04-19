@@ -81,7 +81,7 @@ export function AboutPage() {
             <h2 className="text-3xl font-black text-gray-900 text-center mb-12">فريقنا</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {team.map((member) => (
-                <div key={member.name} className="bg-white rounded-2xl p-6 text-center border border-gray-100">
+                <div key={member.name} className="bg-white rounded-2xl p-6 text-center border border-[#eef2f6]">
                   <div className="w-16 h-16 rounded-2xl bg-blue-100 text-brand-500 font-black text-2xl flex items-center justify-center mx-auto mb-4">
                     {member.initials}
                   </div>

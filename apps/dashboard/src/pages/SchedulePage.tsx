@@ -65,7 +65,7 @@ function StaffColumnView({
 
   if (visibleStaff.length === 0) {
     return (
-      <div className="bg-white rounded-2xl border border-gray-100 text-center py-16">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] text-center py-16">
         <CalendarDays className="w-10 h-10 text-gray-200 mx-auto mb-3" />
         <p className="text-gray-400 font-medium">لا يوجد موظفون نشطون</p>
       </div>
@@ -73,11 +73,11 @@ function StaffColumnView({
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-x-auto">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-x-auto">
       <table className="min-w-full text-sm">
         <thead>
-          <tr className="border-b border-gray-100 bg-gray-50/60">
-            <th className="w-16 shrink-0 px-3 py-3 text-xs text-gray-400 font-semibold text-center sticky right-0 bg-gray-50/60 border-l border-gray-100">
+          <tr className="border-b border-[#eef2f6] bg-gray-50/60">
+            <th className="w-16 shrink-0 px-3 py-3 text-xs text-gray-400 font-semibold text-center sticky right-0 bg-gray-50/60 border-l border-[#eef2f6]">
               الوقت
             </th>
             {visibleStaff.map((s) => (
@@ -98,7 +98,7 @@ function StaffColumnView({
             const hasAny = visibleStaff.some((s) => byStaff[s.id]?.[key]);
             return (
               <tr key={key} className={clsx("border-b border-gray-50 last:border-0", hasAny ? "bg-white" : "bg-gray-50/30")}>
-                <td className="w-16 px-3 py-1.5 text-xs text-gray-400 tabular-nums text-center sticky right-0 bg-inherit border-l border-gray-100">
+                <td className="w-16 px-3 py-1.5 text-xs text-gray-400 tabular-nums text-center sticky right-0 bg-inherit border-l border-[#eef2f6]">
                   {label}
                 </td>
                 {visibleStaff.map((s) => {
@@ -208,7 +208,7 @@ export function SchedulePage() {
         </div>
         <div className="flex items-center gap-2">
           {/* View mode toggle */}
-          <div className="flex gap-0.5 bg-gray-100 rounded-lg p-0.5">
+          <div className="flex gap-0.5 bg-[#f1f5f9] rounded-lg p-0.5">
             <button
               onClick={() => setViewMode("list")}
               className={clsx("w-8 h-8 flex items-center justify-center rounded-md transition-colors", viewMode === "list" ? "bg-white shadow-sm text-brand-600" : "text-gray-400 hover:text-gray-600")}
@@ -224,16 +224,16 @@ export function SchedulePage() {
               <LayoutGrid className="w-4 h-4" />
             </button>
           </div>
-          <button onClick={() => setCurrentDate(d => addDays(d, -1))} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
+          <button onClick={() => setCurrentDate(d => addDays(d, -1))} className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500 transition-colors">
             <ChevronRight className="w-4 h-4" />
           </button>
-          <button onClick={() => setCurrentDate(today)} className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors", currentDate === today ? "bg-brand-500 text-white border-brand-500" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
+          <button onClick={() => setCurrentDate(today)} className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors", currentDate === today ? "bg-brand-500 text-white border-brand-500" : "border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]")}>
             اليوم
           </button>
-          <button onClick={() => setCurrentDate(d => addDays(d, 1))} className="w-8 h-8 flex items-center justify-center rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
+          <button onClick={() => setCurrentDate(d => addDays(d, 1))} className="w-8 h-8 flex items-center justify-center rounded-lg border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500 transition-colors">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <input type="date" value={currentDate} onChange={e => setCurrentDate(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300" />
+          <input type="date" value={currentDate} onChange={e => setCurrentDate(e.target.value)} className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300" />
         </div>
       </div>
 
@@ -245,7 +245,7 @@ export function SchedulePage() {
           { label: "مكتملة", value: stats.completed, color: "text-green-600 bg-green-50" },
           { label: "ملغاة", value: stats.cancelled, color: "text-red-500 bg-red-50" },
         ].map(({ label, value, color }) => (
-          <div key={label} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <p className={clsx("text-2xl font-bold tabular-nums", color.split(" ")[0])}>{value}</p>
             <p className="text-xs text-gray-400 mt-0.5">{label}</p>
           </div>
@@ -264,11 +264,11 @@ export function SchedulePage() {
       {/* Staff filter — only in list view */}
       {viewMode === "list" && staffList.length > 0 && (
         <div className="flex gap-2 overflow-x-auto pb-1">
-          <button onClick={() => setSelectedStaff("all")} className={clsx("px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-colors", selectedStaff === "all" ? "bg-brand-500 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50")}>
+          <button onClick={() => setSelectedStaff("all")} className={clsx("px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-colors", selectedStaff === "all" ? "bg-brand-500 text-white" : "bg-white border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]")}>
             الكل
           </button>
           {staffList.map((s: any) => (
-            <button key={s.id} onClick={() => setSelectedStaff(s.id)} className={clsx("px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-colors", selectedStaff === s.id ? "bg-brand-500 text-white" : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50")}>
+            <button key={s.id} onClick={() => setSelectedStaff(s.id)} className={clsx("px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-colors", selectedStaff === s.id ? "bg-brand-500 text-white" : "bg-white border border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]")}>
               {s.name}
             </button>
           ))}
@@ -286,7 +286,7 @@ export function SchedulePage() {
       {viewMode === "list" && (loading ? (
         <SkeletonRows />
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           {bookings.length === 0 ? (
             <div className="text-center py-16">
               <CalendarDays className="w-10 h-10 text-gray-200 mx-auto mb-3" />

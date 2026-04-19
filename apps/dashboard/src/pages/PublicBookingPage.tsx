@@ -45,12 +45,12 @@ export function PublicBookingPage() {
   usePublicTheme(siteData);
 
   if (loadingOrg) return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    <div className="min-h-screen bg-[#f8fafc] flex items-center justify-center">
       <Loader2 className="w-8 h-8 animate-spin text-brand" />
     </div>
   );
   if (orgError || !siteData) return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-3 p-6">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center gap-3 p-6">
       <AlertCircle className="w-12 h-12 text-red-400" />
       <p className="text-gray-600 font-medium">{orgError || "الصفحة غير موجودة"}</p>
     </div>
@@ -120,7 +120,7 @@ export function PublicBookingPage() {
       <header className="py-4 px-6 sticky top-0 z-10" style={{ background: "linear-gradient(135deg, #5b9bd5 0%, #3d84c8 100%)" }}>
         <div className="max-w-2xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold overflow-hidden bg-white/20">
+            <div className="w-9 h-9 rounded-[10px] flex items-center justify-center text-white font-bold overflow-hidden bg-white/20">
               {logo ? <img src={logo} className="w-full h-full object-cover" alt="" /> : (org?.name?.[0] || "ن")}
             </div>
             <span className="font-bold text-white">{org?.name}</span>
@@ -136,12 +136,12 @@ export function PublicBookingPage() {
           <div className="space-y-4">
             <h1 className="text-xl font-bold text-gray-900 mt-2">احجز الآن</h1>
             {services.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center text-gray-400">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center text-gray-400">
                 <p>لا توجد خدمات متاحة حالياً</p>
               </div>
             ) : services.map((svc: any) => (
               <button key={svc.id} onClick={() => { setSelectedService(svc); setStep("details"); setSelectedAddons([]); setQuestionAnswers({}); setCustomLocation(""); setSelectedDate(""); }}
-                className="w-full bg-white rounded-2xl border border-gray-200 p-5 text-right hover:border-gray-300 hover:shadow-sm transition-all flex items-center gap-4">
+                className="w-full bg-white rounded-2xl border border-[#eef2f6] p-5 text-right hover:border-[#eef2f6] hover:shadow-sm transition-all flex items-center gap-4">
                 {svc.imageUrl ? (
                   <img src={svc.imageUrl} className="w-20 h-20 rounded-xl object-cover shrink-0" alt={svc.name} />
                 ) : (
@@ -167,48 +167,48 @@ export function PublicBookingPage() {
               <ChevronLeft className="w-4 h-4 rotate-180" /> العودة للخدمات
             </button>
 
-            <div className="bg-white rounded-2xl border border-gray-200 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <h2 className="font-bold text-gray-900 mb-1">{selectedService.name}</h2>
               <p className="text-xl font-black" style={{ color: primaryColor }}>
                 {svcPrice.toLocaleString("en-US")} ر.س
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-4">
               <h3 className="font-bold text-gray-900">التاريخ والوقت</h3>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">التاريخ *</label>
                   <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} dir="ltr"
                     min={new Date().toISOString().split("T")[0]}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
+                    className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-1">الوقت</label>
                   <input type="time" value={selectedTime} onChange={e => setSelectedTime(e.target.value)} dir="ltr"
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
+                    className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">الموقع (اختياري)</label>
                 <input value={customLocation} onChange={e => setCustomLocation(e.target.value)} placeholder="أدخل الموقع أو العنوان"
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
+                  className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
               </div>
             </div>
 
             {svcAddons.length > 0 && (
-              <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-3">
+              <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-3">
                 <h3 className="font-bold text-gray-900">إضافات (اختياري)</h3>
                 {svcAddons.map((addon: any) => {
                   const sel = selectedAddons.includes(addon.id);
                   return (
                     <button key={addon.id} onClick={() => toggleAddon(addon.id)}
                       className={clsx("w-full flex items-center justify-between p-3.5 rounded-xl border text-right transition-all",
-                        sel ? "border-2 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                        sel ? "border-2 bg-blue-50" : "border-[#eef2f6] hover:border-[#eef2f6]"
                       )} style={sel ? { borderColor: primaryColor } : {}}>
                       <div className="flex items-center gap-3">
                         <div className={clsx("w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
-                          sel ? "text-white" : "border-gray-300"
+                          sel ? "text-white" : "border-[#eef2f6]"
                         )} style={sel ? { background: primaryColor, borderColor: primaryColor } : {}}>
                           {sel && <Check className="w-3 h-3" />}
                         </div>
@@ -222,15 +222,15 @@ export function PublicBookingPage() {
             )}
 
             {/* Price summary */}
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-2 text-sm">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-2 text-sm">
               <h3 className="font-bold text-gray-900 mb-3">ملخص السعر</h3>
               <div className="flex justify-between"><span className="text-gray-500">{selectedService.name}</span><span>{svcPrice.toLocaleString("en-US")} ر.س</span></div>
               {selectedAddons.map((addonId: string) => {
                 const a = svcAddons.find((x: any) => x.id === addonId);
                 return a ? <div key={addonId} className="flex justify-between text-gray-400"><span>+ {a.name}</span><span>{parseFloat(a.price || 0).toLocaleString("en-US")} ر.س</span></div> : null;
               })}
-              <div className="flex justify-between text-gray-500 pt-2 border-t border-gray-100"><span>ضريبة القيمة المضافة (15%)</span><span>{Math.round(vat).toLocaleString("en-US")} ر.س</span></div>
-              <div className="flex justify-between font-bold text-base text-gray-900 pt-2 border-t border-gray-200"><span>الإجمالي</span><span>{Math.round(total).toLocaleString("en-US")} ر.س</span></div>
+              <div className="flex justify-between text-gray-500 pt-2 border-t border-[#eef2f6]"><span>ضريبة القيمة المضافة (15%)</span><span>{Math.round(vat).toLocaleString("en-US")} ر.س</span></div>
+              <div className="flex justify-between font-bold text-base text-gray-900 pt-2 border-t border-[#eef2f6]"><span>الإجمالي</span><span>{Math.round(total).toLocaleString("en-US")} ر.س</span></div>
               <div className="flex justify-between text-xs pt-1" style={{ color: primaryColor }}><span>العربون المطلوب ({Math.round(depositRatio * 100)}%)</span><span>{Math.round(deposit).toLocaleString("en-US")} ر.س</span></div>
             </div>
 
@@ -248,7 +248,7 @@ export function PublicBookingPage() {
             <button onClick={() => setStep("details")} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
               <ChevronLeft className="w-4 h-4 rotate-180" /> السابق
             </button>
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-5">
               <div>
                 <h2 className="font-bold text-gray-900">أسئلة الحجز</h2>
                 <p className="text-xs text-gray-400 mt-0.5">يرجى الإجابة على الأسئلة التالية لإتمام حجزك</p>
@@ -265,22 +265,22 @@ export function PublicBookingPage() {
                   {(q.type === "text" || q.type === "location") && (
                     <input value={questionAnswers[q.id] || ""} onChange={e => setAnswer(q.id, e.target.value)}
                       placeholder="اكتب إجابتك..."
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-400" />
+                      className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-400" />
                   )}
                   {q.type === "textarea" && (
                     <textarea value={questionAnswers[q.id] || ""} onChange={e => setAnswer(q.id, e.target.value)}
                       rows={3} placeholder="اكتب إجابتك..."
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-400 resize-none" />
+                      className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-400 resize-none" />
                   )}
                   {q.type === "number" && (
                     <input type="number" value={questionAnswers[q.id] || ""} onChange={e => setAnswer(q.id, e.target.value)}
                       placeholder="0" dir="ltr"
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-400" />
+                      className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-400" />
                   )}
                   {q.type === "date" && (
                     <input type="date" value={questionAnswers[q.id] || ""} onChange={e => setAnswer(q.id, e.target.value)}
                       dir="ltr"
-                      className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-400" />
+                      className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-400" />
                   )}
                   {(q.type === "select" || q.type === "checkbox") && Array.isArray(q.options) && q.options.length > 0 && (
                     <div className="space-y-2">
@@ -289,7 +289,7 @@ export function PublicBookingPage() {
                         return (
                           <button key={opt} type="button" onClick={() => setAnswer(q.id, sel ? "" : opt)}
                             className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-right transition-all",
-                              sel ? "border-2 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                              sel ? "border-2 bg-blue-50" : "border-[#eef2f6] hover:border-[#eef2f6]"
                             )} style={sel ? { borderColor: primaryColor } : {}}>
                             <div className={clsx("w-4 h-4 rounded-full border-2 shrink-0 transition-colors")}
                               style={sel ? { background: primaryColor, borderColor: primaryColor } : { borderColor: "#d1d5db" }}>
@@ -313,7 +313,7 @@ export function PublicBookingPage() {
                         return (
                           <button key={opt} type="button" onClick={toggle}
                             className={clsx("w-full flex items-center gap-3 px-4 py-3 rounded-xl border text-right transition-all",
-                              selected ? "border-2 bg-blue-50" : "border-gray-200 hover:border-gray-300"
+                              selected ? "border-2 bg-blue-50" : "border-[#eef2f6] hover:border-[#eef2f6]"
                             )} style={selected ? { borderColor: primaryColor } : {}}>
                             <div className={clsx("w-4 h-4 rounded border-2 shrink-0 flex items-center justify-center transition-colors")}
                               style={selected ? { background: primaryColor, borderColor: primaryColor } : { borderColor: "#d1d5db" }}>
@@ -342,22 +342,22 @@ export function PublicBookingPage() {
             <button onClick={() => setStep(serviceQuestions.length > 0 ? "questions" : "details")} className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
               <ChevronLeft className="w-4 h-4 rotate-180" /> السابق
             </button>
-            <div className="bg-white rounded-2xl border border-gray-200 p-5 space-y-4">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-4">
               <h2 className="font-bold text-gray-900">بيانات التواصل</h2>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">الاسم الكامل *</label>
                 <input value={name} onChange={e => setName(e.target.value)} placeholder="الاسم الكامل"
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-400" />
+                  className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-400" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">رقم الجوال *</label>
                 <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="05XXXXXXXX" dir="ltr"
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-400" />
+                  className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-400" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">ملاحظات (اختياري)</label>
                 <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="أي ملاحظات..."
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-brand-400 resize-none" />
+                  className="w-full rounded-xl border border-[#eef2f6] px-4 py-3 text-sm outline-none focus:border-brand-400 resize-none" />
               </div>
             </div>
             <label className="flex items-start gap-3 cursor-pointer">
@@ -388,7 +388,7 @@ export function PublicBookingPage() {
         {/* Step: Done */}
         {step === "done" && bookingResult && (
           <div className="space-y-5 text-center">
-            <div className="bg-white rounded-2xl border border-gray-200 p-8">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-8">
               <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-green-600" />
               </div>

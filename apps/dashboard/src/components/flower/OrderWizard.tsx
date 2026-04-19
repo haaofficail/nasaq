@@ -65,9 +65,9 @@ const EVENT_TYPES = [
     orderType: "custom_arrangement",
     label: "تنسيق مخصص",
     desc: "تنسيق حسب طلب العميل — بدون قيود",
-    color: "border-gray-200 bg-gray-50",
+    color: "border-[#eef2f6] bg-gray-50",
     active: "border-gray-500 bg-gray-50",
-    icon: "border-gray-300 text-gray-500",
+    icon: "border-[#eef2f6] text-gray-500",
   },
 ] as const;
 
@@ -298,10 +298,10 @@ export function OrderWizard({
               onClick={() => setSelectedType(t)}
               className={clsx(
                 "w-full text-right rounded-2xl border-2 p-4 transition-all flex items-center gap-4",
-                selectedType?.value === t.value ? t.active + " ring-1 ring-brand-300" : t.color + " hover:border-gray-300"
+                selectedType?.value === t.value ? t.active + " ring-1 ring-brand-300" : t.color + " hover:border-[#eef2f6]"
               )}
             >
-              <div className={clsx("w-10 h-10 rounded-xl border-2 flex items-center justify-center shrink-0", t.icon)}>
+              <div className={clsx("w-9 h-9 rounded-[10px] border-2 flex items-center justify-center shrink-0", t.icon)}>
                 <Flower2 className="w-5 h-5" />
               </div>
               <div className="flex-1 min-w-0">
@@ -339,7 +339,7 @@ export function OrderWizard({
               value={serviceSearch}
               onChange={e => setServiceSearch(e.target.value)}
               placeholder="ابحث في الخدمات..."
-              className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 pr-9"
+              className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 pr-9"
             />
             <Search className="w-4 h-4 text-gray-300 absolute top-3 right-2.5" />
           </div>
@@ -373,7 +373,7 @@ export function OrderWizard({
                   "w-full text-right rounded-xl border-2 px-4 py-3 transition-all text-sm",
                   !selectedService
                     ? "border-brand-400 bg-brand-50 text-brand-700 font-medium"
-                    : "border-gray-100 text-gray-400 hover:border-gray-200"
+                    : "border-[#eef2f6] text-gray-400 hover:border-[#eef2f6]"
                 )}
               >
                 <Plus className="w-4 h-4 inline ml-1.5" />
@@ -413,7 +413,7 @@ export function OrderWizard({
                   onChange={e => setPhone(e.target.value)}
                   onBlur={e => handlePhoneBlur(e.target.value)}
                   placeholder="05xxxxxxxx"
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 pr-9"
+                  className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400 pr-9"
                   dir="ltr"
                 />
                 {searching
@@ -439,7 +439,7 @@ export function OrderWizard({
                   <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" />
                 </div>
               ) : phone && !searching && phone.length >= 9 ? (
-                <div className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 text-xs text-gray-400 flex items-center gap-2">
+                <div className="bg-gray-50 border border-[#eef2f6] rounded-xl px-3 py-2 text-xs text-gray-400 flex items-center gap-2">
                   <Plus className="w-3.5 h-3.5" /> عميل جديد
                 </div>
               ) : null}
@@ -455,7 +455,7 @@ export function OrderWizard({
             </div>
           </div>
 
-          <div className="border-t border-gray-100" />
+          <div className="border-t border-[#eef2f6]" />
 
           {/* Event */}
           <div>
@@ -489,13 +489,13 @@ export function OrderWizard({
                 <div className="flex items-center gap-3">
                   <button type="button"
                     onClick={() => setTeamSize(v => Math.max(1, v - 1))}
-                    className="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 text-lg font-medium">
+                    className="w-9 h-9 rounded-xl border border-[#eef2f6] flex items-center justify-center text-gray-500 hover:bg-[#f8fafc] text-lg font-medium">
                     −
                   </button>
                   <span className="w-8 text-center font-semibold text-gray-800">{teamSize}</span>
                   <button type="button"
                     onClick={() => setTeamSize(v => v + 1)}
-                    className="w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500 hover:bg-gray-50 text-lg font-medium">
+                    className="w-9 h-9 rounded-xl border border-[#eef2f6] flex items-center justify-center text-gray-500 hover:bg-[#f8fafc] text-lg font-medium">
                     +
                   </button>
                   <span className="text-xs text-gray-400">أشخاص</span>
@@ -509,7 +509,7 @@ export function OrderWizard({
                   onChange={e => setNotes(e.target.value)}
                   rows={2}
                   placeholder="ألوان، أي طلبات خاصة..."
-                  className="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:border-brand-400 resize-none"
+                  className="w-full rounded-xl border border-[#eef2f6] px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:border-brand-400 resize-none"
                 />
               </div>
             </div>
@@ -597,7 +597,7 @@ export function OrderWizard({
                     type="number"
                     value={depositMode !== "custom" ? String(depositNum) : customDeposit}
                     onChange={e => { setDepositMode("custom"); setCustomDeposit(e.target.value); }}
-                    className="w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400"
+                    className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm focus:outline-none focus:border-brand-400"
                   />
                 </div>
                 <div>
@@ -617,7 +617,7 @@ export function OrderWizard({
           </div>
 
           {/* Summary */}
-          <div className="border-t border-gray-100 pt-4">
+          <div className="border-t border-[#eef2f6] pt-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">ملخص الطلب</p>
             <div className="bg-gray-50 rounded-xl p-3 space-y-2">
               <SummaryRow label="النوع"     value={selectedType?.label ?? "—"} />
@@ -633,7 +633,7 @@ export function OrderWizard({
               <SummaryRow label="الفريق"   value={`${teamSize} أشخاص`} />
               {totalNum > 0 && (
                 <>
-                  <div className="border-t border-gray-200 pt-2 mt-1" />
+                  <div className="border-t border-[#eef2f6] pt-2 mt-1" />
                   <SummaryRow label="الإجمالي"  value={`${totalNum.toLocaleString("ar-SA")} ر.س`} accent />
                   {depositNum > 0 && <SummaryRow label="العربون"  value={`${depositNum.toLocaleString("ar-SA")} ر.س`} />}
                   {balance > 0    && <SummaryRow label="الباقي"   value={`${balance.toLocaleString("ar-SA")} ر.س`} warn />}
@@ -664,7 +664,7 @@ function ServiceCard({ svc, selected, onSelect }: { svc: any; selected: boolean;
           ? "border-amber-200 bg-amber-50/50 opacity-70 cursor-not-allowed"
           : selected
             ? "border-brand-400 bg-brand-50 ring-1 ring-brand-200"
-            : "border-gray-100 hover:border-gray-300 bg-white"
+            : "border-[#eef2f6] hover:border-[#eef2f6] bg-white"
       )}
     >
       {/* Cover image */}

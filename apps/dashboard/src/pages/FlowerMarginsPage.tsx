@@ -55,7 +55,7 @@ const STATUS_COLORS: Record<string, string> = {
   low:     "bg-amber-100 text-amber-700 border-amber-200",
   fair:    "bg-blue-100 text-blue-700 border-blue-200",
   healthy: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  unknown: "bg-gray-100 text-gray-500 border-gray-200",
+  unknown: "bg-gray-100 text-gray-500 border-[#eef2f6]",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -93,15 +93,15 @@ function fmtSAR(val: number) {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 space-y-3 animate-pulse">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-3 animate-pulse">
       <div className="flex items-center justify-between gap-3">
         <div className="h-4 bg-gray-100 rounded w-1/2" />
         <div className="h-5 bg-gray-100 rounded w-16" />
       </div>
       <div className="grid grid-cols-3 gap-3">
-        <div className="h-8 bg-gray-100 rounded-xl" />
-        <div className="h-8 bg-gray-100 rounded-xl" />
-        <div className="h-8 bg-gray-100 rounded-xl" />
+        <div className="h-8 bg-[#f1f5f9] rounded-xl" />
+        <div className="h-8 bg-[#f1f5f9] rounded-xl" />
+        <div className="h-8 bg-[#f1f5f9] rounded-xl" />
       </div>
       <div className="h-3 bg-gray-100 rounded-full" />
     </div>
@@ -120,7 +120,7 @@ function KpiCard({
   colorClass: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-4 flex flex-col gap-1">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-4 flex flex-col gap-1">
       <p className={clsx("text-2xl font-bold tabular-nums", colorClass)}>{value}</p>
       <p className="text-xs text-gray-400">{label}</p>
     </div>
@@ -243,14 +243,14 @@ function EditBreakdownModal({
                     </label>
                   )}
                   {variantsLoading ? (
-                    <div className="h-10 bg-gray-100 rounded-lg animate-pulse" />
+                    <div className="h-10 bg-[#f1f5f9] rounded-lg animate-pulse" />
                   ) : (
                     <select
                       value={row.variantId}
                       onChange={(e) =>
                         updateRow(idx, "variantId", e.target.value)
                       }
-                      className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 appearance-none bg-white"
+                      className="w-full rounded-lg border border-[#eef2f6] px-3 py-2.5 text-sm outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-100 appearance-none bg-white"
                     >
                       <option value="">اختر صنف</option>
                       {variants.map((v) => (
@@ -302,7 +302,7 @@ function EditBreakdownModal({
                   <button
                     type="button"
                     onClick={() => removeRow(idx)}
-                    className="w-9 h-10 flex items-center justify-center rounded-lg border border-gray-200 text-gray-400 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors"
+                    className="w-9 h-10 flex items-center justify-center rounded-lg border border-[#eef2f6] text-gray-400 hover:bg-red-50 hover:text-red-500 hover:border-red-200 transition-colors"
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -343,7 +343,7 @@ function ArrangementCard({
   const hasBreakdown = row.items_breakdown.length > 0;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
       {/* Header */}
       <div className="px-5 pt-5 pb-3 flex items-start justify-between gap-3">
         <div className="flex-1 min-w-0">
@@ -361,7 +361,7 @@ function ArrangementCard({
                 "text-xs px-2 py-0.5 rounded-lg border",
                 row.is_active
                   ? "bg-emerald-50 text-emerald-600 border-emerald-200"
-                  : "bg-gray-100 text-gray-400 border-gray-200"
+                  : "bg-gray-100 text-gray-400 border-[#eef2f6]"
               )}
             >
               {row.is_active ? "نشط" : "غير نشط"}
@@ -438,7 +438,7 @@ function ArrangementCard({
         <button
           type="button"
           onClick={() => setBreakdownOpen((v) => !v)}
-          className="w-full flex items-center justify-between px-5 py-3 hover:bg-gray-50 transition-colors text-sm text-gray-600"
+          className="w-full flex items-center justify-between px-5 py-3 hover:bg-[#f8fafc] transition-colors text-sm text-gray-600"
         >
           <span className="font-medium">عناصر التكلفة</span>
           {breakdownOpen ? (
@@ -586,7 +586,7 @@ export function FlowerMarginsPage() {
             {[0, 1, 2, 3].map((i) => (
               <div
                 key={i}
-                className="bg-white rounded-2xl border border-gray-100 p-4 h-20 animate-pulse"
+                className="bg-white rounded-2xl border border-[#eef2f6] p-4 h-20 animate-pulse"
               >
                 <div className="h-6 bg-gray-100 rounded w-1/2 mb-2" />
                 <div className="h-3 bg-gray-100 rounded w-3/4" />
@@ -670,7 +670,7 @@ export function FlowerMarginsPage() {
 
           {/* بانر جزئي — بعض الباقات محسوبة وبعضها لا */}
           {rows.length > 0 && !rows.every(r => r.cost_status === "unknown") && rows.some(r => r.cost_status === "unknown") && (
-            <div className="flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3">
+            <div className="flex items-center gap-2.5 bg-[#f8fafc] border border-[#eef2f6] rounded-xl px-4 py-3">
               <Info className="w-4 h-4 text-gray-400 shrink-0" />
               <p className="text-xs text-gray-500">
                 <span className="font-semibold text-gray-700">
@@ -713,7 +713,7 @@ export function FlowerMarginsPage() {
                   "px-3.5 py-1.5 rounded-xl text-xs font-medium border transition-colors",
                   activeFilter === tab.key
                     ? "bg-brand-500 text-white border-brand-500"
-                    : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+                    : "bg-white text-gray-600 border-[#eef2f6] hover:bg-[#f8fafc]"
                 )}
               >
                 {tab.label}
@@ -723,7 +723,7 @@ export function FlowerMarginsPage() {
 
           {/* Empty State */}
           {filtered.length === 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 py-16 text-center">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] py-16 text-center">
               <TrendingUp className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400 text-sm">
                 {rows.length === 0

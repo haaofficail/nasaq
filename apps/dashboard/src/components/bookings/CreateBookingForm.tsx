@@ -429,7 +429,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
               <p className="text-xs font-semibold text-gray-500">طريقة الدفع</p>
               <button type="button" onClick={() => { setPayMethod("later"); setPayAmount("0"); }}
                 className={clsx("w-full py-2.5 rounded-xl border text-sm font-medium transition-colors",
-                  payMethod === "later" ? "border-gray-400 bg-gray-100 text-gray-700" : "border-gray-200 text-gray-500 hover:bg-gray-50")}>
+                  payMethod === "later" ? "border-gray-400 bg-gray-100 text-gray-700" : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]")}>
                 الدفع لاحقاً
               </button>
               <div className="grid grid-cols-3 gap-2">
@@ -437,7 +437,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                   <button key={m.value} type="button"
                     onClick={() => { setPayMethod(m.value); if (!payAmount || paid === 0) setPayAmount(total.toFixed(2)); }}
                     className={clsx("py-2.5 rounded-xl border text-xs font-semibold transition-colors",
-                      payMethod === m.value ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
+                      payMethod === m.value ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]")}>
                     {m.label}
                   </button>
                 ))}
@@ -458,12 +458,12 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                   {[{l:"كامل",v:total},{l:"نصف",v:total/2},{l:"ربع",v:total/4}].map(({l,v}) => (
                     <button key={l} type="button" onClick={() => setPayAmount(v.toFixed(2))}
                       className={clsx("py-2.5 rounded-xl border text-xs font-semibold transition-colors",
-                        parseFloat(payAmount) === parseFloat(v.toFixed(2)) ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-gray-200 text-gray-600 hover:bg-gray-50")}>
+                        parseFloat(payAmount) === parseFloat(v.toFixed(2)) ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]" : "border-[#eef2f6] text-gray-600 hover:bg-[#f8fafc]")}>
                       {l}
                     </button>
                   ))}
                   <button type="button" onClick={() => pressKey("C")}
-                    className="py-2.5 rounded-xl border border-gray-200 text-xs font-semibold text-gray-500 hover:bg-gray-50 transition-colors">
+                    className="py-2.5 rounded-xl border border-[#eef2f6] text-xs font-semibold text-gray-500 hover:bg-[#f8fafc] transition-colors">
                     مسح
                   </button>
                 </div>
@@ -476,7 +476,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                         "h-14 rounded-xl border text-xl font-bold transition-colors select-none active:scale-95",
                         k === "⌫"
                           ? "border-red-100 bg-red-50 text-red-500 hover:bg-red-100"
-                          : "border-gray-100 bg-gray-50 text-gray-900 hover:bg-gray-100 shadow-sm"
+                          : "border-[#eef2f6] bg-[#f8fafc] text-gray-900 hover:bg-gray-100 shadow-sm"
                       )}>
                       {k}
                     </button>
@@ -484,7 +484,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                 </div>
 
                 {/* ملخص */}
-                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-gray-100 text-center">
+                <div className="grid grid-cols-3 gap-2 pt-1 border-t border-[#eef2f6] text-center">
                   <div>
                     <p className="text-[10px] text-gray-400">المستحق</p>
                     <p className="text-sm font-bold text-gray-900 tabular-nums">{total.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})}</p>
@@ -513,7 +513,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
         <div className="lg:col-span-2 space-y-5">
 
           {/* 1. Customer */}
-          <div className="p-4 bg-gray-50 rounded-xl">
+          <div className="p-4 bg-[#f8fafc] rounded-xl">
             <Select
               label="العميل"
               name="customerId"
@@ -537,7 +537,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                 value={serviceSearch}
                 onChange={e => setServiceSearch(e.target.value)}
                 placeholder={services.length === 0 ? "جاري التحميل..." : "البحث عن خدمة..."}
-                className="w-full pr-9 pl-3 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:border-[#5b9bd5] transition-colors"
+                className="w-full pr-9 pl-3 py-2 text-sm border border-[#eef2f6] rounded-xl outline-none focus:border-[#5b9bd5] transition-colors"
               />
             </div>
 
@@ -555,7 +555,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                       "relative rounded-xl border text-right transition-all w-full overflow-hidden",
                       isSelected
                         ? "border-[#5b9bd5] bg-blue-50 shadow-sm"
-                        : "border-gray-200 bg-white hover:border-gray-300 hover:shadow-sm"
+                        : "border-[#eef2f6] bg-white hover:border-[#eef2f6] hover:shadow-sm"
                     )}
                   >
                     {/* Service image */}
@@ -616,7 +616,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                           type="number"
                           value={item.customPrice ?? svc.basePrice}
                           onChange={e => updateItem(i, "customPrice", e.target.value)}
-                          className="w-20 text-xs border border-gray-200 rounded-lg px-2 py-1 text-left outline-none focus:border-[#5b9bd5]"
+                          className="w-20 text-xs border border-[#eef2f6] rounded-lg px-2 py-1 text-left outline-none focus:border-[#5b9bd5]"
                           dir="ltr"
                         />
                       </div>
@@ -624,7 +624,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                       {!isAccommodationService(svc) && (
                         <div className="flex flex-col items-end gap-1">
                           <p className="text-[10px] text-gray-400">الكمية</p>
-                          <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+                          <div className="flex items-center border border-[#eef2f6] rounded-lg overflow-hidden">
                             <button type="button" onClick={() => updateItem(i, "quantity", Math.max(1, item.quantity - 1))}
                               className="px-2 py-1 text-gray-500 hover:bg-gray-100 text-sm">−</button>
                             <span className="px-2 py-1 text-xs font-semibold tabular-nums">{item.quantity}</span>
@@ -646,7 +646,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
 
           {/* 3. Date / Duration */}
           {!isImmediate && (
-            <div className="space-y-4 p-4 bg-gray-50 rounded-xl">
+            <div className="space-y-4 p-4 bg-[#f8fafc] rounded-xl">
               <div className="flex items-center justify-between">
                 <h4 className="text-sm font-semibold text-gray-800">
                   {isAccommodation ? "مدة الإقامة" : isRental ? "فترة الإيجار" : "التاريخ والوقت"}
@@ -695,22 +695,22 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">البالغون <span className="text-red-400">*</span></label>
                   <div className="flex items-center gap-2">
                     <button type="button" onClick={() => setAdultsCount(Math.max(1, adultsCount - 1))}
-                      className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">−</button>
+                      className="w-8 h-8 rounded-lg border border-[#eef2f6] flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">−</button>
                     <span className="w-10 text-center font-bold text-gray-900">{adultsCount}</span>
                     <button type="button"
                       onClick={() => setAdultsCount(maxCapacity > 0 ? Math.min(maxCapacity, adultsCount + 1) : adultsCount + 1)}
-                      className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">+</button>
+                      className="w-8 h-8 rounded-lg border border-[#eef2f6] flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">+</button>
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">الأطفال</label>
                   <div className="flex items-center gap-2">
                     <button type="button" onClick={() => setChildrenCount(Math.max(0, childrenCount - 1))}
-                      className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">−</button>
+                      className="w-8 h-8 rounded-lg border border-[#eef2f6] flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">−</button>
                     <span className="w-10 text-center font-bold text-gray-900">{childrenCount}</span>
                     <button type="button"
                       onClick={() => setChildrenCount(maxCapacity > 0 ? Math.min(Math.max(0, maxCapacity - adultsCount), childrenCount + 1) : childrenCount + 1)}
-                      className="w-8 h-8 rounded-lg border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">+</button>
+                      className="w-8 h-8 rounded-lg border border-[#eef2f6] flex items-center justify-center text-gray-600 hover:bg-gray-100 font-bold">+</button>
                   </div>
                 </div>
               </div>
@@ -729,7 +729,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
 
           {/* 5. Fulfillment mode */}
           {(showFulfillment || isFieldService) && (
-            <div className="p-4 bg-gray-50 rounded-xl space-y-3">
+            <div className="p-4 bg-[#f8fafc] rounded-xl space-y-3">
               <h4 className="text-sm font-semibold text-gray-800">طريقة التسليم</h4>
               <div className="flex gap-2">
                 {!isFieldService && selectedServices.some(s => s.allowsInVenue !== false) && (
@@ -737,7 +737,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                     className={clsx("flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-medium transition-all",
                       fulfillmentMode === "in_venue"
                         ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]"
-                        : "border-gray-200 text-gray-600 hover:border-gray-300"
+                        : "border-[#eef2f6] text-gray-600 hover:border-[#eef2f6]"
                     )}>
                     <MapPin className="w-4 h-4" /> في المنشأة
                   </button>
@@ -747,7 +747,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                     className={clsx("flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-medium transition-all",
                       fulfillmentMode === "pickup"
                         ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]"
-                        : "border-gray-200 text-gray-600 hover:border-gray-300"
+                        : "border-[#eef2f6] text-gray-600 hover:border-[#eef2f6]"
                     )}>
                     <Package className="w-4 h-4" /> استلام
                   </button>
@@ -757,7 +757,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                     className={clsx("flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border text-sm font-medium transition-all",
                       fulfillmentMode === "delivery"
                         ? "border-[#5b9bd5] bg-blue-50 text-[#5b9bd5]"
-                        : "border-gray-200 text-gray-600 hover:border-gray-300"
+                        : "border-[#eef2f6] text-gray-600 hover:border-[#eef2f6]"
                     )}>
                     <Truck className="w-4 h-4" /> {isFieldService ? "موقع العميل" : "توصيل"}
                   </button>
@@ -812,7 +812,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
 
         {/* ── Right column: Price Summary ── */}
         <div className="lg:col-span-1">
-          <div className="sticky top-4 bg-gray-50 rounded-xl p-5 space-y-4">
+          <div className="sticky top-4 bg-[#f8fafc] rounded-xl p-5 space-y-4">
 
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">ملخص الأسعار</h3>
@@ -863,7 +863,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
 
             {subtotal > 0 ? (
               <>
-                <div className="border-t border-gray-200 pt-3 space-y-2">
+                <div className="border-t border-[#eef2f6] pt-3 space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">المجموع الفرعي</span>
                     <span>{subtotal.toLocaleString(undefined, { maximumFractionDigits: 2 })} ر.س</span>
@@ -873,7 +873,7 @@ export function CreateBookingForm({ open, onClose, onSuccess, initialDate, defau
                     <span>{vat.toLocaleString(undefined, { maximumFractionDigits: 0 })} ر.س</span>
                   </div>
                 </div>
-                <div className="border-t border-gray-200 pt-3">
+                <div className="border-t border-[#eef2f6] pt-3">
                   <div className="flex justify-between text-lg font-bold text-gray-900">
                     <span>الإجمالي</span>
                     <span>{total.toLocaleString(undefined, { maximumFractionDigits: 0 })} ر.س</span>

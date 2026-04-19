@@ -53,7 +53,7 @@ function InviteModal({ teacher, onClose }: { teacher: any; onClose: () => void }
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
       <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6]">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center">
               <KeyRound className="w-4 h-4 text-emerald-600" />
@@ -224,10 +224,10 @@ export function SchoolTeacherProfilePage() {
   if (assignLoading) {
     return (
       <div dir="rtl" className="p-6 space-y-4 animate-pulse">
-        <div className="h-6 w-40 bg-gray-100 rounded-xl" />
-        <div className="h-36 bg-gray-100 rounded-2xl" />
+        <div className="h-6 w-40 bg-[#f1f5f9] rounded-xl" />
+        <div className="h-36 bg-[#f1f5f9] rounded-2xl" />
         <div className="grid grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-gray-100 rounded-2xl" />)}
+          {[1, 2, 3, 4].map(i => <div key={i} className="h-24 bg-[#f1f5f9] rounded-2xl" />)}
         </div>
       </div>
     );
@@ -266,7 +266,7 @@ export function SchoolTeacherProfilePage() {
       </button>
 
       {/* Header card */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex items-start gap-4">
           <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center shrink-0 text-emerald-700 font-bold text-xl">
             {initials}
@@ -277,7 +277,7 @@ export function SchoolTeacherProfilePage() {
               {teacher.isActive ? (
                 <span className="px-2 py-0.5 rounded-full text-xs bg-emerald-50 text-emerald-700 border border-emerald-100">نشط</span>
               ) : (
-                <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500 border border-gray-200">غير نشط</span>
+                <span className="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500 border border-[#eef2f6]">غير نشط</span>
               )}
               {hasAccount ? (
                 <span className="px-2 py-0.5 rounded-full text-xs bg-brand-50 text-brand-700 border border-brand-100">حساب مفعّل</span>
@@ -341,7 +341,7 @@ export function SchoolTeacherProfilePage() {
           { label: "الحصص هذا الأسبوع", value: schedEntries.filter(e => !e.isBreak).length, icon: Calendar, color: "bg-violet-50 text-violet-600" },
           { label: "أيام التدريس", value: Object.keys(byDay).length, icon: UserRoundCheck, color: "bg-emerald-50 text-emerald-600" },
         ].map(({ label, value, icon: Icon, color }) => (
-          <div key={label} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+          <div key={label} className="bg-white rounded-2xl border border-[#eef2f6] p-4 text-center">
             <div className={clsx("w-9 h-9 rounded-xl flex items-center justify-center mx-auto mb-2", color.split(" ")[0])}>
               <Icon className={clsx("w-4 h-4", color.split(" ")[1])} />
             </div>
@@ -352,8 +352,8 @@ export function SchoolTeacherProfilePage() {
       </div>
 
       {/* المواد والفصول — checkboxes */}
-      <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <section className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="px-5 py-4 border-b border-[#eef2f6] flex items-center justify-between">
           <h2 className="text-sm font-bold text-gray-900">المواد والفصول</h2>
           <div className="flex items-center gap-2">
             {syncMsg && (
@@ -467,7 +467,7 @@ export function SchoolTeacherProfilePage() {
       </section>
 
       {/* Schedule this week */}
-      <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <section className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
           <h2 className="text-sm font-bold text-gray-900">جدول الأسبوع الحالي</h2>
           <button
@@ -479,7 +479,7 @@ export function SchoolTeacherProfilePage() {
         </div>
         {schedLoading ? (
           <div className="p-6 space-y-2 animate-pulse">
-            {[1,2,3].map(i => <div key={i} className="h-10 bg-gray-100 rounded-xl" />)}
+            {[1,2,3].map(i => <div key={i} className="h-10 bg-[#f1f5f9] rounded-xl" />)}
           </div>
         ) : schedEntries.length === 0 ? (
           <div className="p-8 text-center">
@@ -517,14 +517,14 @@ export function SchoolTeacherProfilePage() {
 
       {/* Notes */}
       {teacher.notes && (
-        <section className="bg-white rounded-2xl border border-gray-100 p-5">
+        <section className="bg-white rounded-2xl border border-[#eef2f6] p-5">
           <h2 className="text-sm font-bold text-gray-900 mb-2">ملاحظات</h2>
           <p className="text-sm text-gray-600 leading-relaxed">{teacher.notes}</p>
         </section>
       )}
 
       {/* السجل اليومي */}
-      <section className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <section className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <ClipboardList className="w-4 h-4 text-violet-500" />
@@ -536,7 +536,7 @@ export function SchoolTeacherProfilePage() {
         </div>
         {logsLoading ? (
           <div className="p-5 space-y-2 animate-pulse">
-            {[1, 2, 3].map(i => <div key={i} className="h-14 bg-gray-100 rounded-xl" />)}
+            {[1, 2, 3].map(i => <div key={i} className="h-14 bg-[#f1f5f9] rounded-xl" />)}
           </div>
         ) : dailyLogs.length === 0 ? (
           <div className="p-8 text-center">

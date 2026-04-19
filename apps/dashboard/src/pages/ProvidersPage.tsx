@@ -137,7 +137,7 @@ export function ProvidersPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {providers.map((provider: any) => (
-            <div key={provider.id} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-sm hover:border-gray-200 transition-all">
+            <div key={provider.id} className="bg-white rounded-2xl border border-[#eef2f6] p-5 hover:shadow-sm hover:border-[#eef2f6] transition-all">
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="w-11 h-11 rounded-2xl bg-brand-50 text-brand-600 font-bold text-lg flex items-center justify-center shrink-0">
@@ -172,7 +172,7 @@ export function ProvidersPage() {
               <div className="flex items-center gap-2 pt-3 border-t border-gray-50">
                 <button
                   onClick={() => openEdit(provider)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-gray-100 text-xs font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-200 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-[#eef2f6] text-xs font-medium text-gray-600 hover:bg-[#f8fafc] hover:border-[#eef2f6] transition-colors"
                 >
                   <Pencil className="w-3.5 h-3.5" /> تعديل
                 </button>
@@ -278,7 +278,7 @@ export function ProvidersPage() {
                             ...form.weeklySchedule,
                             [day.key]: { ...schedule, start: e.target.value },
                           })}
-                          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-brand-500"
+                          className="border border-[#eef2f6] rounded-lg px-3 py-1.5 text-sm outline-none focus:border-brand-500"
                           dir="ltr"
                         />
                         <span className="text-xs text-gray-400">إلى</span>
@@ -289,7 +289,7 @@ export function ProvidersPage() {
                             ...form.weeklySchedule,
                             [day.key]: { ...schedule, end: e.target.value },
                           })}
-                          className="border border-gray-200 rounded-lg px-3 py-1.5 text-sm outline-none focus:border-brand-500"
+                          className="border border-[#eef2f6] rounded-lg px-3 py-1.5 text-sm outline-none focus:border-brand-500"
                           dir="ltr"
                         />
                       </div>

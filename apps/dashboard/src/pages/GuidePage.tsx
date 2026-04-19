@@ -346,9 +346,9 @@ export function GuidePage() {
     <div dir="rtl" className="space-y-6 pb-10">
 
       {/* ── Header ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
         <div className="flex items-center gap-3 mb-2">
-          <div className="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center">
+          <div className="w-9 h-9 rounded-[10px] bg-brand-50 flex items-center justify-center">
             <BookOpen className="w-5 h-5 text-brand-600" />
           </div>
           <div>
@@ -363,7 +363,7 @@ export function GuidePage() {
             placeholder="ابحث في الدليل..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pr-9 pl-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 bg-gray-50"
+            className="w-full pr-9 pl-4 py-2.5 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400 bg-gray-50"
           />
         </div>
       </div>
@@ -398,7 +398,7 @@ export function GuidePage() {
 
       {/* ── Business type guide ── */}
       {!search && (
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-4">دليل حسب نوع منشأتك</h2>
           <div className="flex flex-wrap gap-2">
             {Object.entries(BUSINESS_GUIDES).map(([key, g]) => {
@@ -409,7 +409,7 @@ export function GuidePage() {
                     "flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium border transition-all",
                     activeType === key
                       ? "bg-brand-50 border-brand-200 text-brand-700"
-                      : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
+                      : "bg-white border-[#eef2f6] text-gray-600 hover:border-[#eef2f6]"
                   )}>
                   <Icon className={clsx("w-4 h-4", activeType === key ? "text-brand-500" : "text-gray-400")} />
                   {g.label}
@@ -477,10 +477,10 @@ export function GuidePage() {
           const bg = feature.color.split(" ")[0];
           const tc = feature.color.split(" ")[1];
           return (
-            <div key={feature.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div key={feature.id} className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <button
                 onClick={() => setOpenFeature(isOpen ? null : feature.id)}
-                className="w-full flex items-center gap-3 px-5 py-4 hover:bg-gray-50/50 transition-colors"
+                className="w-full flex items-center gap-3 px-5 py-4 hover:bg-[#f8fafc]/50 transition-colors"
               >
                 <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", bg)}>
                   <Icon className={clsx("w-4 h-4", tc)} />
@@ -494,7 +494,7 @@ export function GuidePage() {
                 <div className="border-t border-gray-50 divide-y divide-gray-50">
                   {feature.questions.map(faq => (
                     <details key={faq.q} className="group">
-                      <summary className="flex items-center justify-between px-5 py-3.5 cursor-pointer hover:bg-gray-50/50 text-sm font-medium text-gray-700 list-none">
+                      <summary className="flex items-center justify-between px-5 py-[6px] cursor-pointer hover:bg-[#f8fafc]/50 text-sm font-medium text-gray-700 list-none">
                         {faq.q}
                         <ChevronDown className="w-3.5 h-3.5 text-gray-300 group-open:rotate-180 transition-transform shrink-0 mr-2" />
                       </summary>
@@ -514,7 +514,7 @@ export function GuidePage() {
       </div>
 
       {/* ── Support ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h3 className="font-semibold text-gray-900 mb-2 text-sm">لم تجد إجابتك؟</h3>
         <p className="text-sm text-gray-500 mb-3">تواصل مع فريق الدعم عبر الواتساب أو البريد الإلكتروني. نسعد بمساعدتك في أي وقت.</p>
         <div className="flex gap-2 flex-wrap">
@@ -523,7 +523,7 @@ export function GuidePage() {
             واتساب الدعم
           </a>
           <a href="mailto:info@tarmizos.com"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs font-medium hover:bg-gray-50 transition-colors">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-xs font-medium hover:bg-[#f8fafc] transition-colors">
             info@tarmizos.com
           </a>
         </div>

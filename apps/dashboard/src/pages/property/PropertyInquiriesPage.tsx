@@ -60,7 +60,7 @@ export function PropertyInquiriesPage() {
           {STATUSES.slice(0, 4).map((s) => {
             const count = inquiries.filter((i: any) => i.status === s.value).length;
             return (
-              <div key={s.value} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
+              <div key={s.value} className="bg-white rounded-2xl border border-[#eef2f6] p-4 text-center">
                 <div className="text-2xl font-bold text-gray-900">{count}</div>
                 <div className={`text-xs mt-1 px-2 py-0.5 rounded-full inline-block ${s.color}`}>{s.label}</div>
               </div>
@@ -69,7 +69,7 @@ export function PropertyInquiriesPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
         {loading ? (
           <div className="p-4"><SkeletonRows rows={6} /></div>
         ) : error ? (
@@ -81,7 +81,7 @@ export function PropertyInquiriesPage() {
           </div>
         ) : (
           <table className="w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-[#f8fafc]">
               <tr>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">الاسم</th>
                 <th className="text-right px-4 py-3 font-medium text-gray-600">الجوال</th>
@@ -96,19 +96,19 @@ export function PropertyInquiriesPage() {
                 const statusInfo = getStatusInfo(inq.status);
                 const priorityInfo = getPriorityInfo(inq.priority);
                 return (
-                  <tr key={inq.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 font-medium text-gray-900">{inq.clientName ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-600">{inq.phone ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-600">{inq.source ?? "—"}</td>
-                    <td className="px-4 py-3">
+                  <tr key={inq.id} className="hover:bg-[#f8fafc] transition-colors">
+                    <td className="px-[10px] py-[6px] font-medium text-gray-900">{inq.clientName ?? "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-600">{inq.phone ?? "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-600">{inq.source ?? "—"}</td>
+                    <td className="px-[10px] py-[6px]">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${priorityInfo.color}`}>
                         {priorityInfo.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">
+                    <td className="px-[10px] py-[6px] text-gray-600">
                       {inq.viewingDate ? new Date(inq.viewingDate).toLocaleDateString("ar-SA") : "—"}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <select
                         value={inq.status}
                         onChange={(e) => handleStatusChange(inq.id, e.target.value)}

@@ -10,20 +10,20 @@ import { Button, Modal, Input, Select, confirmDialog } from "@/components/ui";
 import { CreateInvoiceModal } from "@/components/invoices/CreateInvoiceModal";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  draft:          { label: "مسودة",         color: "bg-gray-100 text-gray-600 border-gray-200",       icon: Clock },
+  draft:          { label: "مسودة",         color: "bg-gray-100 text-gray-600 border-[#eef2f6]",       icon: Clock },
   issued:         { label: "صادرة",          color: "bg-blue-50 text-blue-700 border-blue-200",         icon: FileText },
   sent:           { label: "مُرسلة",         color: "bg-indigo-50 text-indigo-700 border-indigo-200",   icon: FileText },
   paid:           { label: "مدفوعة",         color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
   partially_paid: { label: "مدفوعة جزئياً", color: "bg-teal-50 text-teal-700 border-teal-200",         icon: Clock },
   overdue:        { label: "متأخرة",         color: "bg-red-50 text-red-700 border-red-200",             icon: AlertTriangle },
-  cancelled:      { label: "ملغاة",          color: "bg-gray-100 text-gray-500 border-gray-200",        icon: XCircle },
+  cancelled:      { label: "ملغاة",          color: "bg-gray-100 text-gray-500 border-[#eef2f6]",        icon: XCircle },
 };
 
 const SOURCE_BADGE: Record<string, { label: string; color: string }> = {
   booking:  { label: "حجز",     color: "bg-brand-50 text-brand-700 border-brand-200" },
   order:    { label: "طلب",     color: "bg-violet-50 text-violet-700 border-violet-200" },
   services: { label: "خدمات",   color: "bg-amber-50 text-amber-700 border-amber-200" },
-  manual:   { label: "يدوي",    color: "bg-gray-100 text-gray-500 border-gray-200" },
+  manual:   { label: "يدوي",    color: "bg-gray-100 text-gray-500 border-[#eef2f6]" },
 };
 
 
@@ -131,7 +131,7 @@ export function InvoicesPage() {
           <p className="text-sm text-gray-400 mt-0.5">فواتير رسمية معتمدة ومتوافقة مع هيئة الزكاة والدخل</p>
         </div>
         <div className="flex gap-2">
-          <button onClick={refetch} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
+          <button onClick={refetch} className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500 transition-colors">
             <RefreshCw className="w-4 h-4" />
           </button>
           <Button icon={Plus} onClick={() => setShowModal(true)}>فاتورة جديدة</Button>
@@ -146,8 +146,8 @@ export function InvoicesPage() {
           { label: "مدفوعة",           value: `${fmt(stats?.paidAmount)} ر.س`,                                   color: "text-emerald-600", bg: "bg-emerald-50" },
           { label: "بانتظار الدفع من العملاء", value: `${fmt(stats?.unpaidAmount)} ر.س`,                                 color: "text-red-500",     bg: "bg-red-50" },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4">
-            <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-2", s.bg)}>
+          <div key={s.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all">
+            <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center mb-2", s.bg)}>
               <FileText className={clsx("w-4 h-4", s.color)} />
             </div>
             <p className={clsx("text-lg font-bold tabular-nums", s.color)}>{s.value}</p>
@@ -161,7 +161,7 @@ export function InvoicesPage() {
         <div className="relative flex-1 max-w-xs">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
-            className="w-full pr-9 pl-4 py-2 text-sm rounded-xl border border-gray-200 focus:outline-none focus:border-brand-400 bg-white"
+            className="w-full pr-9 pl-4 py-2 text-sm rounded-xl border border-[#eef2f6] focus:outline-none focus:border-brand-400 bg-white"
             placeholder="بحث باسم العميل أو رقم الفاتورة..."
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -170,7 +170,7 @@ export function InvoicesPage() {
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-700 outline-none focus:border-brand-400 bg-white"
+          className="border border-[#eef2f6] rounded-xl px-3 py-2 text-sm text-gray-700 outline-none focus:border-brand-400 bg-white"
         >
           <option value="">كل الفواتير</option>
           <option value="issued">بانتظار الدفع</option>
@@ -183,10 +183,10 @@ export function InvoicesPage() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="px-5 py-3.5 border-b border-gray-50 flex items-center justify-between">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="px-[10px] py-[6px] border-b border-[#eef2f6] flex items-center justify-between">
           <h2 className="font-semibold text-gray-900 text-sm">قائمة الفواتير</h2>
-          <span className="text-xs text-gray-400">{invoiceList.length} فاتورة</span>
+          <span className="text-[11px] text-[#94a3b8]">{invoiceList.length} فاتورة</span>
         </div>
 
         {loading ? (
@@ -210,13 +210,13 @@ export function InvoicesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-gray-100 bg-gray-50/50">
+                <tr className="border-b border-[#eef2f6] bg-[#f8fafc]">
                   {[
                     "رقم الطلب", "العميل", "رقم الجوال",
                     "تاريخ الإصدار", "الإجمالي",
                     "حالة الدفع", "تاريخ الدفع", ""
                   ].map(h => (
-                    <th key={h} className="text-right py-3 px-4 text-xs text-gray-400 font-semibold whitespace-nowrap">{h}</th>
+                    <th key={h} className="text-right py-[6px] px-[10px] text-[10px] text-[#94a3b8] font-bold uppercase tracking-wider whitespace-nowrap">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -228,22 +228,22 @@ export function InvoicesPage() {
                   const canCancel   = ["draft", "issued", "sent"].includes(inv.status);
                   const canSend     = ["issued","sent","overdue","partially_paid"].includes(inv.status);
                   return (
-                    <tr key={inv.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                      <td className="py-3.5 px-4">
+                    <tr key={inv.id} className="border-b border-[#eef2f6] last:border-0 hover:bg-[#f8fafc] transition-colors">
+                      <td className="py-[6px] px-[10px]">
                         <Link to={`/invoices/${inv.id}`} className="font-mono text-sm font-semibold text-brand-600 hover:underline">
                           {inv.invoiceNumber}
                         </Link>
                         <p className="text-[10px] text-gray-400 mt-0.5">{inv.invoiceType === "simplified" ? "مبسطة B2C" : "ضريبية B2B"}</p>
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <p className="text-sm font-medium text-gray-900">{inv.buyerName}</p>
                         {inv.buyerCompanyName && <p className="text-xs text-violet-600">{inv.buyerCompanyName}</p>}
                       </td>
-                      <td className="py-3.5 px-4 text-sm text-gray-500 tabular-nums" dir="ltr">{inv.buyerPhone || "—"}</td>
-                      <td className="py-3.5 px-4 text-xs text-gray-500 whitespace-nowrap">
+                      <td className="py-[6px] px-[10px] text-sm text-gray-500 tabular-nums" dir="ltr">{inv.buyerPhone || "—"}</td>
+                      <td className="py-[6px] px-[10px] text-xs text-gray-500 whitespace-nowrap">
                         {inv.issueDate ? fmtDate(inv.issueDate) : fmtDate(inv.createdAt)}
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <p className="text-sm font-bold text-gray-900 tabular-nums">{fmt(inv.totalAmount)} ر.س</p>
                         {inv.status === "partially_paid" && (
                           <p className="text-[10px] text-teal-600 tabular-nums">مدفوع: {fmt(inv.paidAmount)} ر.س</p>
@@ -252,15 +252,15 @@ export function InvoicesPage() {
                           <p className="text-[10px] text-gray-400 tabular-nums">ضريبة: {fmt(inv.vatAmount)} ر.س</p>
                         )}
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <span className={clsx("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium border", sc.color)}>
                           <StatusIcon className="w-3 h-3" /> {sc.label}
                         </span>
                       </td>
-                      <td className="py-3.5 px-4 text-xs text-gray-400 whitespace-nowrap">
+                      <td className="py-[6px] px-[10px] text-xs text-gray-400 whitespace-nowrap">
                         {inv.paidAt ? fmtDate(inv.paidAt) : "—"}
                       </td>
-                      <td className="py-3.5 px-4">
+                      <td className="py-[6px] px-[10px]">
                         <div className="flex gap-1 justify-end items-center">
                           <Link to={`/invoices/${inv.id}`}
                             className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors inline-flex" title="عرض التفاصيل">
@@ -273,7 +273,7 @@ export function InvoicesPage() {
                                 تسجيل دفعة
                               </button>
                               <button onClick={() => markPaid(inv.id)}
-                                className="px-2 py-1 rounded-lg bg-gray-50 text-gray-500 text-[10px] font-medium hover:bg-gray-100 transition-colors border border-gray-100">
+                                className="px-2 py-1 rounded-lg bg-[#f8fafc] text-gray-500 text-[10px] font-medium hover:bg-gray-100 transition-colors border border-[#eef2f6]">
                                 تأشير كمدفوع
                               </button>
                               <span className="text-[9px] text-gray-400 leading-tight text-right">بدون تسجيل طريقة الدفع</span>
@@ -382,12 +382,12 @@ export function InvoicesPage() {
                 <span>الضريبة ({viewInvoice.vatRate || 15}%)</span>
                 <span className="tabular-nums">{fmt(viewInvoice.vatAmount)} ر.س</span>
               </div>
-              <div className="flex justify-between font-bold text-base border-t border-gray-200 pt-1.5">
+              <div className="flex justify-between font-bold text-base border-t border-[#eef2f6] pt-1.5">
                 <span>الإجمالي</span>
                 <span className="tabular-nums text-brand-600">{fmt(viewInvoice.totalAmount)} ر.س</span>
               </div>
               {parseFloat(viewInvoice.paidAmount || "0") > 0 && (
-                <div className="flex justify-between text-teal-600 text-sm pt-1 border-t border-gray-200">
+                <div className="flex justify-between text-teal-600 text-sm pt-1 border-t border-[#eef2f6]">
                   <span>المدفوع</span>
                   <span className="tabular-nums font-medium">{fmt(viewInvoice.paidAmount)} ر.س</span>
                 </div>
@@ -449,7 +449,7 @@ export function InvoicesPage() {
                 </div>
               </div>
               {orgCtx?.orgCode && (
-                <span className="font-mono text-xs text-gray-400 bg-gray-50 border border-gray-100 px-2 py-1 rounded-lg" dir="ltr">
+                <span className="font-mono text-xs text-gray-400 bg-[#f8fafc] border border-[#eef2f6] px-2 py-1 rounded-lg" dir="ltr">
                   {orgCtx.orgCode}
                 </span>
               )}
@@ -459,7 +459,7 @@ export function InvoicesPage() {
       )}
 
       {/* FAQ */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
         <div className="space-y-3">
           {[
@@ -469,8 +469,8 @@ export function InvoicesPage() {
             { q: "ما هي «الفاتورة الضريبية» مقابل «الفاتورة المبسّطة»؟", a: "الفاتورة الضريبية تشترط الرقم الضريبي للطرفين وتفاصيل VAT كاملة وهي مطلوبة للمعاملات بين الشركات (B2B). الفاتورة المبسّطة للمبيعات اليومية للأفراد." },
             { q: "ماذا يحدث عند إلغاء فاتورة؟", a: "تُلغى الفاتورة ويُسجَّل قيد عكسي في النظام المحاسبي تلقائياً. لا يمكن التراجع عن الإلغاء." },
           ].map(faq => (
-            <details key={faq.q} className="border border-gray-100 rounded-xl">
-              <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+            <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+              <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
               <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
             </details>
           ))}
@@ -489,7 +489,7 @@ export function InvoicesPage() {
               <p className="text-sm text-gray-500">سيتم إلغاء الفاتورة وتسجيل قيد عكسي تلقائياً. لا يمكن التراجع عن هذا الإجراء.</p>
             </div>
             <div className="px-6 pb-6 flex gap-2">
-              <button onClick={() => setCancelInvoiceId(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">تراجع</button>
+              <button onClick={() => setCancelInvoiceId(null)} className="flex-1 py-2.5 rounded-xl border border-[#eef2f6] text-sm font-medium text-gray-600 hover:bg-[#f8fafc] transition-colors">تراجع</button>
               <button onClick={doCancelInvoice} className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-semibold hover:bg-red-600 transition-colors">نعم، ألغِ الفاتورة</button>
             </div>
           </div>
@@ -508,7 +508,7 @@ export function InvoicesPage() {
               <p className="text-sm text-gray-500">سيتم إرسال الفاتورة للعميل عبر واتساب أو البريد الإلكتروني.</p>
             </div>
             <div className="px-6 pb-6 flex gap-2">
-              <button onClick={() => setSendConfirmId(null)} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">تراجع</button>
+              <button onClick={() => setSendConfirmId(null)} className="flex-1 py-2.5 rounded-xl border border-[#eef2f6] text-sm font-medium text-gray-600 hover:bg-[#f8fafc] transition-colors">تراجع</button>
               <button onClick={doSendInvoice} disabled={!!sendingId} className="flex-1 py-2.5 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 disabled:opacity-50 transition-colors">نعم، أرسل الفاتورة</button>
             </div>
           </div>

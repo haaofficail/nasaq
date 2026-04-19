@@ -19,7 +19,7 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 const EMPTY_FORM = { name: "", assetTypeId: "", serialNumber: "", condition: "good", notes: "", purchasePrice: "" };
 
 function Skeleton({ className }: { className?: string }) {
-  return <div className={clsx("animate-pulse bg-gray-100 rounded-lg", className)} />;
+  return <div className={clsx("animate-pulse bg-[#f1f5f9] rounded-lg", className)} />;
 }
 
 const EMPTY_TYPE_FORM = { name: "", category: "", alertThreshold: "2" };
@@ -156,7 +156,7 @@ function AssetsTab() {
       <div className="flex items-center justify-between">
         <p className="text-sm text-gray-400">{assets.length} أصل</p>
         <div className="flex items-center gap-2">
-          <button onClick={refresh} className="w-9 h-9 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-500 transition-colors">
+          <button onClick={refresh} className="w-9 h-9 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-500 transition-colors">
             <RefreshCw className="w-4 h-4" />
           </button>
           <Button variant="secondary" icon={Plus} onClick={openCreateType}>نوع جديد</Button>
@@ -185,7 +185,7 @@ function AssetsTab() {
           { label: "بالصيانة",      value: report.maintenance  ?? assets.filter((a: any) => a.status === "maintenance").length, color: "text-amber-600",   bg: "bg-amber-50",   icon: Wrench },
           { label: "تالف",          value: report.damaged      ?? assets.filter((a: any) => a.status === "damaged").length,     color: "text-red-500",     bg: "bg-red-50",     icon: AlertTriangle },
         ].map((s, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-2", s.bg)}>
               <s.icon className={clsx("w-4 h-4", s.color)} />
             </div>
@@ -213,7 +213,7 @@ function AssetsTab() {
                 const isOut      = available === 0;
                 const isLowStock = !isOut && available <= threshold;
                 return (
-                <div key={type.id} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-sm transition-shadow">
+                <div key={type.id} className="bg-white rounded-2xl border border-[#eef2f6] p-5 hover:shadow-sm transition-shadow">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
                       <Boxes className="w-4 h-4 text-brand-500" />
@@ -256,30 +256,30 @@ function AssetsTab() {
 
           {/* Assets table */}
           {assets.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
               <Boxes className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <h3 className="text-base font-semibold text-gray-900 mb-1">لا توجد أصول</h3>
               <p className="text-sm text-gray-400 mb-4">أضف أصولك ومعداتك</p>
               <Button icon={Plus} onClick={openCreate}>أصل جديد</Button>
             </div>
           ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50/50">
+                  <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                     <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold">الأصل</th>
                     <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden sm:table-cell">النوع</th>
                     <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">الحالة</th>
                     <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden md:table-cell">الرقم التسلسلي</th>
-                    <th className="py-3 px-4 w-24"></th>
+                    <th className="py-[6px] px-[10px] w-24"></th>
                   </tr>
                 </thead>
                 <tbody>
                   {assets.map((a: any) => {
                     const sc = statusConfig[a.status] || statusConfig.available;
                     return (
-                      <tr key={a.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors">
-                        <td className="py-3.5 px-5">
+                      <tr key={a.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/60 transition-colors">
+                        <td className="py-[6px] px-5">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
                               <Package className="w-3.5 h-3.5 text-gray-400" />
@@ -287,8 +287,8 @@ function AssetsTab() {
                             <span className="font-medium text-gray-900">{a.name || a.assetTypeName || "—"}</span>
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 text-gray-500 text-xs hidden sm:table-cell">{a.assetTypeName || "—"}</td>
-                        <td className="py-3.5 px-4">
+                        <td className="py-[6px] px-[10px] text-gray-500 text-xs hidden sm:table-cell">{a.assetTypeName || "—"}</td>
+                        <td className="py-[6px] px-[10px]">
                           {/* Inline status dropdown */}
                           <div className="relative" onClick={e => e.stopPropagation()}>
                             <button
@@ -299,13 +299,13 @@ function AssetsTab() {
                               <ChevronDown className="w-3 h-3" />
                             </button>
                             {statusMenuId === a.id && (
-                              <div className="absolute top-full mt-1 right-0 bg-white rounded-xl border border-gray-200 shadow-lg z-20 py-1 min-w-[110px]">
+                              <div className="absolute top-full mt-1 right-0 bg-white rounded-2xl border border-[#eef2f6] shadow-lg z-20 py-1 min-w-[110px]">
                                 {Object.entries(statusConfig).map(([key, cfg]) => (
                                   <button
                                     key={key}
                                     onClick={() => handleStatusChange(a.id, key)}
                                     className={clsx(
-                                      "w-full text-right px-3 py-2 text-xs hover:bg-gray-50 transition-colors",
+                                      "w-full text-right px-3 py-2 text-xs hover:bg-[#f8fafc] transition-colors",
                                       a.status === key ? "font-semibold text-brand-600" : "text-gray-700"
                                     )}
                                   >
@@ -316,10 +316,10 @@ function AssetsTab() {
                             )}
                           </div>
                         </td>
-                        <td className="py-3.5 px-4 font-mono text-xs text-gray-400 hidden md:table-cell">
+                        <td className="py-[6px] px-[10px] font-mono text-xs text-gray-400 hidden md:table-cell">
                           {a.serialNumber || "—"}
                         </td>
-                        <td className="py-3.5 px-4">
+                        <td className="py-[6px] px-[10px]">
                           <div className="flex gap-1">
                             <button onClick={() => openEdit(a)} className="p-1.5 rounded-lg hover:bg-brand-50 transition-colors">
                               <Pencil className="w-3.5 h-3.5 text-brand-500" />
@@ -498,18 +498,18 @@ function ConsumablesTab() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => setFilterLow(v => !v)}
-            className={clsx("flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors", filterLow ? "bg-red-50 text-red-600 border-red-200" : "bg-white text-gray-500 border-gray-200 hover:bg-gray-50")}
+            className={clsx("flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors", filterLow ? "bg-red-50 text-red-600 border-red-200" : "bg-white text-gray-500 border-[#eef2f6] hover:bg-[#f8fafc]")}
           >
             <TrendingDown className="w-3.5 h-3.5" />
             مخزون منخفض {lowCount > 0 && <span className="bg-red-100 text-red-600 rounded-full px-1.5 py-0.5">{lowCount}</span>}
           </button>
           {categories.length > 0 && (
-            <select value={filterCat} onChange={e => setFilterCat(e.target.value)} className="px-3 py-1.5 border border-gray-200 rounded-xl text-xs text-gray-600 outline-none">
+            <select value={filterCat} onChange={e => setFilterCat(e.target.value)} className="px-3 py-1.5 border border-[#eef2f6] rounded-xl text-xs text-gray-600 outline-none">
               <option value="">كل التصنيفات</option>
               {categories.map((c: string) => <option key={c} value={c}>{c}</option>)}
             </select>
           )}
-          <button onClick={refetch} className="w-8 h-8 flex items-center justify-center rounded-xl border border-gray-200 hover:bg-gray-50 text-gray-400 transition-colors">
+          <button onClick={refetch} className="w-8 h-8 flex items-center justify-center rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-400 transition-colors">
             <RefreshCw className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -524,7 +524,7 @@ function ConsumablesTab() {
           { label: "قيمة المخزون",     value: `${totalValue.toLocaleString("en-US")} ر.س`, color: "text-emerald-600", bg: "bg-emerald-50", icon: BarChart3 },
           { label: "تصنيفات",         value: categories.length,                      color: "text-purple-600",  bg: "bg-purple-50",  icon: Package },
         ].map((s, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4">
+          <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-2", s.bg)}>
               <s.icon className={clsx("w-4 h-4", s.color)} />
             </div>
@@ -537,29 +537,29 @@ function ConsumablesTab() {
       {loading ? (
         <div className="space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-14 rounded-xl" />)}</div>
       ) : products.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-12 text-center">
           <Package className="w-10 h-10 text-gray-200 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-gray-900 mb-1">لا توجد مواد</h3>
           <p className="text-sm text-gray-400 mb-4">أضف المواد والمستهلكات المستخدمة في خدماتك</p>
           <Button icon={Plus} onClick={openCreate}>مادة جديدة</Button>
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50/50">
+              <tr className="border-b border-[#eef2f6] bg-gray-50/50">
                 <th className="text-right py-3 px-5 text-xs text-gray-400 font-semibold">المادة</th>
                 <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden sm:table-cell">التصنيف</th>
                 <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold">المخزون</th>
                 <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden md:table-cell">الحد الأدنى</th>
                 <th className="text-right py-3 px-4 text-xs text-gray-400 font-semibold hidden lg:table-cell">تكلفة الوحدة</th>
-                <th className="py-3 px-4 w-28"></th>
+                <th className="py-[6px] px-[10px] w-28"></th>
               </tr>
             </thead>
             <tbody>
               {products.map((p: any) => (
-                <tr key={p.id} className={clsx("border-b border-gray-50 last:border-0 hover:bg-gray-50/60 transition-colors", p.is_low_stock && "bg-red-50/30")}>
-                  <td className="py-3.5 px-5">
+                <tr key={p.id} className={clsx("border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/60 transition-colors", p.is_low_stock && "bg-red-50/30")}>
+                  <td className="py-[6px] px-5">
                     <div className="flex items-center gap-3">
                       <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center shrink-0", p.is_low_stock ? "bg-red-50" : "bg-gray-100")}>
                         <Package className={clsx("w-3.5 h-3.5", p.is_low_stock ? "text-red-400" : "text-gray-400")} />
@@ -570,8 +570,8 @@ function ConsumablesTab() {
                       </div>
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 text-xs text-gray-500 hidden sm:table-cell">{p.category || "—"}</td>
-                  <td className="py-3.5 px-4">
+                  <td className="py-[6px] px-[10px] text-xs text-gray-500 hidden sm:table-cell">{p.category || "—"}</td>
+                  <td className="py-[6px] px-[10px]">
                     <div className="flex items-center gap-1.5 flex-wrap">
                       <span className={clsx("font-semibold tabular-nums", p.is_low_stock ? "text-red-600" : "text-gray-900")}>
                         {parseFloat(p.current_stock).toLocaleString("en-US")}
@@ -582,9 +582,9 @@ function ConsumablesTab() {
                       )}
                     </div>
                   </td>
-                  <td className="py-3.5 px-4 text-xs text-gray-500 hidden md:table-cell">{parseFloat(p.min_stock).toLocaleString("en-US")} {p.unit}</td>
-                  <td className="py-3.5 px-4 text-xs text-gray-500 hidden lg:table-cell">{parseFloat(p.unit_cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س</td>
-                  <td className="py-3.5 px-4">
+                  <td className="py-[6px] px-[10px] text-xs text-gray-500 hidden md:table-cell">{parseFloat(p.min_stock).toLocaleString("en-US")} {p.unit}</td>
+                  <td className="py-[6px] px-[10px] text-xs text-gray-500 hidden lg:table-cell">{parseFloat(p.unit_cost || 0).toLocaleString("en-US", { minimumFractionDigits: 2 })} ر.س</td>
+                  <td className="py-[6px] px-[10px]">
                     <div className="flex gap-1">
                       <button onClick={() => { setAdjustItem(p); setAdjustForm({ type: "in", quantity: "", notes: "" }); }} className="p-1.5 rounded-lg hover:bg-emerald-50 transition-colors" title="تعديل المخزون">
                         <ArrowDown className="w-3.5 h-3.5 text-emerald-500" />
@@ -677,7 +677,7 @@ export function InventoryPage() {
 
       {/* Guide + FAQ */}
       <div className="mt-5 space-y-4">
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
           <h3 className="font-semibold text-gray-900 mb-4 text-sm">دليل المخزون — الفرق بين الأقسام</h3>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             {[
@@ -685,7 +685,7 @@ export function InventoryPage() {
               { title: "المواد والمستهلكات", desc: "بنود تُستهلك بالاستخدام وتحتاج إعادة تعبئة دورية. يمكن تتبع كميتها وتنبيهك عند نقصها.", examples: "ورق، حبر، بودر، منظفات، مواد خام." },
               { title: "الموردون", desc: "الجهات التي تشتري منها الأصول أو المواد. ربط المورد بالمنتج يسهّل تتبع المشتريات والتواصل.", examples: "مورد أثاث، شركة طباعة، مستودع مواد." },
             ].map(s => (
-              <div key={s.title} className="border border-gray-100 rounded-xl p-4">
+              <div key={s.title} className="border border-[#eef2f6] rounded-xl p-4">
                 <p className="text-sm font-semibold text-gray-800 mb-1">{s.title}</p>
                 <p className="text-xs text-gray-500 mb-2">{s.desc}</p>
                 <p className="text-xs text-gray-400">أمثلة: {s.examples}</p>
@@ -694,7 +694,7 @@ export function InventoryPage() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 p-5">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
           <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
           <div className="space-y-3">
             {[
@@ -703,8 +703,8 @@ export function InventoryPage() {
               { q: "كيف أسجّل أن أصلاً في الصيانة؟", a: "افتح الأصل واضغط على حالته ثم اختر «صيانة». سيُخفيه من قائمة المتاح تلقائياً حتى تعيده لحالة «متاح»." },
               { q: "هل يمكنني ربط الأصل بحجز معين؟", a: "نعم، عند إنشاء حجز يمكن تحديد الأصل المطلوب. سيتحول تلقائياً إلى حالة «محجوز» طوال مدة الحجز." },
             ].map(faq => (
-              <details key={faq.q} className="border border-gray-100 rounded-xl">
-                <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+              <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+                <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
                 <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
               </details>
             ))}

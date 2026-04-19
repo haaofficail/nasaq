@@ -121,7 +121,7 @@ export function SchoolLayout() {
       <aside
         className={clsx(
           "fixed inset-y-0 right-0 z-50 flex flex-col transition-all duration-300 ease-in-out md:static",
-          "bg-white border-l border-gray-100 shadow-sm md:shadow-none",
+          "bg-white border-l border-[#eef2f6] shadow-sm md:shadow-none",
           collapsed ? "w-[64px]" : "w-[216px]",
           mobileOpen ? "translate-x-0" : "translate-x-full md:translate-x-0"
         )}
@@ -129,7 +129,7 @@ export function SchoolLayout() {
       >
         {/* Logo */}
         <div className={clsx(
-          "flex items-center border-b border-gray-100 h-16 px-3 shrink-0",
+          "flex items-center border-b border-[#eef2f6] h-16 px-3 shrink-0",
           collapsed ? "justify-center" : "justify-between"
         )}>
           {!collapsed && (
@@ -156,7 +156,7 @@ export function SchoolLayout() {
           )}
           {collapsed && (
             <button onClick={toggleCollapsed}
-              className="hidden lg:absolute lg:flex lg:-left-2.5 lg:top-1/2 lg:-translate-y-1/2 w-5 h-5 items-center justify-center rounded-full bg-white border border-gray-200 shadow-sm text-gray-500 hover:text-emerald-600 transition-colors">
+              className="hidden lg:absolute lg:flex lg:-left-2.5 lg:top-1/2 lg:-translate-y-1/2 w-5 h-5 items-center justify-center rounded-full bg-white border border-[#eef2f6] shadow-sm text-gray-500 hover:text-emerald-600 transition-colors">
               <ChevronLeft className="w-3 h-3" />
             </button>
           )}
@@ -181,7 +181,7 @@ export function SchoolLayout() {
                     collapsed && "justify-center px-2",
                     active
                       ? "bg-emerald-50 text-emerald-700 font-semibold"
-                      : "text-gray-500 hover:bg-gray-50 hover:text-gray-800"
+                      : "text-gray-500 hover:bg-[#f8fafc] hover:text-gray-800"
                   )}
                 >
                   <item.icon className={clsx(
@@ -200,7 +200,7 @@ export function SchoolLayout() {
 
         {/* User footer */}
         <div className={clsx(
-          "border-t border-gray-100 p-2 shrink-0 space-y-0.5",
+          "border-t border-[#eef2f6] p-2 shrink-0 space-y-0.5",
           collapsed && "flex flex-col items-center"
         )}>
           <NavLink
@@ -210,7 +210,7 @@ export function SchoolLayout() {
             className={({ isActive: a }) => clsx(
               "flex items-center gap-2.5 p-2 rounded-xl transition-colors w-full",
               collapsed && "justify-center",
-              a ? "bg-emerald-50 text-emerald-700" : "hover:bg-gray-50 text-gray-600"
+              a ? "bg-emerald-50 text-emerald-700" : "hover:bg-[#f8fafc] text-gray-600"
             )}
           >
             <div className="w-7 h-7 rounded-full bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-700 font-bold text-xs shrink-0 overflow-hidden">
@@ -266,7 +266,7 @@ export function SchoolLayout() {
 
         {/* Topbar — like landing header when scrolled: white + subtle border */}
         <header
-          className="h-16 bg-white/95 backdrop-blur-sm border-b border-gray-100 shadow-sm flex items-center justify-between px-4 md:px-5 shrink-0"
+          className="h-16 bg-white/95 backdrop-blur-sm border-b border-[#eef2f6] shadow-sm flex items-center justify-between px-4 md:px-5 shrink-0"
           style={{ paddingTop: "var(--safe-area-top)" }}
         >
           <div className="flex items-center gap-3">
@@ -293,7 +293,7 @@ export function SchoolLayout() {
 
           <div className="flex items-center gap-2">
             {/* Search */}
-            <div className="hidden sm:flex items-center gap-2 bg-gray-50 border border-gray-100 rounded-xl px-3 py-2 w-48 focus-within:border-emerald-300 focus-within:bg-white focus-within:shadow-sm transition-all">
+            <div className="hidden sm:flex items-center gap-2 bg-[#f8fafc] border border-[#eef2f6] rounded-xl px-3 py-2 w-48 focus-within:border-emerald-300 focus-within:bg-white focus-within:shadow-sm transition-all">
               <Search className="w-4 h-4 text-gray-400 shrink-0" />
               <input type="text" placeholder="بحث..." className="bg-transparent border-none outline-none text-sm text-gray-600 placeholder-gray-400 w-full" />
             </div>
@@ -313,8 +313,8 @@ export function SchoolLayout() {
               </button>
 
               {bellOpen && (
-                <div className="absolute left-0 top-11 w-80 bg-white border border-gray-100 rounded-2xl shadow-xl shadow-black/8 z-50 overflow-hidden" dir="rtl">
-                  <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+                <div className="absolute left-0 top-11 w-80 bg-white border border-[#eef2f6] rounded-2xl shadow-xl shadow-black/8 z-50 overflow-hidden" dir="rtl">
+                  <div className="flex items-center justify-between px-4 py-3 border-b border-[#eef2f6]">
                     <div className="flex items-center gap-2">
                       <Bell className="w-4 h-4 text-emerald-600" />
                       <span className="text-sm font-bold text-gray-900">الإشعارات</span>
@@ -344,7 +344,7 @@ export function SchoolLayout() {
                           }}
                           className={clsx(
                             "flex items-start gap-3 px-4 py-3 border-b border-gray-50 transition-colors cursor-pointer",
-                            !a.isRead ? "bg-emerald-50/40 hover:bg-emerald-50" : "hover:bg-gray-50"
+                            !a.isRead ? "bg-emerald-50/40 hover:bg-emerald-50" : "hover:bg-[#f8fafc]"
                           )}
                         >
                           <div className={clsx("w-2 h-2 rounded-full mt-1.5 shrink-0", !a.isRead ? "bg-emerald-400" : "bg-transparent")} />
@@ -363,7 +363,7 @@ export function SchoolLayout() {
                       ))
                     )}
                   </div>
-                  <div className="px-4 py-2.5 bg-gray-50/60 border-t border-gray-100">
+                  <div className="px-4 py-2.5 bg-gray-50/60 border-t border-[#eef2f6]">
                     <button onClick={() => { navigate("/school/support"); setBellOpen(false); }}
                       className="w-full text-center text-xs text-emerald-600 hover:text-emerald-700 font-medium transition-colors">
                       عرض بوابة الدعم

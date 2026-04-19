@@ -266,7 +266,7 @@ function ImportTab({ type }: { type: ImportType }) {
       <div className="flex flex-wrap gap-3 items-center">
         <button
           onClick={() => downloadTemplate(type)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 text-gray-600 text-sm hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-sm hover:bg-[#f8fafc] transition-colors"
         >
           <Download className="w-4 h-4" />
           تحميل القالب (.xlsx)
@@ -415,11 +415,11 @@ function ImportTab({ type }: { type: ImportType }) {
           </div>
 
           {/* Table */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-xs">
                 <thead>
-                  <tr className="bg-gray-50 border-b border-gray-100">
+                  <tr className="bg-gray-50 border-b border-[#eef2f6]">
                     <th className="text-right px-3 py-2.5 font-semibold text-gray-500 w-8">#</th>
                     <th className="text-right px-3 py-2.5 font-semibold text-gray-500 w-16">الحالة</th>
                     {displayHeaders.map((h) => (
@@ -497,7 +497,7 @@ function ImportTab({ type }: { type: ImportType }) {
               </table>
             </div>
             {displayRows.length > 20 && (
-              <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 text-xs text-gray-400 text-center">
+              <div className="px-4 py-2 bg-[#f8fafc] border-t border-[#eef2f6] text-xs text-gray-400 text-center">
                 يُعرض {Math.min(displayRows.length, displayRows.length)} من {parsedRows.length} صف
               </div>
             )}
@@ -508,11 +508,11 @@ function ImportTab({ type }: { type: ImportType }) {
       {/* Import Logs */}
       <div>
         <p className="text-sm font-semibold text-gray-700 mb-3">سجل الاستيرادات السابقة</p>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
           {logsLoading ? (
             <div className="p-4 space-y-2">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="animate-pulse bg-gray-100 rounded-xl h-10 w-full" />
+                <div key={i} className="animate-pulse bg-[#f1f5f9] rounded-xl h-10 w-full" />
               ))}
             </div>
           ) : logs.length === 0 ? (
@@ -523,7 +523,7 @@ function ImportTab({ type }: { type: ImportType }) {
           ) : (
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-gray-500 text-xs border-b border-gray-100">
+                <tr className="bg-gray-50 text-gray-500 text-xs border-b border-[#eef2f6]">
                   <th className="text-right px-4 py-3 font-medium">التاريخ</th>
                   <th className="text-right px-4 py-3 font-medium">الإجمالي</th>
                   <th className="text-right px-4 py-3 font-medium">ناجح</th>
@@ -533,17 +533,17 @@ function ImportTab({ type }: { type: ImportType }) {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {logs.map((log: any) => (
-                  <tr key={log.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-gray-500 tabular-nums text-xs">
+                  <tr key={log.id} className="hover:bg-[#f8fafc] transition-colors">
+                    <td className="px-[10px] py-[6px] text-gray-500 tabular-nums text-xs">
                       {fmtHijri(log.createdAt)}
                     </td>
-                    <td className="px-4 py-3 text-gray-700 font-medium">
+                    <td className="px-[10px] py-[6px] text-gray-700 font-medium">
                       {log.totalRows ?? 0}
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <span className="text-emerald-700 font-semibold">{log.successRows ?? log.importedRows ?? 0}</span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <span className={clsx(
                         "font-semibold",
                         (log.errorRows ?? 0) > 0 ? "text-red-600" : "text-gray-400"
@@ -551,7 +551,7 @@ function ImportTab({ type }: { type: ImportType }) {
                         {log.errorRows ?? 0}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-gray-500 text-sm">{log.createdByName ?? "—"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-500 text-sm">{log.createdByName ?? "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -594,7 +594,7 @@ export function SchoolImportPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+      <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1 w-fit">
         {TABS.map((tab) => (
           <button
             key={tab.key}

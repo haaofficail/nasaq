@@ -98,9 +98,9 @@ function StarRating({ value, onChange, readOnly = false }: { value: number; onCh
 // ─── Skeleton ────────────────────────────────────────────────────────────────
 function SkeletonRow() {
   return (
-    <tr className="border-b border-gray-100">
+    <tr className="border-b border-[#eef2f6]">
       {Array.from({ length: 10 }).map((_, i) => (
-        <td key={i} className="px-4 py-3">
+        <td key={i} className="px-[10px] py-[6px]">
           <div className="h-4 bg-gray-200 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
         </td>
       ))}
@@ -113,7 +113,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" dir="rtl">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-gray-100">
+        <div className="flex items-center justify-between p-5 border-b border-[#eef2f6]">
           <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">&times;</button>
         </div>
@@ -195,7 +195,7 @@ function VendorFormModal({
         type={type}
         value={form[field] as string}
         onChange={(e) => set(field, e.target.value)}
-        className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+        className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
       />
     </div>
   );
@@ -220,7 +220,7 @@ function VendorFormModal({
               type="text"
               value={form.address}
               onChange={(e) => set("address", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
             />
           </div>
           <div className="col-span-1">
@@ -228,7 +228,7 @@ function VendorFormModal({
             <select
               value={form.category}
               onChange={(e) => set("category", e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 bg-white"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 bg-white"
             >
               {VENDOR_CATEGORIES.map((c) => (
                 <option key={c.value} value={c.value}>{c.label}</option>
@@ -245,7 +245,7 @@ function VendorFormModal({
               value={form.notes}
               onChange={(e) => set("notes", e.target.value)}
               rows={3}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 resize-none"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 resize-none"
             />
           </div>
           {vendor && (
@@ -320,7 +320,7 @@ function StatementModal({ vendor, onClose }: { vendor: Vendor; onClose: () => vo
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
             />
           </div>
           <div className="flex-1">
@@ -329,7 +329,7 @@ function StatementModal({ vendor, onClose }: { vendor: Vendor; onClose: () => vo
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
             />
           </div>
           <button
@@ -374,7 +374,7 @@ function StatementModal({ vendor, onClose }: { vendor: Vendor; onClose: () => vo
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-200">
+                  <tr className="border-b border-[#eef2f6]">
                     <th className="text-right py-2 px-3 font-semibold text-gray-600">رقم الفاتورة</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-600">التاريخ</th>
                     <th className="text-right py-2 px-3 font-semibold text-gray-600">المبلغ</th>
@@ -384,7 +384,7 @@ function StatementModal({ vendor, onClose }: { vendor: Vendor; onClose: () => vo
                 </thead>
                 <tbody>
                   {data.invoices.map((inv: any, idx: number) => (
-                    <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                    <tr key={idx} className="border-b border-[#eef2f6] hover:bg-[#f8fafc]">
                       <td className="py-2 px-3 text-brand-500 font-mono">{inv.invoice_number || "-"}</td>
                       <td className="py-2 px-3 text-gray-600">
                         {inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString("ar-SA") : "-"}
@@ -537,7 +537,7 @@ export function VendorsPage() {
             placeholder="بحث باسم المورد أو الجوال..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm pr-10 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+            className="w-full border border-[#eef2f6] rounded-xl px-4 py-2.5 text-sm pr-10 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
           />
           <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-base">&#128269;</span>
         </div>
@@ -563,11 +563,11 @@ export function VendorsPage() {
       )}
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
+              <tr className="border-b border-[#eef2f6] bg-gray-50">
                 <th className="text-right px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">الكود</th>
                 <th className="text-right px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">الاسم</th>
                 <th className="text-right px-4 py-3 font-semibold text-gray-600 whitespace-nowrap">جهة الاتصال</th>
@@ -595,9 +595,9 @@ export function VendorsPage() {
                 </tr>
               ) : (
                 vendors.map((vendor) => (
-                  <tr key={vendor.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                    <td className="px-4 py-3 text-brand-500 font-mono text-xs">{vendor.vendor_code || "-"}</td>
-                    <td className="px-4 py-3">
+                  <tr key={vendor.id} className="border-b border-[#eef2f6] hover:bg-[#f8fafc] transition-colors">
+                    <td className="px-[10px] py-[6px] text-brand-500 font-mono text-xs">{vendor.vendor_code || "-"}</td>
+                    <td className="px-[10px] py-[6px]">
                       <button
                         onClick={() => setStatementVendor(vendor)}
                         className="font-medium text-gray-800 hover:text-brand-500 transition-colors text-right"
@@ -605,21 +605,21 @@ export function VendorsPage() {
                         {vendor.name}
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{vendor.contact_person || "-"}</td>
-                    <td className="px-4 py-3 text-gray-600 dir-ltr text-left">{vendor.phone || "-"}</td>
-                    <td className="px-4 py-3 text-gray-600">{vendor.city || "-"}</td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px] text-gray-600">{vendor.contact_person || "-"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-600 dir-ltr text-left">{vendor.phone || "-"}</td>
+                    <td className="px-[10px] py-[6px] text-gray-600">{vendor.city || "-"}</td>
+                    <td className="px-[10px] py-[6px]">
                       <span className="bg-gray-100 text-gray-700 rounded-full px-2.5 py-0.5 text-xs">
                         {getCategoryLabel(vendor.category)}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <StarRating value={vendor.rating} readOnly />
                     </td>
-                    <td className="px-4 py-3 text-gray-700 font-medium">
+                    <td className="px-[10px] py-[6px] text-gray-700 font-medium">
                       {fmt(vendor.total_invoiced)} ر.س
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <span
                         className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           vendor.is_active
@@ -630,7 +630,7 @@ export function VendorsPage() {
                         {vendor.is_active ? "نشط" : "غير نشط"}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-[10px] py-[6px]">
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => setStatementVendor(vendor)}
@@ -641,7 +641,7 @@ export function VendorsPage() {
                         </button>
                         <button
                           onClick={() => { setEditVendor(vendor); setShowForm(true); }}
-                          className="text-gray-500 hover:text-gray-700 text-xs border border-gray-200 rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors"
+                          className="text-gray-500 hover:text-gray-700 text-xs border border-[#eef2f6] rounded-lg px-2 py-1 hover:bg-gray-100 transition-colors"
                           title="تعديل"
                         >
                           تعديل

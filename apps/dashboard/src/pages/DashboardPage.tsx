@@ -127,7 +127,7 @@ function FlowerOpsPanel() {
     return (
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {[0, 1, 2, 3].map(i => (
-          <div key={i} className="h-20 bg-gray-100 rounded-2xl animate-pulse" />
+          <div key={i} className="h-20 bg-[#f1f5f9] rounded-2xl animate-pulse" />
         ))}
       </div>
     );
@@ -141,9 +141,9 @@ function FlowerOpsPanel() {
           <Link
             key={p.label}
             to={p.href}
-            className="group bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3 hover:border-gray-200 hover:shadow-sm transition-all"
+            className="group bg-white rounded-2xl border border-[#eef2f6] p-4 flex items-center gap-3 hover:-translate-y-0.5 hover:shadow-[0_4px_16px_rgba(0,0,0,0.06)] transition-all"
           >
-            <div className={clsx("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", p.bg)}>
+            <div className={clsx("w-9 h-9 rounded-[10px] flex items-center justify-center shrink-0", p.bg)}>
               <Icon className={clsx("w-5 h-5", p.color)} />
             </div>
             <div className="min-w-0">
@@ -234,7 +234,7 @@ function WelcomeView({ orgName, businessType, orgId }: { orgName: string; busine
           <Link
             key={s.href}
             to={s.href}
-            className="flex items-center gap-1.5 bg-white border border-gray-200 hover:border-brand-300 hover:bg-brand-50 text-gray-700 hover:text-brand-700 text-sm font-medium rounded-xl px-4 py-2.5 transition-all"
+            className="flex items-center gap-1.5 bg-white border border-[#eef2f6] hover:border-brand-300 hover:bg-brand-50 text-gray-700 hover:text-brand-700 text-sm font-medium rounded-xl px-4 py-2.5 transition-all"
           >
             {s.label}
           </Link>
@@ -260,7 +260,7 @@ function ActiveDashboardHeader({ orgName, businessType }: { orgName: string; bus
   const Icon = action.icon;
 
   return (
-    <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl px-5 py-3.5 mb-1">
+    <div className="flex items-center justify-between bg-white border border-[#eef2f6] rounded-2xl px-5 py-[6px] mb-1">
       <div>
         <p className="text-sm font-semibold text-gray-900">
           {orgName || "مرحباً"}
@@ -328,19 +328,19 @@ export function DashboardPage() {
       <div className="space-y-5 animate-pulse">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
-            <div className="h-6 bg-gray-100 rounded-lg w-48" />
-            <div className="h-4 bg-gray-100 rounded-lg w-64" />
+            <div className="h-6 bg-[#f1f5f9] rounded-lg w-48" />
+            <div className="h-4 bg-[#f1f5f9] rounded-lg w-64" />
           </div>
-          <div className="h-10 bg-gray-100 rounded-xl w-32" />
+          <div className="h-10 bg-[#f1f5f9] rounded-xl w-32" />
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-24 bg-gray-100 rounded-2xl" />
+            <div key={i} className="h-24 bg-[#f1f5f9] rounded-2xl" />
           ))}
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[0, 1, 2, 3].map((i) => (
-            <div key={i} className="h-20 bg-gray-100 rounded-2xl" />
+            <div key={i} className="h-20 bg-[#f1f5f9] rounded-2xl" />
           ))}
         </div>
       </div>
@@ -372,7 +372,7 @@ export function DashboardPage() {
 
       {/* Public page quick access */}
       {orgSlug && (
-        <div className="flex items-center justify-between bg-white border border-gray-100 rounded-2xl px-5 py-3.5">
+        <div className="flex items-center justify-between bg-white border border-[#eef2f6] rounded-2xl px-5 py-[6px]">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-brand-50 flex items-center justify-center shrink-0">
               <QrCode className="w-4 h-4 text-brand-500" />
@@ -385,7 +385,7 @@ export function DashboardPage() {
           <div className="flex items-center gap-2">
             <Link
               to="/dashboard/storefront?tab=qr"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-xs hover:bg-[#f8fafc] transition-colors"
             >
               <QrCode className="w-3.5 h-3.5" /> باركود QR
             </Link>
@@ -393,7 +393,7 @@ export function DashboardPage() {
               href={`/s/${orgSlug}/print`}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-600 text-xs hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-xs hover:bg-[#f8fafc] transition-colors"
             >
               <Printer className="w-3.5 h-3.5" /> طباعة
             </a>

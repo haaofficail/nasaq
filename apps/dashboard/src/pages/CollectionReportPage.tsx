@@ -68,22 +68,22 @@ export function CollectionReportPage() {
       </div>
 
       {/* filters */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">من تاريخ</label>
             <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">إلى تاريخ</label>
             <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400" />
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400" />
           </div>
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1.5">عمر الفاتورة</label>
             <select value={ageFilter} onChange={e => setAgeFilter(e.target.value)}
-              className="px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-400 bg-white">
+              className="px-3 py-2 text-sm border border-[#eef2f6] rounded-xl focus:outline-none focus:border-brand-400 bg-white">
               <option value="">الكل</option>
               <option value="30">0 - 30 يوم</option>
               <option value="60">31 - 60 يوم</option>
@@ -93,11 +93,11 @@ export function CollectionReportPage() {
           </div>
           <div className="flex gap-2 mr-auto">
             <button onClick={refetch}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-[#eef2f6] text-sm text-gray-600 hover:bg-[#f8fafc] transition-colors">
               <RefreshCw className="w-4 h-4" /> تحديث
             </button>
             <button onClick={exportCsv}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-50 border border-gray-200 text-sm text-gray-600 hover:bg-gray-100 transition-colors">
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#f8fafc] border border-[#eef2f6] text-sm text-gray-600 hover:bg-gray-100 transition-colors">
               <Download className="w-4 h-4" /> تصدير CSV
             </button>
           </div>
@@ -114,7 +114,7 @@ export function CollectionReportPage() {
               { label: "المتبقي غير المحصّل", value: fmt(summary.outstanding),   color: "text-red-600",     sub: "ر.س" },
               { label: "نسبة التحصيل",        value: `${summary.collectionRate || 0}%`, color: "text-brand-600", sub: "" },
             ].map(card => (
-              <div key={card.label} className="bg-white rounded-2xl border border-gray-100 p-4">
+              <div key={card.label} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
                 <p className={clsx("text-2xl font-bold tabular-nums", card.color)}>{card.value}</p>
                 <p className="text-xs text-gray-400 mt-0.5">{card.label} {card.sub}</p>
               </div>
@@ -122,7 +122,7 @@ export function CollectionReportPage() {
           </div>
 
           {/* collection rate bar */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-gray-900 text-sm">معدل التحصيل</h3>
               <span className="text-sm font-bold text-brand-600">{summary.collectionRate || 0}%</span>
@@ -143,7 +143,7 @@ export function CollectionReportPage() {
 
           {/* by status */}
           {byStatus.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5">
+            <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
               <h3 className="font-semibold text-gray-900 text-sm mb-4">توزيع الفواتير حسب الحالة</h3>
               <div className="space-y-2">
                 {byStatus.map((s: any) => (
@@ -160,7 +160,7 @@ export function CollectionReportPage() {
           )}
 
           {/* outstanding invoices */}
-          <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-50 flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-amber-500" />
               <h2 className="font-semibold text-gray-900 text-sm">الفواتير غير المحصّلة</h2>
@@ -186,22 +186,22 @@ export function CollectionReportPage() {
                       const remaining = Number(inv.total_amount) - Number(inv.paid_amount || 0);
                       const isOverdue = inv.due_date && new Date(inv.due_date) < new Date();
                       return (
-                        <tr key={inv.id} className="border-b border-gray-50 last:border-0 hover:bg-gray-50/40 transition-colors">
-                          <td className="px-4 py-3">
+                        <tr key={inv.id} className="border-b border-gray-50 last:border-0 hover:bg-[#f8fafc]/40 transition-colors">
+                          <td className="px-[10px] py-[6px]">
                             <Link to={`/dashboard/invoices/${inv.id}`} className="text-brand-500 hover:underline font-mono text-xs">
                               {inv.invoice_number}
                             </Link>
                           </td>
-                          <td className="px-4 py-3 font-medium text-gray-800">{inv.buyer_name}</td>
-                          <td className="px-4 py-3 text-xs text-gray-400" dir="ltr">{inv.buyer_phone || "—"}</td>
-                          <td className="px-4 py-3 tabular-nums text-gray-700">{fmt(inv.total_amount)} ر.س</td>
-                          <td className="px-4 py-3 tabular-nums text-emerald-600">{fmt(inv.paid_amount || 0)} ر.س</td>
-                          <td className="px-4 py-3 tabular-nums font-bold text-red-600">{fmt(remaining)} ر.س</td>
-                          <td className={clsx("px-4 py-3 text-xs whitespace-nowrap", isOverdue ? "text-red-500 font-medium" : "text-gray-400")}>
+                          <td className="px-[10px] py-[6px] font-medium text-gray-800">{inv.buyer_name}</td>
+                          <td className="px-[10px] py-[6px] text-xs text-gray-400" dir="ltr">{inv.buyer_phone || "—"}</td>
+                          <td className="px-[10px] py-[6px] tabular-nums text-gray-700">{fmt(inv.total_amount)} ر.س</td>
+                          <td className="px-[10px] py-[6px] tabular-nums text-emerald-600">{fmt(inv.paid_amount || 0)} ر.س</td>
+                          <td className="px-[10px] py-[6px] tabular-nums font-bold text-red-600">{fmt(remaining)} ر.س</td>
+                          <td className={clsx("px-[10px] py-[6px] text-xs whitespace-nowrap", isOverdue ? "text-red-500 font-medium" : "text-gray-400")}>
                             {inv.due_date ? fmtDate(inv.due_date) : "—"}
                             {isOverdue && <span className="mr-1 text-red-400">(متأخر)</span>}
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-[10px] py-[6px]">
                             <button
                               onClick={() => window.open(`https://wa.me/${inv.buyer_phone?.replace(/\D/g,"")}?text=${encodeURIComponent(`مرحباً ${inv.buyer_name}، تذكير بفاتورة رقم ${inv.invoice_number} بمبلغ ${Number(inv.total_amount).toLocaleString("en-US")} ر.س`)}`, "_blank")}
                               className="px-2.5 py-1 text-xs bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-100 transition-colors"
@@ -221,7 +221,7 @@ export function CollectionReportPage() {
           </div>
 
           {/* FAQ */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5">
+          <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
             <h3 className="font-semibold text-gray-900 mb-4 text-sm">الأسئلة الشائعة</h3>
             <div className="space-y-3">
               {[
@@ -230,8 +230,8 @@ export function CollectionReportPage() {
                 { q: "ما المقصود بـ «المبلغ المتبقي»؟", a: "هو الفرق بين إجمالي الفاتورة والمبالغ المدفوعة منها حتى الآن." },
                 { q: "لماذا لا تظهر الفواتير الملغاة في تقرير التحصيل؟", a: "يستثني التقرير الفواتير الملغاة لأنها لا تُمثّل إيرادات حقيقية ولا التزامات قائمة." },
               ].map(faq => (
-                <details key={faq.q} className="border border-gray-100 rounded-xl">
-                  <summary className="px-4 py-3 text-sm text-gray-700 cursor-pointer font-medium hover:bg-gray-50 rounded-xl">{faq.q}</summary>
+                <details key={faq.q} className="border border-[#eef2f6] rounded-xl">
+                  <summary className="px-[10px] py-[6px] text-sm text-gray-700 cursor-pointer font-medium hover:bg-[#f8fafc] rounded-xl">{faq.q}</summary>
                   <p className="px-4 pb-3 text-sm text-gray-500">{faq.a}</p>
                 </details>
               ))}

@@ -48,7 +48,7 @@ function KpiCard({ label, value, icon: Icon, bg, color }: {
   label: string; value: number | string; icon: any; bg: string; color: string;
 }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 flex items-center gap-4">
       <div className={clsx("w-12 h-12 rounded-xl flex items-center justify-center shrink-0", bg)}>
         <Icon className={clsx("w-5 h-5", color)} />
       </div>
@@ -87,7 +87,7 @@ function IssueModal({ issue, onClose, onUpdated }: { issue: any; onClose: () => 
   return (
     <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[#eef2f6] sticky top-0 bg-white z-10">
           <div className="flex items-center gap-2">
             <span className={clsx("px-2 py-0.5 rounded-full text-[10px] font-bold", sev.bg, sev.color, "border", sev.border)}>
               {issue.code}
@@ -151,13 +151,13 @@ function IssueModal({ issue, onClose, onUpdated }: { issue: any; onClose: () => 
           )}
 
           {/* تحديث الحالة */}
-          <div className="border-t border-gray-100 pt-4 space-y-3">
+          <div className="border-t border-[#eef2f6] pt-4 space-y-3">
             <p className="text-xs font-semibold text-gray-500">تحديث الحالة</p>
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(STATUS_META).map(([key, meta]) => (
                 <button key={key} onClick={() => setStatus(key)}
                   className={clsx("py-2 rounded-xl text-xs font-medium border transition-colors",
-                    status === key ? `${meta.bg} ${meta.color} border-current` : "border-gray-200 text-gray-500 hover:bg-gray-50"
+                    status === key ? `${meta.bg} ${meta.color} border-current` : "border-[#eef2f6] text-gray-500 hover:bg-[#f8fafc]"
                   )}>
                   {meta.label}
                 </button>
@@ -168,7 +168,7 @@ function IssueModal({ issue, onClose, onUpdated }: { issue: any; onClose: () => 
               onChange={e => setNote(e.target.value)}
               placeholder="ملاحظة الحل (اختياري)"
               rows={2}
-              className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 resize-none"
+              className="w-full border border-[#eef2f6] rounded-xl px-3 py-2 text-sm outline-none focus:border-brand-300 resize-none"
             />
             <button onClick={handleSave} disabled={saving}
               className="w-full bg-brand-500 text-white py-2.5 rounded-xl text-sm font-medium hover:bg-brand-600 disabled:opacity-60 flex items-center justify-center gap-2">
@@ -189,8 +189,8 @@ function ScansPanel() {
   const scans: any[] = data?.data ?? [];
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
+    <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-[6px] border-b border-[#eef2f6]">
         <div className="flex items-center gap-2">
           <Clock className="w-4 h-4 text-brand-500" />
           <h3 className="text-sm font-semibold text-gray-700">سجل الفحوصات</h3>
@@ -205,7 +205,7 @@ function ScansPanel() {
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100">
+              <tr className="bg-gray-50 border-b border-[#eef2f6]">
                 {["النوع", "البدء", "المدة", "الفحوصات", "المشاكل", "المُصلح", "الحالة"].map(h => (
                   <th key={h} className="text-right py-2.5 px-4 text-xs text-gray-400 font-semibold whitespace-nowrap">{h}</th>
                 ))}
@@ -213,7 +213,7 @@ function ScansPanel() {
             </thead>
             <tbody>
               {scans.map((scan: any) => (
-                <tr key={scan.id} className="border-b border-gray-50 hover:bg-gray-50/40">
+                <tr key={scan.id} className="border-b border-gray-50 hover:bg-[#f8fafc]/40">
                   <td className="py-2 px-4 text-xs text-gray-600">{scan.type === "manual" ? "يدوي" : "دوري"}</td>
                   <td className="py-2 px-4 text-xs text-gray-400 whitespace-nowrap font-mono">
                     {new Date(scan.started_at).toLocaleString("en-US")}
@@ -284,7 +284,7 @@ function GuardianTab() {
         sub="مراقبة ذاتية وإصلاح تلقائي للمشاكل في النظام"
         action={
           <div className="flex items-center gap-2">
-            <button onClick={refetch} className="flex items-center gap-1.5 text-sm text-gray-500 border border-gray-200 px-3 py-1.5 rounded-xl hover:bg-gray-50">
+            <button onClick={refetch} className="flex items-center gap-1.5 text-sm text-gray-500 border border-[#eef2f6] px-3 py-1.5 rounded-xl hover:bg-[#f8fafc]">
               <RefreshCw className="w-3.5 h-3.5" /> تحديث
             </button>
             <button onClick={handleRunScan} disabled={scanning}
@@ -306,25 +306,25 @@ function GuardianTab() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
-        <div className="flex items-center gap-1 bg-white border border-gray-200 rounded-xl px-1 py-1">
+        <div className="flex items-center gap-1 bg-white border border-[#eef2f6] rounded-xl px-1 py-1">
           {["", "open", "investigating", "resolved", "ignored"].map(s => (
             <button key={s} onClick={() => setStatusFilter(s)}
               className={clsx("px-3 py-1 rounded-lg text-xs font-medium transition-colors",
-                statusFilter === s ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-gray-50"
+                statusFilter === s ? "bg-brand-500 text-white" : "text-gray-500 hover:bg-[#f8fafc]"
               )}>
               {s === "" ? "الكل" : STATUS_META[s]?.label ?? s}
             </button>
           ))}
         </div>
         <select value={severityFilter} onChange={e => setSeverityFilter(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 py-1.5 text-xs text-gray-600 outline-none bg-white">
+          className="border border-[#eef2f6] rounded-xl px-3 py-1.5 text-xs text-gray-600 outline-none bg-white">
           <option value="">كل الخطورات</option>
           {Object.entries(SEVERITY_META).map(([k, v]) => (
             <option key={k} value={k}>{v.label}</option>
           ))}
         </select>
         <select value={moduleFilter} onChange={e => setModuleFilter(e.target.value)}
-          className="border border-gray-200 rounded-xl px-3 py-1.5 text-xs text-gray-600 outline-none bg-white">
+          className="border border-[#eef2f6] rounded-xl px-3 py-1.5 text-xs text-gray-600 outline-none bg-white">
           <option value="">كل الوحدات</option>
           {Object.entries(MODULE_META).map(([k, v]) => (
             <option key={k} value={k}>{v}</option>
@@ -333,8 +333,8 @@ function GuardianTab() {
       </div>
 
       {/* Issues List */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
+      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-[6px] border-b border-[#eef2f6]">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-brand-500" />
             <h3 className="text-sm font-semibold text-gray-700">المشاكل المكتشفة</h3>
@@ -357,7 +357,7 @@ function GuardianTab() {
               return (
                 <button key={issue.id}
                   onClick={() => setSelectedIssue(issue)}
-                  className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50/60 transition-colors text-right">
+                  className="w-full flex items-center gap-4 px-5 py-[6px] hover:bg-[#f8fafc]/60 transition-colors text-right">
                   <span className={clsx("w-2.5 h-2.5 rounded-full shrink-0", sev.dot)} />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">

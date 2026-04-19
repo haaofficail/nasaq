@@ -62,8 +62,8 @@ export function PublicPaymentPage() {
   }
 
   if (paid) return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4 p-6" dir="rtl">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center max-w-sm w-full">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center gap-4 p-6" dir="rtl">
+      <div className="bg-white rounded-2xl shadow-sm border border-[#eef2f6] p-10 text-center max-w-sm w-full">
         <CheckCircle2 className="w-14 h-14 text-green-500 mx-auto mb-4" />
         <h1 className="text-xl font-bold text-gray-800 mb-2">تم الدفع بنجاح</h1>
         <p className="text-gray-500 text-sm">شكراً لك. تمت معالجة دفعتك.</p>
@@ -72,8 +72,8 @@ export function PublicPaymentPage() {
   );
 
   if (payFailed) return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center gap-4 p-6" dir="rtl">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-10 text-center max-w-sm w-full">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center gap-4 p-6" dir="rtl">
+      <div className="bg-white rounded-2xl shadow-sm border border-[#eef2f6] p-10 text-center max-w-sm w-full">
         <AlertCircle className="w-14 h-14 text-red-400 mx-auto mb-4" />
         <h1 className="text-xl font-bold text-gray-800 mb-2">فشلت عملية الدفع</h1>
         <p className="text-gray-500 text-sm mb-6">يرجى المحاولة مرة أخرى أو التواصل مع المنشأة.</p>
@@ -88,8 +88,8 @@ export function PublicPaymentPage() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-6" dir="rtl">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 max-w-sm w-full">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6" dir="rtl">
+      <div className="bg-white rounded-2xl shadow-sm border border-[#eef2f6] p-8 max-w-sm w-full">
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-brand-500/10 rounded-xl flex items-center justify-center">
             <CreditCard className="w-5 h-5 text-brand-500" />
@@ -106,7 +106,7 @@ export function PublicPaymentPage() {
           </div>
         )}
 
-        <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-100">
+        <div className="flex justify-between items-center mb-6 pb-4 border-b border-[#eef2f6]">
           <span className="text-sm text-gray-500">المبلغ المستحق</span>
           <span className="text-xl font-bold text-gray-800">
             {amount.toLocaleString("ar-SA", { minimumFractionDigits: 2 })} ر.س

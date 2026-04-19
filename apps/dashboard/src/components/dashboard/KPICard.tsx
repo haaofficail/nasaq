@@ -26,8 +26,8 @@ export function KPICard({ config }: KPICardProps) {
       <div className="min-w-0">
         {loading ? (
           <>
-            <div className="h-8 w-24 bg-gray-100 rounded-xl animate-pulse mb-2" />
-            <div className="h-3 w-16 bg-gray-100 rounded-lg animate-pulse" />
+            <div className="h-8 w-24 bg-[#f1f5f9] rounded-xl animate-pulse mb-2" />
+            <div className="h-3 w-16 bg-[#f1f5f9] rounded-lg animate-pulse" />
           </>
         ) : error ? (
           <>
