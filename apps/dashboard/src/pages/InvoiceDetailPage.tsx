@@ -1,12 +1,12 @@
 import { useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import {
   Send, Printer, FileText, CreditCard,
   XCircle, AlertCircle, Clock, CheckCircle2, AlertTriangle,
-  Plus, RotateCcw, Receipt, Eye, RefreshCw,
+  Plus, RotateCcw, Receipt, RefreshCw, ChevronRight, Download,
 } from "lucide-react";
 import { clsx } from "clsx";
-import { financeApi } from "@/lib/api";
+import { financeApi, settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Modal, Input, Select, Breadcrumb } from "@/components/ui";
 import { PageSkeleton } from "@/components/ui/Skeleton";
@@ -101,8 +101,11 @@ export function InvoiceDetailPage() {
   const { mutate: addPayment, loading: addingPmt } = useMutation((data: any) => financeApi.addInvoicePayment(id!, data));
   const { mutate: updateStatus } = useMutation(({ s }: any) => financeApi.updateInvoiceStatus(id!, s));
 
-  const inv: any   = res?.data;
+  const inv: any    = res?.data;
   const pmts: any[] = pmtRes?.data || [];
+
+  const { data: orgRes } = useApi(() => settingsApi.profile(), []);
+  const orgProfile: any  = orgRes?.data || {};
 
   const handleSend = async () => {
     setSending(true);
@@ -402,388 +405,310 @@ export function InvoiceDetailPage() {
   );
   if (!inv) return <div className="text-center py-12 text-[var(--text-2)]">الفاتورة غير موجودة</div>;
 
-  const st      = STATUS_CONFIG[inv.status] || STATUS_CONFIG.draft;
+  const st         = STATUS_CONFIG[inv.status] || STATUS_CONFIG.draft;
   const StatusIcon = st.icon;
-  const canPay  = ["issued","sent","overdue","partially_paid"].includes(inv.status);
-  const canCancel = ["draft","issued","sent"].includes(inv.status);
-  const canSend = ["issued","sent","overdue","partially_paid"].includes(inv.status);
-  const remaining = Math.max(0, Number(inv.totalAmount || 0) - Number(inv.paidAmount || 0));
+  const canPay     = ["issued","sent","overdue","partially_paid"].includes(inv.status);
+  const canCancel  = ["draft","issued","sent"].includes(inv.status);
+  const canSend    = ["issued","sent","overdue","partially_paid"].includes(inv.status);
+  const remaining  = Math.max(0, Number(inv.totalAmount || 0) - Number(inv.paidAmount || 0));
+  const invTypeLabel = inv.invoiceType === "tax" ? "فاتورة ضريبية" : "فاتورة ضريبية مبسطة";
+  const defaultTerms = ["أي تمديد يُحتسب بتكلفة إضافية","جميع التجهيزات تحت مسؤولية العميل","يتحمل العميل أي تلف أو فقد","الفاتورة تُعد عرض سعر صالح لمدة 3 أيام فقط"];
+  const termsLines: string[] = (inv.termsAndConditions || "").split("\n").filter(Boolean).length > 0
+    ? (inv.termsAndConditions as string).split("\n").filter(Boolean)
+    : defaultTerms;
+  const orgLogo = orgProfile?.logo || null;
+  const firstPmt = pmts[0];
 
   return (
-    <div className="space-y-5">
+    <div className="min-h-screen bg-[#f1f5f9] pb-12 print:bg-white print:pb-0">
 
-      {/* breadcrumb */}
-      <Breadcrumb items={[
-        { label: "الفواتير", href: "/dashboard/invoices" },
-        { label: `فاتورة #${inv?.invoiceNumber || id?.slice(0,8)}` },
-      ]} />
+      {/* ── Toolbar (no-print) ───────────────────────────────── */}
+      <div className="print:hidden w-[210mm] max-w-full mx-auto px-0 pt-6 pb-4">
+        {/* back + breadcrumb */}
+        <div className="flex items-center gap-1.5 text-[13px] text-[#64748b] mb-4">
+          <button onClick={() => navigate("/dashboard/invoices")} className="inline-flex items-center gap-1 hover:text-brand-500 transition-colors">
+            <ChevronRight className="w-4 h-4" />
+            الفواتير
+          </button>
+          <span>/</span>
+          <span className="text-[#0f172a] font-semibold">{inv.invoiceNumber}</span>
+        </div>
 
-      {/* ── header ──────────────────────────────────────────── */}
-      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-5">
-        <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-          {/* left: order info */}
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-lg font-bold text-[var(--text-1)] font-mono">{inv.invoiceNumber}</h1>
-              <span className={clsx("inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border", st.color)}>
-                <StatusIcon className="w-3.5 h-3.5" /> {st.label}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-              <div>
-                <p className="text-xs text-[var(--text-3)] mb-0.5">العميل</p>
-                <p className="font-medium text-[var(--text-1)]">{inv.buyerName}</p>
-                {inv.buyerPhone && <p className="text-xs text-[var(--text-3)]" dir="ltr">{inv.buyerPhone}</p>}
-              </div>
-              <div>
-                <p className="text-xs text-[var(--text-3)] mb-0.5">تاريخ الإصدار</p>
-                <p className="font-medium text-[var(--text-1)]">{inv.issueDate ? fmtDate(inv.issueDate) : "—"}</p>
-              </div>
-              {inv.dueDate && (
-                <div>
-                  <p className="text-xs text-[var(--text-3)] mb-0.5">تاريخ الاستحقاق</p>
-                  <p className="font-medium text-[var(--text-1)]">{fmtDate(inv.dueDate)}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-xs text-[var(--text-3)] mb-0.5">النوع</p>
-                <p className="font-medium text-[var(--text-1)]">{inv.invoiceType === "simplified" ? "مبسطة B2C" : "ضريبية B2B"}</p>
-              </div>
-            </div>
-          </div>
-
-          {/* right: actions */}
-          <div className="flex flex-wrap gap-2 flex-shrink-0">
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] font-semibold text-[#475569]">معاينة الفاتورة — {inv.invoiceNumber}</span>
+          <div className="flex items-center gap-2">
             {canSend && (
-              <button
-                onClick={handleSend} disabled={sending}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-lavender-soft text-lavender text-sm font-medium hover:opacity-80 transition-colors disabled:opacity-50"
-              >
-                <Send className="w-4 h-4" /> إرسال للعميل
+              <button onClick={handleSend} disabled={sending}
+                className="inline-flex items-center gap-1.5 h-[34px] px-3.5 rounded-lg bg-lavender-soft text-lavender text-[12px] font-medium hover:opacity-80 transition-colors disabled:opacity-50">
+                <Send className="w-3.5 h-3.5" /> إرسال
               </button>
             )}
             {canPay && (
-              <button
-                onClick={() => setShowPayment(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success-soft text-success text-sm font-medium hover:opacity-80 transition-colors"
-              >
-                <CreditCard className="w-4 h-4" /> تسجيل دفعة
+              <button onClick={() => setShowPayment(true)}
+                className="inline-flex items-center gap-1.5 h-[34px] px-3.5 rounded-lg bg-success-soft text-success text-[12px] font-medium hover:opacity-80 transition-colors">
+                <CreditCard className="w-3.5 h-3.5" /> تسجيل دفعة
               </button>
             )}
-            <button
-              onClick={printInvoice}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] text-[var(--text-2)] text-sm font-medium hover:bg-[var(--surface-3)] transition-colors"
-            >
-              <Printer className="w-4 h-4" /> طباعة الفاتورة
+            <button onClick={printInvoice}
+              className="inline-flex items-center gap-1.5 h-[34px] px-3.5 rounded-lg bg-white text-[#475569] border border-[#d1d9e2] text-[12px] font-medium hover:bg-[#f8fafc] transition-colors">
+              <Printer className="w-3.5 h-3.5" /> طباعة
             </button>
-            <button
-              onClick={printReceipt}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] text-[var(--text-2)] text-sm font-medium hover:bg-[var(--surface-3)] transition-colors"
-            >
-              <Receipt className="w-4 h-4" /> طباعة الإيصال
+            <button onClick={printReceipt}
+              className="inline-flex items-center gap-1.5 h-[34px] px-3.5 rounded-lg bg-white text-[#475569] border border-[#d1d9e2] text-[12px] font-medium hover:bg-[#f8fafc] transition-colors">
+              <Receipt className="w-3.5 h-3.5" /> إيصال
             </button>
             {canCancel && (
-              <button
-                onClick={handleCancel}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-danger-soft text-danger text-sm font-medium hover:opacity-80 transition-colors"
-              >
-                <XCircle className="w-4 h-4" /> إلغاء الفاتورة
+              <button onClick={handleCancel}
+                className="inline-flex items-center gap-1.5 h-[34px] px-3.5 rounded-lg bg-danger-soft text-danger text-[12px] font-medium hover:opacity-80 transition-colors">
+                <XCircle className="w-3.5 h-3.5" /> إلغاء
               </button>
             )}
-            <button
-              onClick={refetch}
-              className="p-1.5 rounded-lg bg-[var(--surface-2)] text-[var(--text-3)] hover:bg-[var(--surface-3)] transition-colors"
-              title="تحديث"
-            >
-              <RefreshCw className="w-4 h-4" />
+            <button onClick={refetch}
+              className="inline-flex items-center justify-center w-[34px] h-[34px] rounded-lg bg-white border border-[#d1d9e2] text-[#475569] hover:bg-[#f8fafc] transition-colors">
+              <RefreshCw className="w-3.5 h-3.5" />
             </button>
-          </div>
-        </div>
-
-        {/* amounts summary row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-[var(--border)]">
-          <div className="bg-[var(--surface-2)] rounded-xl p-3">
-            <p className="text-xs text-[var(--text-3)]">الإجمالي</p>
-            <p className="text-lg font-bold text-[var(--text-1)] tabular-nums">{fmt(inv.totalAmount)}</p>
-            <p className="text-xs text-[var(--text-3)]">ر.س</p>
-          </div>
-          <div className="bg-success-soft rounded-xl p-3">
-            <p className="text-xs text-success">المبلغ المدفوع</p>
-            <p className="text-lg font-bold text-success tabular-nums">{fmt(inv.paidAmount || 0)}</p>
-            <p className="text-xs text-success">ر.س</p>
-          </div>
-          <div className={clsx("rounded-xl p-3", remaining > 0 ? "bg-warning-soft" : "bg-[var(--surface-2)]")}>
-            <p className={clsx("text-xs", remaining > 0 ? "text-warning" : "text-[var(--text-3)]")}>المبلغ المتبقي</p>
-            <p className={clsx("text-lg font-bold tabular-nums", remaining > 0 ? "text-warning" : "text-[var(--text-2)]")}>{fmt(remaining)}</p>
-            <p className={clsx("text-xs", remaining > 0 ? "text-warning" : "text-[var(--text-3)]")}>ر.س</p>
-          </div>
-          <div className="bg-[var(--surface-2)] rounded-xl p-3">
-            <p className="text-xs text-[var(--text-3)]">ضريبة القيمة المضافة</p>
-            <p className="text-lg font-bold text-[var(--text-1)] tabular-nums">{fmt(inv.vatAmount || 0)}</p>
-            <p className="text-xs text-[var(--text-3)]">ر.س</p>
           </div>
         </div>
       </div>
 
-      {/* ── tabs card ────────────────────────────────────────── */}
-      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] overflow-hidden">
-        <div className="flex overflow-x-auto border-b border-[var(--border)] px-1">
-          {TABS.map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={clsx(
-                "px-5 py-[6px] text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
-                tab === t.key
-                  ? "border-brand-500 text-brand-600"
-                  : "border-transparent text-[var(--text-2)] hover:text-[var(--text-1)]",
-              )}
-            >
-              {t.label}
-              {t.key === "payments" && pmts.length > 0 && (
-                <span className="mr-1.5 px-1.5 py-0.5 rounded-full bg-success-soft text-success text-[10px] font-bold">{pmts.length}</span>
-              )}
-            </button>
-          ))}
+      {/* ── A4 Paper ─────────────────────────────────────────── */}
+      <div className="w-[210mm] max-w-full mx-auto bg-white shadow-[0_4px_32px_rgba(0,0,0,0.12)] min-h-[297mm] flex flex-col print:shadow-none print:min-h-0">
+
+        {/* HEADER */}
+        <div className="flex justify-between items-start px-10 pt-8 pb-7 border-b border-[#f1f5f9]">
+          {/* Right: org info */}
+          <div className="flex flex-col gap-2">
+            {orgLogo && <img src={orgLogo} alt="" className="h-12 object-contain object-right mb-1" />}
+            <h1 className="text-[22px] font-bold text-[#0f172a] leading-tight">{inv.sellerName}</h1>
+            <div className="text-[11px] text-[#94a3b8] leading-relaxed">
+              {inv.sellerAddress && <div>{inv.sellerAddress}</div>}
+              {inv.sellerCR && <div>رقم السجل التجاري: {inv.sellerCR}</div>}
+              {inv.sellerVatNumber && <div>الرقم الضريبي: {inv.sellerVatNumber}</div>}
+            </div>
+          </div>
+          {/* Left: invoice id */}
+          <div className="text-left flex-shrink-0 mr-8">
+            <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-widest mb-1">{invTypeLabel}</div>
+            <div className="text-[26px] font-bold text-brand-500 tabular-nums" dir="ltr">{inv.invoiceNumber}</div>
+            <span className={clsx("inline-flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full text-[11px] font-bold border", st.color)}>
+              <StatusIcon className="w-3 h-3" /> {st.label}
+            </span>
+          </div>
         </div>
 
-        <div className="p-5">
+        {/* META ROW */}
+        <div className="grid grid-cols-3 gap-6 px-10 py-5 bg-[#fafbfc] border-b border-[#f1f5f9]">
+          <div>
+            <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide mb-1">تاريخ الإصدار</div>
+            <div className="text-[13px] font-semibold text-[#0f172a]">{inv.issueDate ? fmtDate(inv.issueDate) : "—"}</div>
+          </div>
+          <div>
+            <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide mb-1">تاريخ الاستحقاق</div>
+            <div className="text-[13px] font-semibold text-[#0f172a]">{inv.dueDate ? fmtDate(inv.dueDate) : "—"}</div>
+          </div>
+          <div>
+            <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide mb-1">طريقة الدفع</div>
+            <div className="text-[13px] font-semibold text-[#0f172a]">
+              {firstPmt ? PAY_METHOD[firstPmt.paymentMethod] || firstPmt.paymentMethod : "—"}
+            </div>
+            {firstPmt?.transferName && <div className="text-[11px] text-[#475569] mt-0.5">{firstPmt.transferName}</div>}
+          </div>
+        </div>
 
-          {/* ── تفاصيل الفاتورة ─────────────────────────────── */}
-          {tab === "details" && (
-            <div className="space-y-6">
-              {/* seller + buyer */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-[var(--surface-2)] rounded-xl p-4">
-                  <p className="text-xs font-semibold text-[var(--text-3)] uppercase tracking-wide mb-2">المورد / البائع</p>
-                  <p className="font-bold text-[var(--text-1)]">{inv.sellerName}</p>
-                  {inv.sellerVatNumber && <p className="text-xs text-[var(--text-2)] mt-1">الرقم الضريبي: <span className="font-mono">{inv.sellerVatNumber}</span></p>}
-                </div>
-                <div className="bg-[var(--surface-2)] rounded-xl p-4">
-                  <p className="text-xs font-semibold text-[var(--text-3)] uppercase tracking-wide mb-2">العميل / المشتري</p>
-                  <p className="font-bold text-[var(--text-1)]">{inv.buyerName}</p>
-                  {inv.buyerCompanyName && <p className="text-sm text-lavender font-medium mt-0.5">{inv.buyerCompanyName}</p>}
-                  {inv.buyerPhone && <p className="text-xs text-[var(--text-2)] mt-1" dir="ltr">{inv.buyerPhone}</p>}
-                  {inv.buyerEmail && <p className="text-xs text-[var(--text-2)]" dir="ltr">{inv.buyerEmail}</p>}
-                  {inv.buyerVatNumber && <p className="text-xs text-[var(--text-2)] mt-1">الرقم الضريبي: <span className="font-mono">{inv.buyerVatNumber}</span></p>}
-                  {inv.buyerCrNumber && <p className="text-xs text-[var(--text-2)]">س.ت: <span className="font-mono">{inv.buyerCrNumber}</span></p>}
-                </div>
-              </div>
-
-              {/* items table */}
-              {inv.items?.length > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-[var(--text-1)] mb-3">قائمة الخدمات / السلع</h3>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="bg-[var(--surface-2)] rounded-lg">
-                          {["الاسم / الوصف", "الكمية", "سعر الوحدة", "الخصم", "السعر بدون ضريبة", "نسبة الضريبة", "قيمة الضريبة", "الإجمالي شامل الضريبة"].map(h => (
-                            <th key={h} className="text-right px-3 py-2.5 text-xs font-semibold text-[var(--text-3)] whitespace-nowrap">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {inv.items.map((item: any) => {
-                          const net = Number(item.totalAmount || 0) / (1 + Number(item.vatRate || 0) / 100);
-                          const vatAmt = Number(item.totalAmount || 0) - net;
-                          return (
-                            <tr key={item.id} className="border-b border-[var(--border)] last:border-0">
-                              <td className="px-3 py-2.5 text-[var(--text-1)] font-medium">{item.description}</td>
-                              <td className="px-3 py-2.5 text-center text-[var(--text-2)]">{item.quantity}</td>
-                              <td className="px-3 py-2.5 tabular-nums text-[var(--text-2)]">{fmt(item.unitPrice)} ر.س</td>
-                              <td className="px-3 py-2.5 tabular-nums text-[var(--text-2)]">{fmt(item.discountAmount || 0)} ر.س</td>
-                              <td className="px-3 py-2.5 tabular-nums text-[var(--text-2)]">{fmt(net)} ر.س</td>
-                              <td className="px-3 py-2.5 text-center text-[var(--text-2)]">{item.vatRate ?? 15}%</td>
-                              <td className="px-3 py-2.5 tabular-nums text-[var(--text-2)]">{fmt(vatAmt)} ر.س</td>
-                              <td className="px-3 py-2.5 tabular-nums font-bold text-[var(--text-1)]">{fmt(item.totalAmount)} ر.س</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+        {/* CUSTOMER BLOCK */}
+        <div className="flex justify-between items-start px-10 py-5 border-b border-[#f1f5f9]">
+          <div>
+            <div className="text-[15px] font-bold text-[#0f172a] mb-1">فاتورة إلى</div>
+            <div className="text-[12px] text-[#475569] leading-relaxed space-y-0.5">
+              <div className="font-semibold text-[#0f172a]">{inv.buyerName}</div>
+              {(inv.buyerPhone || inv.buyerEmail) && (
+                <div dir="ltr" className="text-right">
+                  {inv.buyerPhone}{inv.buyerPhone && inv.buyerEmail ? " · " : ""}{inv.buyerEmail}
                 </div>
               )}
+              {inv.buyerCompanyName && <div>{inv.buyerCompanyName}</div>}
+              {inv.buyerAddress && <div>{inv.buyerAddress}</div>}
+              {inv.buyerVatNumber && <div>الرقم الضريبي: {inv.buyerVatNumber}</div>}
+            </div>
+          </div>
+          {inv.bookingId && (
+            <div className="text-left flex-shrink-0 mr-8">
+              <div className="text-[15px] font-bold text-[#0f172a] mb-1">رقم الحجز</div>
+              <div className="text-[13px] font-semibold text-brand-500 tabular-nums" dir="ltr">
+                {inv.bookingId.slice(0, 8).toUpperCase()}
+              </div>
+              <div className="text-[11px] text-[#475569] mt-0.5">
+                {inv.sourceType === "booking" ? "حجز" : inv.sourceType === "order" ? "طلب" : inv.sourceType}
+              </div>
+            </div>
+          )}
+        </div>
 
-              {/* transaction details + totals */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                {/* dates */}
-                <div className="space-y-2 text-sm">
-                  <h3 className="text-sm font-semibold text-[var(--text-1)] mb-3">تفاصيل المعاملة</h3>
-                  {[
-                    { label: "تاريخ الإصدار",    value: inv.issueDate ? fmtDate(inv.issueDate) : "—" },
-                    { label: "تاريخ الاستحقاق",  value: inv.dueDate ? fmtDate(inv.dueDate) : "—" },
-                    { label: "نوع الفاتورة",      value: inv.invoiceType === "simplified" ? "مبسطة B2C" : "ضريبية B2B" },
-                    { label: "مصدر الفاتورة",    value: inv.sourceType === "booking" ? "حجز" : inv.sourceType === "order" ? "طلب" : "يدوي" },
-                  ].map(row => (
-                    <div key={row.label} className="flex justify-between py-1.5 border-b border-[var(--border)]">
-                      <span className="text-[var(--text-3)]">{row.label}</span>
-                      <span className="text-[var(--text-1)] font-medium">{row.value}</span>
-                    </div>
-                  ))}
-                  {inv.notes && (
-                    <div className="mt-3 p-3 bg-warning-soft rounded-lg text-sm text-warning border border-warning-soft">
-                      <strong>ملاحظات:</strong> {inv.notes}
-                    </div>
-                  )}
+        {/* ITEMS TABLE */}
+        <div className="px-10 flex-1">
+          <table className="w-full border-collapse mt-5">
+            <thead>
+              <tr className="bg-[#fafbfc]">
+                <th className="text-center px-3 py-2 text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide border-b-2 border-[#f1f5f9] w-9">#</th>
+                <th className="text-right px-3 py-2 text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide border-b-2 border-[#f1f5f9]">الخدمة / البند</th>
+                <th className="text-right px-3 py-2 text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide border-b-2 border-[#f1f5f9] w-20">الكمية</th>
+                <th className="text-right px-3 py-2 text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide border-b-2 border-[#f1f5f9] w-28">سعر الوحدة</th>
+                <th className="text-right px-3 py-2 text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide border-b-2 border-[#f1f5f9] w-28">الإجمالي</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(inv.items || []).length === 0 && (
+                <tr><td colSpan={5} className="px-3 py-8 text-center text-[13px] text-[#94a3b8]">لا توجد بنود</td></tr>
+              )}
+              {(inv.items || []).map((item: any, i: number) => (
+                <tr key={item.id || i} className="hover:bg-[#f8fafc] transition-colors">
+                  <td className="px-3 py-[11px] text-[13px] text-[#94a3b8] border-b border-[#f8fafc] text-center">{i + 1}</td>
+                  <td className="px-3 py-[11px] border-b border-[#f8fafc]">
+                    <div className="text-[13px] font-semibold text-[#0f172a]">{item.description}</div>
+                  </td>
+                  <td className="px-3 py-[11px] text-[13px] text-[#0f172a] border-b border-[#f8fafc] tabular-nums">{item.quantity}</td>
+                  <td className="px-3 py-[11px] text-[13px] text-[#0f172a] border-b border-[#f8fafc] tabular-nums" dir="ltr">{fmt(item.unitPrice)} ر.س</td>
+                  <td className="px-3 py-[11px] text-[13px] text-[#0f172a] border-b border-[#f8fafc] tabular-nums" dir="ltr">{fmt(item.totalAmount)} ر.س</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* TOTALS */}
+        <div className="flex justify-end px-10 py-5">
+          <div className="w-[260px]">
+            <div className="flex justify-between items-center pb-[10px] mb-1 border-b border-dashed border-[#e2e8f0]">
+              <span className="text-[13px] text-[#475569]">المجموع قبل الضريبة</span>
+              <span className="text-[13px] font-semibold text-[#0f172a] tabular-nums" dir="ltr">{fmt(inv.taxableAmount ?? inv.subtotal)} ر.س</span>
+            </div>
+            <div className="flex justify-between items-center py-[5px]">
+              <span className="text-[13px] text-[#475569]">ضريبة القيمة المضافة ({inv.vatRate ?? 15}%)</span>
+              <span className="text-[13px] font-semibold text-[#0f172a] tabular-nums" dir="ltr">{fmt(inv.vatAmount || 0)} ر.س</span>
+            </div>
+            {Number(inv.discountAmount || 0) > 0 && (
+              <div className="flex justify-between items-center py-[5px]">
+                <span className="text-[13px] text-[#475569]">خصم</span>
+                <span className="text-[13px] font-semibold text-success tabular-nums" dir="ltr">— {fmt(inv.discountAmount)} ر.س</span>
+              </div>
+            )}
+            <div className="flex justify-between items-center border-t-2 border-[#0f172a] pt-[10px] mt-[6px]">
+              <span className="text-[14px] font-bold text-[#0f172a]">الإجمالي النهائي</span>
+              <span className="text-[20px] font-bold text-brand-500 tabular-nums" dir="ltr">{fmt(inv.totalAmount)} ر.س</span>
+            </div>
+          </div>
+        </div>
+
+        {/* NOTES */}
+        {inv.notes && (
+          <div className="px-10 pb-6">
+            <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide mb-1.5">ملاحظات</div>
+            <div className="text-[12px] text-[#475569] leading-relaxed bg-[#f8fafc] border border-[#f1f5f9] rounded-lg px-3.5 py-2.5">
+              {inv.notes}
+            </div>
+          </div>
+        )}
+
+        {/* TERMS */}
+        {termsLines.length > 0 && (
+          <div className="px-10 pb-6">
+            <div className="text-[10px] font-bold text-[#94a3b8] uppercase tracking-wide mb-1.5">الشروط والأحكام</div>
+            <div className="text-[12px] text-[#475569] leading-relaxed bg-[#f8fafc] border border-[#f1f5f9] rounded-lg px-3.5 py-2.5 space-y-1">
+              {termsLines.map((t: string, i: number) => (
+                <div key={i} className="flex gap-2">
+                  <span className="text-brand-400 font-bold flex-shrink-0">·</span>
+                  <span>{t}</span>
                 </div>
+              ))}
+            </div>
+          </div>
+        )}
 
-                {/* totals */}
-                <div>
-                  <h3 className="text-sm font-semibold text-[var(--text-1)] mb-3">الإجمالي</h3>
-                  <div className="bg-[var(--surface-2)] rounded-xl p-4 space-y-2">
-                    {[
-                      { label: "المجموع الفرعي",          value: fmt(inv.taxableAmount ?? inv.subtotal ?? inv.totalAmount) + " ر.س" },
-                      { label: "الخصم",                    value: fmt(inv.discountAmount || 0) + " ر.س" },
-                      { label: "المبلغ بدون الضريبة",      value: fmt(inv.taxableAmount ?? inv.subtotal ?? inv.totalAmount) + " ر.س" },
-                      { label: `قيمة ضريبة القيمة المضافة (${inv.vatRate ?? 15}%)`, value: fmt(inv.vatAmount || 0) + " ر.س" },
-                    ].map(row => (
-                      <div key={row.label} className="flex justify-between text-sm">
-                        <span className="text-[var(--text-3)]">{row.label}</span>
-                        <span className="tabular-nums font-medium text-[var(--text-2)]">{row.value}</span>
-                      </div>
+        {/* FOOTER */}
+        <div className="mt-auto flex justify-between items-center px-10 py-4 bg-[#fafbfc] border-t border-[#f1f5f9]">
+          <div className="flex items-center gap-2">
+            {orgLogo && <img src={orgLogo} alt="" className="h-[18px] object-contain" style={{ opacity: 0.35 }} />}
+            <span className="text-[10px] text-[#94a3b8]">
+              صادرة عبر منصة <strong className="text-[#475569]">ترميز OS</strong> — tarmizos.com
+            </span>
+          </div>
+          <div className="text-[10px] text-[#94a3b8] text-left leading-relaxed">
+            {inv.sellerVatNumber && <div>الرقم الضريبي: {inv.sellerVatNumber}</div>}
+            <div>هذه فاتورة ضريبية رسمية وفق أنظمة هيئة الزكاة والضريبة.</div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Operations (no-print) ────────────────────────────── */}
+      <div className="print:hidden w-[210mm] max-w-full mx-auto mt-6 space-y-4">
+
+        {/* payments history */}
+        <div className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-[#f1f5f9]">
+            <div className="flex items-center gap-2">
+              <h2 className="text-[13px] font-bold text-[#0f172a]">سجل المدفوعات</h2>
+              {pmts.length > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-success-soft text-success text-[10px] font-bold">{pmts.length}</span>
+              )}
+            </div>
+            {canPay && (
+              <button onClick={() => setShowPayment(true)}
+                className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-success-soft text-success text-[12px] font-medium hover:opacity-80 transition-colors">
+                <Plus className="w-3.5 h-3.5" /> تسجيل دفعة
+              </button>
+            )}
+          </div>
+          {pmts.length === 0 ? (
+            <div className="text-center py-10">
+              <CreditCard className="w-9 h-9 text-[#cbd5e1] mx-auto mb-2" />
+              <p className="text-[13px] text-[#94a3b8]">لا توجد مدفوعات مسجّلة</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="bg-[#fafbfc]">
+                    {["#","المبلغ","طريقة الدفع","تاريخ الدفع","اسم المحوّل","رقم المرجع","ملاحظات"].map(h => (
+                      <th key={h} className="text-right px-4 py-2.5 text-[11px] font-semibold text-[#94a3b8] whitespace-nowrap">{h}</th>
                     ))}
-                    <div className="flex justify-between text-base font-bold border-t border-[var(--border)] pt-2 mt-2">
-                      <span>السعر الكلي شامل الضريبة</span>
-                      <span className="tabular-nums text-brand-600">{fmt(inv.totalAmount)} ر.س</span>
-                    </div>
-                    <div className="flex justify-between text-sm border-t border-[var(--border)] pt-2">
-                      <span className="text-[var(--text-3)]">المبلغ المدفوع</span>
-                      <span className="tabular-nums text-success font-medium">{fmt(inv.paidAmount || 0)} ر.س</span>
-                    </div>
-                    {remaining > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-[var(--text-3)]">المبلغ المتبقي</span>
-                        <span className="tabular-nums text-warning font-bold">{fmt(remaining)} ر.س</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pmts.map((p: any, i: number) => (
+                    <tr key={p.id} className="border-t border-[#f1f5f9] hover:bg-[#fafbfc]">
+                      <td className="px-4 py-3 text-[#94a3b8] text-[12px]">{i + 1}</td>
+                      <td className="px-4 py-3 font-bold text-success text-[13px] tabular-nums" dir="ltr">{fmt(p.amount)} ر.س</td>
+                      <td className="px-4 py-3 text-[13px] text-[#0f172a]">{PAY_METHOD[p.paymentMethod] || p.paymentMethod}</td>
+                      <td className="px-4 py-3 text-[12px] text-[#475569]">{p.paymentDate ? fmtDate(p.paymentDate) : "—"}</td>
+                      <td className="px-4 py-3 text-[12px] text-[#475569]">{p.transferName || "—"}</td>
+                      <td className="px-4 py-3 font-mono text-[11px] text-[#94a3b8]">{p.referenceNumber || p.reference || "—"}</td>
+                      <td className="px-4 py-3 text-[12px] text-[#94a3b8] max-w-[140px] truncate">{p.notes || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
+        </div>
 
-          {/* ── العمليات (payments) ──────────────────────────── */}
-          {tab === "payments" && (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-[var(--text-2)]">{pmts.length} عملية دفع مسجّلة</p>
-                {canPay && (
-                  <button
-                    onClick={() => setShowPayment(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success-soft text-success text-sm font-medium hover:opacity-80 transition-colors"
-                  >
-                    <Plus className="w-3.5 h-3.5" /> تسجيل دفعة
-                  </button>
-                )}
-              </div>
-
-              {pmts.length === 0 ? (
-                <div className="text-center py-10">
-                  <CreditCard className="w-10 h-10 text-[var(--text-3)] mx-auto mb-3" />
-                  <p className="text-[var(--text-3)] text-sm">لا توجد عمليات دفع مسجّلة</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="bg-[var(--surface-2)]">
-                        {["#", "رقم العملية", "المدفوع", "طريقة الدفع", "وقت الإنشاء", "تاريخ الدفع", "اسم المحوّل", "الرقم المرجعي", "ملاحظات"].map(h => (
-                          <th key={h} className="text-right px-3 py-2.5 text-xs font-semibold text-[var(--text-3)] whitespace-nowrap">{h}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {pmts.map((p: any, i: number) => (
-                        <tr key={p.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-2)]">
-                          <td className="px-3 py-3 text-[var(--text-3)] text-xs">{i + 1}</td>
-                          <td className="px-3 py-3 font-mono text-xs text-brand-500">{p.id?.substring(0, 8).toUpperCase()}</td>
-                          <td className="px-3 py-3 font-bold text-success tabular-nums">{fmt(p.amount)} ر.س</td>
-                          <td className="px-3 py-3 text-[var(--text-1)]">{PAY_METHOD[p.paymentMethod] || p.paymentMethod}</td>
-                          <td className="px-3 py-3 text-[var(--text-3)]">{p.createdAt ? new Date(p.createdAt).toLocaleDateString("ar-SA") : "—"}</td>
-                          <td className="px-3 py-3 text-[var(--text-2)]">{p.paymentDate ? new Date(p.paymentDate).toLocaleDateString("ar-SA") : "—"}</td>
-                          <td className="px-3 py-3 text-[var(--text-2)]">{p.transferName || "—"}</td>
-                          <td className="px-3 py-3 font-mono text-xs text-[var(--text-2)]">{p.reference || "—"}</td>
-                          <td className="px-3 py-3 text-[var(--text-3)] max-w-[160px] truncate">{p.notes || "—"}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
+        {/* refund + status actions */}
+        <div className="flex gap-3">
+          {inv.status === "paid" && (
+            <button onClick={() => setShowRefund(true)}
+              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-danger-soft text-danger text-[12px] font-medium hover:opacity-80 transition-colors">
+              <RotateCcw className="w-3.5 h-3.5" /> طلب استرجاع
+            </button>
           )}
-
-          {/* ── طلبات الاسترجاع ──────────────────────────────── */}
-          {tab === "refunds" && (
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-[var(--text-2)]">طلبات الاسترجاع</p>
-                {inv.status === "paid" && (
-                  <button
-                    onClick={() => setShowRefund(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-danger-soft text-danger text-sm font-medium hover:opacity-80 transition-colors"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" /> طلب استرجاع
-                  </button>
-                )}
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[#f8fafc]">
-                      {["#", "المبلغ المسترجع", "طريقة الدفع الأصلية", "طريقة الاسترجاع", "سبب الاسترجاع", "حالة الاسترجاع", "سبب الرفض", "تاريخ الاسترجاع"].map(h => (
-                        <th key={h} className="text-right px-3 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td colSpan={8} className="text-center py-10 text-[var(--text-3)] text-sm">لا يوجد عمليات استرجاع</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          {canSend && (
+            <button onClick={handleSend} disabled={sending}
+              className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-lavender-soft text-lavender text-[12px] font-medium hover:opacity-80 transition-colors disabled:opacity-50">
+              <Send className="w-3.5 h-3.5" /> إرسال للعميل
+            </button>
           )}
-
-          {/* ── الفواتير (invoice record) ─────────────────────── */}
-          {tab === "invoices" && (
-            <div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[#f8fafc]">
-                      {["#", "الحالة", "المجموع الفرعي", "قيمة الضريبة", "المجموع", "تاريخ الإصدار", "طباعة"].map(h => (
-                        <th key={h} className="text-right px-3 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr className="border-b border-[var(--border)] hover:bg-[var(--surface-2)]">
-                      <td className="px-3 py-3 font-mono text-xs text-brand-500">{inv.invoiceNumber}</td>
-                      <td className="px-3 py-3">
-                        <span className={clsx("inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium border", st.color)}>
-                          <StatusIcon className="w-3 h-3" /> {st.label}
-                        </span>
-                      </td>
-                      <td className="px-3 py-3 tabular-nums text-[var(--text-2)]">{fmt(inv.taxableAmount ?? inv.subtotal ?? inv.totalAmount)} ر.س</td>
-                      <td className="px-3 py-3 tabular-nums text-[var(--text-2)]">{fmt(inv.vatAmount || 0)} ر.س</td>
-                      <td className="px-3 py-3 tabular-nums font-bold text-[var(--text-1)]">{fmt(inv.totalAmount)} ر.س</td>
-                      <td className="px-3 py-3 text-[var(--text-2)]">{inv.issueDate ? fmtDate(inv.issueDate) : "—"}</td>
-                      <td className="px-3 py-3">
-                        <button onClick={printInvoice} className="inline-flex items-center gap-1 text-xs text-brand-500 hover:text-brand-700 transition-colors">
-                          <Printer className="w-3.5 h-3.5" /> طباعة
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
+          <button onClick={printInvoice}
+            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-xl bg-white border border-[#d1d9e2] text-[#475569] text-[12px] font-medium hover:bg-[#f8fafc] transition-colors">
+            <Download className="w-3.5 h-3.5" /> تحميل / طباعة
+          </button>
         </div>
       </div>
 
