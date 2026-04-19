@@ -41,9 +41,17 @@ const TABS = [
 ];
 
 // ── print helpers ─────────────────────────────────────────────────
-const BRAND = "#5b9bd5";
-const INK   = "#1a1a1a";
-const MUTED = "rgba(26,26,26,0.45)";
+function getPrintTokens() {
+  const s = getComputedStyle(document.documentElement);
+  const get = (v: string) => s.getPropertyValue(v).trim();
+  return {
+    BRAND:   get("--brand-500")  || "#5b9bd5",
+    INK:     get("--text-1")     || "#1a1a1a",
+    MUTED:   get("--text-3")     || "rgba(26,26,26,0.45)",
+    SURFACE: get("--surface-2")  || "#f8fafc",
+    BORDER:  get("--border")     || "#eef2f6",
+  };
+}
 
 function fmtNum(n: any) {
   return parseFloat(String(n || 0)).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -55,7 +63,7 @@ function fmtPrintDate(d: any): string {
   } catch { return String(d); }
 }
 
-function printWindow(title: string, bodyHtml: string) {
+function printWindow(title: string, bodyHtml: string, tokens: ReturnType<typeof getPrintTokens>) {
   const w = window.open("", "_blank", "width=900,height=1000");
   if (!w) return;
   w.document.write(`<!DOCTYPE html><html dir="rtl" lang="ar"><head>
@@ -65,8 +73,8 @@ function printWindow(title: string, bodyHtml: string) {
     <style>
       *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
       @page{size:A4;margin:0}
-      body{font-family:'IBM Plex Sans Arabic',Arial,sans-serif;font-size:10px;color:${INK};direction:rtl;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-      .page{width:210mm;min-height:297mm;background:#fff;padding:18mm 19mm 18mm 16mm;border-right:3mm solid ${BRAND};overflow:hidden}
+      body{font-family:'IBM Plex Sans Arabic',Arial,sans-serif;font-size:10px;color:${tokens.INK};direction:rtl;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .page{width:210mm;min-height:297mm;background:#fff;padding:18mm 19mm 18mm 16mm;border-right:3mm solid ${tokens.BRAND};overflow:hidden}
       @media print{body{background:#fff}.page{box-shadow:none}}
     </style>
     </head><body><div class="page">${bodyHtml}</div>
@@ -140,6 +148,7 @@ export function InvoiceDetailPage() {
 
   const printInvoice = () => {
     if (!inv) return;
+    const { BRAND, INK, MUTED, SURFACE, BORDER } = getPrintTokens();
 
     const invTypeLabel = inv.invoiceType === "tax" ? "فاتورة ضريبية" : "فاتورة ضريبية مبسطة";
     const invTypeEn    = inv.invoiceType === "tax" ? "Tax Invoice"    : "Simplified Tax Invoice";
@@ -302,11 +311,12 @@ export function InvoiceDetailPage() {
         ${inv.qrCode ? `<div style="margin-bottom:3mm"><img src="data:image/png;base64,${inv.qrCode}" alt="ZATCA QR" style="width:16mm;height:16mm;display:inline-block" onerror="this.style.display='none'"><div style="font-size:7px;color:${MUTED};margin-top:1mm">رمز الفاتورة الإلكترونية — ZATCA</div></div>` : ""}
         <div style="font-size:12px;font-weight:700;color:${BRAND};margin-bottom:3mm">شكراً لتعاملكم</div>
         <div style="border-top:1px solid #f0f0f0;padding-top:2.5mm"><span style="font-size:7.5px;color:#ccc">مدعوم بواسطة </span><span style="font-size:7.5px;font-weight:700;color:${BRAND}">ترميز OS</span><span style="font-size:7.5px;color:#ccc"> · tarmizos.com</span></div>
-      </div>`);
+      </div>`, { BRAND, INK, MUTED, SURFACE, BORDER });
   };
 
   const printReceipt = () => {
     if (!inv) return;
+    const { BRAND, INK, MUTED } = getPrintTokens();
     const remaining = Math.max(0, Number(inv.totalAmount || 0) - Number(inv.paidAmount || 0));
     const pmtRows = pmts.map((p: any, i: number) => `
       <tr style="background:${i % 2 === 0 ? "#ffffff" : "#fafafa"}">
@@ -379,7 +389,7 @@ export function InvoiceDetailPage() {
       <div style="border-top:1px solid #f0f0f0;padding-top:4mm;text-align:center;margin-top:6mm">
         <div style="font-size:12px;font-weight:700;color:${BRAND};margin-bottom:3mm">شكراً لتعاملكم</div>
         <div style="border-top:1px solid #f0f0f0;padding-top:2.5mm"><span style="font-size:7.5px;color:#ccc">مدعوم بواسطة </span><span style="font-size:7.5px;font-weight:700;color:${BRAND}">ترميز OS</span><span style="font-size:7.5px;color:#ccc"> · tarmizos.com</span></div>
-      </div>`);
+      </div>`, { BRAND, INK, MUTED, SURFACE: "#ffffff", BORDER: "#eaeaea" });
   };
 
   if (loading) return <PageSkeleton />;
