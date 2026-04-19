@@ -17,6 +17,7 @@ interface ServiceItem {
   duration?: number; categoryId?: string;
   status?: string; description?: string;
   pricingType?: string;
+  offeringType?: string;   // "service" | "product" | "rental" | ... (from catalog schema)
 }
 interface Category { id: string; name: string; }
 interface FlowerPackageItem {
@@ -140,6 +141,27 @@ const T = {
   shadow:       "0 1px 4px rgba(91,155,213,0.12), 0 1px 2px -1px rgba(91,155,213,0.08)",
   shadowMd:     "0 4px 14px rgba(91,155,213,0.15), 0 2px 4px -2px rgba(91,155,213,0.10)",
 };
+
+// ── Sales vs Booking discriminator ───────────────────────────────────
+// Products (physical/digital) use sales language.
+// All other offering types (service, rental, room_booking, etc.) use booking language.
+const SALES_OFFERING_TYPES = new Set(["product", "digital_product"]);
+function isSalesItem(item: ServiceItem) {
+  return SALES_OFFERING_TYPES.has(item.offeringType ?? "");
+}
+function cartLabel(cart: ServiceItem[]) {
+  const hasSales   = cart.some(isSalesItem);
+  const hasBooking = cart.some(s => !isSalesItem(s));
+  if (hasSales && !hasBooking) return { unit: "منتج", units: "منتجات", cta: "تأكيد الطلب",  empty: "اختر منتجاً للطلب" };
+  if (!hasSales && hasBooking) return { unit: "خدمة", units: "خدمات",  cta: "تأكيد الحجز", empty: "اختر خدمة للحجز" };
+  return { unit: "عنصر", units: "عناصر", cta: "متابعة", empty: "اختر للمتابعة" };
+}
+function activeListLabel(items: ServiceItem[]) {
+  const hasProducts = items.some(isSalesItem);
+  const hasServices = items.some(s => !isSalesItem(s));
+  if (hasProducts && !hasServices) return "اختر منتجاً للطلب";
+  return "اختر خدمة للحجز";
+}
 
 // ── Booking Sheet — supports single or multiple services ─────────────
 function BookingSheet({ services: cartServices, org, slug, onClose }: {
@@ -381,7 +403,9 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
               boxShadow: canSubmit && !submitting ? `0 6px 20px ${hex2rgb(primary, 0.35)}` : "none",
               transition: "all .2s",
             }}>
-              {submitting ? "جاري الحجز..." : `تأكيد الحجز${cartServices.length > 1 ? ` (${cartServices.length})` : ""}`}
+              {submitting
+                ? (cartLabel(cartServices).cta === "تأكيد الطلب" ? "جاري تأكيد الطلب..." : "جاري الحجز...")
+                : `${cartLabel(cartServices).cta}${cartServices.length > 1 ? ` (${cartServices.length})` : ""}`}
             </button>
           </div>
         )}
@@ -979,7 +1003,7 @@ export function PublicStorefrontPage() {
                 }}>
                   <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
                     <span style={{ fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 600 }}>
-                      {cart.length} {cart.length === 1 ? "خدمة" : "خدمات"}
+                      {cart.length} {cart.length === 1 ? cartLabel(cart).unit : cartLabel(cart).units}
                     </span>
                     {totalCart > 0 && (
                       <span style={{ fontSize: 15, fontWeight: 900, color: orgAccent, letterSpacing: -0.4 }}>
@@ -1000,7 +1024,7 @@ export function PublicStorefrontPage() {
                     <span style={{ background: "rgba(255,255,255,0.22)", borderRadius: 6, padding: "1px 7px", fontSize: 12, fontWeight: 900 }}>
                       {cart.length}
                     </span>
-                    تأكيد الحجز
+                    {cartLabel(cart).cta}
                     <svg viewBox="0 0 24 24" fill="none" strokeWidth={2.5} style={{ width: 14, height: 14 }}>
                       <path stroke="white" strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
                     </svg>
@@ -1024,7 +1048,7 @@ export function PublicStorefrontPage() {
                   height: 50, background: "#f1f5f9", borderRadius: 14,
                   display: "flex", alignItems: "center", justifyContent: "center",
                 }}>
-                  <span style={{ fontSize: 13, color: T.t3, fontWeight: 600 }}>اختر خدمة للحجز</span>
+                  <span style={{ fontSize: 13, color: T.t3, fontWeight: 600 }}>{cartLabel(cart).empty}</span>
                 </div>
               )}
             </>
