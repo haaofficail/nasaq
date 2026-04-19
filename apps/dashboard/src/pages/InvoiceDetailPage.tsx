@@ -19,13 +19,13 @@ function fmt(n: any) {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
-  draft:          { label: "مسودة",         color: "bg-[#f1f5f9] text-gray-600 border-[#eef2f6]",        icon: Clock },
-  issued:         { label: "صادرة",          color: "bg-blue-50 text-blue-700 border-blue-200",          icon: FileText },
-  sent:           { label: "مُرسلة",         color: "bg-indigo-50 text-indigo-700 border-indigo-200",    icon: FileText },
-  paid:           { label: "مدفوعة",         color: "bg-emerald-50 text-emerald-700 border-emerald-200", icon: CheckCircle2 },
-  partially_paid: { label: "مدفوع جزئياً",  color: "bg-teal-50 text-teal-700 border-teal-200",          icon: Clock },
-  overdue:        { label: "متأخرة",         color: "bg-red-50 text-red-700 border-red-200",             icon: AlertTriangle },
-  cancelled:      { label: "ملغاة",          color: "bg-[#f1f5f9] text-gray-500 border-[#eef2f6]",         icon: XCircle },
+  draft:          { label: "مسودة",         color: "bg-[var(--surface-3)] text-[var(--text-2)] border-[var(--border)]", icon: Clock },
+  issued:         { label: "صادرة",          color: "bg-brand-soft text-brand-700 border-brand-200",                    icon: FileText },
+  sent:           { label: "مُرسلة",         color: "bg-lavender-soft text-lavender border-lavender-soft",              icon: FileText },
+  paid:           { label: "مدفوعة",         color: "bg-success-soft text-success border-success-soft",                 icon: CheckCircle2 },
+  partially_paid: { label: "مدفوع جزئياً",  color: "bg-sky-soft text-sky border-sky-soft",                             icon: Clock },
+  overdue:        { label: "متأخرة",         color: "bg-danger-soft text-danger border-danger-soft",                    icon: AlertTriangle },
+  cancelled:      { label: "ملغاة",          color: "bg-[var(--surface-3)] text-[var(--text-3)] border-[var(--border)]", icon: XCircle },
 };
 
 const PAY_METHOD: Record<string, string> = {
@@ -385,12 +385,12 @@ export function InvoiceDetailPage() {
   if (loading) return <PageSkeleton />;
   if (error) return (
     <div className="flex flex-col items-center justify-center h-64 gap-3">
-      <AlertCircle className="w-10 h-10 text-red-400" />
-      <p className="text-red-500">{error}</p>
+      <AlertCircle className="w-10 h-10 text-danger" />
+      <p className="text-danger">{error}</p>
       <button onClick={refetch} className="text-sm text-brand-500 hover:underline">إعادة المحاولة</button>
     </div>
   );
-  if (!inv) return <div className="text-center py-12 text-gray-500">الفاتورة غير موجودة</div>;
+  if (!inv) return <div className="text-center py-12 text-[var(--text-2)]">الفاتورة غير موجودة</div>;
 
   const st      = STATUS_CONFIG[inv.status] || STATUS_CONFIG.draft;
   const StatusIcon = st.icon;
@@ -409,35 +409,35 @@ export function InvoiceDetailPage() {
       ]} />
 
       {/* ── header ──────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-[#eef2f6] p-5">
+      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-5">
         <div className="flex flex-col sm:flex-row sm:items-start gap-4">
           {/* left: order info */}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-lg font-bold text-gray-900 font-mono">{inv.invoiceNumber}</h1>
+              <h1 className="text-lg font-bold text-[var(--text-1)] font-mono">{inv.invoiceNumber}</h1>
               <span className={clsx("inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium border", st.color)}>
                 <StatusIcon className="w-3.5 h-3.5" /> {st.label}
               </span>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
               <div>
-                <p className="text-xs text-gray-400 mb-0.5">العميل</p>
-                <p className="font-medium text-gray-800">{inv.buyerName}</p>
-                {inv.buyerPhone && <p className="text-xs text-gray-400" dir="ltr">{inv.buyerPhone}</p>}
+                <p className="text-xs text-[var(--text-3)] mb-0.5">العميل</p>
+                <p className="font-medium text-[var(--text-1)]">{inv.buyerName}</p>
+                {inv.buyerPhone && <p className="text-xs text-[var(--text-3)]" dir="ltr">{inv.buyerPhone}</p>}
               </div>
               <div>
-                <p className="text-xs text-gray-400 mb-0.5">تاريخ الإصدار</p>
-                <p className="font-medium text-gray-800">{inv.issueDate ? fmtDate(inv.issueDate) : "—"}</p>
+                <p className="text-xs text-[var(--text-3)] mb-0.5">تاريخ الإصدار</p>
+                <p className="font-medium text-[var(--text-1)]">{inv.issueDate ? fmtDate(inv.issueDate) : "—"}</p>
               </div>
               {inv.dueDate && (
                 <div>
-                  <p className="text-xs text-gray-400 mb-0.5">تاريخ الاستحقاق</p>
-                  <p className="font-medium text-gray-800">{fmtDate(inv.dueDate)}</p>
+                  <p className="text-xs text-[var(--text-3)] mb-0.5">تاريخ الاستحقاق</p>
+                  <p className="font-medium text-[var(--text-1)]">{fmtDate(inv.dueDate)}</p>
                 </div>
               )}
               <div>
-                <p className="text-xs text-gray-400 mb-0.5">النوع</p>
-                <p className="font-medium text-gray-800">{inv.invoiceType === "simplified" ? "مبسطة B2C" : "ضريبية B2B"}</p>
+                <p className="text-xs text-[var(--text-3)] mb-0.5">النوع</p>
+                <p className="font-medium text-[var(--text-1)]">{inv.invoiceType === "simplified" ? "مبسطة B2C" : "ضريبية B2B"}</p>
               </div>
             </div>
           </div>
@@ -447,7 +447,7 @@ export function InvoiceDetailPage() {
             {canSend && (
               <button
                 onClick={handleSend} disabled={sending}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 text-indigo-600 text-sm font-medium hover:bg-indigo-100 transition-colors disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-lavender-soft text-lavender text-sm font-medium hover:opacity-80 transition-colors disabled:opacity-50"
               >
                 <Send className="w-4 h-4" /> إرسال للعميل
               </button>
@@ -455,34 +455,34 @@ export function InvoiceDetailPage() {
             {canPay && (
               <button
                 onClick={() => setShowPayment(true)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-sm font-medium hover:bg-emerald-100 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success-soft text-success text-sm font-medium hover:opacity-80 transition-colors"
               >
                 <CreditCard className="w-4 h-4" /> تسجيل دفعة
               </button>
             )}
             <button
               onClick={printInvoice}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f8fafc] text-gray-600 text-sm font-medium hover:bg-[#f1f5f9] transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] text-[var(--text-2)] text-sm font-medium hover:bg-[var(--surface-3)] transition-colors"
             >
               <Printer className="w-4 h-4" /> طباعة الفاتورة
             </button>
             <button
               onClick={printReceipt}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#f8fafc] text-gray-600 text-sm font-medium hover:bg-[#f1f5f9] transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-2)] text-[var(--text-2)] text-sm font-medium hover:bg-[var(--surface-3)] transition-colors"
             >
               <Receipt className="w-4 h-4" /> طباعة الإيصال
             </button>
             {canCancel && (
               <button
                 onClick={handleCancel}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 transition-colors"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-danger-soft text-danger text-sm font-medium hover:opacity-80 transition-colors"
               >
                 <XCircle className="w-4 h-4" /> إلغاء الفاتورة
               </button>
             )}
             <button
               onClick={refetch}
-              className="p-1.5 rounded-lg bg-[#f8fafc] text-gray-400 hover:bg-[#f1f5f9] transition-colors"
+              className="p-1.5 rounded-lg bg-[var(--surface-2)] text-[var(--text-3)] hover:bg-[var(--surface-3)] transition-colors"
               title="تحديث"
             >
               <RefreshCw className="w-4 h-4" />
@@ -491,33 +491,33 @@ export function InvoiceDetailPage() {
         </div>
 
         {/* amounts summary row */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-[#eef2f6]">
-          <div className="bg-[#f8fafc] rounded-xl p-3">
-            <p className="text-xs text-gray-400">الإجمالي</p>
-            <p className="text-lg font-bold text-gray-900 tabular-nums">{fmt(inv.totalAmount)}</p>
-            <p className="text-xs text-gray-400">ر.س</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 pt-4 border-t border-[var(--border)]">
+          <div className="bg-[var(--surface-2)] rounded-xl p-3">
+            <p className="text-xs text-[var(--text-3)]">الإجمالي</p>
+            <p className="text-lg font-bold text-[var(--text-1)] tabular-nums">{fmt(inv.totalAmount)}</p>
+            <p className="text-xs text-[var(--text-3)]">ر.س</p>
           </div>
-          <div className="bg-emerald-50 rounded-xl p-3">
-            <p className="text-xs text-emerald-600">المبلغ المدفوع</p>
-            <p className="text-lg font-bold text-emerald-700 tabular-nums">{fmt(inv.paidAmount || 0)}</p>
-            <p className="text-xs text-emerald-500">ر.س</p>
+          <div className="bg-success-soft rounded-xl p-3">
+            <p className="text-xs text-success">المبلغ المدفوع</p>
+            <p className="text-lg font-bold text-success tabular-nums">{fmt(inv.paidAmount || 0)}</p>
+            <p className="text-xs text-success">ر.س</p>
           </div>
-          <div className={clsx("rounded-xl p-3", remaining > 0 ? "bg-amber-50" : "bg-[#f8fafc]")}>
-            <p className={clsx("text-xs", remaining > 0 ? "text-amber-600" : "text-gray-400")}>المبلغ المتبقي</p>
-            <p className={clsx("text-lg font-bold tabular-nums", remaining > 0 ? "text-amber-700" : "text-gray-500")}>{fmt(remaining)}</p>
-            <p className={clsx("text-xs", remaining > 0 ? "text-amber-500" : "text-gray-400")}>ر.س</p>
+          <div className={clsx("rounded-xl p-3", remaining > 0 ? "bg-warning-soft" : "bg-[var(--surface-2)]")}>
+            <p className={clsx("text-xs", remaining > 0 ? "text-warning" : "text-[var(--text-3)]")}>المبلغ المتبقي</p>
+            <p className={clsx("text-lg font-bold tabular-nums", remaining > 0 ? "text-warning" : "text-[var(--text-2)]")}>{fmt(remaining)}</p>
+            <p className={clsx("text-xs", remaining > 0 ? "text-warning" : "text-[var(--text-3)]")}>ر.س</p>
           </div>
-          <div className="bg-[#f8fafc] rounded-xl p-3">
-            <p className="text-xs text-gray-400">ضريبة القيمة المضافة</p>
-            <p className="text-lg font-bold text-gray-700 tabular-nums">{fmt(inv.vatAmount || 0)}</p>
-            <p className="text-xs text-gray-400">ر.س</p>
+          <div className="bg-[var(--surface-2)] rounded-xl p-3">
+            <p className="text-xs text-[var(--text-3)]">ضريبة القيمة المضافة</p>
+            <p className="text-lg font-bold text-[var(--text-1)] tabular-nums">{fmt(inv.vatAmount || 0)}</p>
+            <p className="text-xs text-[var(--text-3)]">ر.س</p>
           </div>
         </div>
       </div>
 
       {/* ── tabs card ────────────────────────────────────────── */}
-      <div className="bg-white rounded-2xl border border-[#eef2f6] overflow-hidden">
-        <div className="flex overflow-x-auto border-b border-[#eef2f6] px-1">
+      <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] overflow-hidden">
+        <div className="flex overflow-x-auto border-b border-[var(--border)] px-1">
           {TABS.map(t => (
             <button
               key={t.key}
@@ -526,12 +526,12 @@ export function InvoiceDetailPage() {
                 "px-5 py-[6px] text-sm font-medium whitespace-nowrap border-b-2 transition-colors",
                 tab === t.key
                   ? "border-brand-500 text-brand-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700",
+                  : "border-transparent text-[var(--text-2)] hover:text-[var(--text-1)]",
               )}
             >
               {t.label}
               {t.key === "payments" && pmts.length > 0 && (
-                <span className="mr-1.5 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">{pmts.length}</span>
+                <span className="mr-1.5 px-1.5 py-0.5 rounded-full bg-success-soft text-success text-[10px] font-bold">{pmts.length}</span>
               )}
             </button>
           ))}
@@ -544,32 +544,32 @@ export function InvoiceDetailPage() {
             <div className="space-y-6">
               {/* seller + buyer */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="bg-[#f8fafc] rounded-xl p-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">المورد / البائع</p>
-                  <p className="font-bold text-gray-900">{inv.sellerName}</p>
-                  {inv.sellerVatNumber && <p className="text-xs text-gray-500 mt-1">الرقم الضريبي: <span className="font-mono">{inv.sellerVatNumber}</span></p>}
+                <div className="bg-[var(--surface-2)] rounded-xl p-4">
+                  <p className="text-xs font-semibold text-[var(--text-3)] uppercase tracking-wide mb-2">المورد / البائع</p>
+                  <p className="font-bold text-[var(--text-1)]">{inv.sellerName}</p>
+                  {inv.sellerVatNumber && <p className="text-xs text-[var(--text-2)] mt-1">الرقم الضريبي: <span className="font-mono">{inv.sellerVatNumber}</span></p>}
                 </div>
-                <div className="bg-[#f8fafc] rounded-xl p-4">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">العميل / المشتري</p>
-                  <p className="font-bold text-gray-900">{inv.buyerName}</p>
-                  {inv.buyerCompanyName && <p className="text-sm text-violet-700 font-medium mt-0.5">{inv.buyerCompanyName}</p>}
-                  {inv.buyerPhone && <p className="text-xs text-gray-500 mt-1" dir="ltr">{inv.buyerPhone}</p>}
-                  {inv.buyerEmail && <p className="text-xs text-gray-500" dir="ltr">{inv.buyerEmail}</p>}
-                  {inv.buyerVatNumber && <p className="text-xs text-gray-500 mt-1">الرقم الضريبي: <span className="font-mono">{inv.buyerVatNumber}</span></p>}
-                  {inv.buyerCrNumber && <p className="text-xs text-gray-500">س.ت: <span className="font-mono">{inv.buyerCrNumber}</span></p>}
+                <div className="bg-[var(--surface-2)] rounded-xl p-4">
+                  <p className="text-xs font-semibold text-[var(--text-3)] uppercase tracking-wide mb-2">العميل / المشتري</p>
+                  <p className="font-bold text-[var(--text-1)]">{inv.buyerName}</p>
+                  {inv.buyerCompanyName && <p className="text-sm text-lavender font-medium mt-0.5">{inv.buyerCompanyName}</p>}
+                  {inv.buyerPhone && <p className="text-xs text-[var(--text-2)] mt-1" dir="ltr">{inv.buyerPhone}</p>}
+                  {inv.buyerEmail && <p className="text-xs text-[var(--text-2)]" dir="ltr">{inv.buyerEmail}</p>}
+                  {inv.buyerVatNumber && <p className="text-xs text-[var(--text-2)] mt-1">الرقم الضريبي: <span className="font-mono">{inv.buyerVatNumber}</span></p>}
+                  {inv.buyerCrNumber && <p className="text-xs text-[var(--text-2)]">س.ت: <span className="font-mono">{inv.buyerCrNumber}</span></p>}
                 </div>
               </div>
 
               {/* items table */}
               {inv.items?.length > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">قائمة الخدمات / السلع</h3>
+                  <h3 className="text-sm font-semibold text-[var(--text-1)] mb-3">قائمة الخدمات / السلع</h3>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="bg-[#f8fafc] rounded-lg">
+                        <tr className="bg-[var(--surface-2)] rounded-lg">
                           {["الاسم / الوصف", "الكمية", "سعر الوحدة", "الخصم", "السعر بدون ضريبة", "نسبة الضريبة", "قيمة الضريبة", "الإجمالي شامل الضريبة"].map(h => (
-                            <th key={h} className="text-right px-3 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">{h}</th>
+                            <th key={h} className="text-right px-3 py-2.5 text-xs font-semibold text-[var(--text-3)] whitespace-nowrap">{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -578,15 +578,15 @@ export function InvoiceDetailPage() {
                           const net = Number(item.totalAmount || 0) / (1 + Number(item.vatRate || 0) / 100);
                           const vatAmt = Number(item.totalAmount || 0) - net;
                           return (
-                            <tr key={item.id} className="border-b border-[#eef2f6] last:border-0">
-                              <td className="px-3 py-2.5 text-gray-800 font-medium">{item.description}</td>
-                              <td className="px-3 py-2.5 text-center text-gray-600">{item.quantity}</td>
-                              <td className="px-3 py-2.5 tabular-nums text-gray-600">{fmt(item.unitPrice)} ر.س</td>
-                              <td className="px-3 py-2.5 tabular-nums text-gray-500">{fmt(item.discountAmount || 0)} ر.س</td>
-                              <td className="px-3 py-2.5 tabular-nums text-gray-700">{fmt(net)} ر.س</td>
-                              <td className="px-3 py-2.5 text-center text-gray-500">{item.vatRate ?? 15}%</td>
-                              <td className="px-3 py-2.5 tabular-nums text-gray-500">{fmt(vatAmt)} ر.س</td>
-                              <td className="px-3 py-2.5 tabular-nums font-bold text-gray-900">{fmt(item.totalAmount)} ر.س</td>
+                            <tr key={item.id} className="border-b border-[var(--border)] last:border-0">
+                              <td className="px-3 py-2.5 text-[var(--text-1)] font-medium">{item.description}</td>
+                              <td className="px-3 py-2.5 text-center text-[var(--text-2)]">{item.quantity}</td>
+                              <td className="px-3 py-2.5 tabular-nums text-[var(--text-2)]">{fmt(item.unitPrice)} ر.س</td>
+                              <td className="px-3 py-2.5 tabular-nums text-[var(--text-2)]">{fmt(item.discountAmount || 0)} ر.س</td>
+                              <td className="px-3 py-2.5 tabular-nums text-[var(--text-2)]">{fmt(net)} ر.س</td>
+                              <td className="px-3 py-2.5 text-center text-[var(--text-2)]">{item.vatRate ?? 15}%</td>
+                              <td className="px-3 py-2.5 tabular-nums text-[var(--text-2)]">{fmt(vatAmt)} ر.س</td>
+                              <td className="px-3 py-2.5 tabular-nums font-bold text-[var(--text-1)]">{fmt(item.totalAmount)} ر.س</td>
                             </tr>
                           );
                         })}
@@ -600,20 +600,20 @@ export function InvoiceDetailPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                 {/* dates */}
                 <div className="space-y-2 text-sm">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">تفاصيل المعاملة</h3>
+                  <h3 className="text-sm font-semibold text-[var(--text-1)] mb-3">تفاصيل المعاملة</h3>
                   {[
                     { label: "تاريخ الإصدار",    value: inv.issueDate ? fmtDate(inv.issueDate) : "—" },
                     { label: "تاريخ الاستحقاق",  value: inv.dueDate ? fmtDate(inv.dueDate) : "—" },
                     { label: "نوع الفاتورة",      value: inv.invoiceType === "simplified" ? "مبسطة B2C" : "ضريبية B2B" },
                     { label: "مصدر الفاتورة",    value: inv.sourceType === "booking" ? "حجز" : inv.sourceType === "order" ? "طلب" : "يدوي" },
                   ].map(row => (
-                    <div key={row.label} className="flex justify-between py-1.5 border-b border-[#eef2f6]">
-                      <span className="text-gray-400">{row.label}</span>
-                      <span className="text-gray-700 font-medium">{row.value}</span>
+                    <div key={row.label} className="flex justify-between py-1.5 border-b border-[var(--border)]">
+                      <span className="text-[var(--text-3)]">{row.label}</span>
+                      <span className="text-[var(--text-1)] font-medium">{row.value}</span>
                     </div>
                   ))}
                   {inv.notes && (
-                    <div className="mt-3 p-3 bg-amber-50 rounded-lg text-sm text-amber-800 border border-amber-100">
+                    <div className="mt-3 p-3 bg-warning-soft rounded-lg text-sm text-warning border border-warning-soft">
                       <strong>ملاحظات:</strong> {inv.notes}
                     </div>
                   )}
@@ -621,31 +621,31 @@ export function InvoiceDetailPage() {
 
                 {/* totals */}
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-700 mb-3">الإجمالي</h3>
-                  <div className="bg-[#f8fafc] rounded-xl p-4 space-y-2">
+                  <h3 className="text-sm font-semibold text-[var(--text-1)] mb-3">الإجمالي</h3>
+                  <div className="bg-[var(--surface-2)] rounded-xl p-4 space-y-2">
                     {[
-                      { label: "المجموع الفرعي",          value: fmt(inv.taxableAmount ?? inv.subtotal ?? inv.totalAmount) + " ر.س", cls: "text-gray-600" },
-                      { label: "الخصم",                    value: fmt(inv.discountAmount || 0) + " ر.س", cls: "text-gray-600" },
-                      { label: "المبلغ بدون الضريبة",      value: fmt(inv.taxableAmount ?? inv.subtotal ?? inv.totalAmount) + " ر.س", cls: "text-gray-600" },
-                      { label: `قيمة ضريبة القيمة المضافة (${inv.vatRate ?? 15}%)`, value: fmt(inv.vatAmount || 0) + " ر.س", cls: "text-gray-600" },
+                      { label: "المجموع الفرعي",          value: fmt(inv.taxableAmount ?? inv.subtotal ?? inv.totalAmount) + " ر.س" },
+                      { label: "الخصم",                    value: fmt(inv.discountAmount || 0) + " ر.س" },
+                      { label: "المبلغ بدون الضريبة",      value: fmt(inv.taxableAmount ?? inv.subtotal ?? inv.totalAmount) + " ر.س" },
+                      { label: `قيمة ضريبة القيمة المضافة (${inv.vatRate ?? 15}%)`, value: fmt(inv.vatAmount || 0) + " ر.س" },
                     ].map(row => (
                       <div key={row.label} className="flex justify-between text-sm">
-                        <span className="text-gray-400">{row.label}</span>
-                        <span className={clsx("tabular-nums font-medium", row.cls)}>{row.value}</span>
+                        <span className="text-[var(--text-3)]">{row.label}</span>
+                        <span className="tabular-nums font-medium text-[var(--text-2)]">{row.value}</span>
                       </div>
                     ))}
-                    <div className="flex justify-between text-base font-bold border-t border-[#eef2f6] pt-2 mt-2">
+                    <div className="flex justify-between text-base font-bold border-t border-[var(--border)] pt-2 mt-2">
                       <span>السعر الكلي شامل الضريبة</span>
                       <span className="tabular-nums text-brand-600">{fmt(inv.totalAmount)} ر.س</span>
                     </div>
-                    <div className="flex justify-between text-sm border-t border-[#eef2f6] pt-2">
-                      <span className="text-gray-400">المبلغ المدفوع</span>
-                      <span className="tabular-nums text-emerald-600 font-medium">{fmt(inv.paidAmount || 0)} ر.س</span>
+                    <div className="flex justify-between text-sm border-t border-[var(--border)] pt-2">
+                      <span className="text-[var(--text-3)]">المبلغ المدفوع</span>
+                      <span className="tabular-nums text-success font-medium">{fmt(inv.paidAmount || 0)} ر.س</span>
                     </div>
                     {remaining > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">المبلغ المتبقي</span>
-                        <span className="tabular-nums text-amber-600 font-bold">{fmt(remaining)} ر.س</span>
+                        <span className="text-[var(--text-3)]">المبلغ المتبقي</span>
+                        <span className="tabular-nums text-warning font-bold">{fmt(remaining)} ر.س</span>
                       </div>
                     )}
                   </div>
@@ -658,11 +658,11 @@ export function InvoiceDetailPage() {
           {tab === "payments" && (
             <div>
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-gray-500">{pmts.length} عملية دفع مسجّلة</p>
+                <p className="text-sm text-[var(--text-2)]">{pmts.length} عملية دفع مسجّلة</p>
                 {canPay && (
                   <button
                     onClick={() => setShowPayment(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 text-emerald-600 text-sm font-medium hover:bg-emerald-100 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-success-soft text-success text-sm font-medium hover:opacity-80 transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" /> تسجيل دفعة
                   </button>
@@ -671,31 +671,31 @@ export function InvoiceDetailPage() {
 
               {pmts.length === 0 ? (
                 <div className="text-center py-10">
-                  <CreditCard className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-                  <p className="text-gray-400 text-sm">لا توجد عمليات دفع مسجّلة</p>
+                  <CreditCard className="w-10 h-10 text-[var(--text-3)] mx-auto mb-3" />
+                  <p className="text-[var(--text-3)] text-sm">لا توجد عمليات دفع مسجّلة</p>
                 </div>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-[#f8fafc]">
+                      <tr className="bg-[var(--surface-2)]">
                         {["#", "رقم العملية", "المدفوع", "طريقة الدفع", "وقت الإنشاء", "تاريخ الدفع", "اسم المحوّل", "الرقم المرجعي", "ملاحظات"].map(h => (
-                          <th key={h} className="text-right px-3 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">{h}</th>
+                          <th key={h} className="text-right px-3 py-2.5 text-xs font-semibold text-[var(--text-3)] whitespace-nowrap">{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {pmts.map((p: any, i: number) => (
-                        <tr key={p.id} className="border-b border-[#eef2f6] last:border-0 hover:bg-[#f8fafc]/50">
-                          <td className="px-3 py-3 text-gray-400 text-xs">{i + 1}</td>
+                        <tr key={p.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-2)]">
+                          <td className="px-3 py-3 text-[var(--text-3)] text-xs">{i + 1}</td>
                           <td className="px-3 py-3 font-mono text-xs text-brand-500">{p.id?.substring(0, 8).toUpperCase()}</td>
-                          <td className="px-3 py-3 font-bold text-emerald-600 tabular-nums">{fmt(p.amount)} ر.س</td>
-                          <td className="px-3 py-3 text-gray-700">{PAY_METHOD[p.paymentMethod] || p.paymentMethod}</td>
-                          <td className="px-3 py-3 text-gray-400">{p.createdAt ? new Date(p.createdAt).toLocaleDateString("ar-SA") : "—"}</td>
-                          <td className="px-3 py-3 text-gray-600">{p.paymentDate ? new Date(p.paymentDate).toLocaleDateString("ar-SA") : "—"}</td>
-                          <td className="px-3 py-3 text-gray-600">{p.transferName || "—"}</td>
-                          <td className="px-3 py-3 font-mono text-xs text-gray-500">{p.reference || "—"}</td>
-                          <td className="px-3 py-3 text-gray-400 max-w-[160px] truncate">{p.notes || "—"}</td>
+                          <td className="px-3 py-3 font-bold text-success tabular-nums">{fmt(p.amount)} ر.س</td>
+                          <td className="px-3 py-3 text-[var(--text-1)]">{PAY_METHOD[p.paymentMethod] || p.paymentMethod}</td>
+                          <td className="px-3 py-3 text-[var(--text-3)]">{p.createdAt ? new Date(p.createdAt).toLocaleDateString("ar-SA") : "—"}</td>
+                          <td className="px-3 py-3 text-[var(--text-2)]">{p.paymentDate ? new Date(p.paymentDate).toLocaleDateString("ar-SA") : "—"}</td>
+                          <td className="px-3 py-3 text-[var(--text-2)]">{p.transferName || "—"}</td>
+                          <td className="px-3 py-3 font-mono text-xs text-[var(--text-2)]">{p.reference || "—"}</td>
+                          <td className="px-3 py-3 text-[var(--text-3)] max-w-[160px] truncate">{p.notes || "—"}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -709,11 +709,11 @@ export function InvoiceDetailPage() {
           {tab === "refunds" && (
             <div>
               <div className="flex items-center justify-between mb-4">
-                <p className="text-sm text-gray-500">طلبات الاسترجاع</p>
+                <p className="text-sm text-[var(--text-2)]">طلبات الاسترجاع</p>
                 {inv.status === "paid" && (
                   <button
                     onClick={() => setShowRefund(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-sm font-medium hover:bg-red-100 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-danger-soft text-danger text-sm font-medium hover:opacity-80 transition-colors"
                   >
                     <RotateCcw className="w-3.5 h-3.5" /> طلب استرجاع
                   </button>
@@ -730,7 +730,7 @@ export function InvoiceDetailPage() {
                   </thead>
                   <tbody>
                     <tr>
-                      <td colSpan={8} className="text-center py-10 text-gray-400 text-sm">لا يوجد عمليات استرجاع</td>
+                      <td colSpan={8} className="text-center py-10 text-[var(--text-3)] text-sm">لا يوجد عمليات استرجاع</td>
                     </tr>
                   </tbody>
                 </table>
@@ -751,17 +751,17 @@ export function InvoiceDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-[#eef2f6] hover:bg-[#f8fafc]/50">
+                    <tr className="border-b border-[var(--border)] hover:bg-[var(--surface-2)]">
                       <td className="px-3 py-3 font-mono text-xs text-brand-500">{inv.invoiceNumber}</td>
                       <td className="px-3 py-3">
                         <span className={clsx("inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-medium border", st.color)}>
                           <StatusIcon className="w-3 h-3" /> {st.label}
                         </span>
                       </td>
-                      <td className="px-3 py-3 tabular-nums text-gray-700">{fmt(inv.taxableAmount ?? inv.subtotal ?? inv.totalAmount)} ر.س</td>
-                      <td className="px-3 py-3 tabular-nums text-gray-600">{fmt(inv.vatAmount || 0)} ر.س</td>
-                      <td className="px-3 py-3 tabular-nums font-bold text-gray-900">{fmt(inv.totalAmount)} ر.س</td>
-                      <td className="px-3 py-3 text-gray-500">{inv.issueDate ? fmtDate(inv.issueDate) : "—"}</td>
+                      <td className="px-3 py-3 tabular-nums text-[var(--text-2)]">{fmt(inv.taxableAmount ?? inv.subtotal ?? inv.totalAmount)} ر.س</td>
+                      <td className="px-3 py-3 tabular-nums text-[var(--text-2)]">{fmt(inv.vatAmount || 0)} ر.س</td>
+                      <td className="px-3 py-3 tabular-nums font-bold text-[var(--text-1)]">{fmt(inv.totalAmount)} ر.س</td>
+                      <td className="px-3 py-3 text-[var(--text-2)]">{inv.issueDate ? fmtDate(inv.issueDate) : "—"}</td>
                       <td className="px-3 py-3">
                         <button onClick={printInvoice} className="inline-flex items-center gap-1 text-xs text-brand-500 hover:text-brand-700 transition-colors">
                           <Printer className="w-3.5 h-3.5" /> طباعة
@@ -857,7 +857,7 @@ export function InvoiceDetailPage() {
           </>
         }
       >
-        <p className="text-sm text-gray-500 text-center py-6">ميزة طلبات الاسترجاع قيد التطوير.</p>
+        <p className="text-sm text-[var(--text-2)] text-center py-6">ميزة طلبات الاسترجاع قيد التطوير.</p>
       </Modal>
 
     </div>
