@@ -755,7 +755,11 @@ export function WebsitePage() {
   const contacts: Record<string, unknown>[] = (contactsRes?.data as Record<string, unknown>[]) ?? [];
 
   const orgSlug = String(profile?.slug || profile?.id || "");
+  // siteUrl: رابط /s/:slug يُستخدم فقط داخلياً لروابط الصفحات الفرعية (/s/:slug/p/:page)
+  // لا يُعرض كـ "رابط الموقع الإلكتروني" — /s/:slug هو رابط المتجر/البيع السريع
   const siteUrl = orgSlug ? `${window.location.origin}/s/${orgSlug}` : null;
+  // websitePublicUrl: رابط مستقل للموقع الإلكتروني — غير متوفر حالياً (route مستقل قيد التطوير)
+  const websitePublicUrl: string | null = null;
 
   // ── Template tab ───────────────────────────────────────────────
   const [templateId, setTemplateId] = useState("classic");
@@ -1252,8 +1256,8 @@ export function WebsitePage() {
             ) : (
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">مسودة</span>
             )}
-            {siteUrl && (
-              <a href={siteUrl} target="_blank" rel="noreferrer"
+            {websitePublicUrl && (
+              <a href={websitePublicUrl} target="_blank" rel="noreferrer"
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[#eef2f6] text-gray-600 text-xs font-medium hover:bg-[#f8fafc] transition-colors no-underline">
                 <ExternalLink size={12} /> معاينة
               </a>
@@ -1287,27 +1291,22 @@ export function WebsitePage() {
                     : "مسودة — لم يُنشر بعد"}
                 </p>
               </div>
-              <span className={clsx("text-xs px-2.5 py-1 rounded-full font-medium",
-                settings?.customDomain ? "bg-emerald-50 text-emerald-700" : "bg-brand-50 text-brand-600")}>
-                {settings?.customDomain ? "دومين مخصص" : "رابط ترميز OS"}
+              <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-amber-50 text-amber-600">
+                قريباً
               </span>
             </div>
-            {siteUrl ? (
+            {websitePublicUrl ? (
               <div className="flex items-center gap-2">
                 <div className="flex-1 flex items-center gap-2 bg-[#f8fafc] rounded-xl px-4 py-2.5 border border-[#eef2f6] min-w-0">
                   <Globe className="w-4 h-4 text-gray-400 shrink-0" />
-                  <span className="text-sm text-gray-600 font-mono truncate">{siteUrl}</span>
+                  <span className="text-sm text-gray-600 font-mono truncate">{websitePublicUrl}</span>
                 </div>
-                <button onClick={copySiteUrl} className="flex items-center gap-1.5 px-3 py-2.5 rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-sm text-gray-600 transition-colors cursor-pointer bg-transparent shrink-0">
-                  {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                  {copied ? "تم النسخ" : "نسخ"}
-                </button>
-                <a href={siteUrl} target="_blank" rel="noreferrer" className="p-2.5 rounded-xl border border-[#eef2f6] hover:bg-[#f8fafc] text-gray-600 transition-colors">
-                  <ExternalLink className="w-4 h-4" />
-                </a>
               </div>
             ) : (
-              <p className="text-sm text-gray-400">أكمل إعداد حسابك للحصول على رابط موقعك</p>
+              <div className="flex items-center gap-3 bg-amber-50 rounded-xl px-4 py-3 border border-amber-100">
+                <AlertCircle className="w-4 h-4 text-amber-500 shrink-0" />
+                <p className="text-sm text-amber-700 font-medium">رابط مستقل للموقع الإلكتروني قيد التطوير — سيتوفر في تحديث قادم</p>
+              </div>
             )}
           </div>
 
@@ -2194,9 +2193,9 @@ export function WebsitePage() {
           {/* Domain */}
           <Card title="الدومين">
             <div className="flex flex-col gap-3">
-              <div className="bg-gray-50 rounded-xl px-3.5 py-2.5">
-                <p className="text-xs text-gray-400 mb-0.5">رابط ترميز OS المجاني</p>
-                <p className="text-[13px] font-semibold text-brand-400 font-mono">tarmizos.com/s/{orgSlug || "—"}</p>
+              <div className="bg-amber-50 rounded-xl px-3.5 py-2.5">
+                <p className="text-xs text-amber-600 mb-0.5 font-medium">رابط مستقل للموقع</p>
+                <p className="text-[13px] text-amber-700">سيتوفر مع إطلاق نظام المواقع المستقلة</p>
               </div>
               <FieldInput label="نطاق مخصص (اختياري)" value={settings.customDomain} onChange={v => s("customDomain", v)} placeholder="www.yoursite.com" dir="ltr" />
               <div className="bg-amber-50 rounded-xl px-3.5 py-2.5 text-xs text-amber-700">

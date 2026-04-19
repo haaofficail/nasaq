@@ -165,6 +165,21 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     ],
   },
 
+  // ── القنوات الرقمية ─────────────────────────────────────
+  // قنوات البيع والحضور الرقمي — ليست أدوات تسويق بل أسطح تشغيل مستقلة
+  {
+    id: "channels",
+    label: "القنوات الرقمية",
+    requiredCapabilities: [],
+    anyCapability: [],
+    allowedBusinessTypes: [],
+    allowedOperatingProfiles: [],
+    items: [
+      { name: "المتجر الإلكتروني",  href: "/dashboard/storefront",  icon: Globe,   requiredCapabilities: [] },
+      { name: "الموقع الإلكتروني", href: "/dashboard/website",     icon: Monitor, requiredCapabilities: [], requiredPlan: "basic" },
+    ],
+  },
+
   // ── التسويق والنمو ──────────────────────────────────────
   {
     id: "growth",
@@ -174,14 +189,12 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "المتجر الإلكتروني",   href: "/dashboard/storefront",      icon: Globe,        requiredCapabilities: [] },
-      { name: "الموقع الإلكتروني",  href: "/dashboard/website",         icon: Monitor,      requiredCapabilities: [], requiredPlan: "basic" },
-      { name: "التسويق",           href: "/dashboard/marketing", icon: Send,           requiredCapabilities: [], requiredPlan: "advanced" },
-      { name: "التقييمات",         href: "/dashboard/reviews",              icon: Star,          requiredCapabilities: [], requiredPlan: "basic" },
-      { name: "مجموعات العملاء",   href: "/dashboard/segments",             icon: Tag,           requiredCapabilities: [], requiredPlan: "advanced" },
-      { name: "طلبات غير مكتملة",  href: "/dashboard/abandoned-carts",      icon: ShoppingCart,  requiredCapabilities: [], allowedBusinessTypes: ["flower_shop", "retail", "restaurant", "cafe", "bakery", "catering"], requiredPlan: "advanced" },
+      { name: "التسويق",           href: "/dashboard/marketing",             icon: Send,          requiredCapabilities: [], requiredPlan: "advanced" },
+      { name: "التقييمات",         href: "/dashboard/reviews",               icon: Star,          requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "مجموعات العملاء",   href: "/dashboard/segments",              icon: Tag,           requiredCapabilities: [], requiredPlan: "advanced" },
+      { name: "طلبات غير مكتملة",  href: "/dashboard/abandoned-carts",       icon: ShoppingCart,  requiredCapabilities: [], allowedBusinessTypes: ["flower_shop", "retail", "restaurant", "cafe", "bakery", "catering"], requiredPlan: "advanced" },
       { name: "اشتراكات العملاء",   href: "/dashboard/customer-subscriptions", icon: CreditCard,   requiredCapabilities: [], allowedBusinessTypes: ["salon", "barber", "spa", "fitness"], requiredPlan: "pro" },
-      { name: "واتساب",            href: "/dashboard/messaging",            icon: MessageCircle, requiredCapabilities: [], requiredPlan: "advanced" },
+      { name: "واتساب",            href: "/dashboard/messaging",             icon: MessageCircle, requiredCapabilities: [], requiredPlan: "advanced" },
     ],
   },
 
