@@ -56,6 +56,7 @@ const createInvoiceSchema = z.object({
   totalAmount: z.string().refine(v => !isNaN(parseFloat(v)) && parseFloat(v) > 0, { message: "totalAmount must be positive" }),
   dueDate: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
+  termsAndConditions: z.string().optional().nullable(),
   items: z.array(z.object({
     description: z.string().min(1),
     quantity: z.string().optional(),
@@ -165,6 +166,14 @@ financeRouter.post("/invoices", async (c) => {
   const invoiceNumber = `INV-${year}-${seq}`;
   const invoiceUuid = crypto.randomUUID();
 
+  // Resolve terms: caller-provided → org template → null
+  let resolvedTerms = body.termsAndConditions ?? null;
+  if (!resolvedTerms) {
+    const [orgRow] = await db.select({ settings: organizations.settings }).from(organizations).where(eq(organizations.id, orgId));
+    const template = (orgRow?.settings as any)?.invoiceTermsTemplate;
+    if (template) resolvedTerms = template;
+  }
+
   // Generate QR code data (ZATCA TLV Base64)
   const qrData = generateZATCAQR({
     sellerName: body.sellerName,
@@ -206,6 +215,7 @@ financeRouter.post("/invoices", async (c) => {
       issueDate: new Date(),
       dueDate: body.dueDate ? new Date(body.dueDate) : null,
       notes: body.notes,
+      termsAndConditions: resolvedTerms,
     }).returning();
 
     if (body.items?.length) {

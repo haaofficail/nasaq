@@ -172,7 +172,8 @@ const settingsSchema = z.object({
       vatNumber: z.string().max(50).nullable().optional(),
     }).optional(),
   }).optional(),
-}).strict();
+  invoiceTermsTemplate: z.string().max(3000).nullable().optional(),
+});
 
 settingsRouter.put("/settings", async (c) => {
   const orgId = getOrgId(c);

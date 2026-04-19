@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, GitBranch, CreditCard, Plus, Trash2, Loader2, CheckCircle2, Zap, Shield, Pencil, User, MapPin, Clock, Star, Warehouse, Briefcase, Palette, Upload, ImageIcon, Wallet, Eye, EyeOff, Scale } from "lucide-react";
+import { Building2, GitBranch, CreditCard, Plus, Trash2, Loader2, CheckCircle2, Zap, Shield, Pencil, User, MapPin, Clock, Star, Warehouse, Briefcase, Palette, Upload, ImageIcon, Wallet, Eye, EyeOff, Scale, FileText } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import { clsx } from "clsx";
 import { confirmDialog } from "@/components/ui";
@@ -47,6 +47,7 @@ const tabs = [
   { label: "الهوية البصرية", icon: Palette },
   { label: "بوابة الدفع",   icon: Wallet },
   { label: "الحقول المخصصة", icon: Eye },
+  { label: "الفواتير",       icon: FileText },
   { label: "الامتثال والأنظمة", icon: Scale, href: "/dashboard/settings/legal" },
 ];
 
@@ -97,6 +98,10 @@ export function SettingsPage() {
   const { mutate: deleteBranch                      } = useMutation((id: string) => settingsApi.deleteBranch(id));
   const { mutate: createGateway, loading: gwCreating } = useMutation((data: any) => financeApi.createGateway(data));
   const { mutate: updateGateway, loading: gwUpdating } = useMutation(({ id, data }: any) => financeApi.updateGateway(id, data));
+  const { mutate: updateSettings, loading: invSaving } = useMutation((data: any) => settingsApi.updateSettings(data));
+
+  const [invTerms, setInvTerms] = useState<string | null>(null);
+  const [invSaved, setInvSaved] = useState(false);
 
   const [gwForm, setGwForm] = useState({ provider: "moyasar", displayName: "Moyasar", apiKey: "", publishableKey: "", secretKey: "", webhookSecret: "", isActive: false });
   const [gwEditId, setGwEditId] = useState<string | null>(null);
@@ -111,6 +116,8 @@ export function SettingsPage() {
 
   const [form, setForm] = useState<any>(null);
   const f = form || org;
+
+  const termsValue = invTerms !== null ? invTerms : (org?.settings?.invoiceTermsTemplate ?? "");
 
   const handleSaveProfile = async () => {
     await updateProfile(form || org);
@@ -895,6 +902,44 @@ export function SettingsPage() {
               <li>الصق المفاتيح أعلاه وفعّل بوابة الدفع</li>
               <li>عملاؤك الآن يقدرون يدفعون من صفحة تتبع الحجز مباشرة</li>
             </ol>
+          </div>
+        </div>
+      )}
+
+      {/* ── Tab 6: الفواتير ── */}
+      {activeTab === 6 && (
+        <div className="space-y-5">
+          <div className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-5">
+            <h2 className="text-base font-bold text-[var(--text-1)] mb-1">قالب الشروط والأحكام</h2>
+            <p className="text-sm text-[var(--text-3)] mb-4">
+              تُضاف هذه الشروط تلقائياً في كل فاتورة جديدة — كل سطر يظهر كبند مستقل في الفاتورة والمطبوعة.
+            </p>
+            <textarea
+              value={termsValue}
+              onChange={e => setInvTerms(e.target.value)}
+              rows={10}
+              placeholder={`مثال:\nأي تمديد يُحتسب بتكلفة إضافية\nجميع التجهيزات تحت مسؤولية العميل\nyتحمل العميل أي تلف أو فقد\nالفاتورة تُعد عرض سعر صالح لمدة 3 أيام فقط`}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-1)] placeholder:text-[var(--text-3)] text-sm leading-relaxed p-3.5 resize-y focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-brand-400 font-mono"
+            />
+            <p className="text-xs text-[var(--text-3)] mt-2">يمكنك تعديل الشروط على كل فاتورة بشكل مستقل عند إنشائها.</p>
+            <div className="flex items-center gap-3 mt-4">
+              <Button
+                onClick={async () => {
+                  await updateSettings({ invoiceTermsTemplate: termsValue || null });
+                  setInvSaved(true);
+                  refetchProfile();
+                  setTimeout(() => setInvSaved(false), 2500);
+                }}
+                loading={invSaving}
+              >
+                حفظ القالب
+              </Button>
+              {invSaved && (
+                <span className="flex items-center gap-1.5 text-sm text-success font-medium">
+                  <CheckCircle2 className="w-4 h-4" /> تم الحفظ بنجاح
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )}

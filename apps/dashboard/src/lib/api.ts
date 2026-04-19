@@ -882,6 +882,7 @@ export const settingsApi = {
   subscription: () => api.get<{ data: any }>("/settings/subscription"),
   customLists: () => api.get<{ data: any }>("/settings/custom-lists"),
   updateCustomList: (key: string, values: string[]) => api.put<{ data: any }>("/settings/custom-lists", { key, values }),
+  updateSettings: (data: any) => api.put<{ data: any }>("/settings", data),
   bookingSettings: () => api.get<{ data: any }>("/settings/booking"),
   updateBookingSettings: (data: any) => api.put<{ data: any }>("/settings/booking", data),
   // Onboarding
