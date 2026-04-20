@@ -37,8 +37,8 @@
 | 9 | `GET /stats/trend` | Phase 3.A | Done |
 | 10 | `GET /stats/growth` | Phase 3.A | Done |
 | 11 | `GET /stats/overview` | Phase 3.A | Done |
-| 12 | `GET /alerts` | Phase 3.A | In Progress |
-| 13 | `GET /:id/timeline` | Phase 3.A | In Progress |
+| 12 | `GET /alerts` | Phase 3.A | Done |
+| 13 | `GET /:id/timeline` | Phase 3.A | Done |
 
 ### POST/PATCH Endpoints — Phase 3.A.2 (Mutations) — Pending
 
