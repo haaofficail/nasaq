@@ -382,8 +382,10 @@ export default function App() {
           <Route path="hr/employees/:id" element={<ProtectedRoute permission="team.view"><HREmployeePage /></ProtectedRoute>} />
           <Route path="delivery" element={<DeliveryPage />} />
 
-          <Route path="storefront" element={<StorefrontPage />} />
-          <Route path="website" element={<WebsitePage />} />
+          <Route path="storefront" element={<Navigate to="/dashboard/pages-v2" replace />} />
+          <Route path="storefront/*" element={<Navigate to="/dashboard/pages-v2" replace />} />
+          <Route path="website" element={<Navigate to="/dashboard/pages-v2" replace />} />
+          <Route path="website/*" element={<Navigate to="/dashboard/pages-v2" replace />} />
           <Route path="online-orders" element={<OnlineOrdersPage />} />
           <Route path="automation" element={<AutomationPage />} />
           <Route path="marketing" element={<MarketingPage />} />
@@ -403,7 +405,7 @@ export default function App() {
           <Route path="settings/booking" element={<BookingSettingsPage />} />
           <Route path="settings/profile" element={<ProfileSettingsPage />} />
           <Route path="account" element={<AccountPage />} />
-          <Route path="settings/website" element={<WebsiteSettingsPage />} />
+          <Route path="settings/website" element={<Navigate to="/dashboard/pages-v2" replace />} />
           <Route path="settings/audit-log" element={<ProtectedRoute permission="settings.org"><AuditLogPage /></ProtectedRoute>} />
           <Route path="settings/legal" element={<LegalSettingsPage />} />
           <Route path="subscription" element={<SubscriptionPage />} />

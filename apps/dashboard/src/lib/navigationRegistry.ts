@@ -15,8 +15,8 @@ import {
   GraduationCap, BookOpenCheck, ClipboardPen, Calendar, AlertCircle, Upload, UserCheck, ShieldAlert, ShieldCheck,
   // property icons
   Building2, DoorOpen, FileText, Receipt, Banknote, TrendingDown, Archive, BarChart2,
-  TrendingUp, HardHat, FileBarChart, Megaphone, MessageSquare, DollarSign, Monitor, Briefcase, Zap,
-  UserCog,
+  TrendingUp, HardHat, FileBarChart, Megaphone, MessageSquare, DollarSign, Briefcase, Zap,
+  UserCog, Store,
 } from "lucide-react";
 
 // Plan hierarchy — each plan includes all plans below it
@@ -175,9 +175,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "المتجر الإلكتروني",  href: "/dashboard/storefront",  icon: Globe,   requiredCapabilities: [] },
-      { name: "الموقع الإلكتروني", href: "/dashboard/website",     icon: Monitor, requiredCapabilities: [], requiredPlan: "basic" },
-      { name: "الصفحات",           href: "/dashboard/pages-v2",    icon: Layout,  requiredCapabilities: ["page_builder_v2"], requiredPlan: "basic" },
+      { name: "المتجر الإلكتروني", href: "/dashboard/pages-v2", icon: Store, requiredCapabilities: ["page_builder_v2"] },
     ],
   },
 
@@ -346,8 +344,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: ["flower_shop"],
     allowedOperatingProfiles: [],
     items: [
-      { name: "المتجر الإلكتروني",   href: "/dashboard/storefront",      icon: Globe,        requiredCapabilities: [] },
-      { name: "الموقع الإلكتروني",  href: "/dashboard/website",         icon: Monitor,      requiredCapabilities: [], requiredPlan: "basic" as const },
+      { name: "المتجر الإلكتروني",   href: "/dashboard/pages-v2",        icon: Store,        requiredCapabilities: ["page_builder_v2"] },
       { name: "التسويق",           href: "/dashboard/marketing",       icon: Send,         requiredCapabilities: [], requiredPlan: "advanced" as const },
       { name: "التقييمات",         href: "/dashboard/reviews",         icon: Star,         requiredCapabilities: [], requiredPlan: "basic" as const },
       { name: "مجموعات العملاء",   href: "/dashboard/segments",        icon: Tag,          requiredCapabilities: [], requiredPlan: "advanced" as const },
