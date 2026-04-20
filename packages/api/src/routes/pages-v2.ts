@@ -386,6 +386,73 @@ pagesV2Router.post("/:id/publish", async (c) => {
 });
 
 // ────────────────────────────────────────────────────────────
+// POST /pages/:id/unpublish — clear publishedData, set status=draft
+// ────────────────────────────────────────────────────────────
+pagesV2Router.post("/:id/unpublish", async (c) => {
+  const orgId = getOrgId(c);
+  const { id } = c.req.param();
+
+  const [page] = await db
+    .select({ id: pagesV2.id, status: pagesV2.status })
+    .from(pagesV2)
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+    .limit(1);
+
+  if (!page) return c.json({ error: "الصفحة غير موجودة" }, 404);
+  if (page.status !== "published") return c.json({ error: "الصفحة غير منشورة" }, 400);
+
+  const [unpublished] = await db
+    .update(pagesV2)
+    .set({
+      status: "draft",
+      publishedData: null,
+      publishedAt: null,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+    .returning();
+
+  return c.json({ data: unpublished });
+});
+
+// ────────────────────────────────────────────────────────────
+// POST /pages/:id/schedule — schedule future publish
+// ────────────────────────────────────────────────────────────
+pagesV2Router.post("/:id/schedule", async (c) => {
+  const orgId = getOrgId(c);
+  const { id } = c.req.param();
+
+  const raw = await c.req.json().catch(() => null);
+  if (!raw || typeof raw.publishAt !== "string") {
+    return c.json({ error: "publishAt (ISO string) مطلوب" }, 400);
+  }
+
+  const publishAt = new Date(raw.publishAt);
+  if (isNaN(publishAt.getTime())) {
+    return c.json({ error: "publishAt تاريخ غير صالح" }, 400);
+  }
+  if (publishAt <= new Date()) {
+    return c.json({ error: "publishAt يجب أن يكون في المستقبل" }, 400);
+  }
+
+  const [page] = await db
+    .select({ id: pagesV2.id })
+    .from(pagesV2)
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+    .limit(1);
+
+  if (!page) return c.json({ error: "الصفحة غير موجودة" }, 404);
+
+  const [scheduled] = await db
+    .update(pagesV2)
+    .set({ scheduledAt: publishAt, updatedAt: new Date() })
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+    .returning();
+
+  return c.json({ data: scheduled });
+});
+
+// ────────────────────────────────────────────────────────────
 // POST /pages/:id/duplicate — clone page
 // ────────────────────────────────────────────────────────────
 pagesV2Router.post("/:id/duplicate", async (c) => {
@@ -494,6 +561,7 @@ pagesV2Router.delete("/:id/permanent", async (c) => {
 
 // ────────────────────────────────────────────────────────────
 // PATCH /reorder — update sortOrder for multiple pages
+// Must be registered BEFORE /:id to avoid param capture
 // ────────────────────────────────────────────────────────────
 pagesV2Router.patch("/reorder", async (c) => {
   const orgId = getOrgId(c);
@@ -515,6 +583,91 @@ pagesV2Router.patch("/reorder", async (c) => {
   );
 
   return c.json({ success: true });
+});
+
+// ────────────────────────────────────────────────────────────
+// PATCH /pages/:id — auto-save (draftData only) + conflict detection
+// ────────────────────────────────────────────────────────────
+pagesV2Router.patch("/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const { id } = c.req.param();
+
+  const raw = await c.req.json().catch(() => null);
+  if (!raw || !("draftData" in raw)) {
+    return c.json({ error: "draftData مطلوب" }, 400);
+  }
+
+  const { draftData, lastSavedAt } = raw as {
+    draftData: Record<string, unknown>;
+    lastSavedAt?: string;
+  };
+
+  // Verify ownership + get current updatedAt for conflict detection
+  const [existing] = await db
+    .select({ id: pagesV2.id, updatedAt: pagesV2.updatedAt })
+    .from(pagesV2)
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+    .limit(1);
+
+  if (!existing) return c.json({ error: "الصفحة غير موجودة" }, 404);
+
+  // Conflict detection: if DB was updated after client's last-saved timestamp
+  if (lastSavedAt) {
+    const clientTs = new Date(lastSavedAt).getTime();
+    const serverTs = new Date(existing.updatedAt).getTime();
+    if (serverTs > clientTs + 1000) {
+      // 1000ms grace to account for clock skew
+      const [serverData] = await db
+        .select()
+        .from(pagesV2)
+        .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+        .limit(1);
+      return c.json(
+        { error: "تعديل متزامن — الصفحة تم تعديلها من جهاز آخر", serverData },
+        409,
+      );
+    }
+  }
+
+  const now = new Date();
+
+  const [updated] = await db
+    .update(pagesV2)
+    .set({ draftData, updatedAt: now })
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+    .returning();
+
+  // Save auto_save version
+  const [{ maxVer }] = await db
+    .select({ maxVer: count() })
+    .from(pageVersionsV2)
+    .where(eq(pageVersionsV2.pageId, id));
+
+  const nextVersion = Number(maxVer) + 1;
+
+  if (Number(maxVer) >= MAX_VERSIONS) {
+    const oldest = await db
+      .select({ id: pageVersionsV2.id })
+      .from(pageVersionsV2)
+      .where(eq(pageVersionsV2.pageId, id))
+      .orderBy(pageVersionsV2.versionNumber)
+      .limit(1);
+    if (oldest.length > 0) {
+      await db.delete(pageVersionsV2).where(eq(pageVersionsV2.id, oldest[0].id));
+    }
+  }
+
+  await db.insert(pageVersionsV2).values({
+    pageId: id,
+    orgId,
+    versionNumber: nextVersion,
+    data: draftData as Record<string, unknown>,
+    changeType: "auto_save",
+    createdBy: userId ?? undefined,
+  });
+
+  return c.json({ data: updated });
 });
 
 // ────────────────────────────────────────────────────────────

@@ -1,27 +1,23 @@
 /**
- * PagesV2Page — إدارة الصفحات (Page Builder v2) — Day 17
- *
- * Views:
- *   - list: قائمة الصفحات مع بحث، فلتر، ترتيب، صفحات، وإجراءات الصفوف
- *   - editor: محرر Puck (create / edit)
- *
- * Row actions (3-dot menu):
- *   draft/published: تعديل، إعادة تسمية، تكرار، حذف (→ أرشفة)
- *   archived:        استعادة، حذف نهائي (مع تأكيد)
+ * PagesV2Page — إدارة الصفحات (Page Builder v2)
+ * Day 17: قائمة الصفحات + محرر
+ * Day 18: SEO Drawer + Slug Validation
+ * Day 19: Auto-save + Publish Flow
  *
  * RTL, IBM Plex Sans Arabic, Brand Kit #5b9bd5
  * No emojis. Skeleton + error + empty + data states.
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { PuckEditor, SeoDrawer } from "@nasaq/page-builder-v2";
-import type { PuckData, SeoDrawerFields } from "@nasaq/page-builder-v2";
+import { PuckEditor, SeoDrawer, useAutoSave } from "@nasaq/page-builder-v2";
+import type { PuckData, SeoDrawerFields, SaveStatus, PageBadgeStatus } from "@nasaq/page-builder-v2";
+import { computePageStatusBadge, formatSaveStatus } from "@nasaq/page-builder-v2";
 import { pagesV2Api } from "@/lib/api";
 import type { PageV2Summary, PageV2Full } from "@/lib/api";
 import {
   Plus, Globe, FileText, Archive, ChevronLeft, Search,
   MoreVertical, Pencil, Copy, Trash2, RotateCcw, X,
-  ChevronDown, ArrowUpDown,
+  ChevronDown, ArrowUpDown, Loader2, Calendar,
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import {
@@ -55,6 +51,31 @@ const STATUS_COLORS: Record<PageV2Summary["status"], string> = {
   draft: "bg-amber-50 text-amber-700 border-amber-200",
   published: "bg-emerald-50 text-emerald-700 border-emerald-200",
   archived: "bg-gray-100 text-gray-500 border-gray-200",
+};
+
+// ── Editor badge (4 states derived from content comparison) ───────────────
+const BADGE_LABEL: Record<PageBadgeStatus, string> = {
+  draft:     "مسودة",
+  published: "منشورة",
+  modified:  "منشورة مع تعديلات",
+  archived:  "مؤرشفة",
+};
+
+const BADGE_COLORS: Record<PageBadgeStatus, string> = {
+  draft:     "bg-amber-50 text-amber-700 border-amber-200",
+  published: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  modified:  "bg-yellow-50 text-yellow-700 border-yellow-200",
+  archived:  "bg-gray-100 text-gray-500 border-gray-200",
+};
+
+// ── Save indicator style ──────────────────────────────────────────────────
+const SAVE_STATUS_COLORS: Record<SaveStatus, string> = {
+  idle:     "text-gray-400",
+  unsaved:  "text-gray-500",
+  saving:   "text-[#5b9bd5]",
+  saved:    "text-emerald-600",
+  error:    "text-red-500",
+  conflict: "text-orange-500",
 };
 
 const PAGE_LIMIT = 20;
@@ -120,6 +141,223 @@ function ConfirmDialog({ title, message, confirmLabel, danger, onConfirm, onCanc
             style={danger ? undefined : { background: "#5b9bd5" }}
           >
             {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Publish Dialog ─────────────────────────────────────────────────────────
+
+interface PublishDialogProps {
+  page: PageV2Full;
+  publishing: boolean;
+  onPublishNow: () => void;
+  onSchedule: (publishAt: string) => void;
+  onCancel: () => void;
+}
+
+function PublishDialog({ page, publishing, onPublishNow, onSchedule, onCancel }: PublishDialogProps) {
+  const [mode, setMode] = useState<"now" | "schedule">("now");
+  const [dateTime, setDateTime] = useState(() => {
+    const d = new Date(Date.now() + 60 * 60 * 1000); // default: +1 hour
+    return d.toISOString().slice(0, 16);
+  });
+
+  const blockCount = (page.draftData as any)?.content?.length ?? 0;
+  const isFirstPublish = !page.publishedData;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" data-publish-dialog="">
+      <div
+        dir="rtl"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden"
+        style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+      >
+        {/* Header */}
+        <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-base font-bold text-gray-900">
+                {isFirstPublish ? "نشر الصفحة" : "نشر التغييرات"}
+              </h3>
+              <p className="text-sm text-gray-500 mt-0.5 truncate max-w-xs">{page.title}</p>
+            </div>
+            <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 mt-0.5">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Content summary */}
+        <div className="px-6 py-4">
+          <div className="bg-gray-50 rounded-xl px-4 py-3 text-sm text-gray-600 mb-4">
+            <span className="font-medium text-gray-900">{blockCount}</span> بلوك في المسودة
+            {!isFirstPublish && (
+              <span className="text-gray-400 ms-2">— سيحل محل النسخة المنشورة</span>
+            )}
+          </div>
+
+          {/* Mode selection */}
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl hover:bg-gray-50 border border-transparent has-[:checked]:border-[#5b9bd5] has-[:checked]:bg-blue-50/40 transition-colors">
+              <input
+                type="radio"
+                name="publish-mode"
+                value="now"
+                checked={mode === "now"}
+                onChange={() => setMode("now")}
+                className="accent-[#5b9bd5]"
+                data-schedule-toggle="now"
+              />
+              <span className="text-sm font-medium text-gray-700">نشر الآن</span>
+            </label>
+            <label className="flex items-center gap-3 cursor-pointer p-3 rounded-xl hover:bg-gray-50 border border-transparent has-[:checked]:border-[#5b9bd5] has-[:checked]:bg-blue-50/40 transition-colors">
+              <input
+                type="radio"
+                name="publish-mode"
+                value="schedule"
+                checked={mode === "schedule"}
+                onChange={() => setMode("schedule")}
+                className="accent-[#5b9bd5]"
+                data-schedule-toggle="later"
+              />
+              <span className="text-sm font-medium text-gray-700">جدولة للنشر لاحقاً</span>
+            </label>
+
+            {mode === "schedule" && (
+              <div className="px-3 pt-1 pb-2">
+                <input
+                  type="datetime-local"
+                  value={dateTime}
+                  onChange={(e) => setDateTime(e.target.value)}
+                  min={new Date(Date.now() + 60_000).toISOString().slice(0, 16)}
+                  className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2 outline-none focus:border-[#5b9bd5]"
+                  style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+                  data-publish-at-input=""
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Actions */}
+        <div className="px-6 pb-6 flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-sm font-medium text-gray-700 rounded-xl border border-gray-200 hover:bg-gray-50"
+          >
+            إلغاء
+          </button>
+          <button
+            onClick={() => mode === "now" ? onPublishNow() : onSchedule(new Date(dateTime).toISOString())}
+            disabled={publishing || (mode === "schedule" && !dateTime)}
+            className="px-5 py-2 text-sm font-semibold text-white rounded-xl transition-all hover:opacity-90 disabled:opacity-50"
+            style={{ background: "#5b9bd5" }}
+            data-publish-confirm-btn=""
+          >
+            {publishing ? "جاري النشر..." : mode === "now" ? "نشر" : "جدولة"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Unpublish Dialog ───────────────────────────────────────────────────────
+
+interface UnpublishDialogProps {
+  pageTitle: string;
+  loading: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function UnpublishDialog({ pageTitle, loading, onConfirm, onCancel }: UnpublishDialogProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" data-unpublish-dialog="">
+      <div
+        dir="rtl"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6"
+        style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0">
+            <Globe className="w-5 h-5 text-red-500" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-gray-900">إلغاء النشر</h3>
+            <p className="text-xs text-gray-400 truncate max-w-[200px]">{pageTitle}</p>
+          </div>
+        </div>
+        <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+          الصفحة لن تكون مرئية للزوار. يمكنك نشرها مجدداً في أي وقت.
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-sm font-medium text-gray-700 rounded-xl border border-gray-200 hover:bg-gray-50"
+          >
+            إلغاء
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="px-4 py-2 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl disabled:opacity-50 transition-colors"
+            data-unpublish-confirm-btn=""
+          >
+            {loading ? "جاري..." : "إلغاء النشر"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Conflict Dialog ────────────────────────────────────────────────────────
+
+interface ConflictDialogProps {
+  onOverwrite: () => void;
+  onLoadLatest: () => void;
+}
+
+function ConflictDialog({ onOverwrite, onLoadLatest }: ConflictDialogProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" data-conflict-dialog="">
+      <div
+        dir="rtl"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6"
+        style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-orange-50 flex items-center justify-center flex-shrink-0">
+            <Pencil className="w-5 h-5 text-orange-500" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-gray-900">تعديل متزامن</h3>
+          </div>
+        </div>
+        <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+          تم تعديل هذه الصفحة من جهاز آخر. اختر كيف تريد المتابعة:
+        </p>
+        <div className="space-y-2">
+          <button
+            onClick={onOverwrite}
+            className="w-full px-4 py-3 text-sm font-medium text-white rounded-xl transition-all hover:opacity-90 text-start"
+            style={{ background: "#5b9bd5" }}
+            data-overwrite-btn=""
+          >
+            <span className="font-semibold block">تجاهل وكتابة فوق</span>
+            <span className="text-xs opacity-80">احتفظ بتعديلاتك الحالية</span>
+          </button>
+          <button
+            onClick={onLoadLatest}
+            className="w-full px-4 py-3 text-sm font-medium text-gray-700 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors text-start"
+            data-load-latest-btn=""
+          >
+            <span className="font-semibold block">تحميل النسخة الأحدث</span>
+            <span className="text-xs text-gray-400">ستفقد التعديلات غير المحفوظة</span>
           </button>
         </div>
       </div>
@@ -683,33 +921,133 @@ interface EditorViewProps {
 }
 
 function EditorView({ page, onBack, onSaved }: EditorViewProps) {
-  const [publishing, setPublishing] = useState(false);
   const [seoOpen, setSeoOpen] = useState(false);
+  const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+  const [unpublishDialogOpen, setUnpublishDialogOpen] = useState(false);
+  const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
+  const [publishing, setPublishing] = useState(false);
+  const [unpublishing, setUnpublishing] = useState(false);
+  const [editorMenuOpen, setEditorMenuOpen] = useState(false);
 
+  // Track latest Puck data for auto-save (without re-rendering on every keystroke)
+  const currentDataRef = useRef<PuckData | null>(null);
+  const lastSavedAtRef = useRef<string>(page.updatedAt);
+
+  const initialData = (page.draftData ?? page.publishedData ?? {
+    content: [],
+    root: { props: { title: page.title, description: "" } },
+  }) as Partial<PuckData>;
+
+  // ── useAutoSave ─────────────────────────────────────────────
+  const { saveStatus, markDirty, doSave } = useAutoSave({
+    saveFn: async (signal) => {
+      const data = currentDataRef.current;
+      if (!data) return;
+      await pagesV2Api.autosave(
+        page.id,
+        data,
+        lastSavedAtRef.current,
+        signal,
+      );
+      lastSavedAtRef.current = new Date().toISOString();
+    },
+    onConflict: () => setConflictDialogOpen(true),
+    intervalMs: 30_000,
+  });
+
+  // ── Badge: computed from page status + whether user has local changes ────
+  const badgeStatus: PageBadgeStatus = saveStatus === "unsaved" || saveStatus === "saving"
+    ? (page.publishedData ? "modified" : "draft")
+    : computePageStatusBadge({
+        status: page.status,
+        draftData: page.draftData,
+        publishedData: page.publishedData,
+      });
+
+  // ── onChange: track current data + mark dirty ────────────────
+  const handleChange = useCallback((data: PuckData) => {
+    currentDataRef.current = data;
+    markDirty();
+  }, [markDirty]);
+
+  // ── onSave (manual, Puck's "Publish" button) ─────────────────
   const handleSave = useCallback(async (data: PuckData) => {
-    try {
-      await pagesV2Api.update(page.id, { draftData: data });
-      toast.success("تم حفظ المسودة");
-      onSaved();
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "فشل الحفظ");
-    }
-  }, [page.id, onSaved]);
+    currentDataRef.current = data;
+    await doSave();
+  }, [doSave]);
 
-  const handlePublish = useCallback(async (data: PuckData) => {
+  // ── Publish ──────────────────────────────────────────────────
+  const handlePublishNow = useCallback(async () => {
+    setPublishing(true);
     try {
-      await pagesV2Api.update(page.id, { draftData: data });
-      setPublishing(true);
+      // First flush any unsaved changes
+      const data = currentDataRef.current;
+      if (data && (saveStatus === "unsaved" || saveStatus === "error")) {
+        await pagesV2Api.autosave(page.id, data);
+        lastSavedAtRef.current = new Date().toISOString();
+      }
       await pagesV2Api.publish(page.id);
       toast.success("تم نشر الصفحة");
+      setPublishDialogOpen(false);
       onSaved();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "فشل النشر");
     } finally {
       setPublishing(false);
     }
+  }, [page.id, saveStatus, onSaved]);
+
+  // ── Schedule ─────────────────────────────────────────────────
+  const handleSchedule = useCallback(async (publishAt: string) => {
+    setPublishing(true);
+    try {
+      await pagesV2Api.schedule(page.id, publishAt);
+      toast.success("تمت جدولة النشر");
+      setPublishDialogOpen(false);
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل الجدولة");
+    } finally {
+      setPublishing(false);
+    }
   }, [page.id, onSaved]);
 
+  // ── Unpublish ────────────────────────────────────────────────
+  const handleUnpublish = useCallback(async () => {
+    setUnpublishing(true);
+    try {
+      await pagesV2Api.unpublish(page.id);
+      toast.success("تم إلغاء النشر");
+      setUnpublishDialogOpen(false);
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل إلغاء النشر");
+    } finally {
+      setUnpublishing(false);
+    }
+  }, [page.id, onSaved]);
+
+  // ── Conflict resolution ──────────────────────────────────────
+  const handleOverwrite = useCallback(async () => {
+    // Force save without lastSavedAt check (bypass conflict detection)
+    const data = currentDataRef.current;
+    if (!data) return;
+    try {
+      await pagesV2Api.update(page.id, { draftData: data });
+      lastSavedAtRef.current = new Date().toISOString();
+      toast.success("تم الحفظ");
+      setConflictDialogOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل الحفظ");
+    }
+  }, [page.id]);
+
+  const handleLoadLatest = useCallback(() => {
+    setConflictDialogOpen(false);
+    onSaved(); // Re-fetch page from server
+  }, [onSaved]);
+
+  // ── SEO save ─────────────────────────────────────────────────
   const handleSeoSave = useCallback(async (fields: SeoDrawerFields) => {
     try {
       await pagesV2Api.update(page.id, {
@@ -730,15 +1068,22 @@ function EditorView({ page, onBack, onSaved }: EditorViewProps) {
   }, [page.id]);
 
   const handleSlugCheck = useCallback(async (slug: string) => {
-    const res = await pagesV2Api.slugCheck(slug, page.id);
-    return res;
+    return pagesV2Api.slugCheck(slug, page.id);
   }, [page.id]);
 
-  const initialData = (page.draftData ?? page.publishedData ?? { content: [], root: { props: { title: page.title, description: "" } } }) as Partial<PuckData>;
+  // ── Publish button label logic ───────────────────────────────
+  const publishBtnLabel = (() => {
+    if (publishing) return "جاري النشر...";
+    if (!page.publishedData) return "نشر الصفحة";
+    if (badgeStatus === "modified") return "نشر التغييرات";
+    return "تم النشر";
+  })();
+  const publishBtnDisabled = publishing || (badgeStatus === "published" && !page.scheduledAt);
 
   return (
     <div dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }} className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-6 py-3 bg-white border-b border-gray-100 flex-shrink-0">
+      {/* ── Toolbar ─────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 px-5 py-2.5 bg-white border-b border-gray-100 flex-shrink-0">
         <button
           onClick={onBack}
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
@@ -747,45 +1092,94 @@ function EditorView({ page, onBack, onSaved }: EditorViewProps) {
           الصفحات
         </button>
 
-        <span className="text-gray-200">|</span>
+        <span className="text-gray-200 select-none">|</span>
 
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-sm font-semibold text-gray-900 truncate">{page.title}</span>
-          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[page.status]}`}>
-            {STATUS_LABEL[page.status]}
+        {/* Page title + status badge */}
+        <div className="flex items-center gap-2 min-w-0 flex-shrink">
+          <span className="text-sm font-semibold text-gray-900 truncate max-w-[200px]">{page.title}</span>
+          <span
+            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap ${BADGE_COLORS[badgeStatus]}`}
+            data-page-status-badge={badgeStatus}
+          >
+            {BADGE_LABEL[badgeStatus]}
           </span>
         </div>
 
+        {/* Auto-save indicator */}
+        <div
+          className={`text-xs font-medium flex items-center gap-1.5 transition-all ${SAVE_STATUS_COLORS[saveStatus]}`}
+          data-save-indicator=""
+          data-save-status={saveStatus}
+        >
+          {saveStatus === "saving" && <Loader2 className="w-3 h-3 animate-spin" />}
+          {saveStatus !== "idle" && (
+            <span>{formatSaveStatus(saveStatus)}</span>
+          )}
+        </div>
+
+        {/* Right actions */}
         <div className="ms-auto flex items-center gap-2">
           {/* SEO button */}
           <button
             onClick={() => setSeoOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 rounded-xl border border-gray-200 hover:border-[#5b9bd5] hover:text-[#5b9bd5] transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 rounded-xl border border-gray-200 hover:border-[#5b9bd5] hover:text-[#5b9bd5] transition-colors"
             data-seo-btn=""
           >
             <Search className="w-3.5 h-3.5" />
-            إعدادات SEO
+            SEO
           </button>
 
+          {/* Editor actions dropdown (unpublish, etc) */}
+          {page.status === "published" && (
+            <div className="relative">
+              <button
+                onClick={() => setEditorMenuOpen((v) => !v)}
+                className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-600 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
+                data-editor-menu-btn=""
+              >
+                <MoreVertical className="w-3.5 h-3.5" />
+              </button>
+              {editorMenuOpen && (
+                <div
+                  className="absolute end-0 top-full mt-1 z-30 bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[140px]"
+                  data-editor-menu=""
+                >
+                  <button
+                    onClick={() => { setEditorMenuOpen(false); setUnpublishDialogOpen(true); }}
+                    className="flex items-center gap-2 w-full text-start px-3.5 py-2 text-xs font-medium text-red-500 hover:bg-gray-50"
+                    data-unpublish-btn=""
+                  >
+                    <Globe className="w-3.5 h-3.5" />
+                    إلغاء النشر
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Publish button */}
           <button
-            onClick={() => handlePublish(initialData as PuckData)}
-            disabled={publishing}
-            className="px-4 py-2 text-sm font-semibold text-white rounded-xl transition-all hover:opacity-90 disabled:opacity-50"
+            onClick={() => !publishBtnDisabled && setPublishDialogOpen(true)}
+            disabled={publishBtnDisabled}
+            className="px-4 py-1.5 text-sm font-semibold text-white rounded-xl transition-all hover:opacity-90 disabled:opacity-40 disabled:cursor-default"
             style={{ background: "#5b9bd5" }}
+            data-publish-btn=""
           >
-            {publishing ? "جاري النشر..." : "نشر"}
+            {publishBtnLabel}
           </button>
         </div>
       </div>
 
+      {/* ── Editor ──────────────────────────────────────────── */}
       <div className="flex-1 overflow-hidden" data-testid="puck-editor">
         <PuckEditor
           initialData={initialData}
           onSave={handleSave}
+          onChange={handleChange}
         />
       </div>
 
-      {/* SEO Drawer */}
+      {/* ── SEO Drawer ──────────────────────────────────────── */}
       <SeoDrawer
         open={seoOpen}
         pageTitle={page.title}
@@ -805,6 +1199,33 @@ function EditorView({ page, onBack, onSaved }: EditorViewProps) {
         onSlugCheck={handleSlugCheck}
         onClose={() => setSeoOpen(false)}
       />
+
+      {/* ── Dialogs ─────────────────────────────────────────── */}
+      {publishDialogOpen && (
+        <PublishDialog
+          page={page}
+          publishing={publishing}
+          onPublishNow={handlePublishNow}
+          onSchedule={handleSchedule}
+          onCancel={() => setPublishDialogOpen(false)}
+        />
+      )}
+
+      {unpublishDialogOpen && (
+        <UnpublishDialog
+          pageTitle={page.title}
+          loading={unpublishing}
+          onConfirm={handleUnpublish}
+          onCancel={() => setUnpublishDialogOpen(false)}
+        />
+      )}
+
+      {conflictDialogOpen && (
+        <ConflictDialog
+          onOverwrite={handleOverwrite}
+          onLoadLatest={handleLoadLatest}
+        />
+      )}
     </div>
   );
 }

@@ -82,3 +82,13 @@ export {
   buildRobotsContent,
 } from "./utils/seo-utils";
 export type { SeoWarning, SeoWarningType } from "./utils/seo-utils";
+export {
+  computePageStatusBadge,
+  isContentEqual,
+  getRetryDelay,
+  shouldAutoSave,
+  formatSaveStatus,
+} from "./utils/autosave-utils";
+export type { PageBadgeStatus, SaveStatus } from "./utils/autosave-utils";
+export { useAutoSave } from "./hooks/useAutoSave";
+export type { UseAutoSaveOptions, UseAutoSaveResult } from "./hooks/useAutoSave";

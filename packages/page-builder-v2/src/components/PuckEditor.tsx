@@ -15,9 +15,11 @@ import { puckConfig } from "../config/puck-config";
 export interface PuckEditorProps {
   initialData?: Partial<Data>;
   onSave: (data: Data) => Promise<void> | void;
+  /** Called whenever editor content changes — used for auto-save dirty tracking */
+  onChange?: (data: Data) => void;
 }
 
-export function PuckEditor({ initialData, onSave }: PuckEditorProps) {
+export function PuckEditor({ initialData, onSave, onChange }: PuckEditorProps) {
   const emptyData: Data = {
     content: [],
     root: { props: { title: "" } },
@@ -33,6 +35,7 @@ export function PuckEditor({ initialData, onSave }: PuckEditorProps) {
       config={puckConfig}
       data={data}
       onPublish={onSave}
+      onChange={onChange}
     />
   );
 }

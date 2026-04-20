@@ -3011,8 +3011,12 @@ async function v2Request<T>(path: string, options: RequestInit = {}): Promise<T>
   });
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({ error: "Network error" }));
-    throw new Error(body.error ?? `HTTP ${res.status}`);
+    const body = await res.json().catch(() => ({ error: "Network error" })) as Record<string, unknown>;
+    // Include HTTP status in error message for consumer detection (e.g. 409 conflict)
+    const msg = typeof body.error === "string" ? body.error : `HTTP ${res.status}`;
+    const err = new Error(`[HTTP_${res.status}] ${msg}`);
+    (err as Error & { serverData?: unknown }).serverData = body.serverData;
+    throw err;
   }
   return res.json() as Promise<T>;
 }
@@ -3039,6 +3043,7 @@ export interface PageV2Full extends PageV2Summary {
   schemaType: string | null;
   robotsIndex: boolean;
   robotsFollow: boolean;
+  scheduledAt: string | null;
 }
 
 export interface PageV2SeoFields {
@@ -3084,4 +3089,18 @@ export const pagesV2Api = {
     v2Request<{ data: Array<{ id: string; versionNumber: number; changeType: string; createdAt: string; label?: string }> }>(
       `/pages/${id}/versions`
     ),
+  /** Auto-save: updates draftData only. Supports conflict detection via lastSavedAt. */
+  autosave: (id: string, draftData: unknown, lastSavedAt?: string, signal?: AbortSignal) =>
+    v2Request<{ data: PageV2Full }>(`/pages/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ draftData, lastSavedAt }),
+      signal,
+    }),
+  unpublish: (id: string) =>
+    v2Request<{ data: PageV2Full }>(`/pages/${id}/unpublish`, { method: "POST" }),
+  schedule: (id: string, publishAt: string) =>
+    v2Request<{ data: PageV2Full }>(`/pages/${id}/schedule`, {
+      method: "POST",
+      body: JSON.stringify({ publishAt }),
+    }),
 };

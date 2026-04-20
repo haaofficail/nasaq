@@ -70,6 +70,9 @@ export const pagesV2 = pgTable("pages_v2", {
   robotsIndex: boolean("robots_index").notNull().default(true),
   robotsFollow: boolean("robots_follow").notNull().default(true),
 
+  // جدولة النشر (Day 19)
+  scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+
   // نشر
   publishedAt: timestamp("published_at", { withTimezone: true }),
   publishedBy: uuid("published_by").references(() => users.id, {
