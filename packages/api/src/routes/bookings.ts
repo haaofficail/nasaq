@@ -252,19 +252,18 @@ bookingsRouter.get("/:id", async (c) => {
   const id = c.req.param("id");
   const requestId = c.get("requestId");
 
-  const [booking] = await db.select().from(bookings)
-    .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)));
+  const [booking] = await db.select().from(bookingRecords)
+    .where(and(eq(bookingRecords.id, id), eq(bookingRecords.orgId, orgId)));
 
   if (!booking) return c.json({ error: "الحجز غير موجود" }, 404);
 
   // Load related data in parallel
-  const [customer, location, items, bookingPayments, bookingInvoice] = await Promise.all([
+  const [customer, location, lines, bookingInvoice] = await Promise.all([
     db.select().from(customers).where(eq(customers.id, booking.customerId)).then(r => r[0]),
     booking.locationId
       ? db.select().from(locations).where(eq(locations.id, booking.locationId)).then(r => r[0])
       : null,
-    db.select().from(bookingItems).where(eq(bookingItems.bookingId, id)),
-    db.select().from(payments).where(eq(payments.bookingId, id)).orderBy(desc(payments.createdAt)),
+    db.select().from(bookingLines).where(eq(bookingLines.bookingRecordId, id)),
     // Computed invoice state — derived from invoices table, no stored column needed
     db.select({ id: invoices.id, invoiceNumber: invoices.invoiceNumber, status: invoices.status })
       .from(invoices)
@@ -274,30 +273,30 @@ bookingsRouter.get("/:id", async (c) => {
       .then(r => r[0] ?? null),
   ]);
 
-  // Fetch all addons in a single query instead of N per-item queries (Q1)
-  const allAddons = items.length > 0
-    ? await db.select().from(bookingItemAddons)
-        .where(inArray(bookingItemAddons.bookingItemId, items.map((i) => i.id)))
+  // Fetch all addons in a single query instead of N per-line queries
+  const allAddons = lines.length > 0
+    ? await db.select().from(bookingLineAddons)
+        .where(inArray(bookingLineAddons.bookingLineId, lines.map((l) => l.id)))
     : [];
 
-  const addonsByItemId = allAddons.reduce<Record<string, typeof allAddons>>((acc, addon) => {
-    if (!acc[addon.bookingItemId]) acc[addon.bookingItemId] = [];
-    acc[addon.bookingItemId].push(addon);
+  const addonsByLineId = allAddons.reduce<Record<string, typeof allAddons>>((acc, addon) => {
+    if (!acc[addon.bookingLineId]) acc[addon.bookingLineId] = [];
+    acc[addon.bookingLineId].push(addon);
     return acc;
   }, {});
 
-  const itemsWithAddons = items.map((item) => ({
-    ...item,
-    addons: addonsByItemId[item.id] ?? [],
+  const linesWithAddons = lines.map((line) => ({
+    ...line,
+    addons: addonsByLineId[line.id] ?? [],
   }));
 
+  // TODO Phase 3.C: add payments[] once payments schema is migrated to canonical
   return c.json({
     data: {
       ...booking,
       customer,
       location,
-      items: itemsWithAddons,
-      payments: bookingPayments,
+      items: linesWithAddons,
     },
   });
 });

@@ -228,7 +228,7 @@ export function BookingDetailPage() {
           <div className="bg-white rounded-2xl border border-[#eef2f6] p-6">
             <h2 className="font-semibold text-gray-900 mb-4">تفاصيل الحجز</h2>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-gray-400" /><span className="text-gray-500">تاريخ الحدث</span><span className="font-medium mr-auto">{booking.eventDate ? fmtDate(booking.eventDate) : "—"}</span></div>
+              <div className="flex items-center gap-2"><CalendarCheck className="w-4 h-4 text-gray-400" /><span className="text-gray-500">تاريخ الحدث</span><span className="font-medium mr-auto">{booking.startsAt ? fmtDate(booking.startsAt) : "—"}</span></div>
               <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-gray-400" /><span className="text-gray-500">المدة</span><span className="font-medium mr-auto">{booking.eventDuration || "—"} ساعة</span></div>
               <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-gray-400" /><span className="text-gray-500">الفرع</span><span className="font-medium mr-auto">{booking.locationName || "—"}</span></div>
               {booking.assignedUserName && (
@@ -409,7 +409,7 @@ export function BookingDetailPage() {
               {booking.status !== "cancelled" && booking.status !== "completed" && (
                 <button
                   onClick={() => {
-                    const d = booking.eventDate ? new Date(booking.eventDate).toISOString().slice(0, 16) : "";
+                    const d = booking.startsAt ? new Date(booking.startsAt).toISOString().slice(0, 16) : "";
                     setRescheduleDate(d);
                     setShowReschedule(true);
                   }}
