@@ -13,6 +13,8 @@ export { HeroVideoBlock, HeroVideoConfig } from "./blocks/hero/HeroVideo";
 export type { HeroVideoProps } from "./blocks/hero/HeroVideo";
 export { HeroSplitBlock, HeroSplitConfig } from "./blocks/hero/HeroSplit";
 export type { HeroSplitProps } from "./blocks/hero/HeroSplit";
+export { ProductsGridBlock, ProductsGridConfig } from "./blocks/products/ProductsGrid";
+export type { ProductsGridProps, ProductItem } from "./blocks/products/ProductsGrid";
 export { PuckEditor } from "./components/PuckEditor";
 export type { PuckEditorProps } from "./components/PuckEditor";
 export type { Data as PuckData } from "@measured/puck";

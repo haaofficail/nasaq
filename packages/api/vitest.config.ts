@@ -6,7 +6,7 @@ export default defineConfig({
     environment: "node",
     globals: true,
     // Only run v2 tests — existing tests use node:test runner, not Vitest
-    include: ["src/__tests__/pages-v2-*.test.ts", "src/__tests__/v2/**/*.test.ts"],
+    include: ["src/__tests__/pages-v2-*.test.ts", "src/__tests__/pagebuilder-*.test.ts", "src/__tests__/v2/**/*.test.ts"],
   },
   resolve: {
     alias: {

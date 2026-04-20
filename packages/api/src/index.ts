@@ -97,6 +97,7 @@ import { contractsRouter } from "./routes/contracts";
 import { hrRouter } from "./routes/hr";
 import { templatesRouter } from "./routes/templates";
 import { pagesV2Router } from "./routes/pages-v2";
+import { pagebuildersourcesRouter } from "./routes/pagebuilder-sources";
 import { onboardingRouter } from "./routes/onboarding";
 import { complianceRouter } from "./routes/compliance";
 import {
@@ -1451,6 +1452,10 @@ const appV2 = new Hono();
 appV2.use("/api/v2/pages/*", authMiddleware);
 appV2.use("/api/v2/pages/*", requireCapability("page_builder_v2"));
 appV2.route("/api/v2/pages", pagesV2Router);
+
+appV2.use("/api/v2/pagebuilder/*", authMiddleware);
+appV2.use("/api/v2/pagebuilder/*", requireCapability("page_builder_v2"));
+appV2.route("/api/v2/pagebuilder", pagebuildersourcesRouter);
 
 // Combined fetch: /api/v2/* → appV2, everything else → app (v1)
 const combinedFetch = async (req: Request): Promise<Response> => {
