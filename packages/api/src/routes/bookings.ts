@@ -1292,7 +1292,117 @@ bookingsRouter.patch("/:id/reschedule", async (c) => {
   const id = c.req.param("id");
   const body = rescheduleSchema.parse(await c.req.json());
 
+  const RESCHEDULE_REASONS: Record<string, string> = {
+    customer_request:  "بطلب العميل",
+    staff_unavailable: "الموظف غير متاح",
+    emergency:         "طارئ",
+    double_booking:    "تعارض مواعيد",
+    other:             "أخرى",
+  };
+
   try {
+    // ── Canonical path: booking_records ────────────────────────
+    const [canonicalCheck] = await db.select({ id: bookingRecords.id })
+      .from(bookingRecords)
+      .where(and(eq(bookingRecords.id, id), eq(bookingRecords.orgId, orgId)));
+
+    if (canonicalCheck) {
+      const updated = await db.transaction(async (tx) => {
+        const [existing] = await tx.select().from(bookingRecords)
+          .where(and(eq(bookingRecords.id, id), eq(bookingRecords.orgId, orgId)))
+          .for("update");
+        if (!existing) throw Object.assign(new Error("الحجز غير موجود"), { status: 404 });
+        if (existing.status === "cancelled") throw Object.assign(new Error("لا يمكن تعديل حجز ملغي"), { status: 422 });
+        if (existing.status === "completed") throw Object.assign(new Error("لا يمكن تعديل حجز مكتمل"), { status: 422 });
+
+        // Smart Conflict Preventer Guard — queries booking_records
+        const targetStaffId = body.assignedUserId !== undefined ? body.assignedUserId : existing.assignedUserId;
+        if (targetStaffId) {
+          const { rows: durRows } = await tx.execute(sql`
+            SELECT COALESCE(SUM(duration_minutes), 60) as duration
+            FROM booking_lines
+            WHERE booking_record_id = ${id}
+          `);
+          const durationMins = Number((durRows as any[])[0]?.duration ?? 60);
+
+          const staffStart = new Date(body.eventDate);
+          const staffEnd   = body.eventEndDate
+            ? new Date(body.eventEndDate)
+            : new Date(staffStart.getTime() + durationMins * 60_000);
+
+          await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${orgId}), hashtext(${"staff:" + targetStaffId}))`);
+
+          const { rows: staffConflict } = await tx.execute(sql`
+            SELECT id, booking_number FROM booking_records
+            WHERE org_id = ${orgId}
+              AND assigned_user_id = ${targetStaffId}
+              AND id != ${id}
+              AND status NOT IN ('cancelled', 'no_show')
+              AND starts_at < ${staffEnd.toISOString()}
+              AND COALESCE(ends_at, starts_at + COALESCE((
+                SELECT SUM(duration_minutes) FROM booking_lines
+                WHERE booking_record_id = booking_records.id
+              ), 60) * interval '1 minute') > ${staffStart.toISOString()}
+            FOR UPDATE
+          `);
+
+          if ((staffConflict as any[]).length > 0) {
+            throw Object.assign(
+              new Error("تعارض في مواعيد الموظف: " + (staffConflict as any[])[0].booking_number),
+              { status: 409 },
+            );
+          }
+        }
+
+        const reasonLabel  = RESCHEDULE_REASONS[body.reason] ?? body.reason;
+        const prevDate     = existing.startsAt ? new Date(existing.startsAt).toISOString() : "—";
+        const logLine      = `[تأجيل ${new Date().toISOString().slice(0, 10)}] من: ${prevDate} → إلى: ${body.eventDate} — السبب: ${reasonLabel}${body.notes ? ` — ${body.notes}` : ""}`;
+        const updatedNotes = existing.internalNotes ? `${existing.internalNotes}\n${logLine}` : logLine;
+
+        const updates: Partial<typeof bookingRecords.$inferInsert> = {
+          startsAt:      new Date(body.eventDate),
+          internalNotes: updatedNotes,
+          updatedAt:     new Date(),
+        };
+        if (body.eventEndDate  !== undefined) updates.endsAt        = new Date(body.eventEndDate);
+        if (body.assignedUserId !== undefined) updates.assignedUserId = body.assignedUserId;
+
+        const [upd] = await tx.update(bookingRecords)
+          .set(updates)
+          .where(and(eq(bookingRecords.id, id), eq(bookingRecords.orgId, orgId)))
+          .returning();
+
+        // Timeline event inside transaction (canonical — guaranteed atomicity)
+        await tx.insert(bookingTimelineEvents).values({
+          orgId,
+          bookingRecordId: id,
+          userId:    userId ?? null,
+          eventType: "rescheduled",
+          fromStatus: existing.status,
+          toStatus:   existing.status,
+          metadata: {
+            from:   existing.startsAt ? new Date(existing.startsAt).toISOString() : null,
+            to:     body.eventDate,
+            reason: body.reason,
+            notes:  body.notes ?? null,
+          },
+        } as any);
+
+        return upd;
+      });
+
+      insertAuditLog({
+        orgId, userId,
+        action: "rescheduled",
+        resource: "booking_record",
+        resourceId: updated.id,
+        metadata: { to: body.eventDate, reason: body.reason },
+      });
+
+      return c.json({ data: updated });
+    }
+
+    // ── Legacy path (unchanged) ─────────────────────────────────
     const updated = await db.transaction(async (tx) => {
       const [existing] = await tx.select().from(bookings)
         .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId))).for("update");
@@ -1309,7 +1419,7 @@ bookingsRouter.patch("/:id/reschedule", async (c) => {
           WHERE bi.booking_id = ${id}
         `);
         const durationMins = (durRows as any[])[0]?.duration || 60;
-        
+
         const staffStart = new Date(body.eventDate);
         const staffEnd = body.eventEndDate ? new Date(body.eventEndDate) : new Date(staffStart.getTime() + durationMins * 60_000);
 
@@ -1335,15 +1445,7 @@ bookingsRouter.patch("/:id/reschedule", async (c) => {
         }
       }
 
-      // Build note with reschedule log (append to existing internalNotes)
-      const REASONS: Record<string, string> = {
-        customer_request:  "بطلب العميل",
-        staff_unavailable: "الموظف غير متاح",
-        emergency:         "طارئ",
-        double_booking:    "تعارض مواعيد",
-        other:             "أخرى",
-      };
-      const reasonLabel = REASONS[body.reason] ?? body.reason;
+      const reasonLabel = RESCHEDULE_REASONS[body.reason] ?? body.reason;
       const prevDate = existing.eventDate ? new Date(existing.eventDate).toISOString() : "—";
       const logLine = `[تأجيل ${new Date().toISOString().slice(0, 10)}] من: ${prevDate} → إلى: ${body.eventDate} — السبب: ${reasonLabel}${body.notes ? ` — ${body.notes}` : ""}`;
       const updatedNotes = existing.internalNotes
@@ -1362,28 +1464,28 @@ bookingsRouter.patch("/:id/reschedule", async (c) => {
         .set(updates)
         .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)))
         .returning();
-        
+
       return upd;
     });
 
-  // Booking event — rescheduled
-  db.insert(bookingEvents).values({
-    orgId,
-    bookingId: id,
-    userId,
-    eventType: "rescheduled",
-    metadata: { to: body.eventDate, reason: body.reason, notes: body.notes },
-  }).catch(() => {});
+    // Booking event — rescheduled (legacy: fire-and-forget outside transaction)
+    db.insert(bookingEvents).values({
+      orgId,
+      bookingId: id,
+      userId,
+      eventType: "rescheduled",
+      metadata: { to: body.eventDate, reason: body.reason, notes: body.notes },
+    }).catch(() => {});
 
-  insertAuditLog({
-    orgId, userId,
-    action: "rescheduled",
-    resource: "booking",
-    resourceId: updated.id,
-    metadata: { to: body.eventDate, reason: body.reason },
-  });
+    insertAuditLog({
+      orgId, userId,
+      action: "rescheduled",
+      resource: "booking",
+      resourceId: updated.id,
+      metadata: { to: body.eventDate, reason: body.reason },
+    });
 
-  return c.json({ data: updated });
+    return c.json({ data: updated });
   } catch (err: any) {
     return c.json({ error: err.message }, err.status || 500);
   }

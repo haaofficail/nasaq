@@ -8,11 +8,24 @@
 
 import { type TestDb } from "./test-db";
 import {
-  organizations, customers,
+  organizations, customers, users,
   bookingRecords, bookingLines, bookingLineAddons,
   bookingTimelineEvents, bookingPaymentLinks,
   appointmentBookings, stayBookings, tableReservations, eventBookings,
 } from "@nasaq/db/schema";
+
+// ── User ───────────────────────────────────────────────────────
+
+export async function createTestUser(db: TestDb, orgId: string, overrides: Record<string, unknown> = {}) {
+  const [user] = await db.insert(users).values({
+    orgId,
+    name:  "موظف اختبار",
+    phone: `+9665${Date.now().toString().slice(-8)}`,
+    type:  "employee",
+    ...overrides,
+  } as any).returning();
+  return user;
+}
 
 // ── Org ────────────────────────────────────────────────────────
 
