@@ -2995,3 +2995,65 @@ export const flowersEventsApi = {
   transition:         (id: string, status: string) =>
     api.post<{ data: any; warning?: string }>(`/flowers-events/service-orders/${id}/transition`, { status }),
 };
+
+// ── Page Builder v2 API — /api/v2/* ───────────────────────────
+// Separate base from /api/v1 — these call the v2 router directly.
+const V2_BASE = "/api/v2";
+
+async function v2Request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  const token = localStorage.getItem("nasaq_token") ?? sessionStorage.getItem("nasaq_token");
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${V2_BASE}${path}`, {
+    ...options,
+    headers: { ...headers, ...options.headers as Record<string, string> },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ error: "Network error" }));
+    throw new Error(body.error ?? `HTTP ${res.status}`);
+  }
+  return res.json() as Promise<T>;
+}
+
+export interface PageV2Summary {
+  id: string;
+  slug: string;
+  title: string;
+  pageType: string;
+  status: "draft" | "published" | "archived";
+  sortOrder: number;
+  showInNavigation: boolean;
+  publishedAt: string | null;
+  updatedAt: string;
+}
+
+export interface PageV2Full extends PageV2Summary {
+  draftData: Record<string, unknown> | null;
+  publishedData: Record<string, unknown> | null;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  ogImage: string | null;
+}
+
+export const pagesV2Api = {
+  list:    (params?: { status?: string }) =>
+    v2Request<{ data: PageV2Summary[]; meta: { page: number; limit: number; total: number } }>(
+      `/pages${params?.status ? `?status=${params.status}` : ""}`
+    ),
+  get:     (id: string) =>
+    v2Request<{ data: PageV2Full }>(`/pages/${id}`),
+  create:  (d: { title: string; slug: string; pageType?: string; draftData?: unknown }) =>
+    v2Request<{ data: PageV2Full }>("/pages", { method: "POST", body: JSON.stringify(d) }),
+  update:  (id: string, d: Partial<{ title: string; slug: string; draftData: unknown }>) =>
+    v2Request<{ data: PageV2Full }>(`/pages/${id}`, { method: "PUT", body: JSON.stringify(d) }),
+  publish: (id: string) =>
+    v2Request<{ data: PageV2Full }>(`/pages/${id}/publish`, { method: "POST" }),
+  archive: (id: string) =>
+    v2Request<{ success: boolean }>(`/pages/${id}`, { method: "DELETE" }),
+  versions: (id: string) =>
+    v2Request<{ data: Array<{ id: string; versionNumber: number; changeType: string; createdAt: string; label?: string }> }>(
+      `/pages/${id}/versions`
+    ),
+};

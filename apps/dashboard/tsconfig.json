@@ -19,7 +19,11 @@
     "paths": {
       "@/*": ["./src/*"],
       "@nasaq/shared": ["../../packages/shared/src"],
-      "@nasaq/shared/*": ["../../packages/shared/src/*"]
+      "@nasaq/shared/*": ["../../packages/shared/src/*"],
+      "@nasaq/page-builder-v2": ["../../packages/page-builder-v2/src"],
+      "@nasaq/page-builder-v2/*": ["../../packages/page-builder-v2/src/*"],
+      "@nasaq/ui-v2": ["../../packages/ui-v2/src"],
+      "@nasaq/ui-v2/*": ["../../packages/ui-v2/src/*"]
     }
   },
   "include": ["src"]

@@ -9,7 +9,7 @@ import {
   LayoutDashboard, CalendarCheck, ShoppingBag, Package, Users,
   Layers, Box, UsersRound, Wallet, BarChart3, Globe, Send, Star, ShoppingCart, Tag,
   Settings, Shield, Bell, MessageCircle, ClipboardList, CreditCard, BookOpen,
-  Plug, ScanBarcode, FileSignature,
+  Plug, ScanBarcode, FileSignature, Layout,
   // specialty icons
   Flower2, UtensilsCrossed, Building, Truck, Key, PartyPopper, Camera, Wrench, Warehouse, ClipboardCheck,
   GraduationCap, BookOpenCheck, ClipboardPen, Calendar, AlertCircle, Upload, UserCheck, ShieldAlert, ShieldCheck,
@@ -177,6 +177,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     items: [
       { name: "المتجر الإلكتروني",  href: "/dashboard/storefront",  icon: Globe,   requiredCapabilities: [] },
       { name: "الموقع الإلكتروني", href: "/dashboard/website",     icon: Monitor, requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "الصفحات",           href: "/dashboard/pages-v2",    icon: Layout,  requiredCapabilities: ["page_builder_v2"], requiredPlan: "basic" },
     ],
   },
 

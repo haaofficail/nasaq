@@ -13,7 +13,9 @@ describe("puckConfig", () => {
     expect(puckConfig.root?.fields).toHaveProperty("description");
   });
 
-  it("starts with zero registered blocks (Day 2 scaffold)", () => {
-    expect(Object.keys(puckConfig.components ?? {})).toHaveLength(0);
+  it("registers HeroMinimal block (Day 5)", () => {
+    const keys = Object.keys(puckConfig.components ?? {});
+    expect(keys).toContain("HeroMinimal");
+    expect(keys.length).toBeGreaterThanOrEqual(1);
   });
 });

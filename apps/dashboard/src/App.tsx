@@ -229,6 +229,7 @@ const SchoolTeacherWorkPage        = lz(() => import("./pages/school/SchoolTeach
 const SchoolTeacherProfilePage     = lz(() => import("./pages/school/SchoolTeacherProfilePage"), "SchoolTeacherProfilePage");
 const SchoolInvitePage             = lz(() => import("./pages/school/SchoolInvitePage"), "SchoolInvitePage");
 const SchoolRolesPage              = lz(() => import("./pages/school/SchoolRolesPage"), "SchoolRolesPage");
+const PagesV2Page                  = lz(() => import("./pages/PagesV2Page"), "PagesV2Page");
 
 // ── Loading fallback ───────────────────────────────────────────────
 function PageLoader() {
@@ -475,6 +476,9 @@ export default function App() {
           <Route path="events" element={<EventsPage />} />
           <Route path="events/quotations" element={<EventQuotationsPage />} />
           <Route path="packages" element={<PackagesPage />} />
+
+          <Route path="pages-v2" element={<PagesV2Page />} />
+          <Route path="pages-v2/:id" element={<PagesV2Page />} />
 
           <Route path="media" element={<MediaLibraryPage />} />
           <Route path="galleries" element={<GalleriesPage />} />
