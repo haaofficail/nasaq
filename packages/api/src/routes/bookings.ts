@@ -669,6 +669,274 @@ bookingsRouter.post("/", async (c) => {
     }
   }
 
+  // ── Canonical path (bookingType present) ────────────────────────────────────
+  if (body.bookingType !== undefined) {
+    const canonicalBookingType = body.bookingType;
+    const engineRowId = crypto.randomUUID();
+
+    let canonicalRecord: typeof bookingRecords.$inferSelect;
+    let canonicalLines: { id: string; serviceRefId: string | null; itemName: string; durationMinutes: number | null }[] = [];
+
+    const targetStaffId = body.assignedUserId ?? userId;
+
+    try {
+      canonicalRecord = await db.transaction(async (tx) => {
+        // Prevents hung transactions from advisory locks
+        await tx.execute(sql`SET LOCAL lock_timeout = '5s'`);
+
+        // Location conflict check (engine types only)
+        if (body.locationId && ENGINE_BOOKING_TYPES.has(canonicalBookingType)) {
+          const durationMins = ENGINE_DEFAULT_DURATION_MINS[canonicalBookingType] ?? 60;
+          const eventStart   = resolvedEventDate;
+          const eventEnd     = body.eventEndDate
+            ? new Date(body.eventEndDate)
+            : new Date(resolvedEventDate.getTime() + durationMins * 60_000);
+
+          await tx.execute(
+            sql`SELECT pg_advisory_xact_lock(hashtext(${orgId}), hashtext(${"loc:" + body.locationId}))`
+          );
+
+          const { rows: conflictRows } = await tx.execute(sql`
+            SELECT id, booking_number FROM booking_records
+            WHERE org_id      = ${orgId}
+              AND location_id  = ${body.locationId}
+              AND status NOT IN ('cancelled', 'no_show')
+              AND starts_at   < ${eventEnd.toISOString()}
+              AND COALESCE(ends_at, starts_at + ${durationMins} * interval '1 minute') >= ${eventStart.toISOString()}
+            FOR UPDATE
+          `);
+
+          if ((conflictRows as any[]).length > 0) {
+            throw Object.assign(
+              new Error("يوجد تعارض — الموقع محجوز في هذا التاريخ"),
+              { status: 409, code: "LOCATION_CONFLICT", conflicts: (conflictRows as any[]).map((r) => (r as any).booking_number) },
+            );
+          }
+        }
+
+        // Staff conflict check (conditional — only when assignedUserId provided)
+        if (targetStaffId && ENGINE_BOOKING_TYPES.has(canonicalBookingType)) {
+          const totalDurationMins = itemsToInsert.reduce((s: number, item: any) => s + (item.durationMinutes ?? 0), 0) || 60;
+          const staffStart = resolvedEventDate;
+          const staffEnd   = body.eventEndDate
+            ? new Date(body.eventEndDate)
+            : new Date(resolvedEventDate.getTime() + totalDurationMins * 60_000);
+
+          await tx.execute(
+            sql`SELECT pg_advisory_xact_lock(hashtext(${orgId}), hashtext(${"staff:" + targetStaffId}))`
+          );
+
+          const { rows: staffConflict } = await tx.execute(sql`
+            SELECT id, booking_number FROM booking_records
+            WHERE org_id           = ${orgId}
+              AND assigned_user_id  = ${targetStaffId}
+              AND status NOT IN ('cancelled', 'no_show')
+              AND starts_at        < ${staffEnd.toISOString()}
+              AND COALESCE(ends_at, starts_at + COALESCE((
+                SELECT SUM(duration_minutes) FROM booking_lines
+                WHERE booking_record_id = booking_records.id
+              ), 60) * interval '1 minute') > ${staffStart.toISOString()}
+            FOR UPDATE
+          `);
+
+          if ((staffConflict as any[]).length > 0) {
+            throw Object.assign(
+              new Error("الموظف لديه حجز آخر في نفس الوقت"),
+              { status: 409, code: "STAFF_SLOT_CONFLICT", conflicts: (staffConflict as any[]).map((r) => (r as any).booking_number) },
+            );
+          }
+        }
+
+        // ① INSERT booking_records
+        // bookingRef intentionally NULL — it references bookings.id (legacy data only)
+        const [newRecord] = await tx.insert(bookingRecords).values({
+          orgId,
+          customerId:     body.customerId,
+          bookingNumber,
+          bookingType:    canonicalBookingType,
+          status:         "pending",
+          paymentStatus:  "pending",
+          startsAt:       resolvedEventDate,
+          endsAt:         body.eventEndDate ? new Date(body.eventEndDate) : null,
+          locationId:     body.locationId ?? null,
+          customLocation: body.customLocation ?? null,
+          locationNotes:  body.locationNotes ?? null,
+          customerNotes:  body.customerNotes ?? null,
+          internalNotes:  body.internalNotes ?? null,
+          assignedUserId: targetStaffId ?? null,
+          subtotal:       subtotal.toFixed(2),
+          discountAmount: "0",
+          vatAmount:      vatAmount.toFixed(2),
+          totalAmount:    totalAmount.toFixed(2),
+          depositAmount:  depositAmount.toFixed(2),
+          paidAmount:     "0",
+          balanceDue:     totalAmount.toFixed(2),
+          couponCode:     body.couponCode ?? null,
+          isRecurring:    false,
+          trackingToken,
+          source:         body.source ?? "dashboard",
+        } as any).returning();
+
+        // ② INSERT booking_lines (serviceRefId bridges to legacy service catalog)
+        const insertedLineIds: string[] = [];
+        if (itemsToInsert.length > 0) {
+          const lineValues = itemsToInsert.map((item: any) => ({
+            bookingRecordId: newRecord.id,
+            serviceRefId:    item.serviceId,
+            itemName:        item.serviceName,
+            lineType:        "service",
+            quantity:        item.quantity,
+            unitPrice:       item.unitPrice,
+            totalPrice:      item.totalPrice,
+            durationMinutes: item.durationMinutes ?? null,
+            vatInclusive:    item.vatInclusive ?? true,
+          }));
+          const insertedLines = await tx.insert(bookingLines).values(lineValues as any).returning();
+          insertedLines.forEach((line) => {
+            insertedLineIds.push(line.id);
+            canonicalLines.push({ id: line.id, serviceRefId: line.serviceRefId ?? null, itemName: line.itemName, durationMinutes: line.durationMinutes ?? null });
+          });
+        }
+
+        // ③ INSERT engine table row (MANDATORY for non-immediate types)
+        if (ENGINE_BOOKING_TYPES.has(canonicalBookingType)) {
+          await insertEngineRow(tx as any, canonicalBookingType, engineRowId, newRecord, targetStaffId ?? null, body.source ?? "dashboard");
+        }
+
+        // ④ INSERT booking_timeline_events — "created" (inside transaction — atomic)
+        await tx.insert(bookingTimelineEvents).values({
+          orgId,
+          bookingRecordId: newRecord.id,
+          userId,
+          eventType:       "created",
+          fromStatus:      null,
+          toStatus:        "pending",
+          metadata:        { bookingNumber, source: body.source ?? "dashboard" },
+        } as any);
+
+        // ⑤ INSERT audit_log — inside transaction (PDPL: audit must not outlive the record)
+        await tx.insert(auditLogs).values({
+          orgId,
+          userId,
+          action:     "created",
+          resource:   "booking_record",
+          resourceId: newRecord.id,
+          metadata:   { bookingNumber, bookingType: canonicalBookingType },
+        } as any);
+
+        // ⑥ Assignment (canonical table)
+        if (userId) {
+          await tx.insert(bookingRecordAssignments).values({
+            orgId,
+            bookingRecordId: newRecord.id,
+            userId,
+            role:       "staff",
+            assignedAt: new Date(),
+          } as any);
+
+          // Commissions per line (canonical table)
+          const canonicalCommissions: any[] = [];
+          for (let i = 0; i < itemsToInsert.length; i++) {
+            const item = itemsToInsert[i] as any;
+            const lineId = insertedLineIds[i] ?? null;
+            const cost      = serviceCostMap.get(item.serviceId);
+            const staffRow  = serviceStaffMap.get(item.serviceId);
+
+            let commissionMode: string = "percentage";
+            let rate: number = 0;
+
+            if (staffRow && staffRow.commissionMode === "none") {
+              continue;
+            } else if (staffRow && staffRow.commissionMode === "fixed") {
+              commissionMode = "fixed";
+              rate = parseFloat(staffRow.commissionValue as string) || 0;
+            } else if (staffRow && staffRow.commissionMode === "percentage") {
+              commissionMode = "percentage";
+              rate = parseFloat(staffRow.commissionValue as string) || 0;
+            } else {
+              commissionMode = "percentage";
+              rate = cost ? (parseFloat(cost.commissionPercent as string) || 0) : 10;
+            }
+
+            if (rate === 0) continue;
+
+            const baseAmount = parseFloat(item.totalPrice);
+            const commissionAmount = commissionMode === "fixed" ? rate : baseAmount * (rate / 100);
+
+            canonicalCommissions.push({
+              orgId,
+              bookingRecordId: newRecord.id,
+              bookingLineId:   lineId,
+              userId,
+              serviceRefId:    item.serviceId,
+              commissionMode,
+              rate:             rate.toFixed(2),
+              baseAmount:       baseAmount.toFixed(2),
+              commissionAmount: commissionAmount.toFixed(2),
+              status:           "pending",
+            });
+          }
+
+          if (canonicalCommissions.length > 0) {
+            await tx.insert(bookingRecordCommissions).values(canonicalCommissions as any);
+          }
+        }
+
+        // ⑦ Update customer stats
+        await tx.update(customers).set({
+          totalBookings: sql`${customers.totalBookings} + 1`,
+          lastBookingAt: new Date(),
+          updatedAt:     new Date(),
+        }).where(eq(customers.id, body.customerId));
+
+        return newRecord;
+      });
+    } catch (err: any) {
+      if (err.code === "55P03") {
+        return c.json({ error: "الموقع مشغول حالياً، حاول بعد قليل", code: "LOCK_TIMEOUT" }, 503);
+      }
+      if (err?.status === 409) {
+        salonLog.bookingConflictRejected({
+          requestId: requestId ?? undefined, orgId, assignedUserId: userId ?? undefined,
+          metadata: { conflictType: err.code === "LOCATION_CONFLICT" ? "location" : "staff", conflictBookings: err.conflicts ?? [] },
+        });
+        return c.json({ error: err.message, code: err.code, conflicts: err.conflicts ?? [] }, 409);
+      }
+      salonLog.bookingFailed({
+        requestId: requestId ?? undefined, orgId, assignedUserId: userId ?? undefined,
+        metadata: { reason: err?.message ?? "unknown" },
+      });
+      throw err;
+    }
+
+    salonLog.bookingCreated({
+      requestId: requestId ?? undefined, orgId,
+      bookingId: canonicalRecord.id,
+      customerId: canonicalRecord.customerId ?? undefined,
+      assignedUserId: userId ?? undefined,
+      metadata: { bookingNumber: canonicalRecord.bookingNumber },
+    });
+
+    if (org?.plan === "free") {
+      await db.update(organizations)
+        .set({ bookingUsed: sql`${organizations.bookingUsed} + 1` })
+        .where(eq(organizations.id, orgId));
+    }
+
+    fireBookingEvent("booking_confirmed", { orgId, bookingId: canonicalRecord.id });
+    fireBookingEvent("owner_new_booking", { orgId, bookingId: canonicalRecord.id });
+
+    return c.json({
+      data: {
+        ...canonicalRecord,
+        lines: canonicalLines,
+        engineRowId,
+        trackingUrl: `/track/${trackingToken}`,
+      },
+    }, 201);
+  }
+
+  // ── Legacy path (bookingType absent — existing callers unchanged) ────────────
   let booking: typeof bookings.$inferSelect;
   try {
     booking = await db.transaction(async (tx) => {
