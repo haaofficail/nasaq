@@ -137,7 +137,7 @@ export function resolveStatusEnteredAt(
  * المنطق: لكل booking_id، آخر status_changed event حيث to_status = current booking.status.
  * مصدر واحد للحقيقة مطابق لـ resolveStatusEnteredAt — الفرق أنه مجمّع لتجنب N+1.
  *
- * يُرجع Map<bookingId → statusEnteredAt>.
+ * يُرجع Map<bookingRecordId → statusEnteredAt>.
  * Bookings غير موجودة في النتيجة = لا history = caller يطبّق fallback.
  */
 async function fetchStatusEnteredAtBatch(
@@ -362,11 +362,11 @@ export async function runPostTransitionAutomations(
     } as any);
 
     log.info(
-      { orgId: params.orgId, bookingId: params.bookingRecordId, toStatus: params.toStatus },
+      { orgId: params.orgId, bookingRecordId: params.bookingRecordId, toStatus: params.toStatus },
       "[ops-engine] automation_triggered event logged",
     );
   } catch (err) {
-    log.error({ err, bookingId: params.bookingRecordId }, "[ops-engine] automation hook failed silently");
+    log.error({ err, bookingRecordId: params.bookingRecordId }, "[ops-engine] automation hook failed silently");
   }
 }
 
@@ -402,7 +402,7 @@ export async function recordBlockedTransitionEvent(
       workflowMode:  params.workflowMode,
     },
   } as any).catch((err: unknown) => {
-    log.error({ err, bookingId: params.bookingRecordId }, "[ops-engine] status_blocked event insert failed");
+    log.error({ err, bookingRecordId: params.bookingRecordId }, "[ops-engine] status_blocked event insert failed");
   });
 }
 
