@@ -1524,16 +1524,16 @@ bookingsRouter.get("/track/:token", async (c) => {
 
   const [booking] = await db
     .select({
-      bookingNumber: bookings.bookingNumber,
-      status: bookings.status,
-      paymentStatus: bookings.paymentStatus,
-      eventDate: bookings.eventDate,
-      totalAmount: bookings.totalAmount,
-      paidAmount: bookings.paidAmount,
-      balanceDue: bookings.balanceDue,
+      bookingNumber: bookingRecords.bookingNumber,
+      status:        bookingRecords.status,
+      paymentStatus: bookingRecords.paymentStatus,
+      startsAt:      bookingRecords.startsAt,
+      totalAmount:   bookingRecords.totalAmount,
+      paidAmount:    bookingRecords.paidAmount,
+      balanceDue:    bookingRecords.balanceDue,
     })
-    .from(bookings)
-    .where(eq(bookings.trackingToken, token));
+    .from(bookingRecords)
+    .where(eq(bookingRecords.trackingToken, token));
 
   if (!booking) return c.json({ error: "الحجز غير موجود" }, 404);
 
