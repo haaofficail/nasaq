@@ -5,8 +5,8 @@
  * Gate:   requireCapability("page_builder_v2")
  *
  * Endpoints:
- *   GET /sources/products   — products list for ProductsGrid block
- *   GET /sources/categories — categories for external Puck field
+ *   GET /sources/products   — products list (supports ?ids= for ProductsFeatured)
+ *   GET /sources/categories — categories with slug, imageUrl, productCount
  *
  * Security:
  *   - orgId is ALWAYS taken from auth context (never from query params)
@@ -14,7 +14,7 @@
  */
 
 import { Hono } from "hono";
-import { eq, and, desc, asc, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, inArray, count } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import { services, serviceMedia, categories } from "@nasaq/db/schema";
 import { getOrgId } from "../lib/helpers";
@@ -34,19 +34,79 @@ function parseLimit(raw: string | undefined): number {
 
 // ═══════════════════════════════════════════════════════════════
 // GET /sources/products
+// Supports: ?limit, ?categoryId, ?featured, ?sortBy  (normal browse)
+//           ?ids=uuid1,uuid2,...                       (ProductsFeatured: fetch by ID)
 // ═══════════════════════════════════════════════════════════════
 
 pagebuildersourcesRouter.get("/sources/products", async (c) => {
   const orgId = getOrgId(c);       // ← from auth context — never from query
 
+  const rawIds      = c.req.query("ids");
   const rawLimit    = c.req.query("limit");
   const categoryId  = c.req.query("categoryId");
   const featured    = c.req.query("featured");
   const sortBy      = c.req.query("sortBy") ?? "newest";
 
+  // ── ids= mode (ProductsFeatured: fetch specific products) ──
+  if (rawIds !== undefined) {
+    const ids = rawIds.split(",").map((s) => s.trim()).filter(Boolean);
+    if (ids.length === 0) return c.json({ products: [] });
+
+    const rows = await db
+      .select({
+        id:         services.id,
+        name:       services.name,
+        slug:       services.slug,
+        price:      services.basePrice,
+        currency:   services.currency,
+        isFeatured: services.isFeatured,
+      })
+      .from(services)
+      .where(
+        and(
+          eq(services.orgId, orgId),
+          inArray(services.id, ids),
+        )
+      )
+      .limit(MAX_LIMIT);
+
+    if (rows.length === 0) return c.json({ products: [] });
+
+    const covers = await db
+      .select({
+        serviceId: serviceMedia.serviceId,
+        url:       serviceMedia.url,
+        altText:   serviceMedia.altText,
+      })
+      .from(serviceMedia)
+      .where(
+        and(
+          inArray(serviceMedia.serviceId, rows.map((r) => r.id)),
+          eq(serviceMedia.isActive as never, true),
+          eq(serviceMedia.isCover  as never, true),
+        )
+      )
+      .limit(rows.length);
+
+    const coverMap: Record<string, { url: string; altText: string | null }> = {};
+    for (const cv of covers) coverMap[cv.serviceId] = { url: cv.url, altText: cv.altText };
+
+    const products = rows.map((r) => ({
+      id:       r.id,
+      name:     r.name,
+      slug:     r.slug,
+      price:    r.price,
+      currency: r.currency,
+      imageUrl: coverMap[r.id]?.url    ?? null,
+      imageAlt: coverMap[r.id]?.altText ?? null,
+    }));
+
+    return c.json({ products });
+  }
+
+  // ── Normal browse mode ─────────────────────────────────────
   const limit = parseLimit(rawLimit);
 
-  // ── Build WHERE conditions ──────────────────────────────────
   const conditions: ReturnType<typeof eq>[] = [
     eq(services.orgId, orgId),
     eq(services.status, "active" as never),
@@ -60,7 +120,6 @@ pagebuildersourcesRouter.get("/sources/products", async (c) => {
     conditions.push(eq(services.isFeatured, true) as never);
   }
 
-  // ── ORDER BY ────────────────────────────────────────────────
   type OrderFn = typeof desc | typeof asc;
   let orderExpr: ReturnType<OrderFn>;
   switch (sortBy) {
@@ -71,7 +130,6 @@ pagebuildersourcesRouter.get("/sources/products", async (c) => {
     default:            orderExpr = desc(services.createdAt);     break;
   }
 
-  // ── Main products query ─────────────────────────────────────
   const rows = await db
     .select({
       id:         services.id,
@@ -86,11 +144,8 @@ pagebuildersourcesRouter.get("/sources/products", async (c) => {
     .orderBy(orderExpr)
     .limit(limit);
 
-  if (rows.length === 0) {
-    return c.json({ products: [] });
-  }
+  if (rows.length === 0) return c.json({ products: [] });
 
-  // ── Attach cover images in a single batch query ─────────────
   const ids = rows.map((r) => r.id);
 
   const covers = await db
@@ -104,7 +159,7 @@ pagebuildersourcesRouter.get("/sources/products", async (c) => {
       and(
         inArray(serviceMedia.serviceId, ids),
         eq(serviceMedia.isActive as never, true),
-        eq(serviceMedia.isCover as never, true),
+        eq(serviceMedia.isCover  as never, true),
       )
     )
     .limit(ids.length);
@@ -115,13 +170,13 @@ pagebuildersourcesRouter.get("/sources/products", async (c) => {
   }
 
   const products = rows.map((r) => ({
-    id:        r.id,
-    name:      r.name,
-    slug:      r.slug,
-    price:     r.price,
-    currency:  r.currency,
-    imageUrl:  coverMap[r.id]?.url   ?? null,
-    imageAlt:  coverMap[r.id]?.altText ?? null,
+    id:       r.id,
+    name:     r.name,
+    slug:     r.slug,
+    price:    r.price,
+    currency: r.currency,
+    imageUrl: coverMap[r.id]?.url    ?? null,
+    imageAlt: coverMap[r.id]?.altText ?? null,
   }));
 
   return c.json({ products });
@@ -129,16 +184,55 @@ pagebuildersourcesRouter.get("/sources/products", async (c) => {
 
 // ═══════════════════════════════════════════════════════════════
 // GET /sources/categories
+// Returns: { categories: [{ id, name, slug, imageUrl, productCount }] }
 // ═══════════════════════════════════════════════════════════════
 
 pagebuildersourcesRouter.get("/sources/categories", async (c) => {
   const orgId = getOrgId(c);       // ← from auth context — never from query
 
   const rows = await db
-    .select({ id: categories.id, name: categories.name })
+    .select({
+      id:    categories.id,
+      name:  categories.name,
+      slug:  categories.slug,
+      image: categories.image,
+    })
     .from(categories)
     .where(and(eq(categories.orgId, orgId), eq(categories.isActive, true)))
     .orderBy(asc(categories.sortOrder), asc(categories.name));
 
-  return c.json(rows);
+  if (rows.length === 0) return c.json({ categories: [] });
+
+  // ── Product count per category (single batch query) ─────────
+  const catIds = rows.map((r) => r.id);
+
+  const countRows = await db
+    .select({
+      categoryId: services.categoryId,
+      cnt:        count(),
+    })
+    .from(services)
+    .where(
+      and(
+        eq(services.orgId, orgId),
+        eq(services.status, "active" as never),
+        inArray(services.categoryId, catIds),
+      )
+    )
+    .groupBy(services.categoryId);
+
+  const countMap: Record<string, number> = {};
+  for (const row of countRows) {
+    if (row.categoryId) countMap[row.categoryId] = Number(row.cnt);
+  }
+
+  const result = rows.map((r) => ({
+    id:           r.id,
+    name:         r.name,
+    slug:         r.slug,
+    imageUrl:     r.image ?? null,
+    productCount: countMap[r.id] ?? 0,
+  }));
+
+  return c.json({ categories: result });
 });

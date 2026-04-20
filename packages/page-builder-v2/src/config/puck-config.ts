@@ -5,18 +5,24 @@ import { HeroGalleryConfig } from "../blocks/hero/HeroGallery";
 import { HeroVideoConfig } from "../blocks/hero/HeroVideo";
 import { HeroSplitConfig } from "../blocks/hero/HeroSplit";
 import { ProductsGridConfig } from "../blocks/products/ProductsGrid";
+import { ProductsFeaturedConfig } from "../blocks/products/ProductsFeatured";
+import { CategoriesGridConfig } from "../blocks/categories/CategoriesGrid";
+import { CategoriesCarouselConfig } from "../blocks/categories/CategoriesCarousel";
 
 // Page Builder v2 — Puck configuration
 // All blocks: RTL, IBM Plex Sans Arabic, Tailwind-only, brand #5b9bd5
 
 export const puckConfig: Config = {
   components: {
-    HeroMinimal:   HeroMinimalConfig,
-    HeroShowcase:  HeroShowcaseConfig,
-    HeroGallery:   HeroGalleryConfig,
-    HeroVideo:     HeroVideoConfig,
-    HeroSplit:     HeroSplitConfig,
-    ProductsGrid:  ProductsGridConfig,
+    HeroMinimal:        HeroMinimalConfig,
+    HeroShowcase:       HeroShowcaseConfig,
+    HeroGallery:        HeroGalleryConfig,
+    HeroVideo:          HeroVideoConfig,
+    HeroSplit:          HeroSplitConfig,
+    ProductsGrid:       ProductsGridConfig,
+    ProductsFeatured:   ProductsFeaturedConfig,
+    CategoriesGrid:     CategoriesGridConfig,
+    CategoriesCarousel: CategoriesCarouselConfig,
   },
   root: {
     fields: {

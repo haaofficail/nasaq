@@ -111,10 +111,19 @@ const MOCK_PRODUCTS = [
   },
 ];
 
-const MOCK_CATEGORIES = [
-  { id: "cat-001", name: "ورود" },
-  { id: "cat-002", name: "زهور جافة" },
+// Rich categories fixture used by Day 11 enhanced endpoint
+const MOCK_CATEGORIES_RAW = [
+  { id: "cat-001", name: "ورود",       slug: "roses",         image: "https://r2.example.com/roses.jpg" },
+  { id: "cat-002", name: "زهور جافة", slug: "dried-flowers", image: null },
 ];
+
+const MOCK_COUNT_ROWS = [
+  { categoryId: "cat-001", cnt: 5 },
+  { categoryId: "cat-002", cnt: 2 },
+];
+
+// Kept for backward compat in old tests that push bare { id, name } rows
+const MOCK_CATEGORIES = MOCK_CATEGORIES_RAW;
 
 // ═══════════════════════════════════════════════════════════════
 // PRODUCTS ENDPOINT
@@ -238,7 +247,7 @@ describe("GET /api/v2/pagebuilder/sources/products", () => {
 });
 
 // ═══════════════════════════════════════════════════════════════
-// CATEGORIES ENDPOINT
+// CATEGORIES ENDPOINT  (Day 11: enhanced response format)
 // ═══════════════════════════════════════════════════════════════
 
 describe("GET /api/v2/pagebuilder/sources/categories", () => {
@@ -247,34 +256,107 @@ describe("GET /api/v2/pagebuilder/sources/categories", () => {
     __dbResults.length = 0;
   });
 
-  it("returns categories array for org", async () => {
-    pushResult(MOCK_CATEGORIES);
+  it("returns { categories } wrapper (not a raw array)", async () => {
+    pushResult(MOCK_CATEGORIES_RAW);
+    pushResult(MOCK_COUNT_ROWS);
     const res = await makeApp().request("/api/v2/pagebuilder/sources/categories");
     expect(res.status).toBe(200);
-    const body = await res.json() as unknown[];
-    expect(Array.isArray(body)).toBe(true);
+    const body = await res.json() as { categories: unknown[] };
+    expect(body).toHaveProperty("categories");
+    expect(Array.isArray(body.categories)).toBe(true);
   });
 
-  it("each category has id and name", async () => {
-    pushResult(MOCK_CATEGORIES);
+  it("each category has id, name, slug, imageUrl, productCount", async () => {
+    pushResult(MOCK_CATEGORIES_RAW);
+    pushResult(MOCK_COUNT_ROWS);
     const res = await makeApp().request("/api/v2/pagebuilder/sources/categories");
-    const body = await res.json() as Record<string, unknown>[];
-    expect(body[0]).toHaveProperty("id");
-    expect(body[0]).toHaveProperty("name");
+    const body = await res.json() as { categories: Record<string, unknown>[] };
+    const cat = body.categories[0];
+    expect(cat).toHaveProperty("id");
+    expect(cat).toHaveProperty("name");
+    expect(cat).toHaveProperty("slug");
+    expect(cat).toHaveProperty("imageUrl");
+    expect(cat).toHaveProperty("productCount");
   });
 
-  it("returns empty array when no categories", async () => {
+  it("productCount is a number", async () => {
+    pushResult(MOCK_CATEGORIES_RAW);
+    pushResult(MOCK_COUNT_ROWS);
+    const res = await makeApp().request("/api/v2/pagebuilder/sources/categories");
+    const body = await res.json() as { categories: Record<string, unknown>[] };
+    expect(typeof body.categories[0].productCount).toBe("number");
+  });
+
+  it("imageUrl is null when category has no image", async () => {
+    pushResult(MOCK_CATEGORIES_RAW);
+    pushResult(MOCK_COUNT_ROWS);
+    const res = await makeApp().request("/api/v2/pagebuilder/sources/categories");
+    const body = await res.json() as { categories: Record<string, unknown>[] };
+    // cat-002 has image=null
+    const dried = body.categories.find((c) => c.id === "cat-002");
+    expect(dried?.imageUrl).toBeNull();
+  });
+
+  it("returns { categories: [] } when no categories exist", async () => {
+    pushResult([]);
     pushResult([]);
     const res = await makeApp().request("/api/v2/pagebuilder/sources/categories");
     expect(res.status).toBe(200);
-    const body = await res.json() as unknown[];
-    expect(body).toEqual([]);
+    const body = await res.json() as { categories: unknown[] };
+    expect(body.categories).toEqual([]);
+  });
+
+  it("productCount is 0 for category with no products", async () => {
+    pushResult([MOCK_CATEGORIES_RAW[0]]);
+    pushResult([]); // no count rows returned
+    const res = await makeApp().request("/api/v2/pagebuilder/sources/categories");
+    const body = await res.json() as { categories: Record<string, unknown>[] };
+    expect(body.categories[0].productCount).toBe(0);
   });
 
   it("MULTI-TENANT: categories scoped to auth orgId only", async () => {
-    pushResult(MOCK_CATEGORIES);
+    pushResult(MOCK_CATEGORIES_RAW);
+    pushResult(MOCK_COUNT_ROWS);
     const res = await makeApp("org-A").request(
       "/api/v2/pagebuilder/sources/categories?orgId=org-B"
+    );
+    expect(res.status).toBe(200);
+    expect(mockDb.select).toHaveBeenCalled();
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════
+// PRODUCTS ENDPOINT — ?ids= filter  (Day 11: ProductsFeatured)
+// ═══════════════════════════════════════════════════════════════
+
+describe("GET /api/v2/pagebuilder/sources/products?ids=", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    __dbResults.length = 0;
+  });
+
+  it("returns products when ids param provided", async () => {
+    pushResult(MOCK_PRODUCTS);
+    const res = await makeApp().request(
+      "/api/v2/pagebuilder/sources/products?ids=svc-001,svc-002"
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json() as { products: unknown[] };
+    expect(Array.isArray(body.products)).toBe(true);
+  });
+
+  it("empty ids param returns empty products", async () => {
+    pushResult([]);
+    const res = await makeApp().request("/api/v2/pagebuilder/sources/products?ids=");
+    expect(res.status).toBe(200);
+    const body = await res.json() as { products: unknown[] };
+    expect(body.products).toEqual([]);
+  });
+
+  it("ids param does not leak cross-org data (orgId from auth)", async () => {
+    pushResult(MOCK_PRODUCTS);
+    const res = await makeApp("org-safe").request(
+      "/api/v2/pagebuilder/sources/products?ids=svc-001,svc-002&orgId=org-attacker"
     );
     expect(res.status).toBe(200);
     expect(mockDb.select).toHaveBeenCalled();

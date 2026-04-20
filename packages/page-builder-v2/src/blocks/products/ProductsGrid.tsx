@@ -342,7 +342,8 @@ export const ProductsGridConfig: ComponentConfig<ProductsGridProps> = {
         try {
           const res = await fetch("/api/v2/pagebuilder/sources/categories");
           if (!res.ok) return [];
-          return res.json();
+          const data = await res.json() as { categories?: { id: string; name: string }[] };
+          return data.categories ?? [];
         } catch {
           return [];
         }
