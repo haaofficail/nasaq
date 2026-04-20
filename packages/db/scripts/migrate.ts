@@ -33,10 +33,14 @@ const dryRun    = process.argv.includes("--dry-run");
 const baseline  = process.argv.includes("--baseline");
 const MIGRATIONS_DIR = resolve(__dirname, "../migrations");
 
-// Only numbered migrations (e.g. 004_*, 128_*) — not drizzle-kit 0000_* files
+// Only forward migrations (e.g. 004_*, 128_*) — not drizzle-kit 0000_* files, not *_rollback.sql
 function getNumberedMigrations(): Array<{ file: string; num: number }> {
   return readdirSync(MIGRATIONS_DIR)
-    .filter((f) => /^\d+_.*\.sql$/.test(f) && !f.startsWith("0000") && !f.startsWith("0001") && !f.startsWith("0002") && !f.startsWith("0003") && !f.startsWith("0004h") && !f.startsWith("0005"))
+    .filter((f) =>
+      /^\d+_.*\.sql$/.test(f) &&
+      !f.endsWith("_rollback.sql") &&
+      !f.startsWith("0000") && !f.startsWith("0001") && !f.startsWith("0002") && !f.startsWith("0003") && !f.startsWith("0004h") && !f.startsWith("0005")
+    )
     .map((f) => ({ file: f, num: parseInt(f.split("_")[0], 10) }))
     .sort((a, b) => a.num - b.num);
 }
