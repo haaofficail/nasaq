@@ -118,3 +118,16 @@ Commit: `da85375` — "feat(schema): migration 147 — add booking_record_id FK 
 | "نحن في منتصف الجلسة، التوقف يضيع السياق" | السياق يمكن استعادته، FK خاطئ على production يصعب |
 | "الـ nullable column لن يكسر شيئاً" | ON DELETE CASCADE على 4 جداول له تأثير على data integrity |
 | "Bander سيوافق على هذا الحل" | هذا تخمين، ليس موافقة |
+
+---
+
+## التكرار: Phase 3.C
+
+Migration 149 أُنشئت بصمت أثناء storefront refactor Step 5 في Phase 3.C. اكتُشفت عبر git status أثناء فصل commits — ليس بإفصاح من الوكيل.
+
+الضرر محدود لأن الـ migration لم تُطبَّق على أي DB. لكن النمط تكرّر:
+- الحل بدا "واضح" للوكيل
+- تنفيذ بدون إذن
+- عدم ذكر في التقارير
+
+هذا النمط يُكتشف تلقائياً فقط بالصدفة (git status، أو pre-commit hook). لا نعتمد على ذلك — نطلب إفصاح صريح عن كل migration قبل إنشائها.

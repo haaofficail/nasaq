@@ -8,6 +8,8 @@ import {
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination } from "../lib/helpers";
 import { buildMoyasarPaymentUrl, fetchPayment, refundPayment, sarToHalala, halalaToSar } from "../lib/moyasar";
+import { verifyMoyasarSignature } from "../lib/moyasar-webhook";
+import { log } from "../lib/logger";
 import { requirePermission, superAdminMiddleware } from "../middleware/auth";
 import { fireBookingEvent } from "../lib/messaging-engine";
 import type { AuthUser } from "../middleware/auth";
@@ -330,26 +332,49 @@ paymentsRouter.get("/callback", async (c) => {
 
 /** POST /payments/webhook  (Moyasar server-to-server) */
 paymentsRouter.post("/webhook", async (c) => {
-  const body = await c.req.json().catch(() => null);
-  if (!body?.id) return c.json({ error: "payload غير صالح" }, 400);
+  // raw body أولاً — c.req.text() و c.req.json() يستهلكان الـ stream مرة واحدة
+  const rawBody = await c.req.text().catch(() => "");
+  if (!rawBody) return c.json({ error: "payload فارغ" }, 400);
 
-  // التحقق من signature — MOYASAR_WEBHOOK_SECRET إلزامي
   const secret = process.env.MOYASAR_WEBHOOK_SECRET;
   if (!secret) return c.json({ error: "webhook غير مفعّل — MOYASAR_WEBHOOK_SECRET غير مضبوط" }, 503);
 
-  const rawBody   = JSON.stringify(body);
   const signature = c.req.header("x-moyasar-signature") ?? "";
-  const { createHmac } = await import("crypto");
-  const expected = createHmac("sha256", secret).update(rawBody).digest("hex");
-  if (signature !== expected) return c.json({ error: "توقيع غير صالح" }, 401);
+  const mode      = process.env.MOYASAR_WEBHOOK_VERIFICATION ?? "log";
+  const isValid   = signature
+    ? verifyMoyasarSignature(rawBody, signature, secret)
+    : false;
+
+  log.info({
+    hasSignature:     !!signature,
+    signaturePreview: signature.slice(0, 10),
+    bodyLength:       rawBody.length,
+    bodyPreview:      rawBody.slice(0, 100),
+    isValid,
+    mode,
+  }, "moyasar_webhook_received");
+
+  if (mode === "strict" && !isValid) {
+    return c.json({ error: "توقيع غير صالح" }, 401);
+  }
+
+  // parse بعد التحقق
+  let body: any;
+  try {
+    body = JSON.parse(rawBody);
+  } catch {
+    return c.json({ error: "payload غير صالح JSON" }, 400);
+  }
+  if (!body?.id) return c.json({ error: "payload ناقص: id مطلوب" }, 400);
 
   try {
     const txId = body.metadata?.nasaq_tx_id ?? null;
     await processMoyasarPayment(body.id, txId);
     return c.json({ received: true });
   } catch (err: any) {
-    // إعادة 200 حتى Moyasar لا يُعيد المحاولة لأخطاء غير حرجة
-    return c.json({ received: true, note: err.message });
+    log.error({ paymentId: body.id, err: err.message }, "moyasar_webhook_processing_failed");
+    // 500 → Moyasar سيعيد المحاولة (retry strategy: 6 محاولات)
+    return c.json({ error: "internal processing error" }, 500);
   }
 });
 
