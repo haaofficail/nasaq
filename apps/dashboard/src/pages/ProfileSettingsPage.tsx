@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/useToast";
 import { Building2, Save, RefreshCw, Phone, Globe, Hash, Palette, Crown, AlertCircle, Briefcase, ImageIcon, Upload, X } from "lucide-react";
 import { clsx } from "clsx";
-import { settingsApi, websiteApi } from "@/lib/api";
+import { settingsApi } from "@/lib/api";
 import { useApi, useMutation } from "@/hooks/useApi";
 import { Button, Input, Select } from "@/components/ui";
 import { invalidateOrgContextCache } from "@/hooks/useOrgContext";
@@ -48,7 +48,6 @@ export function ProfileSettingsPage() {
   const navigate = useNavigate();
   const { data: profileRes, loading, refetch } = useApi(() => settingsApi.profile(), []);
   const { data: subRes }                       = useApi(() => settingsApi.subscription(), []);
-  const { data: configRes }                    = useApi(() => websiteApi.config(), []);
   const { mutate: updateProfile }              = useMutation((d: any) => settingsApi.updateProfile(d));
 
   const [form, setForm] = useState({
@@ -63,7 +62,6 @@ export function ProfileSettingsPage() {
 
   const org    = profileRes?.data;
   const sub    = subRes?.data;
-  const siteConfig = configRes?.data;
   const plan = PLAN_LABELS[sub?.plan || "basic"] || PLAN_LABELS.basic;
 
   const handleBeforeUnload = useCallback((e: BeforeUnloadEvent) => {
@@ -87,14 +85,14 @@ export function ProfileSettingsPage() {
         address: org.address || "",
         commercialRegister: org.commercialRegister || "",
         vatNumber: org.vatNumber || "",
-        primaryColor: siteConfig?.primaryColor || org.primaryColor || "#5b9bd5",
-        secondaryColor: siteConfig?.secondaryColor || org.secondaryColor || "#C8A951",
+        primaryColor: org.primaryColor || "#5b9bd5",
+        secondaryColor: org.secondaryColor || "#C8A951",
         businessType: org.businessType || "",
         logo: org.logo || "",
       });
       setDirty(false);
     }
-  }, [org, siteConfig]);
+  }, [org]);
 
   const f = (k: string, v: string) => { setForm(p => ({ ...p, [k]: v })); setDirty(true); };
 
@@ -103,11 +101,6 @@ export function ProfileSettingsPage() {
     setSaving(true);
     try {
       await updateProfile(form);
-      // sync colors to site_config (source of truth for public pages)
-      await websiteApi.updateConfig({
-        primaryColor: form.primaryColor,
-        secondaryColor: form.secondaryColor,
-      });
       invalidateOrgContextCache();
       toast.success("تم حفظ الإعدادات بنجاح");
       setDirty(false);

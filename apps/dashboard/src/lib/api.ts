@@ -947,6 +947,30 @@ export const websiteApi = {
   updateStorefrontSettings: (data: any) => api.put<{ data: any }>("/website/storefront-settings", data),
 };
 
+// --- Storefront v2 (replaces websiteApi public + analytics) ---
+export const storefrontApi = {
+  // Public (no auth) — replaces websiteApi.publicSite / publicPage
+  get: (orgSlug: string) =>
+    fetch(`/api/v2/storefront/${orgSlug}`, { cache: "no-store" }).then(r => r.json()),
+  getPage: (orgSlug: string, pageSlug: string) =>
+    fetch(`/api/v2/storefront/${orgSlug}/page/${pageSlug}`).then(r => r.json()),
+  submitContact: (orgSlug: string, data: unknown) =>
+    fetch(`/api/v2/storefront/${orgSlug}/contact`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }).then(r => r.json()),
+  // Public booking (complex booking logic — v1 endpoint until Step 5 migration)
+  publicBook: (orgSlug: string, data: unknown) =>
+    fetch(`/api/v1/website/public/${orgSlug}/book`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }).then(r => r.json()),
+  // Authenticated — replaces websiteApi.analytics()
+  analytics: () => api.get<{ data: any }>("/api/v2/storefront/analytics"),
+};
+
 // --- Public tracking (no auth) ---
 export const publicApi = {
   track: (token: string) => fetch(`/api/v1/bookings/track/${token}`).then(r => r.json()),

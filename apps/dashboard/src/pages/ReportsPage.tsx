@@ -7,7 +7,7 @@ import {
   Clock, FileText, Percent, ChevronLeft,
 } from "lucide-react";
 import { clsx } from "clsx";
-import { bookingsApi, customersApi, servicesApi, websiteApi } from "@/lib/api";
+import { bookingsApi, customersApi, servicesApi, storefrontApi } from "@/lib/api";
 import { useApi } from "@/hooks/useApi";
 import { useBusiness } from "@/hooks/useBusiness";
 import { useOrgContext } from "@/hooks/useOrgContext";
@@ -100,7 +100,7 @@ export function ReportsPage() {
   const { data: svcRes }            = useApi(() => servicesApi.list({ limit: "100" }), []);
   const { data: trendRes }          = useApi(() => bookingsApi.trend(6), []);
   const { data: growthRes }         = useApi(() => bookingsApi.growth(activePeriod), [activePeriod]);
-  const { data: siteRes }           = useApi(() => websiteApi.analytics(), []);
+  const { data: siteRes }           = useApi(() => storefrontApi.analytics(), []);
 
   const stats     = statsRes?.data   || {};
   const custStats = custRes?.data    || {};

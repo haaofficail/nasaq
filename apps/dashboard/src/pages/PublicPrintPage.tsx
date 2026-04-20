@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
-import { websiteApi } from "@/lib/api";
+import { storefrontApi } from "@/lib/api";
 import QRCode from "qrcode";
 
 // ══ Types ══════════════════════════════════════════════════════
@@ -324,7 +324,7 @@ export function PublicPrintPage() {
 
   useEffect(() => {
     if (!slug) { setLoading(false); return; }
-    websiteApi.publicSite(slug)
+    storefrontApi.get(slug)
       .then((res: any) => { if (res?.data) setData(res.data); })
       .catch(() => {})
       .finally(() => setLoading(false));

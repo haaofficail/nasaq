@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { MapPin, Check, Shield, Phone, Loader2, AlertCircle, ChevronLeft } from "lucide-react";
 import { clsx } from "clsx";
-import { websiteApi } from "@/lib/api";
+import { storefrontApi } from "@/lib/api";
 import { usePublicTheme } from "@/context/ThemeProvider";
 
 const VAT_RATE = 0.15;
@@ -32,7 +32,7 @@ export function PublicBookingPage() {
 
   useEffect(() => {
     if (!slug) return;
-    websiteApi.publicSite(slug)
+    storefrontApi.get(slug)
       .then((res: any) => {
         if (res?.error) setOrgError(res.error);
         else setSiteData(res?.data || null);
@@ -89,7 +89,7 @@ export function PublicBookingPage() {
       const answers = Object.entries(questionAnswers)
         .filter(([, v]) => v !== "")
         .map(([questionId, answer]) => ({ questionId, answer }));
-      const res = await websiteApi.publicBook(slug!, {
+      const res = await storefrontApi.publicBook(slug!, {
         customerName: name,
         customerPhone: phone,
         serviceId: selectedService.id,

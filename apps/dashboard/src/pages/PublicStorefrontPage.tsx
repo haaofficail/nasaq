@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router-dom";
-import { websiteApi } from "@/lib/api";
+import { storefrontApi } from "@/lib/api";
 import { usePublicTheme } from "@/context/ThemeProvider";
 import { PLATFORM_NAME } from "@/hooks/usePlatformConfig";
 
@@ -189,7 +189,7 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
     if (!canSubmit) return;
     setError(""); setSub(true);
     try {
-      const res = await websiteApi.publicBook(slug, {
+      const res = await storefrontApi.publicBook(slug, {
         customerName:  name.trim(),
         customerPhone: phone.trim(),
         serviceIds:    cartServices.map(s => s.id),
@@ -508,7 +508,7 @@ export function PublicStorefrontPage() {
 
   useEffect(() => {
     if (!slug) return;
-    websiteApi.publicSite(slug)
+    storefrontApi.get(slug)
       .then((res: any) => { if (res?.data) setData(res.data); })
       .catch(() => {})
       .finally(() => setLoading(false));

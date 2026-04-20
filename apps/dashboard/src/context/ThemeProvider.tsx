@@ -8,7 +8,7 @@
  */
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
 import { applyOrgTheme } from "@/hooks/useOrgTheme";
-import { websiteApi, settingsApi } from "@/lib/api";
+import { settingsApi } from "@/lib/api";
 
 // ── Context ──────────────────────────────────────────────────
 interface ThemeCtx {
@@ -47,17 +47,12 @@ export function DashboardThemeProvider({ children }: { children: ReactNode }) {
     if (fetched.current) return;
     fetched.current = true;
 
-    Promise.all([
-      websiteApi.config().catch(() => null),
-      settingsApi.profile().catch(() => null),
-    ]).then(([cfgRes, profRes]: any[]) => {
-      const cfg  = cfgRes?.data;
+    settingsApi.profile().catch(() => null).then((profRes: any) => {
       const prof = profRes?.data;
-      const primary      = cfg?.primaryColor || prof?.primaryColor;
-      const secondary    = cfg?.secondaryColor;
-      const fontFamily   = cfg?.fontFamily;
-      const businessType = prof?.businessType;
-      if (primary) applyOrgTheme(primary, secondary, fontFamily, businessType);
+      const primary      = prof?.primaryColor;
+      const secondary    = prof?.secondaryColor ?? null;
+      const businessType = prof?.businessType ?? null;
+      if (primary) applyOrgTheme(primary, secondary, null, businessType);
     });
   }, []);
 

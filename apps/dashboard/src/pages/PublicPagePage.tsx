@@ -8,7 +8,7 @@ function safeHref(url: string, fallback = "#"): string {
   return url;
 }
 import { useParams, Link } from "react-router-dom";
-import { websiteApi } from "@/lib/api";
+import { storefrontApi } from "@/lib/api";
 import { MapPin, Phone, ArrowRight, Globe, Instagram, Twitter } from "lucide-react";
 
 interface OrgData {
@@ -168,8 +168,8 @@ export function PublicPagePage() {
   useEffect(() => {
     if (!orgSlug || !pageSlug) return;
     Promise.all([
-      websiteApi.publicSite(orgSlug),
-      websiteApi.publicPage(orgSlug, pageSlug) as Promise<PageResponse>,
+      storefrontApi.get(orgSlug),
+      storefrontApi.getPage(orgSlug, pageSlug) as Promise<PageResponse>,
     ]).then(([siteData, pageData]) => {
       if (!siteData?.org || !pageData?.data) { setNotFound(true); setLoading(false); return; }
       setSite(siteData as SiteData);

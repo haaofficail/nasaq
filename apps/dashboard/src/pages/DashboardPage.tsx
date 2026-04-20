@@ -387,7 +387,7 @@ export function DashboardPage() {
           </div>
           <div className="flex items-center gap-2">
             <Link
-              to="/dashboard/storefront?tab=qr"
+              to="/dashboard/pages-v2"
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-[var(--text-2)] text-xs hover:bg-[var(--surface-2)] transition-colors"
             >
               <QrCode className="w-3.5 h-3.5" /> باركود QR

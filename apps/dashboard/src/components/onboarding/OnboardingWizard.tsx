@@ -395,7 +395,7 @@ export function OnboardingWizard({ status, onComplete }: Props) {
                   {[
                     { label: "أضف خدماتك ومنتجاتك",   href: "/dashboard/catalog",   num: "1" },
                     { label: "أضف موظفي الفريق",       href: "/dashboard/team",      num: "2" },
-                    { label: "شارك رابط الحجز",         href: "/dashboard/website",   num: "3" },
+                    { label: "شارك رابط الحجز",         href: "/dashboard/pages-v2",  num: "3" },
                   ].map(link => (
                     <a
                       key={link.href}
