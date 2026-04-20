@@ -1,0 +1,161 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, "refactor/**", "feat/**", "fix/**"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: tarmiz_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/tarmiz_test
+      TEST_DATABASE_URL: postgresql://ci:ci@localhost:5432/tarmiz_test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Apply drizzle-kit base migrations
+        working-directory: packages/db
+        run: |
+          for f in migrations/0000_*.sql migrations/0001_*.sql migrations/0002_*.sql \
+                   migrations/0003_*.sql migrations/0004_*.sql migrations/0005_*.sql \
+                   migrations/0006_*.sql; do
+            [ -f "$f" ] && psql "$DATABASE_URL" -f "$f" || true
+          done
+
+      - name: Record drizzle-kit migrations as baseline
+        run: |
+          psql "$DATABASE_URL" -c "
+            CREATE TABLE IF NOT EXISTS _nasaq_migrations (
+              id SERIAL PRIMARY KEY,
+              filename TEXT NOT NULL UNIQUE,
+              applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+            INSERT INTO _nasaq_migrations (filename) VALUES
+              ('0000_icy_diamondback.sql'),
+              ('0001_purple_ozymandias.sql'),
+              ('0002_motionless_prodigy.sql'),
+              ('0003_parched_husk.sql'),
+              ('0004_high_la_nuit.sql'),
+              ('0005_neat_talon.sql'),
+              ('0006_typical_lord_tyger.sql')
+            ON CONFLICT DO NOTHING;
+          "
+
+      - name: Skip early migrations (schema already in drizzle-kit output)
+        run: |
+          psql "$DATABASE_URL" -c "
+            INSERT INTO _nasaq_migrations (filename)
+            SELECT f FROM unnest(ARRAY[
+              '004_new_verticals.sql','005_flower_master.sql',
+              '006_flower_enums_expand.sql','007_flower_origins_expand.sql',
+              '008_constitution_fields.sql','009_permissions_seed.sql',
+              '010_architecture_foundation.sql','011_permissions_expand.sql',
+              '012_service_media_soft_delete.sql','013_dashboard_profile_correction.sql',
+              '014_salon_supplies.sql','015_salon_intelligence.sql',
+              '016_restaurant_intelligence.sql','017_rental_contracts.sql',
+              '018_restaurant_booking_settings.sql','019_service_engine.sql',
+              '020_service_types.sql','021_delivery_layer.sql',
+              '022_booking_engine_v2.sql','023_booking_audit_trail.sql',
+              '024_service_sub_tables.sql','025_rbac_v2.sql',
+              '026_website_builder.sql','027_super_admin.sql',
+              '028_platform_plans.sql','029_nasaq_staff.sql',
+              '030_commercial_engine.sql','031_reminders_and_favicon.sql',
+              '032_audit_logs_preserve_on_org_delete.sql','033_phase1_integrity.sql',
+              '034_onboarding_demo_flag.sql','035_marketplace_constraints.sql',
+              '036_rfp_proposals_index.sql','037_events_tickets.sql',
+              '038_procurement.sql','039_schema_upgrade.sql',
+              '040_subscription_addons.sql','041_subscriptions_history.sql',
+              '042_subscription_orders.sql','043_invoice_payments.sql',
+              '044_invoice_buyer_business.sql','045_pos_split_invoices.sql',
+              '046_notifications.sql','047_service_questions.sql',
+              '048_question_answers.sql','049_invoice_payment_fields.sql',
+              '050_barcode_support.sql','051_integrations.sql',
+              '052_whatsapp_templates.sql','053_whatsapp_connections.sql',
+              '054_service_amenities.sql','055_maintenance_tasks.sql',
+              '056_maintenance_tasks_asset.sql','057_performance_indexes.sql',
+              '058_free_plan.sql','059_school_system.sql',
+              '060_teacher_assignments.sql','061_school_violations.sql',
+              '062_student_grade_column.sql','063_student_transfers.sql',
+              '064_student_attendance.sql','065_behavior_system.sql',
+              '066_school_setup_status.sql','067_violation_degree.sql',
+              '068_subject_system.sql','069_category_default_degree.sql',
+              '070_subject_system_v2.sql','071_teacher_dob.sql',
+              '072_school_notifications.sql','073_teacher_attendance.sql',
+              '074_academic_calendar.sql','075_weeks_to_semesters.sql',
+              '076_standby_activations.sql','077_school_session_times.sql',
+              '078_school_timetable.sql','079_payment_gateway.sql',
+              '080_payment_unification.sql','081_canonical_booking_tables.sql',
+              '082_canonical_catalog.sql','083_event_quotations.sql',
+              '084_property_system.sql','085_property_system_v2.sql',
+              '086_accounting_v2.sql','087_work_orders.sql',
+              '088_media_galleries.sql','089_auth_engine.sql',
+              '090_fix_restaurant_schema.sql','091_smart_guardian.sql',
+              '092_menu_modifiers.sql','093_contracts.sql',
+              '094_hr_system.sql','095_flower_system.sql',
+              '096_flower_intelligence.sql','097_flower_operating_model.sql',
+              '098_schedule_assignment_fix.sql','099_event_packages.sql',
+              '100_service_order_integration.sql','101_service_order_service_link.sql',
+              '102_service_template_link.sql','103_service_order_items_asset_category.sql',
+              '104_service_order_applied_template.sql','105_event_package_item_task_type.sql',
+              '106_master_template_registry.sql','107_flower_builder_images.sql',
+              '108_compliance_layer.sql','109_booking_consent_privacy_public.sql',
+              '110_service_order_kind.sql','111_canonical_booking_completion.sql',
+              '112_order_flow_hardening.sql','113_service_orders_hardening.sql',
+              '114_online_orders_financial_integrity.sql','115_service_orders_rental_support.sql',
+              '116_admin_wa_gateway.sql','117_flower_operational_hardening.sql',
+              '118_otp_email_support.sql','119_enforce_service_duration.sql',
+              '120_salon_monitoring_events.sql','121_must_change_password.sql',
+              '122_pos_transactions_indexes.sql','123_pos_transaction_number_unique.sql',
+              '124_services_min_price.sql','125_referral_system.sql',
+              '126_menu_tables.sql','127_extended_modules_schema.sql',
+              '128_fix_client_salon_profile_fk.sql','129_restore_missing_tables.sql',
+              '130_seed_admin_user.sql','131_restore_missing_tables_2.sql',
+              '132_contracts_v2.sql','133_inventory_products.sql',
+              '134_admin_wa_invite.sql','135_bookings_rebooking_index.sql',
+              '136_pipeline_mapped_status.sql','137_pipeline_backfill_and_hardening.sql',
+              '138_pos_transactions_table.sql','139_pos_quick_items_table.sql',
+              '140_bookings_performance_indexes.sql','141_flowers_events_vertical.sql',
+              '142_page_builder_v2.sql','142_page_builder_v2_rollback.sql'
+            ]) AS f
+            ON CONFLICT DO NOTHING;
+          "
+
+      - name: Apply new migrations (143+)
+        working-directory: packages/db
+        run: pnpm tsx scripts/migrate.ts
+
+      - name: Run tests
+        working-directory: packages/api
+        run: pnpm test
