@@ -15,7 +15,7 @@
 // ============================================================
 
 import { db } from "@nasaq/db/client";
-import { bookingEvents, bookings, bookingPipelineStages, users } from "@nasaq/db/schema";
+import { bookingEvents, bookings, bookingPipelineStages, users, bookingTimelineEvents, bookingRecords } from "@nasaq/db/schema";
 import { and, eq, desc, asc, gte, sql, count, inArray } from "drizzle-orm";
 import { log } from "./logger";
 import type { WorkflowStage } from "./workflow-engine";
@@ -146,27 +146,25 @@ async function fetchStatusEnteredAtBatch(
 ): Promise<Map<string, Date>> {
   if (bookingIds.length === 0) return new Map();
 
-  // JOIN على bookings للتأكد من to_status = current status في نفس الاستعلام
-  // هذا يعني: نأخذ فقط events حيث to_status مطابق لحالة الحجز الحالية الآن
+  // TODO Phase 3.B: consolidate once writes also go to booking_timeline_events
+  // JOIN على bookingRecords للتأكد من to_status = current status في نفس الاستعلام
   const rows = await db
     .select({
-      bookingId:      bookingEvents.bookingId,
-      // MAX(created_at) = أحدث مرة دخل فيها الحجز حالته الحالية
-      statusEnteredAt: sql<string>`MAX(${bookingEvents.createdAt})`.as("status_entered_at"),
+      bookingId:      bookingTimelineEvents.bookingRecordId,
+      statusEnteredAt: sql<string>`MAX(${bookingTimelineEvents.createdAt})`.as("status_entered_at"),
     })
-    .from(bookingEvents)
-    .innerJoin(bookings, and(
-      eq(bookingEvents.bookingId, bookings.id),
-      eq(bookings.orgId, orgId),
-      // الشرط الأساسي: to_status يطابق الحالة الحالية للحجز
-      sql`${bookingEvents.toStatus} = ${bookings.status}`,
+    .from(bookingTimelineEvents)
+    .innerJoin(bookingRecords, and(
+      eq(bookingTimelineEvents.bookingRecordId, bookingRecords.id),
+      eq(bookingRecords.orgId, orgId),
+      sql`${bookingTimelineEvents.toStatus} = ${bookingRecords.status}`,
     ))
     .where(and(
-      eq(bookingEvents.orgId, orgId),
-      eq(bookingEvents.eventType, "status_changed"),
-      inArray(bookingEvents.bookingId, bookingIds),
+      eq(bookingTimelineEvents.orgId, orgId),
+      eq(bookingTimelineEvents.eventType, "status_changed"),
+      inArray(bookingTimelineEvents.bookingRecordId, bookingIds),
     ))
-    .groupBy(bookingEvents.bookingId);
+    .groupBy(bookingTimelineEvents.bookingRecordId);
 
   return new Map(
     rows.map((r) => [r.bookingId, new Date(r.statusEnteredAt)]),
@@ -425,25 +423,26 @@ export async function listOperationalAlerts(
   const now = new Date();
 
   // ── 1. Recently blocked transitions (last 48h) ──
+  // TODO Phase 3.B: consolidate once writes also go to booking_timeline_events
   const blockedCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000);
   const blocked = await db
     .select({
-      bookingId:    bookingEvents.bookingId,
-      bookingNumber: bookings.bookingNumber,
-      metadata:     bookingEvents.metadata,
-      createdAt:    bookingEvents.createdAt,
+      bookingId:    bookingTimelineEvents.bookingRecordId,
+      bookingNumber: bookingRecords.bookingNumber,
+      metadata:     bookingTimelineEvents.metadata,
+      createdAt:    bookingTimelineEvents.createdAt,
     })
-    .from(bookingEvents)
-    .leftJoin(bookings, and(
-      eq(bookingEvents.bookingId, bookings.id),
-      eq(bookings.orgId, orgId),
+    .from(bookingTimelineEvents)
+    .leftJoin(bookingRecords, and(
+      eq(bookingTimelineEvents.bookingRecordId, bookingRecords.id),
+      eq(bookingRecords.orgId, orgId),
     ))
     .where(and(
-      eq(bookingEvents.orgId, orgId),
-      eq(bookingEvents.eventType, "status_blocked"),
-      gte(bookingEvents.createdAt, blockedCutoff),
+      eq(bookingTimelineEvents.orgId, orgId),
+      eq(bookingTimelineEvents.eventType, "status_blocked"),
+      gte(bookingTimelineEvents.createdAt, blockedCutoff),
     ))
-    .orderBy(desc(bookingEvents.createdAt))
+    .orderBy(desc(bookingTimelineEvents.createdAt))
     .limit(limit);
 
   for (const row of blocked) {
@@ -463,22 +462,22 @@ export async function listOperationalAlerts(
   const forcedCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const forcedRows = await db
     .select({
-      bookingId:    bookingEvents.bookingId,
-      bookingNumber: bookings.bookingNumber,
-      forceCount:   count(bookingEvents.id).as("force_count"),
+      bookingId:    bookingTimelineEvents.bookingRecordId,
+      bookingNumber: bookingRecords.bookingNumber,
+      forceCount:   count(bookingTimelineEvents.id).as("force_count"),
     })
-    .from(bookingEvents)
-    .leftJoin(bookings, and(
-      eq(bookingEvents.bookingId, bookings.id),
-      eq(bookings.orgId, orgId),
+    .from(bookingTimelineEvents)
+    .leftJoin(bookingRecords, and(
+      eq(bookingTimelineEvents.bookingRecordId, bookingRecords.id),
+      eq(bookingRecords.orgId, orgId),
     ))
     .where(and(
-      eq(bookingEvents.orgId, orgId),
-      eq(bookingEvents.eventType, "forced_transition"),
-      gte(bookingEvents.createdAt, forcedCutoff),
+      eq(bookingTimelineEvents.orgId, orgId),
+      eq(bookingTimelineEvents.eventType, "forced_transition"),
+      gte(bookingTimelineEvents.createdAt, forcedCutoff),
     ))
-    .groupBy(bookingEvents.bookingId, bookings.bookingNumber)
-    .having(sql`count(${bookingEvents.id}) >= 2`);
+    .groupBy(bookingTimelineEvents.bookingRecordId, bookingRecords.bookingNumber)
+    .having(sql`count(${bookingTimelineEvents.id}) >= 2`);
 
   for (const row of forcedRows) {
     alerts.push({
@@ -496,18 +495,18 @@ export async function listOperationalAlerts(
   // استعلام على الحجوزات النشطة (غير النهائية) للمنظمة
   const activeBookings = await db
     .select({
-      id:            bookings.id,
-      bookingNumber: bookings.bookingNumber,
-      status:        bookings.status,
-      createdAt:     bookings.createdAt,
-      updatedAt:     bookings.updatedAt,
+      id:            bookingRecords.id,
+      bookingNumber: bookingRecords.bookingNumber,
+      status:        bookingRecords.status,
+      createdAt:     bookingRecords.createdAt,
+      updatedAt:     bookingRecords.updatedAt,
     })
-    .from(bookings)
+    .from(bookingRecords)
     .where(and(
-      eq(bookings.orgId, orgId),
-      sql`${bookings.status} NOT IN ('completed','reviewed','cancelled','no_show')`,
+      eq(bookingRecords.orgId, orgId),
+      sql`${bookingRecords.status} NOT IN ('completed','reviewed','cancelled','no_show')`,
     ))
-    .orderBy(asc(bookings.updatedAt))
+    .orderBy(asc(bookingRecords.updatedAt))
     .limit(limit);
 
   if (activeBookings.length > 0) {
