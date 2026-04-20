@@ -330,77 +330,78 @@ const AUTOMATION_TRIGGER_STATUSES = new Set([
  * يُشغّل automation hooks بعد انتقال ناجح — fire-and-forget.
  * لا يؤثر على response المستخدم إطلاقاً.
  */
-export function runPostTransitionAutomations(params: {
-  orgId:         string;
-  bookingId:     string;
-  userId:        string | null;
-  fromStatus:    string;
-  toStatus:      string;
-  forced:        boolean;
-  workflowMode:  string;
-  configState:   string;
-}): void {
-  // fire-and-forget — لا await
-  (async () => {
-    try {
-      if (!AUTOMATION_TRIGGER_STATUSES.has(params.toStatus)) return;
+export async function runPostTransitionAutomations(
+  params: {
+    orgId:         string;
+    bookingId:     string;
+    userId:        string | null;
+    fromStatus:    string;
+    toStatus:      string;
+    forced:        boolean;
+    workflowMode:  string;
+    configState:   string;
+  },
+  _db = db,
+): Promise<void> {
+  try {
+    if (!AUTOMATION_TRIGGER_STATUSES.has(params.toStatus)) return;
 
-      await db.insert(bookingEvents).values({
-        orgId:      params.orgId,
-        bookingId:  params.bookingId,
-        userId:     params.userId ?? null,
-        eventType:  "automation_triggered",
-        fromStatus: params.fromStatus,
-        toStatus:   params.toStatus,
-        metadata: {
-          trigger:      `status_entered_${params.toStatus}`,
-          forced:       params.forced,
-          workflowMode: params.workflowMode,
-          configState:  params.configState,
-          // TODO: add notificationSent, integrationsFired when wired
-        },
-      });
+    await _db.insert(bookingTimelineEvents).values({
+      orgId:           params.orgId,
+      bookingRecordId: params.bookingId,
+      userId:          params.userId ?? null,
+      eventType:       "automation_triggered",
+      fromStatus:      params.fromStatus,
+      toStatus:        params.toStatus,
+      metadata: {
+        trigger:      `status_entered_${params.toStatus}`,
+        forced:       params.forced,
+        workflowMode: params.workflowMode,
+        configState:  params.configState,
+      },
+    } as any);
 
-      log.info(
-        { orgId: params.orgId, bookingId: params.bookingId, toStatus: params.toStatus },
-        "[ops-engine] automation_triggered event logged",
-      );
-    } catch (err) {
-      // automation failure never surfaces to user
-      log.error({ err, bookingId: params.bookingId }, "[ops-engine] automation hook failed silently");
-    }
-  })();
+    log.info(
+      { orgId: params.orgId, bookingId: params.bookingId, toStatus: params.toStatus },
+      "[ops-engine] automation_triggered event logged",
+    );
+  } catch (err) {
+    log.error({ err, bookingId: params.bookingId }, "[ops-engine] automation hook failed silently");
+  }
 }
 
 /**
  * يُسجّل blocked transition event — يُستدعى بعد إرجاع 422.
  * خارج transaction (التي انفجرت) — fire-and-forget.
  */
-export function recordBlockedTransitionEvent(params: {
-  orgId:         string;
-  bookingId:     string;
-  userId:        string | null;
-  fromStatus:    string;
-  attemptedStatus: string;
-  reason:        string;
-  blockedBy?:    string | null;
-  requiresForce: boolean;
-  workflowMode:  string;
-}): void {
-  db.insert(bookingEvents).values({
-    orgId:      params.orgId,
-    bookingId:  params.bookingId,
-    userId:     params.userId ?? null,
-    eventType:  "status_blocked",
-    fromStatus: params.fromStatus,
-    toStatus:   params.attemptedStatus,
+export async function recordBlockedTransitionEvent(
+  params: {
+    orgId:           string;
+    bookingId:       string;
+    userId:          string | null;
+    fromStatus:      string;
+    attemptedStatus: string;
+    reason:          string;
+    blockedBy?:      string | null;
+    requiresForce:   boolean;
+    workflowMode:    string;
+  },
+  _db = db,
+): Promise<void> {
+  await _db.insert(bookingTimelineEvents).values({
+    orgId:           params.orgId,
+    bookingRecordId: params.bookingId,
+    userId:          params.userId ?? null,
+    eventType:       "status_blocked",
+    fromStatus:      params.fromStatus,
+    toStatus:        params.attemptedStatus,
     metadata: {
       blockReason:   params.reason,
       blockedBy:     params.blockedBy ?? null,
       requiresForce: params.requiresForce,
       workflowMode:  params.workflowMode,
     },
-  }).catch((err) => {
+  } as any).catch((err: unknown) => {
     log.error({ err, bookingId: params.bookingId }, "[ops-engine] status_blocked event insert failed");
   });
 }
