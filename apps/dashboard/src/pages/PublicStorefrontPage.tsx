@@ -563,12 +563,15 @@ export function PublicStorefrontPage() {
         .grid-card:active{transform:scale(0.97);}
         .view-toggle-btn{transition:all .15s;}
         .view-toggle-btn:active{opacity:.7;}
+        .sf-container{max-width:440px;margin:0 auto;}
+        @media(min-width:640px){.sf-container{max-width:680px;}}
+        @media(min-width:1024px){.sf-container{max-width:900px;}}
       `}</style>
 
       {/* Fixed bg */}
       <div style={{ position: "fixed", inset: 0, background: "#f8fafc", zIndex: -1 }} />
 
-      <div dir="rtl" style={{ ...F, maxWidth: 440, margin: "0 auto", minHeight: "100dvh", background: "#f8fafc", paddingBottom: 96 }}>
+      <div dir="rtl" className="sf-container" style={{ ...F, minHeight: "100dvh", background: "#f8fafc", paddingBottom: 96 }}>
 
         {/* ━━━━ HERO ━━━━
             Full-bleed dark gradient — scrolls with page.
