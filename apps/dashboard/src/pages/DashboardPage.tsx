@@ -288,11 +288,7 @@ export function DashboardPage() {
     try { return JSON.parse(localStorage.getItem("nasaq_user") || "{}"); } catch { return {}; }
   })();
 
-  // School accounts go directly to their day monitor
   const businessType = context?.businessType ?? user?.businessType ?? "";
-  if (!loading && businessType === "school") {
-    return <Navigate to="/school/dashboard" replace />;
-  }
 
   const { status: onboardingStatus, shouldShow, setStatus: setOnboarding } = useOnboarding();
 
@@ -324,6 +320,11 @@ export function DashboardPage() {
   const welcomeSeen = localStorage.getItem(welcomeKey) === "1";
 
   const orgName: string = profileRes?.data?.name ?? user?.orgName ?? "";
+
+  // School accounts go directly to their day monitor — placed after all hooks
+  if (!loading && businessType === "school") {
+    return <Navigate to="/school/dashboard" replace />;
+  }
 
   if (loading || bookingsLoading || profileLoading) {
     return (
