@@ -37,6 +37,14 @@ export { FAQAccordionBlock, FAQAccordionConfig } from "./blocks/social/FAQAccord
 export type { FAQAccordionProps, FAQAccordionItem } from "./blocks/social/FAQAccordion";
 export { StatsSimpleBlock, StatsSimpleConfig } from "./blocks/social/StatsSimple";
 export type { StatsSimpleProps, StatItem } from "./blocks/social/StatsSimple";
+export { StatsDetailedBlock, StatsDetailedConfig } from "./blocks/stats/StatsDetailed";
+export type { StatsDetailedProps, StatsDetailedItem, TrendDirection } from "./blocks/stats/StatsDetailed";
+export { GalleryGridBlock, GalleryGridConfig } from "./blocks/media/GalleryGrid";
+export type { GalleryGridProps, GalleryItem } from "./blocks/media/GalleryGrid";
+export { GalleryCarouselBlock, GalleryCarouselConfig } from "./blocks/media/GalleryCarousel";
+export type { GalleryCarouselProps, GalleryCarouselItem } from "./blocks/media/GalleryCarousel";
+export { CTAImageBgBlock, CTAImageBgConfig } from "./blocks/cta/CTAImageBg";
+export type { CTAImageBgProps, CTAAlignment } from "./blocks/cta/CTAImageBg";
 export { PuckEditor } from "./components/PuckEditor";
 export type { PuckEditorProps } from "./components/PuckEditor";
 export type { Data as PuckData } from "@measured/puck";

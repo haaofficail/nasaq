@@ -16,6 +16,10 @@ import { TestimonialsCardsConfig } from "../blocks/social/TestimonialsCards";
 import { TestimonialsSliderConfig } from "../blocks/social/TestimonialsSlider";
 import { FAQAccordionConfig } from "../blocks/social/FAQAccordion";
 import { StatsSimpleConfig } from "../blocks/social/StatsSimple";
+import { StatsDetailedConfig } from "../blocks/stats/StatsDetailed";
+import { GalleryGridConfig } from "../blocks/media/GalleryGrid";
+import { GalleryCarouselConfig } from "../blocks/media/GalleryCarousel";
+import { CTAImageBgConfig } from "../blocks/cta/CTAImageBg";
 
 // Page Builder v2 — Puck configuration
 // All blocks: RTL, IBM Plex Sans Arabic, Tailwind-only, brand #5b9bd5
@@ -39,6 +43,10 @@ export const puckConfig: Config = {
     TestimonialsSlider:   TestimonialsSliderConfig,
     FAQAccordion:         FAQAccordionConfig,
     StatsSimple:          StatsSimpleConfig,
+    StatsDetailed:        StatsDetailedConfig,
+    GalleryGrid:          GalleryGridConfig,
+    GalleryCarousel:      GalleryCarouselConfig,
+    CTAImageBg:           CTAImageBgConfig,
   },
   root: {
     fields: {
