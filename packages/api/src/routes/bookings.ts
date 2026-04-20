@@ -844,9 +844,9 @@ bookingsRouter.patch("/:id/status", async (c) => {
   let statusTx;
   try {
     statusTx = await db.transaction(async (tx) => {
-    const [existing] = await tx.select({ status: bookings.status })
-      .from(bookings)
-      .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)))
+    const [existing] = await tx.select({ status: bookingRecords.status })
+      .from(bookingRecords)
+      .where(and(eq(bookingRecords.id, id), eq(bookingRecords.orgId, orgId)))
       .for("update");
     if (!existing) return null;
     capturedFromStatus = existing.status;
@@ -888,9 +888,9 @@ bookingsRouter.patch("/:id/status", async (c) => {
           });
           // Also write forced_transition to bookingEvents for timeline visibility
           // (this runs inside the tx — if tx rolls back, event rolls back too — intentional)
-          await tx.insert(bookingEvents).values({
+          await tx.insert(bookingTimelineEvents).values({
             orgId,
-            bookingId: id,
+            bookingRecordId: id,
             userId: actingUserId,
             eventType: "forced_transition",
             fromStatus: existing.status,
@@ -902,7 +902,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
               workflowMode,
               configState,
             },
-          });
+          } as any);
           log.warn(
             { orgId, bookingId: id, requestId, actorType, actorId: actingUserId,
               fromStatus: existing.status, toStatus: newStatus, reason },
@@ -918,21 +918,22 @@ bookingsRouter.patch("/:id/status", async (c) => {
       }
     }
 
-    const updates: Partial<typeof bookings.$inferInsert> = { status: newStatus, updatedAt: new Date() };
+    const updates: Partial<typeof bookingRecords.$inferInsert> = { status: newStatus, updatedAt: new Date() };
     if (newStatus === "cancelled") {
       updates.cancelledAt = new Date();
       updates.cancellationReason = reason ?? null;
     }
 
-    const [upd] = await tx.update(bookings)
+    const [upd] = await tx.update(bookingRecords)
       .set(updates)
-      .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)))
+      .where(and(eq(bookingRecords.id, id), eq(bookingRecords.orgId, orgId)))
       .returning();
 
     if (!upd) return null;
 
     // ── Supply Reversal: restores inventory when un-completing a booking ──
     // Covers: completed → pending, completed → cancelled, completed → no_show
+    // TODO Phase 3.B: migrate to bookingRecordConsumptions (canonical) + bookingLines
     if (existing.status === "completed" && newStatus !== "completed") {
       const consumptions = await tx.select().from(bookingConsumptions)
         .where(and(eq(bookingConsumptions.bookingId, id), eq(bookingConsumptions.orgId, orgId)));
@@ -963,6 +964,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
     }
 
     // ── Supply Deduction: deducts recipe quantities on booking completion ──
+    // TODO Phase 3.B: migrate bookingItems → bookingLines; bookingConsumptions → bookingRecordConsumptions
     if (newStatus === "completed" && existing.status !== "completed") {
       // Idempotency guard: skip if consumption records already exist (e.g. duplicate PATCH)
       const { rows: alreadyConsumed } = await tx.execute(sql`
@@ -1074,9 +1076,9 @@ bookingsRouter.patch("/:id/status", async (c) => {
   const { fromStatus, updated } = statusTx;
 
   // Booking event — status change (enriched with workflow context for timeline)
-  db.insert(bookingEvents).values({
+  db.insert(bookingTimelineEvents).values({
     orgId,
-    bookingId: id,
+    bookingRecordId: id,
     userId: actingUserId,
     eventType: "status_changed",
     fromStatus: fromStatus as string,
@@ -1087,7 +1089,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
       configState,
       forced: force && canForce,
     },
-  }).catch(() => {});
+  } as any).catch(() => {});
 
   // Automation hooks — fire-and-forget, never blocks response
   runPostTransitionAutomations({
