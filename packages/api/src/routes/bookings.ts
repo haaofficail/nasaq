@@ -1636,29 +1636,29 @@ bookingsRouter.get("/stats/summary", async (c) => {
   const [stats] = await db
     .select({
       totalBookings: count(),
-      totalRevenue: sql<string>`COALESCE(SUM(CAST(${bookings.totalAmount} AS DECIMAL)), 0)`,
-      totalPaid: sql<string>`COALESCE(SUM(CAST(${bookings.paidAmount} AS DECIMAL)), 0)`,
-      avgBookingValue: sql<string>`COALESCE(AVG(CAST(${bookings.totalAmount} AS DECIMAL)), 0)`,
+      totalRevenue: sql<string>`COALESCE(SUM(CAST(${bookingRecords.totalAmount} AS DECIMAL)), 0)`,
+      totalPaid: sql<string>`COALESCE(SUM(CAST(${bookingRecords.paidAmount} AS DECIMAL)), 0)`,
+      avgBookingValue: sql<string>`COALESCE(AVG(CAST(${bookingRecords.totalAmount} AS DECIMAL)), 0)`,
     })
-    .from(bookings)
+    .from(bookingRecords)
     .where(and(
-      eq(bookings.orgId, orgId),
-      gte(bookings.createdAt, startDate),
-      sql`${bookings.status} != 'cancelled'`
+      eq(bookingRecords.orgId, orgId),
+      gte(bookingRecords.createdAt, startDate),
+      sql`${bookingRecords.status} != 'cancelled'`
     ));
 
   // Status breakdown
   const statusBreakdown = await db
     .select({
-      status: bookings.status,
+      status: bookingRecords.status,
       count: count(),
     })
-    .from(bookings)
+    .from(bookingRecords)
     .where(and(
-      eq(bookings.orgId, orgId),
-      gte(bookings.createdAt, startDate)
+      eq(bookingRecords.orgId, orgId),
+      gte(bookingRecords.createdAt, startDate)
     ))
-    .groupBy(bookings.status);
+    .groupBy(bookingRecords.status);
 
   return c.json({
     data: {
@@ -1681,14 +1681,14 @@ bookingsRouter.get("/stats/trend", async (c) => {
   const startDate = new Date(now.getFullYear(), now.getMonth() - (months - 1), 1);
 
   const rows = await db.select({
-    month: sql<string>`to_char(date_trunc('month', ${bookings.createdAt}), 'YYYY-MM')`,
-    revenue: sql<string>`COALESCE(SUM(CAST(${bookings.totalAmount} AS DECIMAL)), 0)`,
+    month: sql<string>`to_char(date_trunc('month', ${bookingRecords.createdAt}), 'YYYY-MM')`,
+    revenue: sql<string>`COALESCE(SUM(CAST(${bookingRecords.totalAmount} AS DECIMAL)), 0)`,
     bookingCount: count(),
-  }).from(bookings).where(and(
-    eq(bookings.orgId, orgId),
-    gte(bookings.createdAt, startDate),
-    sql`${bookings.status} != 'cancelled'`,
-  )).groupBy(sql`date_trunc('month', ${bookings.createdAt})`);
+  }).from(bookingRecords).where(and(
+    eq(bookingRecords.orgId, orgId),
+    gte(bookingRecords.createdAt, startDate),
+    sql`${bookingRecords.status} != 'cancelled'`,
+  )).groupBy(sql`date_trunc('month', ${bookingRecords.createdAt})`);
 
   const map = new Map(rows.map((r) => [r.month, r]));
   const data = [];
@@ -1735,17 +1735,17 @@ bookingsRouter.get("/stats/growth", async (c) => {
   }
 
   const baseWhere = (start: Date, end?: Date) => and(
-    eq(bookings.orgId, orgId),
-    gte(bookings.createdAt, start),
-    ...(end ? [lt(bookings.createdAt, end)] : []),
-    sql`${bookings.status} != 'cancelled'`,
+    eq(bookingRecords.orgId, orgId),
+    gte(bookingRecords.createdAt, start),
+    ...(end ? [lt(bookingRecords.createdAt, end)] : []),
+    sql`${bookingRecords.status} != 'cancelled'`,
   );
 
   const [cur, prev] = await Promise.all([
-    db.select({ revenue: sql<string>`COALESCE(SUM(CAST(${bookings.totalAmount} AS DECIMAL)), 0)`, cnt: count() })
-      .from(bookings).where(baseWhere(currentStart)),
-    db.select({ revenue: sql<string>`COALESCE(SUM(CAST(${bookings.totalAmount} AS DECIMAL)), 0)`, cnt: count() })
-      .from(bookings).where(baseWhere(previousStart, previousEnd)),
+    db.select({ revenue: sql<string>`COALESCE(SUM(CAST(${bookingRecords.totalAmount} AS DECIMAL)), 0)`, cnt: count() })
+      .from(bookingRecords).where(baseWhere(currentStart)),
+    db.select({ revenue: sql<string>`COALESCE(SUM(CAST(${bookingRecords.totalAmount} AS DECIMAL)), 0)`, cnt: count() })
+      .from(bookingRecords).where(baseWhere(previousStart, previousEnd)),
   ]);
 
   const growth = (prev: number, cur: number) =>
@@ -1792,22 +1792,22 @@ bookingsRouter.get("/stats/overview", async (c) => {
   const [stats] = await db
     .select({
       totalBookings: count(),
-      totalRevenue: sql<string>`COALESCE(SUM(CAST(${bookings.totalAmount} AS DECIMAL)), 0)`,
-      totalPaid: sql<string>`COALESCE(SUM(CAST(${bookings.paidAmount} AS DECIMAL)), 0)`,
-      avgBookingValue: sql<string>`COALESCE(AVG(CAST(${bookings.totalAmount} AS DECIMAL)), 0)`,
+      totalRevenue: sql<string>`COALESCE(SUM(CAST(${bookingRecords.totalAmount} AS DECIMAL)), 0)`,
+      totalPaid: sql<string>`COALESCE(SUM(CAST(${bookingRecords.paidAmount} AS DECIMAL)), 0)`,
+      avgBookingValue: sql<string>`COALESCE(AVG(CAST(${bookingRecords.totalAmount} AS DECIMAL)), 0)`,
     })
-    .from(bookings)
+    .from(bookingRecords)
     .where(and(
-      eq(bookings.orgId, orgId),
-      gte(bookings.createdAt, startDate),
-      sql`${bookings.status} != 'cancelled'`
+      eq(bookingRecords.orgId, orgId),
+      gte(bookingRecords.createdAt, startDate),
+      sql`${bookingRecords.status} != 'cancelled'`
     ));
 
   const statusBreakdown = await db
-    .select({ status: bookings.status, count: count() })
-    .from(bookings)
-    .where(and(eq(bookings.orgId, orgId), gte(bookings.createdAt, startDate)))
-    .groupBy(bookings.status);
+    .select({ status: bookingRecords.status, count: count() })
+    .from(bookingRecords)
+    .where(and(eq(bookingRecords.orgId, orgId), gte(bookingRecords.createdAt, startDate)))
+    .groupBy(bookingRecords.status);
 
   return c.json({ data: { period, startDate: startDate.toISOString(), ...stats, statusBreakdown } });
 });
