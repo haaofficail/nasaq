@@ -96,6 +96,7 @@ import { guardianRouter } from "./routes/guardian";
 import { contractsRouter } from "./routes/contracts";
 import { hrRouter } from "./routes/hr";
 import { templatesRouter } from "./routes/templates";
+import { pagesV2Router } from "./routes/pages-v2";
 import { onboardingRouter } from "./routes/onboarding";
 import { complianceRouter } from "./routes/compliance";
 import {
@@ -1443,9 +1444,26 @@ try {
 
 const port = parseInt(process.env.PORT || "3000");
 
+// ── API v2 — /api/v2/* ────────────────────────────────────────
+// Mounted separately to avoid modifying basePath("/api/v1") on the existing app.
+// Zero overlap with v1 routes.
+const appV2 = new Hono();
+appV2.use("/api/v2/pages/*", authMiddleware);
+appV2.use("/api/v2/pages/*", requireCapability("page_builder_v2"));
+appV2.route("/api/v2/pages", pagesV2Router);
+
+// Combined fetch: /api/v2/* → appV2, everything else → app (v1)
+const combinedFetch = async (req: Request): Promise<Response> => {
+  const url = new URL(req.url);
+  if (url.pathname.startsWith("/api/v2/")) {
+    return appV2.fetch(req);
+  }
+  return app.fetch(req);
+};
+
 log.info({ port, url: `http://localhost:${port}/api/v1` }, "nasaq-api started");
 
-const server = serve({ fetch: app.fetch, port });
+const server = serve({ fetch: combinedFetch, port });
 
 // NOTE: restoreAllBaileys() already called above (lines ~1433-1437) inside try/catch.
 // Removed duplicate call here to prevent double-restore race condition.
