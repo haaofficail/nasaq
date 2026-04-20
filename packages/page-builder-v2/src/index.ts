@@ -9,6 +9,8 @@ export { HeroShowcaseBlock, HeroShowcaseConfig } from "./blocks/hero/HeroShowcas
 export type { HeroShowcaseProps } from "./blocks/hero/HeroShowcase";
 export { HeroGalleryBlock, HeroGalleryConfig } from "./blocks/hero/HeroGallery";
 export type { HeroGalleryProps, GalleryImage } from "./blocks/hero/HeroGallery";
+export { HeroVideoBlock, HeroVideoConfig } from "./blocks/hero/HeroVideo";
+export type { HeroVideoProps } from "./blocks/hero/HeroVideo";
 export { PuckEditor } from "./components/PuckEditor";
 export type { PuckEditorProps } from "./components/PuckEditor";
 export type { Data as PuckData } from "@measured/puck";
