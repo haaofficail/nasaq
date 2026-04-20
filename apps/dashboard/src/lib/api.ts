@@ -919,34 +919,6 @@ export const orgStatsApi = {
   sales:   (period?: "today"|"week") => api.get<{ data: any[] }>(`/organization/stats/sales?period=${period ?? "week"}`),
 };
 
-// --- Website ---
-export const websiteApi = {
-  pages: () => api.get<{ data: any[] }>("/website/pages"),
-  getPage: (slug: string) => api.get<{ data: any }>(`/website/pages/${slug}`),
-  createPage: (data: any) => api.post<{ data: any }>("/website/pages", data),
-  updatePage: (id: string, data: any) => api.put<{ data: any }>(`/website/pages/${id}`, data),
-  deletePage: (id: string) => api.delete(`/website/pages/${id}`),
-  config: () => api.get<{ data: any }>("/website/config"),
-  updateConfig: (data: any) => api.put<{ data: any }>("/website/config", data),
-  blog: () => api.get<{ data: any[] }>("/website/blog"),
-  createPost: (data: any) => api.post<{ data: any }>("/website/blog", data),
-  updatePost: (id: string, data: any) => api.put<{ data: any }>(`/website/blog/${id}`, data),
-  deletePost: (id: string) => api.delete(`/website/blog/${id}`),
-  contacts: () => api.get<{ data: any[] }>("/website/contacts"),
-  markContactRead: (id: string) => api.patch(`/website/contacts/${id}/read`, {}),
-  templates: () => api.get<{ data: any[] }>("/website/templates"),
-  publish: () => api.post("/website/publish", {}),
-  unpublish: () => api.post("/website/unpublish", {}),
-  analytics: () => api.get<{ data: any }>("/website/analytics"),
-  // Public (no auth)
-  publicSite: (orgSlug: string) => fetch(`/api/v1/website/public/${orgSlug}`, { cache: "no-store" }).then(r => r.json()),
-  publicPage: (orgSlug: string, pageSlug: string) => fetch(`/api/v1/website/public/${orgSlug}/page/${pageSlug}`).then(r => r.json()),
-  publicBook: (orgSlug: string, data: any) => fetch(`/api/v1/website/public/${orgSlug}/book`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(r => r.json()),
-  // Storefront settings
-  storefrontSettings: () => api.get<{ data: any }>("/website/storefront-settings"),
-  updateStorefrontSettings: (data: any) => api.put<{ data: any }>("/website/storefront-settings", data),
-};
-
 // --- Storefront v2 (replaces websiteApi public + analytics) ---
 export const storefrontApi = {
   // Public (no auth) — replaces websiteApi.publicSite / publicPage

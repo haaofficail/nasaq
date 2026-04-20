@@ -28,7 +28,7 @@ import {
   serviceAddons,
   serviceQuestions,
   pagesV2,
-  contactSubmissions,
+  messagesInbox,
 } from "@nasaq/db/schema";
 import { z } from "zod";
 import { getOrgId } from "../lib/helpers";
@@ -298,9 +298,9 @@ storefrontV2Router.get("/analytics", async (c) => {
     .where(and(eq(pagesV2.orgId, orgId), eq(pagesV2.status, "published")));
 
   const [inquiries] = await db
-    .select({ cnt: count(contactSubmissions.id) })
-    .from(contactSubmissions)
-    .where(eq(contactSubmissions.orgId, orgId));
+    .select({ cnt: count(messagesInbox.id) })
+    .from(messagesInbox)
+    .where(eq(messagesInbox.orgId, orgId));
 
   const [ratingRow] = await db
     .select({
@@ -395,7 +395,7 @@ storefrontV2Router.post("/:orgSlug/contact", async (c) => {
   const { name, phone, email, message, pageSlug } = parsed.data;
 
   const [submission] = await db
-    .insert(contactSubmissions)
+    .insert(messagesInbox)
     .values({
       orgId:   org.id,
       name,
@@ -405,7 +405,7 @@ storefrontV2Router.post("/:orgSlug/contact", async (c) => {
       source:  "storefront_v2",
       pageSlug: pageSlug ?? null,
     })
-    .returning({ id: contactSubmissions.id });
+    .returning({ id: messagesInbox.id });
 
   return c.json(
     { data: { id: submission.id, message: "تم استلام رسالتك — سنتواصل معك قريباً" } },

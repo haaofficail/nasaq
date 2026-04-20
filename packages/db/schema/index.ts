@@ -15,7 +15,7 @@ export * from "./team";
 export * from "./automation";
 export * from "./marketing";
 export * from "./marketplace";
-export * from "./website";
+export * from "./messages";
 export * from "./hotel";
 export * from "./car-rental";
 export * from "./integrations";

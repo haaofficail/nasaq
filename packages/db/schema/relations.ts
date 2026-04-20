@@ -21,7 +21,7 @@ import { shifts, bookingTasks }                            from "./team";
 import { campaigns, loyaltyConfig, loyaltyTransactions, reviews } from "./marketing";
 import { marketplaceListings, rfpRequests, rfpProposals }  from "./marketplace";
 import { approvalRules, approvalRequests }                 from "./approvals";
-import { sitePages, siteConfig, blogPosts, contactSubmissions } from "./website";
+import { messagesInbox } from "./messages";
 import { roomTypes, roomUnits, hotelReservations }         from "./hotel";
 import { vehicleCategories, vehicleUnits, carRentalReservations } from "./car-rental";
 import { flowerVariants, flowerBatches }                   from "./flowers";
@@ -61,7 +61,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   campaigns:        many(campaigns),
   approvalRules:    many(approvalRules),
   approvalRequests: many(approvalRequests),
-  sitePages:        many(sitePages),
+  messagesInbox:    many(messagesInbox),
   roomTypes:        many(roomTypes),
   vehicleCategories: many(vehicleCategories),
   flowerVariants:   many(flowerVariants),
@@ -435,24 +435,11 @@ export const approvalRequestsRelations = relations(approvalRequests, ({ one }) =
 }));
 
 // ============================================================
-// WEBSITE
+// MESSAGES INBOX
 // ============================================================
 
-export const sitePagesRelations = relations(sitePages, ({ one }) => ({
-  org: one(organizations, { fields: [sitePages.orgId], references: [organizations.id] }),
-}));
-
-export const siteConfigRelations = relations(siteConfig, ({ one }) => ({
-  org: one(organizations, { fields: [siteConfig.orgId], references: [organizations.id] }),
-}));
-
-export const blogPostsRelations = relations(blogPosts, ({ one }) => ({
-  org:    one(organizations, { fields: [blogPosts.orgId],    references: [organizations.id] }),
-  author: one(users,         { fields: [blogPosts.authorId], references: [users.id] }),
-}));
-
-export const contactSubmissionsRelations = relations(contactSubmissions, ({ one }) => ({
-  org: one(organizations, { fields: [contactSubmissions.orgId], references: [organizations.id] }),
+export const messagesInboxRelations = relations(messagesInbox, ({ one }) => ({
+  org: one(organizations, { fields: [messagesInbox.orgId], references: [organizations.id] }),
 }));
 
 // ============================================================

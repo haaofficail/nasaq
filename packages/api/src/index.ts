@@ -39,7 +39,6 @@ import { teamRouter } from "./routes/team";
 import { automationRouter } from "./routes/automation";
 import { marketingRouter } from "./routes/marketing";
 import { platformRouter } from "./routes/platform";
-import { websiteRouter } from "./routes/website";
 import { settingsRouter } from "./routes/settings";
 import { suppliersRouter } from "./routes/suppliers";
 import { posRouter } from "./routes/pos";
@@ -321,15 +320,6 @@ app.use("/team/*", authMiddleware);
 app.use("/automation/*", authMiddleware);
 app.use("/marketing/*", authMiddleware);
 app.use("/platform/*", authMiddleware);
-app.use("/website/*", async (c, next) => {
-  // Public: website public routes — no auth required
-  if (c.req.path.includes("/website/public/")) return next();
-  return authMiddleware(c, next);
-});
-app.use("/website/*", async (c, next) => {
-  if (c.req.path.includes("/website/public/")) return next();
-  return requireCapability("website")(c, next);
-});
 app.use("/settings/*", authMiddleware);
 app.use("/suppliers/*", authMiddleware);
 app.use("/suppliers/*", requireCapability("inventory"));
@@ -384,10 +374,6 @@ app.use("/team/*", methodGuard("team"));
 app.use("/automation/*", methodGuard("automation"));
 app.use("/marketing/*", methodGuard("marketing"));
 app.use("/platform/*", methodGuard("platform"));
-app.use("/website/*", async (c, next) => {
-  if (c.req.path.includes("/website/public/")) return next();
-  return methodGuard("website")(c, next);
-});
 app.use("/settings/*", methodGuard("settings"));
 app.use("/suppliers/*", methodGuard("inventory"));
 app.use("/pos/*", methodGuard("bookings"));
@@ -453,9 +439,6 @@ app.route("/marketing", marketingRouter);
 
 // --- Phase 4: Platform ---
 app.route("/platform", platformRouter);
-
-// --- Website & Blog ---
-app.route("/website", websiteRouter);
 
 // --- Settings ---
 app.route("/settings", settingsRouter);

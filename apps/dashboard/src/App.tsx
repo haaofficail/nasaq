@@ -95,8 +95,6 @@ const HREmployeePage         = lz(() => import("./pages/HREmployeePage"), "HREmp
 const DeliveryPage           = lz(() => import("./pages/DeliveryPage"), "DeliveryPage");
 
 // Channels / Marketing
-const StorefrontPage         = lz(() => import("./pages/StorefrontPage"), "StorefrontPage");
-const WebsitePage            = lz(() => import("./pages/WebsitePage"), "WebsitePage");
 const OnlineOrdersPage       = lz(() => import("./pages/OnlineOrdersPage"), "OnlineOrdersPage");
 const AutomationPage         = lz(() => import("./pages/AutomationPage"), "AutomationPage");
 const MarketingPage          = lz(() => import("./pages/MarketingPage"), "MarketingPage");
@@ -111,7 +109,6 @@ const SettingsPage           = lz(() => import("./pages/SettingsPage"), "Setting
 const BookingSettingsPage    = lz(() => import("./pages/BookingSettingsPage"), "BookingSettingsPage");
 const ProfileSettingsPage    = lz(() => import("./pages/ProfileSettingsPage"), "ProfileSettingsPage");
 const AccountPage            = lz(() => import("./pages/AccountPage"), "AccountPage");
-const WebsiteSettingsPage    = lz(() => import("./pages/WebsiteSettingsPage"), "WebsiteSettingsPage");
 const CustomizationPage      = lz(() => import("./pages/CustomizationPage"), "CustomizationPage");
 const PlatformPage           = lz(() => import("./pages/PlatformPage"), "PlatformPage");
 const AuditLogPage           = lz(() => import("./pages/AuditLogPage"), "AuditLogPage");

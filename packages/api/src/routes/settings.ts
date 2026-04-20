@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { eq, and, asc, desc, count } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db, pool } from "@nasaq/db/client";
-import { organizations, locations, organizationCapabilityOverrides, services, customers, bookings, users, siteConfig, orgDocuments, capabilityRegistry } from "@nasaq/db/schema";
+import { organizations, locations, organizationCapabilityOverrides, services, customers, bookings, users, orgDocuments, capabilityRegistry } from "@nasaq/db/schema";
 import { isFeatureEnabledForOrg } from "../lib/feature-flags";
 import { getOrgId, getUserId, getBusinessDefaults } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
@@ -128,19 +128,6 @@ settingsRouter.put("/profile", async (c) => {
 
   const [updated] = await db.update(organizations).set({ ...allowedFields, updatedAt: new Date() })
     .where(eq(organizations.id, orgId)).returning();
-
-  // Sync primaryColor + logo → site_config so the public storefront reflects the change
-  const siteConfigUpdates: Record<string, any> = {};
-  if (allowedFields.primaryColor) siteConfigUpdates.primaryColor = allowedFields.primaryColor;
-  if (allowedFields.logo) siteConfigUpdates.logoUrl = allowedFields.logo;
-  if (Object.keys(siteConfigUpdates).length > 0) {
-    const [existingCfg] = await db.select({ id: siteConfig.id }).from(siteConfig).where(eq(siteConfig.orgId, orgId));
-    if (existingCfg) {
-      await db.update(siteConfig).set({ ...siteConfigUpdates, updatedAt: new Date() }).where(eq(siteConfig.id, existingCfg.id));
-    } else {
-      await db.insert(siteConfig).values({ orgId, ...siteConfigUpdates });
-    }
-  }
 
   invalidateOrgContext(orgId);
   return c.json({ data: updated });
