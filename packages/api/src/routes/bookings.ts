@@ -933,15 +933,15 @@ bookingsRouter.patch("/:id/status", async (c) => {
 
     // ── Supply Reversal: restores inventory when un-completing a booking ──
     // Covers: completed → pending, completed → cancelled, completed → no_show
-    // TODO Phase 3.B: migrate to bookingRecordConsumptions (canonical) + bookingLines
+    // Dual-path: canonical (bookingRecordConsumptions) + legacy (bookingConsumptions)
     if (existing.status === "completed" && newStatus !== "completed") {
-      const consumptions = await tx.select().from(bookingConsumptions)
-        .where(and(eq(bookingConsumptions.bookingId, id), eq(bookingConsumptions.orgId, orgId)));
+      // Canonical reversal
+      const canonicalConsumptions = await tx.select().from(bookingRecordConsumptions)
+        .where(and(eq(bookingRecordConsumptions.bookingRecordId, id), eq(bookingRecordConsumptions.orgId, orgId)));
 
-      for (const consumption of consumptions) {
+      for (const consumption of canonicalConsumptions) {
         if (!consumption.supplyId) continue;
         const qty = parseFloat(consumption.quantity as string);
-        // Atomic addition — safe to run concurrently
         await tx.execute(sql`
           UPDATE salon_supplies
           SET quantity = (quantity::numeric + ${qty})::text, updated_at = NOW()
@@ -956,7 +956,32 @@ bookingsRouter.patch("/:id/status", async (c) => {
           createdBy: actingUserId,
         });
       }
+      if (canonicalConsumptions.length > 0) {
+        await tx.delete(bookingRecordConsumptions)
+          .where(and(eq(bookingRecordConsumptions.bookingRecordId, id), eq(bookingRecordConsumptions.orgId, orgId)));
+      }
 
+      // Legacy reversal (unchanged)
+      const consumptions = await tx.select().from(bookingConsumptions)
+        .where(and(eq(bookingConsumptions.bookingId, id), eq(bookingConsumptions.orgId, orgId)));
+
+      for (const consumption of consumptions) {
+        if (!consumption.supplyId) continue;
+        const qty = parseFloat(consumption.quantity as string);
+        await tx.execute(sql`
+          UPDATE salon_supplies
+          SET quantity = (quantity::numeric + ${qty})::text, updated_at = NOW()
+          WHERE id = ${consumption.supplyId} AND org_id = ${orgId}
+        `);
+        await tx.insert(salonSupplyAdjustments).values({
+          orgId,
+          supplyId:  consumption.supplyId,
+          delta:     String(qty),
+          reason:    "adjusted",
+          notes:     `إعادة مخزون — تراجع حجز ${id.slice(0, 8)} من مكتمل إلى ${newStatus}`,
+          createdBy: actingUserId,
+        });
+      }
       if (consumptions.length > 0) {
         await tx.delete(bookingConsumptions)
           .where(and(eq(bookingConsumptions.bookingId, id), eq(bookingConsumptions.orgId, orgId)));
@@ -964,9 +989,92 @@ bookingsRouter.patch("/:id/status", async (c) => {
     }
 
     // ── Supply Deduction: deducts recipe quantities on booking completion ──
-    // TODO Phase 3.B: migrate bookingItems → bookingLines; bookingConsumptions → bookingRecordConsumptions
+    // Dual-path: canonical (bookingLines.serviceRefId) + legacy (bookingItems.serviceId)
     if (newStatus === "completed" && existing.status !== "completed") {
-      // Idempotency guard: skip if consumption records already exist (e.g. duplicate PATCH)
+
+      // ── Canonical path: bookingLines.serviceRefId → recipes → bookingRecordConsumptions ──
+      const { rows: canonicalConsumed } = await tx.execute(sql`
+        SELECT 1 FROM booking_consumptions_canonical
+        WHERE booking_record_id = ${id} AND org_id = ${orgId}
+        LIMIT 1
+      `);
+
+      if (canonicalConsumed.length === 0) {
+        const lines = await tx.select({
+          id:           bookingLines.id,
+          serviceRefId: bookingLines.serviceRefId,
+          quantity:     bookingLines.quantity,
+        }).from(bookingLines).where(eq(bookingLines.bookingRecordId, id));
+
+        for (const line of lines) {
+          // SKIP lines with NULL serviceRefId — same behavior as legacy bookingItems with NULL serviceId
+          // These are ad-hoc items without recipe mapping
+          if (!line.serviceRefId) {
+            log.debug({ bookingRecordId: id, lineId: line.id }, "[supply] skipping line without serviceRefId");
+            continue;
+          }
+          const recipes = await tx.select().from(serviceSupplyRecipes)
+            .where(and(
+              eq(serviceSupplyRecipes.serviceId, line.serviceRefId),
+              eq(serviceSupplyRecipes.orgId, orgId),
+            ));
+
+          for (const recipe of recipes) {
+            const totalQty = parseFloat(recipe.quantity as string) * (line.quantity || 1);
+
+            const [supply] = await tx
+              .select({ id: salonSupplies.id, quantity: salonSupplies.quantity })
+              .from(salonSupplies)
+              .where(eq(salonSupplies.id, recipe.supplyId))
+              .for("update");
+            if (!supply) continue;
+
+            const currentQty = new Decimal(supply.quantity as string);
+            // P0-4 fix: allow negative stock — real shortage is recorded, not hidden by Math.max(0,…)
+            const newQty = currentQty.sub(totalQty);
+
+            if (newQty.isNegative()) {
+              salonLog.inventoryLowStock({
+                requestId: requestId ?? undefined, orgId, bookingId: id,
+                serviceId: line.serviceRefId ?? undefined,
+                metadata: { supplyId: recipe.supplyId, needed: totalQty, available: currentQty.toNumber() },
+              });
+            }
+
+            await tx.update(salonSupplies)
+              .set({ quantity: newQty.toFixed(2), updatedAt: new Date() })
+              .where(eq(salonSupplies.id, recipe.supplyId));
+
+            salonLog.inventoryDeducted({
+              requestId: requestId ?? undefined, orgId, bookingId: id,
+              serviceId: line.serviceRefId ?? undefined,
+              metadata: { supplyId: recipe.supplyId, qty: totalQty, newQty: newQty.toNumber() },
+            });
+
+            await tx.insert(salonSupplyAdjustments).values({
+              orgId,
+              supplyId:  recipe.supplyId,
+              delta:     String(-totalQty),
+              reason:    "consumed",
+              notes:     `خصم تلقائي — حجز ${id.slice(0, 8)}`,
+              createdBy: actingUserId,
+            });
+
+            await tx.insert(bookingRecordConsumptions).values({
+              orgId,
+              bookingRecordId: id,
+              bookingLineId:   line.id,
+              supplyId:        recipe.supplyId,
+              quantity:        String(totalQty),
+              consumedAt:      new Date(),
+              createdBy:       actingUserId,
+              notes:           `خصم تلقائي من وصفة الخدمة`,
+            } as any);
+          }
+        }
+      }
+
+      // ── Legacy path: bookingItems.serviceId → recipes → bookingConsumptions ──
       const { rows: alreadyConsumed } = await tx.execute(sql`
         SELECT 1 FROM booking_consumptions
         WHERE booking_id = ${id} AND org_id = ${orgId}
@@ -1006,19 +1114,19 @@ bookingsRouter.patch("/:id/status", async (c) => {
               salonLog.inventoryLowStock({
                 requestId: requestId ?? undefined, orgId, bookingId: id,
                 serviceId: item.serviceId ?? undefined,
-              metadata: { supplyId: recipe.supplyId, needed: totalQty, available: currentQty.toNumber() },
+                metadata: { supplyId: recipe.supplyId, needed: totalQty, available: currentQty.toNumber() },
+              });
+            }
+
+            await tx.update(salonSupplies)
+              .set({ quantity: newQty.toFixed(2), updatedAt: new Date() })
+              .where(eq(salonSupplies.id, recipe.supplyId));
+
+            salonLog.inventoryDeducted({
+              requestId: requestId ?? undefined, orgId, bookingId: id,
+              serviceId: item.serviceId ?? undefined,
+              metadata: { supplyId: recipe.supplyId, qty: totalQty, newQty: newQty.toNumber() },
             });
-          }
-
-          await tx.update(salonSupplies)
-            .set({ quantity: newQty.toFixed(2), updatedAt: new Date() })
-            .where(eq(salonSupplies.id, recipe.supplyId));
-
-          salonLog.inventoryDeducted({
-            requestId: requestId ?? undefined, orgId, bookingId: id,
-            serviceId: item.serviceId ?? undefined,
-            metadata: { supplyId: recipe.supplyId, qty: totalQty, newQty: newQty.toNumber() },
-          });
 
             await tx.insert(salonSupplyAdjustments).values({
               orgId,
@@ -1031,14 +1139,14 @@ bookingsRouter.patch("/:id/status", async (c) => {
 
             await tx.insert(bookingConsumptions).values({
               orgId,
-              bookingId: id,
+              bookingId:     id,
               bookingItemId: item.id,
-              supplyId: recipe.supplyId,
-              quantity: String(totalQty),
-              unit: (recipe as any).unit || null,
-              consumedAt: new Date(),
-              createdBy: actingUserId,
-              notes: `خصم تلقائي من وصفة الخدمة`,
+              supplyId:      recipe.supplyId,
+              quantity:      String(totalQty),
+              unit:          (recipe as any).unit || null,
+              consumedAt:    new Date(),
+              createdBy:     actingUserId,
+              notes:         `خصم تلقائي من وصفة الخدمة`,
             });
           }
         }
