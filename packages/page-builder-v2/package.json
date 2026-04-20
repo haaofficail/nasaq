@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "@measured/puck": "0.20.2",
+    "@nasaq/db": "workspace:*",
     "@nasaq/ui-v2": "workspace:*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

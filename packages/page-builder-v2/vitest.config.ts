@@ -17,6 +17,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@nasaq/db": path.resolve(__dirname, "../../packages/db"),
+      "@nasaq/ui-v2": path.resolve(__dirname, "../ui-v2/src"),
     },
   },
 });
