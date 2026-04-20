@@ -292,6 +292,25 @@ export const bookingRecords = pgTable("booking_records", {
   paidAmount:     numeric("paid_amount", { precision: 12, scale: 2 }).notNull().default("0"),
   balanceDue:     numeric("balance_due", { precision: 12, scale: 2 }).notNull().default("0"),
 
+  // Coupon
+  couponCode:      text("coupon_code"),
+  couponDiscount:  numeric("coupon_discount", { precision: 10, scale: 2 }),
+
+  // UTM tracking
+  utmSource:   text("utm_source"),
+  utmMedium:   text("utm_medium"),
+  utmCampaign: text("utm_campaign"),
+  utmTerm:     text("utm_term"),
+  utmContent:  text("utm_content"),
+
+  // Recurring
+  isRecurring:       boolean("is_recurring").default(false).notNull(),
+  recurringPattern:  jsonb("recurring_pattern"),
+  parentBookingId:   uuid("parent_booking_id"),
+
+  // Consent (PDPL)
+  consentMetadata: jsonb("consent_metadata"),
+
   source:          text("source").default("dashboard"),
   trackingToken:   text("tracking_token").unique(),
   customerNotes:   text("customer_notes"),
@@ -304,6 +323,7 @@ export const bookingRecords = pgTable("booking_records", {
 
   cancelledAt:        timestamp("cancelled_at", { withTimezone: true }),
   cancellationReason: text("cancellation_reason"),
+  refundAmount:       numeric("refund_amount", { precision: 10, scale: 2 }),
   reviewedAt:         timestamp("reviewed_at", { withTimezone: true }),
   rating:             integer("rating"),
   reviewText:         text("review_text"),
