@@ -32,7 +32,8 @@ export const appointmentBookings = pgTable("appointment_bookings", {
   id:            uuid("id").defaultRandom().primaryKey(),
   orgId:         uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   customerId:    uuid("customer_id").notNull().references(() => customers.id),
-  bookingRef:    uuid("booking_ref"), // legacy tracking only — no FK
+  bookingRef:    uuid("booking_ref"), // legacy: references bookings.id (migrated data only)
+  bookingRecordId: uuid("booking_record_id").references(() => bookingRecords.id, { onDelete: "cascade" }), // canonical
 
   bookingNumber: text("booking_number").notNull().unique(),
   status:        text("status").notNull().default("pending"),
@@ -75,6 +76,7 @@ export const appointmentBookings = pgTable("appointment_bookings", {
   index("appt_bookings_customer_idx").on(t.customerId),
   index("appt_bookings_start_at_idx").on(t.startAt),
   index("appt_bookings_ref_idx").on(t.bookingRef),
+  index("appt_bookings_record_id_idx").on(t.bookingRecordId),
 ]);
 
 // ============================================================
@@ -87,7 +89,8 @@ export const stayBookings = pgTable("stay_bookings", {
   id:            uuid("id").defaultRandom().primaryKey(),
   orgId:         uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   customerId:    uuid("customer_id").notNull().references(() => customers.id),
-  bookingRef:    uuid("booking_ref"), // legacy tracking only — no FK
+  bookingRef:    uuid("booking_ref"), // legacy: references bookings.id
+  bookingRecordId: uuid("booking_record_id").references(() => bookingRecords.id, { onDelete: "cascade" }), // canonical
 
   bookingNumber: text("booking_number").notNull().unique(),
   status:        text("status").notNull().default("pending"),
@@ -138,6 +141,7 @@ export const stayBookings = pgTable("stay_bookings", {
   index("stay_bookings_checkin_idx").on(t.checkIn),
   index("stay_bookings_unit_idx").on(t.unitId),
   index("stay_bookings_ref_idx").on(t.bookingRef),
+  index("stay_bookings_record_id_idx").on(t.bookingRecordId),
 ]);
 
 // ============================================================
@@ -150,7 +154,8 @@ export const tableReservations = pgTable("table_reservations", {
   id:            uuid("id").defaultRandom().primaryKey(),
   orgId:         uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   customerId:    uuid("customer_id").references(() => customers.id),
-  bookingRef:    uuid("booking_ref"), // legacy tracking only — no FK
+  bookingRef:    uuid("booking_ref"), // legacy: references bookings.id
+  bookingRecordId: uuid("booking_record_id").references(() => bookingRecords.id, { onDelete: "cascade" }), // canonical
 
   reservationNumber: text("reservation_number").notNull().unique(),
   status: text("status").notNull().default("pending"), // pending|confirmed|seated|completed|cancelled|no_show
@@ -189,6 +194,7 @@ export const tableReservations = pgTable("table_reservations", {
   index("table_res_at_idx").on(t.reservedAt),
   index("table_res_table_idx").on(t.tableId),
   index("table_res_ref_idx").on(t.bookingRef),
+  index("table_res_record_id_idx").on(t.bookingRecordId),
 ]);
 
 // ============================================================
@@ -201,7 +207,8 @@ export const eventBookings = pgTable("event_bookings", {
   id:            uuid("id").defaultRandom().primaryKey(),
   orgId:         uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   customerId:    uuid("customer_id").notNull().references(() => customers.id),
-  bookingRef:    uuid("booking_ref"), // legacy tracking only — no FK
+  bookingRef:    uuid("booking_ref"), // legacy: references bookings.id
+  bookingRecordId: uuid("booking_record_id").references(() => bookingRecords.id, { onDelete: "cascade" }), // canonical
 
   bookingNumber: text("booking_number").notNull().unique(),
   status:        text("status").notNull().default("pending"),
@@ -255,6 +262,7 @@ export const eventBookings = pgTable("event_bookings", {
   index("event_bookings_customer_idx").on(t.customerId),
   index("event_bookings_date_idx").on(t.eventDate),
   index("event_bookings_ref_idx").on(t.bookingRef),
+  index("event_bookings_record_id_idx").on(t.bookingRecordId),
 ]);
 
 // ============================================================

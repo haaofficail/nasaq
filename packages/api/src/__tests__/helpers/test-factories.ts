@@ -14,6 +14,20 @@ import {
   appointmentBookings, stayBookings, tableReservations, eventBookings,
 } from "@nasaq/db/schema";
 
+// ── Location ───────────────────────────────────────────────────
+
+export async function createTestLocation(db: TestDb, orgId: string, overrides: Record<string, unknown> = {}) {
+  const { locations } = await import("@nasaq/db/schema");
+  const [loc] = await db.insert(locations).values({
+    orgId,
+    name: "فرع اختبار",
+    type: "branch",
+    isMainBranch: false,
+    ...overrides,
+  } as any).returning();
+  return loc;
+}
+
 // ── User ───────────────────────────────────────────────────────
 
 export async function createTestUser(db: TestDb, orgId: string, overrides: Record<string, unknown> = {}) {
