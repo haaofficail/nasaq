@@ -25,6 +25,8 @@ import { ContactSimpleConfig } from "../blocks/contact/ContactSimple";
 import { ContactWithMapConfig } from "../blocks/contact/ContactWithMap";
 import { FooterMinimalConfig } from "../blocks/footer/FooterMinimal";
 import { FooterComprehensiveConfig } from "../blocks/footer/FooterComprehensive";
+import { HeaderSimpleConfig } from "../blocks/header/HeaderSimple";
+import { HeaderMegamenuConfig } from "../blocks/header/HeaderMegamenu";
 
 // Page Builder v2 — Puck configuration
 // All blocks: RTL, IBM Plex Sans Arabic, Tailwind-only, brand #5b9bd5
@@ -57,6 +59,8 @@ export const puckConfig: Config = {
     ContactWithMap:       ContactWithMapConfig,
     FooterMinimal:        FooterMinimalConfig,
     FooterComprehensive:  FooterComprehensiveConfig,
+    HeaderSimple:         HeaderSimpleConfig,
+    HeaderMegamenu:       HeaderMegamenuConfig,
   },
   root: {
     fields: {

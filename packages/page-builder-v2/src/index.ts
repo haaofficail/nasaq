@@ -55,6 +55,10 @@ export { FooterMinimalBlock, FooterMinimalConfig } from "./blocks/footer/FooterM
 export type { FooterMinimalProps, FooterLink, FooterSocialLink } from "./blocks/footer/FooterMinimal";
 export { FooterComprehensiveBlock, FooterComprehensiveConfig } from "./blocks/footer/FooterComprehensive";
 export type { FooterComprehensiveProps, FooterColumn, FooterColumnLink, ComprehensiveSocialLink } from "./blocks/footer/FooterComprehensive";
+export { HeaderSimpleBlock, HeaderSimpleConfig } from "./blocks/header/HeaderSimple";
+export type { HeaderSimpleProps, HeaderLink, HeaderBg } from "./blocks/header/HeaderSimple";
+export { HeaderMegamenuBlock, HeaderMegamenuConfig } from "./blocks/header/HeaderMegamenu";
+export type { HeaderMegamenuProps, MenuItem, MegaColumn, MegaLink } from "./blocks/header/HeaderMegamenu";
 export { PuckEditor } from "./components/PuckEditor";
 export type { PuckEditorProps } from "./components/PuckEditor";
 export type { Data as PuckData } from "@measured/puck";
