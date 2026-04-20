@@ -11,6 +11,8 @@ export { HeroGalleryBlock, HeroGalleryConfig } from "./blocks/hero/HeroGallery";
 export type { HeroGalleryProps, GalleryImage } from "./blocks/hero/HeroGallery";
 export { HeroVideoBlock, HeroVideoConfig } from "./blocks/hero/HeroVideo";
 export type { HeroVideoProps } from "./blocks/hero/HeroVideo";
+export { HeroSplitBlock, HeroSplitConfig } from "./blocks/hero/HeroSplit";
+export type { HeroSplitProps } from "./blocks/hero/HeroSplit";
 export { PuckEditor } from "./components/PuckEditor";
 export type { PuckEditorProps } from "./components/PuckEditor";
 export type { Data as PuckData } from "@measured/puck";

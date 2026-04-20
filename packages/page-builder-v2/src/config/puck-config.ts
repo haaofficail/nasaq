@@ -3,6 +3,7 @@ import { HeroMinimalConfig } from "../blocks/hero/HeroMinimal";
 import { HeroShowcaseConfig } from "../blocks/hero/HeroShowcase";
 import { HeroGalleryConfig } from "../blocks/hero/HeroGallery";
 import { HeroVideoConfig } from "../blocks/hero/HeroVideo";
+import { HeroSplitConfig } from "../blocks/hero/HeroSplit";
 
 // Page Builder v2 — Puck configuration
 // All blocks: RTL, IBM Plex Sans Arabic, Tailwind-only, brand #5b9bd5
@@ -13,6 +14,7 @@ export const puckConfig: Config = {
     HeroShowcase: HeroShowcaseConfig,
     HeroGallery:  HeroGalleryConfig,
     HeroVideo:    HeroVideoConfig,
+    HeroSplit:    HeroSplitConfig,
   },
   root: {
     fields: {
