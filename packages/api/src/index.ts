@@ -899,7 +899,7 @@ try {
   );
 
   const files = fs.readdirSync(migrationsDir)
-    .filter(f => f.endsWith(".sql"))
+    .filter(f => f.endsWith(".sql") && !f.endsWith("_rollback.sql"))
     .sort();
 
   // First run: seed all existing migrations as applied to avoid re-running them
