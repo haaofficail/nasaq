@@ -8,6 +8,8 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@nasaq/shared": path.resolve(__dirname, "../../packages/shared/src"),
+      "@nasaq/page-builder-v2": path.resolve(__dirname, "../../packages/page-builder-v2/src"),
+      "@nasaq/ui-v2": path.resolve(__dirname, "../../packages/ui-v2/src"),
     },
   },
   server: {
