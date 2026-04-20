@@ -20,6 +20,11 @@ import { StatsDetailedConfig } from "../blocks/stats/StatsDetailed";
 import { GalleryGridConfig } from "../blocks/media/GalleryGrid";
 import { GalleryCarouselConfig } from "../blocks/media/GalleryCarousel";
 import { CTAImageBgConfig } from "../blocks/cta/CTAImageBg";
+import { CTAColorBgConfig } from "../blocks/cta/CTAColorBg";
+import { ContactSimpleConfig } from "../blocks/contact/ContactSimple";
+import { ContactWithMapConfig } from "../blocks/contact/ContactWithMap";
+import { FooterMinimalConfig } from "../blocks/footer/FooterMinimal";
+import { FooterComprehensiveConfig } from "../blocks/footer/FooterComprehensive";
 
 // Page Builder v2 — Puck configuration
 // All blocks: RTL, IBM Plex Sans Arabic, Tailwind-only, brand #5b9bd5
@@ -47,6 +52,11 @@ export const puckConfig: Config = {
     GalleryGrid:          GalleryGridConfig,
     GalleryCarousel:      GalleryCarouselConfig,
     CTAImageBg:           CTAImageBgConfig,
+    CTAColorBg:           CTAColorBgConfig,
+    ContactSimple:        ContactSimpleConfig,
+    ContactWithMap:       ContactWithMapConfig,
+    FooterMinimal:        FooterMinimalConfig,
+    FooterComprehensive:  FooterComprehensiveConfig,
   },
   root: {
     fields: {

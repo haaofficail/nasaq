@@ -45,6 +45,16 @@ export { GalleryCarouselBlock, GalleryCarouselConfig } from "./blocks/media/Gall
 export type { GalleryCarouselProps, GalleryCarouselItem } from "./blocks/media/GalleryCarousel";
 export { CTAImageBgBlock, CTAImageBgConfig } from "./blocks/cta/CTAImageBg";
 export type { CTAImageBgProps, CTAAlignment } from "./blocks/cta/CTAImageBg";
+export { CTAColorBgBlock, CTAColorBgConfig } from "./blocks/cta/CTAColorBg";
+export type { CTAColorBgProps } from "./blocks/cta/CTAColorBg";
+export { ContactSimpleBlock, ContactSimpleConfig } from "./blocks/contact/ContactSimple";
+export type { ContactSimpleProps } from "./blocks/contact/ContactSimple";
+export { ContactWithMapBlock, ContactWithMapConfig } from "./blocks/contact/ContactWithMap";
+export type { ContactWithMapProps } from "./blocks/contact/ContactWithMap";
+export { FooterMinimalBlock, FooterMinimalConfig } from "./blocks/footer/FooterMinimal";
+export type { FooterMinimalProps, FooterLink, FooterSocialLink } from "./blocks/footer/FooterMinimal";
+export { FooterComprehensiveBlock, FooterComprehensiveConfig } from "./blocks/footer/FooterComprehensive";
+export type { FooterComprehensiveProps, FooterColumn, FooterColumnLink, ComprehensiveSocialLink } from "./blocks/footer/FooterComprehensive";
 export { PuckEditor } from "./components/PuckEditor";
 export type { PuckEditorProps } from "./components/PuckEditor";
 export type { Data as PuckData } from "@measured/puck";

@@ -89,7 +89,7 @@ describe("GalleryGridBlock — lightbox", () => {
     const { container } = render(<GalleryGridBlock {...defaults} />);
     const firstItem = container.querySelector("[data-gallery-item]")!;
     fireEvent.click(firstItem);
-    const lightbox = container.querySelector("[data-lightbox]")!;
+    const lightbox = container.querySelector("[data-lightbox]") as HTMLElement;
     expect(within(lightbox).getByAltText("متجر الرياض")).toBeTruthy();
   });
 
@@ -113,7 +113,7 @@ describe("GalleryGridBlock — lightbox", () => {
     const { container } = render(<GalleryGridBlock {...defaults} />);
     const firstItem = container.querySelector("[data-gallery-item]")!;
     fireEvent.click(firstItem);
-    const lightbox = container.querySelector("[data-lightbox]")!;
+    const lightbox = container.querySelector("[data-lightbox]") as HTMLElement;
     expect(within(lightbox).getByText("افتتاح متجر الرياض الجديد")).toBeTruthy();
   });
 });
