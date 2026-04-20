@@ -14,6 +14,7 @@ Phase 3.A.2 (Wave 2) is complete. All canonical write paths are now implemented 
 | `38a2174` | TODO 4 — dual-path canonical reschedule (8 tests) |
 | `f5ac31d` | TODO 5 commit 2 — engine resolver: constants, `insertEngineRow`, pre-flight type validation |
 | `89599da` | TODO 5 commit 3 — canonical transaction body in `POST /` |
+| `fff5300` | Wave 2.5 — canonical-only enforcement: `bookingType` mandatory, legacy path deleted, 3 new tests |
 
 ---
 
@@ -21,14 +22,14 @@ Phase 3.A.2 (Wave 2) is complete. All canonical write paths are now implemented 
 
 | Suite | Tests | Status |
 |---|---|---|
-| `booking-create-canonical.test.ts` | 10 | GREEN |
+| `booking-create-canonical.test.ts` | 13 | GREEN |
 | `reschedule-canonical.test.ts` | 8 | GREEN |
 | `supply-deduction-canonical.test.ts` | 6 | GREEN |
 | `booking-ops-writes.test.ts` | 7 | GREEN |
 | `booking-route-queries.test.ts` | 13 | GREEN |
 | `booking-engines.test.ts` | 15 | GREEN |
 | `booking-records.test.ts` | 43 | GREEN |
-| **Total** | **102** | **GREEN** |
+| **Total** | **142** | **GREEN** |
 
 ---
 
@@ -91,9 +92,13 @@ Dual-path implemented via `body.bookingType`:
 
 8. INSERT audit_logs — INSIDE transaction (PDPL: audit row must rollback with the booking)
 
-9. INSERT booking_record_assignments (if userId present)
+9. INSERT booking_record_assignments (conditional — userId present)
+   - canonical table, linked via bookingRecordId
+   - role: "staff"
 
-10. INSERT booking_record_commissions (if userId present + rate > 0)
+10. INSERT booking_record_commissions (conditional — userId present AND rate > 0)
+    - one row per booking_line, linked via bookingLineId + serviceRefId
+    - canonical table (not legacy bookingCommissions)
 
 11. UPDATE customers (totalBookings + 1, lastBookingAt)
 ```

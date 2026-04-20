@@ -55,6 +55,12 @@
 - **الـ inline styles مسموحة** في الصفحات العامة فقط (لأنها خارج Tailwind context)
 - لون المنشأة `primaryColor` يُستخدم فقط لـ: زر "احجز"، السعر، ظل CTA — لا للهيكل
 
+## Migrations — قواعد إلزامية
+
+- **قبل أي migration جديد حتى لو اضطراري — وقف واستشر Bander.** النية الصحيحة ≠ إجراء صحيح.
+- **التعليقات في schema files قد تكذب.** قبل أي migration plan، تحقق من DB الفعلي: `psql [db] -c "\d table_name"` لا من comments في الكود.
+- Reference: `docs/lessons/schema-comments-lie.md`
+
 ## Guardrails — قواعد الحماية المعمارية
 
 - **لا كتابة مباشرة لـ DB** للبيانات التشغيلية — كل شيء عبر: API → Service → DB
