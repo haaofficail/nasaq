@@ -434,16 +434,22 @@ bookingsRouter.post("/", async (c) => {
 
   log.info({ orgId, userId, requestId, customerId: body.customerId, itemsCount: body.items.length, source: body.source }, "[bookings] create started");
 
-  // Pre-flight: reject unsupported bookingType before any DB work
-  if (body.bookingType !== undefined) {
-    const SUPPORTED_TYPES = [...Array.from(ENGINE_BOOKING_TYPES), ...Array.from(IMMEDIATE_TYPES)];
-    if (!ENGINE_BOOKING_TYPES.has(body.bookingType) && !IMMEDIATE_TYPES.has(body.bookingType)) {
-      return c.json({
-        error: `نوع الحجز غير مدعوم: ${body.bookingType}`,
-        code: "UNSUPPORTED_BOOKING_TYPE",
-        supportedTypes: SUPPORTED_TYPES,
-      }, 400);
-    }
+  // Pre-flight: bookingType is now mandatory — canonical-only endpoint
+  const SUPPORTED_TYPES = [...Array.from(ENGINE_BOOKING_TYPES), ...Array.from(IMMEDIATE_TYPES)];
+  if (!body.bookingType) {
+    return c.json({
+      error: "bookingType مطلوب لإنشاء حجز",
+      code: "BOOKING_TYPE_REQUIRED",
+      supportedTypes: SUPPORTED_TYPES,
+      hint: "Client قديم؟ حدّث لإرسال bookingType في الـ request body",
+    }, 400);
+  }
+  if (!ENGINE_BOOKING_TYPES.has(body.bookingType) && !IMMEDIATE_TYPES.has(body.bookingType)) {
+    return c.json({
+      error: `نوع الحجز غير مدعوم: ${body.bookingType}`,
+      code: "UNSUPPORTED_BOOKING_TYPE",
+      supportedTypes: SUPPORTED_TYPES,
+    }, 400);
   }
 
   // 1. Verify customer exists
@@ -608,19 +614,11 @@ bookingsRouter.post("/", async (c) => {
   const bookingNumber = generateBookingNumber("NSQ");
   const trackingToken = crypto.randomUUID().replace(/-/g, "").substring(0, BOOKING_TRACKING_TOKEN_LENGTH);
 
-  // 5–9. Conflict check + all writes wrapped in a single transaction (P1)
-  class LocationConflictError extends Error {
-    constructor(public conflicts: string[]) { super("LOCATION_CONFLICT"); }
-  }
 
   // Determine if ALL items are immediate-sale types (no scheduling needed)
   const allImmediate = Array.from(serviceMap.values())
     .every(s => IMMEDIATE_TYPES.has((s as any).serviceType ?? ""));
   const resolvedEventDate = body.eventDate ? new Date(body.eventDate) : new Date();
-
-  // Compute max buffer (before/after) across all services in this booking
-  const maxBufferBefore = allImmediate ? 0 : Math.max(0, ...Array.from(serviceMap.values()).map(s => (s as any).bufferBeforeMinutes || 0));
-  const maxBufferAfter  = allImmediate ? 0 : Math.max(0, ...Array.from(serviceMap.values()).map(s => (s as any).bufferAfterMinutes  || 0));
 
   // P1-3: Working hours enforcement — staff schedule + location opening hours
   if (body.eventDate && !allImmediate) {
@@ -669,18 +667,17 @@ bookingsRouter.post("/", async (c) => {
     }
   }
 
-  // ── Canonical path (bookingType present) ────────────────────────────────────
-  if (body.bookingType !== undefined) {
-    const canonicalBookingType = body.bookingType;
-    const engineRowId = crypto.randomUUID();
+  // ── Canonical path ──────────────────────────────────────────────────────────
+  const canonicalBookingType = body.bookingType;
+  const engineRowId = crypto.randomUUID();
 
-    let canonicalRecord: typeof bookingRecords.$inferSelect;
-    let canonicalLines: { id: string; serviceRefId: string | null; itemName: string; durationMinutes: number | null }[] = [];
+  let canonicalRecord: typeof bookingRecords.$inferSelect;
+  let canonicalLines: { id: string; serviceRefId: string | null; itemName: string; durationMinutes: number | null }[] = [];
 
-    const targetStaffId = body.assignedUserId ?? userId;
+  const targetStaffId = body.assignedUserId ?? userId;
 
-    try {
-      canonicalRecord = await db.transaction(async (tx) => {
+  try {
+    canonicalRecord = await db.transaction(async (tx) => {
         // Prevents hung transactions from advisory locks
         await tx.execute(sql`SET LOCAL lock_timeout = '5s'`);
 
@@ -934,259 +931,6 @@ bookingsRouter.post("/", async (c) => {
         trackingUrl: `/track/${trackingToken}`,
       },
     }, 201);
-  }
-
-  // ── Legacy path (bookingType absent — existing callers unchanged) ────────────
-  let booking: typeof bookings.$inferSelect;
-  try {
-    booking = await db.transaction(async (tx) => {
-      // Conflict check with row lock and range overlap — prevents TOCTOU (C1/C4/C6)
-      // Expand window by service buffer to prevent back-to-back bookings without cleanup time
-      if (body.locationId && !allImmediate) {
-        const eventStart = new Date(resolvedEventDate.getTime() - maxBufferBefore * 60_000);
-        const eventEnd = body.eventEndDate
-          ? new Date(new Date(body.eventEndDate).getTime() + maxBufferAfter * 60_000)
-          : new Date(resolvedEventDate.getTime() + 24 * 60 * 60 * 1000 + maxBufferAfter * 60_000);
-
-        // Advisory lock on (org × location) slot — prevents phantom reads where two concurrent
-        // inserts both see 0 conflicts and both proceed. FOR UPDATE alone can't lock non-existent rows.
-        await tx.execute(sql`
-          SELECT pg_advisory_xact_lock(hashtext(${orgId}), hashtext(${'loc:' + body.locationId}))
-        `);
-
-        const { rows: conflictRows } = await tx.execute(sql`
-          SELECT id, booking_number FROM bookings
-          WHERE org_id = ${orgId}
-            AND location_id = ${body.locationId}
-            AND status NOT IN ('cancelled', 'no_show')
-            AND event_date <= ${eventEnd}
-            AND COALESCE(event_end_date, event_date + interval '24 hours') >= ${eventStart}
-          FOR UPDATE
-        `);
-
-        if (conflictRows.length > 0) {
-          throw new LocationConflictError((conflictRows as any[]).map((r) => r.booking_number));
-        }
-      }
-
-      // Staff slot conflict — منع تعارض وقت نفس الموظف
-      // نفحص بناءً على assignedUserId القادم من الطلب، أو على userId للمكتب كبديل
-      const targetStaffId = body.assignedUserId ?? userId;
-      if (targetStaffId && body.eventDate && !allImmediate) {
-        const totalDurationMins = Array.from(serviceMap.values())
-          .reduce((sum, s) => sum + ((s as any).durationMinutes ?? 60), 0);
-        const staffStart = resolvedEventDate;
-        const staffEnd = body.eventEndDate
-          ? new Date(body.eventEndDate)
-          : new Date(resolvedEventDate.getTime() + totalDurationMins * 60_000);
-
-        // Advisory lock on (org × staff) slot — prevents phantom double-bookings for same staff
-        await tx.execute(sql`
-          SELECT pg_advisory_xact_lock(hashtext(${orgId}), hashtext(${'staff:' + targetStaffId}))
-        `);
-
-        const { rows: staffConflict } = await tx.execute(sql`
-          SELECT id, booking_number FROM bookings
-          WHERE org_id      = ${orgId}
-            AND assigned_user_id = ${targetStaffId}
-            AND status NOT IN ('cancelled', 'no_show')
-            AND event_date  < ${staffEnd}
-            AND COALESCE(event_end_date, event_date + (
-              SELECT COALESCE(SUM(s.duration_minutes), 60) * interval '1 minute'
-              FROM booking_items bi
-              JOIN services s ON s.id = bi.service_id
-              WHERE bi.booking_id = bookings.id
-            )) > ${staffStart}
-          FOR UPDATE
-        `);
-
-        if (staffConflict.length > 0) {
-          throw Object.assign(new Error("STAFF_SLOT_CONFLICT"), {
-            status: 409,
-            conflicts: (staffConflict as any[]).map((r) => r.booking_number),
-          });
-        }
-      }
-
-      // Insert booking
-      const [newBooking] = await tx.insert(bookings).values({
-        orgId,
-        customerId: body.customerId,
-        bookingNumber,
-        status: "pending",
-        paymentStatus: "pending",
-        eventDate: resolvedEventDate,
-        eventEndDate: body.eventEndDate ? new Date(body.eventEndDate) : null,
-        locationId: body.locationId || null,
-        customLocation: body.customLocation,
-        locationNotes: body.locationNotes,
-        subtotal: subtotal.toFixed(2),
-        discountAmount: "0",
-        vatAmount: vatAmount.toFixed(2),
-        totalAmount: totalAmount.toFixed(2),
-        depositAmount: depositAmount.toFixed(2),
-        paidAmount: "0",
-        balanceDue: totalAmount.toFixed(2),
-        couponCode: body.couponCode,
-        assignedUserId: targetStaffId || null,
-        trackingToken,
-        source: body.source,
-        utmSource: body.utmSource,
-        utmMedium: body.utmMedium,
-        utmCampaign: body.utmCampaign,
-        customerNotes: body.customerNotes,
-        internalNotes: body.internalNotes,
-        questionAnswers: body.questionAnswers,
-      }).returning();
-
-      // Bulk insert items (QE8)
-      if (itemsToInsert.length > 0) {
-        await tx.insert(bookingItems).values(
-          itemsToInsert.map((item) => ({ ...item, bookingId: newBooking.id }))
-        );
-      }
-
-      // Bulk insert addons (QE8)
-      if (addonsToInsert.length > 0) {
-        await tx.insert(bookingItemAddons).values(addonsToInsert);
-      }
-
-      // Immutable audit event — booking created
-      await tx.insert(bookingEvents).values({
-        orgId,
-        bookingId: newBooking.id,
-        userId,
-        eventType: "created",
-        toStatus: "pending",
-        metadata: { bookingNumber, source: body.source || "dashboard" },
-      });
-
-      // Auto-create assignment for the creator/assignee
-      if (userId) {
-        await tx.insert(bookingAssignments).values({
-          orgId,
-          bookingId: newBooking.id,
-          userId,
-          role: "staff",
-          assignedAt: new Date(),
-        });
-
-        // Compute commissions per booking item
-        const commissionsToInsert: any[] = [];
-        for (const item of itemsToInsert) {
-          const cost = serviceCostMap.get(item.serviceId);
-          const staffRow = serviceStaffMap.get(item.serviceId);
-
-          let commissionMode: string = "percentage";
-          let rate: number = 0;
-
-          if (staffRow && staffRow.commissionMode === "none") {
-            continue; // no commission for this user+service
-          } else if (staffRow && staffRow.commissionMode === "fixed") {
-            commissionMode = "fixed";
-            rate = parseFloat(staffRow.commissionValue as string) || 0;
-          } else if (staffRow && staffRow.commissionMode === "percentage") {
-            commissionMode = "percentage";
-            rate = parseFloat(staffRow.commissionValue as string) || 0;
-          } else {
-            // inherit or no staff row: use service-level commissionPercent
-            commissionMode = "percentage";
-            rate = cost ? (parseFloat(cost.commissionPercent as string) || 0) : 10;
-          }
-
-          if (rate === 0) continue;
-
-          const baseAmount = parseFloat(item.totalPrice);
-          const commissionAmount = commissionMode === "fixed"
-            ? rate
-            : baseAmount * (rate / 100);
-
-          commissionsToInsert.push({
-            orgId,
-            bookingId: newBooking.id,
-            bookingItemId: item.id,
-            userId,
-            serviceId: item.serviceId,
-            commissionMode,
-            rate: rate.toFixed(2),
-            baseAmount: baseAmount.toFixed(2),
-            commissionAmount: commissionAmount.toFixed(2),
-            status: "pending",
-          });
-        }
-
-        if (commissionsToInsert.length > 0) {
-          await tx.insert(bookingCommissions).values(commissionsToInsert);
-        }
-      }
-
-      // Update customer stats
-      await tx.update(customers).set({
-        totalBookings: sql`${customers.totalBookings} + 1`,
-        lastBookingAt: new Date(),
-        updatedAt: new Date(),
-      }).where(eq(customers.id, body.customerId));
-
-      return newBooking;
-    });
-  } catch (err: any) {
-    if (err instanceof LocationConflictError) {
-      salonLog.bookingConflictRejected({
-        requestId: requestId ?? undefined, orgId, assignedUserId: userId ?? undefined,
-        metadata: { conflictType: "location", conflictBookings: err.conflicts },
-      });
-      return c.json({
-        error: "يوجد تعارض — الموقع محجوز في هذا التاريخ",
-        code: "LOCATION_CONFLICT",
-        conflicts: err.conflicts,
-      }, 409);
-    }
-    if (err?.message === "STAFF_SLOT_CONFLICT") {
-      salonLog.bookingConflictRejected({
-        requestId: requestId ?? undefined, orgId, assignedUserId: userId ?? undefined,
-        metadata: { conflictType: "staff", conflictBookings: err.conflicts ?? [] },
-      });
-      return c.json({
-        error: "الموظف لديه حجز آخر في نفس الوقت — اختر وقتاً مختلفاً أو موظفاً آخر",
-        code: "STAFF_SLOT_CONFLICT",
-        conflicts: err.conflicts ?? [],
-      }, 409);
-    }
-    salonLog.bookingFailed({
-      requestId: requestId ?? undefined, orgId, assignedUserId: userId ?? undefined,
-      metadata: { reason: err?.message ?? "unknown" },
-    });
-    throw err;
-  }
-
-  insertAuditLog({ orgId, userId: getUserId(c), action: "created", resource: "booking", resourceId: booking.id });
-
-  salonLog.bookingCreated({
-    requestId: requestId ?? undefined, orgId,
-    bookingId: booking.id,
-    customerId: booking.customerId ?? undefined,
-    assignedUserId: userId ?? undefined,
-    metadata: { bookingNumber: booking.bookingNumber },
-  });
-
-  // Free plan: increment counter after successful booking
-  if (org?.plan === "free") {
-    await db.update(organizations)
-      .set({ bookingUsed: sql`${organizations.bookingUsed} + 1` })
-      .where(eq(organizations.id, orgId));
-  }
-
-  // إرسال إشعار تأكيد الحجز للعميل + إشعار المالك (fire-and-forget)
-  fireBookingEvent("booking_confirmed",  { orgId, bookingId: booking.id });
-  fireBookingEvent("owner_new_booking",  { orgId, bookingId: booking.id });
-
-  return c.json({
-    data: {
-      ...booking,
-      items: itemsToInsert,
-      trackingUrl: `/track/${trackingToken}`,
-    },
-  }, 201);
 });
 
 // ============================================================
