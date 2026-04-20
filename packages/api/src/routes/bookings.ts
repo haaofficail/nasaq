@@ -12,6 +12,8 @@ import {
   bookingRecords, bookingLines, bookingLineAddons, bookingTimelineEvents,
   bookingRecordAssignments, bookingRecordCommissions, bookingRecordConsumptions, bookingPaymentLinks,
   bookingPipelineStages, invoices,
+  auditLogs,
+  appointmentBookings, stayBookings, tableReservations, eventBookings,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, generateBookingNumber } from "../lib/helpers";
 import { postCashSale, postDepositReceived, postRefund, isAccountingEnabled } from "../lib/posting-engine";
@@ -46,6 +48,121 @@ export const bookingsRouter = new Hono<{ Variables: { user: AuthUser | null; org
 // Immediate-sale types: no time slot required — booking = sale at current moment
 const IMMEDIATE_TYPES = new Set(["product", "product_shipping", "food_order", "package", "add_on"]);
 
+// Engine types: require a dedicated engine table row (appointment_bookings etc.)
+const ENGINE_BOOKING_TYPES = new Set(["appointment", "stay", "table_reservation", "event"]);
+
+// Default conflict window per engine type — used when endsAt is absent
+const ENGINE_DEFAULT_DURATION_MINS: Record<string, number> = {
+  appointment:       60,
+  stay:              1440,
+  table_reservation: 120,
+  event:             240,
+};
+
+// ── insertEngineRow ─────────────────────────────────────────────────────────
+// Inserts a single row into the type-specific engine table.
+// bookingRecordId links back to booking_records (migration 147 FK).
+// bookingRef intentionally NOT set for canonical bookings — it references bookings.id (legacy only).
+async function insertEngineRow(
+  tx: typeof db,
+  bookingType: string,
+  engineRowId: string,
+  record: typeof bookingRecords.$inferSelect,
+  assignedUserId: string | null,
+  source: string,
+): Promise<void> {
+  const engineBookingNumber = record.bookingNumber + "-E";
+
+  if (bookingType === "appointment") {
+    await tx.insert(appointmentBookings).values({
+      id:              engineRowId,
+      orgId:           record.orgId,
+      customerId:      record.customerId,
+      bookingRecordId: record.id,
+      bookingNumber:   engineBookingNumber,
+      startAt:         record.startsAt,
+      endAt:           record.endsAt ?? null,
+      assignedUserId:  assignedUserId ?? null,
+      subtotal:        record.subtotal,
+      discountAmount:  record.discountAmount,
+      vatAmount:       record.vatAmount,
+      totalAmount:     record.totalAmount,
+      paidAmount:      record.paidAmount,
+      source,
+    } as any);
+    return;
+  }
+
+  if (bookingType === "stay") {
+    const checkOut = record.endsAt
+      ?? new Date(record.startsAt.getTime() + 24 * 60 * 60 * 1000);
+    await tx.insert(stayBookings).values({
+      id:              engineRowId,
+      orgId:           record.orgId,
+      customerId:      record.customerId,
+      bookingRecordId: record.id,
+      bookingNumber:   engineBookingNumber,
+      checkIn:         record.startsAt,
+      checkOut,
+      subtotal:        record.subtotal,
+      discountAmount:  record.discountAmount,
+      vatAmount:       record.vatAmount,
+      totalAmount:     record.totalAmount,
+      depositAmount:   record.depositAmount ?? "0",
+      paidAmount:      record.paidAmount,
+      source,
+    } as any);
+    return;
+  }
+
+  if (bookingType === "table_reservation") {
+    await tx.insert(tableReservations).values({
+      id:              engineRowId,
+      orgId:           record.orgId,
+      customerId:      record.customerId,
+      bookingRecordId: record.id,
+      bookingNumber:   engineBookingNumber,
+      reservationDate: record.startsAt,
+      startTime:       record.startsAt,
+      endTime:         record.endsAt ?? new Date(record.startsAt.getTime() + 2 * 60 * 60 * 1000),
+      locationId:      record.locationId ?? null,
+      subtotal:        record.subtotal,
+      discountAmount:  record.discountAmount,
+      vatAmount:       record.vatAmount,
+      totalAmount:     record.totalAmount,
+      paidAmount:      record.paidAmount,
+      source,
+    } as any);
+    return;
+  }
+
+  if (bookingType === "event") {
+    // eventDate is a date-only column (not timestamp) — extract date part
+    const eventDateOnly = record.startsAt.toISOString().slice(0, 10);
+    await tx.insert(eventBookings).values({
+      id:              engineRowId,
+      orgId:           record.orgId,
+      customerId:      record.customerId,
+      bookingRecordId: record.id,
+      bookingNumber:   engineBookingNumber,
+      eventDate:       eventDateOnly,
+      eventStart:      record.startsAt,
+      eventEnd:        record.endsAt ?? new Date(record.startsAt.getTime() + 4 * 60 * 60 * 1000),
+      locationId:      record.locationId ?? null,
+      subtotal:        record.subtotal,
+      discountAmount:  record.discountAmount,
+      vatAmount:       record.vatAmount,
+      totalAmount:     record.totalAmount,
+      depositAmount:   record.depositAmount ?? "0",
+      paidAmount:      record.paidAmount,
+      source,
+    } as any);
+    return;
+  }
+
+  throw new Error(`insertEngineRow: unsupported bookingType "${bookingType}"`);
+}
+
 const createBookingSchema = z.object({
   customerId: z.string().uuid({ message: "يجب اختيار العميل" }),
   eventDate: z.string().datetime({ message: "تاريخ الموعد غير صحيح" }).optional(),
@@ -57,6 +174,9 @@ const createBookingSchema = z.object({
   internalNotes: z.string().optional(),
   assignedUserId: z.string().uuid().optional().nullable(),
   source: z.string().default("dashboard"),
+
+  // Booking type — drives engine table selection (canonical path)
+  bookingType: z.string().optional(),
 
   // Items (الخدمات المحجوزة)
   items: z.array(z.object({
@@ -313,6 +433,18 @@ bookingsRouter.post("/", async (c) => {
   const body = createBookingSchema.parse(await c.req.json());
 
   log.info({ orgId, userId, requestId, customerId: body.customerId, itemsCount: body.items.length, source: body.source }, "[bookings] create started");
+
+  // Pre-flight: reject unsupported bookingType before any DB work
+  if (body.bookingType !== undefined) {
+    const SUPPORTED_TYPES = [...Array.from(ENGINE_BOOKING_TYPES), ...Array.from(IMMEDIATE_TYPES)];
+    if (!ENGINE_BOOKING_TYPES.has(body.bookingType) && !IMMEDIATE_TYPES.has(body.bookingType)) {
+      return c.json({
+        error: `نوع الحجز غير مدعوم: ${body.bookingType}`,
+        code: "UNSUPPORTED_BOOKING_TYPE",
+        supportedTypes: SUPPORTED_TYPES,
+      }, 400);
+    }
+  }
 
   // 1. Verify customer exists
   const [customer] = await db.select().from(customers)
