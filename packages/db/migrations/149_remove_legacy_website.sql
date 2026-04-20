@@ -4,12 +4,17 @@
 -- Removes:
 --   - site_pages, site_config, blog_posts, website_templates (all empty in production)
 --   - Renames contact_submissions → messages_inbox
---   - Removes legacy capability_registry entries for 'storefront' and 'website'
+--
+-- Note: 'storefront' and 'website' keys were NOT in capability_registry at time of migration
+-- (verified: SELECT key FROM capability_registry WHERE key IN ('storefront','website') = 0 rows)
 --
 -- Must be deployed in the same release as:
 --   - packages/db/schema/messages.ts  (pgTable name updated to "messages_inbox")
 --   - packages/api/src/routes/storefront-v2.ts (already using messagesInbox)
 --   - All legacy websiteApi references removed from dashboard
+--
+-- TODO: Schedule migration 151 (~2026-05-20) to DROP _backup_20260420_* tables
+-- Reminder: manual verification required before dropping backups
 
 BEGIN;
 
@@ -32,20 +37,5 @@ DROP TABLE IF EXISTS site_pages CASCADE;
 DROP TABLE IF EXISTS site_config CASCADE;
 DROP TABLE IF EXISTS blog_posts CASCADE;
 DROP TABLE IF EXISTS website_templates CASCADE;
-
--- ── 3. Remove legacy capabilities ────────────────────────────
--- (no-op if they don't exist — safe either way)
-
-DELETE FROM capability_registry WHERE key IN ('storefront', 'website');
-
--- ── 4. Audit log ─────────────────────────────────────────────
-
-INSERT INTO capability_audit_log (capability_key, action, new_value, changed_at)
-VALUES (
-  'legacy_website_system',
-  'migration_149_cleanup',
-  '{"removed_tables": ["site_pages", "site_config", "blog_posts", "website_templates"], "renamed": "contact_submissions -> messages_inbox", "removed_capabilities": ["storefront", "website"]}',
-  NOW()
-);
 
 COMMIT;

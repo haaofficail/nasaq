@@ -21,6 +21,10 @@ BEGIN
 END $$;
 
 -- ── 2. Restore legacy website tables from backups ─────────────
+-- ⚠️ IMPORTANT: Restored tables contain DATA ONLY.
+-- Primary keys, indexes, foreign keys, and triggers are NOT restored.
+-- After rollback, redeploy old build — Drizzle migrations will rebuild schema.
+-- If rollback is meant to be permanent, manually restore constraints using pre-149 schema.
 
 CREATE TABLE IF NOT EXISTS site_pages AS
   SELECT * FROM _backup_20260420_site_pages;
@@ -34,24 +38,7 @@ CREATE TABLE IF NOT EXISTS blog_posts AS
 CREATE TABLE IF NOT EXISTS website_templates AS
   SELECT * FROM _backup_20260420_website_templates;
 
--- ── 3. Re-add legacy capabilities (if they were removed) ─────
-
-INSERT INTO capability_registry (key, name_ar, description_ar, isActive, createdAt)
-SELECT 'storefront', 'المتجر الإلكتروني', 'الصفحة العامة للمنشأة', true, NOW()
-WHERE NOT EXISTS (SELECT 1 FROM capability_registry WHERE key = 'storefront');
-
-INSERT INTO capability_registry (key, name_ar, description_ar, isActive, createdAt)
-SELECT 'website', 'الموقع الإلكتروني', 'بناء الموقع الإلكتروني', true, NOW()
-WHERE NOT EXISTS (SELECT 1 FROM capability_registry WHERE key = 'website');
-
--- ── 4. Audit log ─────────────────────────────────────────────
-
-INSERT INTO capability_audit_log (capability_key, action, new_value, changed_at)
-VALUES (
-  'legacy_website_system',
-  'migration_149_rollback',
-  '{"reason": "emergency rollback", "restored_tables": ["site_pages", "site_config", "blog_posts", "website_templates"], "renamed_back": "messages_inbox -> contact_submissions"}',
-  NOW()
-);
+-- Note: capability_registry entries for 'storefront'/'website' were not present at migration time.
+-- No capability restoration needed.
 
 COMMIT;
