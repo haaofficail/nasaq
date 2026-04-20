@@ -412,10 +412,10 @@ export function BookingsPage() {
 
                   {/* التاريخ والوقت */}
                   <td className="px-[10px] py-[6px] whitespace-nowrap">
-                    {b.eventDate ? (
+                    {b.startsAt ? (
                       <>
-                        <p className="text-[13px] font-medium text-[#1a2332]">{fmtDate(b.eventDate)}</p>
-                        <p className="text-[11px] text-[#9aa5b4] mt-0.5">{fmtTime(b.eventDate)}</p>
+                        <p className="text-[13px] font-medium text-[#1a2332]">{fmtDate(b.startsAt)}</p>
+                        <p className="text-[11px] text-[#9aa5b4] mt-0.5">{fmtTime(b.startsAt)}</p>
                       </>
                     ) : <span className="text-[#9aa5b4]">—</span>}
                   </td>
@@ -554,9 +554,9 @@ export function BookingsPage() {
                         <p className="text-[12px] text-[#6b7a8d] mt-0.5 font-medium">{b.serviceName}</p>
                       )}
                       <div className="flex items-center gap-3 mt-1.5 flex-wrap">
-                        {b.eventDate && (
+                        {b.startsAt && (
                           <span className="text-[11px] text-[#9aa5b4]">
-                            {fmtDate(b.eventDate)} · {fmtTime(b.eventDate)}
+                            {fmtDate(b.startsAt)} · {fmtTime(b.startsAt)}
                           </span>
                         )}
                         <StatusBadge status={b.status} />

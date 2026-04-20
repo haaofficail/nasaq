@@ -72,7 +72,7 @@ export function RecentBookingsWidget() {
                   </p>
                   <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5">
                     <Clock className="w-3 h-3" />
-                    {b.eventDate ? fmtDate(b.eventDate) : "—"}
+                    {b.startsAt ? fmtDate(b.startsAt) : "—"}
                   </p>
                 </div>
                 <div className="text-left shrink-0">

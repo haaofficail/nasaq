@@ -102,46 +102,46 @@ bookingsRouter.get("/", async (c) => {
   const search = c.req.query("search");
   const sortDir = c.req.query("sortDir") || "desc";
 
-  const conditions = [eq(bookings.orgId, orgId)];
+  const conditions = [eq(bookingRecords.orgId, orgId)];
 
-  if (status) conditions.push(eq(bookings.status, status as any));
-  if (paymentStatus) conditions.push(eq(bookings.paymentStatus, paymentStatus as any));
-  if (customerId) conditions.push(eq(bookings.customerId, customerId));
-  if (locationId) conditions.push(eq(bookings.locationId, locationId));
-  if (dateFrom) conditions.push(gte(bookings.eventDate, new Date(dateFrom)));
-  if (dateTo) conditions.push(lte(bookings.eventDate, new Date(dateTo)));
+  if (status) conditions.push(eq(bookingRecords.status, status as any));
+  if (paymentStatus) conditions.push(eq(bookingRecords.paymentStatus, paymentStatus as any));
+  if (customerId) conditions.push(eq(bookingRecords.customerId, customerId));
+  if (locationId) conditions.push(eq(bookingRecords.locationId, locationId));
+  if (dateFrom) conditions.push(gte(bookingRecords.startsAt, new Date(dateFrom)));
+  if (dateTo) conditions.push(lte(bookingRecords.startsAt, new Date(dateTo)));
   if (search) conditions.push(
     or(
-      ilike(bookings.bookingNumber, `%${search}%`),
-      ilike(bookings.customerNotes, `%${search}%`)
+      ilike(bookingRecords.bookingNumber, `%${search}%`),
+      ilike(bookingRecords.customerNotes, `%${search}%`)
     )!
   );
 
   // Location-level RBAC
   const locationFilter = c.get("locationFilter");
   if (locationFilter) {
-    conditions.push(sql`${bookings.locationId} = ANY(${locationFilter})`);
+    conditions.push(sql`${bookingRecords.locationId} = ANY(${locationFilter})`);
   }
 
   const [result, [{ total }]] = await Promise.all([
     db
       .select({
-        booking: bookings,
+        booking: bookingRecords,
         customerName: customers.name,
         customerPhone: customers.phone,
         locationName: locations.name,
-        // Fetch first service name + duration via correlated subquery (avoids N+1)
-        firstServiceName: sql<string | null>`(SELECT bi.service_name FROM booking_items bi WHERE bi.booking_id = ${bookings.id} LIMIT 1)`,
-        firstDurationMinutes: sql<number | null>`(SELECT s.duration_minutes FROM booking_items bi JOIN services s ON s.id = bi.service_id WHERE bi.booking_id = ${bookings.id} LIMIT 1)`,
+        // Correlated subquery via raw SQL — avoids N+1 (booking_records.id = outer row)
+        firstServiceName: sql<string | null>`(SELECT bl.item_name FROM booking_lines bl WHERE bl.booking_record_id = booking_records.id LIMIT 1)`,
+        firstDurationMinutes: sql<number | null>`(SELECT bl.duration_minutes FROM booking_lines bl WHERE bl.booking_record_id = booking_records.id LIMIT 1)`,
       })
-      .from(bookings)
-      .leftJoin(customers, eq(bookings.customerId, customers.id))
-      .leftJoin(locations, eq(bookings.locationId, locations.id))
+      .from(bookingRecords)
+      .leftJoin(customers, eq(bookingRecords.customerId, customers.id))
+      .leftJoin(locations, eq(bookingRecords.locationId, locations.id))
       .where(and(...conditions))
-      .orderBy(sortDir === "asc" ? asc(bookings.createdAt) : desc(bookings.createdAt))
+      .orderBy(sortDir === "asc" ? asc(bookingRecords.createdAt) : desc(bookingRecords.createdAt))
       .limit(limit)
       .offset(offset),
-    db.select({ total: count() }).from(bookings).where(and(...conditions)),
+    db.select({ total: count() }).from(bookingRecords).where(and(...conditions)),
   ]);
 
   return c.json({

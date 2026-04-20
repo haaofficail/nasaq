@@ -7,7 +7,7 @@ type Booking = {
   id: string;
   customerName?: string;
   status: string;
-  eventDate: string; // ISO date wrapper
+  startsAt: string; // ISO datetime (was eventDate)
 };
 
 type Insight = {
@@ -33,11 +33,11 @@ export function AIYieldPanel({
   // Analyze the schedule
   const analysis = useMemo(() => {
     // 1. Filter out unsupported bookings (no date or cancelled)
-    const active = bookings.filter(b => b.eventDate && b.status !== "cancelled" && b.status !== "completed");
+    const active = bookings.filter(b => b.startsAt && b.status !== "cancelled" && b.status !== "completed");
     
     // Convert to minute representations based on 00:00 start
     const mapped = active.map(b => {
-      const d = new Date(b.eventDate);
+      const d = new Date(b.startsAt);
       const startMins = d.getHours() * 60 + d.getMinutes();
       // Estimate duration: 60 minutes default
       const endMins = startMins + 60;
@@ -76,7 +76,7 @@ export function AIYieldPanel({
           insights.push({
             bookingId: b.id,
             customerName: b.customerName || "عميل",
-            currentDate: b.eventDate,
+            currentDate: b.startsAt,
             suggestedDate: suggested.toISOString(),
             timeShiftDesc: `تقديم إلى ${timeFormatted}`,
             reason: "سد فراغ 30 دقيقة لفتح ساعة كاملة للحجوزات الجديدة."
