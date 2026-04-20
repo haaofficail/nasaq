@@ -219,26 +219,26 @@ bookingsRouter.get("/calendar", async (c) => {
 
   const result = await db
     .select({
-      id: bookings.id,
-      bookingNumber: bookings.bookingNumber,
-      status: bookings.status,
-      eventDate: bookings.eventDate,
-      eventEndDate: bookings.eventEndDate,
-      totalAmount: bookings.totalAmount,
-      paymentStatus: bookings.paymentStatus,
-      customerName: customers.name,
-      locationName: locations.name,
+      id:            bookingRecords.id,
+      bookingNumber: bookingRecords.bookingNumber,
+      status:        bookingRecords.status,
+      startsAt:      bookingRecords.startsAt,
+      endsAt:        bookingRecords.endsAt,
+      totalAmount:   bookingRecords.totalAmount,
+      paymentStatus: bookingRecords.paymentStatus,
+      customerName:  customers.name,
+      locationName:  locations.name,
     })
-    .from(bookings)
-    .leftJoin(customers, eq(bookings.customerId, customers.id))
-    .leftJoin(locations, eq(bookings.locationId, locations.id))
+    .from(bookingRecords)
+    .leftJoin(customers, eq(bookingRecords.customerId, customers.id))
+    .leftJoin(locations, eq(bookingRecords.locationId, locations.id))
     .where(and(
-      eq(bookings.orgId, orgId),
-      gte(bookings.eventDate, new Date(from)),
-      lte(bookings.eventDate, new Date(to)),
-      sql`${bookings.status} NOT IN ('cancelled')`
+      eq(bookingRecords.orgId, orgId),
+      gte(bookingRecords.startsAt, new Date(from)),
+      lte(bookingRecords.startsAt, new Date(to)),
+      sql`${bookingRecords.status} NOT IN ('cancelled')`
     ))
-    .orderBy(asc(bookings.eventDate));
+    .orderBy(asc(bookingRecords.startsAt));
 
   return c.json({ data: result });
 });
@@ -1492,26 +1492,26 @@ bookingsRouter.get("/calendar/events", async (c) => {
 
   const result = await db
     .select({
-      id: bookings.id,
-      bookingNumber: bookings.bookingNumber,
-      status: bookings.status,
-      eventDate: bookings.eventDate,
-      eventEndDate: bookings.eventEndDate,
-      totalAmount: bookings.totalAmount,
-      paymentStatus: bookings.paymentStatus,
-      customerName: customers.name,
-      locationName: locations.name,
+      id:            bookingRecords.id,
+      bookingNumber: bookingRecords.bookingNumber,
+      status:        bookingRecords.status,
+      startsAt:      bookingRecords.startsAt,
+      endsAt:        bookingRecords.endsAt,
+      totalAmount:   bookingRecords.totalAmount,
+      paymentStatus: bookingRecords.paymentStatus,
+      customerName:  customers.name,
+      locationName:  locations.name,
     })
-    .from(bookings)
-    .leftJoin(customers, eq(bookings.customerId, customers.id))
-    .leftJoin(locations, eq(bookings.locationId, locations.id))
+    .from(bookingRecords)
+    .leftJoin(customers, eq(bookingRecords.customerId, customers.id))
+    .leftJoin(locations, eq(bookingRecords.locationId, locations.id))
     .where(and(
-      eq(bookings.orgId, orgId),
-      gte(bookings.eventDate, new Date(from)),
-      lte(bookings.eventDate, new Date(to)),
-      sql`${bookings.status} NOT IN ('cancelled')`
+      eq(bookingRecords.orgId, orgId),
+      gte(bookingRecords.startsAt, new Date(from)),
+      lte(bookingRecords.startsAt, new Date(to)),
+      sql`${bookingRecords.status} NOT IN ('cancelled')`
     ))
-    .orderBy(asc(bookings.eventDate));
+    .orderBy(asc(bookingRecords.startsAt));
 
   return c.json({ data: result });
 });

@@ -114,7 +114,7 @@ export function CalendarPage() {
   const bookingsByDay = useMemo(() => {
     const map: Record<string, any[]> = {};
     weekEvents.forEach((b: any) => {
-      const k = dayKey(new Date(b.eventDate || b.date));
+      const k = dayKey(new Date(b.startsAt || b.date));
       if (!map[k]) map[k] = [];
       map[k].push(b);
     });
@@ -125,7 +125,7 @@ export function CalendarPage() {
   const dayBookingsBySlot = useMemo(() => {
     const map: Record<string, any[]> = {};
     dayEvents.forEach((b: any) => {
-      const k = getSlotKey(b.eventDate || b.date);
+      const k = getSlotKey(b.startsAt || b.date);
       if (!map[k]) map[k] = [];
       map[k].push(b);
     });
@@ -140,7 +140,7 @@ export function CalendarPage() {
 
   const getEventsForDay = (day: number) =>
     monthEvents.filter((e: any) => {
-      const d = new Date(e.eventDate || e.date);
+      const d = new Date(e.startsAt || e.date);
       return d.getDate() === day && d.getMonth() === month && d.getFullYear() === year;
     });
 
