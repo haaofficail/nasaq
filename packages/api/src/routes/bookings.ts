@@ -23,7 +23,6 @@ import { fireBookingEvent } from "../lib/messaging-engine";
 import { decryptString } from "../lib/encryption";
 import { log } from "../lib/logger";
 import { salonLog } from "../lib/salon-logger";
-import { shadowWriteBookingOnCreate, shadowWriteBookingStatus } from "../lib/canonical-shadow";
 import {
   getWorkflowStagesForOrg, canTransition,
   resolveWorkflowExecutionMode,
@@ -39,13 +38,6 @@ import {
 import type { AuthUser } from "../middleware/auth";
 
 export const bookingsRouter = new Hono<{ Variables: { user: AuthUser | null; orgId: string; locationFilter: string[] | null; requestId: string } }>();
-
-// ============================================================
-// PHASE 0 GUARDRAILS — Feature Flags (no behavior changes)
-// ============================================================
-const ENABLE_CANONICAL_SHADOW_WRITE = process.env.ENABLE_CANONICAL_SHADOW_WRITE === "true";
-const ENABLE_CANONICAL_READ_DETAIL = process.env.ENABLE_CANONICAL_READ_DETAIL === "true";
-const ENABLE_CANONICAL_READ_LIST = process.env.ENABLE_CANONICAL_READ_LIST === "true";
 
 // ============================================================
 // SCHEMAS
@@ -109,78 +101,6 @@ bookingsRouter.get("/", async (c) => {
   const dateTo = c.req.query("dateTo");
   const search = c.req.query("search");
   const sortDir = c.req.query("sortDir") || "desc";
-
-  // ── Phase 5: Canonical read path for list ─────────────────────────────────
-  if (ENABLE_CANONICAL_READ_LIST) {
-    const canonicalConditions = [eq(bookingRecords.orgId, orgId)];
-
-    if (status)        canonicalConditions.push(eq(bookingRecords.status, status));
-    if (paymentStatus) canonicalConditions.push(eq(bookingRecords.paymentStatus, paymentStatus));
-    if (customerId)    canonicalConditions.push(eq(bookingRecords.customerId, customerId));
-    if (locationId)    canonicalConditions.push(eq(bookingRecords.locationId, locationId));
-    if (dateFrom)      canonicalConditions.push(gte(bookingRecords.startsAt, new Date(dateFrom)));
-    if (dateTo)        canonicalConditions.push(lte(bookingRecords.startsAt, new Date(dateTo)));
-    if (search)        canonicalConditions.push(
-      or(
-        ilike(bookingRecords.bookingNumber, `%${search}%`),
-        ilike(bookingRecords.customerNotes,  `%${search}%`),
-      )!,
-    );
-
-    const locationFilter = c.get("locationFilter");
-    if (locationFilter) {
-      canonicalConditions.push(sql`${bookingRecords.locationId} = ANY(${locationFilter})`);
-    }
-
-    const [canonicalResult, [{ canonicalTotal }]] = await Promise.all([
-      db
-        .select({
-          record:       bookingRecords,
-          customerName: customers.name,
-          customerPhone: customers.phone,
-          locationName: locations.name,
-        })
-        .from(bookingRecords)
-        .leftJoin(customers, eq(bookingRecords.customerId, customers.id))
-        .leftJoin(locations, eq(bookingRecords.locationId, locations.id))
-        .where(and(...canonicalConditions))
-        .orderBy(sortDir === "asc" ? asc(bookingRecords.createdAt) : desc(bookingRecords.createdAt))
-        .limit(limit)
-        .offset(offset),
-      db.select({ canonicalTotal: count() }).from(bookingRecords).where(and(...canonicalConditions)),
-    ]);
-
-    const total = Number(canonicalTotal);
-
-    log.info({ orgId, total, page }, "[canonical-read] bookings.list from canonical");
-
-    return c.json({
-      data: canonicalResult.map(r => ({
-        id:                 r.record.bookingRef ?? r.record.id,
-        orgId:              r.record.orgId,
-        customerId:         r.record.customerId,
-        bookingNumber:      r.record.bookingNumber,
-        status:             r.record.status,
-        paymentStatus:      r.record.paymentStatus,
-        eventDate:          r.record.startsAt,
-        eventEndDate:       r.record.endsAt ?? null,
-        locationId:         r.record.locationId ?? null,
-        totalAmount:        r.record.totalAmount,
-        depositAmount:      r.record.depositAmount,
-        paidAmount:         r.record.paidAmount,
-        balanceDue:         r.record.balanceDue,
-        source:             r.record.source ?? null,
-        assignedUserId:     r.record.assignedUserId ?? null,
-        cancelledAt:        r.record.cancelledAt ?? null,
-        createdAt:          r.record.createdAt,
-        updatedAt:          r.record.updatedAt,
-        customer: { name: r.customerName, phone: r.customerPhone },
-        location: r.locationName ? { name: r.locationName } : null,
-        _source: "canonical",
-      })),
-      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
-    });
-  }
 
   const conditions = [eq(bookings.orgId, orgId)];
 
@@ -332,132 +252,6 @@ bookingsRouter.get("/:id", async (c) => {
   const id = c.req.param("id");
   const requestId = c.get("requestId");
 
-  log.info({
-    orgId,
-    bookingId: id,
-    requestId,
-    guardrails: {
-      ENABLE_CANONICAL_SHADOW_WRITE,
-      ENABLE_CANONICAL_READ_DETAIL,
-      ENABLE_CANONICAL_READ_LIST,
-    },
-  }, "[guardrails] bookings.detail.read (legacy source)");
-
-  // ── Phase 4: Canonical read path (when flag + canonical row exists) ────────
-  if (ENABLE_CANONICAL_READ_DETAIL) {
-    const [canonicalRecord] = await db.select().from(bookingRecords)
-      .where(and(eq(bookingRecords.bookingRef, id), eq(bookingRecords.orgId, orgId)));
-
-    if (canonicalRecord) {
-      const [lines, timelineEvents, canonicalCustomer, canonicalLocation, paymentLinks, canonicalInvoice] = await Promise.all([
-        db.select().from(bookingLines).where(eq(bookingLines.bookingRecordId, canonicalRecord.id)),
-        db.select().from(bookingTimelineEvents)
-          .where(eq(bookingTimelineEvents.bookingRecordId, canonicalRecord.id))
-          .orderBy(asc(bookingTimelineEvents.createdAt)),
-        db.select().from(customers).where(eq(customers.id, canonicalRecord.customerId)).then(r => r[0] ?? null),
-        canonicalRecord.locationId
-          ? db.select().from(locations).where(eq(locations.id, canonicalRecord.locationId)).then(r => r[0] ?? null)
-          : Promise.resolve(null),
-        db.select({ paymentId: bookingPaymentLinks.paymentId })
-          .from(bookingPaymentLinks)
-          .where(eq(bookingPaymentLinks.bookingRecordId, canonicalRecord.id)),
-        db.select({ id: invoices.id, invoiceNumber: invoices.invoiceNumber, status: invoices.status })
-          .from(invoices)
-          .where(and(eq(invoices.bookingId, id), eq(invoices.orgId, orgId)))
-          .orderBy(desc(invoices.issueDate))
-          .limit(1)
-          .then(r => r[0] ?? null),
-      ]);
-
-      const canonicalAddons = lines.length > 0
-        ? await db.select().from(bookingLineAddons)
-            .where(inArray(bookingLineAddons.bookingLineId, lines.map(l => l.id)))
-        : [];
-
-      const addonsByLineId = canonicalAddons.reduce<Record<string, typeof canonicalAddons>>((acc, addon) => {
-        if (!acc[addon.bookingLineId]) acc[addon.bookingLineId] = [];
-        acc[addon.bookingLineId].push(addon);
-        return acc;
-      }, {});
-
-      const canonicalPayments = paymentLinks.length > 0
-        ? await db.select().from(payments)
-            .where(inArray(payments.id, paymentLinks.map(pl => pl.paymentId)))
-            .orderBy(desc(payments.createdAt))
-        : [];
-
-      // Map canonical → legacy-compatible response shape
-      const linesWithAddons = lines.map(line => ({
-        id: line.id,
-        bookingId: canonicalRecord.bookingRef ?? id,
-        serviceId: line.serviceRefId ?? null,
-        serviceName: line.itemName,
-        serviceType: line.itemType ?? null,
-        durationMinutes: line.durationMinutes ?? null,
-        vatInclusive: line.vatInclusive,
-        quantity: line.quantity,
-        unitPrice: line.unitPrice,
-        totalPrice: line.totalPrice,
-        pricingBreakdown: line.pricingBreakdown ?? [],
-        notes: line.notes ?? null,
-        createdAt: line.createdAt,
-        addons: addonsByLineId[line.id] ?? [],
-      }));
-
-      log.info({ orgId, bookingId: id, requestId, canonicalId: canonicalRecord.id }, "[canonical-read] bookings.detail from canonical");
-
-      return c.json({
-        data: {
-          id:                 canonicalRecord.bookingRef ?? canonicalRecord.id,
-          orgId:              canonicalRecord.orgId,
-          customerId:         canonicalRecord.customerId,
-          bookingNumber:      canonicalRecord.bookingNumber,
-          status:             canonicalRecord.status,
-          paymentStatus:      canonicalRecord.paymentStatus,
-          eventDate:          canonicalRecord.startsAt,
-          eventEndDate:       canonicalRecord.endsAt ?? null,
-          setupDate:          canonicalRecord.setupAt ?? null,
-          teardownDate:       canonicalRecord.teardownAt ?? null,
-          locationId:         canonicalRecord.locationId ?? null,
-          customLocation:     canonicalRecord.customLocation ?? null,
-          locationNotes:      canonicalRecord.locationNotes ?? null,
-          subtotal:           canonicalRecord.subtotal,
-          discountAmount:     canonicalRecord.discountAmount,
-          vatAmount:          canonicalRecord.vatAmount,
-          totalAmount:        canonicalRecord.totalAmount,
-          depositAmount:      canonicalRecord.depositAmount,
-          paidAmount:         canonicalRecord.paidAmount,
-          balanceDue:         canonicalRecord.balanceDue,
-          source:             canonicalRecord.source ?? null,
-          trackingToken:      canonicalRecord.trackingToken ?? null,
-          customerNotes:      canonicalRecord.customerNotes ?? null,
-          internalNotes:      canonicalRecord.internalNotes ?? null,
-          questionAnswers:    canonicalRecord.questionAnswers ?? [],
-          assignedUserId:     canonicalRecord.assignedUserId ?? null,
-          vendorId:           canonicalRecord.vendorId ?? null,
-          cancelledAt:        canonicalRecord.cancelledAt ?? null,
-          cancellationReason: canonicalRecord.cancellationReason ?? null,
-          reviewedAt:         canonicalRecord.reviewedAt ?? null,
-          rating:             canonicalRecord.rating ?? null,
-          reviewText:         canonicalRecord.reviewText ?? null,
-          createdAt:          canonicalRecord.createdAt,
-          updatedAt:          canonicalRecord.updatedAt,
-          // Computed invoice state (derived from invoices table — no stored column)
-          invoiceStatus: canonicalInvoice ? "invoiced" : "not_invoiced",
-          invoiceId:     canonicalInvoice?.id ?? null,
-          // Relations
-          customer:  canonicalCustomer,
-          location:  canonicalLocation,
-          items:     linesWithAddons,
-          payments:  canonicalPayments,
-          timeline:  timelineEvents,
-          _source:   "canonical",
-        },
-      });
-    }
-    // Fall through to legacy if no canonical row (booking pre-dates shadow write)
-  }
-
   const [booking] = await db.select().from(bookings)
     .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)));
 
@@ -519,19 +313,7 @@ bookingsRouter.post("/", async (c) => {
   const requestId = c.get("requestId");
   const body = createBookingSchema.parse(await c.req.json());
 
-  log.info({
-    orgId,
-    userId,
-    requestId,
-    customerId: body.customerId,
-    itemsCount: body.items.length,
-    source: body.source,
-    guardrails: {
-      ENABLE_CANONICAL_SHADOW_WRITE,
-      ENABLE_CANONICAL_READ_DETAIL,
-      ENABLE_CANONICAL_READ_LIST,
-    },
-  }, "[guardrails] bookings.create (legacy write path)");
+  log.info({ orgId, userId, requestId, customerId: body.customerId, itemsCount: body.items.length, source: body.source }, "[bookings] create started");
 
   // 1. Verify customer exists
   const [customer] = await db.select().from(customers)
@@ -999,19 +781,6 @@ bookingsRouter.post("/", async (c) => {
   fireBookingEvent("booking_confirmed",  { orgId, bookingId: booking.id });
   fireBookingEvent("owner_new_booking",  { orgId, bookingId: booking.id });
 
-  if (ENABLE_CANONICAL_SHADOW_WRITE) {
-    try {
-      await shadowWriteBookingOnCreate({ orgId, bookingId: booking.id, requestId });
-    } catch (error) {
-      log.error({
-        orgId,
-        bookingId: booking.id,
-        requestId,
-        error: error instanceof Error ? { name: error.name, message: error.message } : String(error),
-      }, "[canonical-shadow] bookings.create mirror failed");
-    }
-  }
-
   return c.json({
     data: {
       ...booking,
@@ -1049,19 +818,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
   // bookings.force_transition is owner-only permission — enforced here, not in client
   const canForce   = actorUser?.dotPermissions?.includes("bookings.force_transition") ?? false;
 
-  log.info({
-    orgId,
-    bookingId: id,
-    actingUserId,
-    requestId,
-    newStatus,
-    hasReason: Boolean(reason),
-    guardrails: {
-      ENABLE_CANONICAL_SHADOW_WRITE,
-      ENABLE_CANONICAL_READ_DETAIL,
-      ENABLE_CANONICAL_READ_LIST,
-    },
-  }, "[guardrails] bookings.status.update (legacy write path)");
+  log.info({ orgId, bookingId: id, actingUserId, requestId, newStatus, hasReason: Boolean(reason) }, "[bookings] status.update started");
 
   // ── Workflow mode resolution (centralized, deterministic) ──────────────────
   // Stages loaded once outside transaction — canTransition is pure, no extra DB in tx
@@ -1360,17 +1117,6 @@ bookingsRouter.patch("/:id/status", async (c) => {
       reason:       reason ?? null,
     },
   });
-
-  // ── Phase 3: Canonical shadow status sync (fire-and-forget, never throws) ─
-  if (ENABLE_CANONICAL_SHADOW_WRITE) {
-    shadowWriteBookingStatus({
-      orgId, bookingId: id,
-      userId:     actingUserId ?? null,
-      fromStatus: fromStatus as string,
-      newStatus,
-      reason,
-    }).catch(() => {});
-  }
 
   // قيد محاسبي تلقائي (fire-and-forget)
   if (newStatus === "confirmed") {
