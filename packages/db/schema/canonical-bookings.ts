@@ -19,7 +19,8 @@ import { organizations } from "./organizations";
 import { customers } from "./customers";
 import { users } from "./auth";
 import { locations } from "./organizations";
-import { bookings, payments } from "./bookings";
+// bookings.ts import intentionally removed — bookingRef is now a plain UUID tracking field (no FK).
+// bookingPaymentLinks.paymentId is a plain UUID (no FK) — payments table stays in bookings.ts until Phase 3.
 
 // ============================================================
 // APPOINTMENT BOOKINGS
@@ -31,7 +32,7 @@ export const appointmentBookings = pgTable("appointment_bookings", {
   id:            uuid("id").defaultRandom().primaryKey(),
   orgId:         uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   customerId:    uuid("customer_id").notNull().references(() => customers.id),
-  bookingRef:    uuid("booking_ref").references(() => bookings.id), // legacy link
+  bookingRef:    uuid("booking_ref"), // legacy tracking only — no FK
 
   bookingNumber: text("booking_number").notNull().unique(),
   status:        text("status").notNull().default("pending"),
@@ -86,7 +87,7 @@ export const stayBookings = pgTable("stay_bookings", {
   id:            uuid("id").defaultRandom().primaryKey(),
   orgId:         uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   customerId:    uuid("customer_id").notNull().references(() => customers.id),
-  bookingRef:    uuid("booking_ref").references(() => bookings.id),
+  bookingRef:    uuid("booking_ref"), // legacy tracking only — no FK
 
   bookingNumber: text("booking_number").notNull().unique(),
   status:        text("status").notNull().default("pending"),
@@ -149,7 +150,7 @@ export const tableReservations = pgTable("table_reservations", {
   id:            uuid("id").defaultRandom().primaryKey(),
   orgId:         uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   customerId:    uuid("customer_id").references(() => customers.id),
-  bookingRef:    uuid("booking_ref").references(() => bookings.id),
+  bookingRef:    uuid("booking_ref"), // legacy tracking only — no FK
 
   reservationNumber: text("reservation_number").notNull().unique(),
   status: text("status").notNull().default("pending"), // pending|confirmed|seated|completed|cancelled|no_show
@@ -200,7 +201,7 @@ export const eventBookings = pgTable("event_bookings", {
   id:            uuid("id").defaultRandom().primaryKey(),
   orgId:         uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   customerId:    uuid("customer_id").notNull().references(() => customers.id),
-  bookingRef:    uuid("booking_ref").references(() => bookings.id),
+  bookingRef:    uuid("booking_ref"), // legacy tracking only — no FK
 
   bookingNumber: text("booking_number").notNull().unique(),
   status:        text("status").notNull().default("pending"),
@@ -266,7 +267,7 @@ export const bookingRecords = pgTable("booking_records", {
   id:            uuid("id").defaultRandom().primaryKey(),
   orgId:         uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   customerId:    uuid("customer_id").notNull().references(() => customers.id, { onDelete: "restrict" }),
-  bookingRef:    uuid("booking_ref").references(() => bookings.id), // legacy link for migration parity
+  bookingRef:    uuid("booking_ref"), // legacy tracking only — no FK
 
   bookingNumber: text("booking_number").notNull().unique(),
   bookingType:   text("booking_type").notNull().default("appointment"), // appointment|event
@@ -448,7 +449,7 @@ export const bookingPaymentLinks = pgTable("booking_payment_links", {
   id:             uuid("id").defaultRandom().primaryKey(),
   orgId:          uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   bookingRecordId: uuid("booking_record_id").notNull().references(() => bookingRecords.id, { onDelete: "cascade" }),
-  paymentId:      uuid("payment_id").notNull().references(() => payments.id, { onDelete: "restrict" }),
+  paymentId:      uuid("payment_id").notNull(), // FK to payments.id added in Phase 3 after payments moves to own schema
   linkType:       text("link_type").notNull().default("payment"), // payment|deposit|refund|adjustment
   amountApplied:  numeric("amount_applied", { precision: 12, scale: 2 }),
   metadata:       jsonb("metadata").default({}),
