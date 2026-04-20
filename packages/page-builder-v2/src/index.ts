@@ -29,6 +29,14 @@ export { FeaturesListBlock, FeaturesListConfig } from "./blocks/features/Feature
 export type { FeaturesListProps, FeaturesListItem } from "./blocks/features/FeaturesList";
 export { FeaturesAlternatingBlock, FeaturesAlternatingConfig } from "./blocks/features/FeaturesAlternating";
 export type { FeaturesAlternatingProps, FeaturesAlternatingItem } from "./blocks/features/FeaturesAlternating";
+export { TestimonialsCardsBlock, TestimonialsCardsConfig } from "./blocks/social/TestimonialsCards";
+export type { TestimonialsCardsProps, TestimonialsCardsItem } from "./blocks/social/TestimonialsCards";
+export { TestimonialsSliderBlock, TestimonialsSliderConfig } from "./blocks/social/TestimonialsSlider";
+export type { TestimonialsSliderProps, TestimonialsSliderItem } from "./blocks/social/TestimonialsSlider";
+export { FAQAccordionBlock, FAQAccordionConfig } from "./blocks/social/FAQAccordion";
+export type { FAQAccordionProps, FAQAccordionItem } from "./blocks/social/FAQAccordion";
+export { StatsSimpleBlock, StatsSimpleConfig } from "./blocks/social/StatsSimple";
+export type { StatsSimpleProps, StatItem } from "./blocks/social/StatsSimple";
 export { PuckEditor } from "./components/PuckEditor";
 export type { PuckEditorProps } from "./components/PuckEditor";
 export type { Data as PuckData } from "@measured/puck";

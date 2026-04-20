@@ -12,6 +12,10 @@ import { Features3colConfig } from "../blocks/features/Features3col";
 import { Features4cardsConfig } from "../blocks/features/Features4cards";
 import { FeaturesListConfig } from "../blocks/features/FeaturesList";
 import { FeaturesAlternatingConfig } from "../blocks/features/FeaturesAlternating";
+import { TestimonialsCardsConfig } from "../blocks/social/TestimonialsCards";
+import { TestimonialsSliderConfig } from "../blocks/social/TestimonialsSlider";
+import { FAQAccordionConfig } from "../blocks/social/FAQAccordion";
+import { StatsSimpleConfig } from "../blocks/social/StatsSimple";
 
 // Page Builder v2 — Puck configuration
 // All blocks: RTL, IBM Plex Sans Arabic, Tailwind-only, brand #5b9bd5
@@ -31,6 +35,10 @@ export const puckConfig: Config = {
     Features4cards:       Features4cardsConfig,
     FeaturesList:         FeaturesListConfig,
     FeaturesAlternating:  FeaturesAlternatingConfig,
+    TestimonialsCards:    TestimonialsCardsConfig,
+    TestimonialsSlider:   TestimonialsSliderConfig,
+    FAQAccordion:         FAQAccordionConfig,
+    StatsSimple:          StatsSimpleConfig,
   },
   root: {
     fields: {
