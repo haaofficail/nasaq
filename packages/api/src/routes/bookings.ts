@@ -1289,18 +1289,18 @@ bookingsRouter.get("/:id/events", async (c) => {
 
   const events = await db
     .select({
-      id: bookingEvents.id,
-      eventType: bookingEvents.eventType,
-      fromStatus: bookingEvents.fromStatus,
-      toStatus: bookingEvents.toStatus,
-      metadata: bookingEvents.metadata,
-      createdAt: bookingEvents.createdAt,
+      id:              bookingTimelineEvents.id,
+      eventType:       bookingTimelineEvents.eventType,
+      fromStatus:      bookingTimelineEvents.fromStatus,
+      toStatus:        bookingTimelineEvents.toStatus,
+      metadata:        bookingTimelineEvents.metadata,
+      createdAt:       bookingTimelineEvents.createdAt,
       performedByName: users.name,
     })
-    .from(bookingEvents)
-    .leftJoin(users, eq(bookingEvents.userId, users.id))
-    .where(and(eq(bookingEvents.bookingId, id), eq(bookingEvents.orgId, orgId)))
-    .orderBy(asc(bookingEvents.createdAt));
+    .from(bookingTimelineEvents)
+    .leftJoin(users, eq(bookingTimelineEvents.userId, users.id))
+    .where(and(eq(bookingTimelineEvents.bookingRecordId, id), eq(bookingTimelineEvents.orgId, orgId)))
+    .orderBy(asc(bookingTimelineEvents.createdAt));
 
   return c.json({ data: events });
 });
