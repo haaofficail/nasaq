@@ -14,8 +14,8 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { PuckEditor } from "@nasaq/page-builder-v2";
-import type { PuckData } from "@nasaq/page-builder-v2";
+import { PuckEditor, SeoDrawer } from "@nasaq/page-builder-v2";
+import type { PuckData, SeoDrawerFields } from "@nasaq/page-builder-v2";
 import { pagesV2Api } from "@/lib/api";
 import type { PageV2Summary, PageV2Full } from "@/lib/api";
 import {
@@ -684,6 +684,7 @@ interface EditorViewProps {
 
 function EditorView({ page, onBack, onSaved }: EditorViewProps) {
   const [publishing, setPublishing] = useState(false);
+  const [seoOpen, setSeoOpen] = useState(false);
 
   const handleSave = useCallback(async (data: PuckData) => {
     try {
@@ -709,6 +710,30 @@ function EditorView({ page, onBack, onSaved }: EditorViewProps) {
     }
   }, [page.id, onSaved]);
 
+  const handleSeoSave = useCallback(async (fields: SeoDrawerFields) => {
+    try {
+      await pagesV2Api.update(page.id, {
+        metaTitle:       fields.metaTitle       ?? undefined,
+        metaDescription: fields.metaDescription ?? undefined,
+        ogImage:         fields.ogImage         ?? undefined,
+        canonicalUrl:    fields.canonicalUrl    ?? undefined,
+        schemaType:      fields.schemaType      ?? undefined,
+        robotsIndex:     fields.robotsIndex,
+        robotsFollow:    fields.robotsFollow,
+        slug:            fields.slug            ?? undefined,
+      });
+      toast.success("تم حفظ إعدادات SEO");
+      setSeoOpen(false);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل حفظ SEO");
+    }
+  }, [page.id]);
+
+  const handleSlugCheck = useCallback(async (slug: string) => {
+    const res = await pagesV2Api.slugCheck(slug, page.id);
+    return res;
+  }, [page.id]);
+
   const initialData = (page.draftData ?? page.publishedData ?? { content: [], root: { props: { title: page.title, description: "" } } }) as Partial<PuckData>;
 
   return (
@@ -732,6 +757,16 @@ function EditorView({ page, onBack, onSaved }: EditorViewProps) {
         </div>
 
         <div className="ms-auto flex items-center gap-2">
+          {/* SEO button */}
+          <button
+            onClick={() => setSeoOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-gray-600 rounded-xl border border-gray-200 hover:border-[#5b9bd5] hover:text-[#5b9bd5] transition-colors"
+            data-seo-btn=""
+          >
+            <Search className="w-3.5 h-3.5" />
+            إعدادات SEO
+          </button>
+
           <button
             onClick={() => handlePublish(initialData as PuckData)}
             disabled={publishing}
@@ -749,6 +784,27 @@ function EditorView({ page, onBack, onSaved }: EditorViewProps) {
           onSave={handleSave}
         />
       </div>
+
+      {/* SEO Drawer */}
+      <SeoDrawer
+        open={seoOpen}
+        pageTitle={page.title}
+        pageSlug={page.slug}
+        siteUrl={typeof window !== "undefined" ? window.location.hostname : "yoursite.com"}
+        initialFields={{
+          metaTitle:       page.metaTitle       ?? "",
+          metaDescription: page.metaDescription ?? "",
+          ogImage:         page.ogImage         ?? "",
+          canonicalUrl:    page.canonicalUrl    ?? "",
+          schemaType:      page.schemaType      ?? "",
+          robotsIndex:     page.robotsIndex     ?? true,
+          robotsFollow:    page.robotsFollow    ?? true,
+          slug:            page.slug,
+        }}
+        onSave={handleSeoSave}
+        onSlugCheck={handleSlugCheck}
+        onClose={() => setSeoOpen(false)}
+      />
     </div>
   );
 }

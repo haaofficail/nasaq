@@ -3035,6 +3035,21 @@ export interface PageV2Full extends PageV2Summary {
   metaTitle: string | null;
   metaDescription: string | null;
   ogImage: string | null;
+  canonicalUrl: string | null;
+  schemaType: string | null;
+  robotsIndex: boolean;
+  robotsFollow: boolean;
+}
+
+export interface PageV2SeoFields {
+  metaTitle?: string | null;
+  metaDescription?: string | null;
+  ogImage?: string | null;
+  canonicalUrl?: string | null;
+  schemaType?: string | null;
+  robotsIndex?: boolean;
+  robotsFollow?: boolean;
+  slug?: string;
 }
 
 export const pagesV2Api = {
@@ -3046,8 +3061,13 @@ export const pagesV2Api = {
     v2Request<{ data: PageV2Full }>(`/pages/${id}`),
   create:  (d: { title: string; slug: string; pageType?: string; draftData?: unknown }) =>
     v2Request<{ data: PageV2Full }>("/pages", { method: "POST", body: JSON.stringify(d) }),
-  update:  (id: string, d: Partial<{ title: string; slug: string; draftData: unknown }>) =>
+  update:  (id: string, d: Partial<{ title: string; slug: string; draftData: unknown } & PageV2SeoFields>) =>
     v2Request<{ data: PageV2Full }>(`/pages/${id}`, { method: "PUT", body: JSON.stringify(d) }),
+  slugCheck: (slug: string, excludeId?: string) =>
+    v2Request<{ available: boolean; suggestion?: string }>("/pages/slug-check", {
+      method: "POST",
+      body: JSON.stringify({ slug, excludeId }),
+    }),
   publish: (id: string) =>
     v2Request<{ data: PageV2Full }>(`/pages/${id}/publish`, { method: "POST" }),
   archive: (id: string) =>

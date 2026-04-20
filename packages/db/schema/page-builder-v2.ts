@@ -58,10 +58,17 @@ export const pagesV2 = pgTable("pages_v2", {
   draftData: jsonb("draft_data"),
   publishedData: jsonb("published_data"),
 
-  // SEO
+  // SEO (basic)
   metaTitle: text("meta_title"),
   metaDescription: text("meta_description"),
   ogImage: text("og_image"),
+
+  // SEO (Day 18: advanced)
+  canonicalUrl: text("canonical_url"),
+  schemaType: text("schema_type"),
+  // Article | Product | Service | Organization
+  robotsIndex: boolean("robots_index").notNull().default(true),
+  robotsFollow: boolean("robots_follow").notNull().default(true),
 
   // نشر
   publishedAt: timestamp("published_at", { withTimezone: true }),

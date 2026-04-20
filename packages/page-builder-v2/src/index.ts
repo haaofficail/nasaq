@@ -60,6 +60,8 @@ export type { HeaderSimpleProps, HeaderLink, HeaderBg } from "./blocks/header/He
 export { HeaderMegamenuBlock, HeaderMegamenuConfig } from "./blocks/header/HeaderMegamenu";
 export type { HeaderMegamenuProps, MenuItem, MegaColumn, MegaLink } from "./blocks/header/HeaderMegamenu";
 export { PuckEditor } from "./components/PuckEditor";
+export { SeoDrawer } from "./components/SeoDrawer";
+export type { SeoDrawerProps, SeoFields as SeoDrawerFields } from "./components/SeoDrawer";
 export type { PuckEditorProps } from "./components/PuckEditor";
 export type { Data as PuckData } from "@measured/puck";
 export {
@@ -72,3 +74,11 @@ export {
   sortPages,
 } from "./utils/pages-v2-utils";
 export type { PageStatus, SortOption, PageAction } from "./utils/pages-v2-utils";
+export {
+  arabicToSlug,
+  validateSlug,
+  getSeoWarnings,
+  truncateForSerp,
+  buildRobotsContent,
+} from "./utils/seo-utils";
+export type { SeoWarning, SeoWarningType } from "./utils/seo-utils";

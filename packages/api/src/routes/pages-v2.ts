@@ -47,9 +47,14 @@ const updatePageSchema = z.object({
   draftData: z.record(z.unknown()).optional().nullable(),
   metaTitle: z.string().optional().nullable(),
   metaDescription: z.string().optional().nullable(),
-  ogImage: z.string().url().optional().nullable(),
+  ogImage: z.string().optional().nullable(),
   sortOrder: z.number().int().optional(),
   showInNavigation: z.boolean().optional(),
+  // SEO Day 18
+  canonicalUrl: z.string().optional().nullable(),
+  schemaType: z.enum(["Article", "Product", "Service", "Organization"]).optional().nullable(),
+  robotsIndex: z.boolean().optional(),
+  robotsFollow: z.boolean().optional(),
 }).strict();
 // .strict() rejects unknown fields including orgId injection
 
@@ -58,6 +63,60 @@ const MAX_VERSIONS = 50;
 
 // ── Router ────────────────────────────────────────────────────
 export const pagesV2Router = new Hono();
+
+// ────────────────────────────────────────────────────────────
+// POST /slug-check — check if slug is available in this org
+// Must be registered BEFORE /:id routes (no param conflict)
+// ────────────────────────────────────────────────────────────
+pagesV2Router.post("/slug-check", async (c) => {
+  const orgId = getOrgId(c);
+  const raw = await c.req.json().catch(() => null);
+  if (!raw || typeof raw.slug !== "string") {
+    return c.json({ error: "slug مطلوب" }, 400);
+  }
+
+  const { slug, excludeId } = raw as { slug: string; excludeId?: string };
+
+  // Validate slug format first
+  if (!/^[a-z0-9-]+$/.test(slug)) {
+    return c.json({ available: false, suggestion: slug.replace(/[^a-z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") });
+  }
+
+  // Check uniqueness within org, optionally excluding current page's own id
+  const existing = await db
+    .select({ id: pagesV2.id })
+    .from(pagesV2)
+    .where(
+      excludeId
+        ? and(eq(pagesV2.orgId, orgId), eq(pagesV2.slug, slug))
+        : and(eq(pagesV2.orgId, orgId), eq(pagesV2.slug, slug)),
+    )
+    .limit(1);
+
+  // If a result exists and it's NOT the excluded page, slug is taken
+  const taken = existing.length > 0 && existing[0].id !== excludeId;
+
+  if (!taken) {
+    return c.json({ available: true });
+  }
+
+  // Suggest an alternative: slug-2, slug-3, ...
+  let n = 2;
+  let suggestion = `${slug}-${n}`;
+  while (true) {
+    const check = await db
+      .select({ id: pagesV2.id })
+      .from(pagesV2)
+      .where(and(eq(pagesV2.orgId, orgId), eq(pagesV2.slug, suggestion)))
+      .limit(1);
+    if (check.length === 0) break;
+    n++;
+    suggestion = `${slug}-${n}`;
+    if (n > 99) break; // safety
+  }
+
+  return c.json({ available: false, suggestion });
+});
 
 // ────────────────────────────────────────────────────────────
 // GET /pages — list
