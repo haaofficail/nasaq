@@ -4,6 +4,7 @@ import { SchoolLayout } from "./components/layout/SchoolLayout";
 import { ReactNode, lazy, Suspense } from "react";
 import { NasaqThemeGuard } from "./context/NasaqThemeGuard";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { CapabilityGuard } from "./components/CapabilityGuard";
 
 // ── Eager imports (needed immediately on load) ─────────────────────
 import { LoginPage } from "./pages/LoginPage";
@@ -477,8 +478,8 @@ export default function App() {
           <Route path="events/quotations" element={<EventQuotationsPage />} />
           <Route path="packages" element={<PackagesPage />} />
 
-          <Route path="pages-v2" element={<PagesV2Page />} />
-          <Route path="pages-v2/:id" element={<PagesV2Page />} />
+          <Route path="pages-v2" element={<CapabilityGuard capability="page_builder_v2"><PagesV2Page /></CapabilityGuard>} />
+          <Route path="pages-v2/:id" element={<CapabilityGuard capability="page_builder_v2"><PagesV2Page /></CapabilityGuard>} />
 
           <Route path="media" element={<MediaLibraryPage />} />
           <Route path="galleries" element={<GalleriesPage />} />

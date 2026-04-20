@@ -894,6 +894,8 @@ export const settingsApi = {
   orgDocuments:       () => api.get<{ data: any[] }>("/settings/documents"),
   uploadOrgDocument:  (data: any) => api.post<{ data: any }>("/settings/documents", data),
   deleteOrgDocument:  (id: string) => api.delete<{ data: any }>(`/settings/documents/${id}`),
+  // Feature flags for current org
+  featuresMe: () => api.get<{ data: { features: Record<string, boolean> } }>("/settings/features/me"),
 };
 
 // --- Organization Subscription & Stats ---
@@ -2051,6 +2053,22 @@ export const adminApi = {
   platformWaStatus:     () => api.get<{ data: { status: string; phone: string | null; qrBase64: string | null; updatedAt: string } }>("/admin/whatsapp/status"),
   platformWaDisconnect: () => api.delete("/admin/whatsapp/disconnect"),
   platformWaReconnect:  () => api.post<{ data: any }>("/admin/whatsapp/reconnect"),
+
+  // ── Feature Flags (capability_registry) ───────────────────
+  featureFlags: () => api.get<{ data: any[] }>("/admin/feature-flags"),
+  getFeatureFlag: (key: string) => api.get<{ data: any }>(`/admin/feature-flags/${key}`),
+  updateFeatureFlag: (key: string, body: { killSwitch?: boolean; defaultForNewOrgs?: boolean; rolloutPercentage?: number }) =>
+    api.patch<{ data: any }>(`/admin/feature-flags/${key}`, body),
+  featureFlagOverrides: (key: string, enabled?: boolean) => {
+    const q = enabled !== undefined ? `?enabled=${enabled}` : "";
+    return api.get<{ data: any[] }>(`/admin/feature-flags/${key}/overrides${q}`);
+  },
+  setFeatureFlagOverride: (key: string, body: { orgId: string; enabled: boolean; reason: string }) =>
+    api.post<{ data: any }>(`/admin/feature-flags/${key}/overrides`, body),
+  deleteFeatureFlagOverride: (key: string, orgId: string) =>
+    api.delete<{ success: boolean }>(`/admin/feature-flags/${key}/overrides/${orgId}`),
+  featureFlagAudit: (key: string, limit?: number) =>
+    api.get<{ data: any[] }>(`/admin/feature-flags/${key}/audit${limit ? `?limit=${limit}` : ""}`),
 };
 
 // --- Commercial Engine (admin only) ---

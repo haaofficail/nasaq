@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   LayoutDashboard, Building2, Users2, Briefcase, CreditCard, Package,
   Bell, Headphones, FileText, Megaphone, ClipboardList, Server, ShieldAlert, ShieldCheck, LogOut,
-  Wrench, Images, ToggleLeft, BarChart3, Bot, Settings2,
+  Wrench, Images, ToggleLeft, ToggleRight, BarChart3, Bot, Settings2,
   Receipt, CalendarCheck, Users, ShoppingCart, Wallet, MessageCircle, KeyRound, X, Eye, EyeOff,
 } from "lucide-react";
 import { clsx } from "clsx";
@@ -30,6 +30,7 @@ const WorkOrdersAdminTab   = lazy(() => import("./admin/WorkOrdersAdminTab"));
 const AccessLogsAdminTab   = lazy(() => import("./admin/AccessLogsAdminTab"));
 const GalleriesAdminTab    = lazy(() => import("./admin/GalleriesAdminTab"));
 const KillSwitchesTab        = lazy(() => import("./admin/KillSwitchesTab"));
+const FeaturesTab            = lazy(() => import("./admin/FeaturesTab"));
 const QuotaUsageTab          = lazy(() => import("./admin/QuotaUsageTab"));
 const GuardianTab            = lazy(() => import("./admin/GuardianTab"));
 const PlatformSettingsTab    = lazy(() => import("./admin/PlatformSettingsTab"));
@@ -69,6 +70,7 @@ const SECTIONS = [
   { id: "access-logs",  icon: ShieldCheck,   label: "التحكم في الدخول",    roles: ["super_admin"] },
   { id: "galleries",      icon: Images,       label: "معارض الصور",        roles: ["super_admin"] },
   { id: "kill-switches",  icon: ToggleLeft,  label: "مفاتيح الإيقاف",     roles: ["super_admin"] },
+  { id: "feature-flags",  icon: ToggleRight, label: "Feature Flags",       roles: ["super_admin"] },
   { id: "quota-usage",    icon: BarChart3,   label: "استخدام الحصص",      roles: ["super_admin"] },
   { id: "guardian",          icon: Bot,        label: "الحارس الذكي",       roles: ["super_admin"] },
   { id: "platform-settings", icon: Settings2,      label: "إعدادات المنصة",     roles: ["super_admin"] },
@@ -313,6 +315,7 @@ export function AdminPage() {
     "access-logs":   <AccessLogsAdminTab />,
     galleries:       <GalleriesAdminTab />,
     "kill-switches": <KillSwitchesTab />,
+    "feature-flags": <FeaturesTab />,
     "quota-usage":   <QuotaUsageTab />,
     guardian:            <GuardianTab />,
     "platform-settings": <PlatformSettingsTab />,

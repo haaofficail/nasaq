@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { eq, and, asc, desc, count } from "drizzle-orm";
 import { nanoid } from "nanoid";
 import { db, pool } from "@nasaq/db/client";
-import { organizations, locations, organizationCapabilityOverrides, services, customers, bookings, users, siteConfig, orgDocuments } from "@nasaq/db/schema";
+import { organizations, locations, organizationCapabilityOverrides, services, customers, bookings, users, siteConfig, orgDocuments, capabilityRegistry } from "@nasaq/db/schema";
+import { isFeatureEnabledForOrg } from "../lib/feature-flags";
 import { getOrgId, getUserId, getBusinessDefaults } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { invalidateOrgContext } from "../lib/org-context";
@@ -583,4 +584,57 @@ settingsRouter.delete("/documents/:id", async (c) => {
   ).returning({ id: orgDocuments.id });
   if (!deleted) return c.json({ error: "لم يتم العثور على الوثيقة" }, 404);
   return c.json({ data: deleted });
+});
+
+// ────────────────────────────────────────────────────────────
+// GET /settings/features/me — feature flags for current org
+// Returns { features: { [key]: boolean } }
+// ────────────────────────────────────────────────────────────
+settingsRouter.get("/features/me", async (c) => {
+  const orgId = getOrgId(c);
+
+  // Load all capabilities from registry
+  const allFeatures = await db
+    .select({
+      key: capabilityRegistry.key,
+      killSwitch: capabilityRegistry.killSwitch,
+      defaultForNewOrgs: capabilityRegistry.defaultForNewOrgs,
+      rolloutPercentage: capabilityRegistry.rolloutPercentage,
+    })
+    .from(capabilityRegistry);
+
+  // Load org-specific overrides
+  const overrides = await db
+    .select({
+      capabilityKey: organizationCapabilityOverrides.capabilityKey,
+      enabled: organizationCapabilityOverrides.enabled,
+    })
+    .from(organizationCapabilityOverrides)
+    .where(eq(organizationCapabilityOverrides.orgId, orgId));
+
+  const overrideMap = new Map(overrides.map((o) => [o.capabilityKey, { enabled: o.enabled }]));
+
+  // Also load stored capabilities from org
+  const [org] = await db
+    .select({ enabledCapabilities: organizations.enabledCapabilities })
+    .from(organizations)
+    .where(eq(organizations.id, orgId))
+    .limit(1);
+
+  const storedCaps = new Set<string>((org?.enabledCapabilities as string[] | null) ?? []);
+
+  // Compute effective access for each registered feature
+  const features: Record<string, boolean> = {};
+  for (const feature of allFeatures) {
+    const override = overrideMap.get(feature.key) ?? null;
+    // If stored in org.enabledCapabilities and no kill switch, it's enabled
+    // (legacy path: before rollout system existed)
+    if (!feature.killSwitch && storedCaps.has(feature.key) && override === null) {
+      features[feature.key] = true;
+    } else {
+      features[feature.key] = isFeatureEnabledForOrg(feature, { id: orgId }, override);
+    }
+  }
+
+  return c.json({ data: { features } });
 });

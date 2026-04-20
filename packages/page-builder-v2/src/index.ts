@@ -100,3 +100,5 @@ export {
   getChangeTypeLabel,
 } from "./utils/version-utils";
 export type { BlockDiff, BlockDiffStatus, VersionDiffSummary, ChangeType } from "./utils/version-utils";
+export { isFeatureEnabledForOrg, hashOrgFeature } from "./utils/feature-flags";
+export type { FeatureConfig, OrgContext, CapabilityOverride } from "./utils/feature-flags";

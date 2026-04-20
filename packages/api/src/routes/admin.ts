@@ -21,6 +21,7 @@ import {
   platformAuditLog, orgDocuments, supportTickets,
   platformAnnouncements, systemHealthLog, platformPlans, platformConfig,
   organizationCapabilityOverrides,
+  capabilityRegistry, capabilityAuditLog,
   reminderCategories, reminderTemplates, orgReminders,
   otpCodes, roles, bookingPipelineStages,
   subscriptionAddons, subscriptionOrders, subscriptions,
@@ -2876,4 +2877,328 @@ adminRouter.post("/users/:id/send-credentials", async (c) => {
       ? `تم إرسال بيانات الدخول عبر ${channel === "whatsapp" ? "واتساب" : "البريد الإلكتروني"}`
       : "فشل الإرسال — تحقق من إعدادات واتساب والبريد الإلكتروني",
   });
+});
+
+// ============================================================
+// FEATURE FLAGS — /admin/features
+// Super admin only (superAdminMiddleware already applied globally)
+// ============================================================
+
+// Helper: write to capability_audit_log
+async function logCapabilityChange(params: {
+  capabilityKey: string;
+  action: string;
+  targetOrgId?: string | null;
+  oldValue?: unknown;
+  newValue?: unknown;
+  changedBy?: string | null;
+}) {
+  await db.insert(capabilityAuditLog).values({
+    capabilityKey: params.capabilityKey,
+    action: params.action,
+    targetOrgId: params.targetOrgId ?? null,
+    oldValue: params.oldValue ? (params.oldValue as Record<string, unknown>) : null,
+    newValue: params.newValue ? (params.newValue as Record<string, unknown>) : null,
+    changedBy: params.changedBy ?? null,
+  });
+}
+
+// ────────────────────────────────────────────────────────────
+// GET /admin/feature-flags — list all capabilities with flag status
+// ────────────────────────────────────────────────────────────
+adminRouter.get("/feature-flags", async (c) => {
+  const features = await db
+    .select({
+      id: capabilityRegistry.id,
+      key: capabilityRegistry.key,
+      labelAr: capabilityRegistry.labelAr,
+      labelEn: capabilityRegistry.labelEn,
+      description: capabilityRegistry.description,
+      category: capabilityRegistry.category,
+      killSwitch: capabilityRegistry.killSwitch,
+      defaultForNewOrgs: capabilityRegistry.defaultForNewOrgs,
+      rolloutPercentage: capabilityRegistry.rolloutPercentage,
+      updatedAt: capabilityRegistry.updatedAt,
+    })
+    .from(capabilityRegistry)
+    .orderBy(capabilityRegistry.key);
+
+  // Count orgs with enabled override for each feature
+  const overrideCounts = await db
+    .select({
+      capabilityKey: organizationCapabilityOverrides.capabilityKey,
+      enabledCount: count(),
+    })
+    .from(organizationCapabilityOverrides)
+    .where(eq(organizationCapabilityOverrides.enabled, true))
+    .groupBy(organizationCapabilityOverrides.capabilityKey);
+
+  const countMap = new Map(overrideCounts.map((r) => [r.capabilityKey, Number(r.enabledCount)]));
+
+  return c.json({
+    data: features.map((f) => ({
+      ...f,
+      orgsWithAccessCount: countMap.get(f.key) ?? 0,
+    })),
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// GET /admin/feature-flags/:key — single feature details
+// ────────────────────────────────────────────────────────────
+adminRouter.get("/feature-flags/:key", async (c) => {
+  const { key } = c.req.param();
+
+  const [feature] = await db
+    .select()
+    .from(capabilityRegistry)
+    .where(eq(capabilityRegistry.key, key))
+    .limit(1);
+
+  if (!feature) return apiErr(c, "NOT_FOUND", 404);
+
+  const [overrideCount] = await db
+    .select({ total: count() })
+    .from(organizationCapabilityOverrides)
+    .where(and(
+      eq(organizationCapabilityOverrides.capabilityKey, key),
+      eq(organizationCapabilityOverrides.enabled, true),
+    ));
+
+  return c.json({
+    data: {
+      ...feature,
+      orgsWithAccessCount: Number(overrideCount?.total ?? 0),
+    },
+  });
+});
+
+// ────────────────────────────────────────────────────────────
+// PATCH /admin/feature-flags/:key — update global flag settings
+// ────────────────────────────────────────────────────────────
+adminRouter.patch("/feature-flags/:key", async (c) => {
+  const adminId = c.get("adminId" as never) as string;
+  const { key } = c.req.param();
+
+  const body = await c.req.json().catch(() => null);
+  if (!body) return c.json({ error: "بيانات غير صالحة" }, 400);
+
+  const schema = z.object({
+    killSwitch: z.boolean().optional(),
+    defaultForNewOrgs: z.boolean().optional(),
+    rolloutPercentage: z.number().int().min(0).max(100).optional(),
+  });
+
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) return c.json({ error: "بيانات غير صالحة" }, 400);
+
+  const [existing] = await db
+    .select()
+    .from(capabilityRegistry)
+    .where(eq(capabilityRegistry.key, key))
+    .limit(1);
+
+  if (!existing) return apiErr(c, "NOT_FOUND", 404);
+
+  const updates: Partial<typeof parsed.data & { updatedAt: Date }> = {
+    ...parsed.data,
+    updatedAt: new Date(),
+  };
+
+  const [updated] = await db
+    .update(capabilityRegistry)
+    .set(updates)
+    .where(eq(capabilityRegistry.key, key))
+    .returning();
+
+  // Audit log for each changed field
+  if (parsed.data.killSwitch !== undefined && parsed.data.killSwitch !== existing.killSwitch) {
+    await logCapabilityChange({
+      capabilityKey: key,
+      action: parsed.data.killSwitch ? "kill_switch_on" : "kill_switch_off",
+      oldValue: { killSwitch: existing.killSwitch },
+      newValue: { killSwitch: parsed.data.killSwitch },
+      changedBy: adminId,
+    });
+  }
+  if (parsed.data.rolloutPercentage !== undefined && parsed.data.rolloutPercentage !== existing.rolloutPercentage) {
+    await logCapabilityChange({
+      capabilityKey: key,
+      action: "rollout_changed",
+      oldValue: { rolloutPercentage: existing.rolloutPercentage },
+      newValue: { rolloutPercentage: parsed.data.rolloutPercentage },
+      changedBy: adminId,
+    });
+  }
+  if (parsed.data.defaultForNewOrgs !== undefined && parsed.data.defaultForNewOrgs !== existing.defaultForNewOrgs) {
+    await logCapabilityChange({
+      capabilityKey: key,
+      action: "default_changed",
+      oldValue: { defaultForNewOrgs: existing.defaultForNewOrgs },
+      newValue: { defaultForNewOrgs: parsed.data.defaultForNewOrgs },
+      changedBy: adminId,
+    });
+  }
+
+  return c.json({ data: updated });
+});
+
+// ────────────────────────────────────────────────────────────
+// GET /admin/feature-flags/:key/overrides — list org overrides
+// ────────────────────────────────────────────────────────────
+adminRouter.get("/feature-flags/:key/overrides", async (c) => {
+  const { key } = c.req.param();
+  const enabledFilter = c.req.query("enabled"); // "true" | "false" | undefined
+
+  const conditions = [eq(organizationCapabilityOverrides.capabilityKey, key)];
+  if (enabledFilter === "true")  conditions.push(eq(organizationCapabilityOverrides.enabled, true));
+  if (enabledFilter === "false") conditions.push(eq(organizationCapabilityOverrides.enabled, false));
+
+  const overrides = await db
+    .select({
+      id: organizationCapabilityOverrides.id,
+      orgId: organizationCapabilityOverrides.orgId,
+      enabled: organizationCapabilityOverrides.enabled,
+      reason: organizationCapabilityOverrides.reason,
+      setBy: organizationCapabilityOverrides.setBy,
+      createdAt: organizationCapabilityOverrides.createdAt,
+      orgName: organizations.name,
+    })
+    .from(organizationCapabilityOverrides)
+    .leftJoin(organizations, eq(organizationCapabilityOverrides.orgId, organizations.id))
+    .where(and(...conditions))
+    .orderBy(desc(organizationCapabilityOverrides.createdAt));
+
+  return c.json({ data: overrides });
+});
+
+// ────────────────────────────────────────────────────────────
+// POST /admin/feature-flags/:key/overrides — add/update org override
+// ────────────────────────────────────────────────────────────
+adminRouter.post("/feature-flags/:key/overrides", async (c) => {
+  const adminId = c.get("adminId" as never) as string;
+  const { key } = c.req.param();
+
+  const body = await c.req.json().catch(() => null);
+  if (!body) return c.json({ error: "بيانات غير صالحة" }, 400);
+
+  const schema = z.object({
+    orgId: z.string().uuid("orgId يجب أن يكون UUID صالح"),
+    enabled: z.boolean(),
+    reason: z.string().min(1, "السبب مطلوب"),
+  });
+
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return c.json({ error: "بيانات غير صالحة", details: parsed.error.flatten() }, 400);
+  }
+
+  const { orgId, enabled, reason } = parsed.data;
+
+  // Verify org exists
+  const [org] = await db.select({ id: organizations.id }).from(organizations).where(eq(organizations.id, orgId)).limit(1);
+  if (!org) return apiErr(c, "ORG_NOT_FOUND", 404);
+
+  // Get old value for audit
+  const [existing] = await db
+    .select()
+    .from(organizationCapabilityOverrides)
+    .where(and(
+      eq(organizationCapabilityOverrides.orgId, orgId),
+      eq(organizationCapabilityOverrides.capabilityKey, key),
+    ))
+    .limit(1);
+
+  const [upserted] = await db
+    .insert(organizationCapabilityOverrides)
+    .values({ orgId, capabilityKey: key, enabled, reason, setBy: adminId })
+    .onConflictDoUpdate({
+      target: [organizationCapabilityOverrides.orgId, organizationCapabilityOverrides.capabilityKey],
+      set: { enabled, reason, setBy: adminId },
+    })
+    .returning();
+
+  await logCapabilityChange({
+    capabilityKey: key,
+    action: existing ? "override_updated" : "override_added",
+    targetOrgId: orgId,
+    oldValue: existing ? { enabled: existing.enabled, reason: existing.reason } : null,
+    newValue: { enabled, reason },
+    changedBy: adminId,
+  });
+
+  // Invalidate org context cache
+  const { invalidateOrgContext } = await import("../lib/org-context");
+  invalidateOrgContext(orgId);
+
+  return c.json({ data: upserted }, existing ? 200 : 201);
+});
+
+// ────────────────────────────────────────────────────────────
+// DELETE /admin/feature-flags/:key/overrides/:orgId — remove override
+// ────────────────────────────────────────────────────────────
+adminRouter.delete("/feature-flags/:key/overrides/:orgId", async (c) => {
+  const adminId = c.get("adminId" as never) as string;
+  const { key, orgId } = c.req.param();
+
+  const [existing] = await db
+    .select()
+    .from(organizationCapabilityOverrides)
+    .where(and(
+      eq(organizationCapabilityOverrides.orgId, orgId),
+      eq(organizationCapabilityOverrides.capabilityKey, key),
+    ))
+    .limit(1);
+
+  if (!existing) return apiErr(c, "NOT_FOUND", 404);
+
+  await db
+    .delete(organizationCapabilityOverrides)
+    .where(and(
+      eq(organizationCapabilityOverrides.orgId, orgId),
+      eq(organizationCapabilityOverrides.capabilityKey, key),
+    ));
+
+  await logCapabilityChange({
+    capabilityKey: key,
+    action: "override_removed",
+    targetOrgId: orgId,
+    oldValue: { enabled: existing.enabled, reason: existing.reason },
+    newValue: null,
+    changedBy: adminId,
+  });
+
+  const { invalidateOrgContext } = await import("../lib/org-context");
+  invalidateOrgContext(orgId);
+
+  return c.json({ success: true });
+});
+
+// ────────────────────────────────────────────────────────────
+// GET /admin/feature-flags/:key/audit — audit log
+// ────────────────────────────────────────────────────────────
+adminRouter.get("/feature-flags/:key/audit", async (c) => {
+  const { key } = c.req.param();
+  const limitParam = parseInt(c.req.query("limit") ?? "50", 10);
+  const limit = Math.min(isNaN(limitParam) ? 50 : limitParam, 200);
+
+  const logs = await db
+    .select({
+      id: capabilityAuditLog.id,
+      capabilityKey: capabilityAuditLog.capabilityKey,
+      action: capabilityAuditLog.action,
+      targetOrgId: capabilityAuditLog.targetOrgId,
+      oldValue: capabilityAuditLog.oldValue,
+      newValue: capabilityAuditLog.newValue,
+      changedBy: capabilityAuditLog.changedBy,
+      changedAt: capabilityAuditLog.changedAt,
+      orgName: organizations.name,
+    })
+    .from(capabilityAuditLog)
+    .leftJoin(organizations, eq(capabilityAuditLog.targetOrgId, organizations.id))
+    .where(eq(capabilityAuditLog.capabilityKey, key))
+    .orderBy(desc(capabilityAuditLog.changedAt))
+    .limit(limit);
+
+  return c.json({ data: logs });
 });
