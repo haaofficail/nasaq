@@ -21,6 +21,14 @@ export { CategoriesGridBlock, CategoriesGridConfig } from "./blocks/categories/C
 export type { CategoriesGridProps, CategoryItem } from "./blocks/categories/CategoriesGrid";
 export { CategoriesCarouselBlock, CategoriesCarouselConfig } from "./blocks/categories/CategoriesCarousel";
 export type { CategoriesCarouselProps } from "./blocks/categories/CategoriesCarousel";
+export { Features3colBlock, Features3colConfig } from "./blocks/features/Features3col";
+export type { Features3colProps, Features3colItem } from "./blocks/features/Features3col";
+export { Features4cardsBlock, Features4cardsConfig } from "./blocks/features/Features4cards";
+export type { Features4cardsProps, Features4cardsItem } from "./blocks/features/Features4cards";
+export { FeaturesListBlock, FeaturesListConfig } from "./blocks/features/FeaturesList";
+export type { FeaturesListProps, FeaturesListItem } from "./blocks/features/FeaturesList";
+export { FeaturesAlternatingBlock, FeaturesAlternatingConfig } from "./blocks/features/FeaturesAlternating";
+export type { FeaturesAlternatingProps, FeaturesAlternatingItem } from "./blocks/features/FeaturesAlternating";
 export { PuckEditor } from "./components/PuckEditor";
 export type { PuckEditorProps } from "./components/PuckEditor";
 export type { Data as PuckData } from "@measured/puck";
