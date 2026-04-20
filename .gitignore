@@ -17,3 +17,8 @@ static/uploads/
 
 # WhatsApp session files (runtime data — must not be in git)
 whatsapp-sessions/
+
+# Local tooling caches (not project code)
+.agents/
+.claude/
+skills-lock.json
