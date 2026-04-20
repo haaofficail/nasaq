@@ -63,7 +63,7 @@ describe("DEFAULT_SLA_HOURS", () => {
 describe("getBookingSlaState — fresh booking (not stale)", () => {
   it("returns isStale=false when timeInStatus < threshold", () => {
     const sla = getBookingSlaState({
-      bookingId:     "b1",
+      bookingRecordId:     "b1",
       currentStatus: "pending",
       createdAt:     hoursAgo(2),
       updatedAt:     hoursAgo(2),
@@ -78,7 +78,7 @@ describe("getBookingSlaState — fresh booking (not stale)", () => {
   it("timeInCurrentStatusMs is correct", () => {
     const enteredAt = hoursAgo(5);
     const sla = getBookingSlaState({
-      bookingId:      "b1",
+      bookingRecordId:      "b1",
       currentStatus:  "confirmed",
       createdAt:      hoursAgo(10),
       updatedAt:      enteredAt,
@@ -92,7 +92,7 @@ describe("getBookingSlaState — fresh booking (not stale)", () => {
 
   it("totalAgeMs is computed from createdAt", () => {
     const sla = getBookingSlaState({
-      bookingId:     "b1",
+      bookingRecordId:     "b1",
       currentStatus: "pending",
       createdAt:     hoursAgo(10),
       updatedAt:     hoursAgo(2),
@@ -109,7 +109,7 @@ describe("getBookingSlaState — stale booking", () => {
   it("returns isStale=true when timeInStatus > default threshold", () => {
     // pending threshold = 24h; booking has been pending for 30h
     const sla = getBookingSlaState({
-      bookingId:     "b2",
+      bookingRecordId:     "b2",
       currentStatus: "pending",
       createdAt:     hoursAgo(30),
       updatedAt:     hoursAgo(30),
@@ -125,7 +125,7 @@ describe("getBookingSlaState — stale booking", () => {
     // Stage says max 4h; booking has been in this status for 6h
     const stages = [makeStage("in_progress", 4)];
     const sla = getBookingSlaState({
-      bookingId:      "b3",
+      bookingRecordId:      "b3",
       currentStatus:  "in_progress",
       createdAt:      hoursAgo(6),
       updatedAt:      hoursAgo(6),
@@ -141,7 +141,7 @@ describe("getBookingSlaState — stale booking", () => {
     // Default pending = 24h; pipeline stage says 2h
     const stages = [makeStage("pending", 2)];
     const sla = getBookingSlaState({
-      bookingId:     "b4",
+      bookingRecordId:     "b4",
       currentStatus: "pending",
       createdAt:     hoursAgo(3),
       updatedAt:     hoursAgo(3),
@@ -160,7 +160,7 @@ describe("getBookingSlaState — exempt (terminal) statuses", () => {
   for (const status of ["completed", "reviewed", "cancelled", "no_show"]) {
     it(`${status} is never stale regardless of age`, () => {
       const sla = getBookingSlaState({
-        bookingId:     "b5",
+        bookingRecordId:     "b5",
         currentStatus: status,
         createdAt:     hoursAgo(999),
         updatedAt:     hoursAgo(999),
@@ -180,7 +180,7 @@ describe("getBookingSlaState — statusEnteredAt precision", () => {
   it("uses statusEnteredAt when provided (more accurate than updatedAt)", () => {
     // updatedAt says 50h ago, but actually entered status only 2h ago (from timeline)
     const sla = getBookingSlaState({
-      bookingId:       "b6",
+      bookingRecordId:       "b6",
       currentStatus:   "pending",
       createdAt:       hoursAgo(50),
       updatedAt:       hoursAgo(50),
@@ -194,7 +194,7 @@ describe("getBookingSlaState — statusEnteredAt precision", () => {
 
   it("falls back to updatedAt when statusEnteredAt is null", () => {
     const sla = getBookingSlaState({
-      bookingId:       "b7",
+      bookingRecordId:       "b7",
       currentStatus:   "pending",
       createdAt:       hoursAgo(30),
       updatedAt:       hoursAgo(30),
@@ -213,7 +213,7 @@ describe("getBookingSlaState — statusEnteredAt precision", () => {
 describe("getBookingSlaState — unknown status (no threshold)", () => {
   it("returns no_threshold for a status not in defaults and not in stages", () => {
     const sla = getBookingSlaState({
-      bookingId:     "b8",
+      bookingRecordId:     "b8",
       currentStatus: "some_future_status",
       createdAt:     hoursAgo(999),
       updatedAt:     hoursAgo(999),
@@ -230,7 +230,7 @@ describe("getBookingSlaState — unknown status (no threshold)", () => {
 describe("getBookingSlaState — determinism", () => {
   it("same inputs always produce same outputs", () => {
     const params = {
-      bookingId:     "b9",
+      bookingRecordId:     "b9",
       currentStatus: "confirmed",
       createdAt:     hoursAgo(20),
       updatedAt:     hoursAgo(20),
@@ -245,7 +245,7 @@ describe("getBookingSlaState — determinism", () => {
   it("isStale flips precisely at threshold boundary", () => {
     // pending threshold = 24h
     const justUnder = getBookingSlaState({
-      bookingId:     "b10",
+      bookingRecordId:     "b10",
       currentStatus: "pending",
       createdAt:     new Date(NOW.getTime() - 24 * 60 * 60 * 1000 + 1), // 1ms under
       updatedAt:     new Date(NOW.getTime() - 24 * 60 * 60 * 1000 + 1),
@@ -253,7 +253,7 @@ describe("getBookingSlaState — determinism", () => {
       now:           NOW,
     });
     const justOver = getBookingSlaState({
-      bookingId:     "b10",
+      bookingRecordId:     "b10",
       currentStatus: "pending",
       createdAt:     new Date(NOW.getTime() - 24 * 60 * 60 * 1000 - 1), // 1ms over
       updatedAt:     new Date(NOW.getTime() - 24 * 60 * 60 * 1000 - 1),
@@ -270,7 +270,7 @@ describe("getBookingSlaState — determinism", () => {
 describe("backward compatibility — SLA does not affect workflow transitions", () => {
   it("SLA state is read-only — does not block status transitions", () => {
     const sla = getBookingSlaState({
-      bookingId:     "b11",
+      bookingRecordId:     "b11",
       currentStatus: "pending",
       createdAt:     hoursAgo(100),
       updatedAt:     hoursAgo(100),
@@ -386,7 +386,7 @@ describe("resolveStatusEnteredAt + getBookingSlaState integration", () => {
     assert.ok(statusEnteredAt !== null);
 
     const sla = getBookingSlaState({
-      bookingId:      "b-integration-1",
+      bookingRecordId:      "b-integration-1",
       currentStatus:  "pending",
       createdAt:      hoursAgo(30),
       updatedAt:      hoursAgo(30),   // would trigger stale if used naively
@@ -410,7 +410,7 @@ describe("resolveStatusEnteredAt + getBookingSlaState integration", () => {
     assert.ok(statusEnteredAt !== null);
 
     const sla = getBookingSlaState({
-      bookingId:      "b-integration-2",
+      bookingRecordId:      "b-integration-2",
       currentStatus:  "pending",
       createdAt:      hoursAgo(30),
       updatedAt:      hoursAgo(2),   // recent — would hide staleness if used naively
@@ -429,7 +429,7 @@ describe("resolveStatusEnteredAt + getBookingSlaState integration", () => {
     assert.equal(statusEnteredAt, null);
 
     const sla = getBookingSlaState({
-      bookingId:      "b-integration-3",
+      bookingRecordId:      "b-integration-3",
       currentStatus:  "pending",
       createdAt:      hoursAgo(5),
       updatedAt:      hoursAgo(5),

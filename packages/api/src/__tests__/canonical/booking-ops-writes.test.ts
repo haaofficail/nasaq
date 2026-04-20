@@ -43,7 +43,7 @@ describe.skipIf(skipIfNoDb)("runPostTransitionAutomations — canonical write", 
 
     await runPostTransitionAutomations({
       orgId:        org.id,
-      bookingId:    record.id,
+      bookingRecordId:    record.id,
       userId:       null,
       fromStatus:   "pending",
       toStatus:     "confirmed",
@@ -73,7 +73,7 @@ describe.skipIf(skipIfNoDb)("runPostTransitionAutomations — canonical write", 
 
     await runPostTransitionAutomations({
       orgId:        org.id,
-      bookingId:    record.id,
+      bookingRecordId:    record.id,
       userId:       null,
       fromStatus:   "pending",
       toStatus:     "in_review",  // not in AUTOMATION_TRIGGER_STATUSES
@@ -109,7 +109,7 @@ describe.skipIf(skipIfNoDb)("recordBlockedTransitionEvent — canonical write", 
 
     await recordBlockedTransitionEvent({
       orgId:           org.id,
-      bookingId:       record.id,
+      bookingRecordId:       record.id,
       userId:          null,
       fromStatus:      "pending",
       attemptedStatus: "completed",

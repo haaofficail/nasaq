@@ -1305,7 +1305,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
       if (capturedFromStatus) {
         recordBlockedTransitionEvent({
           orgId,
-          bookingId:       id,
+          bookingRecordId: id,
           userId:          actingUserId,
           fromStatus:      capturedFromStatus,
           attemptedStatus: newStatus,
@@ -1346,7 +1346,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
   // Automation hooks — fire-and-forget, never blocks response
   runPostTransitionAutomations({
     orgId,
-    bookingId: id,
+    bookingRecordId: id,
     userId: actingUserId,
     fromStatus: fromStatus as string,
     toStatus: newStatus,
@@ -1693,7 +1693,7 @@ bookingsRouter.get("/:id/timeline", async (c) => {
     .find((e) => e.eventType === "status_changed" && e.toStatus === booking.status);
 
   const sla = getBookingSlaState({
-    bookingId:       booking.id,
+    bookingRecordId: booking.id,
     currentStatus:   booking.status,
     createdAt:       booking.createdAt,
     updatedAt:       booking.updatedAt,

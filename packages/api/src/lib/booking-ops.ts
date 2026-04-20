@@ -10,12 +10,12 @@
 //   - Automation hooks        (runPostTransitionAutomations)
 //   - Operational alerts      (listOperationalAlerts)
 //
-// Source of truth للحوادث: booking_events table (bookingId-scoped)
+// Source of truth للحوادث: bookingTimelineEvents table (bookingRecordId-scoped)
 // الـ audit_logs تبقى للتدقيق الإداري — لا نقرأها هنا
 // ============================================================
 
 import { db } from "@nasaq/db/client";
-import { bookingEvents, bookings, bookingPipelineStages, users, bookingTimelineEvents, bookingRecords } from "@nasaq/db/schema";
+import { bookingEvents, bookingPipelineStages, users, bookingTimelineEvents, bookingRecords } from "@nasaq/db/schema";
 import { and, eq, desc, asc, gte, sql, count, inArray } from "drizzle-orm";
 import { log } from "./logger";
 import type { WorkflowStage } from "./workflow-engine";
@@ -55,7 +55,7 @@ export interface TimelineEvent {
 }
 
 export interface BookingSlaState {
-  bookingId:              string;
+  bookingRecordId:        string;
   currentStatus:          string;
   createdAt:              Date;
   /** متى دخل الحجز الحالة الحالية — مشتقة من آخر status_changed.toStatus = currentStatus، أو updatedAt */
@@ -73,7 +73,7 @@ export type AlertSeverity = "low" | "medium" | "high";
 export type AlertType     = "stale_booking" | "repeated_forced_transitions" | "recently_blocked";
 
 export interface OperationalAlert {
-  bookingId:      string;
+  bookingRecordId: string;
   bookingNumber?: string | null;
   alertType:      AlertType;
   severity:       AlertSeverity;
@@ -150,7 +150,7 @@ async function fetchStatusEnteredAtBatch(
   // JOIN على bookingRecords للتأكد من to_status = current status في نفس الاستعلام
   const rows = await db
     .select({
-      bookingId:      bookingTimelineEvents.bookingRecordId,
+      bookingRecordId: bookingTimelineEvents.bookingRecordId,
       statusEnteredAt: sql<string>`MAX(${bookingTimelineEvents.createdAt})`.as("status_entered_at"),
     })
     .from(bookingTimelineEvents)
@@ -167,7 +167,7 @@ async function fetchStatusEnteredAtBatch(
     .groupBy(bookingTimelineEvents.bookingRecordId);
 
   return new Map(
-    rows.map((r) => [r.bookingId, new Date(r.statusEnteredAt)]),
+    rows.map((r) => [r.bookingRecordId, new Date(r.statusEnteredAt)]),
   );
 }
 
@@ -179,8 +179,8 @@ async function fetchStatusEnteredAtBatch(
  * مرتّب من الأقدم إلى الأحدث (أقدم أولاً).
  */
 export async function getBookingTimeline(
-  bookingId: string,
-  orgId:     string,
+  bookingRecordId: string,
+  orgId:           string,
 ): Promise<TimelineEvent[]> {
   // TODO Phase 3.B: consolidate once writes also go to booking_timeline_events
   const rows = await db
@@ -198,7 +198,7 @@ export async function getBookingTimeline(
     .from(bookingTimelineEvents)
     .leftJoin(users, eq(bookingTimelineEvents.userId, users.id))
     .where(and(
-      eq(bookingTimelineEvents.bookingRecordId, bookingId),
+      eq(bookingTimelineEvents.bookingRecordId, bookingRecordId),
       eq(bookingTimelineEvents.orgId, orgId),
     ))
     .orderBy(asc(bookingTimelineEvents.createdAt));
@@ -239,7 +239,7 @@ export async function getBookingTimeline(
  *   أو updatedAt الحجز كـ approximation.
  */
 export function getBookingSlaState(params: {
-  bookingId:        string;
+  bookingRecordId:  string;
   currentStatus:    string;
   createdAt:        Date;
   updatedAt:        Date;
@@ -257,7 +257,7 @@ export function getBookingSlaState(params: {
   // الحالات النهائية لا تُحسب stale
   if (SLA_EXEMPT_STATUSES.has(params.currentStatus)) {
     return {
-      bookingId:             params.bookingId,
+      bookingRecordId:       params.bookingRecordId,
       currentStatus:         params.currentStatus,
       createdAt:             params.createdAt,
       statusEnteredAt,
@@ -285,7 +285,7 @@ export function getBookingSlaState(params: {
   } else {
     // لا حد زمني معروف
     return {
-      bookingId:             params.bookingId,
+      bookingRecordId:       params.bookingRecordId,
       currentStatus:         params.currentStatus,
       createdAt:             params.createdAt,
       statusEnteredAt,
@@ -298,7 +298,7 @@ export function getBookingSlaState(params: {
   }
 
   return {
-    bookingId:             params.bookingId,
+    bookingRecordId:       params.bookingRecordId,
     currentStatus:         params.currentStatus,
     createdAt:             params.createdAt,
     statusEnteredAt,
@@ -332,14 +332,14 @@ const AUTOMATION_TRIGGER_STATUSES = new Set([
  */
 export async function runPostTransitionAutomations(
   params: {
-    orgId:         string;
-    bookingId:     string;
-    userId:        string | null;
-    fromStatus:    string;
-    toStatus:      string;
-    forced:        boolean;
-    workflowMode:  string;
-    configState:   string;
+    orgId:           string;
+    bookingRecordId: string;
+    userId:          string | null;
+    fromStatus:      string;
+    toStatus:        string;
+    forced:          boolean;
+    workflowMode:    string;
+    configState:     string;
   },
   _db = db,
 ): Promise<void> {
@@ -348,7 +348,7 @@ export async function runPostTransitionAutomations(
 
     await _db.insert(bookingTimelineEvents).values({
       orgId:           params.orgId,
-      bookingRecordId: params.bookingId,
+      bookingRecordId: params.bookingRecordId,
       userId:          params.userId ?? null,
       eventType:       "automation_triggered",
       fromStatus:      params.fromStatus,
@@ -362,11 +362,11 @@ export async function runPostTransitionAutomations(
     } as any);
 
     log.info(
-      { orgId: params.orgId, bookingId: params.bookingId, toStatus: params.toStatus },
+      { orgId: params.orgId, bookingId: params.bookingRecordId, toStatus: params.toStatus },
       "[ops-engine] automation_triggered event logged",
     );
   } catch (err) {
-    log.error({ err, bookingId: params.bookingId }, "[ops-engine] automation hook failed silently");
+    log.error({ err, bookingId: params.bookingRecordId }, "[ops-engine] automation hook failed silently");
   }
 }
 
@@ -377,7 +377,7 @@ export async function runPostTransitionAutomations(
 export async function recordBlockedTransitionEvent(
   params: {
     orgId:           string;
-    bookingId:       string;
+    bookingRecordId: string;
     userId:          string | null;
     fromStatus:      string;
     attemptedStatus: string;
@@ -390,7 +390,7 @@ export async function recordBlockedTransitionEvent(
 ): Promise<void> {
   await _db.insert(bookingTimelineEvents).values({
     orgId:           params.orgId,
-    bookingRecordId: params.bookingId,
+    bookingRecordId: params.bookingRecordId,
     userId:          params.userId ?? null,
     eventType:       "status_blocked",
     fromStatus:      params.fromStatus,
@@ -402,14 +402,14 @@ export async function recordBlockedTransitionEvent(
       workflowMode:  params.workflowMode,
     },
   } as any).catch((err: unknown) => {
-    log.error({ err, bookingId: params.bookingId }, "[ops-engine] status_blocked event insert failed");
+    log.error({ err, bookingId: params.bookingRecordId }, "[ops-engine] status_blocked event insert failed");
   });
 }
 
 // ── Operational Alerts ────────────────────────────────────────
 //
 // يُشتق الـ alerts من ثلاثة مصادر:
-//   1. stale_booking      — bookings في حالة نشطة تجاوزت عتبة SLA
+//   1. stale_booking      — booking_records في حالة نشطة تجاوزت عتبة SLA
 //   2. recently_blocked   — booking_events.eventType = 'status_blocked' خلال 48 ساعة
 //   3. repeated_forced    — booking_events.eventType = 'forced_transition' مكرر خلال 7 أيام
 
@@ -429,10 +429,10 @@ export async function listOperationalAlerts(
   const blockedCutoff = new Date(now.getTime() - 48 * 60 * 60 * 1000);
   const blocked = await db
     .select({
-      bookingId:    bookingTimelineEvents.bookingRecordId,
-      bookingNumber: bookingRecords.bookingNumber,
-      metadata:     bookingTimelineEvents.metadata,
-      createdAt:    bookingTimelineEvents.createdAt,
+      bookingRecordId: bookingTimelineEvents.bookingRecordId,
+      bookingNumber:   bookingRecords.bookingNumber,
+      metadata:        bookingTimelineEvents.metadata,
+      createdAt:       bookingTimelineEvents.createdAt,
     })
     .from(bookingTimelineEvents)
     .leftJoin(bookingRecords, and(
@@ -450,9 +450,9 @@ export async function listOperationalAlerts(
   for (const row of blocked) {
     const meta = (row.metadata ?? {}) as Record<string, unknown>;
     alerts.push({
-      bookingId:    row.bookingId,
-      bookingNumber: row.bookingNumber ?? null,
-      alertType:   "recently_blocked",
+      bookingRecordId: row.bookingRecordId,
+      bookingNumber:   row.bookingNumber ?? null,
+      alertType:       "recently_blocked",
       severity:    "medium",
       message:     `حجز محظور من الانتقال: ${meta.blockReason ?? "خطأ في الـ workflow"}`,
       metadata:    meta,
@@ -464,9 +464,9 @@ export async function listOperationalAlerts(
   const forcedCutoff = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   const forcedRows = await db
     .select({
-      bookingId:    bookingTimelineEvents.bookingRecordId,
-      bookingNumber: bookingRecords.bookingNumber,
-      forceCount:   count(bookingTimelineEvents.id).as("force_count"),
+      bookingRecordId: bookingTimelineEvents.bookingRecordId,
+      bookingNumber:   bookingRecords.bookingNumber,
+      forceCount:      count(bookingTimelineEvents.id).as("force_count"),
     })
     .from(bookingTimelineEvents)
     .leftJoin(bookingRecords, and(
@@ -483,9 +483,9 @@ export async function listOperationalAlerts(
 
   for (const row of forcedRows) {
     alerts.push({
-      bookingId:    row.bookingId,
-      bookingNumber: row.bookingNumber ?? null,
-      alertType:   "repeated_forced_transitions",
+      bookingRecordId: row.bookingRecordId,
+      bookingNumber:   row.bookingNumber ?? null,
+      alertType:       "repeated_forced_transitions",
       severity:    "high",
       message:     `حجز مُعاد تجاوز قواعده ${row.forceCount} مرة خلال 7 أيام`,
       metadata:    { forceCount: row.forceCount },
@@ -493,7 +493,7 @@ export async function listOperationalAlerts(
     });
   }
 
-  // ── 3. Stale bookings ──
+  // ── 3. Stale booking records ──
   // استعلام على الحجوزات النشطة (غير النهائية) للمنظمة
   const activeBookings = await db
     .select({
@@ -547,7 +547,7 @@ export async function listOperationalAlerts(
         booking.createdAt;
 
       const sla = getBookingSlaState({
-        bookingId:      booking.id,
+        bookingRecordId: booking.id,
         currentStatus:  booking.status,
         createdAt:      booking.createdAt,
         updatedAt:      booking.updatedAt,
@@ -559,9 +559,9 @@ export async function listOperationalAlerts(
         const overMs    = sla.timeInCurrentStatusMs - sla.stalenessThresholdMs;
         const overHours = Math.round(overMs / (60 * 60 * 1000));
         alerts.push({
-          bookingId:     booking.id,
-          bookingNumber: booking.bookingNumber ?? null,
-          alertType:    "stale_booking",
+          bookingRecordId: booking.id,
+          bookingNumber:   booking.bookingNumber ?? null,
+          alertType:       "stale_booking",
           severity:     overHours > 24 ? "high" : "medium",
           message:      `الحجز في حالة "${booking.status}" منذ ${overHours} ساعة إضافية عن الحد`,
           metadata: {
