@@ -62,3 +62,13 @@ export type { HeaderMegamenuProps, MenuItem, MegaColumn, MegaLink } from "./bloc
 export { PuckEditor } from "./components/PuckEditor";
 export type { PuckEditorProps } from "./components/PuckEditor";
 export type { Data as PuckData } from "@measured/puck";
+export {
+  buildPagesListUrl,
+  filterPagesBySearch,
+  paginatePages,
+  getPageStatusActions,
+  makeDuplicateTitle,
+  makeDuplicateSlug,
+  sortPages,
+} from "./utils/pages-v2-utils";
+export type { PageStatus, SortOption, PageAction } from "./utils/pages-v2-utils";

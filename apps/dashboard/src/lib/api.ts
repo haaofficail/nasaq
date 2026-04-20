@@ -3052,6 +3052,14 @@ export const pagesV2Api = {
     v2Request<{ data: PageV2Full }>(`/pages/${id}/publish`, { method: "POST" }),
   archive: (id: string) =>
     v2Request<{ success: boolean }>(`/pages/${id}`, { method: "DELETE" }),
+  duplicate: (id: string) =>
+    v2Request<{ data: PageV2Full }>(`/pages/${id}/duplicate`, { method: "POST" }),
+  restore: (id: string) =>
+    v2Request<{ data: PageV2Full }>(`/pages/${id}/restore`, { method: "POST" }),
+  permanentDelete: (id: string) =>
+    v2Request<{ success: boolean }>(`/pages/${id}/permanent`, { method: "DELETE" }),
+  reorder: (ids: string[]) =>
+    v2Request<{ success: boolean }>("/pages/reorder", { method: "PATCH", body: JSON.stringify({ ids }) }),
   versions: (id: string) =>
     v2Request<{ data: Array<{ id: string; versionNumber: number; changeType: string; createdAt: string; label?: string }> }>(
       `/pages/${id}/versions`

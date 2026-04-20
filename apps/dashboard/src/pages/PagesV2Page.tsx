@@ -1,21 +1,36 @@
 /**
- * PagesV2Page — إدارة الصفحات (Page Builder v2)
+ * PagesV2Page — إدارة الصفحات (Page Builder v2) — Day 17
  *
  * Views:
- *   - list: قائمة الصفحات مع حالة كل صفحة
+ *   - list: قائمة الصفحات مع بحث، فلتر، ترتيب، صفحات، وإجراءات الصفوف
  *   - editor: محرر Puck (create / edit)
+ *
+ * Row actions (3-dot menu):
+ *   draft/published: تعديل، إعادة تسمية، تكرار، حذف (→ أرشفة)
+ *   archived:        استعادة، حذف نهائي (مع تأكيد)
  *
  * RTL, IBM Plex Sans Arabic, Brand Kit #5b9bd5
  * No emojis. Skeleton + error + empty + data states.
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { PuckEditor } from "@nasaq/page-builder-v2";
 import type { PuckData } from "@nasaq/page-builder-v2";
 import { pagesV2Api } from "@/lib/api";
 import type { PageV2Summary, PageV2Full } from "@/lib/api";
-import { Plus, Globe, FileText, Archive, ChevronLeft } from "lucide-react";
+import {
+  Plus, Globe, FileText, Archive, ChevronLeft, Search,
+  MoreVertical, Pencil, Copy, Trash2, RotateCcw, X,
+  ChevronDown, ArrowUpDown,
+} from "lucide-react";
 import { toast } from "@/hooks/useToast";
+import {
+  filterPagesBySearch,
+  paginatePages,
+  sortPages,
+  getPageStatusActions,
+} from "@nasaq/page-builder-v2";
+import type { SortOption } from "@nasaq/page-builder-v2";
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -42,6 +57,15 @@ const STATUS_COLORS: Record<PageV2Summary["status"], string> = {
   archived: "bg-gray-100 text-gray-500 border-gray-200",
 };
 
+const PAGE_LIMIT = 20;
+
+const SORT_LABELS: Record<SortOption, string> = {
+  updated_desc: "آخر تعديل (الأحدث)",
+  updated_asc:  "آخر تعديل (الأقدم)",
+  title_asc:    "الاسم أ → ي",
+  sort_order:   "الترتيب المخصص",
+};
+
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("ar-SA-u-ca-gregory-nu-latn", {
     day: "numeric",
@@ -62,16 +86,152 @@ function SkeletonRow() {
   );
 }
 
+// ── Confirm Dialog ─────────────────────────────────────────────────────────
+
+interface ConfirmDialogProps {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  danger?: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function ConfirmDialog({ title, message, confirmLabel, danger, onConfirm, onCancel }: ConfirmDialogProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div
+        dir="rtl"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6"
+        style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+      >
+        <h3 className="text-base font-bold text-gray-900 mb-2">{title}</h3>
+        <p className="text-sm text-gray-500 mb-6">{message}</p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-sm font-medium text-gray-700 rounded-xl border border-gray-200 hover:bg-gray-50"
+          >
+            إلغاء
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`px-4 py-2 text-sm font-semibold text-white rounded-xl ${danger ? "bg-red-500 hover:bg-red-600" : ""}`}
+            style={danger ? undefined : { background: "#5b9bd5" }}
+          >
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Rename Input ───────────────────────────────────────────────────────────
+
+interface RenameInputProps {
+  initialValue: string;
+  onSave: (val: string) => void;
+  onCancel: () => void;
+}
+
+function RenameInput({ initialValue, onSave, onCancel }: RenameInputProps) {
+  const [val, setVal] = useState(initialValue);
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { ref.current?.focus(); ref.current?.select(); }, []);
+
+  return (
+    <input
+      ref={ref}
+      value={val}
+      onChange={(e) => setVal(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && val.trim()) { e.preventDefault(); onSave(val.trim()); }
+        if (e.key === "Escape") onCancel();
+      }}
+      onBlur={() => { if (val.trim() && val.trim() !== initialValue) onSave(val.trim()); else onCancel(); }}
+      className="flex-1 text-sm font-semibold text-gray-900 border-b border-[#5b9bd5] outline-none bg-transparent px-0 py-0.5 min-w-0"
+      style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+      onClick={(e) => e.stopPropagation()}
+      data-rename-input=""
+    />
+  );
+}
+
+// ── Row Actions Menu ───────────────────────────────────────────────────────
+
+interface RowMenuProps {
+  page: PageV2Summary;
+  onEdit: () => void;
+  onRename: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+  onRestore: () => void;
+  onPermanentDelete: () => void;
+  onClose: () => void;
+}
+
+function RowMenu({ page, onEdit, onRename, onDuplicate, onDelete, onRestore, onPermanentDelete, onClose }: RowMenuProps) {
+  const actions = getPageStatusActions(page.status);
+
+  const items: Array<{ key: string; label: string; icon: React.ReactNode; handler: () => void; danger?: boolean }> = [];
+
+  if (actions.includes("edit"))            items.push({ key: "edit",    label: "تعديل في المحرر", icon: <Pencil className="w-3.5 h-3.5" />,    handler: onEdit });
+  if (actions.includes("rename"))          items.push({ key: "rename",  label: "إعادة تسمية",       icon: <Pencil className="w-3.5 h-3.5" />,    handler: onRename });
+  if (actions.includes("duplicate"))       items.push({ key: "dup",     label: "تكرار",              icon: <Copy    className="w-3.5 h-3.5" />,    handler: onDuplicate });
+  if (actions.includes("delete"))          items.push({ key: "del",     label: "حذف (أرشفة)",        icon: <Archive className="w-3.5 h-3.5" />,   handler: onDelete,           danger: true });
+  if (actions.includes("restore"))         items.push({ key: "restore", label: "استعادة",             icon: <RotateCcw className="w-3.5 h-3.5" />, handler: onRestore });
+  if (actions.includes("permanent_delete"))items.push({ key: "perm",   label: "حذف نهائي",           icon: <Trash2  className="w-3.5 h-3.5" />,   handler: onPermanentDelete,  danger: true });
+
+  return (
+    <div
+      data-row-menu=""
+      className="absolute end-0 top-full mt-1 z-30 bg-white rounded-xl shadow-lg border border-gray-100 py-1 min-w-[160px]"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        className="absolute top-2 end-2 text-gray-400 hover:text-gray-600"
+        onClick={onClose}
+        aria-label="إغلاق"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+      {items.map((item) => (
+        <button
+          key={item.key}
+          onClick={() => { item.handler(); onClose(); }}
+          className={`flex items-center gap-2.5 w-full text-start px-3.5 py-2 text-xs font-medium transition-colors hover:bg-gray-50 ${item.danger ? "text-red-500" : "text-gray-700"}`}
+        >
+          {item.icon}
+          {item.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // ── New Page Dialog ────────────────────────────────────────────────────────
 
 interface NewPageDialogProps {
-  onConfirm: (title: string) => void;
+  onConfirm: (title: string, pageType: string) => void;
   onCancel: () => void;
   saving: boolean;
 }
 
+const PAGE_TYPES = [
+  { value: "custom",   label: "صفحة مخصصة" },
+  { value: "home",     label: "الرئيسية" },
+  { value: "about",    label: "من نحن" },
+  { value: "contact",  label: "تواصل معنا" },
+  { value: "services", label: "الخدمات" },
+  { value: "blog",     label: "المدونة" },
+  { value: "faq",      label: "الأسئلة الشائعة" },
+];
+
 function NewPageDialog({ onConfirm, onCancel, saving }: NewPageDialogProps) {
   const [title, setTitle] = useState("");
+  const [pageType, setPageType] = useState("custom");
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -91,7 +251,7 @@ function NewPageDialog({ onConfirm, onCancel, saving }: NewPageDialogProps) {
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && title.trim()) onConfirm(title.trim()); }}
+          onKeyDown={(e) => { if (e.key === "Enter" && title.trim()) onConfirm(title.trim(), pageType); }}
           placeholder="مثال: الرئيسية"
           className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 text-gray-900"
           style={{ "--tw-ring-color": "#5b9bd5" } as React.CSSProperties}
@@ -103,6 +263,24 @@ function NewPageDialog({ onConfirm, onCancel, saving }: NewPageDialogProps) {
           </p>
         )}
 
+        <label className="block text-sm font-medium text-gray-700 mt-5 mb-1.5">
+          نوع الصفحة
+        </label>
+        <div className="relative">
+          <select
+            value={pageType}
+            onChange={(e) => setPageType(e.target.value)}
+            className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:outline-none focus:ring-2 text-gray-900 appearance-none"
+            style={{ "--tw-ring-color": "#5b9bd5" } as React.CSSProperties}
+            data-page-type-select=""
+          >
+            {PAGE_TYPES.map((t) => (
+              <option key={t.value} value={t.value}>{t.label}</option>
+            ))}
+          </select>
+          <ChevronDown className="absolute top-1/2 -translate-y-1/2 start-3 w-4 h-4 text-gray-400 pointer-events-none" />
+        </div>
+
         <div className="flex gap-3 mt-8 justify-end">
           <button
             onClick={onCancel}
@@ -112,7 +290,7 @@ function NewPageDialog({ onConfirm, onCancel, saving }: NewPageDialogProps) {
             إلغاء
           </button>
           <button
-            onClick={() => { if (title.trim()) onConfirm(title.trim()); }}
+            onClick={() => { if (title.trim()) onConfirm(title.trim(), pageType); }}
             disabled={!title.trim() || saving}
             className="px-5 py-2.5 text-sm font-semibold text-white rounded-xl transition-colors disabled:opacity-50"
             style={{ background: "#5b9bd5" }}
@@ -127,15 +305,122 @@ function NewPageDialog({ onConfirm, onCancel, saving }: NewPageDialogProps) {
 
 // ── List View ──────────────────────────────────────────────────────────────
 
+type FilterStatus = "all" | PageV2Summary["status"];
+
 interface ListViewProps {
   pages: PageV2Summary[];
   loading: boolean;
   error: string | null;
   onNewPage: () => void;
   onEdit: (page: PageV2Summary) => void;
+  onRefresh: () => void;
 }
 
-function ListView({ pages, loading, error, onNewPage, onEdit }: ListViewProps) {
+function ListView({ pages, loading, error, onNewPage, onEdit, onRefresh }: ListViewProps) {
+  const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<FilterStatus>("all");
+  const [sort, setSort] = useState<SortOption>("updated_desc");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    type: "delete" | "permanent";
+    page: PageV2Summary;
+  } | null>(null);
+
+  // Close menu on outside click
+  useEffect(() => {
+    if (!openMenuId) return;
+    function handler(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (!target.closest("[data-row-menu]") && !target.closest("[data-menu-trigger]")) {
+        setOpenMenuId(null);
+      }
+    }
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [openMenuId]);
+
+  // Reset pagination when filter/search/sort changes
+  useEffect(() => { setCurrentPage(1); }, [search, filter, sort]);
+
+  // Apply filter
+  const byStatus = filter === "all"
+    ? pages
+    : pages.filter((p) => p.status === filter);
+
+  // Apply search
+  const searched = filterPagesBySearch(byStatus, search);
+
+  // Apply sort
+  const sorted = sortPages(searched, sort);
+
+  // Pagination
+  const totalPages = Math.max(1, Math.ceil(sorted.length / PAGE_LIMIT));
+  const paginated = paginatePages(sorted, currentPage, PAGE_LIMIT);
+
+  // Counts per status
+  const counts: Record<FilterStatus, number> = {
+    all:       pages.length,
+    draft:     pages.filter((p) => p.status === "draft").length,
+    published: pages.filter((p) => p.status === "published").length,
+    archived:  pages.filter((p) => p.status === "archived").length,
+  };
+
+  // Row action handlers
+  const handleRename = useCallback(async (page: PageV2Summary, newTitle: string) => {
+    setRenameId(null);
+    try {
+      await pagesV2Api.update(page.id, { title: newTitle });
+      toast.success("تم تغيير الاسم");
+      onRefresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل تغيير الاسم");
+    }
+  }, [onRefresh]);
+
+  const handleDuplicate = useCallback(async (page: PageV2Summary) => {
+    try {
+      await pagesV2Api.duplicate(page.id);
+      toast.success(`تم تكرار "${page.title}"`);
+      onRefresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل التكرار");
+    }
+  }, [onRefresh]);
+
+  const handleDelete = useCallback(async (page: PageV2Summary) => {
+    setConfirmAction(null);
+    try {
+      await pagesV2Api.archive(page.id);
+      toast.success("تم نقل الصفحة إلى الأرشيف");
+      onRefresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل الحذف");
+    }
+  }, [onRefresh]);
+
+  const handleRestore = useCallback(async (page: PageV2Summary) => {
+    try {
+      await pagesV2Api.restore(page.id);
+      toast.success("تم استعادة الصفحة");
+      onRefresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل الاستعادة");
+    }
+  }, [onRefresh]);
+
+  const handlePermanentDelete = useCallback(async (page: PageV2Summary) => {
+    setConfirmAction(null);
+    try {
+      await pagesV2Api.permanentDelete(page.id);
+      toast.success("تم حذف الصفحة نهائياً");
+      onRefresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل الحذف النهائي");
+    }
+  }, [onRefresh]);
+
   return (
     <div dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}>
 
@@ -153,6 +438,56 @@ function ListView({ pages, loading, error, onNewPage, onEdit }: ListViewProps) {
           <Plus className="w-4 h-4" />
           صفحة جديدة
         </button>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="flex items-center gap-1 mb-4 border-b border-gray-100 pb-0">
+        {(["all", "draft", "published", "archived"] as FilterStatus[]).map((s) => (
+          <button
+            key={s}
+            onClick={() => setFilter(s)}
+            className={`px-3 py-2 text-xs font-medium rounded-t-lg transition-colors border-b-2 -mb-px ${
+              filter === s
+                ? "border-[#5b9bd5] text-[#5b9bd5] bg-white"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
+            data-filter-tab={s}
+          >
+            {s === "all" ? "الكل" : STATUS_LABEL[s]}
+            <span className="ms-1.5 text-xs opacity-60">({counts[s]})</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Search + Sort bar */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute top-1/2 -translate-y-1/2 end-3 w-4 h-4 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="بحث بالاسم أو الرابط..."
+            className="w-full rounded-xl border border-gray-200 pe-10 ps-4 py-2.5 text-sm focus:outline-none focus:ring-2 text-gray-900"
+            style={{ "--tw-ring-color": "#5b9bd5" } as React.CSSProperties}
+            data-search-input=""
+          />
+        </div>
+
+        <div className="relative">
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortOption)}
+            className="rounded-xl border border-gray-200 ps-4 pe-8 py-2.5 text-sm text-gray-700 focus:outline-none focus:ring-2 appearance-none bg-white"
+            style={{ "--tw-ring-color": "#5b9bd5" } as React.CSSProperties}
+            data-sort-select=""
+          >
+            {(Object.keys(SORT_LABELS) as SortOption[]).map((k) => (
+              <option key={k} value={k}>{SORT_LABELS[k]}</option>
+            ))}
+          </select>
+          <ArrowUpDown className="absolute top-1/2 -translate-y-1/2 start-2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+        </div>
       </div>
 
       {/* Card */}
@@ -200,21 +535,32 @@ function ListView({ pages, loading, error, onNewPage, onEdit }: ListViewProps) {
           </div>
         )}
 
+        {/* Search empty */}
+        {!loading && !error && pages.length > 0 && sorted.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <Search className="w-8 h-8 text-gray-300 mb-3" />
+            <p className="text-sm font-medium text-gray-700">لا توجد نتائج للبحث</p>
+            <p className="text-xs text-gray-400 mt-1">جرّب كلمات مختلفة أو اضبط الفلتر</p>
+          </div>
+        )}
+
         {/* Data */}
-        {!loading && !error && pages.length > 0 && (
+        {!loading && !error && sorted.length > 0 && (
           <>
             <div className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-6 py-3 bg-gray-50 border-b border-gray-100 text-xs font-medium text-gray-500">
               <span>الصفحة</span>
               <span>الحالة</span>
               <span>آخر تعديل</span>
-              <span />
+              <span className="w-8" />
             </div>
-            {pages.map((page) => (
+
+            {paginated.map((page) => (
               <div
                 key={page.id}
-                className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-6 py-4 border-b border-gray-50 hover:bg-gray-50/60 transition-colors cursor-pointer group last:border-0"
-                onClick={() => onEdit(page)}
+                className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 px-6 py-4 border-b border-gray-50 hover:bg-gray-50/60 transition-colors group last:border-0 relative"
+                onClick={() => { if (renameId !== page.id) onEdit(page); }}
               >
+                {/* Title / Rename */}
                 <div className="flex items-center gap-3 min-w-0">
                   <div
                     className="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center"
@@ -222,8 +568,16 @@ function ListView({ pages, loading, error, onNewPage, onEdit }: ListViewProps) {
                   >
                     <Globe className="w-4 h-4" style={{ color: "#5b9bd5" }} />
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-gray-900 truncate">{page.title}</p>
+                  <div className="min-w-0 flex-1">
+                    {renameId === page.id ? (
+                      <RenameInput
+                        initialValue={page.title}
+                        onSave={(val) => handleRename(page, val)}
+                        onCancel={() => setRenameId(null)}
+                      />
+                    ) : (
+                      <p className="text-sm font-semibold text-gray-900 truncate">{page.title}</p>
+                    )}
                     <p className="text-xs text-gray-400 truncate font-mono">/{page.slug}</p>
                   </div>
                 </div>
@@ -236,17 +590,86 @@ function ListView({ pages, loading, error, onNewPage, onEdit }: ListViewProps) {
 
                 <span className="text-xs text-gray-400">{formatDate(page.updatedAt)}</span>
 
-                <button
-                  onClick={(e) => { e.stopPropagation(); onEdit(page); }}
-                  className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity hover:border-[#5b9bd5] hover:text-[#5b9bd5]"
-                >
-                  تعديل
-                </button>
+                {/* 3-dot menu trigger */}
+                <div className="relative" onClick={(e) => e.stopPropagation()}>
+                  <button
+                    data-menu-trigger=""
+                    aria-label="خيارات"
+                    onClick={() => setOpenMenuId((prev) => (prev === page.id ? null : page.id))}
+                    className="flex items-center justify-center w-8 h-8 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+
+                  {openMenuId === page.id && (
+                    <RowMenu
+                      page={page}
+                      onClose={() => setOpenMenuId(null)}
+                      onEdit={() => onEdit(page)}
+                      onRename={() => setRenameId(page.id)}
+                      onDuplicate={() => handleDuplicate(page)}
+                      onDelete={() => setConfirmAction({ type: "delete", page })}
+                      onRestore={() => handleRestore(page)}
+                      onPermanentDelete={() => setConfirmAction({ type: "permanent", page })}
+                    />
+                  )}
+                </div>
               </div>
             ))}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100 text-xs text-gray-500" data-pagination="">
+                <span>
+                  {((currentPage - 1) * PAGE_LIMIT) + 1}–{Math.min(currentPage * PAGE_LIMIT, sorted.length)} من {sorted.length}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                    data-prev-page=""
+                  >
+                    السابق
+                  </button>
+                  <span className="px-3 py-1.5 font-medium text-gray-700">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                    data-next-page=""
+                  >
+                    التالي
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
+
+      {/* Confirm dialogs */}
+      {confirmAction?.type === "delete" && (
+        <ConfirmDialog
+          title="حذف الصفحة"
+          message={`سيتم نقل "${confirmAction.page.title}" إلى الأرشيف. يمكنك استعادتها لاحقاً.`}
+          confirmLabel="حذف"
+          onConfirm={() => handleDelete(confirmAction.page)}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
+      {confirmAction?.type === "permanent" && (
+        <ConfirmDialog
+          title="حذف نهائي"
+          message={`سيتم حذف "${confirmAction.page.title}" بشكل نهائي ولا يمكن التراجع عن هذا.`}
+          confirmLabel="حذف نهائي"
+          danger
+          onConfirm={() => handlePermanentDelete(confirmAction.page)}
+          onCancel={() => setConfirmAction(null)}
+        />
+      )}
     </div>
   );
 }
@@ -273,7 +696,6 @@ function EditorView({ page, onBack, onSaved }: EditorViewProps) {
   }, [page.id, onSaved]);
 
   const handlePublish = useCallback(async (data: PuckData) => {
-    // Save draft first, then publish
     try {
       await pagesV2Api.update(page.id, { draftData: data });
       setPublishing(true);
@@ -291,7 +713,6 @@ function EditorView({ page, onBack, onSaved }: EditorViewProps) {
 
   return (
     <div dir="rtl" style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }} className="flex flex-col h-full">
-      {/* Editor Toolbar */}
       <div className="flex items-center gap-3 px-6 py-3 bg-white border-b border-gray-100 flex-shrink-0">
         <button
           onClick={onBack}
@@ -322,7 +743,6 @@ function EditorView({ page, onBack, onSaved }: EditorViewProps) {
         </div>
       </div>
 
-      {/* Puck Editor — fills remaining height */}
       <div className="flex-1 overflow-hidden" data-testid="puck-editor">
         <PuckEditor
           initialData={initialData}
@@ -346,9 +766,8 @@ export function PagesV2Page() {
   const [error, setError] = useState<string | null>(null);
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [listKey, setListKey] = useState(0); // increment to refresh list
+  const [listKey, setListKey] = useState(0);
 
-  // Load list
   const loadPages = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -362,15 +781,14 @@ export function PagesV2Page() {
     }
   }, [listKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Trigger load
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadPages(); }, [listKey]);
 
-  const handleNewPage = useCallback(async (title: string) => {
+  const handleNewPage = useCallback(async (title: string, pageType: string) => {
     setCreating(true);
     try {
       const slug = titleToSlug(title);
-      const res = await pagesV2Api.create({ title, slug, pageType: "custom" });
+      const res = await pagesV2Api.create({ title, slug, pageType });
       setShowNewDialog(false);
       setView({ mode: "editor", page: res.data });
     } catch (err) {
@@ -394,6 +812,10 @@ export function PagesV2Page() {
     setListKey((k) => k + 1);
   }, []);
 
+  const handleRefresh = useCallback(() => {
+    setListKey((k) => k + 1);
+  }, []);
+
   // ── Render ─────────────────────────────────────────────────────────────
 
   if (view.mode === "editor") {
@@ -414,6 +836,7 @@ export function PagesV2Page() {
         error={error}
         onNewPage={() => setShowNewDialog(true)}
         onEdit={handleEdit}
+        onRefresh={handleRefresh}
       />
 
       {showNewDialog && (

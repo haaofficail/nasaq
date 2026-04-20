@@ -327,6 +327,138 @@ pagesV2Router.post("/:id/publish", async (c) => {
 });
 
 // ────────────────────────────────────────────────────────────
+// POST /pages/:id/duplicate — clone page
+// ────────────────────────────────────────────────────────────
+pagesV2Router.post("/:id/duplicate", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const { id } = c.req.param();
+
+  const [page] = await db
+    .select()
+    .from(pagesV2)
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+    .limit(1);
+
+  if (!page) return c.json({ error: "الصفحة غير موجودة" }, 404);
+
+  // Build a unique slug: <base>-copy, <base>-copy-2, ...
+  const baseSlug = `${page.slug}-copy`;
+  const existingSlugs = (
+    await db
+      .select({ slug: pagesV2.slug })
+      .from(pagesV2)
+      .where(and(eq(pagesV2.orgId, orgId)))
+  ).map((r) => r.slug);
+
+  let newSlug = baseSlug;
+  let n = 2;
+  while (existingSlugs.includes(newSlug)) {
+    newSlug = `${baseSlug}-${n}`;
+    n++;
+  }
+
+  const newTitle = `${page.title} (نسخة)`;
+
+  const inserted = await db
+    .insert(pagesV2)
+    .values({
+      orgId,
+      slug: newSlug,
+      title: newTitle,
+      pageType: page.pageType,
+      status: "draft",
+      draftData: page.draftData,
+      metaTitle: page.metaTitle,
+      metaDescription: page.metaDescription,
+      ogImage: page.ogImage,
+      sortOrder: page.sortOrder + 1,
+      showInNavigation: false,
+      createdBy: userId ?? undefined,
+    })
+    .returning() as Array<typeof pagesV2.$inferSelect>;
+
+  const dup = inserted[0];
+  if (!dup) return c.json({ error: "فشل تكرار الصفحة" }, 500);
+
+  return c.json({ data: dup }, 201);
+});
+
+// ────────────────────────────────────────────────────────────
+// POST /pages/:id/restore — restore archived page to draft
+// ────────────────────────────────────────────────────────────
+pagesV2Router.post("/:id/restore", async (c) => {
+  const orgId = getOrgId(c);
+  const { id } = c.req.param();
+
+  const [page] = await db
+    .select({ id: pagesV2.id, status: pagesV2.status })
+    .from(pagesV2)
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+    .limit(1);
+
+  if (!page) return c.json({ error: "الصفحة غير موجودة" }, 404);
+  if (page.status !== "archived") return c.json({ error: "الصفحة ليست مؤرشفة" }, 400);
+
+  const [restored] = await db
+    .update(pagesV2)
+    .set({ status: "draft", updatedAt: new Date() })
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+    .returning();
+
+  return c.json({ data: restored });
+});
+
+// ────────────────────────────────────────────────────────────
+// DELETE /pages/:id/permanent — permanent delete
+// ────────────────────────────────────────────────────────────
+pagesV2Router.delete("/:id/permanent", async (c) => {
+  const orgId = getOrgId(c);
+  const { id } = c.req.param();
+
+  const [page] = await db
+    .select({ id: pagesV2.id, status: pagesV2.status })
+    .from(pagesV2)
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+    .limit(1);
+
+  if (!page) return c.json({ error: "الصفحة غير موجودة" }, 404);
+
+  // Delete versions first (FK)
+  await db.delete(pageVersionsV2).where(eq(pageVersionsV2.pageId, id));
+  await db
+    .delete(pagesV2)
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)));
+
+  return c.json({ success: true });
+});
+
+// ────────────────────────────────────────────────────────────
+// PATCH /reorder — update sortOrder for multiple pages
+// ────────────────────────────────────────────────────────────
+pagesV2Router.patch("/reorder", async (c) => {
+  const orgId = getOrgId(c);
+  const raw = await c.req.json().catch(() => null);
+  if (!raw || !Array.isArray(raw.ids)) {
+    return c.json({ error: "ids array مطلوب" }, 400);
+  }
+
+  const ids: string[] = raw.ids;
+
+  // Update each page's sortOrder to its position in the ids array
+  await Promise.all(
+    ids.map((id, index) =>
+      db
+        .update(pagesV2)
+        .set({ sortOrder: index, updatedAt: new Date() })
+        .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId))),
+    ),
+  );
+
+  return c.json({ success: true });
+});
+
+// ────────────────────────────────────────────────────────────
 // GET /pages/:id/versions — version history
 // ────────────────────────────────────────────────────────────
 pagesV2Router.get("/:id/versions", async (c) => {
