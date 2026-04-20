@@ -170,18 +170,18 @@ bookingsRouter.get("/check-availability", async (c) => {
   const dayEnd   = endDate ? new Date(`${endDate}T23:59:59`) : new Date(`${date}T23:59:59`);
 
   const conditions = [
-    eq(bookings.orgId, orgId),
-    sql`${bookings.status} NOT IN ('cancelled')`,
-    // overlapping: starts before end AND ends after start
-    lte(bookings.eventDate, dayEnd),
-    gte(sql`COALESCE(${bookings.eventEndDate}, ${bookings.eventDate})`, dayStart),
+    eq(bookingRecords.orgId, orgId),
+    sql`${bookingRecords.status} NOT IN ('cancelled')`,
+    // overlapping: starts before dayEnd AND ends after dayStart
+    lte(bookingRecords.startsAt, dayEnd),
+    gte(sql`COALESCE(${bookingRecords.endsAt}, ${bookingRecords.startsAt})`, dayStart),
   ];
 
-  if (locationId) conditions.push(eq(bookings.locationId, locationId));
+  if (locationId) conditions.push(eq(bookingRecords.locationId, locationId));
 
   const conflicts = await db
-    .select({ bookingNumber: bookings.bookingNumber, eventDate: bookings.eventDate })
-    .from(bookings)
+    .select({ bookingNumber: bookingRecords.bookingNumber, startsAt: bookingRecords.startsAt })
+    .from(bookingRecords)
     .where(and(...conditions))
     .limit(5);
 
