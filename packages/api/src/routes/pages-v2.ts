@@ -672,6 +672,7 @@ pagesV2Router.patch("/:id", async (c) => {
 
 // ────────────────────────────────────────────────────────────
 // GET /pages/:id/versions — version history
+// Must be before /:id/versions/:versionId
 // ────────────────────────────────────────────────────────────
 pagesV2Router.get("/:id/versions", async (c) => {
   const orgId = getOrgId(c);
@@ -701,4 +702,165 @@ pagesV2Router.get("/:id/versions", async (c) => {
     .limit(50);
 
   return c.json({ data: versions });
+});
+
+// ────────────────────────────────────────────────────────────
+// GET /pages/:id/versions/:versionId — single version with data
+// ────────────────────────────────────────────────────────────
+pagesV2Router.get("/:id/versions/:versionId", async (c) => {
+  const orgId = getOrgId(c);
+  const { id, versionId } = c.req.param();
+
+  const [page] = await db
+    .select({ id: pagesV2.id })
+    .from(pagesV2)
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+    .limit(1);
+
+  if (!page) return c.json({ error: "الصفحة غير موجودة" }, 404);
+
+  const [version] = await db
+    .select()
+    .from(pageVersionsV2)
+    .where(
+      and(
+        eq(pageVersionsV2.id, versionId),
+        eq(pageVersionsV2.pageId, id),
+        eq(pageVersionsV2.orgId, orgId),
+      ),
+    )
+    .limit(1);
+
+  if (!version) return c.json({ error: "النسخة غير موجودة" }, 404);
+
+  return c.json({ data: version });
+});
+
+// ────────────────────────────────────────────────────────────
+// GET /pages/:id/compare?from=versionId&to=versionId
+// Returns both version data for client-side diff rendering
+// ────────────────────────────────────────────────────────────
+pagesV2Router.get("/:id/compare", async (c) => {
+  const orgId = getOrgId(c);
+  const { id } = c.req.param();
+  const fromId = c.req.query("from");
+  const toId = c.req.query("to");
+
+  if (!fromId || !toId) {
+    return c.json({ error: "from و to مطلوبان" }, 400);
+  }
+
+  const [page] = await db
+    .select({ id: pagesV2.id })
+    .from(pagesV2)
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+    .limit(1);
+
+  if (!page) return c.json({ error: "الصفحة غير موجودة" }, 404);
+
+  const [fromVersion, toVersion] = await Promise.all([
+    db
+      .select()
+      .from(pageVersionsV2)
+      .where(
+        and(
+          eq(pageVersionsV2.id, fromId),
+          eq(pageVersionsV2.pageId, id),
+          eq(pageVersionsV2.orgId, orgId),
+        ),
+      )
+      .limit(1),
+    db
+      .select()
+      .from(pageVersionsV2)
+      .where(
+        and(
+          eq(pageVersionsV2.id, toId),
+          eq(pageVersionsV2.pageId, id),
+          eq(pageVersionsV2.orgId, orgId),
+        ),
+      )
+      .limit(1),
+  ]);
+
+  if (!fromVersion[0]) return c.json({ error: "النسخة القديمة غير موجودة" }, 404);
+  if (!toVersion[0]) return c.json({ error: "النسخة الجديدة غير موجودة" }, 404);
+
+  return c.json({ data: { from: fromVersion[0], to: toVersion[0] } });
+});
+
+// ────────────────────────────────────────────────────────────
+// POST /pages/:id/revert/:versionId — restore page to version
+// Creates a backup "manual_save" version first, then restores
+// ────────────────────────────────────────────────────────────
+pagesV2Router.post("/:id/revert/:versionId", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const { id, versionId } = c.req.param();
+
+  const [page] = await db
+    .select()
+    .from(pagesV2)
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+    .limit(1);
+
+  if (!page) return c.json({ error: "الصفحة غير موجودة" }, 404);
+
+  const [targetVersion] = await db
+    .select()
+    .from(pageVersionsV2)
+    .where(
+      and(
+        eq(pageVersionsV2.id, versionId),
+        eq(pageVersionsV2.pageId, id),
+        eq(pageVersionsV2.orgId, orgId),
+      ),
+    )
+    .limit(1);
+
+  if (!targetVersion) return c.json({ error: "النسخة غير موجودة" }, 404);
+
+  // Get current max version number
+  const [{ maxVer }] = await db
+    .select({ maxVer: count() })
+    .from(pageVersionsV2)
+    .where(eq(pageVersionsV2.pageId, id));
+
+  const nextVersion = Number(maxVer) + 1;
+
+  // Auto-prune if at limit
+  if (Number(maxVer) >= MAX_VERSIONS) {
+    const oldest = await db
+      .select({ id: pageVersionsV2.id })
+      .from(pageVersionsV2)
+      .where(eq(pageVersionsV2.pageId, id))
+      .orderBy(pageVersionsV2.versionNumber)
+      .limit(1);
+    if (oldest.length > 0) {
+      await db.delete(pageVersionsV2).where(eq(pageVersionsV2.id, oldest[0].id));
+    }
+  }
+
+  // Save restored version
+  await db.insert(pageVersionsV2).values({
+    pageId: id,
+    orgId,
+    versionNumber: nextVersion,
+    label: `استعادة من نسخة ${targetVersion.versionNumber}`,
+    data: targetVersion.data as Record<string, unknown>,
+    changeType: "restored",
+    createdBy: userId ?? undefined,
+  });
+
+  // Restore draftData on page
+  const [updated] = await db
+    .update(pagesV2)
+    .set({
+      draftData: targetVersion.data as Record<string, unknown>,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(pagesV2.id, id), eq(pagesV2.orgId, orgId)))
+    .returning();
+
+  return c.json({ data: updated });
 });

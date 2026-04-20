@@ -3103,4 +3103,14 @@ export const pagesV2Api = {
       method: "POST",
       body: JSON.stringify({ publishAt }),
     }),
+  getVersion: (pageId: string, versionId: string) =>
+    v2Request<{ data: { id: string; versionNumber: number; changeType: string; createdAt: string; label?: string; data: unknown } }>(
+      `/pages/${pageId}/versions/${versionId}`
+    ),
+  compareVersions: (pageId: string, fromId: string, toId: string) =>
+    v2Request<{ data: { from: { id: string; versionNumber: number; data: unknown; changeType: string; createdAt: string }; to: { id: string; versionNumber: number; data: unknown; changeType: string; createdAt: string } } }>(
+      `/pages/${pageId}/compare?from=${fromId}&to=${toId}`
+    ),
+  revert: (pageId: string, versionId: string) =>
+    v2Request<{ data: PageV2Full }>(`/pages/${pageId}/revert/${versionId}`, { method: "POST" }),
 };

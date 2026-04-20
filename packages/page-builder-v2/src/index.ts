@@ -2,6 +2,7 @@
 // Consumed by apps/dashboard
 
 export { puckConfig } from "./config/puck-config";
+export { Render as PuckRender } from "@measured/puck";
 export type { BlockConfig } from "./types/block";
 export { HeroMinimalBlock, HeroMinimalConfig } from "./blocks/hero/HeroMinimal";
 export type { HeroMinimalProps } from "./blocks/hero/HeroMinimal";
@@ -92,3 +93,10 @@ export {
 export type { PageBadgeStatus, SaveStatus } from "./utils/autosave-utils";
 export { useAutoSave } from "./hooks/useAutoSave";
 export type { UseAutoSaveOptions, UseAutoSaveResult } from "./hooks/useAutoSave";
+export {
+  diffVersions,
+  summarizeVersionDiff,
+  formatRelativeTime,
+  getChangeTypeLabel,
+} from "./utils/version-utils";
+export type { BlockDiff, BlockDiffStatus, VersionDiffSummary, ChangeType } from "./utils/version-utils";

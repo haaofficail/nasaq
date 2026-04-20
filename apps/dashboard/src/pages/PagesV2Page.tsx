@@ -9,15 +9,15 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from "react";
-import { PuckEditor, SeoDrawer, useAutoSave } from "@nasaq/page-builder-v2";
-import type { PuckData, SeoDrawerFields, SaveStatus, PageBadgeStatus } from "@nasaq/page-builder-v2";
-import { computePageStatusBadge, formatSaveStatus } from "@nasaq/page-builder-v2";
+import { PuckEditor, SeoDrawer, useAutoSave, diffVersions, summarizeVersionDiff, formatRelativeTime, getChangeTypeLabel, PuckRender, puckConfig, computePageStatusBadge, formatSaveStatus } from "@nasaq/page-builder-v2";
+import type { PuckData, SeoDrawerFields, SaveStatus, PageBadgeStatus, BlockDiff, ChangeType } from "@nasaq/page-builder-v2";
 import { pagesV2Api } from "@/lib/api";
 import type { PageV2Summary, PageV2Full } from "@/lib/api";
 import {
   Plus, Globe, FileText, Archive, ChevronLeft, Search,
   MoreVertical, Pencil, Copy, Trash2, RotateCcw, X,
-  ChevronDown, ArrowUpDown, Loader2, Calendar,
+  ChevronDown, ArrowUpDown, Loader2, Calendar, History,
+  Eye, GitCompare, CornerUpLeft, Plus as PlusIcon,
 } from "lucide-react";
 import { toast } from "@/hooks/useToast";
 import {
@@ -358,6 +358,427 @@ function ConflictDialog({ onOverwrite, onLoadLatest }: ConflictDialogProps) {
           >
             <span className="font-semibold block">تحميل النسخة الأحدث</span>
             <span className="text-xs text-gray-400">ستفقد التعديلات غير المحفوظة</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Version History Types ──────────────────────────────────────────────────
+
+interface VersionSummary {
+  id: string;
+  versionNumber: number;
+  changeType: string;
+  createdAt: string;
+  label?: string;
+  createdBy?: string | null;
+}
+
+// ── Version History Drawer ─────────────────────────────────────────────────
+
+interface VersionHistoryDrawerProps {
+  pageId: string;
+  onClose: () => void;
+  onPreview: (version: VersionSummary) => void;
+  onCompare: (fromVersion: VersionSummary, toVersion: VersionSummary) => void;
+  onRestore: (version: VersionSummary) => void;
+  currentVersionId?: string;
+}
+
+function VersionHistoryDrawer({ pageId, onClose, onPreview, onCompare, onRestore, currentVersionId }: VersionHistoryDrawerProps) {
+  const [versions, setVersions] = useState<VersionSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [selectedA, setSelectedA] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    pagesV2Api.versions(pageId).then((res) => {
+      if (active) { setVersions(res.data); setLoading(false); }
+    }).catch((err) => {
+      if (active) { setError(err instanceof Error ? err.message : "فشل التحميل"); setLoading(false); }
+    });
+    return () => { active = false; };
+  }, [pageId]);
+
+  const CHANGE_TYPE_COLORS: Record<string, string> = {
+    auto_save:   "bg-gray-100 text-gray-500",
+    manual_save: "bg-blue-50 text-blue-600",
+    publish:     "bg-emerald-50 text-emerald-700",
+    restored:    "bg-amber-50 text-amber-700",
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex" data-version-drawer="">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Drawer panel — slides from the right (RTL = "start" side) */}
+      <div
+        dir="rtl"
+        className="relative ms-auto h-full w-full max-w-sm bg-white shadow-2xl flex flex-col"
+        style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <History className="w-4 h-4 text-gray-400" />
+            <h2 className="text-sm font-bold text-gray-900">سجل التعديلات</h2>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Compare hint */}
+        {selectedA && (
+          <div className="px-5 py-2.5 bg-blue-50 border-b border-blue-100 text-xs text-blue-700 flex items-center justify-between">
+            <span>اختر نسخة ثانية للمقارنة</span>
+            <button onClick={() => setSelectedA(null)} className="text-blue-400 hover:text-blue-600">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        )}
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto">
+          {loading && (
+            <div className="flex items-center justify-center py-16">
+              <Loader2 className="w-5 h-5 text-gray-300 animate-spin" />
+            </div>
+          )}
+          {!loading && error && (
+            <div className="text-center py-16 text-sm text-gray-400">{error}</div>
+          )}
+          {!loading && !error && versions.length === 0 && (
+            <div className="text-center py-16 text-sm text-gray-400">لا توجد نسخ محفوظة بعد</div>
+          )}
+          {!loading && !error && versions.map((v) => (
+            <div
+              key={v.id}
+              className={`px-5 py-3.5 border-b border-gray-50 hover:bg-gray-50/60 transition-colors ${
+                v.id === currentVersionId ? "bg-blue-50/40" : ""
+              }`}
+              data-version-row={v.id}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-xs font-medium text-gray-800">
+                      نسخة {v.versionNumber}
+                    </span>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${CHANGE_TYPE_COLORS[v.changeType] ?? "bg-gray-100 text-gray-500"}`}>
+                      {getChangeTypeLabel(v.changeType as ChangeType)}
+                    </span>
+                    {v.id === currentVersionId && (
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[#5b9bd5]/10 text-[#5b9bd5]">
+                        الحالية
+                      </span>
+                    )}
+                  </div>
+                  {v.label && (
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">{v.label}</p>
+                  )}
+                  <p className="text-[11px] text-gray-400 mt-0.5">
+                    {formatRelativeTime(v.createdAt)}
+                  </p>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {/* Preview */}
+                  <button
+                    onClick={() => onPreview(v)}
+                    className="p-1.5 text-gray-400 hover:text-[#5b9bd5] hover:bg-blue-50 rounded-lg transition-colors"
+                    title="معاينة"
+                    data-preview-btn={v.id}
+                  >
+                    <Eye className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Compare */}
+                  <button
+                    onClick={() => {
+                      if (!selectedA) {
+                        setSelectedA(v.id);
+                      } else if (selectedA !== v.id) {
+                        const fromV = versions.find((x) => x.id === selectedA)!;
+                        onCompare(fromV, v);
+                        setSelectedA(null);
+                      }
+                    }}
+                    className={`p-1.5 rounded-lg transition-colors ${
+                      selectedA === v.id
+                        ? "text-blue-600 bg-blue-50"
+                        : "text-gray-400 hover:text-[#5b9bd5] hover:bg-blue-50"
+                    }`}
+                    title={selectedA ? "قارن مع هذه النسخة" : "اختر للمقارنة"}
+                    data-compare-btn={v.id}
+                  >
+                    <GitCompare className="w-3.5 h-3.5" />
+                  </button>
+
+                  {/* Restore */}
+                  <button
+                    onClick={() => onRestore(v)}
+                    className="p-1.5 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                    title="استعادة"
+                    data-restore-btn={v.id}
+                  >
+                    <CornerUpLeft className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Version Preview Modal ──────────────────────────────────────────────────
+
+interface VersionPreviewModalProps {
+  version: VersionSummary & { data: unknown };
+  pageTitle: string;
+  onClose: () => void;
+  onRestore: () => void;
+}
+
+function VersionPreviewModal({ version, pageTitle, onClose, onRestore }: VersionPreviewModalProps) {
+  return (
+    <div className="fixed inset-0 z-[60] flex flex-col" data-preview-modal="">
+      {/* Top bar */}
+      <div
+        dir="rtl"
+        className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-200 flex-shrink-0 shadow-sm"
+        style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+      >
+        <div className="flex items-center gap-3">
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+          <div>
+            <p className="text-sm font-semibold text-gray-900">{pageTitle}</p>
+            <p className="text-xs text-gray-400">
+              نسخة {version.versionNumber} — {getChangeTypeLabel(version.changeType as ChangeType)} — {formatRelativeTime(version.createdAt)}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={onRestore}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-white rounded-xl transition-all hover:opacity-90"
+          style={{ background: "#5b9bd5" }}
+          data-restore-from-preview-btn=""
+        >
+          <CornerUpLeft className="w-3.5 h-3.5" />
+          استعادة هذه النسخة
+        </button>
+      </div>
+
+      {/* Preview iframe */}
+      <div className="flex-1 overflow-auto bg-gray-100 p-4">
+        <div className="bg-white mx-auto max-w-5xl rounded-xl shadow-sm overflow-hidden min-h-full">
+          <PuckRender
+            config={puckConfig as any}
+            data={version.data as any}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Compare Dialog ─────────────────────────────────────────────────────────
+
+interface CompareDialogProps {
+  fromVersion: VersionSummary & { data: unknown };
+  toVersion: VersionSummary & { data: unknown };
+  onClose: () => void;
+  onRestoreFrom: () => void;
+  onRestoreTo: () => void;
+}
+
+function DiffStatusBadge({ status }: { status: BlockDiff["status"] }) {
+  const colors: Record<BlockDiff["status"], string> = {
+    added:     "bg-emerald-50 text-emerald-700 border border-emerald-200",
+    removed:   "bg-red-50 text-red-600 border border-red-200",
+    modified:  "bg-yellow-50 text-yellow-700 border border-yellow-200",
+    unchanged: "bg-gray-50 text-gray-500 border border-gray-200",
+  };
+  const labels: Record<BlockDiff["status"], string> = {
+    added: "مضاف", removed: "محذوف", modified: "معدّل", unchanged: "بدون تغيير",
+  };
+  return (
+    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${colors[status]}`}>
+      {labels[status]}
+    </span>
+  );
+}
+
+function CompareDialog({ fromVersion, toVersion, onClose, onRestoreFrom, onRestoreTo }: CompareDialogProps) {
+  const diffs = diffVersions(
+    fromVersion.data as { content: Array<{ type: string; props: { id: string } }> },
+    toVersion.data as { content: Array<{ type: string; props: { id: string } }> },
+  );
+  const summary = summarizeVersionDiff(diffs);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm"
+      data-compare-dialog=""
+    >
+      <div
+        dir="rtl"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 flex flex-col max-h-[85vh]"
+        style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <GitCompare className="w-4 h-4 text-gray-400" />
+            <h2 className="text-sm font-bold text-gray-900">مقارنة النسخ</h2>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Version labels */}
+        <div className="grid grid-cols-2 gap-px bg-gray-100 flex-shrink-0">
+          <div className="bg-white px-6 py-3">
+            <p className="text-xs font-semibold text-gray-500">نسخة قديمة</p>
+            <p className="text-sm font-bold text-gray-900 mt-0.5">
+              نسخة {fromVersion.versionNumber}
+              <span className="font-normal text-gray-400 ms-1.5">— {formatRelativeTime(fromVersion.createdAt)}</span>
+            </p>
+          </div>
+          <div className="bg-white px-6 py-3">
+            <p className="text-xs font-semibold text-[#5b9bd5]">نسخة جديدة</p>
+            <p className="text-sm font-bold text-gray-900 mt-0.5">
+              نسخة {toVersion.versionNumber}
+              <span className="font-normal text-gray-400 ms-1.5">— {formatRelativeTime(toVersion.createdAt)}</span>
+            </p>
+          </div>
+        </div>
+
+        {/* Summary pills */}
+        <div className="px-6 py-3 border-b border-gray-100 flex items-center gap-2 flex-shrink-0">
+          {summary.added > 0 && (
+            <span className="text-xs font-medium px-2 py-1 rounded-full bg-emerald-50 text-emerald-700">+{summary.added} مضاف</span>
+          )}
+          {summary.removed > 0 && (
+            <span className="text-xs font-medium px-2 py-1 rounded-full bg-red-50 text-red-600">{summary.removed}- محذوف</span>
+          )}
+          {summary.modified > 0 && (
+            <span className="text-xs font-medium px-2 py-1 rounded-full bg-yellow-50 text-yellow-700">{summary.modified} معدّل</span>
+          )}
+          {summary.unchanged > 0 && (
+            <span className="text-xs font-medium px-2 py-1 rounded-full bg-gray-50 text-gray-500">{summary.unchanged} بدون تغيير</span>
+          )}
+        </div>
+
+        {/* Diff rows */}
+        <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
+          {diffs.length === 0 && (
+            <div className="text-center py-12 text-sm text-gray-400">النسختان متطابقتان</div>
+          )}
+          {diffs.map((d) => (
+            <div
+              key={d.blockId}
+              className={`px-6 py-3 flex items-center justify-between ${
+                d.status === "added"     ? "bg-emerald-50/40" :
+                d.status === "removed"  ? "bg-red-50/40" :
+                d.status === "modified" ? "bg-yellow-50/30" :
+                ""
+              }`}
+              data-diff-row={d.blockId}
+            >
+              <div>
+                <p className="text-xs font-semibold text-gray-800">{d.blockType}</p>
+                <p className="text-[11px] text-gray-400 font-mono mt-0.5">{d.blockId}</p>
+              </div>
+              <DiffStatusBadge status={d.status} />
+            </div>
+          ))}
+        </div>
+
+        {/* Actions */}
+        <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-between flex-shrink-0">
+          <button onClick={onClose} className="text-sm text-gray-500 hover:text-gray-700">إغلاق</button>
+          <div className="flex gap-2">
+            <button
+              onClick={onRestoreFrom}
+              className="px-3.5 py-2 text-xs font-medium text-gray-700 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors"
+              data-restore-from-btn=""
+            >
+              استعادة النسخة القديمة
+            </button>
+            <button
+              onClick={onRestoreTo}
+              className="px-3.5 py-2 text-xs font-semibold text-white rounded-xl hover:opacity-90 transition-all"
+              style={{ background: "#5b9bd5" }}
+              data-restore-to-btn=""
+            >
+              استعادة النسخة الجديدة
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Restore Confirm Dialog ─────────────────────────────────────────────────
+
+interface RestoreConfirmDialogProps {
+  version: VersionSummary;
+  loading: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}
+
+function RestoreConfirmDialog({ version, loading, onConfirm, onCancel }: RestoreConfirmDialogProps) {
+  return (
+    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/50 backdrop-blur-sm" data-restore-confirm-dialog="">
+      <div
+        dir="rtl"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6"
+        style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+      >
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center flex-shrink-0">
+            <CornerUpLeft className="w-5 h-5 text-amber-600" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-gray-900">استعادة النسخة</h3>
+            <p className="text-xs text-gray-400">نسخة {version.versionNumber} — {formatRelativeTime(version.createdAt)}</p>
+          </div>
+        </div>
+        <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+          سيتم نسخ محتوى هذه النسخة إلى المسودة الحالية. التعديلات غير المحفوظة لن تُفقد — ستُحفظ كنسخة جديدة أولاً.
+        </p>
+        <div className="flex gap-3 justify-end">
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            className="px-4 py-2 text-sm font-medium text-gray-700 rounded-xl border border-gray-200 hover:bg-gray-50 disabled:opacity-50"
+          >
+            إلغاء
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="px-4 py-2 text-sm font-semibold text-white rounded-xl disabled:opacity-50 hover:opacity-90 transition-all"
+            style={{ background: "#5b9bd5" }}
+            data-restore-confirm-btn=""
+          >
+            {loading ? "جاري الاستعادة..." : "استعادة"}
           </button>
         </div>
       </div>
@@ -929,6 +1350,16 @@ function EditorView({ page, onBack, onSaved }: EditorViewProps) {
   const [unpublishing, setUnpublishing] = useState(false);
   const [editorMenuOpen, setEditorMenuOpen] = useState(false);
 
+  // Version history state
+  const [versionDrawerOpen, setVersionDrawerOpen] = useState(false);
+  const [previewVersion, setPreviewVersion] = useState<(VersionSummary & { data: unknown }) | null>(null);
+  const [compareVersions, setCompareVersions] = useState<{
+    from: VersionSummary & { data: unknown };
+    to: VersionSummary & { data: unknown };
+  } | null>(null);
+  const [restoreTarget, setRestoreTarget] = useState<VersionSummary | null>(null);
+  const [restoring, setRestoring] = useState(false);
+
   // Track latest Puck data for auto-save (without re-rendering on every keystroke)
   const currentDataRef = useRef<PuckData | null>(null);
   const lastSavedAtRef = useRef<string>(page.updatedAt);
@@ -1071,6 +1502,51 @@ function EditorView({ page, onBack, onSaved }: EditorViewProps) {
     return pagesV2Api.slugCheck(slug, page.id);
   }, [page.id]);
 
+  // ── Version: load full version data ─────────────────────────
+  const loadVersionData = useCallback(async (v: VersionSummary): Promise<VersionSummary & { data: unknown }> => {
+    const res = await pagesV2Api.getVersion(page.id, v.id);
+    return { ...v, data: res.data.data };
+  }, [page.id]);
+
+  const handlePreviewVersion = useCallback(async (v: VersionSummary) => {
+    try {
+      const full = await loadVersionData(v);
+      setPreviewVersion(full);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل تحميل النسخة");
+    }
+  }, [loadVersionData]);
+
+  const handleCompareVersions = useCallback(async (fromV: VersionSummary, toV: VersionSummary) => {
+    try {
+      const res = await pagesV2Api.compareVersions(page.id, fromV.id, toV.id);
+      setCompareVersions({
+        from: { ...fromV, data: res.data.from.data },
+        to:   { ...toV,   data: res.data.to.data },
+      });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل تحميل النسخ");
+    }
+  }, [page.id]);
+
+  const handleRestore = useCallback(async () => {
+    if (!restoreTarget) return;
+    setRestoring(true);
+    try {
+      await pagesV2Api.revert(page.id, restoreTarget.id);
+      toast.success(`تم استعادة نسخة ${restoreTarget.versionNumber}`);
+      setRestoreTarget(null);
+      setVersionDrawerOpen(false);
+      setPreviewVersion(null);
+      setCompareVersions(null);
+      onSaved(); // Reload page from server
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "فشل الاستعادة");
+    } finally {
+      setRestoring(false);
+    }
+  }, [restoreTarget, page.id, onSaved]);
+
   // ── Publish button label logic ───────────────────────────────
   const publishBtnLabel = (() => {
     if (publishing) return "جاري النشر...";
@@ -1119,6 +1595,16 @@ function EditorView({ page, onBack, onSaved }: EditorViewProps) {
 
         {/* Right actions */}
         <div className="ms-auto flex items-center gap-2">
+          {/* Version history button */}
+          <button
+            onClick={() => setVersionDrawerOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 rounded-xl border border-gray-200 hover:border-[#5b9bd5] hover:text-[#5b9bd5] transition-colors"
+            data-version-history-btn=""
+          >
+            <History className="w-3.5 h-3.5" />
+            سجل التعديلات
+          </button>
+
           {/* SEO button */}
           <button
             onClick={() => setSeoOpen(true)}
@@ -1224,6 +1710,57 @@ function EditorView({ page, onBack, onSaved }: EditorViewProps) {
         <ConflictDialog
           onOverwrite={handleOverwrite}
           onLoadLatest={handleLoadLatest}
+        />
+      )}
+
+      {/* ── Version History Drawer ─────────────────────────── */}
+      {versionDrawerOpen && (
+        <VersionHistoryDrawer
+          pageId={page.id}
+          onClose={() => setVersionDrawerOpen(false)}
+          onPreview={handlePreviewVersion}
+          onCompare={handleCompareVersions}
+          onRestore={(v) => setRestoreTarget(v)}
+        />
+      )}
+
+      {/* ── Version Preview Modal ──────────────────────────── */}
+      {previewVersion && (
+        <VersionPreviewModal
+          version={previewVersion}
+          pageTitle={page.title}
+          onClose={() => setPreviewVersion(null)}
+          onRestore={() => {
+            setRestoreTarget(previewVersion);
+            setPreviewVersion(null);
+          }}
+        />
+      )}
+
+      {/* ── Compare Dialog ─────────────────────────────────── */}
+      {compareVersions && (
+        <CompareDialog
+          fromVersion={compareVersions.from}
+          toVersion={compareVersions.to}
+          onClose={() => setCompareVersions(null)}
+          onRestoreFrom={() => {
+            setRestoreTarget(compareVersions.from);
+            setCompareVersions(null);
+          }}
+          onRestoreTo={() => {
+            setRestoreTarget(compareVersions.to);
+            setCompareVersions(null);
+          }}
+        />
+      )}
+
+      {/* ── Restore Confirm Dialog ─────────────────────────── */}
+      {restoreTarget && (
+        <RestoreConfirmDialog
+          version={restoreTarget}
+          loading={restoring}
+          onConfirm={handleRestore}
+          onCancel={() => setRestoreTarget(null)}
         />
       )}
     </div>
