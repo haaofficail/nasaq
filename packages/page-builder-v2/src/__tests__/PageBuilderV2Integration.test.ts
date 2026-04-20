@@ -24,7 +24,7 @@ function makePuckData(heroProps: Record<string, unknown>): Data {
       },
     ],
     root: {
-      props: { title: "الصفحة الرئيسية", description: "" },
+      props: { title: "الصفحة الرئيسية" },
     },
   };
 }

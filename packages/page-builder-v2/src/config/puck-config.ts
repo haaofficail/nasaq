@@ -1,5 +1,6 @@
 import type { Config } from "@measured/puck";
 import { HeroMinimalConfig } from "../blocks/hero/HeroMinimal";
+import { HeroShowcaseConfig } from "../blocks/hero/HeroShowcase";
 
 // Page Builder v2 — Puck configuration
 // All blocks: RTL, IBM Plex Sans Arabic, Tailwind-only, brand #5b9bd5
@@ -7,6 +8,7 @@ import { HeroMinimalConfig } from "../blocks/hero/HeroMinimal";
 export const puckConfig: Config = {
   components: {
     HeroMinimal: HeroMinimalConfig,
+    HeroShowcase: HeroShowcaseConfig,
   },
   root: {
     fields: {

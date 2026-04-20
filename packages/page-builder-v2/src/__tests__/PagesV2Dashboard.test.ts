@@ -66,7 +66,7 @@ function makeHeroPuckData(): Data {
         alignment: "center",
       },
     }],
-    root: { props: { title: "الرئيسية", description: "" } },
+    root: { props: { title: "الرئيسية" } },
   };
 }
 
