@@ -1316,13 +1316,13 @@ bookingsRouter.get("/:id/timeline", async (c) => {
   // Verify the booking belongs to this org before returning timeline
   const [booking] = await db
     .select({
-      id:        bookings.id,
-      status:    bookings.status,
-      createdAt: bookings.createdAt,
-      updatedAt: bookings.updatedAt,
+      id:        bookingRecords.id,
+      status:    bookingRecords.status,
+      createdAt: bookingRecords.createdAt,
+      updatedAt: bookingRecords.updatedAt,
     })
-    .from(bookings)
-    .where(and(eq(bookings.id, id), eq(bookings.orgId, orgId)));
+    .from(bookingRecords)
+    .where(and(eq(bookingRecords.id, id), eq(bookingRecords.orgId, orgId)));
 
   if (!booking) return c.json({ error: "الحجز غير موجود" }, 404);
 

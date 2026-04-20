@@ -182,25 +182,26 @@ export async function getBookingTimeline(
   bookingId: string,
   orgId:     string,
 ): Promise<TimelineEvent[]> {
+  // TODO Phase 3.B: consolidate once writes also go to booking_timeline_events
   const rows = await db
     .select({
-      id:         bookingEvents.id,
-      eventType:  bookingEvents.eventType,
-      fromStatus: bookingEvents.fromStatus,
-      toStatus:   bookingEvents.toStatus,
-      metadata:   bookingEvents.metadata,
-      notes:      bookingEvents.notes,
-      userId:     bookingEvents.userId,
+      id:         bookingTimelineEvents.id,
+      eventType:  bookingTimelineEvents.eventType,
+      fromStatus: bookingTimelineEvents.fromStatus,
+      toStatus:   bookingTimelineEvents.toStatus,
+      metadata:   bookingTimelineEvents.metadata,
+      notes:      bookingTimelineEvents.notes,
+      userId:     bookingTimelineEvents.userId,
       actorName:  users.name,
-      createdAt:  bookingEvents.createdAt,
+      createdAt:  bookingTimelineEvents.createdAt,
     })
-    .from(bookingEvents)
-    .leftJoin(users, eq(bookingEvents.userId, users.id))
+    .from(bookingTimelineEvents)
+    .leftJoin(users, eq(bookingTimelineEvents.userId, users.id))
     .where(and(
-      eq(bookingEvents.bookingId, bookingId),
-      eq(bookingEvents.orgId, orgId),
+      eq(bookingTimelineEvents.bookingRecordId, bookingId),
+      eq(bookingTimelineEvents.orgId, orgId),
     ))
-    .orderBy(asc(bookingEvents.createdAt));
+    .orderBy(asc(bookingTimelineEvents.createdAt));
 
   return rows.map((r) => {
     const meta = (r.metadata ?? {}) as Record<string, unknown>;
