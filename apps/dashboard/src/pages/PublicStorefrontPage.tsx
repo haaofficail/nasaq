@@ -477,7 +477,7 @@ function FlowerBuilderSection({ section, slug }: { section: FlowerSection; slug:
 // ── Skeleton ─────────────────────────────────────────────────────────
 function Skeleton() {
   return (
-    <div dir="rtl" style={{ fontFamily: "inherit", minHeight: "100dvh", background: T.bg, maxWidth: 440, margin: "0 auto" }}>
+    <div dir="rtl" className="sf-container" style={{ fontFamily: "inherit", minHeight: "100dvh", background: T.bg }}>
       <div style={{ position: "fixed", inset: 0, background: T.bg, zIndex: -1 }} />
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}`}</style>
       <div style={{ height: 74, background: T.surface, borderBottom: `1px solid ${T.border}` }} />

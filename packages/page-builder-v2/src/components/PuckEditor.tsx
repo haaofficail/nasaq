@@ -8,6 +8,7 @@
  */
 
 import React from "react";
+import "@measured/puck/dist/index.css";
 import { Puck } from "@measured/puck";
 import type { Data } from "@measured/puck";
 import { puckConfig } from "../config/puck-config";
