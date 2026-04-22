@@ -986,16 +986,13 @@ export function PublicStorefrontPage() {
             Inner: light #f1f5f9 rounded pill when empty.
         */}
         <div style={{
-          position: "fixed", bottom: 0,
-          left: "50%", transform: "translateX(-50%)",
-          width: "100%", maxWidth: 440, zIndex: 20,
-          boxSizing: "border-box",
+          position: "fixed", bottom: 0, left: 0, right: 0, zIndex: 20,
           background: "white",
           borderTop: `1px solid ${T.borderFaint}`,
-          padding: "10px 14px env(safe-area-inset-bottom, 10px)",
           boxShadow: "0 -4px 20px rgba(15,23,42,0.07)",
           animation: "barUp .25s ease both",
         }}>
+          <div className="sf-container" style={{ boxSizing: "border-box", padding: "10px 14px env(safe-area-inset-bottom, 10px)" }}>
           {showBook && active.length > 0 && (
             <>
               {cart.length > 0 ? (
@@ -1071,6 +1068,7 @@ export function PublicStorefrontPage() {
               {Icon.wa} واتساب
             </a>
           )}
+          </div>{/* /sf-container inner */}
         </div>
 
         {/* Booking sheet */}
