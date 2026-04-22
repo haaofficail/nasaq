@@ -41,6 +41,7 @@ const OnlineOrdersAdminTab   = lazy(() => import("./admin/OnlineOrdersAdminTab")
 const ServiceOrdersAdminTab  = lazy(() => import("./admin/ServiceOrdersAdminTab"));
 const FinanceAdminTab        = lazy(() => import("./admin/FinanceAdminTab"));
 const WhatsAppGatewayTab     = lazy(() => import("./admin/WhatsAppGatewayTab"));
+const PaymentGatewayAdminTab = lazy(() => import("./admin/PaymentGatewayAdminTab"));
 
 // ════════════════════════════════════════════════════════════
 // Constants
@@ -63,7 +64,8 @@ const SECTIONS = [
   { id: "invoices",      icon: Receipt,       label: "الفواتير",             roles: ["super_admin"] },
   { id: "bookings-admin", icon: CalendarCheck, label: "الحجوزات",            roles: ["super_admin"] },
   { id: "customers-admin", icon: Users,        label: "العملاء",             roles: ["super_admin"] },
-  { id: "online-orders", icon: ShoppingCart,   label: "الطلبات الإلكترونية",  roles: ["super_admin"] },
+  { id: "online-orders",    icon: ShoppingCart,   label: "الطلبات الإلكترونية",  roles: ["super_admin"] },
+  { id: "payment-gateway",  icon: CreditCard,     label: "بوابة الدفع",           roles: ["super_admin"] },
   { id: "service-orders", icon: ClipboardList, label: "أوامر الخدمة",        roles: ["super_admin"] },
   { id: "finance-admin",  icon: Wallet,        label: "المالية والمحاسبة",    roles: ["super_admin"] },
   { id: "whatsapp",       icon: MessageCircle, label: "واتساب",                roles: ["super_admin"] },
@@ -308,8 +310,9 @@ export function AdminPage() {
     invoices:          <InvoicesAdminTab />,
     "bookings-admin":  <BookingsAdminTab />,
     "customers-admin": <CustomersAdminTab />,
-    "online-orders":   <OnlineOrdersAdminTab />,
-    "service-orders":  <ServiceOrdersAdminTab />,
+    "online-orders":    <OnlineOrdersAdminTab />,
+    "payment-gateway":  <PaymentGatewayAdminTab />,
+    "service-orders":   <ServiceOrdersAdminTab />,
     "finance-admin":   <FinanceAdminTab />,
     whatsapp:          <WhatsAppGatewayTab />,
     "access-logs":   <AccessLogsAdminTab />,

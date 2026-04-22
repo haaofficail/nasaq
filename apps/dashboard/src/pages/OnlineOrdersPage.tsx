@@ -6,11 +6,11 @@ import { clsx } from "clsx";
 import { SkeletonRows } from "@/components/ui/Skeleton";
 import { Button, Modal } from "@/components/ui";
 
-const STATUS_LABELS: Record<string, string> = { pending: "جديد", confirmed: "مؤكد", in_progress: "قيد التحضير", ready: "جاهز", delivered: "تم التسليم", completed: "مكتمل", cancelled: "ملغي" };
-const STATUS_COLORS: Record<string, string> = { pending: "bg-yellow-50 text-yellow-700 border-yellow-200", confirmed: "bg-blue-50 text-blue-700 border-blue-200", in_progress: "bg-purple-50 text-purple-700 border-purple-200", ready: "bg-green-50 text-green-700 border-green-200", delivered: "bg-teal-50 text-teal-700 border-teal-200", completed: "bg-gray-100 text-gray-500 border-[#eef2f6]", cancelled: "bg-red-50 text-red-600 border-red-200" };
+const STATUS_LABELS: Record<string, string> = { pending: "جديد", confirmed: "مؤكد", preparing: "قيد التحضير", ready: "جاهز", delivered: "تم التسليم", cancelled: "ملغي", delivery_failed: "فشل التسليم", returned: "مُرتجع" };
+const STATUS_COLORS: Record<string, string> = { pending: "bg-yellow-50 text-yellow-700 border-yellow-200", confirmed: "bg-blue-50 text-blue-700 border-blue-200", preparing: "bg-purple-50 text-purple-700 border-purple-200", ready: "bg-green-50 text-green-700 border-green-200", delivered: "bg-teal-50 text-teal-700 border-teal-200", cancelled: "bg-red-50 text-red-600 border-red-200", delivery_failed: "bg-orange-50 text-orange-700 border-orange-200", returned: "bg-gray-100 text-gray-500 border-[#eef2f6]" };
 
-const NEXT_STATUS: Record<string, string> = { pending: "confirmed", confirmed: "in_progress", in_progress: "ready", ready: "delivered", delivered: "completed" };
-const NEXT_STATUS_LABELS: Record<string, string> = { pending: "تأكيد", confirmed: "بدء التحضير", in_progress: "جاهز", ready: "تم التسليم", delivered: "مكتمل" };
+const NEXT_STATUS: Record<string, string> = { pending: "confirmed", confirmed: "preparing", preparing: "ready", ready: "delivered" };
+const NEXT_STATUS_LABELS: Record<string, string> = { pending: "تأكيد", confirmed: "بدء التحضير", preparing: "جاهز", ready: "تم التسليم" };
 
 export function OnlineOrdersPage() {
   const [statusFilter, setStatusFilter] = useState("all");
@@ -28,15 +28,16 @@ export function OnlineOrdersPage() {
 
   const orders = allOrders.filter(o => {
     const matchStatus = statusFilter === "all" || o.status === statusFilter;
-    const matchSearch = !search || o.customerName?.includes(search) || o.id?.includes(search);
+    const name = o.customer_name || o.customerName || "";
+    const matchSearch = !search || name.includes(search) || (o.order_number || o.id || "").includes(search);
     return matchStatus && matchSearch;
   });
 
   const stats = {
     new: allOrders.filter(o => o.status === "pending").length,
-    inProgress: allOrders.filter(o => ["confirmed", "in_progress"].includes(o.status)).length,
+    inProgress: allOrders.filter(o => ["confirmed", "preparing"].includes(o.status)).length,
     ready: allOrders.filter(o => o.status === "ready").length,
-    revenue: allOrders.filter(o => o.status === "completed").reduce((s: number, o: any) => s + parseFloat(o.totalAmount || o.price || 0), 0),
+    revenue: allOrders.filter(o => o.status === "delivered").reduce((s: number, o: any) => s + parseFloat(o.total_amount || o.totalAmount || 0), 0),
   };
 
   const handleNext = async (order: any) => {
@@ -93,7 +94,7 @@ export function OnlineOrdersPage() {
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="بحث بالاسم أو رقم الطلب..." className="bg-transparent outline-none text-sm text-gray-700 w-40" />
         </div>
         <div className="flex gap-1 bg-[#f1f5f9] rounded-xl p-1 overflow-x-auto">
-          {[["all", "الكل"], ["pending", "جديد"], ["confirmed", "مؤكد"], ["in_progress", "تحضير"], ["ready", "جاهز"], ["completed", "مكتمل"], ["cancelled", "ملغي"]].map(([v, l]) => (
+          {[["all", "الكل"], ["pending", "جديد"], ["confirmed", "مؤكد"], ["preparing", "تحضير"], ["ready", "جاهز"], ["delivered", "مُسلَّم"], ["cancelled", "ملغي"]].map(([v, l]) => (
             <button key={v} onClick={() => setStatusFilter(v)} className={clsx("px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors", statusFilter === v ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700")}>
               {l} {v !== "all" && <span className="opacity-60">({allOrders.filter(o => o.status === v).length})</span>}
             </button>
@@ -123,17 +124,17 @@ export function OnlineOrdersPage() {
                     <span className="text-gray-400">{expandedOrder === order.id ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}</span>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-gray-900">{order.customerName || order.customer?.name || "عميل"}</p>
-                        <span className="text-xs text-gray-400 tabular-nums">#{order.id?.slice(-6)}</span>
+                        <p className="font-semibold text-gray-900">{order.customer_name || order.customerName || "عميل"}</p>
+                        <span className="text-xs text-gray-400 tabular-nums">#{order.order_number || order.id?.slice(-6)}</span>
                       </div>
                       <p className="text-xs text-gray-400">
-                        {order.scheduledAt ? new Date(order.scheduledAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}
-                        {order.customerPhone && ` · ${order.customerPhone}`}
+                        {order.created_at ? new Date(order.created_at).toLocaleString("ar-SA", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : ""}
+                        {(order.customer_phone || order.customerPhone) && ` · ${order.customer_phone || order.customerPhone}`}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-semibold text-gray-900 tabular-nums">{parseFloat(order.totalAmount || order.price || 0).toFixed(0)} ر.س</span>
+                    <span className="font-semibold text-gray-900 tabular-nums">{parseFloat(order.total_amount || order.totalAmount || 0).toFixed(0)} ر.س</span>
                     <span className={clsx("px-2.5 py-1 rounded-lg text-xs font-medium border", STATUS_COLORS[order.status] || "bg-gray-100 text-gray-500 border-[#eef2f6]")}>
                       {STATUS_LABELS[order.status] || order.status}
                     </span>
@@ -165,7 +166,7 @@ export function OnlineOrdersPage() {
                           {NEXT_STATUS_LABELS[order.status]}
                         </button>
                       )}
-                      {!["cancelled", "completed"].includes(order.status) && (
+                      {!["cancelled", "delivered", "returned"].includes(order.status) && (
                         <button onClick={() => handleCancel(order.id)} className="px-4 py-2 border border-red-200 text-red-500 rounded-xl text-sm font-medium hover:bg-red-50 transition-colors">
                           <XCircle className="w-4 h-4" />
                         </button>

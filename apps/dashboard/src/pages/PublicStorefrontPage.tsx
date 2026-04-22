@@ -490,14 +490,15 @@ function ProductCheckoutSheet({ productCart, slug, sessionId, orgAccent, org, on
   const items   = Array.from(productCart.values());
   const total   = items.reduce((s, { product, qty }) => s + product.sellPrice * qty, 0);
 
-  const [name,      setName]      = useState("");
-  const [phone,     setPhone]     = useState("");
-  const [email,     setEmail]     = useState("");
-  const [street,    setStreet]    = useState("");
-  const [city,      setCity]      = useState("");
-  const [agreed,    setAgreed]    = useState(false);
-  const [submitting, setSub]      = useState(false);
-  const [error,     setError]     = useState("");
+  const [name,        setName]      = useState("");
+  const [phone,       setPhone]     = useState("");
+  const [email,       setEmail]     = useState("");
+  const [street,      setStreet]    = useState("");
+  const [city,        setCity]      = useState("");
+  const [couponCode,  setCoupon]    = useState("");
+  const [agreed,      setAgreed]    = useState(false);
+  const [submitting,  setSub]       = useState(false);
+  const [error,       setError]     = useState("");
 
   const canSubmit = name.trim() && phone.trim() && street.trim() && city.trim() && agreed;
 
@@ -518,6 +519,7 @@ function ProductCheckoutSheet({ productCart, slug, sessionId, orgAccent, org, on
         customerPhone:   phone.trim(),
         customerEmail:   email.trim() || undefined,
         deliveryAddress: { street: street.trim(), city: city.trim() },
+        couponCode:      couponCode.trim() || undefined,
         paymentMethod:   "online",
         callbackUrl,
       });
@@ -604,6 +606,14 @@ function ProductCheckoutSheet({ productCart, slug, sessionId, orgAccent, org, on
           <div style={{ marginBottom: 16 }}>
             <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>المدينة</label>
             <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="المدينة" style={inputStyle} />
+          </div>
+
+          {/* Coupon code (optional) */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>
+              كود الخصم <span style={{ fontWeight: 500, color: T.t3 }}>(اختياري)</span>
+            </label>
+            <input type="text" value={couponCode} onChange={e => setCoupon(e.target.value.toUpperCase())} placeholder="PROMO2026" dir="ltr" style={{ ...inputStyle, textAlign: "right", letterSpacing: 1 }} />
           </div>
 
           {/* Terms */}
@@ -844,8 +854,11 @@ export function PublicStorefrontPage() {
         next.set(product.id, { product, qty: newQty });
       }
       // Persist to backend cart (fire-and-forget)
-      const items = Array.from(next.values()).map(({ product: p, qty: q }) => ({ productId: p.id, qty: q, unitPrice: p.sellPrice }));
-      storefrontApi.upsertCart(slug, { sessionId, items }).catch(() => {});
+      const cartItems = Array.from(next.values()).map(({ product: p, qty: q }) => ({ productId: p.id, name: p.name, qty: q, price: p.sellPrice }));
+      const cartTotal = cartItems.reduce((s, i) => s + i.price * i.qty, 0);
+      if (cartItems.length > 0) {
+        storefrontApi.upsertCart(slug, { sessionId, items: cartItems, totalAmount: cartTotal }).catch(() => {});
+      }
       return next;
     });
   };

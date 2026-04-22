@@ -2044,6 +2044,17 @@ export const adminApi = {
     return api.get<{ data: any }>(`/admin/analytics/revenue?${qs}`);
   },
 
+  // ── Payment Settings ─────────────────────────────────────
+  paymentSettings: (params?: { enabled?: boolean; page?: number; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (params?.enabled !== undefined) qs.set("enabled", String(params.enabled));
+    if (params?.page)  qs.set("page", String(params.page));
+    if (params?.limit) qs.set("limit", String(params.limit));
+    return api.get<{ data: any[]; pagination: any }>(`/admin/payment-settings?${qs}`);
+  },
+  updatePaymentSettings: (orgId: string, data: { enabled?: boolean; platformFeePercent?: number; platformFeeFixed?: number }) =>
+    api.patch<{ success: boolean }>(`/admin/payment-settings/${orgId}`, data),
+
   // ── WhatsApp Gateway ──────────────────────────────────────
   waStatus: () => api.get<{ data: any }>("/admin/wa/status"),
   waTemplates: () => api.get<{ data: any[] }>("/admin/wa/templates"),

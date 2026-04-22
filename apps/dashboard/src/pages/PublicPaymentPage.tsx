@@ -14,6 +14,7 @@ export function PublicPaymentPage() {
   const desc       = searchParams.get("description") ?? "دفع إلكتروني";
   const moyasarId  = searchParams.get("id");          // callback from Moyasar
   const callbackStatus = searchParams.get("status");  // callback from Moyasar
+  const isOrderPayment = !invoiceId && !bookingId;    // دفع طلب متجر إلكتروني
 
   const amount = parseFloat(amountStr) || 0;
   const [loading, setLoading]   = useState(false);
@@ -23,9 +24,16 @@ export function PublicPaymentPage() {
 
   // إذا عاد العميل من Moyasar
   useEffect(() => {
-    if (moyasarId && callbackStatus === "paid") setPaid(true);
-    else if (moyasarId && callbackStatus) setPayFailed(true);
-  }, [moyasarId, callbackStatus]);
+    if (moyasarId && callbackStatus === "paid") {
+      setPaid(true);
+      // مسح جلسة السلة بعد الدفع الناجح
+      if (orgSlug) {
+        try { localStorage.removeItem(`nasaq_cart_${orgSlug}_sid`); } catch { /* ignore */ }
+      }
+    } else if (moyasarId && callbackStatus) {
+      setPayFailed(true);
+    }
+  }, [moyasarId, callbackStatus, orgSlug]);
 
   async function handlePay() {
     if (!orgSlug || !amount) return;
@@ -66,7 +74,14 @@ export function PublicPaymentPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-[#eef2f6] p-10 text-center max-w-sm w-full">
         <CheckCircle2 className="w-14 h-14 text-green-500 mx-auto mb-4" />
         <h1 className="text-xl font-bold text-gray-800 mb-2">تم الدفع بنجاح</h1>
-        <p className="text-gray-500 text-sm">شكراً لك. تمت معالجة دفعتك.</p>
+        <p className="text-gray-500 text-sm mb-5">
+          {isOrderPayment ? "تم استلام طلبك وسيتم التواصل معك قريباً." : "شكراً لك. تمت معالجة دفعتك."}
+        </p>
+        {orgSlug && isOrderPayment && (
+          <a href={`/s/${orgSlug}`} className="inline-flex items-center justify-center w-full px-4 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-semibold">
+            العودة للمتجر
+          </a>
+        )}
       </div>
     </div>
   );

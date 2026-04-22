@@ -551,6 +551,7 @@ const checkoutSchema = z.object({
   deliveryFee:     z.number().min(0).default(0),
   callbackUrl:     z.string().url(),
   notes:           z.string().max(500).optional(),
+  couponCode:      z.string().max(50).optional(),
 });
 
 /** POST /api/v2/storefront/:orgSlug/cart/:sessionId/checkout */
@@ -604,8 +605,8 @@ storefrontV2Router.post("/:orgSlug/cart/:sessionId/checkout", async (c) => {
   const { rows: orderRows } = await pool.query(
     `INSERT INTO online_orders
        (org_id, order_number, order_type, customer_name, customer_phone, customer_email,
-        delivery_address, items, subtotal, delivery_fee, total_amount, payment_method, notes)
-     VALUES ($1,$2,'delivery',$3,$4,$5,$6,$7,$8,$9,$10,'online',$11)
+        delivery_address, items, subtotal, delivery_fee, total_amount, payment_method, notes, coupon_code)
+     VALUES ($1,$2,'delivery',$3,$4,$5,$6,$7,$8,$9,$10,'online',$11,$12)
      RETURNING id, order_number, total_amount`,
     [
       org.id, orderNum,
@@ -614,6 +615,7 @@ storefrontV2Router.post("/:orgSlug/cart/:sessionId/checkout", async (c) => {
       JSON.stringify(items),
       subtotal, deliveryFee, totalAmount,
       body.notes ?? null,
+      body.couponCode ?? null,
     ],
   );
   const order = orderRows[0];
@@ -663,7 +665,7 @@ storefrontV2Router.post("/:orgSlug/cart/:sessionId/checkout", async (c) => {
   return c.json({
     data: {
       orderId:        order.id,
-      orderNumber:    order.orderNum,
+      orderNumber:    order.order_number,
       transactionId:  tx.id,
       paymentUrl:     payUrl,
       totalAmount,

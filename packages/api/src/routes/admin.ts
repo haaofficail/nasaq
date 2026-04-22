@@ -31,6 +31,7 @@ import {
   // Cross-org data views
   invoices, customers, bookings, payments,
   journalEntries, expenses, campaigns,
+  paymentSettings,
 } from "@nasaq/db/schema";
 import { _activateOrder } from "./subscription";
 import { getPagination, generateSlug } from "../lib/helpers";
@@ -3201,4 +3202,63 @@ adminRouter.get("/feature-flags/:key/audit", async (c) => {
     .limit(limit);
 
   return c.json({ data: logs });
+});
+
+// ============================================================
+// PAYMENT SETTINGS — cross-org view for super_admin
+// ============================================================
+
+adminRouter.get("/payment-settings", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const { limit, offset } = getPagination(c);
+  const enabledOnly = c.req.query("enabled") === "true";
+
+  const conds: any[] = [];
+  if (enabledOnly) conds.push(eq(paymentSettings.enabled, true));
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select({
+      id: paymentSettings.id,
+      orgId: paymentSettings.orgId,
+      orgName: organizations.name,
+      orgSlug: organizations.slug,
+      enabled: paymentSettings.enabled,
+      platformFeePercent: paymentSettings.platformFeePercent,
+      platformFeeFixed: paymentSettings.platformFeeFixed,
+      ibanNumber: paymentSettings.ibanNumber,
+      accountName: paymentSettings.accountName,
+      bankName: paymentSettings.bankName,
+      updatedAt: paymentSettings.updatedAt,
+    })
+    .from(paymentSettings)
+    .leftJoin(organizations, eq(organizations.id, paymentSettings.orgId))
+    .where(conds.length ? and(...conds) : undefined)
+    .orderBy(desc(paymentSettings.updatedAt))
+    .limit(limit).offset(offset),
+    db.select({ total: count() }).from(paymentSettings).where(conds.length ? and(...conds) : undefined),
+  ]);
+
+  return c.json({ data: rows, pagination: { limit, offset, total: Number(total) } });
+});
+
+adminRouter.patch("/payment-settings/:orgId", async (c) => {
+  if (!isSuperAdmin(c)) return superAdminOnly(c);
+  const targetOrgId = c.req.param("orgId");
+  const body = z.object({
+    enabled:            z.boolean().optional(),
+    platformFeePercent: z.number().min(0).max(100).optional(),
+    platformFeeFixed:   z.number().min(0).optional(),
+  }).parse(await c.req.json());
+
+  const setClause: Record<string, any> = { updatedAt: new Date() };
+  if (body.enabled !== undefined)            setClause.enabled            = body.enabled;
+  if (body.platformFeePercent !== undefined) setClause.platformFeePercent = String(body.platformFeePercent);
+  if (body.platformFeeFixed   !== undefined) setClause.platformFeeFixed   = String(body.platformFeeFixed);
+
+  await db
+    .update(paymentSettings)
+    .set(setClause)
+    .where(eq(paymentSettings.orgId, targetOrgId));
+
+  return c.json({ success: true });
 });
