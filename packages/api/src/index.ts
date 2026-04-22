@@ -101,6 +101,7 @@ import { storefrontV2Router } from "./routes/storefront-v2";
 import { pagebuildersourcesRouter } from "./routes/pagebuilder-sources";
 import { onboardingRouter } from "./routes/onboarding";
 import { complianceRouter } from "./routes/compliance";
+import { publicRouter } from "./routes/public";
 import {
   appointmentEngine, commerceEngine, stayEngine,
   leaseEngine, tableEngine, eventEngine,
@@ -290,6 +291,11 @@ app.get("/platform-assets/:filename", async (c) => {
     },
   });
 });
+
+// ── Public platform endpoints (no auth) ──────────────────────
+// Contact form + PDPL privacy requests — marketing/legal pages
+// Replaces deleted /api/v1/website/public/contact + /privacy-request
+app.route("/public", publicRouter);
 
 // ============================================================
 // PROTECTED ROUTES (auth required)

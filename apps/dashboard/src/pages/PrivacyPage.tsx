@@ -79,7 +79,7 @@ function PrivacyRequestButtons() {
     setType(reqType);
     setStatus("loading");
     try {
-      const res = await fetch("/api/v1/website/public/privacy-request", {
+      const res = await fetch("/api/v1/public/privacy-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
