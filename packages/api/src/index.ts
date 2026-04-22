@@ -1317,20 +1317,6 @@ try {
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_attendance_events_org   ON attendance_events(org_id)`);
   await pool.query(`CREATE INDEX IF NOT EXISTS idx_attendance_events_shift ON attendance_events(shift_id)`);
 
-  await pool.query(`CREATE TABLE IF NOT EXISTS employee_schedule_assignments (
-    id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    org_id         UUID        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
-    user_id        UUID        NOT NULL,
-    schedule_id    UUID        NOT NULL,
-    effective_from DATE        NOT NULL,
-    effective_to   DATE,
-    is_active      BOOLEAN     NOT NULL DEFAULT true,
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    UNIQUE(org_id, user_id, effective_from)
-  )`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_esa_org     ON employee_schedule_assignments(org_id)`);
-  await pool.query(`CREATE INDEX IF NOT EXISTS idx_esa_user    ON employee_schedule_assignments(org_id, user_id)`);
-
   await pool.query(`CREATE TABLE IF NOT EXISTS attendance_adjustment_requests (
     id                   UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id               UUID        NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
