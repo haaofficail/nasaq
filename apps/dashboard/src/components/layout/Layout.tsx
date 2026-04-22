@@ -215,7 +215,7 @@ export function Layout() {
                     </div>
                   )}
                   {collapsed && group.sectionLabel && <div className="h-px bg-[var(--border)] mx-2 my-3" />}
-                  {!collapsed && (
+                  {!collapsed && group.label && (
                     <p className="text-[10px] font-semibold text-[var(--text-3)] uppercase tracking-wider px-3 py-1.5">
                       {group.label}
                     </p>
