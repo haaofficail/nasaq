@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, desc, gte, lte, sql, count, sum, inArray } from "drizzle-orm";
-import { db } from "@nasaq/db/client";
+import { db, pool } from "@nasaq/db/client";
 import {
   paymentTransactions, merchantSettlements, paymentSettings,
   organizations, invoices,
@@ -176,9 +176,10 @@ paymentsRouter.post("/initiate", async (c) => {
     orgSlug:     z.string(),
     invoiceId:   z.string().uuid().optional(),
     bookingId:   z.string().uuid().optional(),
+    orderId:     z.string().uuid().optional(),
     customerId:  z.string().uuid().optional(),
     amount:      z.number().positive(),
-    description: z.string().default("دفع عبر نسق"),
+    description: z.string().default("دفع عبر ترميز OS"),
     callbackUrl: z.string().url(),
     metadata:    z.record(z.string()).optional(),
   });
@@ -216,6 +217,7 @@ paymentsRouter.post("/initiate", async (c) => {
     orgId:          org.id,
     invoiceId:      data.invoiceId ?? null,
     bookingId:      data.bookingId ?? null,
+    orderId:        data.orderId   ?? null,
     customerId:     data.customerId ?? null,
     amount:         String(data.amount),
     platformFee:    String(platformFee),
@@ -285,6 +287,14 @@ async function processMoyasarPayment(moyasarId: string, txId?: string | null) {
       await db.update(invoices)
         .set({ status: "paid", paidAmount: tx.amount, paidAt: new Date(), updatedAt: new Date() })
         .where(and(eq(invoices.id, tx.invoiceId), eq(invoices.orgId, tx.orgId)));
+    }
+
+    // ── تحديث الطلب الإلكتروني المرتبط ──────────────────
+    if (tx.orderId) {
+      await pool.query(
+        `UPDATE online_orders SET payment_status = 'paid', payment_method = $1, status = 'confirmed', confirmed_at = NOW(), updated_at = NOW() WHERE id = $2 AND org_id = $3`,
+        [tx.paymentMethod ?? "online", tx.orderId, tx.orgId],
+      );
     }
 
     // ── إشعار للتاجر ───────────────────────────────────────

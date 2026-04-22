@@ -33,6 +33,7 @@ export const paymentTransactions = pgTable("payment_transactions", {
   orgId:        uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   invoiceId:    uuid("invoice_id").references(() => invoices.id),
   bookingId:    uuid("booking_id").references(() => bookings.id),
+  orderId:      uuid("order_id"),  // online_orders.id — FK enforced by migration
   customerId:   uuid("customer_id").references(() => customers.id),
 
   // المبالغ
@@ -68,6 +69,7 @@ export const paymentTransactions = pgTable("payment_transactions", {
   index("payment_tx_org_idx").on(t.orgId),
   index("payment_tx_invoice_idx").on(t.invoiceId),
   index("payment_tx_booking_idx").on(t.bookingId),
+  index("payment_tx_order_idx").on(t.orderId),
   index("payment_tx_moyasar_idx").on(t.moyasarId),
 ]);
 

@@ -10,6 +10,10 @@
  *   GET  /storefront/:orgSlug/page/:slug    — single published v2 page
  *   POST /storefront/:orgSlug/contact       — save contact form submission
  *   POST /storefront/:orgSlug/book          — public booking (proxied from website.ts)
+ *   GET  /storefront/:orgSlug/products      — store-visible inventory products
+ *   POST /storefront/:orgSlug/cart          — create/update cart session
+ *   GET  /storefront/:orgSlug/cart/:sessionId — get cart
+ *   POST /storefront/:orgSlug/cart/:sessionId/checkout — create order + Moyasar payment URL
  *
  * Auth-protected:
  *   GET  /storefront/analytics              — org analytics (requires authMiddleware upstream)
@@ -29,9 +33,11 @@ import {
   serviceQuestions,
   pagesV2,
   messagesInbox,
+  paymentSettings,
 } from "@nasaq/db/schema";
 import { z } from "zod";
 import { getOrgId } from "../lib/helpers";
+import { buildMoyasarPaymentUrl, sarToHalala } from "../lib/moyasar";
 
 // ── Rate limiter (lightweight in-memory) ──────────────────────
 
@@ -411,4 +417,256 @@ storefrontV2Router.post("/:orgSlug/contact", async (c) => {
     { data: { id: submission.id, message: "تم استلام رسالتك — سنتواصل معك قريباً" } },
     201,
   );
+});
+
+// ══════════════════════════════════════════════════════════════
+// PRODUCTS — كتالوج المتجر العام
+// ══════════════════════════════════════════════════════════════
+
+/** GET /api/v2/storefront/:orgSlug/products */
+storefrontV2Router.get("/:orgSlug/products", async (c) => {
+  const orgSlug = c.req.param("orgSlug");
+  const [org] = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.slug, orgSlug))
+    .limit(1);
+  if (!org) return c.json({ error: "المتجر غير موجود" }, 404);
+
+  const { rows } = await pool.query(
+    `SELECT id, name, name_en, category, selling_price, images, description,
+            current_stock, sku, image_url, store_sort_order
+     FROM inventory_products
+     WHERE org_id = $1 AND is_store_visible = true AND is_active = true
+     ORDER BY store_sort_order ASC, name ASC`,
+    [org.id],
+  );
+  return c.json({ data: rows });
+});
+
+/** GET /api/v2/storefront/:orgSlug/products/:productId */
+storefrontV2Router.get("/:orgSlug/products/:productId", async (c) => {
+  const orgSlug   = c.req.param("orgSlug");
+  const productId = c.req.param("productId");
+
+  const [org] = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.slug, orgSlug))
+    .limit(1);
+  if (!org) return c.json({ error: "المتجر غير موجود" }, 404);
+
+  const { rows } = await pool.query(
+    `SELECT id, name, name_en, category, selling_price, images, description,
+            current_stock, sku, image_url
+     FROM inventory_products
+     WHERE id = $1 AND org_id = $2 AND is_store_visible = true AND is_active = true`,
+    [productId, org.id],
+  );
+  if (!rows[0]) return c.json({ error: "المنتج غير موجود" }, 404);
+  return c.json({ data: rows[0] });
+});
+
+// ══════════════════════════════════════════════════════════════
+// CART — سلة التسوق (جلسة عامة بدون auth)
+// ══════════════════════════════════════════════════════════════
+
+const cartSchema = z.object({
+  sessionId:  z.string().min(8).max(64),
+  phone:      z.string().optional(),
+  email:      z.string().email().optional(),
+  items:      z.array(z.object({
+    productId: z.string().uuid(),
+    name:      z.string(),
+    qty:       z.number().int().min(1).max(999),
+    price:     z.number().min(0),
+  })).min(1),
+  totalAmount: z.number().min(0),
+});
+
+/** POST /api/v2/storefront/:orgSlug/cart */
+storefrontV2Router.post("/:orgSlug/cart", async (c) => {
+  const orgSlug = c.req.param("orgSlug");
+  const [org] = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.slug, orgSlug))
+    .limit(1);
+  if (!org) return c.json({ error: "المتجر غير موجود" }, 404);
+
+  const body = cartSchema.parse(await c.req.json());
+
+  // upsert abandoned_cart as the live cart session
+  const { rows } = await pool.query(
+    `INSERT INTO abandoned_carts
+       (org_id, session_id, phone, email, items, total_amount, recovery_status)
+     VALUES ($1, $2, $3, $4, $5, $6, 'abandoned')
+     ON CONFLICT (org_id, session_id)
+       DO UPDATE SET
+         phone        = EXCLUDED.phone,
+         email        = EXCLUDED.email,
+         items        = EXCLUDED.items,
+         total_amount = EXCLUDED.total_amount,
+         updated_at   = NOW()
+     RETURNING id, session_id, items, total_amount`,
+    [org.id, body.sessionId, body.phone ?? null, body.email ?? null,
+     JSON.stringify(body.items), body.totalAmount],
+  );
+  return c.json({ data: rows[0] }, 200);
+});
+
+/** GET /api/v2/storefront/:orgSlug/cart/:sessionId */
+storefrontV2Router.get("/:orgSlug/cart/:sessionId", async (c) => {
+  const orgSlug   = c.req.param("orgSlug");
+  const sessionId = c.req.param("sessionId");
+
+  const [org] = await db
+    .select({ id: organizations.id })
+    .from(organizations)
+    .where(eq(organizations.slug, orgSlug))
+    .limit(1);
+  if (!org) return c.json({ error: "المتجر غير موجود" }, 404);
+
+  const { rows } = await pool.query(
+    `SELECT id, session_id, items, total_amount, phone, email
+     FROM abandoned_carts
+     WHERE org_id = $1 AND session_id = $2 AND recovery_status = 'abandoned'
+     ORDER BY created_at DESC LIMIT 1`,
+    [org.id, sessionId],
+  );
+  if (!rows[0]) return c.json({ data: { items: [], totalAmount: 0 } });
+  return c.json({ data: rows[0] });
+});
+
+// ══════════════════════════════════════════════════════════════
+// CHECKOUT — تحويل السلة إلى طلب مدفوع
+// ══════════════════════════════════════════════════════════════
+
+const checkoutSchema = z.object({
+  sessionId:       z.string().min(8).max(64),
+  customerName:    z.string().min(2).max(200),
+  customerPhone:   z.string().min(5).max(20),
+  customerEmail:   z.string().email().optional(),
+  deliveryAddress: z.record(z.unknown()).optional(),
+  deliveryFee:     z.number().min(0).default(0),
+  callbackUrl:     z.string().url(),
+  notes:           z.string().max(500).optional(),
+});
+
+/** POST /api/v2/storefront/:orgSlug/cart/:sessionId/checkout */
+storefrontV2Router.post("/:orgSlug/cart/:sessionId/checkout", async (c) => {
+  const orgSlug   = c.req.param("orgSlug");
+  const sessionId = c.req.param("sessionId");
+
+  const [org] = await db
+    .select({ id: organizations.id, name: organizations.name, slug: organizations.slug })
+    .from(organizations)
+    .where(eq(organizations.slug, orgSlug))
+    .limit(1);
+  if (!org) return c.json({ error: "المتجر غير موجود" }, 404);
+
+  // جلب السلة
+  const { rows: cartRows } = await pool.query(
+    `SELECT * FROM abandoned_carts WHERE org_id = $1 AND session_id = $2 AND recovery_status = 'abandoned' LIMIT 1`,
+    [org.id, sessionId],
+  );
+  const cart = cartRows[0];
+  if (!cart) return c.json({ error: "السلة غير موجودة أو منتهية" }, 404);
+
+  const body = checkoutSchema.parse(await c.req.json());
+
+  // التحقق من إعداد الدفع
+  const [paySettings] = await db
+    .select()
+    .from(paymentSettings)
+    .where(eq(paymentSettings.orgId, org.id))
+    .limit(1);
+  if (!paySettings?.enabled) {
+    return c.json({ error: "الدفع الإلكتروني غير مفعّل لهذا المتجر" }, 400);
+  }
+
+  const PUBLISHABLE_KEY = process.env.MOYASAR_PUBLISHABLE_KEY ?? "";
+  if (!PUBLISHABLE_KEY || PUBLISHABLE_KEY === "__FILL__") {
+    return c.json({ error: "بوابة الدفع غير مهيأة" }, 503);
+  }
+
+  const items: Array<{ productId: string; name: string; qty: number; price: number }> =
+    Array.isArray(cart.items) ? cart.items : JSON.parse(cart.items ?? "[]");
+
+  const subtotal    = items.reduce((s: number, i: any) => s + i.price * i.qty, 0);
+  const deliveryFee = body.deliveryFee ?? 0;
+  const totalAmount = subtotal + deliveryFee;
+
+  // إنشاء رقم الطلب
+  const orderNum = `ORD-${Date.now().toString(36).toUpperCase()}`;
+
+  // إنشاء الطلب
+  const { rows: orderRows } = await pool.query(
+    `INSERT INTO online_orders
+       (org_id, order_number, order_type, customer_name, customer_phone, customer_email,
+        delivery_address, items, subtotal, delivery_fee, total_amount, payment_method, notes)
+     VALUES ($1,$2,'delivery',$3,$4,$5,$6,$7,$8,$9,$10,'online',$11)
+     RETURNING id, order_number, total_amount`,
+    [
+      org.id, orderNum,
+      body.customerName, body.customerPhone, body.customerEmail ?? null,
+      JSON.stringify(body.deliveryAddress ?? {}),
+      JSON.stringify(items),
+      subtotal, deliveryFee, totalAmount,
+      body.notes ?? null,
+    ],
+  );
+  const order = orderRows[0];
+
+  // حساب رسوم المنصة
+  const feePercent  = Number(paySettings.platformFeePercent ?? 2.5);
+  const feeFixed    = Number(paySettings.platformFeeFixed   ?? 0);
+  const platformFee = Math.round((totalAmount * feePercent / 100 + feeFixed) * 100) / 100;
+  const merchantAmt = Math.round((totalAmount - platformFee) * 100) / 100;
+
+  // إنشاء معاملة دفع
+  const { rows: txRows } = await pool.query(
+    `INSERT INTO payment_transactions
+       (org_id, order_id, amount, platform_fee, merchant_amount, currency, status, description, success_url, failure_url, metadata)
+     VALUES ($1,$2,$3,$4,$5,'SAR','pending',$6,$7,$7,$8)
+     RETURNING id`,
+    [
+      org.id, order.id,
+      totalAmount, platformFee, merchantAmt,
+      `طلب ${orderNum} — ${org.name}`,
+      body.callbackUrl,
+      JSON.stringify({ nasaq_order_id: order.id, session_id: sessionId }),
+    ],
+  );
+  const tx = txRows[0];
+
+  // بناء رابط Moyasar
+  const payUrl = buildMoyasarPaymentUrl({
+    publishableKey: PUBLISHABLE_KEY,
+    amount:         sarToHalala(totalAmount),
+    currency:       "SAR",
+    description:    `طلب ${orderNum}`,
+    callbackUrl:    body.callbackUrl,
+    metadata: {
+      nasaq_tx_id:    tx.id,
+      nasaq_order_id: order.id,
+      org_id:         org.id,
+    },
+  });
+
+  // تحديث السلة → recovered
+  await pool.query(
+    `UPDATE abandoned_carts SET recovery_status = 'recovered', recovered_at = NOW(), recovered_booking_id = $1 WHERE org_id = $2 AND session_id = $3`,
+    [order.id, org.id, sessionId],
+  );
+
+  return c.json({
+    data: {
+      orderId:        order.id,
+      orderNumber:    order.orderNum,
+      transactionId:  tx.id,
+      paymentUrl:     payUrl,
+      totalAmount,
+    },
+  }, 201);
 });

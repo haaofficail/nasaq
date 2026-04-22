@@ -696,12 +696,21 @@ inventoryRouter.get("/products", async (c) => {
 inventoryRouter.post("/products", async (c) => {
   const orgId  = getOrgId(c);
   const body   = await c.req.json();
-  const { name, nameEn, sku, category, unit, unitCost, sellingPrice, currentStock, minStock, maxStock, notes, imageUrl } = body;
+  const { name, nameEn, sku, category, unit, unitCost, sellingPrice, currentStock,
+          minStock, maxStock, notes, imageUrl, description, images,
+          isStoreVisible, storeSortOrder } = body;
   if (!name?.trim()) return c.json({ error: "الاسم مطلوب" }, 400);
   const { rows } = await pool.query(
-    `INSERT INTO inventory_products (org_id, name, name_en, sku, category, unit, unit_cost, selling_price, current_stock, min_stock, max_stock, notes, image_url)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
-    [orgId, name, nameEn||null, sku||null, category||null, unit||"قطعة", unitCost||0, sellingPrice||0, currentStock||0, minStock||0, maxStock||null, notes||null, imageUrl||null],
+    `INSERT INTO inventory_products
+       (org_id, name, name_en, sku, category, unit, unit_cost, selling_price,
+        current_stock, min_stock, max_stock, notes, image_url,
+        description, images, is_store_visible, store_sort_order)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,
+    [orgId, name, nameEn||null, sku||null, category||null, unit||"قطعة",
+     unitCost||0, sellingPrice||0, currentStock||0, minStock||0, maxStock||null,
+     notes||null, imageUrl||null,
+     description||null, JSON.stringify(images||[]),
+     isStoreVisible||false, storeSortOrder||0],
   );
   return c.json({ data: rows[0] }, 201);
 });
@@ -710,13 +719,21 @@ inventoryRouter.put("/products/:id", async (c) => {
   const orgId = getOrgId(c);
   const id    = c.req.param("id");
   const body  = await c.req.json();
-  const { name, nameEn, sku, category, unit, unitCost, sellingPrice, minStock, maxStock, notes, imageUrl } = body;
+  const { name, nameEn, sku, category, unit, unitCost, sellingPrice, minStock, maxStock,
+          notes, imageUrl, description, images, isStoreVisible, storeSortOrder } = body;
   const { rows } = await pool.query(
     `UPDATE inventory_products
      SET name=$1, name_en=$2, sku=$3, category=$4, unit=$5, unit_cost=$6, selling_price=$7,
-         min_stock=$8, max_stock=$9, notes=$10, image_url=$11, updated_at=NOW()
-     WHERE id=$12 AND org_id=$13 RETURNING *`,
-    [name, nameEn||null, sku||null, category||null, unit||"قطعة", unitCost||0, sellingPrice||0, minStock||0, maxStock||null, notes||null, imageUrl||null, id, orgId],
+         min_stock=$8, max_stock=$9, notes=$10, image_url=$11,
+         description=$12, images=$13, is_store_visible=$14, store_sort_order=$15,
+         updated_at=NOW()
+     WHERE id=$16 AND org_id=$17 RETURNING *`,
+    [name, nameEn||null, sku||null, category||null, unit||"قطعة",
+     unitCost||0, sellingPrice||0, minStock||0, maxStock||null,
+     notes||null, imageUrl||null,
+     description||null, JSON.stringify(images||[]),
+     isStoreVisible||false, storeSortOrder||0,
+     id, orgId],
   );
   if (!rows.length) return c.json({ error: "المنتج غير موجود" }, 404);
   return c.json({ data: rows[0] });

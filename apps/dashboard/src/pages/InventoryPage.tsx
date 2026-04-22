@@ -417,7 +417,7 @@ function AssetsTab() {
 // CONSUMABLES TAB — inventory_products + stock_movements
 // ============================================================
 
-const EMPTY_PRODUCT = { name: "", nameEn: "", sku: "", category: "", unit: "قطعة", unitCost: "", sellingPrice: "", currentStock: "", minStock: "", notes: "" };
+const EMPTY_PRODUCT = { name: "", nameEn: "", sku: "", category: "", unit: "قطعة", unitCost: "", sellingPrice: "", currentStock: "", minStock: "", notes: "", description: "", isStoreVisible: false, storeSortOrder: "0" };
 const ADJUST_TYPES = [
   { value: "in",         label: "إضافة مخزون" },
   { value: "out",        label: "استخدام / صرف" },
@@ -444,14 +444,15 @@ function ConsumablesTab() {
   const { data, loading, refetch } = useApi(() => inventoryApi.products(Object.keys(params).length ? params : undefined), [filterLow, filterCat]);
   const products: any[] = data?.data || [];
 
-  const categories = [...new Set(products.map((p: any) => p.category).filter(Boolean))];
-  const lowCount   = products.filter((p: any) => p.is_low_stock).length;
-  const totalValue = products.reduce((s: number, p: any) => s + parseFloat(p.current_stock || 0) * parseFloat(p.unit_cost || 0), 0);
+  const categories   = [...new Set(products.map((p: any) => p.category).filter(Boolean))];
+  const lowCount     = products.filter((p: any) => p.is_low_stock).length;
+  const storeCount   = products.filter((p: any) => p.is_store_visible).length;
+  const totalValue   = products.reduce((s: number, p: any) => s + parseFloat(p.current_stock || 0) * parseFloat(p.unit_cost || 0), 0);
 
   const openCreate = () => { setEditing(null); setForm({ ...EMPTY_PRODUCT }); setShowModal(true); };
   const openEdit   = (p: any) => {
     setEditing(p);
-    setForm({ name: p.name||"", nameEn: p.name_en||"", sku: p.sku||"", category: p.category||"", unit: p.unit||"قطعة", unitCost: p.unit_cost||"", sellingPrice: p.selling_price||"", currentStock: p.current_stock||"", minStock: p.min_stock||"", notes: p.notes||"" });
+    setForm({ name: p.name||"", nameEn: p.name_en||"", sku: p.sku||"", category: p.category||"", unit: p.unit||"قطعة", unitCost: p.unit_cost||"", sellingPrice: p.selling_price||"", currentStock: p.current_stock||"", minStock: p.min_stock||"", notes: p.notes||"", description: p.description||"", isStoreVisible: p.is_store_visible||false, storeSortOrder: String(p.store_sort_order||0) });
     setShowModal(true);
   };
 
@@ -522,7 +523,7 @@ function ConsumablesTab() {
           { label: "إجمالي المواد",    value: products.length,                        color: "text-brand-600",   bg: "bg-brand-50",   icon: Boxes },
           { label: "مخزون منخفض",     value: lowCount,                               color: "text-red-500",     bg: "bg-red-50",     icon: AlertTriangle },
           { label: "قيمة المخزون",     value: `${totalValue.toLocaleString("en-US")} ر.س`, color: "text-emerald-600", bg: "bg-emerald-50", icon: BarChart3 },
-          { label: "تصنيفات",         value: categories.length,                      color: "text-purple-600",  bg: "bg-purple-50",  icon: Package },
+          { label: "في المتجر",        value: storeCount,                             color: "text-purple-600",  bg: "bg-purple-50",  icon: Package },
         ].map((s, i) => (
           <div key={i} className="bg-white rounded-2xl border border-[#eef2f6] p-4">
             <div className={clsx("w-8 h-8 rounded-xl flex items-center justify-center mb-2", s.bg)}>
@@ -565,7 +566,10 @@ function ConsumablesTab() {
                         <Package className={clsx("w-3.5 h-3.5", p.is_low_stock ? "text-red-400" : "text-gray-400")} />
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{p.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium text-gray-900">{p.name}</p>
+                          {p.is_store_visible && <span className="text-[10px] bg-brand-50 text-brand-600 border border-brand-100 rounded-full px-1.5 py-0.5 font-medium">متجر</span>}
+                        </div>
                         {p.sku && <p className="text-xs text-gray-400 font-mono">{p.sku}</p>}
                       </div>
                     </div>
@@ -626,6 +630,24 @@ function ConsumablesTab() {
             <Input label="سعر البيع (ر.س)" name="price" value={form.sellingPrice} onChange={e => f("sellingPrice", e.target.value)} dir="ltr" placeholder="0.00" />
           </div>
           <Input label="ملاحظات" name="notes" value={form.notes} onChange={e => f("notes", e.target.value)} placeholder="أي ملاحظات..." />
+          {/* قسم المتجر الإلكتروني */}
+          <div className="border-t border-[#eef2f6] pt-4">
+            <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wide">المتجر الإلكتروني</p>
+            <div className="flex items-center justify-between mb-3">
+              <label className="text-sm text-gray-700 font-medium">عرض في المتجر</label>
+              <button
+                type="button"
+                onClick={() => setForm(p => ({ ...p, isStoreVisible: !p.isStoreVisible }))}
+                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${form.isStoreVisible ? "bg-brand-500" : "bg-gray-200"}`}
+              >
+                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${form.isStoreVisible ? "translate-x-4" : "translate-x-0"}`} />
+              </button>
+            </div>
+            <Input label="وصف المنتج (للمتجر)" name="desc" value={form.description} onChange={e => f("description", e.target.value)} placeholder="وصف مختصر يظهر للعملاء..." />
+            <div className="mt-3">
+              <Input label="ترتيب العرض" name="sortOrder" value={form.storeSortOrder} onChange={e => f("storeSortOrder", e.target.value)} dir="ltr" placeholder="0" />
+            </div>
+          </div>
         </div>
       </Modal>
 

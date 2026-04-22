@@ -941,6 +941,30 @@ export const storefrontApi = {
     }).then(r => r.json()),
   // Authenticated — replaces websiteApi.analytics()
   analytics: () => api.get<{ data: any }>("/api/v2/storefront/analytics"),
+
+  // Public products catalog
+  getProducts: (orgSlug: string) =>
+    fetch(`/api/v2/storefront/${orgSlug}/products`).then(r => r.json()),
+  getProduct: (orgSlug: string, productId: string) =>
+    fetch(`/api/v2/storefront/${orgSlug}/products/${productId}`).then(r => r.json()),
+
+  // Cart (public session-based)
+  upsertCart: (orgSlug: string, data: unknown) =>
+    fetch(`/api/v2/storefront/${orgSlug}/cart`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }).then(r => r.json()),
+  getCart: (orgSlug: string, sessionId: string) =>
+    fetch(`/api/v2/storefront/${orgSlug}/cart/${sessionId}`).then(r => r.json()),
+
+  // Checkout
+  checkout: (orgSlug: string, sessionId: string, data: unknown) =>
+    fetch(`/api/v2/storefront/${orgSlug}/cart/${sessionId}/checkout`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    }).then(r => r.json()),
 };
 
 // --- Public tracking (no auth) ---
