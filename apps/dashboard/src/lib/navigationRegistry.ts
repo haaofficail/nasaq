@@ -175,7 +175,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "المتجر الإلكتروني", href: "/dashboard/pages-v2", icon: Store, requiredCapabilities: ["page_builder_v2"] },
+      { name: "المتجر الإلكتروني", href: "/dashboard/pages-v2", icon: Store, requiredCapabilities: ["website"] },
     ],
   },
 
@@ -344,7 +344,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: ["flower_shop"],
     allowedOperatingProfiles: [],
     items: [
-      { name: "المتجر الإلكتروني",   href: "/dashboard/pages-v2",        icon: Store,        requiredCapabilities: ["page_builder_v2"] },
+      { name: "المتجر الإلكتروني",   href: "/dashboard/pages-v2",        icon: Store,        requiredCapabilities: ["website"] },
       { name: "التسويق",           href: "/dashboard/marketing",       icon: Send,         requiredCapabilities: [], requiredPlan: "advanced" as const },
       { name: "التقييمات",         href: "/dashboard/reviews",         icon: Star,         requiredCapabilities: [], requiredPlan: "basic" as const },
       { name: "مجموعات العملاء",   href: "/dashboard/segments",        icon: Tag,          requiredCapabilities: [], requiredPlan: "advanced" as const },
