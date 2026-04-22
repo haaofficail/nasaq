@@ -38,6 +38,7 @@ import {
 import { z } from "zod";
 import { getOrgId } from "../lib/helpers";
 import { buildMoyasarPaymentUrl, sarToHalala } from "../lib/moyasar";
+import { fireOrderEvent } from "../lib/messaging-engine";
 
 // ── Rate limiter (lightweight in-memory) ──────────────────────
 
@@ -644,13 +645,18 @@ storefrontV2Router.post("/:orgSlug/cart/:sessionId/checkout", async (c) => {
   );
   const tx = txRows[0];
 
+  // إضافة orderNumber للـ callbackUrl لعرضه في صفحة النجاح
+  const callbackWithOrder = body.callbackUrl.includes("?")
+    ? `${body.callbackUrl}&orderNumber=${encodeURIComponent(orderNum)}`
+    : `${body.callbackUrl}?orderNumber=${encodeURIComponent(orderNum)}`;
+
   // بناء رابط Moyasar
   const payUrl = buildMoyasarPaymentUrl({
     publishableKey: PUBLISHABLE_KEY,
     amount:         sarToHalala(totalAmount),
     currency:       "SAR",
     description:    `طلب ${orderNum}`,
-    callbackUrl:    body.callbackUrl,
+    callbackUrl:    callbackWithOrder,
     metadata: {
       nasaq_tx_id:    tx.id,
       nasaq_order_id: order.id,
@@ -663,6 +669,17 @@ storefrontV2Router.post("/:orgSlug/cart/:sessionId/checkout", async (c) => {
     `UPDATE abandoned_carts SET recovery_status = 'recovered', recovered_at = NOW(), recovered_booking_id = $1 WHERE org_id = $2 AND session_id = $3`,
     [order.id, org.id, sessionId],
   );
+
+  // إشعارات — fire-and-forget لا تكسر الاستجابة
+  const notifPayload = {
+    orgId:         org.id,
+    orderNumber:   order.order_number,
+    customerName:  body.customerName,
+    customerPhone: body.customerPhone,
+    totalAmount,
+  };
+  fireOrderEvent("online_order_received", notifPayload);  // للعميل
+  fireOrderEvent("owner_new_online_order", notifPayload); // للمالك
 
   return c.json({
     data: {

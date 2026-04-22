@@ -39,6 +39,97 @@ interface BookingEventPayload {
   extra?:        Record<string, string>;
 }
 
+// ── Online Orders ─────────────────────────────────────────────
+
+type OrderEventType =
+  | "online_order_received"
+  | "owner_new_online_order";
+
+interface OrderEventPayload {
+  orgId:         string;
+  orderNumber:   string;
+  customerName:  string;
+  customerPhone: string;
+  totalAmount:   number;
+}
+
+export function fireOrderEvent(
+  eventType: OrderEventType,
+  payload: OrderEventPayload,
+): void {
+  _sendOrder(eventType, payload).catch((err) =>
+    log.error({ err, eventType, orgId: payload.orgId }, "[msg-engine] order event error"),
+  );
+}
+
+async function _sendOrder(eventType: OrderEventType, payload: OrderEventPayload): Promise<void> {
+  const { orgId, orderNumber, customerName, customerPhone, totalAmount } = payload;
+
+  // 1. إعدادات الرسائل
+  const { rows: [settings] } = await pool.query<{ auto_send: boolean; channel: string }>(
+    `SELECT auto_send, channel FROM message_settings WHERE org_id = $1 LIMIT 1`,
+    [orgId],
+  );
+  if (!settings?.auto_send) return;
+  const channel = settings.channel || "whatsapp";
+
+  // 2. قالب الحدث
+  const { rows: [template] } = await pool.query<{ message_ar: string; send_to: string; is_active: boolean }>(
+    `SELECT message_ar, send_to, is_active FROM message_templates WHERE org_id = $1 AND event_type = $2 LIMIT 1`,
+    [orgId, eventType],
+  );
+  if (!template?.is_active || !template.message_ar) return;
+
+  // 3. اسم المنشأة
+  const { rows: [org] } = await pool.query<{ name: string }>(
+    `SELECT name FROM organizations WHERE id = $1`, [orgId],
+  );
+
+  // 4. استبدال المتغيرات
+  const vars: Record<string, string> = {
+    org_name:       org?.name ?? "",
+    order_number:   orderNumber,
+    customer_name:  customerName,
+    customer_phone: customerPhone,
+    total:          totalAmount.toLocaleString("ar-SA", { minimumFractionDigits: 2 }),
+  };
+  let message = template.message_ar;
+  for (const [k, v] of Object.entries(vars)) {
+    message = message.replace(new RegExp(`\\{${k}\\}`, "g"), v);
+  }
+
+  // 5. تحديد المستلم
+  let phone: string | null = null;
+  if (template.send_to === "owner") {
+    const { rows: [owner] } = await pool.query<{ phone: string }>(
+      `SELECT u.phone FROM users u
+       JOIN org_members om ON om.user_id = u.id
+       WHERE om.org_id = $1 AND om.role = 'owner' AND u.phone IS NOT NULL
+       LIMIT 1`,
+      [orgId],
+    );
+    phone = owner?.phone ?? null;
+  } else {
+    phone = customerPhone || null;
+  }
+  if (!phone) return;
+
+  // 6. إرسال
+  let delivered = false;
+  try {
+    delivered = channel === "sms" ? await sendSms(phone, message) : await sendWhatsApp(phone, message);
+  } catch (err) {
+    log.error({ err, orgId, eventType, phone }, "order notification delivery failed");
+  }
+
+  // 7. تسجيل
+  await pool.query(
+    `INSERT INTO message_logs (org_id, channel, recipient_phone, message_text, status, category)
+     VALUES ($1,$2,$3,$4,$5,$6)`,
+    [orgId, channel, phone, message, delivered ? "sent" : "failed", eventType],
+  ).catch((err) => log.error({ err, orgId, eventType }, "message_logs INSERT failed"));
+}
+
 export function fireBookingEvent(
   eventType: BookingEventType,
   payload: BookingEventPayload,

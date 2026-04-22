@@ -7,14 +7,15 @@ export function PublicPaymentPage() {
   const { orgSlug } = useParams<{ orgSlug: string }>();
   const [searchParams] = useSearchParams();
 
-  const invoiceId  = searchParams.get("invoiceId") ?? undefined;
-  const bookingId  = searchParams.get("bookingId") ?? undefined;
-  const customerId = searchParams.get("customerId") ?? undefined;
-  const amountStr  = searchParams.get("amount") ?? "";
-  const desc       = searchParams.get("description") ?? "دفع إلكتروني";
-  const moyasarId  = searchParams.get("id");          // callback from Moyasar
-  const callbackStatus = searchParams.get("status");  // callback from Moyasar
-  const isOrderPayment = !invoiceId && !bookingId;    // دفع طلب متجر إلكتروني
+  const invoiceId   = searchParams.get("invoiceId") ?? undefined;
+  const bookingId   = searchParams.get("bookingId") ?? undefined;
+  const customerId  = searchParams.get("customerId") ?? undefined;
+  const amountStr   = searchParams.get("amount") ?? "";
+  const desc        = searchParams.get("description") ?? "دفع إلكتروني";
+  const orderNumber = searchParams.get("orderNumber") ?? undefined;  // من callbackUrl للمتجر
+  const moyasarId   = searchParams.get("id");          // callback from Moyasar
+  const callbackStatus = searchParams.get("status");   // callback from Moyasar
+  const isOrderPayment = !invoiceId && !bookingId;     // دفع طلب متجر إلكتروني
 
   const amount = parseFloat(amountStr) || 0;
   const [loading, setLoading]   = useState(false);
@@ -74,11 +75,20 @@ export function PublicPaymentPage() {
       <div className="bg-white rounded-2xl shadow-sm border border-[#eef2f6] p-10 text-center max-w-sm w-full">
         <CheckCircle2 className="w-14 h-14 text-green-500 mx-auto mb-4" />
         <h1 className="text-xl font-bold text-gray-800 mb-2">تم الدفع بنجاح</h1>
-        <p className="text-gray-500 text-sm mb-5">
-          {isOrderPayment ? "تم استلام طلبك وسيتم التواصل معك قريباً." : "شكراً لك. تمت معالجة دفعتك."}
-        </p>
+        {isOrderPayment ? (
+          <>
+            <p className="text-gray-500 text-sm mb-1">تم استلام طلبك وسيتم التواصل معك قريباً.</p>
+            {orderNumber && (
+              <p className="text-xs text-gray-400 mb-5">
+                رقم الطلب: <span className="font-semibold text-gray-700 font-mono">{orderNumber}</span>
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-gray-500 text-sm mb-5">شكراً لك. تمت معالجة دفعتك.</p>
+        )}
         {orgSlug && isOrderPayment && (
-          <a href={`/s/${orgSlug}`} className="inline-flex items-center justify-center w-full px-4 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-semibold">
+          <a href={`/s/${orgSlug}`} className="inline-flex items-center justify-center w-full px-4 py-2.5 bg-brand-500 text-white rounded-xl text-sm font-semibold mt-3">
             العودة للمتجر
           </a>
         )}

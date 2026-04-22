@@ -327,7 +327,7 @@ app.use("/suppliers/*", requireCapability("inventory"));
 app.use("/pos/*", authMiddleware);
 app.use("/pos/*", requireCapability("pos"));
 app.use("/online-orders/*", authMiddleware);
-app.use("/online-orders/*", requireCapability("pos"));
+app.use("/online-orders/*", requireCapability("online_orders"));
 app.use("/menu/*", authMiddleware);
 app.use("/menu/*", requireCapability("catalog"));
 app.use("/arrangements/*", authMiddleware);

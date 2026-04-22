@@ -3225,6 +3225,7 @@ adminRouter.get("/payment-settings", async (c) => {
       enabled: paymentSettings.enabled,
       platformFeePercent: paymentSettings.platformFeePercent,
       platformFeeFixed: paymentSettings.platformFeeFixed,
+      defaultDeliveryFee: paymentSettings.defaultDeliveryFee,
       ibanNumber: paymentSettings.ibanNumber,
       accountName: paymentSettings.accountName,
       bankName: paymentSettings.bankName,
@@ -3248,6 +3249,7 @@ adminRouter.patch("/payment-settings/:orgId", async (c) => {
     enabled:            z.boolean().optional(),
     platformFeePercent: z.number().min(0).max(100).optional(),
     platformFeeFixed:   z.number().min(0).optional(),
+    defaultDeliveryFee: z.number().min(0).optional(),
   }).parse(await c.req.json());
 
   // Upsert: create row if org doesn't have one yet
@@ -3255,6 +3257,7 @@ adminRouter.patch("/payment-settings/:orgId", async (c) => {
   if (body.enabled !== undefined)            insertVals.enabled            = body.enabled;
   if (body.platformFeePercent !== undefined) insertVals.platformFeePercent = String(body.platformFeePercent);
   if (body.platformFeeFixed   !== undefined) insertVals.platformFeeFixed   = String(body.platformFeeFixed);
+  if (body.defaultDeliveryFee !== undefined) insertVals.defaultDeliveryFee = String(body.defaultDeliveryFee);
 
   await db
     .insert(paymentSettings)

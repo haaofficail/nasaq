@@ -12,6 +12,7 @@ export default function PaymentGatewayAdminTab() {
   const [editOrg, setEditOrg] = useState<any | null>(null);
   const [feePercent, setFeePercent] = useState("");
   const [feeFixed, setFeeFixed] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState("");
 
   const { data, loading, refetch } = useApi(
     () => adminApi.paymentSettings({ enabled: filterEnabled, limit: 100 }),
@@ -31,11 +32,19 @@ export default function PaymentGatewayAdminTab() {
     setEditOrg(row);
     setFeePercent(String(row.platformFeePercent ?? "2.5"));
     setFeeFixed(String(row.platformFeeFixed ?? "0"));
+    setDeliveryFee(String(row.defaultDeliveryFee ?? "0"));
   };
 
   const handleSave = async () => {
     if (!editOrg) return;
-    await update.mutate({ orgId: editOrg.orgId, body: { platformFeePercent: parseFloat(feePercent), platformFeeFixed: parseFloat(feeFixed) } });
+    await update.mutate({
+      orgId: editOrg.orgId,
+      body: {
+        platformFeePercent:  parseFloat(feePercent),
+        platformFeeFixed:    parseFloat(feeFixed),
+        defaultDeliveryFee:  parseFloat(deliveryFee) || 0,
+      },
+    });
     setEditOrg(null);
     refetch();
   };
@@ -99,6 +108,7 @@ export default function PaymentGatewayAdminTab() {
                   <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500">الحالة</th>
                   <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500">رسوم المنصة %</th>
                   <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500">رسوم ثابتة</th>
+                  <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500">توصيل افتراضي</th>
                   <th className="text-right px-5 py-3 text-xs font-semibold text-gray-500">IBAN</th>
                   <th className="px-5 py-3" />
                 </tr>
@@ -118,6 +128,7 @@ export default function PaymentGatewayAdminTab() {
                     </td>
                     <td className="px-5 py-3 tabular-nums text-gray-700">{row.platformFeePercent ?? "2.5"}%</td>
                     <td className="px-5 py-3 tabular-nums text-gray-700">{row.platformFeeFixed ?? "0"} ر.س</td>
+                    <td className="px-5 py-3 tabular-nums text-gray-700">{row.defaultDeliveryFee ?? "0"} ر.س</td>
                     <td className="px-5 py-3 text-gray-500 font-mono text-xs">{row.ibanNumber ? `SA••••${row.ibanNumber.slice(-4)}` : "—"}</td>
                     <td className="px-5 py-3 text-left">
                       <button onClick={() => openEdit(row)} className="text-xs text-brand-500 hover:text-brand-600 font-medium flex items-center gap-1">
@@ -143,6 +154,10 @@ export default function PaymentGatewayAdminTab() {
           <div>
             <label className="block text-xs font-semibold text-gray-500 mb-1.5">رسوم ثابتة (ر.س)</label>
             <input type="number" min="0" step="0.01" value={feeFixed} onChange={e => setFeeFixed(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm outline-none focus:border-brand-300" />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5">رسوم التوصيل الافتراضية (ر.س)</label>
+            <input type="number" min="0" step="0.01" value={deliveryFee} onChange={e => setDeliveryFee(e.target.value)} className="w-full px-3 py-2 rounded-xl border border-[#eef2f6] text-sm outline-none focus:border-brand-300" />
           </div>
           <p className="text-xs text-gray-400">التغيير يؤثر على الطلبات الجديدة فقط.</p>
         </div>
