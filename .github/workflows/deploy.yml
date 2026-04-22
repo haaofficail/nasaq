@@ -44,6 +44,7 @@ jobs:
             git reset --hard origin/main
             git clean -fd
             pnpm install --frozen-lockfile
-            pnpm build
+            pnpm --filter @nasaq/db tsx scripts/migrate.ts
+            pnpm --filter @nasaq/dashboard build
             pm2 restart nasaq-api
             pm2 status
