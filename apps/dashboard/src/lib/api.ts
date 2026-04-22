@@ -932,9 +932,9 @@ export const storefrontApi = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     }).then(r => r.json()),
-  // Public booking (complex booking logic — v1 endpoint until Step 5 migration)
+  // Public booking — v2 endpoint
   publicBook: (orgSlug: string, data: unknown) =>
-    fetch(`/api/v1/website/public/${orgSlug}/book`, {
+    fetch(`/api/v2/storefront/${orgSlug}/book`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),

@@ -20,7 +20,7 @@
  */
 
 import { Hono } from "hono";
-import { eq, and, desc, asc, count, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, asc, count, sql, inArray, or } from "drizzle-orm";
 import { db, pool } from "@nasaq/db/client";
 import {
   organizations,
@@ -34,11 +34,15 @@ import {
   pagesV2,
   messagesInbox,
   paymentSettings,
+  customers,
+  bookingRecords,
+  bookingLines,
+  bookingTimelineEvents,
 } from "@nasaq/db/schema";
 import { z } from "zod";
-import { getOrgId } from "../lib/helpers";
+import { getOrgId, generateBookingNumber } from "../lib/helpers";
 import { buildMoyasarPaymentUrl, sarToHalala } from "../lib/moyasar";
-import { fireOrderEvent } from "../lib/messaging-engine";
+import { fireOrderEvent, fireBookingEvent } from "../lib/messaging-engine";
 
 // ── Rate limiter (lightweight in-memory) ──────────────────────
 
@@ -418,6 +422,164 @@ storefrontV2Router.post("/:orgSlug/contact", async (c) => {
     { data: { id: submission.id, message: "تم استلام رسالتك — سنتواصل معك قريباً" } },
     201,
   );
+});
+
+// ── POST /api/v2/storefront/:orgSlug/book ────────────────────
+// الحجز العام من صفحة المتجر / رابط الحجز
+// يحل محل: POST /api/v1/website/public/:orgSlug/book
+
+const publicBookSchema = z.object({
+  customerName:   z.string().min(2).max(120),
+  customerPhone:  z.string().min(7).max(20),
+  // publicBookingPage يرسل serviceId (مفرد)، StorefrontPage يرسل serviceIds (جمع)
+  serviceId:      z.string().uuid().optional(),
+  serviceIds:     z.array(z.string().uuid()).optional(),
+  eventDate:      z.string().datetime().optional(),
+  selectedAddons: z.array(z.any()).default([]),
+  customLocation: z.string().optional(),
+  notes:          z.string().optional(),
+  questionAnswers: z.array(z.any()).default([]),
+  acceptedTerms:  z.boolean(),
+  policyVersion:  z.string().optional(),
+}).refine(d => d.serviceId || (d.serviceIds && d.serviceIds.length > 0), {
+  message: "يجب تحديد خدمة واحدة على الأقل",
+});
+
+const VAT_RATE = 0.15;
+
+storefrontV2Router.post("/:orgSlug/book", async (c) => {
+  const orgSlug = c.req.param("orgSlug");
+
+  // 1. Org lookup
+  const [org] = await db
+    .select({ id: organizations.id, plan: organizations.plan, bookingUsed: organizations.bookingUsed })
+    .from(organizations)
+    .where(eq(organizations.slug, orgSlug));
+  if (!org) return c.json({ error: "المنشأة غير موجودة" }, 404);
+  const orgId = org.id;
+
+  // 2. Parse + validate body
+  const raw = await c.req.json().catch(() => null);
+  const parsed = publicBookSchema.safeParse(raw);
+  if (!parsed.success) {
+    return c.json({ error: "بيانات الحجز غير مكتملة", details: parsed.error.flatten() }, 400);
+  }
+  const body = parsed.data;
+
+  // Normalise service IDs
+  const serviceIdList = body.serviceIds?.length
+    ? body.serviceIds
+    : body.serviceId ? [body.serviceId] : [];
+
+  // 3. Load services
+  const svcRows = await db
+    .select()
+    .from(services)
+    .where(and(inArray(services.id, serviceIdList), eq(services.orgId, orgId)));
+  if (svcRows.length !== serviceIdList.length) {
+    return c.json({ error: "إحدى الخدمات غير موجودة أو لا تنتمي لهذه المنشأة" }, 400);
+  }
+  for (const svc of svcRows) {
+    if (svc.status !== "active") {
+      return c.json({ error: `الخدمة "${svc.name}" غير متاحة حالياً` }, 400);
+    }
+  }
+
+  // 4. Pricing (VAT-inclusive — Saudi default)
+  const subtotal = svcRows.reduce((sum, s) => sum + parseFloat(String(s.basePrice ?? "0")), 0);
+  const vatAmount = parseFloat((subtotal * VAT_RATE).toFixed(2));
+  const totalAmount = parseFloat((subtotal + vatAmount).toFixed(2));
+  const depositAmount = parseFloat((totalAmount * 0.3).toFixed(2)); // 30% default deposit
+
+  // 5. Upsert customer by phone
+  const phone = body.customerPhone.replace(/\s/g, "");
+  let [customer] = await db
+    .select({ id: customers.id })
+    .from(customers)
+    .where(and(eq(customers.orgId, orgId), eq(customers.phone, phone)));
+
+  if (!customer) {
+    [customer] = await db
+      .insert(customers)
+      .values({
+        orgId,
+        name:   body.customerName,
+        phone,
+        source: "storefront",
+      })
+      .returning({ id: customers.id });
+  }
+
+  // 6. Create booking record
+  const bookingNumber  = generateBookingNumber("NSQ");
+  const trackingToken  = crypto.randomUUID().replace(/-/g, "").substring(0, 32);
+  const resolvedDate   = body.eventDate ? new Date(body.eventDate) : new Date();
+  const bookingType    = (svcRows[0] as any).serviceType ?? "appointment";
+
+  const [newRecord] = await db
+    .insert(bookingRecords)
+    .values({
+      orgId,
+      customerId:      customer.id,
+      bookingNumber,
+      bookingType:     bookingType === "appointment" || bookingType === "event" ? bookingType : "appointment",
+      status:          "pending",
+      paymentStatus:   "pending",
+      startsAt:        resolvedDate,
+      subtotal:        subtotal.toFixed(2),
+      discountAmount:  "0",
+      vatAmount:       vatAmount.toFixed(2),
+      totalAmount:     totalAmount.toFixed(2),
+      depositAmount:   depositAmount.toFixed(2),
+      paidAmount:      "0",
+      balanceDue:      totalAmount.toFixed(2),
+      customerNotes:   body.notes ?? null,
+      customLocation:  body.customLocation ?? null,
+      questionAnswers: body.questionAnswers,
+      source:          "storefront",
+      trackingToken,
+      isRecurring:     false,
+    } as any)
+    .returning();
+
+  // 7. Booking lines (one per service)
+  if (svcRows.length > 0) {
+    await db.insert(bookingLines).values(
+      svcRows.map((svc) => ({
+        bookingRecordId: newRecord.id,
+        serviceRefId:    svc.id,
+        lineType:        "service",
+        itemName:        svc.name,
+        quantity:        1,
+        unitPrice:       String(svc.basePrice ?? "0"),
+        totalPrice:      String(svc.basePrice ?? "0"),
+        vatInclusive:    true,
+      }))
+    );
+  }
+
+  // 8. Timeline event
+  await db.insert(bookingTimelineEvents).values({
+    orgId,
+    bookingRecordId: newRecord.id,
+    userId:          null,
+    eventType:       "created",
+    fromStatus:      null,
+    toStatus:        "pending",
+    metadata:        { bookingNumber, source: "storefront" },
+  } as any);
+
+  // 9. Notifications (fire-and-forget)
+  fireBookingEvent("booking_confirmed",  { orgId, bookingId: newRecord.id });
+  fireBookingEvent("owner_new_booking",  { orgId, bookingId: newRecord.id });
+
+  return c.json({
+    data: {
+      bookingNumber,
+      totalAmount: totalAmount.toFixed(2),
+      trackingUrl: `/track/${trackingToken}`,
+    }
+  }, 201);
 });
 
 // ══════════════════════════════════════════════════════════════
