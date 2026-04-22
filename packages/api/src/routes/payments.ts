@@ -38,22 +38,26 @@ paymentsRouter.patch("/settings", requirePermission("finance", "manage"), async 
   const orgId = getOrgId(c);
   const body = await c.req.json();
   const schema = z.object({
-    ibanNumber:  z.string().optional(),
-    accountName: z.string().optional(),
-    bankName:    z.string().optional(),
-    notifyOnPayment: z.boolean().optional(),
+    ibanNumber:          z.string().optional(),
+    accountName:         z.string().optional(),
+    bankName:            z.string().optional(),
+    notifyOnPayment:     z.boolean().optional(),
+    defaultDeliveryFee:  z.number().min(0).optional(),
   });
-  const data = schema.parse(body);
+  const parsed = schema.parse(body);
+  // NUMERIC columns: Drizzle expects string
+  const data: Record<string, any> = { ...parsed };
+  if (parsed.defaultDeliveryFee !== undefined) data.defaultDeliveryFee = String(parsed.defaultDeliveryFee);
 
   const [existing] = await db.select({ id: paymentSettings.id }).from(paymentSettings)
     .where(eq(paymentSettings.orgId, orgId)).limit(1);
 
   if (existing) {
     await db.update(paymentSettings)
-      .set({ ...data, updatedAt: new Date() })
+      .set({ ...(data as any), updatedAt: new Date() })
       .where(eq(paymentSettings.orgId, orgId));
   } else {
-    await db.insert(paymentSettings).values({ orgId, ...data });
+    await db.insert(paymentSettings).values({ orgId, ...(data as any) });
   }
 
   const [updated] = await db.select().from(paymentSettings)

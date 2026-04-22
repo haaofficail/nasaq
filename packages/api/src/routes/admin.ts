@@ -3250,15 +3250,19 @@ adminRouter.patch("/payment-settings/:orgId", async (c) => {
     platformFeeFixed:   z.number().min(0).optional(),
   }).parse(await c.req.json());
 
-  const setClause: Record<string, any> = { updatedAt: new Date() };
-  if (body.enabled !== undefined)            setClause.enabled            = body.enabled;
-  if (body.platformFeePercent !== undefined) setClause.platformFeePercent = String(body.platformFeePercent);
-  if (body.platformFeeFixed   !== undefined) setClause.platformFeeFixed   = String(body.platformFeeFixed);
+  // Upsert: create row if org doesn't have one yet
+  const insertVals: Record<string, any> = { orgId: targetOrgId, updatedAt: new Date() };
+  if (body.enabled !== undefined)            insertVals.enabled            = body.enabled;
+  if (body.platformFeePercent !== undefined) insertVals.platformFeePercent = String(body.platformFeePercent);
+  if (body.platformFeeFixed   !== undefined) insertVals.platformFeeFixed   = String(body.platformFeeFixed);
 
   await db
-    .update(paymentSettings)
-    .set(setClause)
-    .where(eq(paymentSettings.orgId, targetOrgId));
+    .insert(paymentSettings)
+    .values(insertVals as any)
+    .onConflictDoUpdate({
+      target: paymentSettings.orgId,
+      set: insertVals,
+    });
 
   return c.json({ success: true });
 });

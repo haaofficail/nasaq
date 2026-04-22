@@ -130,6 +130,9 @@ export const paymentSettings = pgTable("payment_settings", {
   accountName: text("account_name"),
   bankName:    text("bank_name"),
 
+  // رسوم التوصيل الافتراضية
+  defaultDeliveryFee: numeric("default_delivery_fee", { precision: 10, scale: 2 }).default("0").notNull(),
+
   // إشعارات
   notifyOnPayment: boolean("notify_on_payment").default(true),
 

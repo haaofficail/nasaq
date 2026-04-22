@@ -595,7 +595,9 @@ storefrontV2Router.post("/:orgSlug/cart/:sessionId/checkout", async (c) => {
     Array.isArray(cart.items) ? cart.items : JSON.parse(cart.items ?? "[]");
 
   const subtotal    = items.reduce((s: number, i: any) => s + i.price * i.qty, 0);
-  const deliveryFee = body.deliveryFee ?? 0;
+  // Use org's default delivery fee unless client explicitly passes a different value
+  const defaultFee  = Number(paySettings.defaultDeliveryFee ?? 0);
+  const deliveryFee = body.deliveryFee !== undefined ? body.deliveryFee : defaultFee;
   const totalAmount = subtotal + deliveryFee;
 
   // إنشاء رقم الطلب
