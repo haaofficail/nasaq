@@ -1107,7 +1107,7 @@ export function POSPage() {
             <div className="w-7 h-7 rounded-xl bg-brand-500 flex items-center justify-center shadow-sm shadow-brand-500/30">
               <Receipt className="w-3.5 h-3.5 text-white" />
             </div>
-            <h1 className="text-sm font-bold text-[var(--text-1)]">نقطة البيع</h1>
+            <h1 className="text-sm font-bold text-[var(--text-1)]">البيع السريع</h1>
           </div>
           <div className="flex gap-0.5 bg-[var(--surface-3)] p-0.5 rounded-xl">
             {([["pos", "الكاشير"], ["log", "سجل اليوم"]] as const).map(([key, label]) => (

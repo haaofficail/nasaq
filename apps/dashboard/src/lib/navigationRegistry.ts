@@ -115,7 +115,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
       { name: "الخدمات",          href: "/dashboard/catalog",        icon: Layers,        requiredCapabilities: ["catalog"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental"] },
       { name: "الحجوزات",        href: "/dashboard/bookings",     icon: CalendarCheck, requiredCapabilities: ["bookings"], excludedBusinessTypes: ["maintenance", "workshop", "logistics", "construction", "car_rental", "photography"] },
       { name: "التقويم",         href: "/dashboard/calendar",     icon: CalendarCheck, requiredCapabilities: ["bookings"], excludedBusinessTypes: ["maintenance", "workshop", "logistics", "construction", "car_rental"] },
-      { name: "نقطة البيع",        href: "/dashboard/pos",          icon: ShoppingBag,   requiredCapabilities: ["pos"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental", "restaurant", "bakery", "catering", "flower_shop"], foodBeverageOps: true },
+      { name: "البيع السريع",       href: "/dashboard/pos",          icon: ShoppingBag,   requiredCapabilities: ["pos"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental", "restaurant", "bakery", "catering", "flower_shop"], foodBeverageOps: true },
       { name: "الطلبات",         href: "/dashboard/orders",       icon: Package,       requiredCapabilities: ["online_orders"], foodBeverageOps: true },
       { name: "التوصيل",          href: "/dashboard/delivery",     icon: Truck,         requiredCapabilities: [], requiredPlan: "basic", excludedBusinessTypes: ["salon", "barber", "spa", "fitness", "massage", "photography", "hotel", "car_rental", "rental", "real_estate", "school"] },
       { name: "أوامر العمل",     href: "/dashboard/work-orders",  icon: ClipboardCheck, requiredCapabilities: [], allowedBusinessTypes: ["laundry", "photography"] },
@@ -256,7 +256,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedOperatingProfiles: [],
     items: [
       { name: "الطلبات",  href: "/dashboard/flower-orders",   icon: Package,     requiredCapabilities: ["floral"] },
-      { name: "نقطة البيع",  href: "/dashboard/flower-pos",      icon: ScanBarcode, requiredCapabilities: ["floral"] },
+      { name: "البيع السريع",  href: "/dashboard/flower-pos",      icon: ScanBarcode, requiredCapabilities: ["floral"] },
       { name: "التوصيل",  href: "/dashboard/flower-delivery", icon: Truck,       requiredCapabilities: ["floral"] },
     ],
   },

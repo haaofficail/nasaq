@@ -689,7 +689,7 @@ const profiles: Record<string, DashboardProfile> = {
     primaryAction: { label: "طلب جديد", href: "/dashboard/pos" },
     kpis: [revenueKpi(), bookingsKpi("orders", "الطلبات", "طلب"), customersKpi(), servicesKpi("products")],
     quickActions: [
-      { id: "pos",          label: "نقطة البيع", href: "/dashboard/pos",       icon: Monitor,   bg: "bg-blue-50",   text: "text-blue-600",   allowedRoles: [] },
+      { id: "pos",          label: "البيع السريع", href: "/dashboard/pos",       icon: Monitor,   bg: "bg-blue-50",   text: "text-blue-600",   allowedRoles: [] },
       { id: "menu",         label: "المنتجات",   href: "/dashboard/menu",      icon: ChefHat,   bg: "bg-amber-50",  text: "text-amber-600",  allowedRoles: [] },
       { id: "new-customer", modal: "customer" as const, label: "عميل جديد", href: "/dashboard/customers", icon: Users, bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
       { id: "reports",      label: "التقارير",   href: "/dashboard/reports",   icon: BarChart2, bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },
@@ -910,7 +910,7 @@ const profiles: Record<string, DashboardProfile> = {
     primaryAction: { label: "طلب جديد", href: "/dashboard/pos" },
     kpis: [revenueKpi(), bookingsKpi("orders", "الطلبات", "طلب"), lowStockKpi(), customersKpi()],
     quickActions: [
-      { id: "pos",          label: "نقطة البيع", href: "/dashboard/pos",       icon: Monitor,   bg: "bg-blue-50",   text: "text-blue-600",   allowedRoles: [] },
+      { id: "pos",          label: "البيع السريع", href: "/dashboard/pos",       icon: Monitor,   bg: "bg-blue-50",   text: "text-blue-600",   allowedRoles: [] },
       { id: "products",     label: "المنتجات",   href: "/dashboard/services",  icon: Package,   bg: "bg-teal-50",   text: "text-teal-600",   allowedRoles: [] },
       { id: "inventory",    label: "المخزون",    href: "/dashboard/inventory", icon: AlertTriangle, bg: "bg-amber-50", text: "text-amber-600", allowedRoles: ["owner", "admin", "manager"] },
       { id: "reports",      label: "التقارير",   href: "/dashboard/reports",   icon: BarChart2, bg: "bg-rose-50",   text: "text-rose-600",   allowedRoles: ["owner", "admin", "manager"] },

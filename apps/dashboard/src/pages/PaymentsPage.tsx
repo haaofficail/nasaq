@@ -360,7 +360,7 @@ function NasaqGatewaySection({
                   min="0"
                   step="0.01"
                   value={form.defaultDeliveryFee}
-                  onChange={e => setForm(p => ({ ...p, defaultDeliveryFee: e.target.value }))}
+                  onChange={tf("defaultDeliveryFee")}
                   placeholder="0.00"
                   dir="ltr"
                   className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"

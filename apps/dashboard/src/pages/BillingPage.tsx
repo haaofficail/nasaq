@@ -54,7 +54,7 @@ const FEATURE_LABELS: Record<string, string> = {
   api:              "API",
   storefront_qr:    "صفحة العرض + QR",
   zatca_invoices:   "فواتير زاتكا",
-  pos:              "نقطة البيع",
+  pos:              "البيع السريع",
   crm:              "CRM",
   contracts:        "العقود",
   inventory:        "المخزون",
