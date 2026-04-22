@@ -285,7 +285,7 @@ authRouter.post("/register", async (c) => {
     phone: normalizedPhone,
     orgId: result.org.id,
     expiresIn: 300,
-    ...(!smsEnabledReg ? { _devCode: code } : {}),
+    ...(!smsEnabledReg && process.env.NODE_ENV !== "production" ? { _devCode: code } : {}),
   }, 201);
 });
 
@@ -375,7 +375,7 @@ authRouter.post("/otp/request", async (c) => {
         : "رمز التحقق ظهر في سجلات الخادم",
     channel,
     expiresIn: 300,
-    ...(channel === "none" ? { _devCode: code } : {}),
+    ...(channel === "none" && process.env.NODE_ENV !== "production" ? { _devCode: code } : {}),
   });
 });
 
@@ -426,7 +426,7 @@ authRouter.post("/otp/request-email", async (c) => {
   return c.json({
     message: sent ? "تم إرسال رمز التحقق على بريدك الإلكتروني" : "رمز التحقق ظهر في سجلات الخادم",
     expiresIn: 300,
-    ...(!sent ? { _devCode: code } : {}),
+    ...(!sent && process.env.NODE_ENV !== "production" ? { _devCode: code } : {}),
   });
 });
 

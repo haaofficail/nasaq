@@ -51,6 +51,7 @@ jobs:
                pnpm install --frozen-lockfile
                pnpm --filter @nasaq/db run migrate
                pnpm --filter @nasaq/dashboard build:deploy
-               pm2 restart nasaq-api
+               pm2 start ecosystem.config.cjs --update-env
+               pm2 save
                pm2 status'
           rm -f /tmp/deploy_key

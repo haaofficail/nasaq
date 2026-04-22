@@ -14,7 +14,7 @@
 //   name: "nasaq-worker",
 //   script: "./packages/api/src/worker.ts",
 //   interpreter: "node",
-//   interpreter_args: "--import ./packages/api/node_modules/tsx/dist/esm/index.cjs",
+//   interpreter_args: "--env-file .env --import ./packages/api/node_modules/tsx/dist/esm/index.cjs",
 //   exec_mode: "fork",
 //   instances: 1,
 //   max_memory_restart: "256M",
@@ -37,7 +37,7 @@ module.exports = {
       name: "nasaq-api",
       script: "./packages/api/src/index.ts",
       interpreter: "node",
-      interpreter_args: "--import ./packages/api/node_modules/tsx/dist/esm/index.cjs",
+      interpreter_args: "--env-file .env --import ./packages/api/node_modules/tsx/dist/esm/index.cjs",
       exec_mode: "fork",
       instances: 1,               // fork مطلوب لـ Baileys (singleton WhatsApp session per org)
       max_memory_restart: "768M", // أكثر بسبب Baileys sessions في الذاكرة
