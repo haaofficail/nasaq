@@ -19,7 +19,8 @@ import { organizations } from "./organizations";
 import { customers } from "./customers";
 import { users } from "./auth";
 import { locations } from "./organizations";
-// bookings.ts import intentionally removed — bookingRef is now a plain UUID tracking field (no FK).
+// bookings.ts import removed from Drizzle schema — bookingRef FK to bookings.id exists in DB as legacy artifact.
+// Drizzle does not declare it to avoid circular import; DB FK is preserved until Phase 3.D migration removes it.
 // bookingPaymentLinks.paymentId is a plain UUID (no FK) — payments table stays in bookings.ts until Phase 3.
 
 // ============================================================
@@ -275,7 +276,7 @@ export const bookingRecords = pgTable("booking_records", {
   id:            uuid("id").defaultRandom().primaryKey(),
   orgId:         uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
   customerId:    uuid("customer_id").notNull().references(() => customers.id, { onDelete: "restrict" }),
-  bookingRef:    uuid("booking_ref"), // legacy tracking only — no FK
+  bookingRef:    uuid("booking_ref"), // bookings.id (legacy FK in DB — preserved for migration safety, NULL for canonical records)
 
   bookingNumber: text("booking_number").notNull().unique(),
   bookingType:   text("booking_type").notNull().default("appointment"), // appointment|event
