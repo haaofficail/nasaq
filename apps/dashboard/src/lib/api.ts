@@ -3128,3 +3128,38 @@ export const pagesV2Api = {
   revert: (pageId: string, versionId: string) =>
     v2Request<{ data: PageV2Full }>(`/pages/${pageId}/revert/${versionId}`, { method: "POST" }),
 };
+
+// ── Page Templates API ────────────────────────────────────────────────────────
+
+export interface PageTemplateItem {
+  id: string;
+  slug: string;
+  nameAr: string;
+  descriptionAr: string | null;
+  category: string;
+  businessTypes: string[];
+  previewImageUrl: string | null;
+  tags: string[] | null;
+  isFeatured: boolean | null;
+  usageCount: number | null;
+  sortOrder: number | null;
+}
+
+export const pageTemplatesApi = {
+  list: (params?: { category?: string; featured?: boolean }) => {
+    const qs = new URLSearchParams();
+    if (params?.category) qs.set("category", params.category);
+    if (params?.featured) qs.set("featured", "true");
+    const q = qs.toString();
+    return v2Request<{ data: PageTemplateItem[]; grouped: Record<string, PageTemplateItem[]>; total: number }>(
+      `/page-templates${q ? `?${q}` : ""}`
+    );
+  },
+  get: (slug: string) =>
+    v2Request<{ data: PageTemplateItem & { data: unknown } }>(`/page-templates/${slug}`),
+  use: (slug: string, body: { title: string; slug: string; pageType?: string; showInNavigation?: boolean }) =>
+    v2Request<{ success: boolean; data: { pageId: string; slug: string; title: string; message: string } }>(
+      `/page-templates/${slug}/use`,
+      { method: "POST", body: JSON.stringify(body) }
+    ),
+};

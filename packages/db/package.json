@@ -11,7 +11,8 @@
     "seed": "tsx scripts/seed.ts",
     "seed:demo": "tsx seeds/demo/index.ts",
     "seed:full": "tsx seeds/demo/index.ts",
-    "seed:pages-v2": "tsx seeds/seed-pages-v2.ts"
+    "seed:pages-v2": "tsx seeds/seed-pages-v2.ts",
+    "seed:templates": "tsx seeds/templates/seed-templates.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.38.0",

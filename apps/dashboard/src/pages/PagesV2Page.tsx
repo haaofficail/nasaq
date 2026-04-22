@@ -13,6 +13,7 @@ import { PuckEditor, SeoDrawer, useAutoSave, diffVersions, summarizeVersionDiff,
 import type { PuckData, SeoDrawerFields, SaveStatus, PageBadgeStatus, BlockDiff, ChangeType } from "@nasaq/page-builder-v2";
 import { pagesV2Api } from "@/lib/api";
 import type { PageV2Summary, PageV2Full } from "@/lib/api";
+import { TemplateGallery } from "@/components/page-builder-v2/TemplateGallery";
 import {
   Plus, Globe, FileText, Archive, ChevronLeft, Search,
   MoreVertical, Pencil, Copy, Trash2, RotateCcw, X,
@@ -870,6 +871,66 @@ function RowMenu({ page, onEdit, onRename, onDuplicate, onDelete, onRestore, onP
   );
 }
 
+// ── New Page Choice Dialog ─────────────────────────────────────────────────
+// الخطوة الأولى: اختر "من قالب" أو "صفحة فارغة"
+
+interface NewPageChoiceDialogProps {
+  onFromTemplate: () => void;
+  onFromScratch: () => void;
+  onCancel: () => void;
+}
+
+function NewPageChoiceDialog({ onFromTemplate, onFromScratch, onCancel }: NewPageChoiceDialogProps) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+      <div
+        dir="rtl"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-8"
+        style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+      >
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">صفحة جديدة</h2>
+            <p className="text-sm text-gray-500 mt-0.5">كيف تريد البدء؟</p>
+          </div>
+          <button onClick={onCancel} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <button
+            onClick={onFromTemplate}
+            className="flex items-start gap-4 p-4 rounded-2xl border-2 border-[#5b9bd5]/30 hover:border-[#5b9bd5] hover:bg-blue-50/30 transition-all text-start"
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+              style={{ background: "#EBF3FB" }}>
+              <FileText className="w-5 h-5" style={{ color: "#5b9bd5" }} />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">من قالب</p>
+              <p className="text-xs text-gray-500 mt-0.5">اختر من 10 قوالب جاهزة بمحتوى عربي أصيل</p>
+            </div>
+          </button>
+
+          <button
+            onClick={onFromScratch}
+            className="flex items-start gap-4 p-4 rounded-2xl border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 transition-all text-start"
+          >
+            <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5 bg-gray-100">
+              <Plus className="w-5 h-5 text-gray-500" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900">صفحة فارغة</p>
+              <p className="text-xs text-gray-500 mt-0.5">ابدأ من الصفر وأضف البلوكات التي تريدها</p>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── New Page Dialog ────────────────────────────────────────────────────────
 
 interface NewPageDialogProps {
@@ -1341,11 +1402,95 @@ interface EditorViewProps {
   onSaved: () => void;
 }
 
+// ── Onboarding Tooltip ────────────────────────────────────────────────────
+// يظهر أول مرة فقط — يُخزّن في localStorage
+
+const ONBOARDING_KEY = "pbuilder_v2_onboarded";
+
+function OnboardingTooltip({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div
+      dir="rtl"
+      className="fixed bottom-6 end-6 z-[90] w-80 bg-white rounded-2xl shadow-2xl border border-[#5b9bd5]/20 overflow-hidden"
+      style={{ fontFamily: "'IBM Plex Sans Arabic', sans-serif" }}
+    >
+      {/* Header */}
+      <div className="px-5 pt-4 pb-3 border-b border-gray-100 flex items-center justify-between">
+        <p className="text-sm font-bold text-gray-900">مرحباً بك في المحرر</p>
+        <button
+          onClick={onDismiss}
+          className="p-1 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-50 transition-colors"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Steps */}
+      <div className="px-5 py-4 flex flex-col gap-3">
+        <div className="flex items-start gap-3">
+          <div className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white mt-0.5"
+            style={{ background: "#5b9bd5" }}>
+            1
+          </div>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            اسحب البلوكات من القائمة على اليمين وأفلتها في الصفحة
+          </p>
+        </div>
+        <div className="flex items-start gap-3">
+          <div className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white mt-0.5"
+            style={{ background: "#5b9bd5" }}>
+            2
+          </div>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            انقر على أي عنصر في الصفحة لتعديل محتواه من اللوحة اليسرى
+          </p>
+        </div>
+        <div className="flex items-start gap-3">
+          <div className="w-6 h-6 rounded-full shrink-0 flex items-center justify-center text-xs font-bold text-white mt-0.5"
+            style={{ background: "#5b9bd5" }}>
+            3
+          </div>
+          <p className="text-xs text-gray-600 leading-relaxed">
+            استخدم زر "نشر" في الأعلى لتفعيل الصفحة وإظهارها للزوار
+          </p>
+        </div>
+      </div>
+
+      {/* CTA */}
+      <div className="px-5 pb-4">
+        <button
+          onClick={onDismiss}
+          className="w-full py-2 px-4 text-sm font-semibold text-white rounded-xl transition-colors"
+          style={{ background: "#5b9bd5" }}
+        >
+          فهمت، لنبدأ
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function EditorView({ page, onBack, onSaved }: EditorViewProps) {
   const [seoOpen, setSeoOpen] = useState(false);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
   const [unpublishDialogOpen, setUnpublishDialogOpen] = useState(false);
   const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
+
+  // Onboarding tooltip — يظهر أول مرة فقط
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    try {
+      return !localStorage.getItem(ONBOARDING_KEY);
+    } catch {
+      return false;
+    }
+  });
+
+  function dismissOnboarding() {
+    try {
+      localStorage.setItem(ONBOARDING_KEY, "1");
+    } catch {}
+    setShowOnboarding(false);
+  }
   const [publishing, setPublishing] = useState(false);
   const [unpublishing, setUnpublishing] = useState(false);
   const [editorMenuOpen, setEditorMenuOpen] = useState(false);
@@ -1763,6 +1908,11 @@ function EditorView({ page, onBack, onSaved }: EditorViewProps) {
           onCancel={() => setRestoreTarget(null)}
         />
       )}
+
+      {/* Onboarding Tooltip — أول زيارة فقط */}
+      {showOnboarding && (
+        <OnboardingTooltip onDismiss={dismissOnboarding} />
+      )}
     </div>
   );
 }
@@ -1778,7 +1928,8 @@ export function PagesV2Page() {
   const [pages, setPages] = useState<PageV2Summary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showNewDialog, setShowNewDialog] = useState(false);
+  // Dialog state: null=closed, "choice"=اختيار, "scratch"=صفحة فارغة, "gallery"=من قالب
+  const [newDialogMode, setNewDialogMode] = useState<null | "choice" | "scratch" | "gallery">(null);
   const [creating, setCreating] = useState(false);
   const [listKey, setListKey] = useState(0);
 
@@ -1803,12 +1954,23 @@ export function PagesV2Page() {
     try {
       const slug = titleToSlug(title);
       const res = await pagesV2Api.create({ title, slug, pageType });
-      setShowNewDialog(false);
+      setNewDialogMode(null);
       setView({ mode: "editor", page: res.data });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "فشل الإنشاء");
     } finally {
       setCreating(false);
+    }
+  }, []);
+
+  // عند الانتهاء من إنشاء صفحة من قالب — افتح المحرر
+  const handleFromTemplate = useCallback(async (pageId: string) => {
+    setNewDialogMode(null);
+    try {
+      const res = await pagesV2Api.get(pageId);
+      setView({ mode: "editor", page: res.data });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "تعذّر فتح الصفحة");
     }
   }, []);
 
@@ -1848,16 +2010,31 @@ export function PagesV2Page() {
         pages={pages}
         loading={loading}
         error={error}
-        onNewPage={() => setShowNewDialog(true)}
+        onNewPage={() => setNewDialogMode("choice")}
         onEdit={handleEdit}
         onRefresh={handleRefresh}
       />
 
-      {showNewDialog && (
+      {newDialogMode === "choice" && (
+        <NewPageChoiceDialog
+          onFromTemplate={() => setNewDialogMode("gallery")}
+          onFromScratch={() => setNewDialogMode("scratch")}
+          onCancel={() => setNewDialogMode(null)}
+        />
+      )}
+
+      {newDialogMode === "scratch" && (
         <NewPageDialog
           onConfirm={handleNewPage}
-          onCancel={() => setShowNewDialog(false)}
+          onCancel={() => setNewDialogMode(null)}
           saving={creating}
+        />
+      )}
+
+      {newDialogMode === "gallery" && (
+        <TemplateGallery
+          onUse={handleFromTemplate}
+          onCancel={() => setNewDialogMode(null)}
         />
       )}
     </div>

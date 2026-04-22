@@ -62,3 +62,4 @@ export * from "./flowers-events";
 
 // ── Page Builder v2 ─────────────────────────────────────────
 export * from "./page-builder-v2";
+export * from "./page-templates";

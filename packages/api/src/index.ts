@@ -95,6 +95,7 @@ import { guardianRouter } from "./routes/guardian";
 import { contractsRouter } from "./routes/contracts";
 import { hrRouter } from "./routes/hr";
 import { templatesRouter } from "./routes/templates";
+import { pageTemplatesRouter } from "./routes/page-templates";
 import { pagesV2Router } from "./routes/pages-v2";
 import { storefrontV2Router } from "./routes/storefront-v2";
 import { pagebuildersourcesRouter } from "./routes/pagebuilder-sources";
@@ -1444,6 +1445,10 @@ appV2.route("/api/v2/pagebuilder", pagebuildersourcesRouter);
 // /api/v2/storefront/analytics requires auth; all /:orgSlug/* are public
 appV2.use("/api/v2/storefront/analytics", authMiddleware);
 appV2.route("/api/v2/storefront", storefrontV2Router);
+
+// قوالب الصفحات — GET عام، POST /:slug/use يحتاج auth
+appV2.use("/api/v2/page-templates/:slug/use", authMiddleware);
+appV2.route("/api/v2/page-templates", pageTemplatesRouter);
 
 // Combined fetch: /api/v2/* → appV2, everything else → app (v1)
 const combinedFetch = async (req: Request): Promise<Response> => {
