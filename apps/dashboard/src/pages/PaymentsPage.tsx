@@ -48,14 +48,15 @@ export function PaymentsPage() {
   const txList   = txRes?.data ?? [];
   const settings = settingsRes?.data;
 
-  const [form, setForm]     = useState({ ibanNumber: "", accountName: "", bankName: "" });
+  const [form, setForm]     = useState({ ibanNumber: "", accountName: "", bankName: "", defaultDeliveryFee: "0" });
   const [formInit, setFormInit] = useState(false);
 
   if (settings && !formInit) {
     setForm({
-      ibanNumber:  settings.ibanNumber  ?? "",
-      accountName: settings.accountName ?? "",
-      bankName:    settings.bankName    ?? "",
+      ibanNumber:          settings.ibanNumber         ?? "",
+      accountName:         settings.accountName        ?? "",
+      bankName:            settings.bankName           ?? "",
+      defaultDeliveryFee:  String(settings.defaultDeliveryFee ?? "0"),
     });
     setFormInit(true);
   }
@@ -63,7 +64,10 @@ export function PaymentsPage() {
   async function handleSave() {
     setSaving(true); setSaveMsg("");
     try {
-      await paymentsApi.updateSettings(form);
+      await paymentsApi.updateSettings({
+        ...form,
+        defaultDeliveryFee: Number(form.defaultDeliveryFee) || 0,
+      });
       setSaveMsg("تم الحفظ");
       refetchSettings();
     } catch (e: any) { setSaveMsg(e.message || "حدث خطأ"); }
@@ -348,6 +352,21 @@ function NasaqGatewaySection({
                   />
                 </div>
               ))}
+
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">رسوم التوصيل الافتراضية (ر.س)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.defaultDeliveryFee}
+                  onChange={e => setForm(p => ({ ...p, defaultDeliveryFee: e.target.value }))}
+                  placeholder="0.00"
+                  dir="ltr"
+                  className="w-full border border-[#eef2f6] rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                />
+                <p className="text-xs text-gray-400 mt-1">تُطبَّق تلقائياً على طلبات المتجر الإلكتروني إذا لم يحدد العميل غيرها</p>
+              </div>
 
               <div className="flex items-center justify-between pt-2">
                 {saveMsg && <p className={`text-sm ${saveMsg === "تم الحفظ" ? "text-green-600" : "text-red-500"}`}>{saveMsg}</p>}
