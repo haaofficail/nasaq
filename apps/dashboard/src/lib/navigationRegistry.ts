@@ -103,83 +103,57 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     ],
   },
 
-  // ── العمليات ───────────────────────────────────────────────
+  // ── العمليات اليومية ──────────────────────────────────────
   {
     id: "operations",
-    label: "العمليات",
+    label: "العمليات اليومية",
     requiredCapabilities: [],
     anyCapability: [],
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
       { name: "الخدمات",          href: "/dashboard/catalog",        icon: Layers,        requiredCapabilities: ["catalog"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental"] },
-      { name: "الحجوزات",        href: "/dashboard/bookings",     icon: CalendarCheck, requiredCapabilities: ["bookings"], excludedBusinessTypes: ["maintenance", "workshop", "logistics", "construction", "car_rental", "photography"] },
-      { name: "التقويم",         href: "/dashboard/calendar",     icon: CalendarCheck, requiredCapabilities: ["bookings"], excludedBusinessTypes: ["maintenance", "workshop", "logistics", "construction", "car_rental"] },
-      { name: "البيع السريع",       href: "/dashboard/pos",          icon: ShoppingBag,   requiredCapabilities: ["pos"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental", "restaurant", "bakery", "catering", "flower_shop"], foodBeverageOps: true },
-      { name: "الطلبات",         href: "/dashboard/orders",       icon: Package,       requiredCapabilities: ["online_orders"], foodBeverageOps: true },
-      { name: "التوصيل",          href: "/dashboard/delivery",     icon: Truck,         requiredCapabilities: [], requiredPlan: "basic", excludedBusinessTypes: ["salon", "barber", "spa", "fitness", "massage", "photography", "hotel", "car_rental", "rental", "real_estate", "school"] },
-      { name: "أوامر العمل",     href: "/dashboard/work-orders",  icon: ClipboardCheck, requiredCapabilities: [], allowedBusinessTypes: ["laundry", "photography"] },
-      { name: "العملاء",         href: "/dashboard/customers",    icon: Users,         requiredCapabilities: [], excludedBusinessTypes: ["flower_shop", "hotel"], foodBeverageOps: true },
-      { name: "العقود",          href: "/dashboard/contracts",    icon: FileSignature, requiredCapabilities: [], requiredPlan: "basic", excludedBusinessTypes: ["salon", "spa", "restaurant", "cafe", "bakery", "flower_shop", "retail", "laundry", "rental", "car_rental", "hotel", "real_estate"] },
+      { name: "الحجوزات",         href: "/dashboard/bookings",       icon: CalendarCheck, requiredCapabilities: ["bookings"], excludedBusinessTypes: ["maintenance", "workshop", "logistics", "construction", "car_rental", "photography"] },
+      { name: "التقويم",          href: "/dashboard/calendar",       icon: CalendarCheck, requiredCapabilities: ["bookings"], excludedBusinessTypes: ["maintenance", "workshop", "logistics", "construction", "car_rental"] },
+      { name: "البيع السريع",      href: "/dashboard/pos",            icon: ShoppingBag,   requiredCapabilities: ["pos"], excludedBusinessTypes: ["car_rental", "hotel", "real_estate", "rental", "restaurant", "bakery", "catering", "flower_shop"], foodBeverageOps: true },
+      { name: "الطلبات",          href: "/dashboard/orders",         icon: Package,       requiredCapabilities: ["online_orders"], foodBeverageOps: true },
+      { name: "التوصيل",          href: "/dashboard/delivery",       icon: Truck,         requiredCapabilities: [], requiredPlan: "basic", excludedBusinessTypes: ["salon", "barber", "spa", "fitness", "massage", "photography", "hotel", "car_rental", "rental", "real_estate", "school"] },
+      { name: "أوامر العمل",      href: "/dashboard/work-orders",    icon: ClipboardCheck, requiredCapabilities: [], allowedBusinessTypes: ["laundry", "photography"] },
+      { name: "العملاء",          href: "/dashboard/customers",      icon: Users,         requiredCapabilities: [], excludedBusinessTypes: ["flower_shop", "hotel"], foodBeverageOps: true },
+      { name: "العقود",           href: "/dashboard/contracts",      icon: FileSignature, requiredCapabilities: [], requiredPlan: "basic", excludedBusinessTypes: ["salon", "spa", "restaurant", "cafe", "bakery", "flower_shop", "retail", "laundry", "rental", "car_rental", "hotel", "real_estate"] },
     ],
   },
 
-  // ── الإدارة ────────────────────────────────────────────────
+  // ── المالية ────────────────────────────────────────────────
   {
     id: "management",
-    label: "الإدارة",
+    label: "المالية",
     requiredCapabilities: [],
     anyCapability: [],
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "المالية",          href: "/dashboard/finance",    icon: Wallet,      requiredCapabilities: [], requiredPlan: "basic" },
-      { name: "المدفوعات الإلكترونية", href: "/dashboard/payments", icon: CreditCard, requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "المالية",               href: "/dashboard/finance",   icon: Wallet,     requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "المدفوعات الإلكترونية", href: "/dashboard/payments",  icon: CreditCard, requiredCapabilities: [], requiredPlan: "basic" },
     ],
   },
 
-  // ── الموارد البشرية ─────────────────────────────────────────
+  // ── الفريق ─────────────────────────────────────────────────
   {
     id: "hr",
-    label: "الموارد البشرية",
+    label: "الفريق",
     requiredCapabilities: [],
     anyCapability: [],
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "الفريق",           href: "/dashboard/team",       icon: UsersRound,  requiredCapabilities: [] },
-      { name: "الموظفين",         href: "/dashboard/hr",         icon: UserCog,     requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "الفريق",    href: "/dashboard/team",      icon: UsersRound, requiredCapabilities: [] },
+      { name: "الموظفين",  href: "/dashboard/hr",        icon: UserCog,    requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "المخزون",   href: "/dashboard/inventory", icon: Box,        requiredCapabilities: ["inventory"], excludedBusinessTypes: ["flower_shop"] },
     ],
   },
 
-  // ── المخزون ─────────────────────────────────────────────────
-  {
-    id: "inventory",
-    label: "المخزون",
-    requiredCapabilities: ["inventory"],
-    anyCapability: [],
-    allowedBusinessTypes: [],
-    allowedOperatingProfiles: [],
-    items: [
-      { name: "المخزون",          href: "/dashboard/inventory",      icon: Box,           requiredCapabilities: ["inventory"], excludedBusinessTypes: ["flower_shop"] },
-    ],
-  },
-
-  // ── القنوات الرقمية ─────────────────────────────────────
-  // قنوات البيع والحضور الرقمي — ليست أدوات تسويق بل أسطح تشغيل مستقلة
-  {
-    id: "channels",
-    label: "القنوات الرقمية",
-    requiredCapabilities: [],
-    anyCapability: [],
-    allowedBusinessTypes: [],
-    allowedOperatingProfiles: [],
-    items: [
-      { name: "المتجر الإلكتروني", href: "/dashboard/pages-v2", icon: Store, requiredCapabilities: ["website"] },
-    ],
-  },
-
-  // ── التسويق والنمو ──────────────────────────────────────
+  // ── التسويق والنمو ──────────────────────────────────────────
   {
     id: "growth",
     label: "التسويق والنمو",
@@ -188,39 +162,40 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "التسويق",           href: "/dashboard/marketing",             icon: Send,          requiredCapabilities: [], requiredPlan: "advanced" },
-      { name: "التقييمات",         href: "/dashboard/reviews",               icon: Star,          requiredCapabilities: [], requiredPlan: "basic" },
-      { name: "مجموعات العملاء",   href: "/dashboard/segments",              icon: Tag,           requiredCapabilities: [], requiredPlan: "advanced" },
-      { name: "طلبات غير مكتملة",  href: "/dashboard/abandoned-carts",       icon: ShoppingCart,  requiredCapabilities: [], allowedBusinessTypes: ["flower_shop", "retail", "restaurant", "cafe", "bakery", "catering"], requiredPlan: "advanced" },
-      { name: "اشتراكات العملاء",   href: "/dashboard/customer-subscriptions", icon: CreditCard,   requiredCapabilities: [], allowedBusinessTypes: ["salon", "barber", "spa", "fitness"], requiredPlan: "pro" },
-      { name: "واتساب",            href: "/dashboard/messaging",             icon: MessageCircle, requiredCapabilities: [], requiredPlan: "advanced" },
+      { name: "المتجر الإلكتروني",    href: "/dashboard/pages-v2",               icon: Store,         requiredCapabilities: ["website"] },
+      { name: "التسويق",              href: "/dashboard/marketing",              icon: Send,          requiredCapabilities: [], requiredPlan: "advanced" },
+      { name: "التقييمات",            href: "/dashboard/reviews",                icon: Star,          requiredCapabilities: [], requiredPlan: "basic" },
+      { name: "مجموعات العملاء",      href: "/dashboard/segments",               icon: Tag,           requiredCapabilities: [], requiredPlan: "advanced" },
+      { name: "طلبات غير مكتملة",     href: "/dashboard/abandoned-carts",        icon: ShoppingCart,  requiredCapabilities: [], allowedBusinessTypes: ["flower_shop", "retail", "restaurant", "cafe", "bakery", "catering"], requiredPlan: "advanced" },
+      { name: "اشتراكات العملاء",     href: "/dashboard/customer-subscriptions", icon: CreditCard,    requiredCapabilities: [], allowedBusinessTypes: ["salon", "barber", "spa", "fitness"], requiredPlan: "pro" },
+      { name: "واتساب",               href: "/dashboard/messaging",              icon: MessageCircle, requiredCapabilities: [], requiredPlan: "advanced" },
     ],
   },
 
-  // ── التحليل ────────────────────────────────────────────────
+  // ── التقارير ───────────────────────────────────────────────
   {
     id: "analysis",
-    label: "التحليل",
+    label: "التقارير",
     requiredCapabilities: [],
     anyCapability: [],
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "التقارير",          href: "/dashboard/reports",   icon: BarChart3,      requiredCapabilities: [], requiredPlan: "basic", excludedBusinessTypes: ["flower_shop"] },
+      { name: "التقارير", href: "/dashboard/reports", icon: BarChart3, requiredCapabilities: [], requiredPlan: "basic", excludedBusinessTypes: ["flower_shop"] },
     ],
   },
 
-  // ── أدوات إضافية ──────────────────────────────────────────
+  // ── الأدوات ────────────────────────────────────────────────
   {
     id: "system",
-    label: "أدوات إضافية",
+    label: "الأدوات",
     requiredCapabilities: [],
     anyCapability: [],
     allowedBusinessTypes: [],
     allowedOperatingProfiles: [],
     items: [
-      { name: "ملصقات المنتجات",  href: "/dashboard/barcode-labels", icon: ScanBarcode,   requiredCapabilities: [] },
-      { name: "ربط التطبيقات",    href: "/dashboard/integrations", icon: Plug,       requiredCapabilities: [], requiredPlan: "pro" },
+      { name: "ملصقات المنتجات", href: "/dashboard/barcode-labels", icon: ScanBarcode, requiredCapabilities: [] },
+      { name: "ربط التطبيقات",   href: "/dashboard/integrations",   icon: Plug,        requiredCapabilities: [], requiredPlan: "pro" },
     ],
   },
 
