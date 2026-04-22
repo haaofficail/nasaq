@@ -210,7 +210,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     items: [
       { name: "الجدول الزمني",     href: "/dashboard/schedule",          icon: CalendarCheck, requiredCapabilities: ["schedules"] },
       { name: "العمولات",           href: "/dashboard/commissions",       icon: BarChart3,     requiredCapabilities: [], requiredPlan: "advanced" },
-      { name: "الاستدعاء",          href: "/dashboard/recall",            icon: Users,         requiredCapabilities: [], requiredPlan: "advanced" },
+      { name: "متابعة العملاء",      href: "/dashboard/recall",            icon: Users,         requiredCapabilities: [], requiredPlan: "advanced" },
       { name: "مستلزمات الصالون",   href: "/dashboard/salon-supplies",    icon: Box,           requiredCapabilities: ["inventory"] },
       { name: "إحصائيات الصالون",    href: "/dashboard/salon-monitoring",  icon: BarChart2,     requiredCapabilities: [] },
       { name: "دخول الأعضاء",       href: "/dashboard/access-control",   icon: ShieldCheck,   requiredCapabilities: [], allowedBusinessTypes: ["fitness"], requiredPlan: "pro" },
@@ -224,7 +224,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
   // 1. العمليات — التشغيل اليومي
   {
     id: "specialty_flower_ops",
-    label: "العمليات",
+    label: "العمليات اليومية",
     requiredCapabilities: ["floral"],
     anyCapability: [],
     allowedBusinessTypes: ["flower_shop"],
@@ -246,7 +246,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedOperatingProfiles: [],
     items: [
       { name: "الباقات والتنسيقات", href: "/dashboard/arrangements",    icon: ShoppingBag,  requiredCapabilities: ["floral"] },
-      { name: "خدمات التنسيق والكوش",   href: "/dashboard/flower-catalog",  icon: PartyPopper,  requiredCapabilities: ["floral"] },
+      { name: "خدمات الكوش والأعراس",    href: "/dashboard/flower-catalog",  icon: PartyPopper,  requiredCapabilities: ["floral"] },
       { name: "تخفيضات الطازج",    href: "/dashboard/flower-disposal", icon: TrendingDown, requiredCapabilities: ["floral"] },
     ],
   },
@@ -262,22 +262,22 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     items: [
       { name: "مخزون الورد الطازج",  href: "/dashboard/flower-inventory", icon: Box,         requiredCapabilities: ["floral"] },
       { name: "أنواع الورد وأسعاره", href: "/dashboard/flower-master",    icon: Layers,      requiredCapabilities: ["floral"] },
-      { name: "سجل الهدر",           href: "/dashboard/flower-waste",     icon: AlertCircle, requiredCapabilities: ["floral"] },
+      { name: "الورد المتلف",          href: "/dashboard/flower-waste",     icon: AlertCircle, requiredCapabilities: ["floral"] },
     ],
   },
 
   // 4. المشاريع والأصول -> إدارة الكوش والتجهيزات (floral)
   {
     id: "specialty_flower_projects",
-    label: "إدارة الكوش والتجهيزات",
+    label: "الكوش والتجهيزات",
     requiredCapabilities: ["floral"],
     anyCapability: [],
     allowedBusinessTypes: ["flower_shop"],
     allowedOperatingProfiles: [],
     items: [
       { name: "تجهيز القاعات",        href: "/dashboard/flower-service-orders", icon: Briefcase, requiredCapabilities: ["floral"] },
-      { name: "هياكل وأصول الكوش",  href: "/dashboard/flower-assets",         icon: Archive,   requiredCapabilities: ["floral"] },
-      { name: "مزارع وموردو الورد",   href: "/dashboard/flower-suppliers",      icon: Truck,     requiredCapabilities: ["floral"] },
+      { name: "أثاث وأدوات الكوش",   href: "/dashboard/flower-assets",         icon: Archive,   requiredCapabilities: ["floral"] },
+      { name: "الموردون",              href: "/dashboard/flower-suppliers",      icon: Truck,     requiredCapabilities: ["floral"] },
     ],
   },
 
@@ -298,13 +298,13 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
   // 6. التحليل
   {
     id: "specialty_flower_analysis",
-    label: "التحليل",
+    label: "التقارير",
     requiredCapabilities: ["floral"],
     anyCapability: [],
     allowedBusinessTypes: ["flower_shop"],
     allowedOperatingProfiles: [],
     items: [
-      { name: "التحليلات",   href: "/dashboard/flower-analytics", icon: TrendingUp, requiredCapabilities: ["floral"] },
+      { name: "الإحصائيات",  href: "/dashboard/flower-analytics", icon: TrendingUp, requiredCapabilities: ["floral"] },
       { name: "التقارير",    href: "/dashboard/flower-reports",   icon: BarChart3,  requiredCapabilities: ["floral"] },
       { name: "أرباح المنتجات", href: "/dashboard/flower-margins",  icon: DollarSign, requiredCapabilities: ["floral"] },
     ],
@@ -331,7 +331,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
   // 8. الموارد البشرية — feature_team (always) + feature_hr (plan-gated)
   {
     id: "specialty_flower_hr",
-    label: "الموارد البشرية",
+    label: "الفريق",
     requiredCapabilities: [],
     anyCapability: [],
     allowedBusinessTypes: ["flower_shop"],
@@ -345,7 +345,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
   // 9. الإدارة — المالية والمدفوعات (plan-gated)
   {
     id: "specialty_flower_admin",
-    label: "الإدارة",
+    label: "المالية",
     requiredCapabilities: [],
     anyCapability: [],
     allowedBusinessTypes: ["flower_shop"],
@@ -359,7 +359,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
   // 10. أدوات إضافية — أدوات تشغيلية
   {
     id: "specialty_flower_system",
-    label: "أدوات إضافية",
+    label: "الأدوات",
     requiredCapabilities: [],
     anyCapability: [],
     allowedBusinessTypes: ["flower_shop"],
@@ -398,7 +398,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: ["hotel"],
     allowedOperatingProfiles: [],
     items: [
-      { name: "الفندق",          href: "/dashboard/hotel",      icon: Building,      requiredCapabilities: ["hotel"] },
+      { name: "لوحة الفندق",      href: "/dashboard/hotel",      icon: Building,      requiredCapabilities: ["hotel"] },
       { name: "الضيوف",          href: "/dashboard/customers",  icon: Users,         requiredCapabilities: [] },
       { name: "الحجوزات",         href: "/dashboard/bookings",   icon: CalendarCheck, requiredCapabilities: ["bookings"] },
     ],
@@ -413,7 +413,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
     allowedBusinessTypes: ["car_rental"],
     allowedOperatingProfiles: [],
     items: [
-      { name: "تأجير السيارات",  href: "/dashboard/car-rental", icon: Truck,         requiredCapabilities: ["car_rental"] },
+      { name: "لوحة التأجير",    href: "/dashboard/car-rental", icon: Truck,         requiredCapabilities: ["car_rental"] },
       { name: "طلبات التأجير",   href: "/dashboard/bookings",   icon: CalendarCheck, requiredCapabilities: ["bookings"] },
       { name: "العملاء",         href: "/dashboard/customers",  icon: Users,         requiredCapabilities: [] },
     ],
@@ -521,7 +521,7 @@ export const NAV_REGISTRY: NavGroupEntry[] = [
   // ── SPECIALTY: Field Service ──────────────────────────────
   {
     id: "specialty_field",
-    label: "طلبات الخدمة",
+    label: "",
     requiredCapabilities: [],
     anyCapability: ["schedules", "attendance"],
     allowedBusinessTypes: ["maintenance", "workshop", "logistics", "construction"],
