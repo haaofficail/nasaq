@@ -678,7 +678,7 @@ describe.skipIf(skipIfNoDb)("Booking Create — Canonical Path", () => {
     });
     expect(r1.ok).toBe(false);
     // supportedTypes checked indirectly via message for empty (pre-flight in helper)
-    expect(r1.status).toBe(400);
+    if (!r1.ok) expect(r1.status).toBe(400);
 
     // Unknown bookingType
     const r2 = await runCanonicalCreate(db, {
@@ -689,7 +689,7 @@ describe.skipIf(skipIfNoDb)("Booking Create — Canonical Path", () => {
       lines: [],
     });
     expect(r2.ok).toBe(false);
-    expect(r2.status).toBe(400);
+    if (!r2.ok) expect(r2.status).toBe(400);
     // Helper validates same constants as route — appointment + product must be in supported list
     if (!r2.ok) {
       expect(r2.message).toContain("unknown_type");

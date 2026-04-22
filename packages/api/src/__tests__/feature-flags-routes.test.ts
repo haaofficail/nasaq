@@ -114,10 +114,11 @@ type AdminVars = { adminId: string; adminName: string; adminRole: string; reques
 function makeApp() {
   const app = new Hono<{ Variables: AdminVars }>();
   app.use("*", async (c, next) => {
-    c.set("adminId" as never, ADMIN_ID);
-    c.set("adminName" as never, "Test Admin");
-    c.set("adminRole" as never, "super_admin");
-    c.set("requestId" as never, "req-test-001");
+    const cv = c as any;
+    cv.set("adminId", ADMIN_ID);
+    cv.set("adminName", "Test Admin");
+    cv.set("adminRole", "super_admin");
+    cv.set("requestId", "req-test-001");
     await next();
   });
   app.route("/admin", adminRouter);

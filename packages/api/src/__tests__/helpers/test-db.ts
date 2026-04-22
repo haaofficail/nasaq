@@ -14,9 +14,10 @@
 
 import { Client } from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
+import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import * as schema from "@nasaq/db/schema";
 
-export type TestDb = ReturnType<typeof drizzle<typeof schema>>;
+export type TestDb = NodePgDatabase<typeof schema>;
 
 export const TEST_DB_URL = process.env.TEST_DATABASE_URL ?? process.env.DATABASE_URL ?? "";
 
