@@ -629,6 +629,11 @@ storefrontV2Router.post("/:orgSlug/cart/:sessionId/checkout", async (c) => {
   const platformFee = Math.round((totalAmount * feePercent / 100 + feeFixed) * 100) / 100;
   const merchantAmt = Math.round((totalAmount - platformFee) * 100) / 100;
 
+  // إضافة orderNumber للـ callbackUrl لعرضه في صفحة النجاح
+  const callbackWithOrder = body.callbackUrl.includes("?")
+    ? `${body.callbackUrl}&orderNumber=${encodeURIComponent(orderNum)}`
+    : `${body.callbackUrl}?orderNumber=${encodeURIComponent(orderNum)}`;
+
   // إنشاء معاملة دفع
   const { rows: txRows } = await pool.query(
     `INSERT INTO payment_transactions
@@ -639,16 +644,11 @@ storefrontV2Router.post("/:orgSlug/cart/:sessionId/checkout", async (c) => {
       org.id, order.id,
       totalAmount, platformFee, merchantAmt,
       `طلب ${orderNum} — ${org.name}`,
-      body.callbackUrl,
+      callbackWithOrder,
       JSON.stringify({ nasaq_order_id: order.id, session_id: sessionId }),
     ],
   );
   const tx = txRows[0];
-
-  // إضافة orderNumber للـ callbackUrl لعرضه في صفحة النجاح
-  const callbackWithOrder = body.callbackUrl.includes("?")
-    ? `${body.callbackUrl}&orderNumber=${encodeURIComponent(orderNum)}`
-    : `${body.callbackUrl}?orderNumber=${encodeURIComponent(orderNum)}`;
 
   // بناء رابط Moyasar
   const payUrl = buildMoyasarPaymentUrl({

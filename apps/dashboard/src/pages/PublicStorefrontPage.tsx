@@ -513,7 +513,7 @@ function ProductCheckoutSheet({ productCart, slug, sessionId, orgAccent, org, on
     if (!canSubmit) return;
     setError(""); setSub(true);
     try {
-      const callbackUrl = `${window.location.origin}/payment?orgSlug=${encodeURIComponent(slug)}`;
+      const callbackUrl = `${window.location.origin}/pay/${encodeURIComponent(slug)}`;
       const res = await storefrontApi.checkout(slug, sessionId, {
         customerName:    name.trim(),
         customerPhone:   phone.trim(),
