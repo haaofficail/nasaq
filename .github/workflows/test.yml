@@ -146,8 +146,7 @@ jobs:
               '134_admin_wa_invite.sql','135_bookings_rebooking_index.sql',
               '136_pipeline_mapped_status.sql','137_pipeline_backfill_and_hardening.sql',
               '138_pos_transactions_table.sql','139_pos_quick_items_table.sql',
-              '140_bookings_performance_indexes.sql','141_flowers_events_vertical.sql',
-              '142_page_builder_v2.sql','142_page_builder_v2_rollback.sql'
+              '140_bookings_performance_indexes.sql','141_flowers_events_vertical.sql'
             ]) AS f
             ON CONFLICT DO NOTHING;
           "
