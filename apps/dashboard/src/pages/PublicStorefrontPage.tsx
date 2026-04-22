@@ -54,6 +54,12 @@ interface SiteData {
   } | null;
   flowerSection?: FlowerSection | null;
 }
+interface StoreProduct {
+  id: string; name: string; description?: string;
+  sellPrice: number; images: string[];
+  is_store_visible: boolean; store_sort_order: number;
+  sku?: string; unit?: string;
+}
 
 // ── Color helpers ────────────────────────────────────────────────────
 function hex2rgb(hex: string, a: number): string {
@@ -474,6 +480,300 @@ function FlowerBuilderSection({ section, slug }: { section: FlowerSection; slug:
   );
 }
 
+// ── Product Checkout Sheet ────────────────────────────────────────────
+function ProductCheckoutSheet({ productCart, slug, sessionId, orgAccent, org, onClose }: {
+  productCart: Map<string, { product: StoreProduct; qty: number }>;
+  slug: string; sessionId: string; orgAccent: string;
+  org: OrgData; onClose: () => void;
+}) {
+  const primary = BRAND;
+  const items   = Array.from(productCart.values());
+  const total   = items.reduce((s, { product, qty }) => s + product.sellPrice * qty, 0);
+
+  const [name,      setName]      = useState("");
+  const [phone,     setPhone]     = useState("");
+  const [email,     setEmail]     = useState("");
+  const [street,    setStreet]    = useState("");
+  const [city,      setCity]      = useState("");
+  const [agreed,    setAgreed]    = useState(false);
+  const [submitting, setSub]      = useState(false);
+  const [error,     setError]     = useState("");
+
+  const canSubmit = name.trim() && phone.trim() && street.trim() && city.trim() && agreed;
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", padding: "12px 14px", borderRadius: 12, fontSize: 14,
+    border: `1.5px solid ${T.border}`, outline: "none", fontFamily: "inherit",
+    boxSizing: "border-box", color: T.t1, background: T.surfaceSubtle,
+    transition: "border-color .15s",
+  };
+
+  const handleSubmit = async () => {
+    if (!canSubmit) return;
+    setError(""); setSub(true);
+    try {
+      const callbackUrl = `${window.location.origin}/payment?orgSlug=${encodeURIComponent(slug)}`;
+      const res = await storefrontApi.checkout(slug, sessionId, {
+        customerName:    name.trim(),
+        customerPhone:   phone.trim(),
+        customerEmail:   email.trim() || undefined,
+        deliveryAddress: { street: street.trim(), city: city.trim() },
+        paymentMethod:   "online",
+        callbackUrl,
+      });
+      if (res?.data?.paymentUrl) {
+        window.location.href = res.data.paymentUrl;
+      } else {
+        setError(res?.error || "حدث خطأ، حاول مجدداً");
+      }
+    } catch { setError("تعذّر الاتصال، حاول مجدداً"); }
+    finally { setSub(false); }
+  };
+
+  return (
+    <>
+      <div style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(13,33,56,0.55)", backdropFilter: "blur(4px)" }}
+        onClick={onClose} />
+      <div dir="rtl" style={{
+        position: "fixed", left: 0, right: 0, bottom: 0, zIndex: 50,
+        background: T.surface, borderRadius: "20px 20px 0 0",
+        maxHeight: "93dvh", overflowY: "auto",
+        maxWidth: 440, margin: "0 auto",
+        boxShadow: "0 -8px 40px rgba(13,33,56,0.18)",
+        animation: "sheetIn .28s cubic-bezier(.32,.72,0,1)",
+        fontFamily: "inherit",
+      }}>
+        {/* Handle */}
+        <div style={{ display: "flex", justifyContent: "center", paddingTop: 12 }}>
+          <div style={{ width: 36, height: 4, borderRadius: 2, background: T.border }} />
+        </div>
+
+        <div style={{ padding: "8px 20px 48px" }}>
+          {/* Header */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingBottom: 16, borderBottom: `1px solid ${T.borderFaint}`, marginBottom: 20 }}>
+            <p style={{ margin: 0, fontWeight: 900, color: T.t1, fontSize: 15 }}>تفاصيل الطلب</p>
+            <button onClick={onClose} style={{ width: 32, height: 32, borderRadius: 8, border: `1px solid ${T.border}`, background: T.surfaceSubtle, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", color: T.t3 }}>
+              {Icon.close}
+            </button>
+          </div>
+
+          {/* Order summary */}
+          <div style={{ marginBottom: 20, borderRadius: 14, border: `1px solid ${T.borderFaint}`, overflow: "hidden" }}>
+            {items.map(({ product, qty }, i) => (
+              <div key={product.id} style={{ padding: "11px 14px", borderBottom: i < items.length - 1 ? `1px solid ${T.borderFaint}` : "none", display: "flex", justifyContent: "space-between", alignItems: "center", background: T.surface }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+                  <span style={{ fontSize: 11, fontWeight: 800, color: "white", background: BRAND, borderRadius: 6, padding: "1px 7px", flexShrink: 0 }}>{qty}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: T.t1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{product.name}</span>
+                </div>
+                <span style={{ fontSize: 13, fontWeight: 800, color: orgAccent, flexShrink: 0, marginRight: 8 }}>
+                  {(product.sellPrice * qty).toLocaleString("ar-SA")} ر.س
+                </span>
+              </div>
+            ))}
+            <div style={{ padding: "11px 14px", background: hex2rgb(orgAccent, 0.06), display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: 12, fontWeight: 700, color: T.t2 }}>المجموع</span>
+              <span style={{ fontSize: 16, fontWeight: 900, color: orgAccent }}>{total.toLocaleString("ar-SA")} ر.س</span>
+            </div>
+          </div>
+
+          {/* Name */}
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>الاسم</label>
+            <input type="text" value={name} onChange={e => setName(e.target.value)} placeholder="اسمك الكريم" style={inputStyle} />
+          </div>
+
+          {/* Phone */}
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>رقم الجوال</label>
+            <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="05xxxxxxxx" dir="ltr" style={{ ...inputStyle, textAlign: "right" }} />
+          </div>
+
+          {/* Email (optional) */}
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>
+              البريد الإلكتروني <span style={{ fontWeight: 500, color: T.t3 }}>(اختياري)</span>
+            </label>
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="example@email.com" dir="ltr" style={{ ...inputStyle, textAlign: "right" }} />
+          </div>
+
+          {/* Delivery address */}
+          <div style={{ marginBottom: 12 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>الشارع والحي</label>
+            <input type="text" value={street} onChange={e => setStreet(e.target.value)} placeholder="اسم الشارع والحي" style={inputStyle} />
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>المدينة</label>
+            <input type="text" value={city} onChange={e => setCity(e.target.value)} placeholder="المدينة" style={inputStyle} />
+          </div>
+
+          {/* Terms */}
+          <label style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 20, cursor: "pointer" }}>
+            <div onClick={() => setAgreed(!agreed)} style={{
+              width: 20, height: 20, borderRadius: 6, flexShrink: 0, marginTop: 1,
+              border: `2px solid ${agreed ? primary : T.border}`,
+              background: agreed ? primary : T.surface,
+              display: "flex", alignItems: "center", justifyContent: "center",
+              transition: "all .15s",
+            }}>
+              {agreed && <svg viewBox="0 0 24 24" fill="none" strokeWidth={3} style={{ width: 12, height: 12 }}>
+                <path stroke="white" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>}
+            </div>
+            <span style={{ fontSize: 12, color: T.t2, lineHeight: 1.5 }}>أوافق على الشروط والأحكام وسياسة الخصوصية</span>
+          </label>
+
+          {error && (
+            <div style={{ marginBottom: 14, padding: "11px 14px", borderRadius: 10, background: "#FFF1F2", border: "1px solid #FECDD3", color: "#E11D48", fontSize: 13, fontWeight: 600, textAlign: "center" }}>
+              {error}
+            </div>
+          )}
+
+          <button onClick={handleSubmit} disabled={!canSubmit || submitting} style={{
+            width: "100%", padding: "15px 0", borderRadius: 14, border: "none",
+            background: canSubmit && !submitting
+              ? `linear-gradient(135deg, ${orgAccent} 0%, ${darken(orgAccent)} 100%)`
+              : T.surfaceSubtle,
+            color: canSubmit && !submitting ? "white" : T.t3,
+            fontWeight: 900, fontSize: 15,
+            cursor: canSubmit && !submitting ? "pointer" : "not-allowed",
+            fontFamily: "inherit",
+            boxShadow: canSubmit && !submitting ? `0 6px 20px ${hex2rgb(orgAccent, 0.35)}` : "none",
+            transition: "all .2s",
+          }}>
+            {submitting ? "جاري الانتقال للدفع..." : "انتقل للدفع"}
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ── Store Products Section ────────────────────────────────────────────
+function StoreProductsSection({ products, orgAccent, productCart, onQtyChange, onCheckout }: {
+  products: StoreProduct[];
+  orgAccent: string;
+  productCart: Map<string, { product: StoreProduct; qty: number }>;
+  onQtyChange: (product: StoreProduct, delta: number) => void;
+  onCheckout: () => void;
+}) {
+  const cartTotal = Array.from(productCart.values()).reduce((s, { product, qty }) => s + product.sellPrice * qty, 0);
+  const cartCount = Array.from(productCart.values()).reduce((s, { qty }) => s + qty, 0);
+
+  return (
+    <div style={{ margin: "16px 0 0", padding: "0 16px" }}>
+      {/* Section header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+        <p style={{ margin: 0, fontSize: 16, fontWeight: 900, color: T.t1 }}>المنتجات</p>
+        <span style={{ fontSize: 11, fontWeight: 700, color: T.t3 }}>{products.length} منتج</span>
+      </div>
+
+      {/* Product grid — 2 columns */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        {products.map(product => {
+          const entry   = productCart.get(product.id);
+          const qty     = entry?.qty ?? 0;
+          const imgSrc  = product.images?.[0];
+
+          return (
+            <div key={product.id} style={{
+              background: T.surface, borderRadius: 16, overflow: "hidden",
+              border: `1px solid ${qty > 0 ? hex2rgb(orgAccent, 0.3) : T.borderFaint}`,
+              boxShadow: qty > 0 ? `0 4px 16px ${hex2rgb(orgAccent, 0.12)}` : T.shadow,
+              transition: "border-color .15s, box-shadow .15s",
+            }}>
+              {/* Image */}
+              <div style={{ position: "relative", height: 110, background: hex2rgb(orgAccent, 0.06), overflow: "hidden" }}>
+                {imgSrc
+                  ? <img src={imgSrc} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                  : (
+                    <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke={hex2rgb(orgAccent, 0.4)} strokeWidth={1.5} style={{ width: 32, height: 32 }}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" />
+                      </svg>
+                    </div>
+                  )
+                }
+                {qty > 0 && (
+                  <div style={{ position: "absolute", top: 6, left: 6, background: orgAccent, color: "white", borderRadius: 8, padding: "2px 7px", fontSize: 11, fontWeight: 900 }}>
+                    {qty}
+                  </div>
+                )}
+              </div>
+
+              {/* Info */}
+              <div style={{ padding: "10px 10px 12px" }}>
+                <p style={{ margin: "0 0 3px", fontSize: 12, fontWeight: 800, color: T.t1, lineHeight: 1.3, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{product.name}</p>
+                {product.description && (
+                  <p style={{ margin: "0 0 6px", fontSize: 10, color: T.t3, lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" as const }}>
+                    {product.description}
+                  </p>
+                )}
+                <p style={{ margin: "0 0 10px", fontSize: 14, fontWeight: 900, color: orgAccent }}>{Number(product.sellPrice).toLocaleString("ar-SA")} ر.س</p>
+
+                {/* Qty control */}
+                {qty === 0 ? (
+                  <button onClick={() => onQtyChange(product, 1)} style={{
+                    width: "100%", padding: "8px 0", borderRadius: 10, fontSize: 12, fontWeight: 800,
+                    border: `1.5px solid ${orgAccent}`, background: "white", color: orgAccent,
+                    cursor: "pointer", fontFamily: "inherit", transition: "all .15s",
+                  }}>
+                    أضف
+                  </button>
+                ) : (
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: hex2rgb(orgAccent, 0.07), borderRadius: 10, padding: "4px 6px" }}>
+                    <button onClick={() => onQtyChange(product, 1)} style={{
+                      width: 28, height: 28, borderRadius: 8, border: "none", background: orgAccent,
+                      color: "white", fontSize: 16, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
+                    }}>+</button>
+                    <span style={{ fontSize: 14, fontWeight: 900, color: T.t1 }}>{qty}</span>
+                    <button onClick={() => onQtyChange(product, -1)} style={{
+                      width: 28, height: 28, borderRadius: 8, border: `1px solid ${hex2rgb(orgAccent, 0.3)}`, background: "white",
+                      color: orgAccent, fontSize: 16, fontWeight: 900, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", lineHeight: 1,
+                    }}>−</button>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Cart CTA — appears when cart is non-empty */}
+      {cartCount > 0 && (
+        <div style={{ marginTop: 16, padding: "14px", borderRadius: 16, background: "#0f172a" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ flexShrink: 0 }}>
+              <p style={{ margin: 0, fontSize: 11, color: "rgba(255,255,255,0.45)", fontWeight: 600 }}>
+                {cartCount} {cartCount === 1 ? "منتج" : "منتجات"}
+              </p>
+              <p style={{ margin: 0, fontSize: 15, fontWeight: 900, color: orgAccent, letterSpacing: -0.4 }}>
+                {cartTotal.toLocaleString("ar-SA")} ر.س
+              </p>
+            </div>
+            <button onClick={onCheckout} style={{
+              flex: 1, padding: "12px 0", borderRadius: 12, border: "none",
+              background: `linear-gradient(135deg, ${orgAccent} 0%, ${darken(orgAccent)} 100%)`,
+              color: "white", fontWeight: 900, fontSize: 14,
+              cursor: "pointer", fontFamily: "inherit",
+              boxShadow: `0 4px 16px ${hex2rgb(orgAccent, 0.4)}`,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              transition: "all .15s",
+            }}>
+              <span style={{ background: "rgba(255,255,255,0.22)", borderRadius: 6, padding: "1px 7px", fontSize: 12, fontWeight: 900 }}>
+                {cartCount}
+              </span>
+              اطلب الآن
+              <svg viewBox="0 0 24 24" fill="none" strokeWidth={2.5} style={{ width: 14, height: 14 }}>
+                <path stroke="white" strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Skeleton ─────────────────────────────────────────────────────────
 function Skeleton() {
   return (
@@ -493,14 +793,26 @@ function Skeleton() {
 // ── Main page ─────────────────────────────────────────────────────────
 export function PublicStorefrontPage() {
   const { orgSlug } = useParams<{ orgSlug: string }>();
-  const [data, setData]             = useState<SiteData | null>(null);
-  const [loading, setLoading]       = useState(true);
-  const [activeCat, setActiveCat]   = useState("all");
-  const [cart, setCart]             = useState<ServiceItem[]>([]);
-  const [showSheet, setShowSheet]   = useState(false);
-  const [viewMode, setViewMode]     = useState<"list" | "grid">("grid");
-  const catBarRef                   = useRef<HTMLDivElement>(null);
+  const [data, setData]                   = useState<SiteData | null>(null);
+  const [loading, setLoading]             = useState(true);
+  const [activeCat, setActiveCat]         = useState("all");
+  const [cart, setCart]                   = useState<ServiceItem[]>([]);
+  const [showSheet, setShowSheet]         = useState(false);
+  const [viewMode, setViewMode]           = useState<"list" | "grid">("grid");
+  const catBarRef                         = useRef<HTMLDivElement>(null);
+  const [storeProducts, setStoreProducts] = useState<StoreProduct[]>([]);
+  const [productCart, setProductCart]     = useState<Map<string, { product: StoreProduct; qty: number }>>(new Map());
+  const [showProductCheckout, setShowProductCheckout] = useState(false);
   const slug = orgSlug || "";
+
+  // Persist cart session id in localStorage
+  const sessionId = (() => {
+    if (!slug) return "";
+    const key = `nasaq_cart_${slug}_sid`;
+    let sid = localStorage.getItem(key);
+    if (!sid) { sid = crypto.randomUUID(); localStorage.setItem(key, sid); }
+    return sid;
+  })();
 
   const inCart     = (id: string) => cart.some(s => s.id === id);
   const toggleCart = (svc: ServiceItem) =>
@@ -513,6 +825,30 @@ export function PublicStorefrontPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [slug]);
+
+  useEffect(() => {
+    if (!slug) return;
+    storefrontApi.getProducts(slug)
+      .then((res: any) => { if (Array.isArray(res?.data)) setStoreProducts(res.data); })
+      .catch(() => {});
+  }, [slug]);
+
+  const handleProductQtyChange = (product: StoreProduct, delta: number) => {
+    setProductCart(prev => {
+      const next = new Map(prev);
+      const entry = next.get(product.id);
+      const newQty = (entry?.qty ?? 0) + delta;
+      if (newQty <= 0) {
+        next.delete(product.id);
+      } else {
+        next.set(product.id, { product, qty: newQty });
+      }
+      // Persist to backend cart (fire-and-forget)
+      const items = Array.from(next.values()).map(({ product: p, qty: q }) => ({ productId: p.id, qty: q, unitPrice: p.sellPrice }));
+      storefrontApi.upsertCart(slug, { sessionId, items }).catch(() => {});
+      return next;
+    });
+  };
 
   if (loading) return <Skeleton />;
 
@@ -974,6 +1310,17 @@ export function PublicStorefrontPage() {
           <FlowerBuilderSection section={data.flowerSection} slug={slug} />
         )}
 
+        {/* Store products section */}
+        {storeProducts.length > 0 && (
+          <StoreProductsSection
+            products={storeProducts}
+            orgAccent={orgAccent}
+            productCart={productCart}
+            onQtyChange={handleProductQtyChange}
+            onCheckout={() => setShowProductCheckout(true)}
+          />
+        )}
+
         {/* Footer */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 5, padding: "28px 0 12px" }}>
           <span style={{ fontSize: 11, color: T.t3, fontWeight: 500 }}>مدعوم بـ</span>
@@ -1078,6 +1425,18 @@ export function PublicStorefrontPage() {
             org={org}
             slug={slug}
             onClose={() => { setShowSheet(false); setCart([]); }}
+          />
+        )}
+
+        {/* Product checkout sheet */}
+        {showProductCheckout && productCart.size > 0 && (
+          <ProductCheckoutSheet
+            productCart={productCart}
+            slug={slug}
+            sessionId={sessionId}
+            orgAccent={orgAccent}
+            org={org}
+            onClose={() => setShowProductCheckout(false)}
           />
         )}
       </div>
