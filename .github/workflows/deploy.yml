@@ -50,7 +50,7 @@ jobs:
                git clean -fd
                pnpm install --frozen-lockfile
                pnpm --filter @nasaq/db tsx scripts/migrate.ts
-               pnpm --filter @nasaq/dashboard build
+               pnpm --filter @nasaq/dashboard build:deploy
                pm2 restart nasaq-api
                pm2 status'
           rm -f /tmp/deploy_key
