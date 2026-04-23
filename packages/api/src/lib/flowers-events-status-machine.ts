@@ -1,3 +1,10 @@
+/**
+ * @deprecated
+ * Vertical-specific flowers/events status constants and transition guards are scheduled
+ * for removal. `FE_STATUSES` and `validateFeTransition` are legacy compatibility only.
+ * All new flow logic MUST use `workflow-engine.ts`, resolving `bookingPipelineStages`
+ * through the Canonical Router instead of hardcoded vertical state machines.
+ */
 // ============================================================
 // flowers_events Operational Status Machine
 // Maps to service_orders.status field (text column, not PG enum)

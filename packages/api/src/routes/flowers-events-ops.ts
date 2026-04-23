@@ -64,7 +64,7 @@ flowersEventsOpsRouter.get("/reservations", async (c) => {
   const params: any[] = [orgId];
 
   if (status)         { params.push(status);         conditions.push(`fr.status = $${params.length}`); }
-  if (serviceOrderId) { params.push(serviceOrderId); conditions.push(`fr.service_order_id = $${params.length}`); }
+  if (serviceOrderId) { params.push(serviceOrderId); conditions.push(`fr.legacy_service_order_id = $${params.length}`); }
 
   const { rows } = await pool.query(
     `SELECT
@@ -124,10 +124,10 @@ flowersEventsOpsRouter.post("/reservations", async (c) => {
   }
 
   const { rows } = await pool.query(
-    `INSERT INTO flower_reservations
-       (org_id, service_order_id, variant_id, batch_id, quantity, source_type, source_id, notes)
-     VALUES ($1,$2,$3,$4,$5,'service_order',$2,$6)
-     RETURNING *`,
+     `INSERT INTO flower_reservations
+        (org_id, legacy_service_order_id, variant_id, batch_id, quantity, notes)
+      VALUES ($1,$2,$3,$4,$5,$6)
+      RETURNING *`,
     [orgId, body.serviceOrderId, body.variantId, body.batchId ?? null, body.quantity, body.notes ?? null]
   );
 
@@ -320,13 +320,13 @@ flowersEventsOpsRouter.post("/service-orders/:id/transition", async (c) => {
     await pool.query(
       `UPDATE flower_reservations
        SET status = 'deducted', deducted_at = now()
-       WHERE service_order_id = $1 AND org_id = $2 AND status = 'reserved'`,
+       WHERE legacy_service_order_id = $1 AND org_id = $2 AND status = 'reserved'`,
       [id, orgId]
     );
     // Also deduct from batches
     const { rows: resRows } = await pool.query(
       `SELECT batch_id, quantity FROM flower_reservations
-       WHERE service_order_id = $1 AND status = 'deducted' AND batch_id IS NOT NULL`,
+       WHERE legacy_service_order_id = $1 AND status = 'deducted' AND batch_id IS NOT NULL`,
       [id]
     );
     for (const r of resRows) {
@@ -343,7 +343,7 @@ flowersEventsOpsRouter.post("/service-orders/:id/transition", async (c) => {
     await pool.query(
       `UPDATE flower_reservations
        SET status = 'released', released_at = now()
-       WHERE service_order_id = $1 AND org_id = $2 AND status = 'reserved'`,
+       WHERE legacy_service_order_id = $1 AND org_id = $2 AND status = 'reserved'`,
       [id, orgId]
     );
   }
