@@ -501,7 +501,7 @@ adminRouter.post("/impersonate/:orgId", async (c) => {
     .from(users).where(and(eq(users.orgId, orgId), eq(users.type, "owner"))).limit(1);
   if (!owner) return apiErr(c, "ORG_NO_OWNER", 404);
 
-  const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
   // Create a temporary session
   const [session] = await db.insert(sessions).values({

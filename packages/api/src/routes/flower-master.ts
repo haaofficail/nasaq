@@ -241,29 +241,44 @@ const recipeComponentSchema = z.object({
 // ============================================================
 
 flowerMasterRouter.get("/variants", async (c) => {
-  const type     = c.req.query("type");
-  const color    = c.req.query("color");
-  const origin   = c.req.query("origin");
-  const grade    = c.req.query("grade");
-  const active   = c.req.query("active");
-  const mode     = c.req.query("mode") ?? "detailed"; // 'detailed' | 'simplified'
+  const type   = c.req.query("type");
+  const color  = c.req.query("color");
+  const origin = c.req.query("origin");
+  const grade  = c.req.query("grade");
+  const active = c.req.query("active");
+  const mode   = c.req.query("mode") ?? "detailed"; // 'detailed' | 'simplified'
 
-  const conditions: any[] = [];
-  if (type)   conditions.push(eq(flowerVariants.flowerType, type as any));
-  if (color)  conditions.push(eq(flowerVariants.color, color as any));
-  if (origin) conditions.push(eq(flowerVariants.origin, origin as any));
-  if (grade)  conditions.push(eq(flowerVariants.grade, grade as any));
-  if (active !== undefined) conditions.push(eq(flowerVariants.isActive, active !== "false"));
+  const conditions: string[] = [];
+  const params: any[] = [];
 
-  const rows = await db
-    .select()
-    .from(flowerVariants)
-    .where(conditions.length ? and(...conditions) : undefined)
-    .orderBy(asc(flowerVariants.flowerType), asc(flowerVariants.grade), asc(flowerVariants.color));
+  if (type)   { params.push(type);   conditions.push(`flower_type = $${params.length}`); }
+  if (color)  { params.push(color);  conditions.push(`color = $${params.length}`); }
+  if (origin) { params.push(origin); conditions.push(`origin = $${params.length}`); }
+  if (grade)  { params.push(grade);  conditions.push(`grade = $${params.length}`); }
+  if (active !== undefined) {
+    params.push(active !== "false");
+    conditions.push(`is_active = $${params.length}`);
+  }
+
+  const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+  const { rows } = await pool.query(
+    `SELECT id, flower_type AS "flowerType", color, origin, grade, size,
+            bloom_stage AS "bloomStage", display_name_ar AS "displayNameAr",
+            display_name_en AS "displayNameEn", base_price_per_stem AS "basePricePerStem",
+            origin_price_multiplier AS "originPriceMultiplier",
+            grade_price_multiplier AS "gradePriceMultiplier",
+            shelf_life_days AS "shelfLifeDays",
+            notes_ar AS "notesAr", notes_en AS "notesEn",
+            is_active AS "isActive", created_at AS "createdAt", updated_at AS "updatedAt"
+     FROM flower_variants
+     ${where}
+     ORDER BY flower_type ASC, grade ASC, color ASC`,
+    params
+  );
 
   if (mode === "simplified") {
     return c.json({
-      data: rows.map((r) => ({
+      data: rows.map((r: any) => ({
         id: r.id,
         label: r.displayNameAr ?? buildDisplayName(r),
         type: r.flowerType,
