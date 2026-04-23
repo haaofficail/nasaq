@@ -135,16 +135,9 @@ export async function createTestAppointmentBooking(
     orgId,
     customerId,
     bookingNumber,
-    status: "pending",
-    paymentStatus: "pending",
     startAt,
     endAt,
     durationMinutes: 60,
-    subtotal: "100.00",
-    discountAmount: "0",
-    vatAmount: "15.00",
-    totalAmount: "115.00",
-    paidAmount: "0",
     ...overrides,
   } as any).returning();
   return booking;

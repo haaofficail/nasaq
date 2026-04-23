@@ -97,11 +97,6 @@ async function insertEngineRow(
       startAt:         record.startsAt,
       endAt:           record.endsAt ?? null,
       assignedUserId:  input.assignedUserId ?? null,
-      subtotal:        record.subtotal,
-      discountAmount:  record.discountAmount,
-      vatAmount:       record.vatAmount,
-      totalAmount:     record.totalAmount,
-      paidAmount:      record.paidAmount,
       source:          record.source ?? "dashboard",
     } as any);
     return;
@@ -118,12 +113,6 @@ async function insertEngineRow(
       bookingNumber,
       checkIn:         record.startsAt,
       checkOut,
-      subtotal:        record.subtotal,
-      discountAmount:  record.discountAmount,
-      vatAmount:       record.vatAmount,
-      totalAmount:     record.totalAmount,
-      depositAmount:   record.depositAmount ?? "0",
-      paidAmount:      record.paidAmount,
       source:          record.source ?? "dashboard",
     } as any);
     return;

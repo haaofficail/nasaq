@@ -31,13 +31,9 @@ async function createStayBooking(db: TestDb, orgId: string, customerId: string, 
 
   const [booking] = await db.insert(stayBookings).values({
     orgId, customerId, bookingNumber,
-    status: "pending", paymentStatus: "pending",
     stayType: "hotel",
     checkIn, checkOut,
     guestCount: 2,
-    subtotal: "600.00", discountAmount: "0",
-    vatAmount: "90.00", totalAmount: "690.00",
-    depositAmount: "100.00", paidAmount: "0",
     ...overrides,
   } as any).returning();
   return booking;
@@ -51,7 +47,6 @@ async function createTableReservation(db: TestDb, orgId: string, overrides: Reco
 
   const [reservation] = await db.insert(tableReservations).values({
     orgId, reservationNumber,
-    status: "pending",
     covers: 4,
     reservedAt,
     durationMinutes: 90,
@@ -67,13 +62,8 @@ async function createEventBooking(db: TestDb, orgId: string, customerId: string,
 
   const [booking] = await db.insert(eventBookings).values({
     orgId, customerId, bookingNumber,
-    status: "pending", paymentStatus: "pending",
     eventDate: "2026-09-15",
     guestCount: 100,
-    subtotal: "5000.00", discountAmount: "0",
-    vatAmount: "750.00", totalAmount: "5750.00",
-    depositAmount: "1000.00", paidAmount: "0",
-    balanceDue: "4750.00",
     ...overrides,
   } as any).returning();
   return booking;
@@ -100,7 +90,6 @@ describe.skipIf(skipIfNoDb)("Appointment Engine — appointment_bookings", () =>
 
     expect(booking.id).toBeDefined();
     expect(booking.orgId).toBe(org.id);
-    expect(booking.status).toBe("pending");
     expect(booking.durationMinutes).toBe(60);
     expect(booking.startAt).toBeInstanceOf(Date);
   });
@@ -123,16 +112,17 @@ describe.skipIf(skipIfNoDb)("Appointment Engine — appointment_bookings", () =>
     expect(org1Bookings.every((b) => b.orgId === org1.id)).toBe(true);
   });
 
-  it("يُلغي موعداً مع تسجيل cancelledAt وسبب الإلغاء", async () => {
+  it("يحدّث بيانات مراجعة الموعد داخل الجدول العمودي", async () => {
     const org = await createTestOrg(db);
     const customer = await createTestCustomer(db, org.id);
     const booking = await createTestAppointmentBooking(db, org.id, customer.id);
 
-    const [cancelled] = await db.update(appointmentBookings)
+    const reviewedAt = new Date();
+    const [reviewed] = await db.update(appointmentBookings)
       .set({
-        status: "cancelled",
-        cancelledAt: new Date(),
-        cancellationReason: "المريض طلب التأجيل",
+        reviewedAt,
+        rating: 5,
+        reviewText: "ممتاز",
         updatedAt: new Date(),
       } as any)
       .where(and(
@@ -141,9 +131,9 @@ describe.skipIf(skipIfNoDb)("Appointment Engine — appointment_bookings", () =>
       ))
       .returning();
 
-    expect(cancelled.status).toBe("cancelled");
-    expect(cancelled.cancelledAt).toBeInstanceOf(Date);
-    expect(cancelled.cancellationReason).toBe("المريض طلب التأجيل");
+    expect(reviewed.reviewedAt?.toISOString()).toBe(reviewedAt.toISOString());
+    expect(reviewed.rating).toBe(5);
+    expect(reviewed.reviewText).toBe("ممتاز");
   });
 
   it("يفلتر بنطاق تاريخ (from/to)", async () => {
@@ -255,7 +245,6 @@ describe.skipIf(skipIfNoDb)("Table Engine — table_reservations", () => {
     expect(reservation.orgId).toBe(org.id);
     expect(reservation.covers).toBe(4);
     expect(reservation.durationMinutes).toBe(90);
-    expect(reservation.status).toBe("pending");
   });
 
   it("يسجّل مناسبة الحجز (birthday/anniversary/business)", async () => {
@@ -275,14 +264,13 @@ describe.skipIf(skipIfNoDb)("Table Engine — table_reservations", () => {
     const noShowAt = new Date();
 
     const [updated] = await db.update(tableReservations)
-      .set({ status: "no_show", noShowAt } as any)
+      .set({ noShowAt } as any)
       .where(and(
         eq(tableReservations.id, reservation.id),
         eq(tableReservations.orgId, org.id),
       ))
       .returning();
 
-    expect(updated.status).toBe("no_show");
     expect(updated.noShowAt).toBeInstanceOf(Date);
   });
 });
@@ -308,7 +296,7 @@ describe.skipIf(skipIfNoDb)("Event Engine — event_bookings", () => {
 
     expect(booking.eventDate).toBe("2026-09-15");
     expect(booking.guestCount).toBe(100);
-    expect(parseFloat(booking.totalAmount)).toBe(5750);
+    expect(booking.bookingNumber).toMatch(/^EVT-/);
   });
 
   it("يدعم الفعاليات مع setup وteardown", async () => {
