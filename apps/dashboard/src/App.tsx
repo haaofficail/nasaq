@@ -276,10 +276,8 @@ export default function App() {
   return (
     <Suspense fallback={<PageLoader />}>
       <Routes>
-        {/* Public landing pages — ثيم نسق الثابت */}
+        {/* Public landing pages */}
         <Route path="/" element={<NasaqThemeGuard><LandingPage /></NasaqThemeGuard>} />
-        <Route path="/home" element={<NasaqThemeGuard><LandingPage /></NasaqThemeGuard>} />
-        <Route path="/landing" element={<NasaqThemeGuard><LandingPage /></NasaqThemeGuard>} />
         <Route path="/school" element={<NasaqThemeGuard><SchoolLandingPage /></NasaqThemeGuard>} />
         <Route path="/school/login" element={<NasaqThemeGuard><SchoolLoginPage /></NasaqThemeGuard>} />
         <Route path="/school/register" element={<NasaqThemeGuard><SchoolRegisterPage /></NasaqThemeGuard>} />
@@ -508,9 +506,10 @@ export default function App() {
 
           {/* ── Redirects from old routes ── */}
           <Route path="employees"          element={<Navigate to="/dashboard/team" replace />} />
-          <Route path="customization"      element={<Navigate to="/dashboard/settings" replace />} />
-          <Route path="platform"           element={<Navigate to="/dashboard/settings" replace />} />
           <Route path="revenue"            element={<Navigate to="/dashboard/finance" replace />} />
+          {/* NOTE: customization + platform routes are registered above (lines 409-410)
+              as real pages — the redirect intent was never applied. Product decision pending.
+              See LEGACY_AUTONOMOUS_AUDIT.md § Batch 3. */}
 
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Route>
