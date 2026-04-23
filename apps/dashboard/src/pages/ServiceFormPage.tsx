@@ -62,7 +62,7 @@ const BUSINESS_ALLOWED_SERVICE_TYPES: Record<string, string[]> = {
   logistics:       ["field_service", "product", "product_shipping"],
   construction:    ["project", "execution", "product", "add_on"],
   retail:          ["product", "product_shipping", "add_on"],
-  flower_shop:     ["field_service", "product", "product_shipping", "add_on"],
+  flower_shop:     ["product", "product_shipping", "field_service", "add_on"],
   printing:        ["product", "execution", "field_service", "add_on"],
   laundry:         ["execution", "field_service", "product", "add_on"],
   digital_services:["execution", "project", "product", "add_on"],
@@ -93,7 +93,7 @@ const BUSINESS_DEFAULT_SERVICE_TYPE: Record<string, string> = {
   logistics:      "field_service",
   construction:   "project",
   retail:         "product",
-  flower_shop:    "field_service",
+  flower_shop:    "product",
   school:         "product",
 };
 
