@@ -5,7 +5,7 @@
  * 4 خطوات: الأساسيات → التفاصيل → الوسائط والمكونات → المراجعة والنشر
  */
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link, useBeforeUnload, unstable_usePrompt } from "react-router-dom";
 import {
   ArrowRight, ArrowLeft, Loader2, AlertCircle, Upload, X, Plus,
   Trash2, Save, Check, ChevronDown, MapPin, Package, Wrench,
@@ -243,6 +243,8 @@ const QUESTION_TYPES: { value: QuestionType; label: string; icon: React.ElementT
 // ─── Styles ───────────────────────────────────────────────────────────────────
 
 const iCls = "w-full border border-[#eef2f6] h-10 rounded-xl px-3 text-sm outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-50/60 transition-all bg-white placeholder:text-gray-300";
+const EXIT_GUARD_MESSAGE = "لديك تعديلات غير محفوظة داخل الخدمة. هل تريد المغادرة وفقدان هذه التغييرات؟";
+const UPLOAD_IN_PROGRESS_MESSAGE = "لا يمكن الحفظ قبل اكتمال رفع الصور الجارية.";
 
 function Err({ msg }: { msg?: string }) {
   if (!msg) return null;
@@ -270,6 +272,8 @@ export function ServiceCreateWizard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const typeFromUrl = searchParams.get("type") || "";
+  const [skipExitGuard, setSkipExitGuard] = useState(false);
+  const [redirectAfterSave, setRedirectAfterSave] = useState<string | null>(null);
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [step, setStep] = useState(typeFromUrl ? 1 : 0); // 0 = type picker
@@ -309,7 +313,47 @@ export function ServiceCreateWizard() {
   const availableTypes = BUSINESS_CUSTOM_TYPES[user?.businessType || ""] || DEFAULT_SERVICE_TYPES;
 
   const needsTiming = NEEDS_TIMING.has(form.serviceType);
-  
+  const initialFormState = useMemo<Form>(() => {
+    const next = typeFromUrl ? { ...INIT, serviceType: typeFromUrl } : { ...INIT };
+    if (!typeFromUrl || !TYPE_CONFIG[typeFromUrl]) return next;
+    return {
+      ...next,
+      ...TYPE_CONFIG[typeFromUrl].defaults,
+      serviceMode: deriveServiceMode(typeFromUrl),
+    };
+  }, [typeFromUrl]);
+  const pendingServiceImageUploads = mediaItems.filter(m => m.uploading).length;
+  const pendingAddonImageUploads = addonUploadIdx !== null ? 1 : 0;
+  const isUploadingImages = pendingServiceImageUploads > 0 || pendingAddonImageUploads > 0;
+  const uploadStatusMessage = pendingServiceImageUploads > 0 && pendingAddonImageUploads > 0
+    ? `جارٍ رفع ${pendingServiceImageUploads} صورة للخدمة وصورة إضافة واحدة. انتظر اكتمال الرفع قبل الحفظ.`
+    : pendingServiceImageUploads > 0
+      ? `جارٍ رفع ${pendingServiceImageUploads} صورة للخدمة. انتظر اكتمال الرفع قبل الحفظ.`
+      : pendingAddonImageUploads > 0
+        ? "جارٍ رفع صورة إضافة. انتظر اكتمال الرفع قبل الحفظ."
+        : "";
+  const hasUnsavedChanges = useMemo(() => {
+    const currentDraft = JSON.stringify({
+      form,
+      addonDrafts,
+      questionDrafts,
+      componentDrafts,
+      mediaItems: mediaItems.map(({ url, isCover }) => ({ url, isCover })),
+      pendingStaffIds,
+      allowedBranches,
+    });
+    const initialDraft = JSON.stringify({
+      form: initialFormState,
+      addonDrafts: [],
+      questionDrafts: [],
+      componentDrafts: [],
+      mediaItems: [],
+      pendingStaffIds: [],
+      allowedBranches: [],
+    });
+    return currentDraft !== initialDraft;
+  }, [addonDrafts, allowedBranches, componentDrafts, form, initialFormState, mediaItems, pendingStaffIds, questionDrafts]);
+
   // Apply dynamic overrides based on business type
   const baseTypeConfig = TYPE_CONFIG[form.serviceType] || DEFAULT_TYPE_CONFIG;
   const typeConfig = useMemo(() => {
@@ -328,6 +372,22 @@ export function ServiceCreateWizard() {
   
   const isExecutionMode = form.serviceMode === "execution";
   const canToggleMode = EXECUTION_TYPES.has(form.serviceType) || ["appointment", "execution", "field_service", "project"].includes(form.serviceType);
+
+  useBeforeUnload((event) => {
+    if (!hasUnsavedChanges || skipExitGuard) return;
+    event.preventDefault();
+    event.returnValue = "";
+  });
+
+  unstable_usePrompt({
+    when: hasUnsavedChanges && !skipExitGuard,
+    message: EXIT_GUARD_MESSAGE,
+  });
+
+  useEffect(() => {
+    if (!redirectAfterSave) return;
+    navigate(redirectAfterSave);
+  }, [navigate, redirectAfterSave]);
 
   // ── Apply type defaults ────────────────────────────────────────────────────
   useEffect(() => {
@@ -430,6 +490,10 @@ export function ServiceCreateWizard() {
 
   // ── Save ───────────────────────────────────────────────────────────────────
   const save = async () => {
+    if (isUploadingImages) {
+      setErrors({ _submit: UPLOAD_IN_PROGRESS_MESSAGE });
+      return;
+    }
     setSaving(true);
     setErrors({});
     try {
@@ -532,11 +596,12 @@ export function ServiceCreateWizard() {
       // Show result
       const uniqueWarnings = [...new Set(warnings)];
       if (uniqueWarnings.length > 0) {
-        toast.success("تم إنشاء الخدمة — " + uniqueWarnings.join("، "));
+        toast.error("اكتمل إنشاء الخدمة لكن تعذر حفظ بعض العناصر: " + uniqueWarnings.join("، "));
       } else {
         toast.success("تم إنشاء الخدمة بنجاح");
       }
-      navigate(`/dashboard/services/${svcId}`);
+      setSkipExitGuard(true);
+      setRedirectAfterSave(`/dashboard/services/${svcId}`);
     } catch (e: any) {
       setErrors({ _submit: e.message || "حدث خطأ أثناء الحفظ" });
     } finally {
@@ -1106,6 +1171,12 @@ export function ServiceCreateWizard() {
                   <span className="text-[11px] text-gray-400">إضافة</span>
                 </button>
               </div>
+              {isUploadingImages && (
+                <div className="flex items-center gap-2 rounded-xl border border-brand-100 bg-brand-50 px-3 py-2 text-xs text-brand-700">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                  {uploadStatusMessage}
+                </div>
+              )}
               {uploadErr && <p className="text-xs text-red-500 mt-1">{uploadErr}</p>}
               <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
                 onChange={e => { Array.from(e.target.files || []).forEach(pickFile); e.target.value = ""; }} />
@@ -1517,6 +1588,11 @@ export function ServiceCreateWizard() {
                 <AlertCircle className="w-4 h-4 shrink-0" />{errors._submit}
               </div>
             )}
+            {isUploadingImages && (
+              <div className="flex items-center gap-2 p-3 bg-brand-50 border border-brand-100 rounded-xl text-sm text-brand-700">
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" />{uploadStatusMessage}
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1550,10 +1626,12 @@ export function ServiceCreateWizard() {
                 <ArrowLeft className="w-4 h-4" />
               </button>
             ) : (
-              <button onClick={save} disabled={saving}
+              <button onClick={save} disabled={saving || isUploadingImages}
+                title={isUploadingImages ? uploadStatusMessage : undefined}
+                aria-label={isUploadingImages ? uploadStatusMessage : isFlowerShop && form.serviceType === "product" ? "اعتماد الخدمة وإضافتها للمتجر" : "إنشاء الخدمة وحفظها"}
                 className="flex items-center gap-1.5 px-6 py-2 rounded-xl bg-brand-500 text-white text-sm font-bold hover:bg-brand-600 disabled:opacity-50 transition-colors shadow-sm">
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                {isFlowerShop && form.serviceType === "product" ? "اعتماد وإضافة للمتجر" : "إنشاء وحفظ"}
+                {saving || isUploadingImages ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                {isUploadingImages ? "جارٍ رفع الصور..." : isFlowerShop && form.serviceType === "product" ? "اعتماد وإضافة للمتجر" : "إنشاء وحفظ"}
               </button>
             )}
           </div>
