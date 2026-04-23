@@ -213,7 +213,7 @@ type Form = {
   basePrice: string; servicePricingMode: string;
   durationValue: string; durationUnit: DurationUnit; status: string;
   vatInclusive: boolean; maxCapacity: string; isFeatured: boolean;
-  depositPercent: string; minAdvanceHours: string; maxAdvanceDays: string;
+  requireDeposit: boolean; depositPercent: string; minAdvanceHours: string; maxAdvanceDays: string;
   bufferBeforeMinutes: string; bufferAfterMinutes: string; cancellationFreeHours: string;
   isBookable: boolean; isVisibleInPOS: boolean; isVisibleOnline: boolean;
   barcode: string;
@@ -228,7 +228,7 @@ const INIT: Form = {
   basePrice: "", servicePricingMode: "fixed",
   durationValue: "60", durationUnit: "minute", status: "active",
   vatInclusive: true, maxCapacity: "", isFeatured: false,
-  depositPercent: "30", minAdvanceHours: "", maxAdvanceDays: "",
+  requireDeposit: false, depositPercent: "30", minAdvanceHours: "", maxAdvanceDays: "",
   bufferBeforeMinutes: "0", bufferAfterMinutes: "0", cancellationFreeHours: "24",
   isBookable: true, isVisibleInPOS: true, isVisibleOnline: true,
   barcode: "",
@@ -439,7 +439,7 @@ export function ServiceFormPage() {
       inventoryApi.products().then(r => { setProducts(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل المنتجات"); return false; }),
       inventoryApi.assets().then(r => { setAssetsList(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل الأصول"); return false; }),
       settingsApi.branches().then(r => { setBranches(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل الفروع"); return false; }),
-      eventPackagesApi.list().then(r => { setTemplates(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل القوالب"); return false; }),
+      eventPackagesApi.list().then(r => { setTemplates(r.data || []); return true; }).catch(() => true),
     ];
 
     if (!isEdit) {
@@ -484,6 +484,7 @@ export function ServiceFormPage() {
           vatInclusive:          s.vatInclusive ?? true,
           maxCapacity:           s.maxCapacity ? String(s.maxCapacity) : "",
           isFeatured:            s.isFeatured ?? false,
+          requireDeposit:        s.depositPercent != null && Number(s.depositPercent) > 0,
           depositPercent:        s.depositPercent ? String(s.depositPercent) : "30",
           minAdvanceHours:       s.minAdvanceHours ? String(s.minAdvanceHours) : "",
           maxAdvanceDays:        s.maxAdvanceDays  ? String(s.maxAdvanceDays)  : "",
@@ -591,7 +592,7 @@ export function ServiceFormPage() {
       const bookingPayload = {
         vatInclusive:        form.vatInclusive,
         maxCapacity:         form.maxCapacity ? parseInt(form.maxCapacity) : undefined,
-        depositPercent:      form.depositPercent || "0",
+        depositPercent:      form.requireDeposit ? (form.depositPercent || "30") : "0",
         minAdvanceHours:     form.minAdvanceHours ? parseInt(form.minAdvanceHours) : undefined,
         maxAdvanceeDays:     form.maxAdvanceDays  ? parseInt(form.maxAdvanceDays)  : undefined,
         bufferBeforeMinutes: parseInt(form.bufferBeforeMinutes) || 0,
@@ -1022,12 +1023,25 @@ export function ServiceFormPage() {
                         placeholder="∞" dir="ltr" className={iCls} />
                     </div>
                   )}
-                  <div className="w-32">
-                    <label className="text-xs font-medium text-gray-700 block mb-1.5">
-                      العربون <span className="text-gray-400 font-normal text-[11px]">(%)</span>
+                  <div className="flex flex-col gap-1.5">
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={form.requireDeposit}
+                        onChange={e => setForm(f => ({ ...f, requireDeposit: e.target.checked }))}
+                        className="w-4 h-4 rounded border-gray-300 text-brand-500 focus:ring-brand-400"
+                      />
+                      <span className="text-xs font-medium text-gray-700">عربون مطلوب</span>
                     </label>
-                    <input type="number" min={0} max={100} value={form.depositPercent} onChange={upd("depositPercent")}
-                      placeholder="30" dir="ltr" className={iCls} />
+                    {form.requireDeposit && (
+                      <div className="w-32">
+                        <label className="text-xs text-gray-500 block mb-1">
+                          النسبة <span className="text-gray-400 font-normal text-[11px]">(%)</span>
+                        </label>
+                        <input type="number" min={1} max={100} value={form.depositPercent} onChange={upd("depositPercent")}
+                          placeholder="30" dir="ltr" className={iCls} />
+                      </div>
+                    )}
                   </div>
                 </div>
 
