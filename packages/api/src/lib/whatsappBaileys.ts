@@ -68,6 +68,10 @@ function touch(sess: Session, patch: Partial<Session>) {
   Object.assign(sess, patch, { updatedAt: new Date() });
 }
 
+function getRestoreDelayMs(baseMs: number): number {
+  return baseMs + Math.floor(Math.random() * baseMs);
+}
+
 // ── Public API ────────────────────────────────────────────
 
 /** Start or resume a session.
@@ -256,10 +260,10 @@ export async function restoreAllBaileys(): Promise<void> {
     fs.statSync(path.join(SESSIONS_DIR, d)).isDirectory() &&
     fs.existsSync(path.join(SESSIONS_DIR, d, "creds.json"))
   );
-  for (const orgId of dirs) {
+  for (const [index, orgId] of dirs.entries()) {
     log.info({ orgId }, "[wa-baileys] restoring session");
-    if (orgId !== dirs[0]) {
-      await new Promise((resolve) => setTimeout(resolve, RESTORE_DELAY_MS + Math.floor(Math.random() * RESTORE_DELAY_MS)));
+    if (index > 0) {
+      await new Promise((resolve) => setTimeout(resolve, getRestoreDelayMs(RESTORE_DELAY_MS)));
     }
     initBaileys(orgId).catch(() => {});
   }
