@@ -221,7 +221,7 @@ type AddonDraft = { name: string; nameEn: string; description: string; price: st
 type QuestionType = "text" | "textarea" | "number" | "date" | "select" | "multi" | "checkbox" | "location" | "file" | "image";
 type QuestionDraft = { question: string; type: QuestionType; isRequired: boolean; isPaid: boolean; price: string; options: string[] };
 type ComponentDraft = { sourceType: "manual" | "inventory"; inventoryItemId: string; name: string; quantity: string; unit: string; unitCost: string };
-type MediaItem = { preview: string; url: string | null; mediaId: string | null; isCover: boolean; uploading: boolean };
+type MediaItem = { id: string; preview: string; url: string | null; mediaId: string | null; isCover: boolean; uploading: boolean };
 
 const INIT_ADDON: AddonDraft = { name: "", nameEn: "", description: "", price: "", type: "optional", imageUrl: "" };
 const INIT_Q: QuestionDraft = { question: "", type: "text", isRequired: false, isPaid: false, price: "", options: [] };
@@ -264,6 +264,22 @@ const STEPS = [
 
 function deriveServiceMode(serviceType: string): ServiceMode {
   return EXECUTION_TYPES.has(serviceType) ? "execution" : "booking";
+}
+
+function summarizeUploadFailures(failures: Array<{ fileName: string; message: string }>, totalFiles: number) {
+  if (failures.length === 0) return null;
+  if (failures.length === 1) {
+    const failure = failures[0];
+    return `تعذر رفع الصورة "${failure.fileName}": ${failure.message}`;
+  }
+
+  const previewNames = failures.slice(0, 2).map(failure => `"${failure.fileName}"`).join("، ");
+  const remaining = failures.length - Math.min(failures.length, 2);
+  const uniqueMessages = Array.from(new Set(failures.map(failure => failure.message).filter(Boolean)));
+  const summary = remaining > 0 ? `${previewNames}، و${remaining} أخرى` : previewNames;
+  const reason = uniqueMessages.length === 1 ? uniqueMessages[0] : "تحقق من الملفات وحاول مرة أخرى.";
+
+  return `تعذر رفع ${failures.length} من أصل ${totalFiles} صور (${summary}). ${reason}`;
 }
 
 // ─── Main Component ──────────────────────────────────────────────────────────
@@ -371,7 +387,7 @@ export function ServiceCreateWizard() {
   }, [baseTypeConfig, isFlowerShop, form.serviceType]);
   
   const isExecutionMode = form.serviceMode === "execution";
-  const canToggleMode = EXECUTION_TYPES.has(form.serviceType) || ["appointment", "execution", "field_service", "project"].includes(form.serviceType);
+  const canToggleMode = EXECUTION_TYPES.has(form.serviceType);
 
   useBeforeUnload((event) => {
     if (!hasUnsavedChanges || skipExitGuard) return;
@@ -431,10 +447,9 @@ export function ServiceCreateWizard() {
 
   // ── Image upload ───────────────────────────────────────────────────────────
   const pickFile = async (file: File) => {
+    const itemId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const preview = URL.createObjectURL(file);
-    const idx = mediaItems.length;
-    setMediaItems(p => [...p, { preview, url: null, mediaId: null, isCover: p.length === 0, uploading: true }]);
-    setUploadErr(null);
+    setMediaItems(p => [...p, { id: itemId, preview, url: null, mediaId: null, isCover: p.length === 0, uploading: true }]);
     try {
       const fd = new FormData();
       fd.append("file", file);
@@ -442,11 +457,26 @@ export function ServiceCreateWizard() {
       const res = await mediaApi.upload(fd, () => {});
       const url = res.data?.fileUrl || res.data?.url || res.data?.publicUrl;
       if (!url) throw new Error("لم يرجع السيرفر رابط الصورة");
-      setMediaItems(p => p.map((m, i) => i === idx ? { ...m, url, preview: url, uploading: false } : m));
+      setMediaItems(p => p.map(m => m.id === itemId ? { ...m, url, preview: url, uploading: false } : m));
+      return null;
     } catch (e: any) {
-      setUploadErr(e.message || "فشل رفع الصورة");
-      setMediaItems(p => p.filter((_, i) => i !== idx));
+      setMediaItems(p => p.filter(m => m.id !== itemId));
+      return {
+        fileName: file.name,
+        message: e?.message || "فشل رفع الصورة",
+      };
     }
+  };
+
+  const handleServiceFilesSelected = async (files: FileList | null) => {
+    const selectedFiles = Array.from(files || []);
+    if (selectedFiles.length === 0) return;
+
+    setUploadErr(null);
+    const results = await Promise.all(selectedFiles.map(file => pickFile(file)));
+    const failures = results.filter((result): result is { fileName: string; message: string } => result !== null);
+    const summary = summarizeUploadFailures(failures, selectedFiles.length);
+    if (summary) setUploadErr(summary);
   };
 
   const pickAddonImage = async (file: File, idx: number) => {
@@ -1136,7 +1166,7 @@ export function ServiceCreateWizard() {
               </div>
               <div className="flex flex-wrap gap-3">
                 {mediaItems.map((m, i) => (
-                  <div key={i} className="relative w-24 h-24 rounded-2xl overflow-hidden border border-[#eef2f6] group">
+                  <div key={m.id} className="relative w-24 h-24 rounded-2xl overflow-hidden border border-[#eef2f6] group">
                     <img src={m.preview} alt="" className="w-full h-full object-cover" />
                     {m.uploading && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -1179,7 +1209,7 @@ export function ServiceCreateWizard() {
               )}
               {uploadErr && <p className="text-xs text-red-500 mt-1">{uploadErr}</p>}
               <input ref={fileRef} type="file" accept="image/*" multiple className="hidden"
-                onChange={e => { Array.from(e.target.files || []).forEach(pickFile); e.target.value = ""; }} />
+                onChange={e => { void handleServiceFilesSelected(e.target.files); e.target.value = ""; }} />
             </div>
 
             {/* Staff — only for execution/staff types */}
