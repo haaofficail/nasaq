@@ -74,7 +74,7 @@ const createServiceSchema = z.object({
 
   // ── Service Engine fields (migration 019) ────────────────────────────────
   displayName:        z.string().optional(),
-  serviceType:        z.enum(["appointment","execution","field_service","rental","event_rental","product","product_shipping","food_order","package","add_on","project"]).default("appointment"),
+  serviceType:        z.enum(["appointment","execution","field_service","rental","event_rental","product","product_shipping","food_order","package","add_on","project"]).optional(),
   servicePricingMode: z.enum(["fixed","from_price","variable"]).default("fixed"),
   assignmentMode:     z.enum(["open","restricted"]).default("open"),
   isBookable:         z.boolean().default(true),
@@ -370,11 +370,15 @@ servicesRouter.get("/:id", async (c) => {
 // POST /services — Create
 // ============================================================
 
+type ServiceType =
+  | "appointment" | "execution" | "field_service" | "rental" | "event_rental"
+  | "product" | "product_shipping" | "food_order" | "package" | "add_on" | "project";
+
 // أنواع الخدمات التي تتطلب مدة زمنية محددة
-const TIMED_SERVICE_TYPES = new Set(["appointment", "execution", "field_service"]);
+const TIMED_SERVICE_TYPES = new Set<ServiceType>(["appointment", "execution", "field_service"]);
 
 // نوع الخدمة الافتراضي حسب نوع البيزنس
-const BUSINESS_DEFAULT_SERVICE_TYPE: Record<string, string> = {
+const BUSINESS_DEFAULT_SERVICE_TYPE: Record<string, ServiceType> = {
   salon:           "appointment",
   barber:          "appointment",
   spa:             "appointment",
@@ -406,14 +410,14 @@ servicesRouter.post("/", async (c) => {
   if (!body) return;
 
   // استنتاج نوع الخدمة من businessType إن لم يُحدد
-  let resolvedServiceType = body.serviceType;
-  if (!resolvedServiceType) {
+  let resolvedServiceType: ServiceType = body.serviceType ?? "product";
+  if (!body.serviceType) {
     const [org] = await db.select({ businessType: organizations.businessType })
       .from(organizations).where(eq(organizations.id, orgId));
     resolvedServiceType = BUSINESS_DEFAULT_SERVICE_TYPE[org?.businessType ?? ""] ?? "product";
   }
 
-  // مدة الخدمة إلزامية للخدمات المجدولة — افتراضي 60 دقيقة إذا لم تُحدد
+  // مدة الخدمة مطلوبة للخدمات المجدولة — افتراضي 60 دقيقة إذا لم تُحدد
   let resolvedDuration = body.durationMinutes;
   if (TIMED_SERVICE_TYPES.has(resolvedServiceType) && !resolvedDuration) {
     resolvedDuration = 60;
