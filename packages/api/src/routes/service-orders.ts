@@ -156,6 +156,26 @@ serviceOrdersRouter.post("/", async (c) => {
   }
 });
 
+// ─── GET /stats — إحصائيات طلبات الخدمة ─────────────────────────────────────
+// يجب أن يكون قبل GET /:id لأن Hono يطابق الـ segments بالترتيب
+
+serviceOrdersRouter.get("/stats", async (c) => {
+  const orgId = getOrgId(c);
+  const { rows } = await pool.query(
+    `SELECT
+       COUNT(*) FILTER (WHERE status NOT IN ('closed','cancelled'))::int AS active,
+       COUNT(*) FILTER (WHERE status='draft')::int AS draft,
+       COUNT(*) FILTER (WHERE status IN ('confirmed','scheduled'))::int AS scheduled,
+       COUNT(*) FILTER (WHERE status IN ('preparing','ready','dispatched','in_setup'))::int AS in_progress,
+       COUNT(*) FILTER (WHERE status='returned')::int AS pending_inspection,
+       COUNT(*) FILTER (WHERE event_date = CURRENT_DATE AND status NOT IN ('closed','cancelled'))::int AS today,
+       COALESCE(SUM(total_amount) FILTER (WHERE status='closed'), 0) AS closed_revenue
+     FROM service_orders WHERE org_id=$1`,
+    [orgId]
+  );
+  return c.json({ data: rows[0] });
+});
+
 // ─── GET /:id — تفاصيل الطلب ─────────────────────────────────────────────────
 
 serviceOrdersRouter.get("/:id", async (c) => {
@@ -799,21 +819,3 @@ serviceOrdersRouter.delete("/:id/staff/:staffId", async (c) => {
   return c.json({ data: { deleted: true } });
 });
 
-// ─── GET /stats — إحصائيات طلبات الخدمة ─────────────────────────────────────
-
-serviceOrdersRouter.get("/stats", async (c) => {
-  const orgId = getOrgId(c);
-  const { rows } = await pool.query(
-    `SELECT
-       COUNT(*) FILTER (WHERE status NOT IN ('closed','cancelled'))::int AS active,
-       COUNT(*) FILTER (WHERE status='draft')::int AS draft,
-       COUNT(*) FILTER (WHERE status IN ('confirmed','scheduled'))::int AS scheduled,
-       COUNT(*) FILTER (WHERE status IN ('preparing','ready','dispatched','in_setup'))::int AS in_progress,
-       COUNT(*) FILTER (WHERE status='returned')::int AS pending_inspection,
-       COUNT(*) FILTER (WHERE event_date = CURRENT_DATE AND status NOT IN ('closed','cancelled'))::int AS today,
-       COALESCE(SUM(total_amount) FILTER (WHERE status='closed'), 0) AS closed_revenue
-     FROM service_orders WHERE org_id=$1`,
-    [orgId]
-  );
-  return c.json({ data: rows[0] });
-});
