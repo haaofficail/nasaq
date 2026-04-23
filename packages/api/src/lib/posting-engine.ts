@@ -128,8 +128,8 @@ export async function getAccountsByKeys(
 
   return Object.fromEntries(
     accounts
-      .filter((a) => a.systemKey !== null)
-      .map((a) => [a.systemKey!, a.id])
+      .filter((a: { systemKey: string | null; id: string }) => a.systemKey !== null)
+      .map((a: { systemKey: string | null; id: string }) => [a.systemKey!, a.id])
   );
 }
 
