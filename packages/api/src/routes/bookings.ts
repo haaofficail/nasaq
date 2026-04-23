@@ -83,11 +83,6 @@ async function insertEngineRow(
       startAt:         record.startsAt,
       endAt:           record.endsAt ?? null,
       assignedUserId:  assignedUserId ?? null,
-      subtotal:        record.subtotal,
-      discountAmount:  record.discountAmount,
-      vatAmount:       record.vatAmount,
-      totalAmount:     record.totalAmount,
-      paidAmount:      record.paidAmount,
       source,
     } as any);
     return;
@@ -104,12 +99,6 @@ async function insertEngineRow(
       bookingNumber:   engineBookingNumber,
       checkIn:         record.startsAt,
       checkOut,
-      subtotal:        record.subtotal,
-      discountAmount:  record.discountAmount,
-      vatAmount:       record.vatAmount,
-      totalAmount:     record.totalAmount,
-      depositAmount:   record.depositAmount ?? "0",
-      paidAmount:      record.paidAmount,
       source,
     } as any);
     return;
@@ -126,11 +115,6 @@ async function insertEngineRow(
       startTime:       record.startsAt,
       endTime:         record.endsAt ?? new Date(record.startsAt.getTime() + 2 * 60 * 60 * 1000),
       locationId:      record.locationId ?? null,
-      subtotal:        record.subtotal,
-      discountAmount:  record.discountAmount,
-      vatAmount:       record.vatAmount,
-      totalAmount:     record.totalAmount,
-      paidAmount:      record.paidAmount,
       source,
     } as any);
     return;
@@ -149,12 +133,6 @@ async function insertEngineRow(
       eventStart:      record.startsAt,
       eventEnd:        record.endsAt ?? new Date(record.startsAt.getTime() + 4 * 60 * 60 * 1000),
       locationId:      record.locationId ?? null,
-      subtotal:        record.subtotal,
-      discountAmount:  record.discountAmount,
-      vatAmount:       record.vatAmount,
-      totalAmount:     record.totalAmount,
-      depositAmount:   record.depositAmount ?? "0",
-      paidAmount:      record.paidAmount,
       source,
     } as any);
     return;

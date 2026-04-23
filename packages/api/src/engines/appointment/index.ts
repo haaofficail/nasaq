@@ -13,10 +13,8 @@
 
 import { Hono } from "hono";
 import { db } from "@nasaq/db/client";
-import { appointmentBookings } from "@nasaq/db/schema/canonical-bookings";
+import { appointmentBookings, bookingRecords } from "@nasaq/db/schema/canonical-bookings";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
-import { calcVat } from "../shared/vat";
-import { generateBookingNumber } from "../shared/booking-number";
 import type { AuthUser } from "../../middleware/auth";
 
 export const appointmentEngine = new Hono<{
@@ -27,6 +25,28 @@ export const appointmentEngine = new Hono<{
   }
 }>();
 
+function mergeAppointmentBooking(row: {
+  appointmentBooking: typeof appointmentBookings.$inferSelect;
+  bookingRecord: typeof bookingRecords.$inferSelect;
+}) {
+  return {
+    ...row.appointmentBooking,
+    status: row.bookingRecord.status,
+    paymentStatus: row.bookingRecord.paymentStatus,
+    subtotal: row.bookingRecord.subtotal,
+    discountAmount: row.bookingRecord.discountAmount,
+    vatAmount: row.bookingRecord.vatAmount,
+    totalAmount: row.bookingRecord.totalAmount,
+    depositAmount: row.bookingRecord.depositAmount,
+    paidAmount: row.bookingRecord.paidAmount,
+    balanceDue: row.bookingRecord.balanceDue,
+    customerNotes: row.bookingRecord.customerNotes,
+    internalNotes: row.bookingRecord.internalNotes,
+    cancelledAt: row.bookingRecord.cancelledAt,
+    cancellationReason: row.bookingRecord.cancellationReason,
+  };
+}
+
 // GET /engines/appointment/bookings
 appointmentEngine.get("/bookings", async (c) => {
   const orgId = c.get("orgId") as string;
@@ -35,93 +55,26 @@ appointmentEngine.get("/bookings", async (c) => {
   const offset = (Number(page) - 1) * limit;
 
   const conditions = [eq(appointmentBookings.orgId, orgId)];
-  if (status) conditions.push(eq(appointmentBookings.status, status));
+  if (status) conditions.push(eq(bookingRecords.status, status));
   if (from)   conditions.push(gte(appointmentBookings.startAt, new Date(from)));
   if (to)     conditions.push(lte(appointmentBookings.startAt, new Date(to)));
 
   const rows = await db
-    .select()
+    .select({
+      appointmentBooking: appointmentBookings,
+      bookingRecord: bookingRecords,
+    })
     .from(appointmentBookings)
+    .innerJoin(bookingRecords, and(
+      eq(appointmentBookings.bookingRecordId, bookingRecords.id),
+      eq(bookingRecords.orgId, orgId)
+    ))
     .where(and(...conditions))
     .orderBy(desc(appointmentBookings.startAt))
     .limit(limit)
     .offset(offset);
 
-  return c.json({ data: rows });
-});
-
-// POST /engines/appointment/bookings
-appointmentEngine.post("/bookings", async (c) => {
-  const orgId = c.get("orgId") as string;
-  const userId = c.get("user")?.id ?? null;
-  const body = await c.req.json();
-
-  const { base, vat, total } = calcVat(
-    Number(body.subtotal ?? 0),
-    body.vatInclusive ?? true
-  );
-
-  const bookingNumber = generateBookingNumber("appointment");
-
-  const [booking] = await db
-    .insert(appointmentBookings)
-    .values({
-      orgId,
-      customerId:      body.customerId,
-      bookingNumber,
-      status:          "pending",
-      paymentStatus:   "pending",
-      startAt:         new Date(body.startAt),
-      endAt:           body.endAt ? new Date(body.endAt) : undefined,
-      durationMinutes: body.durationMinutes,
-      locationId:      body.locationId,
-      assignedUserId:  body.assignedUserId ?? userId,
-      subtotal:        String(base),
-      vatAmount:       String(vat),
-      totalAmount:     String(total),
-      paidAmount:      "0",
-      source:          body.source ?? "dashboard",
-      customerNotes:   body.customerNotes,
-      internalNotes:   body.internalNotes,
-      questionAnswers: body.questionAnswers ?? [],
-    })
-    .returning();
-
-  return c.json({ data: booking }, 201);
-});
-
-// PATCH /engines/appointment/bookings/:id/status
-appointmentEngine.patch("/bookings/:id/status", async (c) => {
-  const orgId = c.get("orgId") as string;
-  const { id } = c.req.param();
-  const { status, reason } = await c.req.json();
-
-  const VALID_STATUSES = [
-    "confirmed", "in_progress", "completed",
-    "cancelled", "no_show", "reviewed"
-  ];
-  if (!VALID_STATUSES.includes(status)) {
-    return c.json({ error: "Invalid status" }, 400);
-  }
-
-  const [updated] = await db
-    .update(appointmentBookings)
-    .set({
-      status,
-      ...(status === "cancelled" ? {
-        cancelledAt: new Date(),
-        cancellationReason: reason,
-      } : {}),
-      updatedAt: new Date(),
-    })
-    .where(and(
-      eq(appointmentBookings.id, id),
-      eq(appointmentBookings.orgId, orgId)
-    ))
-    .returning();
-
-  if (!updated) return c.json({ error: "Not found" }, 404);
-  return c.json({ data: updated });
+  return c.json({ data: rows.map(mergeAppointmentBooking) });
 });
 
 // GET /engines/appointment/bookings/:id
@@ -130,13 +83,20 @@ appointmentEngine.get("/bookings/:id", async (c) => {
   const { id } = c.req.param();
 
   const [booking] = await db
-    .select()
+    .select({
+      appointmentBooking: appointmentBookings,
+      bookingRecord: bookingRecords,
+    })
     .from(appointmentBookings)
+    .innerJoin(bookingRecords, and(
+      eq(appointmentBookings.bookingRecordId, bookingRecords.id),
+      eq(bookingRecords.orgId, orgId)
+    ))
     .where(and(
       eq(appointmentBookings.id, id),
       eq(appointmentBookings.orgId, orgId)
     ));
 
   if (!booking) return c.json({ error: "Not found" }, 404);
-  return c.json({ data: booking });
+  return c.json({ data: mergeAppointmentBooking(booking) });
 });
