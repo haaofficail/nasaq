@@ -18,6 +18,8 @@ export const flowerReservations = pgTable(
     orgId:          uuid("org_id").notNull().references(() => organizations.id, { onDelete: "cascade" }),
 
     // Explicit reservation sources — remove polymorphic source_type/source_id.
+    // Nullable by design: reservations may still originate from a legacy service order
+    // until flowers/events is fully migrated onto canonical booking records.
     bookingId:      uuid("booking_id").references(() => bookings.id, { onDelete: "set null" }),
     /*
      * MASSIVE WARNING:
