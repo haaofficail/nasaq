@@ -2232,7 +2232,7 @@ bookingsRouter.get("/:id/timeline", async (c) => {
 // ============================================================
 
 const recordPaymentSchema = z.object({
-  amount: z.string().refine(isPositiveMoney, { message: "amount must be a positive number" }),
+  amount: z.string().refine(isPositiveMoney, { message: "يجب أن يكون المبلغ رقماً موجباً" }),
   method: z.enum(["cash", "bank_transfer", "mada", "visa_master", "apple_pay", "tamara", "tabby", "wallet", "payment_link"]),
   status: z.enum(["completed", "pending", "failed"]).default("completed"),
   type: z.enum(["payment", "deposit", "refund"]).default("payment"),
@@ -2462,7 +2462,7 @@ bookingsRouter.post("/track/:token/payment", async (c) => {
 
       const balanceDue = parseMoney(booking.balanceDue);
       if (balanceDue.lte(0)) {
-        throw Object.assign(new Error("NO_BALANCE"), { status: 400, response: { error: "لا يوجد رصيد مستحق لهذا الحجز" } });
+        throw Object.assign(new Error("NO_BALANCE"), { status: 400, response: { error: "الرصيد المستحق صفر أو سالب" } });
       }
 
       const [existingLink] = await tx

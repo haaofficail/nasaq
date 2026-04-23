@@ -88,7 +88,8 @@ type SystemKey =
   | "GRATUITY_PROVISION"
   | "GOV_FEES_EXPENSE";
 
-type DbExecutor = typeof db | any;
+type TxExecutor = Parameters<Parameters<typeof db.transaction>[0]>[0];
+type DbExecutor = typeof db | TxExecutor;
 const getExecutor = (tx?: DbExecutor) => tx ?? db;
 
 export async function getAccountByKey(orgId: string, key: SystemKey, tx?: DbExecutor): Promise<string | null> {
