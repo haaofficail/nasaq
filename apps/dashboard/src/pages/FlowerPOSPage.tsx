@@ -8,7 +8,7 @@ import {
   Flower2, Gift, Layers, ShoppingBag, Truck,
   Banknote, CreditCard, Clock, Plus, Minus, Trash2,
   CheckCircle2, Printer, RefreshCw, AlertTriangle,
-  Loader2, ShoppingCart, X, Search,
+  Loader2, ShoppingCart, X, Search, PackageOpen,
 } from "lucide-react";
 import { clsx } from "clsx";
 
@@ -308,6 +308,12 @@ export function FlowerPOSPage() {
   }, [catalogData, arrangementsData, posCatalogData]);
 
   // ─── Derived values ─────────────────────────────────────────────────────────
+
+  // منشأة جديدة: ما استلمت ورداً بعد (API يرجع فارغ لأنه INNER JOIN على batches)
+  const hasNoInventoryHistory = !isLoading && !invError &&
+    (posCatalogData?.data ?? []).length === 0 &&
+    (arrangementsData?.data ?? []).length === 0 &&
+    (catalogData?.data ? Object.values(catalogData.data as Record<string, any[]>).flat().length === 0 : true);
 
   const filteredItems = catalogItems.filter((item) => {
     const matchesCategory = activeCategory === "الكل" || item.type === activeCategory;
@@ -671,6 +677,25 @@ export function FlowerPOSPage() {
                 <button onClick={refetchPosCatalog} className="text-sm text-brand-500 hover:underline">
                   إعادة المحاولة
                 </button>
+              </div>
+            ) : hasNoInventoryHistory ? (
+              <div className="flex flex-col items-center justify-center h-full gap-4 text-center px-6 py-12">
+                <div className="w-16 h-16 rounded-2xl bg-brand-50 flex items-center justify-center">
+                  <PackageOpen size={28} className="text-brand-400" />
+                </div>
+                <div>
+                  <p className="text-gray-700 font-medium text-sm">لا يوجد مخزون بعد</p>
+                  <p className="text-gray-400 text-xs mt-1 leading-relaxed">
+                    استلم دفعتك الأولى من الورد من صفحة<br />
+                    <span className="font-medium text-brand-500">مخزون الورد الطازج</span> لتبدأ البيع
+                  </p>
+                </div>
+                <a
+                  href="/flower-inventory"
+                  className="text-xs bg-brand-500 text-white px-4 py-2 rounded-xl hover:bg-brand-600 transition-colors"
+                >
+                  استلم دفعة ورد
+                </a>
               </div>
             ) : filteredItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">

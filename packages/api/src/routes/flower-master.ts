@@ -741,6 +741,8 @@ flowerMasterRouter.delete("/recipes/:id", async (c) => {
 // POS Catalog — variants with Arabic name, real stock, and selling price
 flowerMasterRouter.get("/pos-catalog", async (c) => {
   const orgId = getOrgId(c);
+  // فقط الأنواع التي استلمتها المنشأة فعلاً (لها batch واحد على الأقل)
+  // — هذا يعكس المخزون الحقيقي ويمنع ظهور أنواع غير مستلمة للكاشير
   const { rows } = await pool.query(
     `SELECT
        v.id                                                                AS variant_id,
@@ -754,7 +756,7 @@ flowerMasterRouter.get("/pos-catalog", async (c) => {
        )::integer                                                          AS total_stock,
        COALESCE(p.price_per_stem, v.base_price_per_stem, 0)::numeric      AS sell_price
      FROM flower_variants v
-     LEFT JOIN flower_batches b
+     INNER JOIN flower_batches b
             ON b.variant_id = v.id AND b.org_id = $1
      LEFT JOIN flower_variant_pricing p
             ON p.variant_id = v.id AND p.org_id = $1 AND p.is_active = true
