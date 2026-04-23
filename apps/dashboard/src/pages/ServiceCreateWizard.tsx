@@ -338,7 +338,7 @@ export function ServiceCreateWizard() {
       addonDrafts,
       questionDrafts,
       componentDrafts,
-      mediaItems: mediaItems.map(({ url, isCover, uploading }) => ({ url, isCover, uploading })),
+      mediaItems: mediaItems.map(({ url, isCover }) => ({ url, isCover })),
       pendingStaffIds,
       allowedBranches,
     });
@@ -596,7 +596,7 @@ export function ServiceCreateWizard() {
       // Show result
       const uniqueWarnings = [...new Set(warnings)];
       if (uniqueWarnings.length > 0) {
-        toast.error("تم إنشاء الخدمة مع أخطاء تحتاج متابعة: " + uniqueWarnings.join("، "));
+        toast.error("اكتمل إنشاء الخدمة لكن تعذر حفظ بعض العناصر: " + uniqueWarnings.join("، "));
       } else {
         toast.success("تم إنشاء الخدمة بنجاح");
       }
