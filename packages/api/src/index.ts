@@ -321,6 +321,11 @@ app.use("/uploads/*", methodGuard("services"));
 app.use("/import/*", methodGuard("settings"));
 app.use("/approvals/*", methodGuard("bookings"));
 app.use("/finance/*", authMiddleware);
+app.use("/payments/*", async (c, next) => {
+  // Public: callback + webhook endpoints — no auth required
+  if (c.req.path.includes("/payments/callback") || c.req.path.includes("/payments/webhook")) return next();
+  return authMiddleware(c, next);
+});
 app.use("/inventory/*", authMiddleware);
 app.use("/inventory/*", requireCapability("inventory"));
 app.use("/team/*", authMiddleware);
