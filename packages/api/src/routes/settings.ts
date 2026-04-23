@@ -573,6 +573,62 @@ settingsRouter.delete("/documents/:id", async (c) => {
   return c.json({ data: deleted });
 });
 
+// ── Booking Settings ────────────────────────────────────────
+const BOOKING_SETTINGS_DEFAULTS = {
+  vatRate: 15,
+  vatInclusive: true,
+  requireDeposit: false,
+  depositPercent: 30,
+  advanceBookingDays: 180,
+  minAdvanceHours: 24,
+  cancellationPolicy: "",
+  autoConfirm: false,
+  workingHours: { start: "08:00", end: "22:00" },
+  workingDays: [0, 1, 2, 3, 4, 6],
+};
+
+settingsRouter.get("/booking", async (c) => {
+  const orgId = getOrgId(c);
+  const [org] = await db.select({ settings: organizations.settings })
+    .from(organizations).where(eq(organizations.id, orgId));
+  if (!org) return c.json({ error: "المنظمة غير موجودة" }, 404);
+  const s = (org.settings as any) || {};
+  const bookingSettings = {
+    ...BOOKING_SETTINGS_DEFAULTS,
+    ...(s.booking || {}),
+    vatRate: s.vatRate ?? s.financial?.tax?.vatRate ?? BOOKING_SETTINGS_DEFAULTS.vatRate,
+    vatInclusive: s.vatInclusive ?? BOOKING_SETTINGS_DEFAULTS.vatInclusive,
+  };
+  return c.json({ data: bookingSettings });
+});
+
+settingsRouter.put("/booking", async (c) => {
+  const orgId = getOrgId(c);
+  const body = await c.req.json();
+  const [org] = await db.select({ settings: organizations.settings })
+    .from(organizations).where(eq(organizations.id, orgId));
+  if (!org) return c.json({ error: "المنظمة غير موجودة" }, 404);
+  const currentSettings = (org.settings as any) || {};
+  const mergedSettings = {
+    ...currentSettings,
+    booking: { ...(currentSettings.booking || {}), ...body },
+  };
+  if (body.vatRate !== undefined) mergedSettings.vatRate = body.vatRate;
+  if (body.vatInclusive !== undefined) mergedSettings.vatInclusive = body.vatInclusive;
+  const [updated] = await db.update(organizations)
+    .set({ settings: mergedSettings, updatedAt: new Date() })
+    .where(eq(organizations.id, orgId)).returning({ settings: organizations.settings });
+  const s = (updated.settings as any) || {};
+  return c.json({
+    data: {
+      ...BOOKING_SETTINGS_DEFAULTS,
+      ...(s.booking || {}),
+      vatRate: s.vatRate ?? BOOKING_SETTINGS_DEFAULTS.vatRate,
+      vatInclusive: s.vatInclusive ?? BOOKING_SETTINGS_DEFAULTS.vatInclusive,
+    },
+  });
+});
+
 // ────────────────────────────────────────────────────────────
 // GET /settings/features/me — feature flags for current org
 // Returns { features: { [key]: boolean } }
