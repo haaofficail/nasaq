@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { Decimal } from "decimal.js";
+import { nanoid } from "nanoid";
 import { eq, and, asc, desc, gte, lte, lt, or, ilike, count, sql, between, inArray } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
 import {
@@ -11,8 +12,9 @@ import {
   bookingEvents, bookingConsumptions, paymentGatewayConfigs, users,
   bookingRecords, bookingLines, bookingLineAddons, bookingTimelineEvents,
   bookingRecordAssignments, bookingRecordCommissions, bookingRecordConsumptions, bookingPaymentLinks,
-  bookingPipelineStages, invoices,
+  bookingPipelineStages, invoices, invoiceItems,
   auditLogs,
+  treasuryAccounts, treasuryTransactions,
   appointmentBookings, stayBookings, tableReservations, eventBookings,
 } from "@nasaq/db/schema";
 import { getOrgId, getUserId, getPagination, generateBookingNumber } from "../lib/helpers";
@@ -40,6 +42,7 @@ import {
 import type { AuthUser } from "../middleware/auth";
 
 export const bookingsRouter = new Hono<{ Variables: { user: AuthUser | null; orgId: string; locationFilter: string[] | null; requestId: string } }>();
+type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 // ============================================================
 // SCHEMAS
@@ -64,7 +67,7 @@ const ENGINE_DEFAULT_DURATION_MINS: Record<string, number> = {
 // bookingRecordId links back to booking_records (migration 147 FK).
 // bookingRef intentionally NOT set for canonical bookings — it references bookings.id (legacy only).
 async function insertEngineRow(
-  tx: typeof db,
+  tx: DbTx,
   bookingType: string,
   engineRowId: string,
   record: typeof bookingRecords.$inferSelect,
@@ -203,6 +206,808 @@ const createBookingSchema = z.object({
   utmMedium: z.string().optional(),
   utmCampaign: z.string().optional(),
 });
+
+const checkoutPaymentSchema = z.object({
+  amount: z.string().refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, { message: "amount must be a positive number" }),
+  method: z.enum(["cash", "bank_transfer", "mada", "visa_master", "apple_pay", "tamara", "tabby", "wallet", "payment_link"]),
+  status: z.enum(["completed", "pending", "failed"]).default("completed"),
+  type: z.enum(["payment", "deposit", "refund"]).default("payment"),
+  gatewayProvider: z.string().optional().nullable(),
+  gatewayTransactionId: z.string().optional().nullable(),
+  receiptNumber: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+}).optional();
+
+const checkoutInvoiceSchema = z.object({
+  invoiceType: z.enum(["simplified", "tax", "credit_note", "debit_note"]).optional(),
+  buyerName: z.string().optional(),
+  buyerPhone: z.string().optional().nullable(),
+  buyerEmail: z.string().email().optional().nullable(),
+  buyerVatNumber: z.string().optional().nullable(),
+  buyerCompanyName: z.string().optional().nullable(),
+  buyerCrNumber: z.string().optional().nullable(),
+  buyerAddress: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  termsAndConditions: z.string().optional().nullable(),
+  dueDate: z.string().datetime().optional().nullable(),
+}).optional();
+
+const checkoutTreasurySchema = z.object({
+  treasuryAccountId: z.string().uuid().optional().nullable(),
+  description: z.string().optional(),
+  reference: z.string().optional().nullable(),
+  shiftId: z.string().uuid().optional().nullable(),
+}).optional();
+
+const createBookingCheckoutSchema = z.object({
+  booking: createBookingSchema,
+  payment: checkoutPaymentSchema,
+  invoice: checkoutInvoiceSchema,
+  treasuryReceipt: checkoutTreasurySchema,
+});
+
+function inferBookingTypeFromServices(serviceMap: Map<string, typeof services.$inferSelect>, body: z.infer<typeof createBookingSchema>) {
+  if (body.bookingType) return body.bookingType;
+  const selectedTypes = body.items
+    .map((item) => (serviceMap.get(item.serviceId) as any)?.serviceType as string | undefined)
+    .filter((value): value is string => Boolean(value));
+
+  if (selectedTypes.length === 0) return "appointment";
+  if (selectedTypes.every((type) => IMMEDIATE_TYPES.has(type))) return selectedTypes[0];
+  if (selectedTypes.some((type) => type === "event_rental" || type === "execution")) return "event";
+  if (selectedTypes.some((type) => type === "rental")) return "stay";
+  return "appointment";
+}
+
+function generateZATCAQR(data: { sellerName: string; vatNumber: string; timestamp: string; totalWithVat: string; vatAmount: string }): string {
+  const fields = [
+    { tag: 1, value: data.sellerName },
+    { tag: 2, value: data.vatNumber },
+    { tag: 3, value: data.timestamp },
+    { tag: 4, value: data.totalWithVat },
+    { tag: 5, value: data.vatAmount },
+  ];
+
+  const tlv = fields.map((field) => {
+    const valueBytes = new TextEncoder().encode(field.value);
+    return new Uint8Array([field.tag, valueBytes.length, ...valueBytes]);
+  });
+
+  const combined = new Uint8Array(tlv.reduce((total, row) => total + row.length, 0));
+  let offset = 0;
+  tlv.forEach((row) => {
+    combined.set(row, offset);
+    offset += row.length;
+  });
+
+  return Buffer.from(combined).toString("base64");
+}
+
+async function generateTreasuryVoucherNumberTx(tx: DbTx, orgId: string, prefix: "RV" | "PV") {
+  const year = new Date().getFullYear();
+  const [{ total }] = await tx
+    .select({ total: count() })
+    .from(treasuryTransactions)
+    .where(and(
+      eq(treasuryTransactions.orgId, orgId),
+      sql`${treasuryTransactions.voucherNumber} LIKE ${`${prefix}-${year}-%`}`,
+    ));
+  const seq = (Number(total) + 1).toString().padStart(5, "0");
+  return `${prefix}-${year}-${seq}`;
+}
+
+async function prepareBookingCreation(params: {
+  orgId: string;
+  userId: string | null;
+  body: z.infer<typeof createBookingSchema>;
+  requireExplicitBookingType?: boolean;
+}) {
+  const { orgId, userId, body, requireExplicitBookingType = false } = params;
+  const supportedTypes = [...Array.from(ENGINE_BOOKING_TYPES), ...Array.from(IMMEDIATE_TYPES)];
+
+  if (requireExplicitBookingType && !body.bookingType) {
+    throw Object.assign(new Error("bookingType مطلوب لإنشاء حجز"), {
+      status: 400,
+      response: {
+        error: "bookingType مطلوب لإنشاء حجز",
+        code: "BOOKING_TYPE_REQUIRED",
+        supportedTypes,
+        hint: "Client قديم؟ حدّث لإرسال bookingType في الـ request body",
+      },
+    });
+  }
+
+  const [customer] = await db.select().from(customers)
+    .where(and(eq(customers.id, body.customerId), eq(customers.orgId, orgId)));
+  if (!customer) {
+    throw Object.assign(new Error("العميل غير موجود"), { status: 404, response: { error: "العميل غير موجود" } });
+  }
+
+  const serviceIds = body.items.map((item) => item.serviceId);
+  const addonIds = body.items.flatMap((item) => item.addons.map((addon) => addon.addonId));
+
+  const [allServices, allPricingRules, allAddons, allServiceCosts, allServiceStaffRows, orgRow] = await Promise.all([
+    db.select().from(services)
+      .where(and(inArray(services.id, serviceIds), eq(services.orgId, orgId))),
+    db.select().from(pricingRules)
+      .where(and(eq(pricingRules.orgId, orgId), eq(pricingRules.isActive, true)))
+      .orderBy(desc(pricingRules.priority)),
+    addonIds.length > 0
+      ? db.select().from(addons)
+          .where(and(inArray(addons.id, addonIds), eq(addons.orgId, orgId)))
+      : Promise.resolve([] as (typeof addons.$inferSelect)[]),
+    db.select().from(serviceCosts)
+      .where(and(inArray(serviceCosts.serviceId, serviceIds), eq(serviceCosts.orgId, orgId))),
+    userId
+      ? db.select().from(serviceStaff)
+          .where(and(inArray(serviceStaff.serviceId, serviceIds), eq(serviceStaff.userId, userId)))
+      : Promise.resolve([] as (typeof serviceStaff.$inferSelect)[]),
+    db.select({
+      name: organizations.name,
+      phone: organizations.phone,
+      email: organizations.email,
+      address: organizations.address,
+      commercialRegister: organizations.commercialRegister,
+      vatNumber: organizations.vatNumber,
+      settings: organizations.settings,
+      plan: organizations.plan,
+      bookingUsed: organizations.bookingUsed,
+    }).from(organizations).where(eq(organizations.id, orgId)),
+  ]);
+
+  const org = orgRow[0];
+  if (org?.plan === "free" && (org.bookingUsed ?? 0) >= FREE_BOOKING_LIMIT) {
+    throw Object.assign(new Error("FREE_LIMIT_REACHED"), {
+      status: 403,
+      response: {
+        error: `لقد استخدمت جميع الحجوزات المجانية (${FREE_BOOKING_LIMIT} حجز). للمتابعة واستقبال حجوزات جديدة، قم بالترقية إلى إحدى الباقات.`,
+        code: "FREE_LIMIT_REACHED",
+      },
+    });
+  }
+
+  const serviceMap = new Map(allServices.map((service) => [service.id, service]));
+  const addonMap = new Map(allAddons.map((addon) => [addon.id, addon]));
+  const serviceCostMap = new Map(allServiceCosts.map((cost) => [cost.serviceId, cost]));
+  const serviceStaffMap = new Map(allServiceStaffRows.map((row) => [row.serviceId, row]));
+
+  const canonicalBookingType = inferBookingTypeFromServices(serviceMap, body);
+  if (!ENGINE_BOOKING_TYPES.has(canonicalBookingType) && !IMMEDIATE_TYPES.has(canonicalBookingType)) {
+    throw Object.assign(new Error(`نوع الحجز غير مدعوم: ${canonicalBookingType}`), {
+      status: 400,
+      response: {
+        error: `نوع الحجز غير مدعوم: ${canonicalBookingType}`,
+        code: "UNSUPPORTED_BOOKING_TYPE",
+        supportedTypes,
+      },
+    });
+  }
+
+  const RENTAL_SVC_TYPES = new Set(["rental", "event_rental"]);
+  const rentalDays = (body.eventDate && body.eventEndDate)
+    ? Math.max(1, Math.ceil((new Date(body.eventEndDate).getTime() - new Date(body.eventDate).getTime()) / (1000 * 60 * 60 * 24)))
+    : 1;
+
+  let subtotal = new Decimal(0);
+  const itemsToInsert: any[] = [];
+  const addonsToInsert: any[] = [];
+
+  for (const item of body.items) {
+    const service = serviceMap.get(item.serviceId);
+    if (!service) {
+      throw Object.assign(new Error(`الخدمة غير موجودة: ${item.serviceId}`), { status: 400, response: { error: `الخدمة غير موجودة: ${item.serviceId}` } });
+    }
+
+    if (service.status !== "active" || (service as any).isBookable === false) {
+      throw Object.assign(new Error(`الخدمة غير متاحة للحجز: ${service.name}`), { status: 400, response: { error: `الخدمة غير متاحة للحجز: ${service.name}` } });
+    }
+
+    const serviceType = (service as any).serviceType as string | undefined;
+    if (!IMMEDIATE_TYPES.has(serviceType ?? "") && !body.eventDate) {
+      throw Object.assign(new Error(`الخدمة "${service.name}" تتطلب تاريخ ووقت الحجز`), { status: 400, response: { error: `الخدمة "${service.name}" تتطلب تاريخ ووقت الحجز` } });
+    }
+    if (serviceType === "field_service" && !body.customLocation && !body.locationId) {
+      throw Object.assign(new Error(`الخدمة الميدانية "${service.name}" تتطلب تحديد موقع العميل`), { status: 400, response: { error: `الخدمة الميدانية "${service.name}" تتطلب تحديد موقع العميل` } });
+    }
+    if (serviceType === "rental" && !body.eventEndDate) {
+      throw Object.assign(new Error(`خدمة التأجير "${service.name}" تتطلب تحديد تاريخ الانتهاء`), { status: 400, response: { error: `خدمة التأجير "${service.name}" تتطلب تحديد تاريخ الانتهاء` } });
+    }
+
+    let unitPrice = new Decimal(service.basePrice);
+    const pricingBreakdown: any[] = [{ rule: "base", label: "السعر الأساسي", amount: unitPrice.toNumber() }];
+
+    const rules = allPricingRules.filter((rule) => rule.serviceId === service.id || rule.serviceId === null);
+    for (const rule of rules) {
+      const adjustment = applyPricingRule(rule, unitPrice.toNumber(), body.eventDate ?? "", body.locationId);
+      if (adjustment !== 0) {
+        unitPrice = unitPrice.add(adjustment);
+        pricingBreakdown.push({
+          rule: rule.type,
+          label: rule.name,
+          adjustment,
+          amount: unitPrice.toNumber(),
+        });
+      }
+    }
+
+    const daysMultiplier = RENTAL_SVC_TYPES.has(serviceType ?? "") ? rentalDays : 1;
+    unitPrice = unitPrice.toDecimalPlaces(2);
+    const totalPrice = unitPrice.mul(item.quantity).mul(daysMultiplier).toDecimalPlaces(2);
+    subtotal = subtotal.add(totalPrice);
+
+    const itemId = crypto.randomUUID();
+    itemsToInsert.push({
+      id: itemId,
+      serviceId: service.id,
+      serviceName: service.name,
+      serviceType: serviceType || null,
+      durationMinutes: (service as any).durationMinutes || null,
+      vatInclusive: (service as any).vatInclusive ?? true,
+      quantity: item.quantity,
+      unitPrice: unitPrice.toFixed(2),
+      totalPrice: totalPrice.toFixed(2),
+      pricingBreakdown,
+    });
+
+    for (const addonReq of item.addons) {
+      const addon = addonMap.get(addonReq.addonId);
+      if (!addon) continue;
+
+      const addonPrice = addon.priceMode === "percentage"
+        ? unitPrice.mul(new Decimal(addon.price).div(100)).toDecimalPlaces(2)
+        : new Decimal(addon.price).toDecimalPlaces(2);
+      const addonTotal = addonPrice.mul(addonReq.quantity).toDecimalPlaces(2);
+      subtotal = subtotal.add(addonTotal);
+
+      addonsToInsert.push({
+        bookingItemId: itemId,
+        addonId: addon.id,
+        addonName: addon.name,
+        quantity: addonReq.quantity,
+        unitPrice: addonPrice.toFixed(2),
+        totalPrice: addonTotal.toFixed(2),
+      });
+    }
+  }
+
+  const orgSettings = (org?.settings ?? {}) as Record<string, unknown>;
+  const vatRate = typeof orgSettings.vatRate === "number" ? orgSettings.vatRate : DEFAULT_VAT_RATE;
+  const vatAmount = subtotal.mul(vatRate).div(100).toDecimalPlaces(2);
+  const totalAmount = subtotal.add(vatAmount).toDecimalPlaces(2);
+  const requireDeposit = orgSettings.requireDeposit === true;
+  const depositPercent = requireDeposit
+    ? Math.max(
+        DEFAULT_DEPOSIT_PERCENT,
+        ...Array.from(serviceMap.values()).map((service) => parseFloat(String((service as any).depositPercent ?? DEFAULT_DEPOSIT_PERCENT))),
+      )
+    : 0;
+  const depositAmount = totalAmount.mul(depositPercent).div(100).toDecimalPlaces(2);
+
+  const bookingNumber = generateBookingNumber("NSQ");
+  const trackingToken = crypto.randomUUID().replace(/-/g, "").substring(0, BOOKING_TRACKING_TOKEN_LENGTH);
+  const allImmediate = Array.from(serviceMap.values()).every((service) => IMMEDIATE_TYPES.has((service as any).serviceType ?? ""));
+  const resolvedEventDate = body.eventDate ? new Date(body.eventDate) : new Date();
+  const engineRowId = crypto.randomUUID();
+  const targetStaffId = body.assignedUserId ?? userId;
+
+  if (body.eventDate && !allImmediate) {
+    const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
+    const DAY_ABBR: Record<string, string> = {
+      sunday: "sun", monday: "mon", tuesday: "tue", wednesday: "wed",
+      thursday: "thu", friday: "fri", saturday: "sat",
+    };
+    const dayName = DAY_NAMES[resolvedEventDate.getUTCDay()];
+    const eventHHMM = `${String(resolvedEventDate.getUTCHours()).padStart(2, "0")}:${String(resolvedEventDate.getUTCMinutes()).padStart(2, "0")}`;
+
+    if (userId) {
+      const { rows: [staffRow] } = await db.execute(sql`SELECT working_hours FROM users WHERE id = ${userId} LIMIT 1`);
+      const workingHours = (staffRow as any)?.working_hours?.[dayName];
+      if (workingHours?.active === false) {
+        throw Object.assign(new Error(`الموظف المعيّن غير متاح يوم ${dayName}`), { status: 422, response: { error: `الموظف المعيّن غير متاح يوم ${dayName}` } });
+      }
+      if (workingHours?.active === true && workingHours.start && workingHours.end) {
+        if (eventHHMM < workingHours.start || eventHHMM >= workingHours.end) {
+          throw Object.assign(new Error(`الموظف المعيّن غير متاح في هذا الوقت (دوامه ${workingHours.start} – ${workingHours.end})`), {
+            status: 422,
+            response: { error: `الموظف المعيّن غير متاح في هذا الوقت (دوامه ${workingHours.start} – ${workingHours.end})` },
+          });
+        }
+      }
+    }
+
+    if (body.locationId) {
+      const { rows: [locRow] } = await db.execute(sql`SELECT opening_hours FROM locations WHERE id = ${body.locationId} AND org_id = ${orgId} LIMIT 1`);
+      const openingHours = (locRow as any)?.opening_hours ?? {};
+      const todayHours = openingHours[DAY_ABBR[dayName]] ?? openingHours[dayName];
+      if (todayHours?.active === false) {
+        throw Object.assign(new Error("الفرع مغلق هذا اليوم"), { status: 422, response: { error: "الفرع مغلق هذا اليوم" } });
+      }
+      if (todayHours?.active === true) {
+        const open = todayHours.open ?? todayHours.start;
+        const close = todayHours.close ?? todayHours.end;
+        if (open && close && (eventHHMM < open || eventHHMM >= close)) {
+          throw Object.assign(new Error(`الفرع مغلق في هذا الوقت (${open} – ${close})`), { status: 422, response: { error: `الفرع مغلق في هذا الوقت (${open} – ${close})` } });
+        }
+      }
+    }
+  }
+
+  return {
+    orgId,
+    userId,
+    body,
+    customer,
+    org,
+    orgSettings,
+    serviceMap,
+    serviceCostMap,
+    serviceStaffMap,
+    canonicalBookingType,
+    subtotal,
+    vatRate,
+    vatAmount,
+    totalAmount,
+    depositAmount,
+    itemsToInsert,
+    addonsToInsert,
+    bookingNumber,
+    trackingToken,
+    allImmediate,
+    resolvedEventDate,
+    engineRowId,
+    targetStaffId,
+  };
+}
+
+async function createCanonicalBookingTx(tx: DbTx, context: Awaited<ReturnType<typeof prepareBookingCreation>>) {
+  const {
+    body,
+    customer,
+    org,
+    serviceCostMap,
+    serviceStaffMap,
+    canonicalBookingType,
+    subtotal,
+    vatAmount,
+    totalAmount,
+    depositAmount,
+    itemsToInsert,
+    bookingNumber,
+    trackingToken,
+    resolvedEventDate,
+    engineRowId,
+    targetStaffId,
+  } = context;
+
+  await tx.execute(sql`SET LOCAL lock_timeout = '5s'`);
+
+  if (body.locationId && ENGINE_BOOKING_TYPES.has(canonicalBookingType)) {
+    const durationMins = ENGINE_DEFAULT_DURATION_MINS[canonicalBookingType] ?? 60;
+    const eventStart = resolvedEventDate;
+    const eventEnd = body.eventEndDate
+      ? new Date(body.eventEndDate)
+      : new Date(resolvedEventDate.getTime() + durationMins * 60_000);
+
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${context.customer.orgId}), hashtext(${"loc:" + body.locationId}))`);
+
+    const { rows: conflictRows } = await tx.execute(sql`
+      SELECT id, booking_number FROM booking_records
+      WHERE org_id = ${context.customer.orgId}
+        AND location_id = ${body.locationId}
+        AND status NOT IN ('cancelled', 'no_show')
+        AND starts_at < ${eventEnd.toISOString()}
+        AND COALESCE(ends_at, starts_at + ${durationMins} * interval '1 minute') >= ${eventStart.toISOString()}
+      FOR UPDATE
+    `);
+
+    if ((conflictRows as any[]).length > 0) {
+      throw Object.assign(
+        new Error("يوجد تعارض — الموقع محجوز في هذا التاريخ"),
+        { status: 409, code: "LOCATION_CONFLICT", conflicts: (conflictRows as any[]).map((row) => (row as any).booking_number) },
+      );
+    }
+  }
+
+  if (targetStaffId && ENGINE_BOOKING_TYPES.has(canonicalBookingType)) {
+    const totalDurationMins = itemsToInsert.reduce((sum: number, item: any) => sum + (item.durationMinutes ?? 0), 0) || 60;
+    const staffStart = resolvedEventDate;
+    const staffEnd = body.eventEndDate
+      ? new Date(body.eventEndDate)
+      : new Date(resolvedEventDate.getTime() + totalDurationMins * 60_000);
+
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${context.customer.orgId}), hashtext(${"staff:" + targetStaffId}))`);
+
+    const { rows: staffConflict } = await tx.execute(sql`
+      SELECT id, booking_number FROM booking_records
+      WHERE org_id = ${context.customer.orgId}
+        AND assigned_user_id = ${targetStaffId}
+        AND status NOT IN ('cancelled', 'no_show')
+        AND starts_at < ${staffEnd.toISOString()}
+        AND COALESCE(ends_at, starts_at + COALESCE((
+          SELECT SUM(duration_minutes) FROM booking_lines
+          WHERE booking_record_id = booking_records.id
+        ), 60) * interval '1 minute') > ${staffStart.toISOString()}
+      FOR UPDATE
+    `);
+
+    if ((staffConflict as any[]).length > 0) {
+      throw Object.assign(
+        new Error("الموظف لديه حجز آخر في نفس الوقت"),
+        { status: 409, code: "STAFF_SLOT_CONFLICT", conflicts: (staffConflict as any[]).map((row) => (row as any).booking_number) },
+      );
+    }
+  }
+
+  const [newRecord] = await tx.insert(bookingRecords).values({
+    orgId: context.customer.orgId,
+    customerId: body.customerId,
+    bookingNumber,
+    bookingType: canonicalBookingType,
+    status: "pending",
+    paymentStatus: "pending",
+    startsAt: resolvedEventDate,
+    endsAt: body.eventEndDate ? new Date(body.eventEndDate) : null,
+    locationId: body.locationId ?? null,
+    customLocation: body.customLocation ?? null,
+    locationNotes: body.locationNotes ?? null,
+    customerNotes: body.customerNotes ?? null,
+    internalNotes: body.internalNotes ?? null,
+    assignedUserId: targetStaffId ?? null,
+    subtotal: subtotal.toFixed(2),
+    discountAmount: "0",
+    vatAmount: vatAmount.toFixed(2),
+    totalAmount: totalAmount.toFixed(2),
+    depositAmount: depositAmount.toFixed(2),
+    paidAmount: "0",
+    balanceDue: totalAmount.toFixed(2),
+    couponCode: body.couponCode ?? null,
+    isRecurring: false,
+    trackingToken,
+    source: body.source ?? "dashboard",
+  } as any).returning();
+
+  const canonicalLines: { id: string; serviceRefId: string | null; itemName: string; durationMinutes: number | null; quantity: number; unitPrice: string; totalPrice: string }[] = [];
+  const insertedLineIds: string[] = [];
+
+  if (itemsToInsert.length > 0) {
+    const lineValues = itemsToInsert.map((item: any) => ({
+      bookingRecordId: newRecord.id,
+      serviceRefId: item.serviceId,
+      itemName: item.serviceName,
+      lineType: "service",
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
+      durationMinutes: item.durationMinutes ?? null,
+      vatInclusive: item.vatInclusive ?? true,
+    }));
+    const insertedLines = await tx.insert(bookingLines).values(lineValues as any).returning();
+    for (const [index, line] of insertedLines.entries()) {
+      insertedLineIds.push(line.id);
+      canonicalLines.push({
+        id: line.id,
+        serviceRefId: line.serviceRefId ?? null,
+        itemName: line.itemName,
+        durationMinutes: line.durationMinutes ?? null,
+        quantity: line.quantity,
+        unitPrice: String(line.unitPrice),
+        totalPrice: String(line.totalPrice),
+      });
+      const addonRows = context.addonsToInsert
+        .filter((addon) => addon.bookingItemId === itemsToInsert[index].id)
+        .map((addon) => ({
+          bookingLineId: line.id,
+          addonRefId: addon.addonId,
+          addonName: addon.addonName,
+          quantity: addon.quantity,
+          unitPrice: addon.unitPrice,
+          totalPrice: addon.totalPrice,
+        }));
+      if (addonRows.length > 0) {
+        await tx.insert(bookingLineAddons).values(addonRows as any);
+      }
+    }
+  }
+
+  if (ENGINE_BOOKING_TYPES.has(canonicalBookingType)) {
+    await insertEngineRow(tx as any, canonicalBookingType, engineRowId, newRecord, targetStaffId ?? null, body.source ?? "dashboard");
+  }
+
+  await tx.insert(bookingTimelineEvents).values({
+    orgId: context.customer.orgId,
+    bookingRecordId: newRecord.id,
+    userId: context.userId ?? null,
+    eventType: "created",
+    fromStatus: null,
+    toStatus: "pending",
+    metadata: { bookingNumber, source: body.source ?? "dashboard" },
+  } as any);
+
+  await tx.insert(auditLogs).values({
+    orgId: context.customer.orgId,
+    userId: context.userId ?? null,
+    action: "created",
+    resource: "booking_record",
+    resourceId: newRecord.id,
+    metadata: { bookingNumber, bookingType: canonicalBookingType },
+  } as any);
+
+  if (context.userId) {
+    await tx.insert(bookingRecordAssignments).values({
+      orgId: context.customer.orgId,
+      bookingRecordId: newRecord.id,
+      userId: context.userId,
+      role: "staff",
+      assignedAt: new Date(),
+    } as any);
+
+    const canonicalCommissions: any[] = [];
+    for (let index = 0; index < itemsToInsert.length; index += 1) {
+      const item = itemsToInsert[index] as any;
+      const lineId = insertedLineIds[index] ?? null;
+      const cost = serviceCostMap.get(item.serviceId);
+      const staffRow = serviceStaffMap.get(item.serviceId);
+
+      let commissionMode = "percentage";
+      let rate = 0;
+      if (staffRow && staffRow.commissionMode === "none") continue;
+      if (staffRow && staffRow.commissionMode === "fixed") {
+        commissionMode = "fixed";
+        rate = parseFloat(staffRow.commissionValue as string) || 0;
+      } else if (staffRow && staffRow.commissionMode === "percentage") {
+        rate = parseFloat(staffRow.commissionValue as string) || 0;
+      } else {
+        rate = cost ? (parseFloat(cost.commissionPercent as string) || 0) : 10;
+      }
+
+      if (rate === 0) continue;
+
+      const baseAmount = parseFloat(item.totalPrice);
+      const commissionAmount = commissionMode === "fixed" ? rate : baseAmount * (rate / 100);
+      canonicalCommissions.push({
+        orgId: context.customer.orgId,
+        bookingRecordId: newRecord.id,
+        bookingLineId: lineId,
+        userId: context.userId,
+        serviceRefId: item.serviceId,
+        commissionMode,
+        rate: rate.toFixed(2),
+        baseAmount: baseAmount.toFixed(2),
+        commissionAmount: commissionAmount.toFixed(2),
+        status: "pending",
+      });
+    }
+
+    if (canonicalCommissions.length > 0) {
+      await tx.insert(bookingRecordCommissions).values(canonicalCommissions as any);
+    }
+  }
+
+  await tx.update(customers).set({
+    totalBookings: sql`${customers.totalBookings} + 1`,
+    lastBookingAt: new Date(),
+    updatedAt: new Date(),
+  }).where(eq(customers.id, body.customerId));
+
+  return { record: newRecord, lines: canonicalLines, engineRowId };
+}
+
+async function recordBookingCheckoutPaymentTx(tx: DbTx, params: {
+  orgId: string;
+  userId: string | null;
+  bookingRecordId: string;
+  customerId: string;
+  payment: NonNullable<z.infer<typeof checkoutPaymentSchema>>;
+}) {
+  const { orgId, userId, bookingRecordId, customerId, payment } = params;
+  const [createdPayment] = await tx.insert(payments).values({
+    orgId,
+    bookingId: bookingRecordId,
+    customerId,
+    amount: payment.amount,
+    method: payment.method,
+    status: payment.status,
+    type: payment.type,
+    gatewayProvider: payment.gatewayProvider,
+    gatewayTransactionId: payment.gatewayTransactionId,
+    receiptNumber: payment.receiptNumber,
+    notes: payment.notes,
+    paidAt: payment.status === "completed" ? new Date() : null,
+  } as any).returning();
+
+  if (payment.status === "completed") {
+    const amount = parseFloat(payment.amount);
+    const [updatedRecord] = await tx.select({
+      totalAmount: bookingRecords.totalAmount,
+      paidAmount: bookingRecords.paidAmount,
+    }).from(bookingRecords)
+      .where(and(eq(bookingRecords.id, bookingRecordId), eq(bookingRecords.orgId, orgId)))
+      .for("update");
+
+    const currentPaid = Number(updatedRecord?.paidAmount ?? 0);
+    const totalAmount = Number(updatedRecord?.totalAmount ?? 0);
+    const nextPaid = currentPaid + amount;
+    const balanceDue = Math.max(0, totalAmount - nextPaid);
+
+    await tx.update(bookingRecords).set({
+      paidAmount: nextPaid.toFixed(2),
+      balanceDue: balanceDue.toFixed(2),
+      paymentStatus: balanceDue <= 0 ? "paid" : "partially_paid",
+      updatedAt: new Date(),
+    }).where(and(eq(bookingRecords.id, bookingRecordId), eq(bookingRecords.orgId, orgId)));
+
+    await tx.update(customers).set({
+      totalSpent: sql`COALESCE(${customers.totalSpent}, 0) + ${amount}`,
+      updatedAt: new Date(),
+    }).where(eq(customers.id, customerId));
+  }
+
+  return createdPayment;
+}
+
+async function createBookingInvoiceTx(tx: DbTx, params: {
+  orgId: string;
+  bookingRecord: typeof bookingRecords.$inferSelect;
+  bookingLinesSnapshot: { itemName: string; quantity: number; unitPrice: string; totalPrice: string }[];
+  customer: typeof customers.$inferSelect;
+  org: Awaited<ReturnType<typeof prepareBookingCreation>>["org"];
+  invoiceInput?: z.infer<typeof checkoutInvoiceSchema>;
+  payment?: typeof payments.$inferSelect | null;
+}) {
+  const { orgId, bookingRecord, bookingLinesSnapshot, customer, org, invoiceInput, payment } = params;
+  const year = new Date().getFullYear();
+  const invoiceNumber = `INV-${year}-${nanoid(4).toUpperCase()}`;
+  const invoiceUuid = crypto.randomUUID();
+  const vatRate = Number((org?.settings as any)?.vatRate ?? DEFAULT_VAT_RATE);
+  const paidAmount = payment?.status === "completed" ? Math.min(parseFloat(String(payment.amount)), parseFloat(String(bookingRecord.totalAmount))) : 0;
+  const issueDate = new Date();
+  const qrData = generateZATCAQR({
+    sellerName: org?.name ?? "ترميز OS",
+    vatNumber: org?.vatNumber ?? "",
+    timestamp: issueDate.toISOString(),
+    totalWithVat: String(bookingRecord.totalAmount),
+    vatAmount: String(bookingRecord.vatAmount),
+  });
+
+  const [invoice] = await tx.insert(invoices).values({
+    orgId,
+    bookingId: bookingRecord.id,
+    customerId: bookingRecord.customerId,
+    invoiceNumber,
+    uuid: invoiceUuid,
+    invoiceType: invoiceInput?.invoiceType ?? "simplified",
+    sourceType: "booking",
+    status: paidAmount >= parseFloat(String(bookingRecord.totalAmount)) ? "paid" : "issued",
+    sellerName: org?.name ?? "ترميز OS",
+    sellerVatNumber: org?.vatNumber ?? null,
+    sellerAddress: org?.address ?? null,
+    sellerCR: org?.commercialRegister ?? null,
+    buyerName: invoiceInput?.buyerName ?? customer.name,
+    buyerPhone: invoiceInput?.buyerPhone ?? customer.phone ?? null,
+    buyerEmail: invoiceInput?.buyerEmail ?? customer.email ?? null,
+    buyerVatNumber: invoiceInput?.buyerVatNumber ?? customer.vatNumber ?? null,
+    buyerCompanyName: invoiceInput?.buyerCompanyName ?? customer.companyName ?? null,
+    buyerCrNumber: invoiceInput?.buyerCrNumber ?? customer.commercialRegister ?? null,
+    buyerAddress: invoiceInput?.buyerAddress ?? customer.address ?? null,
+    subtotal: String(bookingRecord.subtotal),
+    discountAmount: String(bookingRecord.discountAmount ?? "0"),
+    taxableAmount: String(bookingRecord.subtotal),
+    vatRate: String(vatRate),
+    vatAmount: String(bookingRecord.vatAmount),
+    totalAmount: String(bookingRecord.totalAmount),
+    paidAmount: paidAmount.toFixed(2),
+    qrCode: qrData,
+    issueDate,
+    dueDate: invoiceInput?.dueDate ? new Date(invoiceInput.dueDate) : null,
+    notes: invoiceInput?.notes ?? null,
+    termsAndConditions: invoiceInput?.termsAndConditions ?? ((org?.settings as any)?.invoiceTermsTemplate ?? null),
+    paidAt: paidAmount > 0 ? issueDate : null,
+  } as any).returning();
+
+  if (bookingLinesSnapshot.length > 0) {
+    await tx.insert(invoiceItems).values(bookingLinesSnapshot.map((line, index) => {
+      const taxableAmount = Number(line.totalPrice);
+      const lineVatAmount = new Decimal(taxableAmount).mul(vatRate).div(100).toDecimalPlaces(2);
+      return {
+        invoiceId: invoice.id,
+        description: line.itemName,
+        quantity: String(line.quantity),
+        unitPrice: line.unitPrice,
+        discountAmount: "0",
+        taxableAmount: taxableAmount.toFixed(2),
+        vatRate: String(vatRate),
+        vatAmount: lineVatAmount.toFixed(2),
+        totalAmount: new Decimal(taxableAmount).add(lineVatAmount).toFixed(2),
+        sortOrder: index,
+      };
+    }) as any);
+  }
+
+  return invoice;
+}
+
+async function resolveTreasuryAccountTx(tx: DbTx, params: {
+  orgId: string;
+  treasuryAccountId?: string | null;
+  paymentMethod: string;
+}) {
+  const { orgId, treasuryAccountId, paymentMethod } = params;
+  if (treasuryAccountId) {
+    const [account] = await tx.select({
+      id: treasuryAccounts.id,
+      currentBalance: treasuryAccounts.currentBalance,
+    }).from(treasuryAccounts)
+      .where(and(eq(treasuryAccounts.id, treasuryAccountId), eq(treasuryAccounts.orgId, orgId), eq(treasuryAccounts.isActive, true)))
+      .for("update");
+    return account ?? null;
+  }
+
+  const preferredTypes = paymentMethod === "cash"
+    ? ["main_cash", "branch_cash", "cashier_drawer", "petty_cash", "bank_account"]
+    : ["bank_account", "main_cash", "branch_cash", "cashier_drawer", "petty_cash"];
+  const [account] = await tx.select({
+    id: treasuryAccounts.id,
+    currentBalance: treasuryAccounts.currentBalance,
+  }).from(treasuryAccounts)
+    .where(and(
+      eq(treasuryAccounts.orgId, orgId),
+      eq(treasuryAccounts.isActive, true),
+      inArray(treasuryAccounts.type, preferredTypes as any),
+    ))
+    .orderBy(desc(treasuryAccounts.isDefault), asc(treasuryAccounts.name))
+    .limit(1)
+    .for("update");
+  return account ?? null;
+}
+
+async function createTreasuryReceiptTx(tx: DbTx, params: {
+  orgId: string;
+  userId: string | null;
+  bookingRecordId: string;
+  invoiceId: string;
+  customer: typeof customers.$inferSelect;
+  payment: typeof payments.$inferSelect;
+  treasuryReceipt?: z.infer<typeof checkoutTreasurySchema>;
+}) {
+  const { orgId, userId, bookingRecordId, invoiceId, customer, payment, treasuryReceipt } = params;
+  const account = await resolveTreasuryAccountTx(tx, {
+    orgId,
+    treasuryAccountId: treasuryReceipt?.treasuryAccountId ?? null,
+    paymentMethod: payment.method,
+  });
+  if (!account) {
+    throw Object.assign(new Error("الصندوق غير موجود"), { status: 404, response: { error: "الصندوق غير موجود" } });
+  }
+
+  const amount = parseFloat(String(payment.amount));
+  const newBalance = parseFloat(account.currentBalance ?? "0") + amount;
+  const voucherNumber = await generateTreasuryVoucherNumberTx(tx, orgId, "RV");
+
+  await tx.update(treasuryAccounts)
+    .set({ currentBalance: String(newBalance), updatedAt: new Date() })
+    .where(eq(treasuryAccounts.id, account.id));
+
+  const [transaction] = await tx.insert(treasuryTransactions).values({
+    orgId,
+    treasuryAccountId: account.id,
+    transactionType: "receipt",
+    amount: String(payment.amount),
+    balanceAfter: String(newBalance),
+    description: treasuryReceipt?.description ?? `دفعة حجز — ${customer.name}`,
+    reference: treasuryReceipt?.reference ?? null,
+    voucherNumber,
+    sourceType: "invoice",
+    sourceId: invoiceId,
+    paymentMethod: payment.method,
+    counterpartyType: "customer",
+    counterpartyId: customer.id,
+    counterpartyName: customer.name,
+    shiftId: treasuryReceipt?.shiftId ?? null,
+    createdBy: userId ?? null,
+  } as any).returning();
+
+  return transaction;
+}
 
 // ============================================================
 // GET /bookings — List with filtering + pagination
@@ -433,488 +1238,29 @@ bookingsRouter.post("/", async (c) => {
   const body = createBookingSchema.parse(await c.req.json());
 
   log.info({ orgId, userId, requestId, customerId: body.customerId, itemsCount: body.items.length, source: body.source }, "[bookings] create started");
-
-  // Pre-flight: bookingType is now mandatory — canonical-only endpoint
-  const SUPPORTED_TYPES = [...Array.from(ENGINE_BOOKING_TYPES), ...Array.from(IMMEDIATE_TYPES)];
-  if (!body.bookingType) {
-    return c.json({
-      error: "bookingType مطلوب لإنشاء حجز",
-      code: "BOOKING_TYPE_REQUIRED",
-      supportedTypes: SUPPORTED_TYPES,
-      hint: "Client قديم؟ حدّث لإرسال bookingType في الـ request body",
-    }, 400);
+  let prepared: Awaited<ReturnType<typeof prepareBookingCreation>>;
+  try {
+    prepared = await prepareBookingCreation({ orgId, userId, body, requireExplicitBookingType: true });
+  } catch (err: any) {
+    if (err?.response) return c.json(err.response, err.status ?? 400);
+    throw err;
   }
-  if (!ENGINE_BOOKING_TYPES.has(body.bookingType) && !IMMEDIATE_TYPES.has(body.bookingType)) {
-    return c.json({
-      error: `نوع الحجز غير مدعوم: ${body.bookingType}`,
-      code: "UNSUPPORTED_BOOKING_TYPE",
-      supportedTypes: SUPPORTED_TYPES,
-    }, 400);
-  }
-
-  // 1. Verify customer exists
-  const [customer] = await db.select().from(customers)
-    .where(and(eq(customers.id, body.customerId), eq(customers.orgId, orgId)));
-  if (!customer) return c.json({ error: "العميل غير موجود" }, 404);
-
-  // 2. Batch-load all services, pricing rules, and addons — avoids N+1 (QE1)
-  const serviceIds = body.items.map((i) => i.serviceId);
-  const addonIds = body.items.flatMap((i) => i.addons.map((a) => a.addonId));
-
-  const [allServices, allPricingRules, allAddons, allServiceCosts, allServiceStaffRows, orgRow] = await Promise.all([
-    db.select().from(services)
-      .where(and(inArray(services.id, serviceIds), eq(services.orgId, orgId))),
-    db.select().from(pricingRules)
-      .where(and(eq(pricingRules.orgId, orgId), eq(pricingRules.isActive, true)))
-      .orderBy(desc(pricingRules.priority)),
-    addonIds.length > 0
-      ? db.select().from(addons)
-          .where(and(inArray(addons.id, addonIds), eq(addons.orgId, orgId)))
-      : Promise.resolve([] as (typeof addons.$inferSelect)[]),
-    db.select().from(serviceCosts)
-      .where(and(inArray(serviceCosts.serviceId, serviceIds), eq(serviceCosts.orgId, orgId))),
-    userId
-      ? db.select().from(serviceStaff)
-          .where(and(inArray(serviceStaff.serviceId, serviceIds), eq(serviceStaff.userId, userId)))
-      : Promise.resolve([] as (typeof serviceStaff.$inferSelect)[]),
-    db.select({ settings: organizations.settings, plan: organizations.plan, bookingUsed: organizations.bookingUsed }).from(organizations).where(eq(organizations.id, orgId)),
-  ]);
-
-  // Free plan limit check — fail fast before any pricing logic
-  const org = orgRow[0];
-  if (org?.plan === "free" && (org.bookingUsed ?? 0) >= FREE_BOOKING_LIMIT) {
-    return c.json({
-      error: `لقد استخدمت جميع الحجوزات المجانية (${FREE_BOOKING_LIMIT} حجز). للمتابعة واستقبال حجوزات جديدة، قم بالترقية إلى إحدى الباقات.`,
-      code: "FREE_LIMIT_REACHED",
-    }, 403);
-  }
-
-  const serviceMap = new Map(allServices.map((s) => [s.id, s]));
-  const addonMap = new Map(allAddons.map((a) => [a.id, a]));
-  const serviceCostMap = new Map(allServiceCosts.map((c) => [c.serviceId, c]));
-  const serviceStaffMap = new Map(allServiceStaffRows.map((s) => [s.serviceId, s]));
-
-  // Rental days multiplier — applies to rental/event_rental service types
-  const RENTAL_SVC_TYPES = new Set(["rental", "event_rental"]);
-  const rentalDays = (body.eventDate && body.eventEndDate)
-    ? Math.max(1, Math.ceil((new Date(body.eventEndDate).getTime() - new Date(body.eventDate).getTime()) / (1000 * 60 * 60 * 24)))
-    : 1;
-
-  // ZATCA-compliant monetary mathematics using decimal.js
-  let subtotal = new Decimal(0);
-  const itemsToInsert: any[] = [];
-  const addonsToInsert: any[] = [];
-
-  for (const item of body.items) {
-    const service = serviceMap.get(item.serviceId);
-    if (!service) {
-      return c.json({ error: `الخدمة غير موجودة: ${item.serviceId}` }, 400);
-    }
-
-    if (service.status !== "active" || (service as any).isBookable === false) {
-      return c.json({ error: `الخدمة غير متاحة للحجز: ${service.name}` }, 400);
-    }
-
-    // Immediate-sale types don't require a scheduled time
-    const sType = (service as any).serviceType as string | undefined;
-    if (!IMMEDIATE_TYPES.has(sType ?? "") && !body.eventDate) {
-      return c.json({ error: `الخدمة "${service.name}" تتطلب تاريخ ووقت الحجز` }, 400);
-    }
-    // field_service: requires customer location
-    if (sType === "field_service" && !body.customLocation && !body.locationId) {
-      return c.json({ error: `الخدمة الميدانية "${service.name}" تتطلب تحديد موقع العميل` }, 400);
-    }
-    // rental: requires end date for duration
-    if (sType === "rental" && !body.eventEndDate) {
-      return c.json({ error: `خدمة التأجير "${service.name}" تتطلب تحديد تاريخ الانتهاء` }, 400);
-    }
-
-    // Calculate price with applicable pricing rules
-    let unitPrice = new Decimal(service.basePrice);
-    const pricingBreakdown: any[] = [{ rule: "base", label: "السعر الأساسي", amount: unitPrice.toNumber() }];
-
-    const rules = allPricingRules.filter(
-      (r) => r.serviceId === service.id || r.serviceId === null
-    );
-
-    for (const rule of rules) {
-      const adjustment = applyPricingRule(rule, unitPrice.toNumber(), body.eventDate ?? "", body.locationId);
-      if (adjustment !== 0) {
-        unitPrice = unitPrice.add(adjustment);
-        pricingBreakdown.push({
-          rule: rule.type,
-          label: rule.name,
-          adjustment: adjustment,
-          amount: unitPrice.toNumber(),
-        });
-      }
-    }
-
-    const daysMultiplier = RENTAL_SVC_TYPES.has(sType ?? "") ? rentalDays : 1;
-    unitPrice = unitPrice.toDecimalPlaces(2);
-    const totalPrice = unitPrice.mul(item.quantity).mul(daysMultiplier).toDecimalPlaces(2);
-    subtotal = subtotal.add(totalPrice);
-
-    const itemId = crypto.randomUUID();
-    itemsToInsert.push({
-      id: itemId,
-      serviceId: service.id,
-      serviceName: service.name,
-      serviceType: (service as any).serviceType || null,
-      durationMinutes: (service as any).durationMinutes || null,
-      vatInclusive: (service as any).vatInclusive ?? true,
-      quantity: item.quantity,
-      unitPrice: unitPrice.toFixed(2),
-      totalPrice: totalPrice.toFixed(2),
-      pricingBreakdown,
-    });
-
-    // Calculate addon prices
-    for (const addonReq of item.addons) {
-      const addon = addonMap.get(addonReq.addonId);
-      if (!addon) continue;
-
-      let addonPrice: Decimal;
-      if (addon.priceMode === "percentage") {
-        addonPrice = unitPrice.mul(new Decimal(addon.price).div(100)).toDecimalPlaces(2);
-      } else {
-        addonPrice = new Decimal(addon.price).toDecimalPlaces(2);
-      }
-
-      const addonTotal = addonPrice.mul(addonReq.quantity).toDecimalPlaces(2);
-      subtotal = subtotal.add(addonTotal);
-
-      addonsToInsert.push({
-        bookingItemId: itemId,
-        addonId: addon.id,
-        addonName: addon.name,
-        quantity: addonReq.quantity,
-        unitPrice: addonPrice.toFixed(2),
-        totalPrice: addonTotal.toFixed(2),
-      });
-    }
-  }
-
-  // 3. Calculate totals — vatRate from org settings, depositPercent from services
-  const orgSettings = (orgRow[0]?.settings ?? {}) as Record<string, unknown>;
-  const vatRate = typeof orgSettings.vatRate === "number" ? orgSettings.vatRate : DEFAULT_VAT_RATE;
-  const vatAmount = subtotal.mul(vatRate).div(100).toDecimalPlaces(2);
-  const totalAmount = subtotal.add(vatAmount).toDecimalPlaces(2);
-  // العربون اختياري — يُحسب فقط إذا كان requireDeposit مفعّلاً في إعدادات الحجز
-  const requireDeposit = orgSettings.requireDeposit === true;
-  const depositPercent = requireDeposit
-    ? Math.max(
-        DEFAULT_DEPOSIT_PERCENT,
-        ...Array.from(serviceMap.values()).map(s => parseFloat(String((s as any).depositPercent ?? DEFAULT_DEPOSIT_PERCENT))),
-      )
-    : 0;
-  const depositAmount = totalAmount.mul(depositPercent).div(100).toDecimalPlaces(2);
-
-  // 4. Generate identifiers outside transaction (idempotent)
-  const bookingNumber = generateBookingNumber("NSQ");
-  const trackingToken = crypto.randomUUID().replace(/-/g, "").substring(0, BOOKING_TRACKING_TOKEN_LENGTH);
-
-
-  // Determine if ALL items are immediate-sale types (no scheduling needed)
-  const allImmediate = Array.from(serviceMap.values())
-    .every(s => IMMEDIATE_TYPES.has((s as any).serviceType ?? ""));
-  const resolvedEventDate = body.eventDate ? new Date(body.eventDate) : new Date();
-
-  // P1-3: Working hours enforcement — staff schedule + location opening hours
-  if (body.eventDate && !allImmediate) {
-    const DAY_NAMES = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"] as const;
-    const DAY_ABBR: Record<string, string> = {
-      sunday: "sun", monday: "mon", tuesday: "tue", wednesday: "wed",
-      thursday: "thu", friday: "fri", saturday: "sat",
-    };
-    const dayName = DAY_NAMES[resolvedEventDate.getUTCDay()];
-    const eventHHMM = `${String(resolvedEventDate.getUTCHours()).padStart(2, "0")}:${String(resolvedEventDate.getUTCMinutes()).padStart(2, "0")}`;
-
-    // Check assigned staff working hours
-    if (userId) {
-      const { rows: [staffRow] } = await db.execute(
-        sql`SELECT working_hours FROM users WHERE id = ${userId} LIMIT 1`
-      );
-      const wh = (staffRow as any)?.working_hours?.[dayName];
-      if (wh?.active === false) {
-        return c.json({ error: `الموظف المعيّن غير متاح يوم ${dayName}` }, 422);
-      }
-      if (wh?.active === true && wh.start && wh.end) {
-        if (eventHHMM < wh.start || eventHHMM >= wh.end) {
-          return c.json({ error: `الموظف المعيّن غير متاح في هذا الوقت (دوامه ${wh.start} – ${wh.end})` }, 422);
-        }
-      }
-    }
-
-    // Check location opening hours
-    if (body.locationId) {
-      const { rows: [locRow] } = await db.execute(
-        sql`SELECT opening_hours FROM locations WHERE id = ${body.locationId} AND org_id = ${orgId} LIMIT 1`
-      );
-      const ohMap = (locRow as any)?.opening_hours ?? {};
-      // opening_hours keys may be full ("sunday") or abbreviated ("sun") — try both
-      const oh = ohMap[DAY_ABBR[dayName]] ?? ohMap[dayName];
-      if (oh?.active === false) {
-        return c.json({ error: `الفرع مغلق هذا اليوم` }, 422);
-      }
-      if (oh?.active === true) {
-        const open  = oh.open  ?? oh.start;
-        const close = oh.close ?? oh.end;
-        if (open && close && (eventHHMM < open || eventHHMM >= close)) {
-          return c.json({ error: `الفرع مغلق في هذا الوقت (${open} – ${close})` }, 422);
-        }
-      }
-    }
-  }
-
-  // ── Canonical path ──────────────────────────────────────────────────────────
-  const canonicalBookingType = body.bookingType;
-  const engineRowId = crypto.randomUUID();
-
-  let canonicalRecord: typeof bookingRecords.$inferSelect;
-  let canonicalLines: { id: string; serviceRefId: string | null; itemName: string; durationMinutes: number | null }[] = [];
-
-  const targetStaffId = body.assignedUserId ?? userId;
 
   try {
-    canonicalRecord = await db.transaction(async (tx) => {
-        // Prevents hung transactions from advisory locks
-        await tx.execute(sql`SET LOCAL lock_timeout = '5s'`);
-
-        // Location conflict check (engine types only)
-        if (body.locationId && ENGINE_BOOKING_TYPES.has(canonicalBookingType)) {
-          const durationMins = ENGINE_DEFAULT_DURATION_MINS[canonicalBookingType] ?? 60;
-          const eventStart   = resolvedEventDate;
-          const eventEnd     = body.eventEndDate
-            ? new Date(body.eventEndDate)
-            : new Date(resolvedEventDate.getTime() + durationMins * 60_000);
-
-          await tx.execute(
-            sql`SELECT pg_advisory_xact_lock(hashtext(${orgId}), hashtext(${"loc:" + body.locationId}))`
-          );
-
-          const { rows: conflictRows } = await tx.execute(sql`
-            SELECT id, booking_number FROM booking_records
-            WHERE org_id      = ${orgId}
-              AND location_id  = ${body.locationId}
-              AND status NOT IN ('cancelled', 'no_show')
-              AND starts_at   < ${eventEnd.toISOString()}
-              AND COALESCE(ends_at, starts_at + ${durationMins} * interval '1 minute') >= ${eventStart.toISOString()}
-            FOR UPDATE
-          `);
-
-          if ((conflictRows as any[]).length > 0) {
-            throw Object.assign(
-              new Error("يوجد تعارض — الموقع محجوز في هذا التاريخ"),
-              { status: 409, code: "LOCATION_CONFLICT", conflicts: (conflictRows as any[]).map((r) => (r as any).booking_number) },
-            );
-          }
-        }
-
-        // Staff conflict check (conditional — only when assignedUserId provided)
-        if (targetStaffId && ENGINE_BOOKING_TYPES.has(canonicalBookingType)) {
-          const totalDurationMins = itemsToInsert.reduce((s: number, item: any) => s + (item.durationMinutes ?? 0), 0) || 60;
-          const staffStart = resolvedEventDate;
-          const staffEnd   = body.eventEndDate
-            ? new Date(body.eventEndDate)
-            : new Date(resolvedEventDate.getTime() + totalDurationMins * 60_000);
-
-          await tx.execute(
-            sql`SELECT pg_advisory_xact_lock(hashtext(${orgId}), hashtext(${"staff:" + targetStaffId}))`
-          );
-
-          const { rows: staffConflict } = await tx.execute(sql`
-            SELECT id, booking_number FROM booking_records
-            WHERE org_id           = ${orgId}
-              AND assigned_user_id  = ${targetStaffId}
-              AND status NOT IN ('cancelled', 'no_show')
-              AND starts_at        < ${staffEnd.toISOString()}
-              AND COALESCE(ends_at, starts_at + COALESCE((
-                SELECT SUM(duration_minutes) FROM booking_lines
-                WHERE booking_record_id = booking_records.id
-              ), 60) * interval '1 minute') > ${staffStart.toISOString()}
-            FOR UPDATE
-          `);
-
-          if ((staffConflict as any[]).length > 0) {
-            throw Object.assign(
-              new Error("الموظف لديه حجز آخر في نفس الوقت"),
-              { status: 409, code: "STAFF_SLOT_CONFLICT", conflicts: (staffConflict as any[]).map((r) => (r as any).booking_number) },
-            );
-          }
-        }
-
-        // ① INSERT booking_records
-        // bookingRef intentionally NULL — it references bookings.id (legacy data only)
-        const [newRecord] = await tx.insert(bookingRecords).values({
-          orgId,
-          customerId:     body.customerId,
-          bookingNumber,
-          bookingType:    canonicalBookingType,
-          status:         "pending",
-          paymentStatus:  "pending",
-          startsAt:       resolvedEventDate,
-          endsAt:         body.eventEndDate ? new Date(body.eventEndDate) : null,
-          locationId:     body.locationId ?? null,
-          customLocation: body.customLocation ?? null,
-          locationNotes:  body.locationNotes ?? null,
-          customerNotes:  body.customerNotes ?? null,
-          internalNotes:  body.internalNotes ?? null,
-          assignedUserId: targetStaffId ?? null,
-          subtotal:       subtotal.toFixed(2),
-          discountAmount: "0",
-          vatAmount:      vatAmount.toFixed(2),
-          totalAmount:    totalAmount.toFixed(2),
-          depositAmount:  depositAmount.toFixed(2),
-          paidAmount:     "0",
-          balanceDue:     totalAmount.toFixed(2),
-          couponCode:     body.couponCode ?? null,
-          isRecurring:    false,
-          trackingToken,
-          source:         body.source ?? "dashboard",
-        } as any).returning();
-
-        // ② INSERT booking_lines (serviceRefId bridges to legacy service catalog)
-        const insertedLineIds: string[] = [];
-        if (itemsToInsert.length > 0) {
-          const lineValues = itemsToInsert.map((item: any) => ({
-            bookingRecordId: newRecord.id,
-            serviceRefId:    item.serviceId,
-            itemName:        item.serviceName,
-            lineType:        "service",
-            quantity:        item.quantity,
-            unitPrice:       item.unitPrice,
-            totalPrice:      item.totalPrice,
-            durationMinutes: item.durationMinutes ?? null,
-            vatInclusive:    item.vatInclusive ?? true,
-          }));
-          const insertedLines = await tx.insert(bookingLines).values(lineValues as any).returning();
-          insertedLines.forEach((line) => {
-            insertedLineIds.push(line.id);
-            canonicalLines.push({ id: line.id, serviceRefId: line.serviceRefId ?? null, itemName: line.itemName, durationMinutes: line.durationMinutes ?? null });
-          });
-        }
-
-        // ③ INSERT engine table row (MANDATORY for non-immediate types)
-        if (ENGINE_BOOKING_TYPES.has(canonicalBookingType)) {
-          await insertEngineRow(tx as any, canonicalBookingType, engineRowId, newRecord, targetStaffId ?? null, body.source ?? "dashboard");
-        }
-
-        // ④ INSERT booking_timeline_events — "created" (inside transaction — atomic)
-        await tx.insert(bookingTimelineEvents).values({
-          orgId,
-          bookingRecordId: newRecord.id,
-          userId,
-          eventType:       "created",
-          fromStatus:      null,
-          toStatus:        "pending",
-          metadata:        { bookingNumber, source: body.source ?? "dashboard" },
-        } as any);
-
-        // ⑤ INSERT audit_log — inside transaction (PDPL: audit must not outlive the record)
-        await tx.insert(auditLogs).values({
-          orgId,
-          userId,
-          action:     "created",
-          resource:   "booking_record",
-          resourceId: newRecord.id,
-          metadata:   { bookingNumber, bookingType: canonicalBookingType },
-        } as any);
-
-        // ⑥ Assignment (canonical table)
-        if (userId) {
-          await tx.insert(bookingRecordAssignments).values({
-            orgId,
-            bookingRecordId: newRecord.id,
-            userId,
-            role:       "staff",
-            assignedAt: new Date(),
-          } as any);
-
-          // Commissions per line (canonical table)
-          const canonicalCommissions: any[] = [];
-          for (let i = 0; i < itemsToInsert.length; i++) {
-            const item = itemsToInsert[i] as any;
-            const lineId = insertedLineIds[i] ?? null;
-            const cost      = serviceCostMap.get(item.serviceId);
-            const staffRow  = serviceStaffMap.get(item.serviceId);
-
-            let commissionMode: string = "percentage";
-            let rate: number = 0;
-
-            if (staffRow && staffRow.commissionMode === "none") {
-              continue;
-            } else if (staffRow && staffRow.commissionMode === "fixed") {
-              commissionMode = "fixed";
-              rate = parseFloat(staffRow.commissionValue as string) || 0;
-            } else if (staffRow && staffRow.commissionMode === "percentage") {
-              commissionMode = "percentage";
-              rate = parseFloat(staffRow.commissionValue as string) || 0;
-            } else {
-              commissionMode = "percentage";
-              rate = cost ? (parseFloat(cost.commissionPercent as string) || 0) : 10;
-            }
-
-            if (rate === 0) continue;
-
-            const baseAmount = parseFloat(item.totalPrice);
-            const commissionAmount = commissionMode === "fixed" ? rate : baseAmount * (rate / 100);
-
-            canonicalCommissions.push({
-              orgId,
-              bookingRecordId: newRecord.id,
-              bookingLineId:   lineId,
-              userId,
-              serviceRefId:    item.serviceId,
-              commissionMode,
-              rate:             rate.toFixed(2),
-              baseAmount:       baseAmount.toFixed(2),
-              commissionAmount: commissionAmount.toFixed(2),
-              status:           "pending",
-            });
-          }
-
-          if (canonicalCommissions.length > 0) {
-            await tx.insert(bookingRecordCommissions).values(canonicalCommissions as any);
-          }
-        }
-
-        // ⑦ Update customer stats
-        await tx.update(customers).set({
-          totalBookings: sql`${customers.totalBookings} + 1`,
-          lastBookingAt: new Date(),
-          updatedAt:     new Date(),
-        }).where(eq(customers.id, body.customerId));
-
-        return newRecord;
-      });
-    } catch (err: any) {
-      if (err.code === "55P03") {
-        return c.json({ error: "الموقع مشغول حالياً، حاول بعد قليل", code: "LOCK_TIMEOUT" }, 503);
-      }
-      if (err?.status === 409) {
-        salonLog.bookingConflictRejected({
-          requestId: requestId ?? undefined, orgId, assignedUserId: userId ?? undefined,
-          metadata: { conflictType: err.code === "LOCATION_CONFLICT" ? "location" : "staff", conflictBookings: err.conflicts ?? [] },
-        });
-        return c.json({ error: err.message, code: err.code, conflicts: err.conflicts ?? [] }, 409);
-      }
-      salonLog.bookingFailed({
-        requestId: requestId ?? undefined, orgId, assignedUserId: userId ?? undefined,
-        metadata: { reason: err?.message ?? "unknown" },
-      });
-      throw err;
-    }
+    const { record: canonicalRecord, lines: canonicalLines, engineRowId } = await db.transaction((tx) =>
+      createCanonicalBookingTx(tx, prepared)
+    );
 
     salonLog.bookingCreated({
-      requestId: requestId ?? undefined, orgId,
+      requestId: requestId ?? undefined,
+      orgId,
       bookingId: canonicalRecord.id,
       customerId: canonicalRecord.customerId ?? undefined,
       assignedUserId: userId ?? undefined,
       metadata: { bookingNumber: canonicalRecord.bookingNumber },
     });
 
-    if (org?.plan === "free") {
+    if (prepared.org?.plan === "free") {
       await db.update(organizations)
         .set({ bookingUsed: sql`${organizations.bookingUsed} + 1` })
         .where(eq(organizations.id, orgId));
@@ -928,9 +1274,196 @@ bookingsRouter.post("/", async (c) => {
         ...canonicalRecord,
         lines: canonicalLines,
         engineRowId,
-        trackingUrl: `/track/${trackingToken}`,
+        trackingUrl: `/track/${prepared.trackingToken}`,
       },
     }, 201);
+  } catch (err: any) {
+    if (err.code === "55P03") {
+      return c.json({ error: "الموقع مشغول حالياً، حاول بعد قليل", code: "LOCK_TIMEOUT" }, 503);
+    }
+    if (err?.status === 409) {
+      salonLog.bookingConflictRejected({
+        requestId: requestId ?? undefined,
+        orgId,
+        assignedUserId: userId ?? undefined,
+        metadata: { conflictType: err.code === "LOCATION_CONFLICT" ? "location" : "staff", conflictBookings: err.conflicts ?? [] },
+      });
+      return c.json({ error: err.message, code: err.code, conflicts: err.conflicts ?? [] }, 409);
+    }
+    if (err?.response) return c.json(err.response, err.status ?? 400);
+    salonLog.bookingFailed({
+      requestId: requestId ?? undefined,
+      orgId,
+      assignedUserId: userId ?? undefined,
+      metadata: { reason: err?.message ?? "unknown" },
+    });
+    throw err;
+  }
+});
+
+bookingsRouter.post("/checkout", async (c) => {
+  const orgId = getOrgId(c);
+  const userId = getUserId(c);
+  const requestId = c.get("requestId");
+  const { booking, payment, invoice, treasuryReceipt } = createBookingCheckoutSchema.parse(await c.req.json());
+
+  log.info({ orgId, userId, requestId, customerId: booking.customerId, itemsCount: booking.items.length, source: booking.source }, "[bookings] checkout started");
+
+  let prepared: Awaited<ReturnType<typeof prepareBookingCreation>>;
+  try {
+    prepared = await prepareBookingCreation({ orgId, userId, body: booking });
+  } catch (err: any) {
+    if (err?.response) return c.json(err.response, err.status ?? 400);
+    throw err;
+  }
+
+  try {
+    const checkout = await db.transaction(async (tx) => {
+      const { record: bookingRecord, lines, engineRowId } = await createCanonicalBookingTx(tx, prepared);
+      const createdPayment = payment
+        ? await recordBookingCheckoutPaymentTx(tx, {
+            orgId,
+            userId,
+            bookingRecordId: bookingRecord.id,
+            customerId: bookingRecord.customerId,
+            payment,
+          })
+        : null;
+      const createdInvoice = await createBookingInvoiceTx(tx, {
+        orgId,
+        bookingRecord,
+        bookingLinesSnapshot: lines,
+        customer: prepared.customer,
+        org: prepared.org,
+        invoiceInput: invoice,
+        payment: createdPayment,
+      });
+      const treasuryTransaction = createdPayment?.status === "completed"
+        ? await createTreasuryReceiptTx(tx, {
+            orgId,
+            userId,
+            bookingRecordId: bookingRecord.id,
+            invoiceId: createdInvoice.id,
+            customer: prepared.customer,
+            payment: createdPayment,
+            treasuryReceipt,
+          })
+        : null;
+
+      return { bookingRecord, lines, engineRowId, payment: createdPayment, invoice: createdInvoice, treasuryReceipt: treasuryTransaction };
+    });
+
+    salonLog.bookingCreated({
+      requestId: requestId ?? undefined,
+      orgId,
+      bookingId: checkout.bookingRecord.id,
+      customerId: checkout.bookingRecord.customerId ?? undefined,
+      assignedUserId: userId ?? undefined,
+      metadata: { bookingNumber: checkout.bookingRecord.bookingNumber, mode: "checkout" },
+    });
+
+    if (prepared.org?.plan === "free") {
+      await db.update(organizations)
+        .set({ bookingUsed: sql`${organizations.bookingUsed} + 1` })
+        .where(eq(organizations.id, orgId));
+    }
+
+    fireBookingEvent("booking_confirmed", { orgId, bookingId: checkout.bookingRecord.id });
+    fireBookingEvent("owner_new_booking", { orgId, bookingId: checkout.bookingRecord.id });
+    if (checkout.payment?.status === "completed") {
+      fireBookingEvent("payment_received", { orgId, bookingId: checkout.bookingRecord.id, amount: parseFloat(String(checkout.payment.amount)) });
+    }
+    fireBookingEvent("invoice_issued", {
+      orgId,
+      customerId: checkout.bookingRecord.customerId,
+      invoiceNumber: checkout.invoice.invoiceNumber,
+      amount: parseFloat(String(checkout.invoice.totalAmount)),
+    });
+
+    insertAuditLog({ orgId, userId, action: "created", resource: "invoice", resourceId: checkout.invoice.id });
+    if (checkout.payment) {
+      insertAuditLog({
+        orgId,
+        userId,
+        action: "payment_recorded",
+        resource: "payment",
+        resourceId: checkout.payment.id,
+        newValue: {
+          bookingId: checkout.bookingRecord.id,
+          amount: checkout.payment.amount,
+          method: checkout.payment.method,
+          status: checkout.payment.status,
+        },
+      });
+    }
+
+    if (checkout.payment?.status === "completed" && checkout.payment.customerId) {
+      awardLoyaltyPoints({
+        orgId,
+        customerId: checkout.payment.customerId,
+        bookingId: checkout.bookingRecord.id,
+        bookingAmount: parseFloat(String(checkout.payment.amount)),
+      }).catch(() => {});
+    }
+
+    try {
+      if (isAccountingEnabled((prepared.org?.settings as any) ?? {})) {
+        await autoJournal.invoiceIssued({
+          orgId,
+          invoiceId: checkout.invoice.id,
+          invoiceNumber: checkout.invoice.invoiceNumber,
+          amount: parseFloat(String(checkout.invoice.totalAmount)),
+        });
+
+        if (checkout.payment?.status === "completed") {
+          const amount = parseFloat(String(checkout.payment.amount));
+          const vatAmount = 0;
+          if (checkout.payment.type === "deposit") {
+            await postDepositReceived({ orgId, date: new Date(), amount, description: `عربون حجز ${checkout.bookingRecord.id}`, sourceId: checkout.payment.id, createdBy: userId ?? undefined });
+          } else if (checkout.payment.type === "refund") {
+            await postRefund({ orgId, date: new Date(), amount, vatAmount, description: `استرداد حجز ${checkout.bookingRecord.id}`, sourceId: checkout.payment.id, createdBy: userId ?? undefined });
+          } else {
+            await postCashSale({ orgId, date: new Date(), amount, vatAmount, description: `تحصيل دفعة حجز ${checkout.bookingRecord.id}`, sourceType: "booking", sourceId: checkout.payment.id, createdBy: userId ?? undefined });
+          }
+        }
+      }
+    } catch {}
+
+    return c.json({
+      data: {
+        booking: {
+          ...checkout.bookingRecord,
+          lines: checkout.lines,
+          engineRowId: checkout.engineRowId,
+          trackingUrl: `/track/${prepared.trackingToken}`,
+        },
+        payment: checkout.payment,
+        invoice: checkout.invoice,
+        treasuryReceipt: checkout.treasuryReceipt,
+      },
+    }, 201);
+  } catch (err: any) {
+    if (err.code === "55P03") {
+      return c.json({ error: "الموقع مشغول حالياً، حاول بعد قليل", code: "LOCK_TIMEOUT" }, 503);
+    }
+    if (err?.status === 409) {
+      salonLog.bookingConflictRejected({
+        requestId: requestId ?? undefined,
+        orgId,
+        assignedUserId: userId ?? undefined,
+        metadata: { conflictType: err.code === "LOCATION_CONFLICT" ? "location" : "staff", conflictBookings: err.conflicts ?? [] },
+      });
+      return c.json({ error: err.message, code: err.code, conflicts: err.conflicts ?? [] }, 409);
+    }
+    if (err?.response) return c.json(err.response, err.status ?? 400);
+    salonLog.bookingFailed({
+      requestId: requestId ?? undefined,
+      orgId,
+      assignedUserId: userId ?? undefined,
+      metadata: { reason: err?.message ?? "unknown", mode: "checkout" },
+    });
+    throw err;
+  }
 });
 
 // ============================================================

@@ -1,7 +1,21 @@
 import { eq, and, sql, gte, lte, ne, inArray } from "drizzle-orm";
+import { addMonths } from "date-fns";
 import { db } from "@nasaq/db/client";
-import { bookings, bookingItems, services, users } from "@nasaq/db/schema";
+import {
+  bookings,
+  bookingItems,
+  bookingConsumptions,
+  bookingRecordConsumptions,
+  bookingRecords,
+  bookingTimelineEvents,
+  salonSupplies,
+  salonSupplyAdjustments,
+  services,
+  users,
+} from "@nasaq/db/schema";
 import { FIND_AVAILABLE_DAYS_AHEAD, ASSET_BOOKING_THRESHOLD, AUTO_CANCEL_OVERDUE_DAYS } from "./constants";
+import { fireBookingEvent } from "./messaging-engine";
+type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 // ============================================================
 // CONFLICT ENGINE
@@ -80,7 +94,7 @@ export async function checkConflicts(params: {
     const assetCountRows = await db.execute(sql`
       SELECT
         (asset_req->>'assetTypeId') AS asset_type_id,
-        COALESCE(SUM((bi.quantity)::int), 0) AS total
+        COALESCE(SUM((bi.quantity)::int * COALESCE((asset_req->>'quantity')::int, 1)), 0) AS total
       FROM booking_items bi
       JOIN bookings b ON bi.booking_id = b.id
       JOIN services s ON bi.service_id = s.id
@@ -209,7 +223,7 @@ export function generateRecurringDates(startDate: Date, pattern: RecurringPatter
     }
 
     if (pattern.frequency === "monthly") {
-      current.setMonth(current.getMonth() + 1);
+      current = addMonths(current, 1);
     } else {
       current.setDate(current.getDate() + increment[pattern.frequency]);
     }
@@ -283,21 +297,150 @@ export function calculateRefund(params: {
   };
 }
 
-// Auto-cancel overdue bookings — single UPDATE instead of per-row loop (Q3)
-export async function autoCancelOverdueBookings(orgId: string, maxOverdueDays: number = AUTO_CANCEL_OVERDUE_DAYS) {
-  const cutoffDate = new Date(Date.now() - maxOverdueDays * 24 * 60 * 60 * 1000);
+async function reverseBookingSuppliesTx(tx: DbTx, orgId: string, bookingRecordId: string, legacyBookingId: string | null) {
+  const canonicalConsumptions = await tx.select().from(bookingRecordConsumptions)
+    .where(and(eq(bookingRecordConsumptions.bookingRecordId, bookingRecordId), eq(bookingRecordConsumptions.orgId, orgId)));
 
-  const cancelled = await db.update(bookings).set({
+  for (const consumption of canonicalConsumptions) {
+    if (!consumption.supplyId) continue;
+    const qty = parseFloat(consumption.quantity as string);
+    await tx.execute(sql`
+      UPDATE salon_supplies
+      SET quantity = (quantity::numeric + ${qty})::text, updated_at = NOW()
+      WHERE id = ${consumption.supplyId} AND org_id = ${orgId}
+    `);
+    await tx.insert(salonSupplyAdjustments).values({
+      orgId,
+      supplyId: consumption.supplyId,
+      delta: String(qty),
+      reason: "adjusted",
+      notes: `إعادة مخزون — إلغاء حجز ${bookingRecordId.slice(0, 8)}`,
+      createdBy: null,
+    });
+  }
+
+  if (canonicalConsumptions.length > 0) {
+    await tx.delete(bookingRecordConsumptions)
+      .where(and(eq(bookingRecordConsumptions.bookingRecordId, bookingRecordId), eq(bookingRecordConsumptions.orgId, orgId)));
+  }
+
+  if (!legacyBookingId) return;
+
+  const legacyConsumptions = await tx.select().from(bookingConsumptions)
+    .where(and(eq(bookingConsumptions.bookingId, legacyBookingId), eq(bookingConsumptions.orgId, orgId)));
+
+  for (const consumption of legacyConsumptions) {
+    if (!consumption.supplyId) continue;
+    const qty = parseFloat(consumption.quantity as string);
+    await tx.execute(sql`
+      UPDATE salon_supplies
+      SET quantity = (quantity::numeric + ${qty})::text, updated_at = NOW()
+      WHERE id = ${consumption.supplyId} AND org_id = ${orgId}
+    `);
+    await tx.insert(salonSupplyAdjustments).values({
+      orgId,
+      supplyId: consumption.supplyId,
+      delta: String(qty),
+      reason: "adjusted",
+      notes: `إعادة مخزون — إلغاء حجز ${legacyBookingId.slice(0, 8)}`,
+      createdBy: null,
+    });
+  }
+
+  if (legacyConsumptions.length > 0) {
+    await tx.delete(bookingConsumptions)
+      .where(and(eq(bookingConsumptions.bookingId, legacyBookingId), eq(bookingConsumptions.orgId, orgId)));
+  }
+}
+
+async function cancelBookingService(
+  bookingRecordId: string,
+  reason: string,
+  tx: DbTx,
+): Promise<{ bookingNumber: string; cancelled: boolean } | null> {
+  const [booking] = await tx.select({
+    id: bookingRecords.id,
+    orgId: bookingRecords.orgId,
+    bookingNumber: bookingRecords.bookingNumber,
+    status: bookingRecords.status,
+    bookingRef: bookingRecords.bookingRef,
+  }).from(bookingRecords)
+    .where(eq(bookingRecords.id, bookingRecordId))
+    .for("update");
+
+  if (!booking) return null;
+  if (booking.status === "cancelled") {
+    return { bookingNumber: booking.bookingNumber, cancelled: false };
+  }
+
+  if (booking.status === "completed") {
+    await reverseBookingSuppliesTx(tx, booking.orgId, booking.id, booking.bookingRef ?? null);
+  }
+
+  await tx.update(bookingRecords).set({
     status: "cancelled",
     cancelledAt: new Date(),
-    cancellationReason: `إلغاء تلقائي — لم يتم الدفع خلال ${maxOverdueDays} أيام`,
+    cancellationReason: reason,
     updatedAt: new Date(),
   }).where(and(
-    eq(bookings.orgId, orgId),
-    eq(bookings.status, "pending"),
-    eq(bookings.paymentStatus, "pending"),
-    lte(bookings.createdAt, cutoffDate),
-  )).returning({ bookingNumber: bookings.bookingNumber });
+    eq(bookingRecords.id, booking.id),
+    eq(bookingRecords.orgId, booking.orgId),
+  ));
 
-  return { cancelled: cancelled.map((b) => b.bookingNumber), count: cancelled.length };
+  if (booking.bookingRef) {
+    await tx.update(bookings).set({
+      status: "cancelled",
+      cancelledAt: new Date(),
+      cancellationReason: reason,
+      updatedAt: new Date(),
+    }).where(and(
+      eq(bookings.id, booking.bookingRef),
+      eq(bookings.orgId, booking.orgId),
+    ));
+  }
+
+  await tx.insert(bookingTimelineEvents).values({
+    orgId: booking.orgId,
+    bookingRecordId: booking.id,
+    userId: null,
+    eventType: "status_changed",
+    fromStatus: booking.status,
+    toStatus: "cancelled",
+    metadata: {
+      reason,
+      source: "auto_cancel_overdue",
+      automated: true,
+    },
+  } as any);
+
+  fireBookingEvent("booking_cancelled", { orgId: booking.orgId, bookingId: booking.id });
+  fireBookingEvent("owner_booking_cancelled", { orgId: booking.orgId, bookingId: booking.id });
+
+  return { bookingNumber: booking.bookingNumber, cancelled: true };
+}
+
+// Auto-cancel overdue bookings — go through cancellation service to preserve side-effects
+export async function autoCancelOverdueBookings(orgId: string, maxOverdueDays: number = AUTO_CANCEL_OVERDUE_DAYS) {
+  const cutoffDate = new Date(Date.now() - maxOverdueDays * 24 * 60 * 60 * 1000);
+  const reason = `إلغاء تلقائي — لم يتم الدفع خلال ${maxOverdueDays} أيام`;
+
+  const overdue = await db.select({ id: bookingRecords.id })
+    .from(bookingRecords)
+    .where(and(
+      eq(bookingRecords.orgId, orgId),
+      eq(bookingRecords.status, "pending"),
+      eq(bookingRecords.paymentStatus, "pending"),
+      lte(bookingRecords.createdAt, cutoffDate),
+    ));
+
+  const cancelled: string[] = [];
+
+  for (const booking of overdue) {
+    const result = await db.transaction((tx) => cancelBookingService(booking.id, reason, tx));
+    if (result?.cancelled) {
+      cancelled.push(result.bookingNumber);
+    }
+  }
+
+  return { cancelled, count: cancelled.length };
 }
