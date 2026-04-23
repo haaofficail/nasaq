@@ -25,7 +25,7 @@ export function OnlineOrdersWidget() {
             <p className="text-xs text-gray-400">اليوم</p>
           </div>
         </div>
-        <Link to="/dashboard/online-orders" className="text-xs text-brand-500 hover:text-brand-600 font-medium">
+        <Link to="/dashboard/orders" className="text-xs text-brand-500 hover:text-brand-600 font-medium">
           عرض الكل
         </Link>
       </div>

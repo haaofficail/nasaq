@@ -380,7 +380,7 @@ export default function App() {
           <Route path="storefront/*" element={<Navigate to="/dashboard/pages-v2" replace />} />
           <Route path="website" element={<Navigate to="/dashboard/pages-v2" replace />} />
           <Route path="website/*" element={<Navigate to="/dashboard/pages-v2" replace />} />
-          <Route path="online-orders" element={<OnlineOrdersPage />} />
+          <Route path="online-orders" element={<Navigate to="/dashboard/orders" replace />} />
           <Route path="automation" element={<AutomationPage />} />
           <Route path="marketing" element={<MarketingPage />} />
           <Route path="messaging" element={<MessagingSettingsPage />} />

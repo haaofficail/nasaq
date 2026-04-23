@@ -605,10 +605,10 @@ const profiles: Record<string, DashboardProfile> = {
   restaurant: {
     profileKey: "restaurant",
     label: "المطعم",
-    primaryAction: { label: "طلب جديد", href: "/dashboard/online-orders" },
+    primaryAction: { label: "طلب جديد", href: "/dashboard/orders" },
     kpis: [revenueKpi(), bookingsKpi(), onlineOrdersCountKpi(), staffKpi()],
     quickActions: [
-      { id: "new-order", label: "طلب جديد", href: "/dashboard/online-orders", icon: ShoppingBag,   bg: "bg-orange-50", text: "text-orange-600", allowedRoles: [] },
+      { id: "new-order", label: "طلب جديد", href: "/dashboard/orders", icon: ShoppingBag,   bg: "bg-orange-50", text: "text-orange-600", allowedRoles: [] },
       { id: "menu",      label: "القائمة",  href: "/dashboard/menu",          icon: ChefHat,       bg: "bg-teal-50",   text: "text-teal-600",   allowedRoles: [] },
       { id: "new-customer", modal: "customer" as const, label: "عميل جديد", href: "/dashboard/customers", icon: Users, bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
       { id: "staff",     label: "الموظفون", href: "/dashboard/staff",          icon: UserCheck,     bg: "bg-violet-50", text: "text-violet-600", allowedRoles: ["owner", "admin", "manager"] },
@@ -627,7 +627,7 @@ const profiles: Record<string, DashboardProfile> = {
   restaurant_delivery: {
     profileKey: "restaurant_delivery",
     label: "مطعم توصيل",
-    primaryAction: { label: "طلب جديد", href: "/dashboard/online-orders" },
+    primaryAction: { label: "طلب جديد", href: "/dashboard/orders" },
     kpis: [
       onlineOrdersCountKpi(),
       revenueKpi("delivery-revenue"),
@@ -645,7 +645,7 @@ const profiles: Record<string, DashboardProfile> = {
       staffKpi(),
     ],
     quickActions: [
-      { id: "new-order",  label: "طلب جديد",   href: "/dashboard/online-orders", icon: ShoppingBag,   bg: "bg-orange-50", text: "text-orange-600", allowedRoles: [] },
+      { id: "new-order",  label: "طلب جديد",   href: "/dashboard/orders", icon: ShoppingBag,   bg: "bg-orange-50", text: "text-orange-600", allowedRoles: [] },
       { id: "menu",       label: "القائمة",    href: "/dashboard/menu",          icon: ChefHat,       bg: "bg-teal-50",   text: "text-teal-600",   allowedRoles: [] },
       { id: "new-customer", modal: "customer" as const, label: "عميل جديد", href: "/dashboard/customers", icon: Users, bg: "bg-violet-50", text: "text-violet-600", allowedRoles: [] },
       { id: "staff",      label: "الموظفون",   href: "/dashboard/staff",          icon: UserCheck,     bg: "bg-violet-50", text: "text-violet-600", allowedRoles: ["owner", "admin", "manager"] },
