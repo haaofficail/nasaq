@@ -9,7 +9,7 @@ import { useNavigate, useSearchParams, Link, useBeforeUnload, unstable_usePrompt
 import {
   ArrowRight, ArrowLeft, Loader2, AlertCircle, Upload, X, Plus,
   Trash2, Save, Check, ChevronDown, MapPin, Package, Wrench,
-  Home, Star, Truck, Gift, FileText, ShoppingBag, CalendarCheck,
+  Home, Star, Truck, Gift, FileText, ClipboardList, UtensilsCrossed,
   DollarSign, Clock, Image, Settings, Layers, CheckSquare,
   AlignLeft, AlignJustify, Hash, Calendar, LayoutList, Paperclip,
   MessageSquare, Barcode, Eye, RefreshCw,
@@ -37,34 +37,44 @@ function parseDur(mins: number): { v: string; u: DurationUnit } {
 
 type ServiceTypeOption = { value: string; label: string; desc: string; icon: React.ElementType };
 
-const DEFAULT_SERVICE_TYPES: ServiceTypeOption[] = [
-  { value: "appointment",      label: "حجز موعد",      desc: "العميل يحجز وقت محدد", icon: CalendarCheck },
-  { value: "execution",        label: "تنفيذ وصيانة",  desc: "تنفيذ عمل ميداني",    icon: Wrench },
-  { value: "field_service",    label: "خدمة ميدانية",  desc: "زيارة في موقع العميل", icon: MapPin },
-  { value: "rental",           label: "تأجير",          desc: "تأجير أصول ومعدات",    icon: Home },
-  { value: "event_rental",     label: "تأجير فعالية",   desc: "قاعات ومساحات",       icon: Star },
-  { value: "product",          label: "منتج",           desc: "بيع مباشر",           icon: Package },
-  { value: "product_shipping", label: "منتج بشحن",     desc: "منتج يُشحن",          icon: Truck },
-  { value: "food_order",       label: "طعام ومشروبات", desc: "وجبات ومنتجات غذائية", icon: ShoppingBag },
-  { value: "package",          label: "باقة",           desc: "خدمات مجمّعة",        icon: Gift },
-  { value: "project",          label: "مشروع",          desc: "عمل طويل المدى",      icon: FileText },
+const SERVICE_TYPES: ServiceTypeOption[] = [
+  { value: "appointment",      label: "حجز موعد",       desc: "العميل يحجز وقتاً محدداً مع موظف",          icon: Calendar },
+  { value: "execution",        label: "تنفيذ وصيانة",   desc: "تنفيذ عمل أو صيانة في موعد محدد",           icon: Wrench },
+  { value: "field_service",    label: "خدمة ميدانية",   desc: "الموظف يزور العميل في موقعه",               icon: MapPin },
+  { value: "rental",           label: "تأجير",           desc: "العميل يستأجر أصلاً لفترة محددة",           icon: Home },
+  { value: "event_rental",     label: "تأجير فعالية",    desc: "تأجير قاعة أو مكان لحدث بعينه",            icon: Star },
+  { value: "product",          label: "منتج",            desc: "منتج يُباع مباشرة عبر الكاشير أو الموقع",  icon: Package },
+  { value: "product_shipping", label: "منتج بشحن",      desc: "منتج يُشحن للعميل عبر المتجر الإلكتروني",  icon: Truck },
+  { value: "food_order",       label: "طعام ومشروبات",  desc: "وجبة أو منتج غذائي يظهر في قائمة الطعام",  icon: UtensilsCrossed },
+  { value: "package",          label: "باقة",            desc: "مجموعة خدمات مجمّعة بسعر موحد",             icon: Gift },
+  { value: "add_on",           label: "خيار إضافي",     desc: "خيار يختاره العميل مع خدمة أخرى",           icon: Plus },
+  { value: "project",          label: "مشروع",           desc: "عمل طويل المدى يُنفَّذ على مراحل",          icon: ClipboardList },
 ];
 
-// خيارات متقدمة — لا تظهر في القائمة الرئيسية لأنها تُضاف على خدمات أخرى
-const ADVANCED_SERVICE_TYPES: ServiceTypeOption[] = [
-  { value: "add_on", label: "خيار إضافي", desc: "يُضاف على خدمة قائمة كخيار اختياري", icon: Plus },
-];
-
-const FLOWER_SHOP_TYPES = [
-  { value: "product",          label: "باقات الورد والهدايا",  desc: "باقات جاهزة، تغليف، فازات تباع للعميل مباشرة", icon: Package },
-  { value: "event_rental",     label: "تأجير الكوش والاستقبالات", desc: "تجهيز وتأجير الكوش، طاولات الاستقبال، والمداخل", icon: Star },
-  { value: "execution",        label: "تنسيق موقع وحفلات",   desc: "فريق المنسقين يجهز ورد طبيعي أو صناعي في القاعة", icon: Wrench },
-  { value: "product_shipping", label: "باقات وشحنات توصيل",     desc: "باقات مخصصة للإهداء وتوصيل المناسبات",          icon: Truck },
-  { value: "package",          label: "عروض مجمّعة (توفير)",   desc: "باقة (ورد + شوكولاتة + كرت) بسعر موحد وحصري", icon: Gift },
-];
-
-const BUSINESS_CUSTOM_TYPES: Record<string, ServiceTypeOption[]> = {
-  flower_shop: FLOWER_SHOP_TYPES,
+const BUSINESS_TYPE_GROUPS: Record<string, string[]> = {
+  salon:           ["appointment", "package", "product", "add_on"],
+  barber:          ["appointment", "package", "product", "add_on"],
+  spa:             ["appointment", "package", "product", "add_on"],
+  fitness:         ["appointment", "package", "product", "add_on"],
+  massage:         ["appointment", "package", "add_on"],
+  photography:     ["appointment", "package", "add_on"],
+  cafe:            ["food_order", "product", "package", "add_on"],
+  restaurant:      ["food_order", "product", "package", "add_on"],
+  bakery:          ["food_order", "product", "product_shipping", "package"],
+  catering:        ["food_order", "package", "execution"],
+  rental:          ["rental", "event_rental", "product", "add_on"],
+  car_rental:      ["rental", "product", "add_on"],
+  hotel:           ["rental", "event_rental", "add_on"],
+  real_estate:     ["rental"],
+  events:          ["event_rental", "rental", "package", "add_on"],
+  event_organizer: ["event_rental", "package", "add_on"],
+  workshop:        ["execution", "field_service", "product", "add_on"],
+  maintenance:     ["execution", "field_service", "add_on"],
+  logistics:       ["field_service", "product_shipping", "execution"],
+  construction:    ["project", "execution", "field_service"],
+  retail:          ["product", "product_shipping", "package", "add_on"],
+  flower_shop:     ["product", "package", "add_on"],
+  school:          ["product", "package", "appointment"],
 };
 
 const NEEDS_TIMING = new Set(["appointment", "execution", "field_service", "rental", "event_rental", "project", "food_order"]);
@@ -312,7 +322,7 @@ export function ServiceCreateWizard() {
   const [products, setProducts] = useState<any[]>([]);
   const [refLoading, setRefLoading] = useState(true);
 
-  const [showAdvancedTypes, setShowAdvancedTypes] = useState(false);
+  const [showAllTypes, setShowAllTypes] = useState(false);
 
   // ── Media ──────────────────────────────────────────────────────────────────
   const fileRef = useRef<HTMLInputElement>(null);
@@ -326,7 +336,15 @@ export function ServiceCreateWizard() {
     try { return JSON.parse(localStorage.getItem("nasaq_user") || "{}"); } catch { return {}; }
   }, []);
   const isFlowerShop = user?.businessType === "flower_shop";
-  const availableTypes = BUSINESS_CUSTOM_TYPES[user?.businessType || ""] || DEFAULT_SERVICE_TYPES;
+  const businessTypeGroup = user?.businessType ? BUSINESS_TYPE_GROUPS[user.businessType] : null;
+  const allowedTypeKeys = !showAllTypes && businessTypeGroup
+    ? businessTypeGroup
+    : null;
+  const availableTypes = allowedTypeKeys
+    ? SERVICE_TYPES.filter((type) => allowedTypeKeys.includes(type.value))
+    : SERVICE_TYPES;
+  const isTypeListFiltered = !showAllTypes && !!allowedTypeKeys;
+  const showAddOnNote = availableTypes.some((type) => type.value === "add_on");
 
   const needsTiming = NEEDS_TIMING.has(form.serviceType);
   const initialFormState = useMemo<Form>(() => {
@@ -640,8 +658,7 @@ export function ServiceCreateWizard() {
   };
 
   // ── Summary helpers ────────────────────────────────────────────────────────
-  const allTypes = [...availableTypes, ...ADVANCED_SERVICE_TYPES];
-  const selType = allTypes.find(t => t.value === form.serviceType);
+  const selType = SERVICE_TYPES.find(t => t.value === form.serviceType);
   const categoryName = categories.find((c: any) => c.id === form.categoryId)?.name;
 
   const formatPrice = (p: string) => {
@@ -763,46 +780,20 @@ export function ServiceCreateWizard() {
                 );
               })}
             </div>
-
-            {/* Advanced types — collapsed by default */}
-            <div className="border-t border-gray-100 pt-3">
+            {showAddOnNote && (
+              <p className="text-[11px] text-gray-400 text-center pb-1">
+                للإضافات المرتبطة بخدمات قائمة، استخدم تبويب «الإضافات المدفوعة»
+              </p>
+            )}
+            {isTypeListFiltered && (
               <button
                 type="button"
-                onClick={() => setShowAdvancedTypes(v => !v)}
-                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+                onClick={() => setShowAllTypes(true)}
+                className="w-full py-2 text-xs text-gray-400 hover:text-brand-500 transition-colors border-t border-gray-50"
               >
-                <ChevronDown className={clsx("w-3.5 h-3.5 transition-transform", showAdvancedTypes && "rotate-180")} />
-                خيارات متقدمة
+                عرض جميع أنواع الخدمات
               </button>
-              {showAdvancedTypes && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
-                  {ADVANCED_SERVICE_TYPES.map(t => {
-                    const Icon = t.icon;
-                    const active = form.serviceType === t.value;
-                    return (
-                      <button key={t.value} type="button"
-                        onClick={() => { setForm(f => ({ ...f, serviceType: t.value })); setErrors(p => ({ ...p, serviceType: "" })); }}
-                        className={clsx(
-                          "flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all hover:border-brand-300 hover:bg-brand-50/30",
-                          active ? "border-brand-500 bg-brand-50 shadow-sm" : "border-[#eef2f6] bg-white",
-                        )}
-                      >
-                        <div className={clsx(
-                          "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
-                          active ? "bg-brand-500 text-white" : "bg-gray-100 text-gray-400",
-                        )}>
-                          <Icon className="w-4.5 h-4.5" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className={clsx("text-sm font-semibold", active ? "text-brand-700" : "text-gray-800")}>{t.label}</p>
-                          <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">{t.desc}</p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+            )}
             <div className="flex justify-end pt-2">
               <button onClick={goNext}
                 className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors shadow-sm disabled:opacity-50"
