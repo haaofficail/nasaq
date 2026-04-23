@@ -190,6 +190,7 @@ export const bookingsApi = {
   },
   get: (id: string) => api.get<{ data: any }>(`/bookings/${id}`),
   create: (data: any) => api.post<{ data: any }>("/bookings", data),
+  checkout: (data: any) => api.post<{ data: any }>("/bookings/checkout", data),
   updateStatus: (id: string, status: string, opts?: { reason?: string; force?: boolean }) =>
     api.patch(`/bookings/${id}/status`, { status, reason: opts?.reason, force: opts?.force }),
   reschedule: (id: string, data: { eventDate: string; eventEndDate?: string; assignedUserId?: string | null; reason?: string; notes?: string }) =>
