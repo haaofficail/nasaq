@@ -1,0 +1,22 @@
+export declare const serviceStatusEnum: any;
+export declare const offeringTypeEnum: any;
+export declare const mediaTypeEnum: any;
+export declare const pricingRuleTypeEnum: any;
+export declare const addonTypeEnum: any;
+export declare const pricingModeEnum: any;
+export declare const questionTypeEnum: any;
+export declare const categories: any;
+export declare const services: any;
+export declare const serviceMedia: any;
+export declare const pricingRules: any;
+export declare const addons: any;
+export declare const serviceAddons: any;
+export declare const bundles: any;
+export declare const bundleItems: any;
+export declare const serviceComponents: any;
+export declare const serviceCosts: any;
+export declare const serviceRequirements: any;
+export declare const seasons: any;
+export declare const serviceStaff: any;
+export declare const serviceQuestions: any;
+//# sourceMappingURL=catalog.d.ts.map
