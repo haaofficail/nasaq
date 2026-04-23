@@ -322,7 +322,6 @@ export default function App() {
         <Route path="/dashboard" element={<RequireAuth><Layout /></RequireAuth>}>
           <Route index element={<DashboardPage />} />
 
-          <Route path="services/new" element={<ServiceFormPage />} />
           <Route path="services/wizard" element={<ServiceCreateWizard />} />
           <Route path="services/:id/edit" element={<ServiceFormPage />} />
           <Route path="services/:id" element={<ServiceDetailPage />} />

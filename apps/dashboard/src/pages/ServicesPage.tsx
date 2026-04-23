@@ -1206,7 +1206,7 @@ export function ServicesPage({ embedded, defaultServiceType }: { embedded?: bool
       {showTypePicker && (
         <TypePickerOverlay
           businessType={context?.businessType}
-          onSelect={type => { setShowTypePicker(false); navigate(`/dashboard/services/new?type=${type}`); }}
+          onSelect={type => { setShowTypePicker(false); navigate(`/dashboard/services/wizard?type=${type}`); }}
           onClose={() => setShowTypePicker(false)}
         />
       )}

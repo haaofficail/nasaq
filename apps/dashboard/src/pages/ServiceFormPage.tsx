@@ -436,8 +436,8 @@ export function ServiceFormPage() {
           jobTitle: m.jobTitle,
         }))
       ); return true; }).catch(() => { toast.error("تعذّر تحميل الموظفين"); return false; }),
-      inventoryApi.products().then(r => { setProducts(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل المنتجات"); return false; }),
-      inventoryApi.assets().then(r => { setAssetsList(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل الأصول"); return false; }),
+      inventoryApi.products().then(r => { setProducts(r.data || []); return true; }).catch(() => true),
+      inventoryApi.assets().then(r => { setAssetsList(r.data || []); return true; }).catch(() => true),
       settingsApi.branches().then(r => { setBranches(r.data || []); return true; }).catch(() => { toast.error("تعذّر تحميل الفروع"); return false; }),
       eventPackagesApi.list().then(r => { setTemplates(r.data || []); return true; }).catch(() => true),
     ];

@@ -35,7 +35,9 @@ function parseDur(mins: number): { v: string; u: DurationUnit } {
   return { v: String(mins), u: "minute" };
 }
 
-const DEFAULT_SERVICE_TYPES: { value: string; label: string; desc: string; icon: React.ElementType }[] = [
+type ServiceTypeOption = { value: string; label: string; desc: string; icon: React.ElementType };
+
+const DEFAULT_SERVICE_TYPES: ServiceTypeOption[] = [
   { value: "appointment",      label: "حجز موعد",      desc: "العميل يحجز وقت محدد", icon: CalendarCheck },
   { value: "execution",        label: "تنفيذ وصيانة",  desc: "تنفيذ عمل ميداني",    icon: Wrench },
   { value: "field_service",    label: "خدمة ميدانية",  desc: "زيارة في موقع العميل", icon: MapPin },
@@ -45,8 +47,12 @@ const DEFAULT_SERVICE_TYPES: { value: string; label: string; desc: string; icon:
   { value: "product_shipping", label: "منتج بشحن",     desc: "منتج يُشحن",          icon: Truck },
   { value: "food_order",       label: "طعام ومشروبات", desc: "وجبات ومنتجات غذائية", icon: ShoppingBag },
   { value: "package",          label: "باقة",           desc: "خدمات مجمّعة",        icon: Gift },
-  { value: "add_on",           label: "خيار إضافي",    desc: "يُضاف على خدمة",      icon: Plus },
   { value: "project",          label: "مشروع",          desc: "عمل طويل المدى",      icon: FileText },
+];
+
+// خيارات متقدمة — لا تظهر في القائمة الرئيسية لأنها تُضاف على خدمات أخرى
+const ADVANCED_SERVICE_TYPES: ServiceTypeOption[] = [
+  { value: "add_on", label: "خيار إضافي", desc: "يُضاف على خدمة قائمة كخيار اختياري", icon: Plus },
 ];
 
 const FLOWER_SHOP_TYPES = [
@@ -57,12 +63,12 @@ const FLOWER_SHOP_TYPES = [
   { value: "package",          label: "عروض مجمّعة (توفير)",   desc: "باقة (ورد + شوكولاتة + كرت) بسعر موحد وحصري", icon: Gift },
 ];
 
-const BUSINESS_CUSTOM_TYPES: Record<string, typeof DEFAULT_SERVICE_TYPES> = {
+const BUSINESS_CUSTOM_TYPES: Record<string, ServiceTypeOption[]> = {
   flower_shop: FLOWER_SHOP_TYPES,
 };
 
 const NEEDS_TIMING = new Set(["appointment", "execution", "field_service", "rental", "event_rental", "project", "food_order"]);
-const NEEDS_CAPACITY = new Set(["event_rental", "package", "food_order", "rental"]);
+const NEEDS_CAPACITY = new Set(["event_rental", "rental"]);
 const EXECUTION_TYPES = new Set(["execution", "field_service", "project"]);
 
 type TypeConfig = {
@@ -285,6 +291,8 @@ export function ServiceCreateWizard() {
   const [staffMembers, setStaffMembers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [refLoading, setRefLoading] = useState(true);
+
+  const [showAdvancedTypes, setShowAdvancedTypes] = useState(false);
 
   // ── Media ──────────────────────────────────────────────────────────────────
   const fileRef = useRef<HTMLInputElement>(null);
@@ -537,7 +545,8 @@ export function ServiceCreateWizard() {
   };
 
   // ── Summary helpers ────────────────────────────────────────────────────────
-  const selType = availableTypes.find(t => t.value === form.serviceType) || DEFAULT_SERVICE_TYPES.find(t => t.value === form.serviceType);
+  const allTypes = [...availableTypes, ...ADVANCED_SERVICE_TYPES];
+  const selType = allTypes.find(t => t.value === form.serviceType);
   const categoryName = categories.find((c: any) => c.id === form.categoryId)?.name;
 
   const formatPrice = (p: string) => {
@@ -658,6 +667,46 @@ export function ServiceCreateWizard() {
                   </button>
                 );
               })}
+            </div>
+
+            {/* Advanced types — collapsed by default */}
+            <div className="border-t border-gray-100 pt-3">
+              <button
+                type="button"
+                onClick={() => setShowAdvancedTypes(v => !v)}
+                className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <ChevronDown className={clsx("w-3.5 h-3.5 transition-transform", showAdvancedTypes && "rotate-180")} />
+                خيارات متقدمة
+              </button>
+              {showAdvancedTypes && (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-3">
+                  {ADVANCED_SERVICE_TYPES.map(t => {
+                    const Icon = t.icon;
+                    const active = form.serviceType === t.value;
+                    return (
+                      <button key={t.value} type="button"
+                        onClick={() => { setForm(f => ({ ...f, serviceType: t.value })); setErrors(p => ({ ...p, serviceType: "" })); }}
+                        className={clsx(
+                          "flex items-start gap-3 p-3.5 rounded-xl border text-right transition-all hover:border-brand-300 hover:bg-brand-50/30",
+                          active ? "border-brand-500 bg-brand-50 shadow-sm" : "border-[#eef2f6] bg-white",
+                        )}
+                      >
+                        <div className={clsx(
+                          "w-9 h-9 rounded-lg flex items-center justify-center shrink-0",
+                          active ? "bg-brand-500 text-white" : "bg-gray-100 text-gray-400",
+                        )}>
+                          <Icon className="w-4.5 h-4.5" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className={clsx("text-sm font-semibold", active ? "text-brand-700" : "text-gray-800")}>{t.label}</p>
+                          <p className="text-[11px] text-gray-400 mt-0.5 leading-relaxed">{t.desc}</p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <div className="flex justify-end pt-2">
               <button onClick={goNext}

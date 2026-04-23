@@ -273,7 +273,7 @@ function WelcomeView({ orgName, businessType, orgId }: { orgName: string; busine
   };
 
   const secondary = SECONDARY_BY_TYPE[businessType] ?? [
-    { label: "إضافة خدمة",      href: "/dashboard/services" },
+    { label: "إضافة خدمة",      href: "/dashboard/services/wizard" },
     { label: "إضافة موظف",      href: "/dashboard/team" },
     { label: "إعدادات المنشأة", href: "/dashboard/settings" },
   ];
