@@ -12,10 +12,8 @@
 
 import { Hono } from "hono";
 import { db } from "@nasaq/db/client";
-import { eventBookings } from "@nasaq/db/schema/canonical-bookings";
+import { bookingRecords, eventBookings } from "@nasaq/db/schema/canonical-bookings";
 import { eq, and, gte, lte, desc } from "drizzle-orm";
-import { calcVat } from "../shared/vat";
-import { generateBookingNumber } from "../shared/booking-number";
 import type { AuthUser } from "../../middleware/auth";
 
 export const eventEngine = new Hono<{
@@ -26,6 +24,28 @@ export const eventEngine = new Hono<{
   }
 }>();
 
+function mergeEventBooking(row: {
+  eventBooking: typeof eventBookings.$inferSelect;
+  bookingRecord: typeof bookingRecords.$inferSelect;
+}) {
+  return {
+    ...row.eventBooking,
+    status: row.bookingRecord.status,
+    paymentStatus: row.bookingRecord.paymentStatus,
+    subtotal: row.bookingRecord.subtotal,
+    discountAmount: row.bookingRecord.discountAmount,
+    vatAmount: row.bookingRecord.vatAmount,
+    totalAmount: row.bookingRecord.totalAmount,
+    depositAmount: row.bookingRecord.depositAmount,
+    paidAmount: row.bookingRecord.paidAmount,
+    balanceDue: row.bookingRecord.balanceDue,
+    customerNotes: row.bookingRecord.customerNotes,
+    internalNotes: row.bookingRecord.internalNotes,
+    cancelledAt: row.bookingRecord.cancelledAt,
+    cancellationReason: row.bookingRecord.cancellationReason,
+  };
+}
+
 // GET /engines/event/bookings
 eventEngine.get("/bookings", async (c) => {
   const orgId = c.get("orgId") as string;
@@ -34,94 +54,25 @@ eventEngine.get("/bookings", async (c) => {
   const offset = (Number(page) - 1) * limit;
 
   const conditions = [eq(eventBookings.orgId, orgId)];
-  if (status)    conditions.push(eq(eventBookings.status, status));
+  if (status)    conditions.push(eq(bookingRecords.status, status));
   if (eventType) conditions.push(eq(eventBookings.eventType, eventType));
   if (from)      conditions.push(gte(eventBookings.eventDate, from));
   if (to)        conditions.push(lte(eventBookings.eventDate, to));
 
   const rows = await db
-    .select()
+    .select({
+      eventBooking: eventBookings,
+      bookingRecord: bookingRecords,
+    })
     .from(eventBookings)
+    .innerJoin(bookingRecords, and(
+      eq(eventBookings.bookingRecordId, bookingRecords.id),
+      eq(bookingRecords.orgId, orgId)
+    ))
     .where(and(...conditions))
     .orderBy(desc(eventBookings.eventDate))
     .limit(limit)
     .offset(offset);
 
-  return c.json({ data: rows });
-});
-
-// POST /engines/event/bookings
-eventEngine.post("/bookings", async (c) => {
-  const orgId = c.get("orgId") as string;
-  const userId = c.get("user")?.id ?? null;
-  const body = await c.req.json();
-
-  const { base, vat, total } = calcVat(Number(body.subtotal ?? 0), body.vatInclusive ?? true);
-  const depositAmount = body.depositAmount ?? total * 0.3; // 30% default deposit
-  const balanceDue    = total - Number(body.paidAmount ?? 0);
-
-  const bookingNumber = generateBookingNumber("event");
-
-  const [booking] = await db
-    .insert(eventBookings)
-    .values({
-      orgId,
-      customerId:      body.customerId,
-      bookingNumber,
-      status:          "pending",
-      paymentStatus:   "pending",
-      eventType:       body.eventType,
-      eventName:       body.eventName,
-      eventDate:       body.eventDate,
-      eventStart:      body.eventStart ? new Date(body.eventStart) : undefined,
-      eventEnd:        body.eventEnd   ? new Date(body.eventEnd)   : undefined,
-      setupAt:         body.setupAt    ? new Date(body.setupAt)    : undefined,
-      teardownAt:      body.teardownAt ? new Date(body.teardownAt) : undefined,
-      locationId:      body.locationId,
-      customLocation:  body.customLocation,
-      locationNotes:   body.locationNotes,
-      guestCount:      body.guestCount,
-      packageId:       body.packageId,
-      packageSnapshot: body.packageSnapshot,
-      subtotal:        String(base),
-      vatAmount:       String(vat),
-      totalAmount:     String(total),
-      depositAmount:   String(depositAmount),
-      paidAmount:      "0",
-      balanceDue:      String(balanceDue),
-      assignedUserId:  body.assignedUserId ?? userId,
-      source:          body.source ?? "dashboard",
-      customerNotes:   body.customerNotes,
-      internalNotes:   body.internalNotes,
-      questionAnswers: body.questionAnswers ?? [],
-    })
-    .returning();
-
-  return c.json({ data: booking }, 201);
-});
-
-// PATCH /engines/event/bookings/:id/status
-eventEngine.patch("/bookings/:id/status", async (c) => {
-  const orgId = c.get("orgId") as string;
-  const { id } = c.req.param();
-  const { status, reason } = await c.req.json();
-
-  const VALID = ["confirmed", "deposit_paid", "in_progress", "completed", "cancelled"];
-  if (!VALID.includes(status)) return c.json({ error: "Invalid status" }, 400);
-
-  const [updated] = await db
-    .update(eventBookings)
-    .set({
-      status,
-      ...(status === "cancelled" ? {
-        cancelledAt: new Date(),
-        cancellationReason: reason,
-      } : {}),
-      updatedAt: new Date(),
-    })
-    .where(and(eq(eventBookings.id, id), eq(eventBookings.orgId, orgId)))
-    .returning();
-
-  if (!updated) return c.json({ error: "Not found" }, 404);
-  return c.json({ data: updated });
+  return c.json({ data: rows.map(mergeEventBooking) });
 });

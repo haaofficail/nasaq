@@ -37,8 +37,6 @@ export const appointmentBookings = pgTable("appointment_bookings", {
   bookingRecordId: uuid("booking_record_id").references(() => bookingRecords.id, { onDelete: "cascade" }), // canonical
 
   bookingNumber: text("booking_number").notNull().unique(),
-  status:        text("status").notNull().default("pending"),
-  paymentStatus: text("payment_status").notNull().default("pending"),
 
   // Schedule
   startAt:          timestamp("start_at", { withTimezone: true }).notNull(),
@@ -52,23 +50,12 @@ export const appointmentBookings = pgTable("appointment_bookings", {
   // Assignment
   assignedUserId: uuid("assigned_user_id").references(() => users.id),
 
-  // Financials
-  subtotal:       numeric("subtotal", { precision: 12, scale: 2 }).notNull().default("0"),
-  discountAmount: numeric("discount_amount", { precision: 10, scale: 2 }).notNull().default("0"),
-  vatAmount:      numeric("vat_amount", { precision: 10, scale: 2 }).notNull().default("0"),
-  totalAmount:    numeric("total_amount", { precision: 12, scale: 2 }).notNull().default("0"),
-  paidAmount:     numeric("paid_amount", { precision: 12, scale: 2 }).notNull().default("0"),
-
   // Meta
   source:          text("source").default("dashboard"),
-  customerNotes:   text("customer_notes"),
-  internalNotes:   text("internal_notes"),
   questionAnswers: jsonb("question_answers").default([]),
   rating:          integer("rating"),
   reviewText:      text("review_text"),
   reviewedAt:      timestamp("reviewed_at", { withTimezone: true }),
-  cancelledAt:     timestamp("cancelled_at", { withTimezone: true }),
-  cancellationReason: text("cancellation_reason"),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -94,8 +81,6 @@ export const stayBookings = pgTable("stay_bookings", {
   bookingRecordId: uuid("booking_record_id").references(() => bookingRecords.id, { onDelete: "cascade" }), // canonical
 
   bookingNumber: text("booking_number").notNull().unique(),
-  status:        text("status").notNull().default("pending"),
-  paymentStatus: text("payment_status").notNull().default("pending"),
   stayType:      text("stay_type").notNull().default("hotel"), // hotel|car_rental|daily_rental
 
   // Unit
@@ -120,19 +105,7 @@ export const stayBookings = pgTable("stay_bookings", {
   pickupLocation:  text("pickup_location"),
   dropoffLocation: text("dropoff_location"),
 
-  // Financials
-  subtotal:       numeric("subtotal", { precision: 12, scale: 2 }).notNull().default("0"),
-  discountAmount: numeric("discount_amount", { precision: 10, scale: 2 }).notNull().default("0"),
-  vatAmount:      numeric("vat_amount", { precision: 10, scale: 2 }).notNull().default("0"),
-  totalAmount:    numeric("total_amount", { precision: 12, scale: 2 }).notNull().default("0"),
-  depositAmount:  numeric("deposit_amount", { precision: 10, scale: 2 }).notNull().default("0"),
-  paidAmount:     numeric("paid_amount", { precision: 12, scale: 2 }).notNull().default("0"),
-
   source:             text("source").default("dashboard"),
-  customerNotes:      text("customer_notes"),
-  internalNotes:      text("internal_notes"),
-  cancelledAt:        timestamp("cancelled_at", { withTimezone: true }),
-  cancellationReason: text("cancellation_reason"),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
@@ -159,7 +132,6 @@ export const tableReservations = pgTable("table_reservations", {
   bookingRecordId: uuid("booking_record_id").references(() => bookingRecords.id, { onDelete: "cascade" }), // canonical
 
   reservationNumber: text("reservation_number").notNull().unique(),
-  status: text("status").notNull().default("pending"), // pending|confirmed|seated|completed|cancelled|no_show
 
   // Table
   tableId:       uuid("table_id"),
@@ -178,13 +150,7 @@ export const tableReservations = pgTable("table_reservations", {
   specialRequests: text("special_requests"),
   occasion:        text("occasion"), // birthday|anniversary|business
 
-  // Optional financials
-  depositAmount: numeric("deposit_amount", { precision: 10, scale: 2 }).default("0"),
-  paidAmount:    numeric("paid_amount", { precision: 12, scale: 2 }).default("0"),
-
   source:             text("source").default("dashboard"),
-  cancelledAt:        timestamp("cancelled_at", { withTimezone: true }),
-  cancellationReason: text("cancellation_reason"),
   noShowAt:           timestamp("no_show_at", { withTimezone: true }),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
@@ -212,8 +178,6 @@ export const eventBookings = pgTable("event_bookings", {
   bookingRecordId: uuid("booking_record_id").references(() => bookingRecords.id, { onDelete: "cascade" }), // canonical
 
   bookingNumber: text("booking_number").notNull().unique(),
-  status:        text("status").notNull().default("pending"),
-  paymentStatus: text("payment_status").notNull().default("pending"),
 
   // Event
   eventType:  text("event_type"),   // wedding|corporate|birthday|conference
@@ -237,23 +201,10 @@ export const eventBookings = pgTable("event_bookings", {
   packageId:       uuid("package_id"),
   packageSnapshot: jsonb("package_snapshot"),
 
-  // Financials
-  subtotal:       numeric("subtotal", { precision: 12, scale: 2 }).notNull().default("0"),
-  discountAmount: numeric("discount_amount", { precision: 10, scale: 2 }).notNull().default("0"),
-  vatAmount:      numeric("vat_amount", { precision: 10, scale: 2 }).notNull().default("0"),
-  totalAmount:    numeric("total_amount", { precision: 12, scale: 2 }).notNull().default("0"),
-  depositAmount:  numeric("deposit_amount", { precision: 10, scale: 2 }).notNull().default("0"),
-  paidAmount:     numeric("paid_amount", { precision: 12, scale: 2 }).notNull().default("0"),
-  balanceDue:     numeric("balance_due", { precision: 12, scale: 2 }).notNull().default("0"),
-
   assignedUserId: uuid("assigned_user_id").references(() => users.id),
 
   source:             text("source").default("dashboard"),
-  customerNotes:      text("customer_notes"),
-  internalNotes:      text("internal_notes"),
   questionAnswers:    jsonb("question_answers").default([]),
-  cancelledAt:        timestamp("cancelled_at", { withTimezone: true }),
-  cancellationReason: text("cancellation_reason"),
   refundAmount:       numeric("refund_amount", { precision: 10, scale: 2 }),
 
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
