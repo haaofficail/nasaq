@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { clsx } from "clsx";
 import { normalizeNumeric } from "@/lib/normalize-input";
 
@@ -13,7 +13,7 @@ function bestUnit(minutes: number, allowed: DurationUnit[]): DurationUnit {
     if (!allowed.includes(u)) continue;
     if (minutes > 0 && minutes % UNIT_MINS[u] === 0) return u;
   }
-  return allowed[allowed.length - 1] ?? "minute";
+  return allowed[0] ?? "minute";
 }
 
 interface DurationInputProps {
@@ -40,6 +40,10 @@ export function DurationInput({
   disabled,
 }: DurationInputProps) {
   const [unit, setUnit] = useState<DurationUnit>(() => bestUnit(valueMinutes, units));
+
+  useEffect(() => {
+    setUnit(bestUnit(valueMinutes, units));
+  }, [units, valueMinutes]);
 
   const displayValue = valueMinutes > 0 ? valueMinutes / UNIT_MINS[unit] : "";
 
