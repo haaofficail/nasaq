@@ -336,8 +336,9 @@ export function ServiceCreateWizard() {
     try { return JSON.parse(localStorage.getItem("nasaq_user") || "{}"); } catch { return {}; }
   }, []);
   const isFlowerShop = user?.businessType === "flower_shop";
-  const allowedTypeKeys = !showAllTypes && user?.businessType && BUSINESS_TYPE_GROUPS[user.businessType]
-    ? BUSINESS_TYPE_GROUPS[user.businessType]
+  const businessTypeGroup = user?.businessType ? BUSINESS_TYPE_GROUPS[user.businessType] : null;
+  const allowedTypeKeys = !showAllTypes && businessTypeGroup
+    ? businessTypeGroup
     : null;
   const availableTypes = allowedTypeKeys
     ? SERVICE_TYPES.filter((type) => allowedTypeKeys.includes(type.value))
