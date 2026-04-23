@@ -224,6 +224,18 @@ const createBookingCheckoutSchema = z.object({
   treasuryReceipt: checkoutTreasurySchema,
 });
 
+function isPositiveMoney(value: string) {
+  try {
+    return new Decimal(value).isFinite() && new Decimal(value).gt(0);
+  } catch {
+    return false;
+  }
+}
+
+function parseMoney(value: string | number | null | undefined) {
+  return new Decimal(value ?? 0).toDecimalPlaces(2);
+}
+
 function inferBookingTypeFromServices(serviceMap: Map<string, typeof services.$inferSelect>, body: z.infer<typeof createBookingSchema>) {
   if (body.bookingType) return body.bookingType;
   const selectedTypes = body.items
@@ -2220,7 +2232,7 @@ bookingsRouter.get("/:id/timeline", async (c) => {
 // ============================================================
 
 const recordPaymentSchema = z.object({
-  amount: z.string().refine((v) => !isNaN(parseFloat(v)) && parseFloat(v) > 0, { message: "amount must be a positive number" }),
+  amount: z.string().refine(isPositiveMoney, { message: "يجب أن يكون المبلغ رقماً موجباً" }),
   method: z.enum(["cash", "bank_transfer", "mada", "visa_master", "apple_pay", "tamara", "tabby", "wallet", "payment_link"]),
   status: z.enum(["completed", "pending", "failed"]).default("completed"),
   type: z.enum(["payment", "deposit", "refund"]).default("payment"),
@@ -2235,56 +2247,93 @@ bookingsRouter.post("/:id/payments", async (c) => {
   const userId = getUserId(c);
   const bookingId = c.req.param("id");
   const body = recordPaymentSchema.parse(await c.req.json());
+  const idempotencyKey = c.req.header("Idempotency-Key")?.trim() || null;
+  const paymentAmount = parseMoney(body.amount);
+  const paymentAmountString = paymentAmount.toFixed(2);
 
   // All 4 operations inside a single transaction — eliminates TOCTOU race (C1)
   let payment: typeof payments.$inferSelect;
+  let replayed = false;
   try {
-    payment = await db.transaction(async (tx) => {
+    ({ payment, replayed } = await db.transaction(async (tx) => {
       const [booking] = await tx.select().from(bookings)
-        .where(and(eq(bookings.id, bookingId), eq(bookings.orgId, orgId)));
+        .where(and(eq(bookings.id, bookingId), eq(bookings.orgId, orgId)))
+        .for("update");
       if (!booking) throw Object.assign(new Error("NOT_FOUND"), { status: 404 });
+
+      if (idempotencyKey) {
+        const [existingPayment] = await tx.select().from(payments)
+          .where(and(
+            eq(payments.orgId, orgId),
+            eq(payments.bookingId, bookingId),
+            sql`${payments.gatewayResponse}->>'idempotencyKey' = ${idempotencyKey}`,
+          ))
+          .orderBy(desc(payments.createdAt))
+          .limit(1);
+
+        if (existingPayment) {
+          return { payment: existingPayment, replayed: true };
+        }
+      }
 
       const [p] = await tx.insert(payments).values({
         orgId,
         bookingId,
         customerId: booking.customerId,
-        amount: body.amount,
+        amount: paymentAmountString,
         method: body.method,
         status: body.status,
         type: body.type,
         gatewayProvider: body.gatewayProvider,
         gatewayTransactionId: body.gatewayTransactionId,
+        gatewayResponse: idempotencyKey ? { idempotencyKey } : null,
         receiptNumber: body.receiptNumber,
         notes: body.notes,
         paidAt: body.status === "completed" ? new Date() : null,
       }).returning();
 
       if (p.status === "completed") {
-        const amount = parseFloat(body.amount);
-        await tx.execute(sql`
-          UPDATE bookings SET
-            paid_amount   = CAST(paid_amount AS DECIMAL) + ${amount},
-            balance_due   = GREATEST(0, CAST(total_amount AS DECIMAL) - CAST(paid_amount AS DECIMAL) - ${amount}),
-            payment_status = CASE
-              WHEN CAST(total_amount AS DECIMAL) - CAST(paid_amount AS DECIMAL) - ${amount} <= 0 THEN 'paid'
-              ELSE 'partially_paid'
-            END,
-            updated_at = NOW()
-          WHERE id = ${bookingId}
-        `);
+        const currentPaid = parseMoney(booking.paidAmount);
+        const totalAmount = parseMoney(booking.totalAmount);
+        const nextPaid = currentPaid.add(paymentAmount);
+        const balanceDue = Decimal.max(new Decimal(0), totalAmount.sub(nextPaid)).toDecimalPlaces(2);
+        await tx.update(bookings).set({
+          paidAmount: nextPaid.toFixed(2),
+          balanceDue: balanceDue.toFixed(2),
+          paymentStatus: balanceDue.lte(0) ? "paid" : "partially_paid",
+          updatedAt: new Date(),
+        }).where(and(eq(bookings.id, bookingId), eq(bookings.orgId, orgId)));
         await tx.update(customers).set({
-          totalSpent: sql`COALESCE(${customers.totalSpent}, 0) + ${amount}`,
+          totalSpent: sql`COALESCE(${customers.totalSpent}, 0) + ${paymentAmountString}`,
           updatedAt: new Date(),
         }).where(eq(customers.id, booking.customerId));
+
+        const [org] = await tx.select({ settings: organizations.settings }).from(organizations).where(eq(organizations.id, orgId));
+        if (isAccountingEnabled((org?.settings as any) ?? {})) {
+          const amount = paymentAmount.toNumber();
+          const vatAmount = 0;
+
+          if (body.type === "deposit") {
+            await postDepositReceived({ orgId, date: new Date(), amount, description: `عربون حجز ${bookingId}`, sourceId: p.id, createdBy: userId ?? undefined, tx });
+          } else if (body.type === "refund") {
+            await postRefund({ orgId, date: new Date(), amount, vatAmount, description: `استرداد حجز ${bookingId}`, sourceId: p.id, createdBy: userId ?? undefined, tx });
+          } else {
+            await postCashSale({ orgId, date: new Date(), amount, vatAmount, description: `تحصيل دفعة حجز ${bookingId}`, sourceType: "booking", sourceId: p.id, createdBy: userId ?? undefined, tx });
+          }
+        }
       }
 
-      return p;
-    });
+      return { payment: p, replayed: false };
+    }));
   } catch (err: unknown) {
     if (err instanceof Error && (err as any).status === 404) {
       return c.json({ error: "الحجز غير موجود" }, 404);
     }
     throw err;
+  }
+
+  if (replayed) {
+    return c.json({ data: payment }, 200);
   }
 
   // Booking event — payment received
@@ -2303,14 +2352,14 @@ bookingsRouter.post("/:id/payments", async (c) => {
         orgId,
         customerId: payment.customerId,
         bookingId,
-        bookingAmount: parseFloat(body.amount),
+        bookingAmount: paymentAmount.toNumber(),
       }).catch(() => {});
     }
   }
 
   // إرسال إشعار استلام الدفعة للعميل (fire-and-forget)
   if (payment.status === "completed") {
-    fireBookingEvent("payment_received", { orgId, bookingId, amount: parseFloat(body.amount) });
+    fireBookingEvent("payment_received", { orgId, bookingId, amount: paymentAmount.toNumber() });
   }
 
   insertAuditLog({
@@ -2321,28 +2370,7 @@ bookingsRouter.post("/:id/payments", async (c) => {
     newValue: { bookingId, amount: body.amount, method: body.method, status: body.status },
   });
 
-  // ترحيل محاسبي — يُنتظر (لا fire-and-forget) لضمان تسجيل القيد
-  if (payment.status === "completed") {
-    try {
-      const [org] = await db.select({ settings: organizations.settings }).from(organizations).where(eq(organizations.id, orgId));
-      if (isAccountingEnabled((org?.settings as any) ?? {})) {
-        const amount = Number(body.amount);
-        const vatAmount = 0; // الضريبة محسوبة مسبقاً في totalAmount
-
-        if (body.type === "deposit") {
-          await postDepositReceived({ orgId, date: new Date(), amount, description: `عربون حجز ${bookingId}`, sourceId: payment.id, createdBy: userId ?? undefined });
-        } else if (body.type === "refund") {
-          await postRefund({ orgId, date: new Date(), amount, vatAmount, description: `استرداد حجز ${bookingId}`, sourceId: payment.id, createdBy: userId ?? undefined });
-        } else {
-          await postCashSale({ orgId, date: new Date(), amount, vatAmount, description: `تحصيل دفعة حجز ${bookingId}`, sourceType: "booking", sourceId: payment.id, createdBy: userId ?? undefined });
-        }
-      }
-    } catch {
-      // فشل الترحيل لا يُوقف العملية — المحاسبة قد تكون غير مُفعّلة
-    }
-  }
-
-  return c.json({ data: payment }, 201);
+  return c.json({ data: payment }, replayed ? 200 : 201);
 });
 
 // ============================================================
@@ -2413,66 +2441,126 @@ bookingsRouter.get("/track/:token", async (c) => {
 
 bookingsRouter.post("/track/:token/payment", async (c) => {
   const token = c.req.param("token");
+  const now = new Date();
 
-  const [booking] = await db
-    .select({
-      id:             bookings.id,
-      orgId:          bookings.orgId,
-      bookingNumber:  bookings.bookingNumber,
-      balanceDue:     bookings.balanceDue,
-      trackingToken:  bookings.trackingToken,
-    })
-    .from(bookings)
-    .where(eq(bookings.trackingToken, token));
+  try {
+    const link = await db.transaction(async (tx) => {
+      const [booking] = await tx
+        .select({
+          id: bookings.id,
+          orgId: bookings.orgId,
+          customerId: bookings.customerId,
+          bookingNumber: bookings.bookingNumber,
+          balanceDue: bookings.balanceDue,
+          trackingToken: bookings.trackingToken,
+        })
+        .from(bookings)
+        .where(eq(bookings.trackingToken, token))
+        .for("update");
 
-  if (!booking) return c.json({ error: "الحجز غير موجود" }, 404);
+      if (!booking) throw Object.assign(new Error("NOT_FOUND"), { status: 404 });
 
-  const balanceDue = Number(booking.balanceDue ?? 0);
-  if (balanceDue <= 0) return c.json({ error: "لا يوجد رصيد مستحق لهذا الحجز" }, 400);
+      const balanceDue = parseMoney(booking.balanceDue);
+      if (balanceDue.lte(0)) {
+        throw Object.assign(new Error("NO_BALANCE"), { status: 400, response: { error: "الرصيد المستحق صفر أو سالب" } });
+      }
 
-  const [gw] = await db
-    .select({ apiKey: paymentGatewayConfigs.apiKey })
-    .from(paymentGatewayConfigs)
-    .where(and(
-      eq(paymentGatewayConfigs.orgId, booking.orgId),
-      eq(paymentGatewayConfigs.provider, "moyasar"),
-      eq(paymentGatewayConfigs.isActive, true),
-    ));
+      const [existingLink] = await tx
+        .select({
+          paymentId: payments.gatewayTransactionId,
+          transactionUrl: payments.paymentLinkUrl,
+          expiresAt: payments.paymentLinkExpiresAt,
+        })
+        .from(payments)
+        .where(and(
+          eq(payments.orgId, booking.orgId),
+          eq(payments.bookingId, booking.id),
+          eq(payments.method, "payment_link"),
+          eq(payments.status, "pending"),
+          gte(payments.paymentLinkExpiresAt, now),
+          sql`${payments.paymentLinkUrl} IS NOT NULL`,
+        ))
+        .orderBy(desc(payments.createdAt))
+        .limit(1);
 
-  if (!gw?.apiKey) return c.json({ error: "لم تُفعَّل خدمة الدفع الإلكتروني لهذه المنشأة" }, 503);
+      if (existingLink?.transactionUrl) {
+        return { transactionUrl: existingLink.transactionUrl, paymentId: existingLink.paymentId };
+      }
 
-  const apiKey = decryptString(gw.apiKey);
-  if (!apiKey) return c.json({ error: "خطأ في إعداد بوابة الدفع" }, 503);
+      const [gw] = await tx
+        .select({ apiKey: paymentGatewayConfigs.apiKey })
+        .from(paymentGatewayConfigs)
+        .where(and(
+          eq(paymentGatewayConfigs.orgId, booking.orgId),
+          eq(paymentGatewayConfigs.provider, "moyasar"),
+          eq(paymentGatewayConfigs.isActive, true),
+        ));
 
-  const amountHalala = Math.round(balanceDue * 100);
-  const callbackUrl = `${process.env.PUBLIC_URL || "https://app.nasaq.com"}/track/${token}?payment=done`;
+      if (!gw?.apiKey) {
+        throw Object.assign(new Error("GATEWAY_NOT_CONFIGURED"), { status: 503, response: { error: "لم تُفعَّل خدمة الدفع الإلكتروني لهذه المنشأة" } });
+      }
 
-  const moyasarRes = await fetch("https://api.moyasar.com/v1/payments", {
-    method: "POST",
-    headers: {
-      "Content-Type":  "application/json",
-      "Authorization": `Basic ${Buffer.from(apiKey + ":").toString("base64")}`,
-    },
-    body: JSON.stringify({
-      amount:       amountHalala,
-      currency:     "SAR",
-      description:  `دفع حجز #${booking.bookingNumber}`,
-      callback_url: callbackUrl,
-      metadata: {
-        orgId:    booking.orgId,
+      const apiKey = decryptString(gw.apiKey);
+      if (!apiKey) {
+        throw Object.assign(new Error("GATEWAY_CONFIG_ERROR"), { status: 503, response: { error: "خطأ في إعداد بوابة الدفع" } });
+      }
+
+      const amountHalala = balanceDue.mul(100).toDecimalPlaces(0, Decimal.ROUND_HALF_UP).toNumber();
+      const callbackUrl = `${process.env.PUBLIC_URL || "https://app.nasaq.com"}/track/${token}?payment=done`;
+      const moyasarRes = await fetch("https://api.moyasar.com/v1/payments", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Basic ${Buffer.from(apiKey + ":").toString("base64")}`,
+        },
+        body: JSON.stringify({
+          amount: amountHalala,
+          currency: "SAR",
+          description: `دفع حجز #${booking.bookingNumber}`,
+          callback_url: callbackUrl,
+          metadata: {
+            orgId: booking.orgId,
+            bookingId: booking.id,
+            source: "booking_payment",
+          },
+          source: { type: "creditcard" },
+        }),
+      });
+
+      if (!moyasarRes.ok) {
+        throw Object.assign(new Error("MOYASAR_CREATE_FAILED"), { status: 502, response: { error: "تعذر إنشاء رابط الدفع" } });
+      }
+
+      const payment = await moyasarRes.json() as { id: string; source: { transaction_url?: string } };
+      const transactionUrl = payment.source?.transaction_url ?? null;
+      if (!transactionUrl) {
+        throw Object.assign(new Error("MOYASAR_TRANSACTION_URL_MISSING"), { status: 502, response: { error: "تعذر إنشاء رابط الدفع" } });
+      }
+
+      const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+      await tx.insert(payments).values({
+        orgId: booking.orgId,
         bookingId: booking.id,
-        source:   "booking_payment",
-      },
-      source: { type: "creditcard" },
-    }),
-  });
+        customerId: booking.customerId,
+        amount: balanceDue.toFixed(2),
+        method: "payment_link",
+        status: "pending",
+        type: "payment",
+        gatewayProvider: "moyasar",
+        gatewayTransactionId: payment.id,
+        paymentLinkUrl: transactionUrl,
+        paymentLinkExpiresAt: expiresAt,
+        notes: `رابط دفع لحجز ${booking.bookingNumber}`,
+      });
 
-  if (!moyasarRes.ok) {
-    return c.json({ error: "تعذر إنشاء رابط الدفع" }, 502);
+      return { transactionUrl, paymentId: payment.id };
+    });
+
+    return c.json({ data: link });
+  } catch (err: any) {
+    if (err?.response) return c.json(err.response, err.status ?? 400);
+    throw err;
   }
-
-  const payment = await moyasarRes.json() as { id: string; source: { transaction_url?: string } };
-  return c.json({ data: { transactionUrl: payment.source?.transaction_url ?? null, paymentId: payment.id } });
 });
 
 // ============================================================
