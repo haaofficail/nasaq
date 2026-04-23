@@ -1441,11 +1441,9 @@ const port = parseInt(process.env.PORT || "3000");
 // Zero overlap with v1 routes.
 const appV2 = new Hono();
 appV2.use("/api/v2/pages/*", authMiddleware);
-appV2.use("/api/v2/pages/*", requireCapability("page_builder_v2"));
 appV2.route("/api/v2/pages", pagesV2Router);
 
 appV2.use("/api/v2/pagebuilder/*", authMiddleware);
-appV2.use("/api/v2/pagebuilder/*", requireCapability("page_builder_v2"));
 appV2.route("/api/v2/pagebuilder", pagebuildersourcesRouter);
 
 // /api/v2/storefront/analytics requires auth; all /:orgSlug/* are public

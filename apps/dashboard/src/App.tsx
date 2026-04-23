@@ -477,8 +477,8 @@ export default function App() {
           <Route path="events/quotations" element={<EventQuotationsPage />} />
           <Route path="packages" element={<PackagesPage />} />
 
-          <Route path="pages-v2" element={<CapabilityGuard capability="page_builder_v2"><PagesV2Page /></CapabilityGuard>} />
-          <Route path="pages-v2/:id" element={<CapabilityGuard capability="page_builder_v2"><PagesV2Page /></CapabilityGuard>} />
+          <Route path="pages-v2" element={<PagesV2Page />} />
+          <Route path="pages-v2/:id" element={<PagesV2Page />} />
 
           <Route path="media" element={<MediaLibraryPage />} />
           <Route path="galleries" element={<GalleriesPage />} />
