@@ -1,6 +1,7 @@
-import { useMemo, useEffect } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
-import { ArrowLeft, QrCode, Printer, ExternalLink, AlertTriangle, CalendarCheck, Users, Package, Clock, CheckCircle2, Truck } from "lucide-react";
+import { ArrowLeft, QrCode, Printer, ExternalLink, AlertTriangle, CalendarCheck, Users, Package, Clock, CheckCircle2, Truck, Download, X, Copy, Check } from "lucide-react";
+import QRCode from "qrcode";
 import { FlowersEventsDashboardSection } from "@/components/dashboard/FlowersEventsCards";
 import { isFlowersEvents } from "@/lib/flowersEventsConfig";
 import { clsx } from "clsx";
@@ -13,6 +14,80 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 import { useApi } from "@/hooks/useApi";
 import { bookingsApi, settingsApi, inventoryApi, servicesApi, flowerBuilderApi, serviceOrdersApi } from "@/lib/api";
 import { getDashboardPrimaryAction } from "@/lib/dashboardPrimaryAction";
+
+// ── QR Modal ──────────────────────────────────────────────────────────────────
+function QRModal({ slug, onClose }: { slug: string; onClose: () => void }) {
+  const [qrUrl, setQrUrl] = useState("");
+  const [copied, setCopied] = useState(false);
+  const publicUrl = `https://tarmizos.com/s/${slug}`;
+
+  useEffect(() => {
+    QRCode.toDataURL(publicUrl, {
+      width: 400, margin: 2,
+      color: { dark: "#0D2138", light: "#ffffff" },
+      errorCorrectionLevel: "H",
+    }).then(setQrUrl).catch(() => {});
+  }, [publicUrl]);
+
+  const handleDownload = () => {
+    const a = document.createElement("a");
+    a.download = `qr-${slug}.png`;
+    a.href = qrUrl;
+    a.click();
+  };
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(publicUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      onClick={onClose}
+    >
+      <div
+        className="bg-[var(--surface)] rounded-2xl border border-[var(--border)] shadow-xl p-6 w-80 flex flex-col items-center gap-4"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="w-full flex items-center justify-between">
+          <span className="text-sm font-semibold text-[var(--text-1)]">باركود QR</span>
+          <button onClick={onClose} className="text-[var(--text-3)] hover:text-[var(--text-1)] transition-colors">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* QR Image */}
+        <div className="bg-white rounded-xl p-3 shadow-sm border border-[var(--border)]">
+          {qrUrl
+            ? <img src={qrUrl} alt="QR Code" className="w-48 h-48 block" />
+            : <div className="w-48 h-48 bg-[var(--surface-2)] rounded-lg animate-pulse" />
+          }
+        </div>
+
+        {/* URL */}
+        <button
+          onClick={handleCopy}
+          className="flex items-center gap-2 px-3 py-2 rounded-xl border border-[var(--border)] text-xs text-[var(--text-2)] hover:bg-[var(--surface-2)] transition-colors w-full justify-between"
+        >
+          <span className="font-mono truncate" dir="ltr">tarmizos.com/s/{slug}</span>
+          {copied ? <Check className="w-3.5 h-3.5 text-green-500 shrink-0" /> : <Copy className="w-3.5 h-3.5 shrink-0" />}
+        </button>
+
+        {/* Download */}
+        <button
+          onClick={handleDownload}
+          disabled={!qrUrl}
+          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-500 text-white text-sm font-semibold hover:bg-brand-600 transition-colors w-full justify-center disabled:opacity-50"
+        >
+          <Download className="w-4 h-4" /> تحميل PNG
+        </button>
+      </div>
+    </div>
+  );
+}
 
 // ── SmartAlertsBanner ──────────────────────────────────────────────────────────
 // تنبيهات ذكية: مخزون منخفض، يوم مزدحم، لا خدمات
@@ -365,6 +440,7 @@ export function DashboardPage() {
   };
 
   const orgSlug: string = profileRes?.data?.slug ?? "";
+  const [showQR, setShowQR] = useState(false);
 
   return (
     <div className="space-y-4">
@@ -386,12 +462,12 @@ export function DashboardPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Link
-              to="/dashboard/pages-v2"
+            <button
+              onClick={() => setShowQR(true)}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] text-[var(--text-2)] text-xs hover:bg-[var(--surface-2)] transition-colors"
             >
               <QrCode className="w-3.5 h-3.5" /> باركود QR
-            </Link>
+            </button>
             <a
               href={`/s/${orgSlug}/print`}
               target="_blank"
@@ -409,6 +485,7 @@ export function DashboardPage() {
               <ExternalLink className="w-3.5 h-3.5" /> عرض
             </a>
           </div>
+          {showQR && orgSlug && <QRModal slug={orgSlug} onClose={() => setShowQR(false)} />}
         </div>
       )}
 
