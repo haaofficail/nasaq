@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { eq, and, asc, desc, ilike, sql, count, inArray, notInArray } from "drizzle-orm";
 import { db } from "@nasaq/db/client";
-import { services, serviceMedia, serviceAddons, addons, categories, pricingRules, serviceComponents, serviceCosts, assetTypes, serviceRequirements, serviceStaff, users, assets, serviceQuestions, bookings, orgMembers } from "@nasaq/db/schema";
+import { services, serviceMedia, serviceAddons, addons, categories, pricingRules, serviceComponents, serviceCosts, assetTypes, serviceRequirements, serviceStaff, users, assets, serviceQuestions, bookings, orgMembers, organizations } from "@nasaq/db/schema";
 import { generateSlug, getOrgId, getUserId, validateBody, getPagination, safeSortField } from "../lib/helpers";
 import { insertAuditLog } from "../lib/audit";
 import { nanoid } from "nanoid";
@@ -373,14 +373,50 @@ servicesRouter.get("/:id", async (c) => {
 // أنواع الخدمات التي تتطلب مدة زمنية محددة
 const TIMED_SERVICE_TYPES = new Set(["appointment", "execution", "field_service"]);
 
+// نوع الخدمة الافتراضي حسب نوع البيزنس
+const BUSINESS_DEFAULT_SERVICE_TYPE: Record<string, string> = {
+  salon:           "appointment",
+  barber:          "appointment",
+  spa:             "appointment",
+  fitness:         "appointment",
+  massage:         "appointment",
+  photography:     "appointment",
+  cafe:            "food_order",
+  restaurant:      "food_order",
+  bakery:          "food_order",
+  catering:        "food_order",
+  rental:          "rental",
+  car_rental:      "rental",
+  hotel:           "rental",
+  real_estate:     "rental",
+  events:          "event_rental",
+  event_organizer: "event_rental",
+  workshop:        "execution",
+  maintenance:     "execution",
+  logistics:       "field_service",
+  construction:    "project",
+  retail:          "product",
+  flower_shop:     "product",
+  school:          "product",
+};
+
 servicesRouter.post("/", async (c) => {
   const orgId = getOrgId(c);
   const body = await validateBody(c, createServiceSchema);
   if (!body) return;
 
-  // مدة الخدمة إلزامية للخدمات المجدولة
-  if (TIMED_SERVICE_TYPES.has(body.serviceType ?? "appointment") && !body.durationMinutes) {
-    return c.json({ error: "مدة الخدمة (durationMinutes) مطلوبة للخدمات المجدولة — حددها بالدقائق", code: "DURATION_REQUIRED" }, 422);
+  // استنتاج نوع الخدمة من businessType إن لم يُحدد
+  let resolvedServiceType = body.serviceType;
+  if (!resolvedServiceType) {
+    const [org] = await db.select({ businessType: organizations.businessType })
+      .from(organizations).where(eq(organizations.id, orgId));
+    resolvedServiceType = BUSINESS_DEFAULT_SERVICE_TYPE[org?.businessType ?? ""] ?? "product";
+  }
+
+  // مدة الخدمة إلزامية للخدمات المجدولة — افتراضي 60 دقيقة إذا لم تُحدد
+  let resolvedDuration = body.durationMinutes;
+  if (TIMED_SERVICE_TYPES.has(resolvedServiceType) && !resolvedDuration) {
+    resolvedDuration = 60;
   }
 
   const slug = body.slug || `${generateSlug(body.name)}-${nanoid(6).toLowerCase()}`;
@@ -398,7 +434,11 @@ servicesRouter.post("/", async (c) => {
   const { basePrice, ...bodyRest } = body;
   const [created] = await db
     .insert(services)
-    .values({ orgId, ...bodyRest, slug, basePrice: String(basePrice), barcode })
+    .values({
+      orgId, ...bodyRest, slug, basePrice: String(basePrice), barcode,
+      serviceType: resolvedServiceType as any,
+      durationMinutes: resolvedDuration ?? null,
+    })
     .returning();
 
   return c.json({ data: created }, 201);

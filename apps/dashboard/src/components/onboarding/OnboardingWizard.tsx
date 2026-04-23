@@ -9,26 +9,26 @@ import { type OnboardingStatus, dismissOnboarding } from "@/hooks/useOnboarding"
 import { SAUDI_CITIES, BUSINESS_TYPE_MAP } from "@/lib/constants";
 
 // ── قوالب الخدمات لكل نوع بيزنس ─────────────────────────────
-interface ServiceTemplate { name: string; price: number; }
+interface ServiceTemplate { name: string; price: number; serviceType: string; durationMinutes?: number; }
 
 const SERVICE_TEMPLATES: Record<string, ServiceTemplate[]> = {
-  salon:        [{ name: "قص شعر", price: 60 }, { name: "صبغة شعر", price: 180 }, { name: "استشوار", price: 80 }, { name: "بروتين", price: 350 }, { name: "مكياج", price: 200 }],
-  barber:       [{ name: "قصة شعر", price: 40 }, { name: "حلاقة ذقن", price: 30 }, { name: "قصة شعر + ذقن", price: 60 }, { name: "تلوين", price: 120 }],
-  spa:          [{ name: "مساج كامل", price: 250 }, { name: "مساج ظهر", price: 150 }, { name: "جلسة سبا", price: 350 }, { name: "تقشير", price: 200 }],
-  fitness:      [{ name: "اشتراك شهري", price: 200 }, { name: "اشتراك ربع سنوي", price: 500 }, { name: "جلسة تدريب شخصي", price: 150 }],
-  cafe:         [{ name: "إسبريسو", price: 12 }, { name: "لاتيه", price: 18 }, { name: "كابتشينو", price: 18 }, { name: "V60", price: 22 }, { name: "موكا", price: 20 }],
-  restaurant:   [{ name: "برقر", price: 35 }, { name: "بيتزا", price: 45 }, { name: "سلطة", price: 20 }, { name: "وجبة دجاج", price: 40 }, { name: "عصير طازج", price: 15 }],
-  bakery:       [{ name: "خبز عيش", price: 5 }, { name: "كيكة تورتة", price: 120 }, { name: "كرواسون", price: 10 }, { name: "مافن", price: 8 }],
-  catering:     [{ name: "بوفيه إفطار (للشخص)", price: 45 }, { name: "بوفيه غداء (للشخص)", price: 65 }, { name: "طقم مشاوي", price: 250 }],
-  flower_shop:  [{ name: "باقة ورد أحمر", price: 80 }, { name: "باقة مختلطة", price: 100 }, { name: "تنسيق طاولة", price: 200 }, { name: "باقة هدية", price: 150 }],
-  rental:       [{ name: "خيمة صغيرة (يوم)", price: 300 }, { name: "خيمة كبيرة (يوم)", price: 600 }, { name: "كوشة ثابتة", price: 800 }, { name: "طاولة + 4 كراسي", price: 80 }],
-  photography:  [{ name: "جلسة تصوير ساعة", price: 300 }, { name: "جلسة منزلية", price: 500 }, { name: "تصوير مناسبة", price: 1200 }, { name: "تصوير منتجات", price: 400 }],
-  hotel:        [{ name: "غرفة مفردة (ليلة)", price: 250 }, { name: "غرفة مزدوجة (ليلة)", price: 350 }, { name: "جناح (ليلة)", price: 600 }],
-  car_rental:   [{ name: "سيارة صغيرة (يوم)", price: 150 }, { name: "سيارة متوسطة (يوم)", price: 200 }, { name: "SUV (يوم)", price: 300 }],
-  maintenance:  [{ name: "صيانة منزلية", price: 150 }, { name: "تركيب مكيف", price: 350 }, { name: "إصلاح سباكة", price: 200 }, { name: "كهرباء", price: 180 }],
-  workshop:     [{ name: "تغيير زيت", price: 80 }, { name: "فحص شامل", price: 150 }, { name: "تغيير إطارات", price: 200 }, { name: "غسيل سيارة", price: 40 }],
-  retail:       [{ name: "منتج رئيسي", price: 50 }, { name: "باقة", price: 120 }, { name: "بطاقة هدية", price: 100 }],
-  real_estate:  [{ name: "شقة مكتبية", price: 5000 }, { name: "محل تجاري", price: 8000 }, { name: "شقة سكنية", price: 3500 }],
+  salon:        [{ name: "قص شعر", price: 60, serviceType: "appointment", durationMinutes: 45 }, { name: "صبغة شعر", price: 180, serviceType: "appointment", durationMinutes: 120 }, { name: "استشوار", price: 80, serviceType: "appointment", durationMinutes: 30 }, { name: "بروتين", price: 350, serviceType: "appointment", durationMinutes: 90 }, { name: "مكياج", price: 200, serviceType: "appointment", durationMinutes: 60 }],
+  barber:       [{ name: "قصة شعر", price: 40, serviceType: "appointment", durationMinutes: 30 }, { name: "حلاقة ذقن", price: 30, serviceType: "appointment", durationMinutes: 20 }, { name: "قصة شعر + ذقن", price: 60, serviceType: "appointment", durationMinutes: 45 }, { name: "تلوين", price: 120, serviceType: "appointment", durationMinutes: 60 }],
+  spa:          [{ name: "مساج كامل", price: 250, serviceType: "appointment", durationMinutes: 60 }, { name: "مساج ظهر", price: 150, serviceType: "appointment", durationMinutes: 30 }, { name: "جلسة سبا", price: 350, serviceType: "appointment", durationMinutes: 90 }, { name: "تقشير", price: 200, serviceType: "appointment", durationMinutes: 45 }],
+  fitness:      [{ name: "اشتراك شهري", price: 200, serviceType: "product" }, { name: "اشتراك ربع سنوي", price: 500, serviceType: "product" }, { name: "جلسة تدريب شخصي", price: 150, serviceType: "appointment", durationMinutes: 60 }],
+  cafe:         [{ name: "إسبريسو", price: 12, serviceType: "food_order" }, { name: "لاتيه", price: 18, serviceType: "food_order" }, { name: "كابتشينو", price: 18, serviceType: "food_order" }, { name: "V60", price: 22, serviceType: "food_order" }, { name: "موكا", price: 20, serviceType: "food_order" }],
+  restaurant:   [{ name: "برقر", price: 35, serviceType: "food_order" }, { name: "بيتزا", price: 45, serviceType: "food_order" }, { name: "سلطة", price: 20, serviceType: "food_order" }, { name: "وجبة دجاج", price: 40, serviceType: "food_order" }, { name: "عصير طازج", price: 15, serviceType: "food_order" }],
+  bakery:       [{ name: "خبز عيش", price: 5, serviceType: "food_order" }, { name: "كيكة تورتة", price: 120, serviceType: "food_order" }, { name: "كرواسون", price: 10, serviceType: "food_order" }, { name: "مافن", price: 8, serviceType: "food_order" }],
+  catering:     [{ name: "بوفيه إفطار (للشخص)", price: 45, serviceType: "food_order" }, { name: "بوفيه غداء (للشخص)", price: 65, serviceType: "food_order" }, { name: "طقم مشاوي", price: 250, serviceType: "food_order" }],
+  flower_shop:  [{ name: "باقة ورد أحمر", price: 80, serviceType: "product" }, { name: "باقة مختلطة", price: 100, serviceType: "product" }, { name: "تنسيق طاولة", price: 200, serviceType: "product" }, { name: "باقة هدية", price: 150, serviceType: "product" }],
+  rental:       [{ name: "خيمة صغيرة (يوم)", price: 300, serviceType: "rental" }, { name: "خيمة كبيرة (يوم)", price: 600, serviceType: "rental" }, { name: "كوشة ثابتة", price: 800, serviceType: "rental" }, { name: "طاولة + 4 كراسي", price: 80, serviceType: "rental" }],
+  photography:  [{ name: "جلسة تصوير ساعة", price: 300, serviceType: "appointment", durationMinutes: 60 }, { name: "جلسة منزلية", price: 500, serviceType: "appointment", durationMinutes: 120 }, { name: "تصوير مناسبة", price: 1200, serviceType: "appointment", durationMinutes: 240 }, { name: "تصوير منتجات", price: 400, serviceType: "appointment", durationMinutes: 120 }],
+  hotel:        [{ name: "غرفة مفردة (ليلة)", price: 250, serviceType: "rental" }, { name: "غرفة مزدوجة (ليلة)", price: 350, serviceType: "rental" }, { name: "جناح (ليلة)", price: 600, serviceType: "rental" }],
+  car_rental:   [{ name: "سيارة صغيرة (يوم)", price: 150, serviceType: "rental" }, { name: "سيارة متوسطة (يوم)", price: 200, serviceType: "rental" }, { name: "SUV (يوم)", price: 300, serviceType: "rental" }],
+  maintenance:  [{ name: "صيانة منزلية", price: 150, serviceType: "execution", durationMinutes: 120 }, { name: "تركيب مكيف", price: 350, serviceType: "execution", durationMinutes: 180 }, { name: "إصلاح سباكة", price: 200, serviceType: "execution", durationMinutes: 120 }, { name: "كهرباء", price: 180, serviceType: "execution", durationMinutes: 90 }],
+  workshop:     [{ name: "تغيير زيت", price: 80, serviceType: "execution", durationMinutes: 30 }, { name: "فحص شامل", price: 150, serviceType: "execution", durationMinutes: 60 }, { name: "تغيير إطارات", price: 200, serviceType: "execution", durationMinutes: 45 }, { name: "غسيل سيارة", price: 40, serviceType: "execution", durationMinutes: 20 }],
+  retail:       [{ name: "منتج رئيسي", price: 50, serviceType: "product" }, { name: "باقة", price: 120, serviceType: "product" }, { name: "بطاقة هدية", price: 100, serviceType: "product" }],
+  real_estate:  [{ name: "شقة مكتبية", price: 5000, serviceType: "rental" }, { name: "محل تجاري", price: 8000, serviceType: "rental" }, { name: "شقة سكنية", price: 3500, serviceType: "rental" }],
 };
 
 // ============================================================
@@ -107,9 +107,16 @@ export function OnboardingWizard({ status, onComplete }: Props) {
         const creates: Promise<any>[] = [];
         selectedTemplates.forEach(idx => {
           const t = templates[idx];
-          if (t) creates.push(servicesApi.create({ name: t.name, basePrice: t.price, status: "active" }));
+          if (t) creates.push(servicesApi.create({
+            name: t.name,
+            basePrice: t.price,
+            status: "active",
+            serviceType: t.serviceType,
+            ...(t.durationMinutes ? { durationMinutes: t.durationMinutes } : {}),
+          }));
         });
         if (svcName.trim() && parseFloat(svcPrice) > 0) {
+          // الإدخال اليدوي — الـ API يستنتج النوع من businessType تلقائياً
           creates.push(servicesApi.create({ name: svcName.trim(), basePrice: parseFloat(svcPrice), status: "active" }));
         }
         if (creates.length > 0) {
