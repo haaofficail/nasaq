@@ -45,6 +45,7 @@ export interface CreateEntryInput {
   periodId?: string;        // إذا لم يُحدَّد يُكتشف تلقائياً
   createdBy?: string;
   lines: JournalLineInput[];
+  tx?: any;
 }
 
 export interface PostingResult {
@@ -87,9 +88,12 @@ type SystemKey =
   | "GRATUITY_PROVISION"
   | "GOV_FEES_EXPENSE";
 
+type DbExecutor = typeof db | any;
+const getExecutor = (tx?: DbExecutor) => tx ?? db;
 
-export async function getAccountByKey(orgId: string, key: SystemKey): Promise<string | null> {
-  const [account] = await db
+export async function getAccountByKey(orgId: string, key: SystemKey, tx?: DbExecutor): Promise<string | null> {
+  const executor = getExecutor(tx);
+  const [account] = await executor
     .select({ id: chartOfAccounts.id })
     .from(chartOfAccounts)
     .where(
@@ -107,9 +111,11 @@ export async function getAccountByKey(orgId: string, key: SystemKey): Promise<st
 // جلب عدة حسابات دفعة واحدة لتقليل الاستعلامات
 export async function getAccountsByKeys(
   orgId: string,
-  keys: SystemKey[]
+  keys: SystemKey[],
+  tx?: DbExecutor,
 ): Promise<Record<string, string>> {
-  const accounts = await db
+  const executor = getExecutor(tx);
+  const accounts = await executor
     .select({ id: chartOfAccounts.id, systemKey: chartOfAccounts.systemKey })
     .from(chartOfAccounts)
     .where(
@@ -132,8 +138,9 @@ export async function getAccountsByKeys(
 // يجد الفترة المالية المفتوحة التي يقع فيها التاريخ
 // ============================================================
 
-export async function findPeriodForDate(orgId: string, date: Date): Promise<string | null> {
-  const [period] = await db
+export async function findPeriodForDate(orgId: string, date: Date, tx?: DbExecutor): Promise<string | null> {
+  const executor = getExecutor(tx);
+  const [period] = await executor
     .select({ id: accountingPeriods.id })
     .from(accountingPeriods)
     .where(
@@ -154,11 +161,12 @@ export async function findPeriodForDate(orgId: string, date: Date): Promise<stri
 // JE-2026-00001 (sequential per org per year)
 // ============================================================
 
-async function generateEntryNumber(orgId: string, date: Date): Promise<string> {
+async function generateEntryNumber(orgId: string, date: Date, tx?: DbExecutor): Promise<string> {
+  const executor = getExecutor(tx);
   const year = date.getFullYear();
   const prefix = `JE-${year}-`;
 
-  const [{ total }] = await db
+  const [{ total }] = await executor
     .select({ total: count() })
     .from(journalEntries)
     .where(
@@ -202,13 +210,14 @@ export async function createJournalEntry(input: CreateEntryInput): Promise<Posti
   }
 
   // تحديد الفترة المالية
-  const periodId = input.periodId ?? (await findPeriodForDate(input.orgId, input.date));
+  const executor = getExecutor(input.tx);
+  const periodId = input.periodId ?? (await findPeriodForDate(input.orgId, input.date, input.tx));
 
   // توليد رقم القيد
-  const entryNumber = await generateEntryNumber(input.orgId, input.date);
+  const entryNumber = await generateEntryNumber(input.orgId, input.date, input.tx);
 
   // إنشاء القيد والسطور في transaction واحدة
-  const entryId = await db.transaction(async (tx) => {
+  const insertEntry = async (tx: DbExecutor) => {
     const [entry] = await tx
       .insert(journalEntries)
       .values({
@@ -240,7 +249,8 @@ export async function createJournalEntry(input: CreateEntryInput): Promise<Posti
     );
 
     return entry.id;
-  });
+  };
+  const entryId = input.tx ? await insertEntry(executor) : await db.transaction(insertEntry);
 
   return { entryId, entryNumber, totalDebit, totalCredit };
 }
@@ -320,10 +330,11 @@ export async function postCashSale(params: {
   sourceType: JournalSourceType;
   sourceId: string;
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
   const accounts = await getAccountsByKeys(params.orgId, [
     "MAIN_CASH", "SERVICE_REVENUE", "VAT_PAYABLE"
-  ]);
+  ], params.tx);
 
   if (!accounts.MAIN_CASH || !accounts.SERVICE_REVENUE) return null;
 
@@ -343,6 +354,7 @@ export async function postCashSale(params: {
     sourceId: params.sourceId,
     createdBy: params.createdBy,
     lines,
+    tx: params.tx,
   });
 }
 
@@ -359,10 +371,11 @@ export async function postCreditSale(params: {
   sourceType: JournalSourceType;
   sourceId: string;
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
   const accounts = await getAccountsByKeys(params.orgId, [
     "AR", "SERVICE_REVENUE", "VAT_PAYABLE"
-  ]);
+  ], params.tx);
 
   if (!accounts.AR || !accounts.SERVICE_REVENUE) return null;
 
@@ -382,6 +395,7 @@ export async function postCreditSale(params: {
     sourceId: params.sourceId,
     createdBy: params.createdBy,
     lines,
+    tx: params.tx,
   });
 }
 
@@ -396,10 +410,11 @@ export async function postDepositReceived(params: {
   description: string;
   sourceId: string;
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
   const accounts = await getAccountsByKeys(params.orgId, [
     "MAIN_CASH", "DEFERRED_REVENUE"
-  ]);
+  ], params.tx);
 
   if (!accounts.MAIN_CASH || !accounts.DEFERRED_REVENUE) return null;
 
@@ -414,6 +429,7 @@ export async function postDepositReceived(params: {
       { accountId: accounts.MAIN_CASH,       debit: params.amount },
       { accountId: accounts.DEFERRED_REVENUE, credit: params.amount },
     ],
+    tx: params.tx,
   });
 }
 
@@ -429,10 +445,11 @@ export async function postDepositRecognition(params: {
   description: string;
   sourceId: string;
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
   const accounts = await getAccountsByKeys(params.orgId, [
     "DEFERRED_REVENUE", "SERVICE_REVENUE", "VAT_PAYABLE"
-  ]);
+  ], params.tx);
 
   if (!accounts.DEFERRED_REVENUE || !accounts.SERVICE_REVENUE) return null;
 
@@ -452,6 +469,7 @@ export async function postDepositRecognition(params: {
     sourceId: params.sourceId,
     createdBy: params.createdBy,
     lines,
+    tx: params.tx,
   });
 }
 
@@ -467,9 +485,10 @@ export async function postCustomerCollection(params: {
   sourceId: string;
   useBankAccount?: boolean;
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
   const cashKey = params.useBankAccount ? "MAIN_BANK" : "MAIN_CASH";
-  const accounts = await getAccountsByKeys(params.orgId, [cashKey, "AR"]);
+  const accounts = await getAccountsByKeys(params.orgId, [cashKey, "AR"], params.tx);
 
   if (!accounts[cashKey] || !accounts.AR) return null;
 
@@ -484,6 +503,7 @@ export async function postCustomerCollection(params: {
       { accountId: accounts[cashKey], debit: params.amount },
       { accountId: accounts.AR,       credit: params.amount },
     ],
+    tx: params.tx,
   });
 }
 
@@ -500,9 +520,10 @@ export async function postExpense(params: {
   sourceId: string;
   useBankAccount?: boolean;
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
   const cashKey = params.useBankAccount ? "MAIN_BANK" : "MAIN_CASH";
-  const accounts = await getAccountsByKeys(params.orgId, [cashKey]);
+  const accounts = await getAccountsByKeys(params.orgId, [cashKey], params.tx);
 
   if (!accounts[cashKey]) return null;
 
@@ -517,6 +538,7 @@ export async function postExpense(params: {
       { accountId: params.expenseAccountId, debit: params.amount },
       { accountId: accounts[cashKey],        credit: params.amount },
     ],
+    tx: params.tx,
   });
 }
 
@@ -532,10 +554,11 @@ export async function postRefund(params: {
   description: string;
   sourceId: string;
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
   const accounts = await getAccountsByKeys(params.orgId, [
     "MAIN_CASH", "SERVICE_REVENUE", "VAT_PAYABLE"
-  ]);
+  ], params.tx);
 
   if (!accounts.MAIN_CASH || !accounts.SERVICE_REVENUE) return null;
 
@@ -555,6 +578,7 @@ export async function postRefund(params: {
     sourceId: params.sourceId,
     createdBy: params.createdBy,
     lines,
+    tx: params.tx,
   });
 }
 
@@ -571,6 +595,7 @@ export async function postTreasuryTransfer(params: {
   description: string;
   sourceId: string;
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
   if (!params.fromAccountId || !params.toAccountId) return null;
 
@@ -585,6 +610,7 @@ export async function postTreasuryTransfer(params: {
       { accountId: params.toAccountId,   debit: params.amount },
       { accountId: params.fromAccountId, credit: params.amount },
     ],
+    tx: params.tx,
   });
 }
 
@@ -600,10 +626,11 @@ export async function postPOSSale(params: {
   description: string;
   sourceId: string;
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
   const accounts = await getAccountsByKeys(params.orgId, [
     "MAIN_CASH", "SALES_REVENUE", "VAT_PAYABLE"
-  ]);
+  ], params.tx);
 
   if (!accounts.MAIN_CASH || !accounts.SALES_REVENUE) return null;
 
@@ -623,6 +650,7 @@ export async function postPOSSale(params: {
     sourceId: params.sourceId,
     createdBy: params.createdBy,
     lines,
+    tx: params.tx,
   });
 }
 
@@ -639,8 +667,9 @@ export async function postAccrual(params: {
   description: string;
   sourceId?: string;
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
-  const accounts = await getAccountsByKeys(params.orgId, ["ACCRUED_EXPENSES"]);
+  const accounts = await getAccountsByKeys(params.orgId, ["ACCRUED_EXPENSES"], params.tx);
   if (!accounts.ACCRUED_EXPENSES) return null;
 
   return createJournalEntry({
@@ -654,6 +683,7 @@ export async function postAccrual(params: {
       { accountId: params.expenseAccountId,    debit: params.amount },
       { accountId: accounts.ACCRUED_EXPENSES,  credit: params.amount },
     ],
+    tx: params.tx,
   });
 }
 
@@ -669,9 +699,10 @@ export async function postAccrualSettlement(params: {
   sourceId?: string;
   useBankAccount?: boolean;
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
   const cashKey = params.useBankAccount ? "MAIN_BANK" : "MAIN_CASH";
-  const accounts = await getAccountsByKeys(params.orgId, ["ACCRUED_EXPENSES", cashKey]);
+  const accounts = await getAccountsByKeys(params.orgId, ["ACCRUED_EXPENSES", cashKey], params.tx);
   if (!accounts.ACCRUED_EXPENSES || !accounts[cashKey]) return null;
 
   return createJournalEntry({
@@ -685,6 +716,7 @@ export async function postAccrualSettlement(params: {
       { accountId: accounts.ACCRUED_EXPENSES, debit: params.amount },
       { accountId: accounts[cashKey],          credit: params.amount },
     ],
+    tx: params.tx,
   });
 }
 
@@ -700,10 +732,11 @@ export async function postDepreciation(params: {
   assetAccountId?: string; // اختياري: إذا أُريد تحديد مجمع إهلاك أصل معين
   sourceId?: string;
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
   const accounts = await getAccountsByKeys(params.orgId, [
     "DEPRECIATION_EXPENSE", "ACCUMULATED_DEPRECIATION"
-  ]);
+  ], params.tx);
   if (!accounts.DEPRECIATION_EXPENSE || !accounts.ACCUMULATED_DEPRECIATION) return null;
 
   return createJournalEntry({
@@ -717,6 +750,7 @@ export async function postDepreciation(params: {
       { accountId: accounts.DEPRECIATION_EXPENSE,    debit: params.amount },
       { accountId: accounts.ACCUMULATED_DEPRECIATION, credit: params.amount },
     ],
+    tx: params.tx,
   });
 }
 
@@ -733,8 +767,9 @@ export async function postDeferralRecognition(params: {
   description: string;
   sourceId?: string;
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
-  const accounts = await getAccountsByKeys(params.orgId, ["DEFERRED_REVENUE"]);
+  const accounts = await getAccountsByKeys(params.orgId, ["DEFERRED_REVENUE"], params.tx);
   if (!accounts.DEFERRED_REVENUE) return null;
 
   return createJournalEntry({
@@ -748,6 +783,7 @@ export async function postDeferralRecognition(params: {
       { accountId: accounts.DEFERRED_REVENUE,   debit: params.amount },
       { accountId: params.revenueAccountId,      credit: params.amount },
     ],
+    tx: params.tx,
   });
 }
 
@@ -764,9 +800,10 @@ export async function postPurchase(params: {
   sourceId?: string;
   payOnCredit?: boolean;   // true = آجل (AP), false = نقدي (MAIN_CASH)
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
   const creditKey = params.payOnCredit ? "AP" : "MAIN_CASH";
-  const accounts = await getAccountsByKeys(params.orgId, [creditKey]);
+  const accounts = await getAccountsByKeys(params.orgId, [creditKey], params.tx);
   if (!accounts[creditKey]) return null;
 
   return createJournalEntry({
@@ -780,6 +817,7 @@ export async function postPurchase(params: {
       { accountId: params.assetAccountId, debit: params.amount },
       { accountId: accounts[creditKey],   credit: params.amount },
     ],
+    tx: params.tx,
   });
 }
 
@@ -795,9 +833,10 @@ export async function postSupplierPayment(params: {
   sourceId?: string;
   useBankAccount?: boolean;
   createdBy?: string;
+  tx?: DbExecutor;
 }): Promise<PostingResult | null> {
   const cashKey = params.useBankAccount ? "MAIN_BANK" : "MAIN_CASH";
-  const accounts = await getAccountsByKeys(params.orgId, ["AP", cashKey]);
+  const accounts = await getAccountsByKeys(params.orgId, ["AP", cashKey], params.tx);
   if (!accounts.AP || !accounts[cashKey]) return null;
 
   return createJournalEntry({
@@ -811,6 +850,7 @@ export async function postSupplierPayment(params: {
       { accountId: accounts.AP,       debit: params.amount },
       { accountId: accounts[cashKey], credit: params.amount },
     ],
+    tx: params.tx,
   });
 }
 
