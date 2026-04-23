@@ -68,7 +68,7 @@ function touch(sess: Session, patch: Partial<Session>) {
   Object.assign(sess, patch, { updatedAt: new Date() });
 }
 
-function getJitteredDelayMs(baseMs: number): number {
+function getRandomizedDelayMs(baseMs: number): number {
   return baseMs + Math.floor(Math.random() * baseMs);
 }
 
@@ -254,6 +254,7 @@ export function hasSavedSession(orgId: string): boolean {
 
 /** Restore all saved sessions on server startup */
 export async function restoreAllBaileys(): Promise<void> {
+  // A 500ms base delay keeps reconnect storms from spiking CPU and WhatsApp rate limits during startup recovery.
   const RESTORE_DELAY_MS = 500;
   if (!fs.existsSync(SESSIONS_DIR)) return;
   const dirs = fs.readdirSync(SESSIONS_DIR).filter(d =>
@@ -262,7 +263,7 @@ export async function restoreAllBaileys(): Promise<void> {
   );
   for (const orgId of dirs) {
     log.info({ orgId }, "[wa-baileys] restoring session");
-    await new Promise((resolve) => setTimeout(resolve, getJitteredDelayMs(RESTORE_DELAY_MS)));
+    await new Promise((resolve) => setTimeout(resolve, getRandomizedDelayMs(RESTORE_DELAY_MS)));
     initBaileys(orgId).catch(() => {});
   }
 }

@@ -40,6 +40,7 @@ const JOBS = {
 } as const;
 
 async function runForAllOrgs(fn: (orgId: string) => Promise<unknown>, label: string) {
+  // Keep org fan-out below typical pool sizes to avoid saturating DB connections during scheduled sweeps.
   const ORG_BATCH_SIZE = 50;
   const orgs = await db.select({ id: organizations.id }).from(organizations);
 
