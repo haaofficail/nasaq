@@ -68,7 +68,7 @@ function touch(sess: Session, patch: Partial<Session>) {
   Object.assign(sess, patch, { updatedAt: new Date() });
 }
 
-function getRestoreDelayMs(baseMs: number): number {
+function getJitteredDelayMs(baseMs: number): number {
   return baseMs + Math.floor(Math.random() * baseMs);
 }
 
@@ -260,11 +260,9 @@ export async function restoreAllBaileys(): Promise<void> {
     fs.statSync(path.join(SESSIONS_DIR, d)).isDirectory() &&
     fs.existsSync(path.join(SESSIONS_DIR, d, "creds.json"))
   );
-  for (const [index, orgId] of dirs.entries()) {
+  for (const orgId of dirs) {
     log.info({ orgId }, "[wa-baileys] restoring session");
-    if (index > 0) {
-      await new Promise((resolve) => setTimeout(resolve, getRestoreDelayMs(RESTORE_DELAY_MS)));
-    }
+    await new Promise((resolve) => setTimeout(resolve, getJitteredDelayMs(RESTORE_DELAY_MS)));
     initBaileys(orgId).catch(() => {});
   }
 }
