@@ -210,6 +210,9 @@ const VERTICALS: Capability[] = [
     key: "vertical_flower",
     label: "محل الورود",
     category: "vertical",
+    // Multi-engine requirement: `florist_event` operating_profile must compose both
+    // commerce + event engines dynamically. Keep the canonical vertical anchored to
+    // commerce until Capability.engine supports multi-engine structural typing.
     engine: "commerce",
     routes: ["/arrangements", "/flower-master", "/flower-builder"],
     pages: ["/dashboard/flower-inventory", "/dashboard/arrangements"],
