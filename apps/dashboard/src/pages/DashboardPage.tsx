@@ -379,6 +379,8 @@ export function DashboardPage() {
     []
   );
 
+  const [showQR, setShowQR] = useState(false);
+
   const isNewOrg = useMemo(() => {
     if (bookingsLoading || profileLoading) return false;
     const hasActivity = (bookingsRes?.data?.length ?? 0) > 0;
@@ -440,7 +442,6 @@ export function DashboardPage() {
   };
 
   const orgSlug: string = profileRes?.data?.slug ?? "";
-  const [showQR, setShowQR] = useState(false);
 
   return (
     <div className="space-y-4">
