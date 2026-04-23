@@ -272,7 +272,8 @@ export function ServiceCreateWizard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const typeFromUrl = searchParams.get("type") || "";
-  const skipExitGuardRef = useRef(false);
+  const [skipExitGuard, setSkipExitGuard] = useState(false);
+  const [redirectAfterSave, setRedirectAfterSave] = useState<string | null>(null);
 
   // ── State ──────────────────────────────────────────────────────────────────
   const [step, setStep] = useState(typeFromUrl ? 1 : 0); // 0 = type picker
@@ -373,15 +374,20 @@ export function ServiceCreateWizard() {
   const canToggleMode = EXECUTION_TYPES.has(form.serviceType) || ["appointment", "execution", "field_service", "project"].includes(form.serviceType);
 
   useBeforeUnload((event) => {
-    if (!hasUnsavedChanges || skipExitGuardRef.current) return;
+    if (!hasUnsavedChanges || skipExitGuard) return;
     event.preventDefault();
     event.returnValue = "";
   });
 
   unstable_usePrompt({
-    when: hasUnsavedChanges && !skipExitGuardRef.current,
+    when: hasUnsavedChanges && !skipExitGuard,
     message: EXIT_GUARD_MESSAGE,
   });
+
+  useEffect(() => {
+    if (!redirectAfterSave) return;
+    navigate(redirectAfterSave);
+  }, [navigate, redirectAfterSave]);
 
   // ── Apply type defaults ────────────────────────────────────────────────────
   useEffect(() => {
@@ -590,12 +596,12 @@ export function ServiceCreateWizard() {
       // Show result
       const uniqueWarnings = [...new Set(warnings)];
       if (uniqueWarnings.length > 0) {
-        toast.error("تم إنشاء الخدمة، لكن " + uniqueWarnings.join("، "));
+        toast.error("تم إنشاء الخدمة مع أخطاء تحتاج متابعة: " + uniqueWarnings.join("، "));
       } else {
         toast.success("تم إنشاء الخدمة بنجاح");
       }
-      skipExitGuardRef.current = true;
-      navigate(`/dashboard/services/${svcId}`);
+      setSkipExitGuard(true);
+      setRedirectAfterSave(`/dashboard/services/${svcId}`);
     } catch (e: any) {
       setErrors({ _submit: e.message || "حدث خطأ أثناء الحفظ" });
     } finally {
