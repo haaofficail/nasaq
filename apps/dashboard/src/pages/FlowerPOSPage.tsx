@@ -309,6 +309,8 @@ export function FlowerPOSPage() {
 
   // ─── Derived values ─────────────────────────────────────────────────────────
 
+  const isLoading = invLoading || catLoading;
+
   // منشأة جديدة: ما استلمت ورداً بعد (API يرجع فارغ لأنه INNER JOIN على batches)
   const hasNoInventoryHistory = !isLoading && !invError &&
     (posCatalogData?.data ?? []).length === 0 &&
@@ -600,8 +602,6 @@ export function FlowerPOSPage() {
   }
 
   // ─── Loading skeleton ────────────────────────────────────────────────────────
-
-  const isLoading = invLoading || catLoading;
 
   // ─── Main POS Layout ─────────────────────────────────────────────────────────
 
