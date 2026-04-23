@@ -1627,6 +1627,8 @@ export function ServiceCreateWizard() {
               </button>
             ) : (
               <button onClick={save} disabled={saving || isUploadingImages}
+                title={isUploadingImages ? uploadStatusMessage : undefined}
+                aria-label={isUploadingImages ? uploadStatusMessage : isFlowerShop && form.serviceType === "product" ? "اعتماد الخدمة وإضافتها للمتجر" : "إنشاء الخدمة وحفظها"}
                 className="flex items-center gap-1.5 px-6 py-2 rounded-xl bg-brand-500 text-white text-sm font-bold hover:bg-brand-600 disabled:opacity-50 transition-colors shadow-sm">
                 {saving || isUploadingImages ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                 {isUploadingImages ? "جارٍ رفع الصور..." : isFlowerShop && form.serviceType === "product" ? "اعتماد وإضافة للمتجر" : "إنشاء وحفظ"}
