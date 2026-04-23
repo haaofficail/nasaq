@@ -1,3 +1,7 @@
+// @todo ARCHITECTURE WARNING: This module keeps long-lived, stateful Baileys WebSocket sessions in the main API process via a global Map.
+// This is a critical stateless-architecture violation and a memory leak / OOM risk at scale as organizations and reconnect churn grow.
+// The entire Baileys session lifecycle MUST be extracted into a dedicated `whatsapp-worker` microservice that communicates through pg-boss queues.
+//
 // ============================================================
 // WHATSAPP BAILEYS — QR-based WhatsApp connection per org
 // Uses @whiskeysockets/baileys (multi-device, no browser)
@@ -188,8 +192,9 @@ export async function sendViaBaileys(orgId: string, phone: string, message: stri
       log.warn({ orgId }, "[wa-baileys] connection lost on send — resetting and reconnecting");
       touch(sess, { status: "disconnected", socket: null, qrBase64: null });
       if (hasSavedSession(orgId)) initBaileys(orgId).catch(() => {});
+      return false;
     }
-    return false;
+    throw err;
   }
 }
 
@@ -216,8 +221,9 @@ export async function sendImageViaBaileys(
       log.warn({ orgId }, "[wa-baileys] connection lost on image send — resetting");
       touch(sess, { status: "disconnected", socket: null, qrBase64: null });
       if (hasSavedSession(orgId)) initBaileys(orgId).catch(() => {});
+      return false;
     }
-    return false;
+    throw err;
   }
 }
 
@@ -244,6 +250,7 @@ export function hasSavedSession(orgId: string): boolean {
 
 /** Restore all saved sessions on server startup */
 export async function restoreAllBaileys(): Promise<void> {
+  const RESTORE_DELAY_MS = 500;
   if (!fs.existsSync(SESSIONS_DIR)) return;
   const dirs = fs.readdirSync(SESSIONS_DIR).filter(d =>
     fs.statSync(path.join(SESSIONS_DIR, d)).isDirectory() &&
@@ -251,6 +258,9 @@ export async function restoreAllBaileys(): Promise<void> {
   );
   for (const orgId of dirs) {
     log.info({ orgId }, "[wa-baileys] restoring session");
+    if (orgId !== dirs[0]) {
+      await new Promise((resolve) => setTimeout(resolve, RESTORE_DELAY_MS + Math.floor(Math.random() * RESTORE_DELAY_MS)));
+    }
     initBaileys(orgId).catch(() => {});
   }
 }

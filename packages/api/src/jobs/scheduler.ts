@@ -40,8 +40,14 @@ const JOBS = {
 } as const;
 
 async function runForAllOrgs(fn: (orgId: string) => Promise<unknown>, label: string) {
+  const ORG_BATCH_SIZE = 50;
   const orgs = await db.select({ id: organizations.id }).from(organizations);
-  await Promise.all(orgs.map((org) => fn(org.id)));
+
+  for (let start = 0; start < orgs.length; start += ORG_BATCH_SIZE) {
+    const batch = orgs.slice(start, start + ORG_BATCH_SIZE);
+    await Promise.all(batch.map((org) => fn(org.id)));
+  }
+
   log.info({ label, orgs: orgs.length }, "[scheduler] job done");
 }
 
