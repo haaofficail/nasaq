@@ -11,6 +11,7 @@ import fs from "fs";
 import path from "path";
 import { pool, directPool } from "@nasaq/db/client";
 import { log } from "../lib/logger";
+import { persistBaileysState } from "../lib/whatsappSessionState";
 import {
   isUuid,
   resolveWaSessionDir,
@@ -22,19 +23,21 @@ import {
 } from "../lib/whatsappBaileys.shared";
 
 const RESTORE_DELAY_MS = 500;
+const RECONNECT_BACKOFF_BASE_MS = 5_000;
+const RECONNECT_BACKOFF_MAX_MS = 60_000;
+const SHUTDOWN_TIMEOUT_MS = 10_000;
 type QueueName = (typeof WA_QUEUE_NAMES)[keyof typeof WA_QUEUE_NAMES];
 
 const SILENT_BAILEYS_LOGGER = {
   level: "silent",
-  trace(){},
-  debug(){},
-  info(){},
-  warn(){},
-  error(){},
-  fatal(){},
-  child(){ return this; },
+  trace: () => {},
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+  fatal: () => {},
+  child: () => SILENT_BAILEYS_LOGGER,
 } as any;
-
 
 interface Session {
   socket: any | null;
@@ -104,113 +107,17 @@ function get(orgId: string): Session {
   return sessions.get(orgId)!;
 }
 
-async function persistPlatformState(sess: Session): Promise<void> {
-  const payload = {
-    status: sess.status,
-    qrBase64: sess.qrBase64,
-    phone: sess.phone,
-    updatedAt: sess.updatedAt.toISOString(),
-  };
-
-  const existing = await pool.query<{ id: string }>(
-    `SELECT id
-       FROM rule_definitions
-      WHERE scope = 'global'
-        AND target_id = $1
-      ORDER BY created_at DESC
-      LIMIT 1`,
-    [WA_PLATFORM_STATE_TARGET_ID],
-  );
-
-  if (existing.rows[0]?.id) {
-    await pool.query(
-      `UPDATE rule_definitions
-          SET name = $2,
-              description = $3,
-              trigger = $4,
-              conditions = '[]'::jsonb,
-              actions = $5::jsonb,
-              priority = 0,
-              scope = 'global',
-              target_id = $1,
-              is_active = true
-        WHERE id = $6`,
-      [
-        WA_PLATFORM_STATE_TARGET_ID,
-        "System WhatsApp platform state",
-        "Internal state cache for platform Baileys worker",
-        "system.whatsapp.platform-state",
-        JSON.stringify(payload),
-        existing.rows[0].id,
-      ],
-    );
-    return;
-  }
-
-  await pool.query(
-    `INSERT INTO rule_definitions (
-       name,
-       description,
-       trigger,
-       conditions,
-       actions,
-       priority,
-       scope,
-       target_id,
-       is_active,
-       created_by
-     ) VALUES ($1, $2, $3, '[]'::jsonb, $4::jsonb, 0, 'global', $5, true, NULL)`,
-    [
-      "System WhatsApp platform state",
-      "Internal state cache for platform Baileys worker",
-      "system.whatsapp.platform-state",
-      JSON.stringify(payload),
-      WA_PLATFORM_STATE_TARGET_ID,
-    ],
-  );
-}
-
-async function persistState(orgId: string): Promise<void> {
-  const sess = get(orgId);
-  const connectedAt = sess.status === "connected" ? sess.updatedAt : null;
-
-  if (orgId === "platform" || !isUuid(orgId)) {
-    await persistPlatformState(sess);
-    return;
-  }
-
-  await pool.query(
-    `INSERT INTO whatsapp_sessions (
-       org_id,
-       phone,
-       session_data,
-       status,
-       qr_code,
-       connected_at,
-       updated_at
-     ) VALUES ($1, $2, $3::jsonb, $4, $5, $6, NOW())
-     ON CONFLICT (org_id) DO UPDATE SET
-       phone = EXCLUDED.phone,
-       session_data = EXCLUDED.session_data,
-       status = EXCLUDED.status,
-       qr_code = EXCLUDED.qr_code,
-       connected_at = EXCLUDED.connected_at,
-       updated_at = NOW()`,
-    [
-      orgId,
-      sess.phone,
-      JSON.stringify({ generation: sess.generation, retryCount: sess.retryCount }),
-      sess.status,
-      sess.qrBase64,
-      connectedAt,
-    ],
-  );
-}
-
 async function touch(orgId: string, patch: Partial<Session>): Promise<Session> {
   const sess = get(orgId);
   Object.assign(sess, patch, { updatedAt: new Date() });
-  await persistState(orgId);
+  await persistBaileysState(orgId, {
+    status: sess.status,
+    qrBase64: sess.qrBase64,
+    phone: sess.phone,
+    updatedAt: sess.updatedAt,
+    generation: sess.generation,
+    retryCount: sess.retryCount,
+  });
   return sess;
 }
 
@@ -293,7 +200,7 @@ async function initSession(orgId: string, force = false): Promise<void> {
       if (retries > 5) {
         log.warn({ orgId, retries }, "[wa-worker] max retries reached");
       } else if (hasSavedSession(orgId)) {
-        const backoffMs = Math.min(5_000 * retries, 60_000);
+        const backoffMs = Math.min(RECONNECT_BACKOFF_BASE_MS * retries, RECONNECT_BACKOFF_MAX_MS);
         log.info({ orgId, retries, backoffMs }, "[wa-worker] reconnecting with backoff");
         setTimeout(() => {
           if (sessions.get(orgId)?.generation === gen) {
@@ -434,7 +341,7 @@ log.info("[wa-worker] queues registered and sessions restored");
 
 const shutdown = async () => {
   log.info("[wa-worker] shutting down...");
-  await boss.stop({ graceful: true, timeout: 10_000 }).catch(() => {});
+  await boss.stop({ graceful: true, timeout: SHUTDOWN_TIMEOUT_MS }).catch(() => {});
   await Promise.all([pool.end().catch(() => {}), directPool.end().catch(() => {})]);
   log.info("[wa-worker] shutdown complete");
   process.exit(0);
