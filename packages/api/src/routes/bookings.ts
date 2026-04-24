@@ -65,7 +65,7 @@ const ENGINE_DEFAULT_DURATION_MINS: Record<string, number> = {
 // ── insertEngineRow ─────────────────────────────────────────────────────────
 // Inserts a single row into the type-specific engine table.
 // bookingRecordId links back to booking_records (migration 147 FK).
-// bookingRef intentionally NOT set for canonical bookings — it references bookings.id (legacy only).
+// bookingRef keeps the legacy bookings.id source available for financial FKs.
 async function insertEngineRow(
   tx: DbTx,
   bookingType: string,
@@ -81,6 +81,7 @@ async function insertEngineRow(
       id:              engineRowId,
       orgId:           record.orgId,
       customerId:      record.customerId,
+      bookingRef:      record.bookingRef ?? null,
       bookingRecordId: record.id,
       bookingNumber:   engineBookingNumber,
       startAt:         record.startsAt,
@@ -98,6 +99,7 @@ async function insertEngineRow(
       id:              engineRowId,
       orgId:           record.orgId,
       customerId:      record.customerId,
+      bookingRef:      record.bookingRef ?? null,
       bookingRecordId: record.id,
       bookingNumber:   engineBookingNumber,
       checkIn:         record.startsAt,
@@ -112,6 +114,7 @@ async function insertEngineRow(
       id:              engineRowId,
       orgId:           record.orgId,
       customerId:      record.customerId,
+      bookingRef:      record.bookingRef ?? null,
       bookingRecordId: record.id,
       bookingNumber:   engineBookingNumber,
       reservationDate: record.startsAt,
@@ -130,6 +133,7 @@ async function insertEngineRow(
       id:              engineRowId,
       orgId:           record.orgId,
       customerId:      record.customerId,
+      bookingRef:      record.bookingRef ?? null,
       bookingRecordId: record.id,
       bookingNumber:   engineBookingNumber,
       eventDate:       eventDateOnly,
@@ -628,9 +632,132 @@ async function createCanonicalBookingTx(tx: DbTx, context: Awaited<ReturnType<ty
     }
   }
 
+  const [legacyBooking] = await tx.insert(bookings).values({
+    orgId: context.customer.orgId,
+    customerId: body.customerId,
+    bookingNumber,
+    status: "pending",
+    paymentStatus: "pending",
+    eventDate: resolvedEventDate,
+    eventEndDate: body.eventEndDate ? new Date(body.eventEndDate) : null,
+    locationId: body.locationId ?? null,
+    customLocation: body.customLocation ?? null,
+    locationNotes: body.locationNotes ?? null,
+    subtotal: subtotal.toFixed(2),
+    discountAmount: "0",
+    vatAmount: vatAmount.toFixed(2),
+    totalAmount: totalAmount.toFixed(2),
+    depositAmount: depositAmount.toFixed(2),
+    paidAmount: "0",
+    balanceDue: totalAmount.toFixed(2),
+    couponCode: body.couponCode ?? null,
+    assignedUserId: targetStaffId ?? null,
+    trackingToken,
+    source: body.source ?? "dashboard",
+    customerNotes: body.customerNotes ?? null,
+    internalNotes: body.internalNotes ?? null,
+    questionAnswers: body.questionAnswers ?? [],
+    utmSource: body.utmSource ?? null,
+    utmMedium: body.utmMedium ?? null,
+    utmCampaign: body.utmCampaign ?? null,
+    isRecurring: false,
+  } as any).returning();
+
+  const legacyItemIds: string[] = [];
+  if (itemsToInsert.length > 0) {
+    const legacyItems = await tx.insert(bookingItems).values(itemsToInsert.map((item: any) => ({
+      id: item.id,
+      bookingId: legacyBooking.id,
+      serviceId: item.serviceId,
+      serviceName: item.serviceName,
+      serviceType: item.serviceType,
+      durationMinutes: item.durationMinutes,
+      vatInclusive: item.vatInclusive,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
+      pricingBreakdown: item.pricingBreakdown,
+    })) as any).returning({ id: bookingItems.id });
+    legacyItemIds.push(...legacyItems.map((item) => item.id));
+  }
+
+  if (context.addonsToInsert.length > 0) {
+    await tx.insert(bookingItemAddons).values(context.addonsToInsert.map((addon) => ({
+      bookingItemId: addon.bookingItemId,
+      addonId: addon.addonId,
+      addonName: addon.addonName,
+      quantity: addon.quantity,
+      unitPrice: addon.unitPrice,
+      totalPrice: addon.totalPrice,
+    })) as any);
+  }
+
+  if (targetStaffId) {
+    await tx.insert(bookingAssignments).values({
+      orgId: context.customer.orgId,
+      bookingId: legacyBooking.id,
+      userId: targetStaffId,
+      role: "staff",
+      assignedAt: new Date(),
+    } as any);
+  }
+
+  if (context.userId) {
+    const legacyCommissions: any[] = [];
+    for (let index = 0; index < itemsToInsert.length; index += 1) {
+      const item = itemsToInsert[index] as any;
+      const cost = serviceCostMap.get(item.serviceId);
+      const staffRow = serviceStaffMap.get(item.serviceId);
+
+      let commissionMode = "percentage";
+      let rate = 0;
+      if (staffRow && staffRow.commissionMode === "none") continue;
+      if (staffRow && staffRow.commissionMode === "fixed") {
+        commissionMode = "fixed";
+        rate = parseFloat(staffRow.commissionValue as string) || 0;
+      } else if (staffRow && staffRow.commissionMode === "percentage") {
+        rate = parseFloat(staffRow.commissionValue as string) || 0;
+      } else {
+        rate = cost ? (parseFloat(cost.commissionPercent as string) || 0) : 10;
+      }
+
+      if (rate === 0) continue;
+
+      const baseAmount = parseFloat(item.totalPrice);
+      const commissionAmount = commissionMode === "fixed" ? rate : baseAmount * (rate / 100);
+      legacyCommissions.push({
+        orgId: context.customer.orgId,
+        bookingId: legacyBooking.id,
+        bookingItemId: legacyItemIds[index] ?? null,
+        userId: context.userId,
+        serviceId: item.serviceId,
+        commissionMode,
+        rate: rate.toFixed(2),
+        baseAmount: baseAmount.toFixed(2),
+        commissionAmount: commissionAmount.toFixed(2),
+        status: "pending",
+      });
+    }
+
+    if (legacyCommissions.length > 0) {
+      await tx.insert(bookingCommissions).values(legacyCommissions as any);
+    }
+  }
+
+  await tx.insert(bookingEvents).values({
+    orgId: context.customer.orgId,
+    bookingId: legacyBooking.id,
+    userId: context.userId ?? null,
+    eventType: "created",
+    fromStatus: null,
+    toStatus: "pending",
+    metadata: { bookingNumber, source: body.source ?? "dashboard" },
+  } as any);
+
   const [newRecord] = await tx.insert(bookingRecords).values({
     orgId: context.customer.orgId,
     customerId: body.customerId,
+    bookingRef: legacyBooking.id,
     bookingNumber,
     bookingType: canonicalBookingType,
     status: "pending",
@@ -779,7 +906,7 @@ async function createCanonicalBookingTx(tx: DbTx, context: Awaited<ReturnType<ty
     updatedAt: new Date(),
   }).where(eq(customers.id, body.customerId));
 
-  return { record: newRecord, lines: canonicalLines, engineRowId };
+  return { record: newRecord, lines: canonicalLines, engineRowId, legacyBookingId: legacyBooking.id };
 }
 
 async function recordBookingCheckoutPaymentTx(tx: DbTx, params: {
