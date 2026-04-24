@@ -40,7 +40,11 @@ async function getBoss(): Promise<PgBoss> {
 
 async function enqueue(queue: (typeof WA_QUEUE_NAMES)[keyof typeof WA_QUEUE_NAMES], payload: Record<string, unknown>): Promise<void> {
   const boss = await getBoss();
-  await boss.send(queue, payload);
+  await boss.send(queue, payload, {
+    retryLimit: 5,
+    retryDelay: 30,
+    retryBackoff: true,
+  } as any);
 }
 
 export async function initBaileys(orgId: string, force = false): Promise<void> {

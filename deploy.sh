@@ -24,7 +24,7 @@ rollback() {
   echo "✗ فشل النشر — جارٍ الرجوع إلى ${PREV_COMMIT:0:8}..."
   git checkout "$PREV_COMMIT" -- .
   pnpm install --frozen-lockfile --silent
-  pm2 restart all --update-env --silent
+  pm2 startOrReload ecosystem.config.cjs --update-env --silent
   echo "↩ تم الرجوع إلى الإصدار السابق"
   exit 1
 }
@@ -58,7 +58,7 @@ pnpm --filter @nasaq/db migrate 2>&1 || {
 
 # ─── 5. إعادة تشغيل الخدمة ───────────────────────────────────
 echo "→ إعادة تشغيل الخدمة..."
-pm2 restart all --update-env
+pm2 startOrReload ecosystem.config.cjs --update-env
 
 # ─── 6. Health check ─────────────────────────────────────────
 echo "→ فحص صحة الخدمة (${HEALTH_RETRIES} محاولة)..."

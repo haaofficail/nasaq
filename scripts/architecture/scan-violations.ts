@@ -46,7 +46,7 @@ const ALLOWED_PATHS = [
 
 /**
  * Whitelist: route files that are ALLOWED to write directly to specific tables
- * because they OWN those tables (this is the canonical API for that domain).
+ * because they OWN those tables or are the approved service for that domain.
  * Format: "partial/file/path" → Set of table names
  */
 const ROUTE_TABLE_OWNERSHIP: Record<string, Set<string>> = {
@@ -57,6 +57,7 @@ const ROUTE_TABLE_OWNERSHIP: Record<string, Set<string>> = {
   "routes/bookings.ts":        new Set(["bookings", "booking_items", "payments"]),
   "routes/pos.ts":             new Set(["customers"]),           // counter update (total_spent)
   "routes/service-orders.ts":  new Set(["flower_batches", "customers"]),
+  "lib/flower-batch-service.ts": new Set(["flower_batches"]),
   "guardian/scanner.ts":       new Set(["bookings"]),            // auto-cancellation job
 };
 

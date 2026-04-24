@@ -913,13 +913,14 @@ async function recordBookingCheckoutPaymentTx(tx: DbTx, params: {
   orgId: string;
   userId: string | null;
   bookingRecordId: string;
+  legacyBookingId: string;
   customerId: string;
   payment: NonNullable<z.infer<typeof checkoutPaymentSchema>>;
 }) {
-  const { orgId, userId, bookingRecordId, customerId, payment } = params;
+  const { orgId, userId, bookingRecordId, legacyBookingId, customerId, payment } = params;
   const [createdPayment] = await tx.insert(payments).values({
     orgId,
-    bookingId: bookingRecordId,
+    bookingId: legacyBookingId,
     customerId,
     amount: payment.amount,
     method: payment.method,
@@ -931,6 +932,15 @@ async function recordBookingCheckoutPaymentTx(tx: DbTx, params: {
     notes: payment.notes,
     paidAt: payment.status === "completed" ? new Date() : null,
   } as any).returning();
+
+  await tx.insert(bookingPaymentLinks).values({
+    orgId,
+    bookingRecordId,
+    paymentId: createdPayment.id,
+    linkType: payment.type,
+    amountApplied: payment.amount,
+    metadata: { legacyBookingId },
+  } as any);
 
   if (payment.status === "completed") {
     const amount = parseFloat(payment.amount);
@@ -953,6 +963,13 @@ async function recordBookingCheckoutPaymentTx(tx: DbTx, params: {
       updatedAt: new Date(),
     }).where(and(eq(bookingRecords.id, bookingRecordId), eq(bookingRecords.orgId, orgId)));
 
+    await tx.update(bookings).set({
+      paidAmount: nextPaid.toFixed(2),
+      balanceDue: balanceDue.toFixed(2),
+      paymentStatus: balanceDue <= 0 ? "paid" : "partially_paid",
+      updatedAt: new Date(),
+    }).where(and(eq(bookings.id, legacyBookingId), eq(bookings.orgId, orgId)));
+
     await tx.update(customers).set({
       totalSpent: sql`COALESCE(${customers.totalSpent}, 0) + ${amount}`,
       updatedAt: new Date(),
@@ -965,13 +982,14 @@ async function recordBookingCheckoutPaymentTx(tx: DbTx, params: {
 async function createBookingInvoiceTx(tx: DbTx, params: {
   orgId: string;
   bookingRecord: typeof bookingRecords.$inferSelect;
+  legacyBookingId: string;
   bookingLinesSnapshot: { itemName: string; quantity: number; unitPrice: string; totalPrice: string }[];
   customer: typeof customers.$inferSelect;
   org: Awaited<ReturnType<typeof prepareBookingCreation>>["org"];
   invoiceInput?: z.infer<typeof checkoutInvoiceSchema>;
   payment?: typeof payments.$inferSelect | null;
 }) {
-  const { orgId, bookingRecord, bookingLinesSnapshot, customer, org, invoiceInput, payment } = params;
+  const { orgId, bookingRecord, legacyBookingId, bookingLinesSnapshot, customer, org, invoiceInput, payment } = params;
   const year = new Date().getFullYear();
   const invoiceNumber = `INV-${year}-${nanoid(4).toUpperCase()}`;
   const invoiceUuid = crypto.randomUUID();
@@ -988,7 +1006,7 @@ async function createBookingInvoiceTx(tx: DbTx, params: {
 
   const [invoice] = await tx.insert(invoices).values({
     orgId,
-    bookingId: bookingRecord.id,
+    bookingId: legacyBookingId,
     customerId: bookingRecord.customerId,
     invoiceNumber,
     uuid: invoiceUuid,
@@ -1364,7 +1382,7 @@ bookingsRouter.post("/", async (c) => {
   }
 
   try {
-    const { record: canonicalRecord, lines: canonicalLines, engineRowId } = await db.transaction((tx) =>
+    const { record: canonicalRecord, lines: canonicalLines, engineRowId, legacyBookingId } = await db.transaction((tx) =>
       createCanonicalBookingTx(tx, prepared)
     );
 
@@ -1383,8 +1401,8 @@ bookingsRouter.post("/", async (c) => {
         .where(eq(organizations.id, orgId));
     }
 
-    fireBookingEvent("booking_confirmed", { orgId, bookingId: canonicalRecord.id });
-    fireBookingEvent("owner_new_booking", { orgId, bookingId: canonicalRecord.id });
+    fireBookingEvent("booking_confirmed", { orgId, bookingId: legacyBookingId });
+    fireBookingEvent("owner_new_booking", { orgId, bookingId: legacyBookingId });
 
     return c.json({
       data: {
@@ -1436,12 +1454,13 @@ bookingsRouter.post("/checkout", async (c) => {
 
   try {
     const checkout = await db.transaction(async (tx) => {
-      const { record: bookingRecord, lines, engineRowId } = await createCanonicalBookingTx(tx, prepared);
+      const { record: bookingRecord, lines, engineRowId, legacyBookingId } = await createCanonicalBookingTx(tx, prepared);
       const createdPayment = payment
         ? await recordBookingCheckoutPaymentTx(tx, {
             orgId,
             userId,
             bookingRecordId: bookingRecord.id,
+            legacyBookingId,
             customerId: bookingRecord.customerId,
             payment,
           })
@@ -1449,6 +1468,7 @@ bookingsRouter.post("/checkout", async (c) => {
       const createdInvoice = await createBookingInvoiceTx(tx, {
         orgId,
         bookingRecord,
+        legacyBookingId,
         bookingLinesSnapshot: lines,
         customer: prepared.customer,
         org: prepared.org,
@@ -1467,7 +1487,7 @@ bookingsRouter.post("/checkout", async (c) => {
           })
         : null;
 
-      return { bookingRecord, lines, engineRowId, payment: createdPayment, invoice: createdInvoice, treasuryReceipt: treasuryTransaction };
+      return { bookingRecord, legacyBookingId, lines, engineRowId, payment: createdPayment, invoice: createdInvoice, treasuryReceipt: treasuryTransaction };
     });
 
     salonLog.bookingCreated({
@@ -1485,10 +1505,10 @@ bookingsRouter.post("/checkout", async (c) => {
         .where(eq(organizations.id, orgId));
     }
 
-    fireBookingEvent("booking_confirmed", { orgId, bookingId: checkout.bookingRecord.id });
-    fireBookingEvent("owner_new_booking", { orgId, bookingId: checkout.bookingRecord.id });
+    fireBookingEvent("booking_confirmed", { orgId, bookingId: checkout.legacyBookingId });
+    fireBookingEvent("owner_new_booking", { orgId, bookingId: checkout.legacyBookingId });
     if (checkout.payment?.status === "completed") {
-      fireBookingEvent("payment_received", { orgId, bookingId: checkout.bookingRecord.id, amount: parseFloat(String(checkout.payment.amount)) });
+      fireBookingEvent("payment_received", { orgId, bookingId: checkout.legacyBookingId, amount: parseFloat(String(checkout.payment.amount)) });
     }
     fireBookingEvent("invoice_issued", {
       orgId,
@@ -1518,7 +1538,7 @@ bookingsRouter.post("/checkout", async (c) => {
       awardLoyaltyPoints({
         orgId,
         customerId: checkout.payment.customerId,
-        bookingId: checkout.bookingRecord.id,
+        bookingId: checkout.legacyBookingId,
         bookingAmount: parseFloat(String(checkout.payment.amount)),
       }).catch(() => {});
     }
@@ -1638,12 +1658,13 @@ bookingsRouter.patch("/:id/status", async (c) => {
   let statusTx;
   try {
     statusTx = await db.transaction(async (tx) => {
-    const [existing] = await tx.select({ status: bookingRecords.status })
+    const [existing] = await tx.select({ status: bookingRecords.status, bookingRef: bookingRecords.bookingRef })
       .from(bookingRecords)
       .where(and(eq(bookingRecords.id, id), eq(bookingRecords.orgId, orgId)))
       .for("update");
     if (!existing) return null;
     capturedFromStatus = existing.status;
+    const legacyBookingId = existing.bookingRef ?? null;
 
     // ── Workflow State Machine Guard (pure check, no extra DB round-trip) ──────
     if (existing.status !== newStatus) {
@@ -1725,6 +1746,28 @@ bookingsRouter.patch("/:id/status", async (c) => {
 
     if (!upd) return null;
 
+    if (legacyBookingId) {
+      await tx.update(bookings)
+        .set(updates as Partial<typeof bookings.$inferInsert>)
+        .where(and(eq(bookings.id, legacyBookingId), eq(bookings.orgId, orgId)));
+
+      await tx.insert(bookingEvents).values({
+        orgId,
+        bookingId: legacyBookingId,
+        userId: actingUserId,
+        eventType: "status_changed",
+        fromStatus: existing.status,
+        toStatus: newStatus,
+        metadata: {
+          ...(reason ? { reason } : {}),
+          canonicalBookingRecordId: id,
+          workflowMode,
+          configState,
+          forced: force && canForce,
+        },
+      } as any);
+    }
+
     // ── Supply Reversal: restores inventory when un-completing a booking ──
     // Covers: completed → pending, completed → cancelled, completed → no_show
     // Dual-path: canonical (bookingRecordConsumptions) + legacy (bookingConsumptions)
@@ -1756,8 +1799,10 @@ bookingsRouter.patch("/:id/status", async (c) => {
       }
 
       // Legacy reversal (unchanged)
-      const consumptions = await tx.select().from(bookingConsumptions)
-        .where(and(eq(bookingConsumptions.bookingId, id), eq(bookingConsumptions.orgId, orgId)));
+      const consumptions = legacyBookingId
+        ? await tx.select().from(bookingConsumptions)
+            .where(and(eq(bookingConsumptions.bookingId, legacyBookingId), eq(bookingConsumptions.orgId, orgId)))
+        : [];
 
       for (const consumption of consumptions) {
         if (!consumption.supplyId) continue;
@@ -1778,7 +1823,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
       }
       if (consumptions.length > 0) {
         await tx.delete(bookingConsumptions)
-          .where(and(eq(bookingConsumptions.bookingId, id), eq(bookingConsumptions.orgId, orgId)));
+          .where(and(eq(bookingConsumptions.bookingId, legacyBookingId!), eq(bookingConsumptions.orgId, orgId)));
       }
     }
 
@@ -1869,18 +1914,20 @@ bookingsRouter.patch("/:id/status", async (c) => {
       }
 
       // ── Legacy path: bookingItems.serviceId → recipes → bookingConsumptions ──
-      const { rows: alreadyConsumed } = await tx.execute(sql`
-        SELECT 1 FROM booking_consumptions
-        WHERE booking_id = ${id} AND org_id = ${orgId}
-        LIMIT 1
-      `);
+      const { rows: alreadyConsumed } = legacyBookingId
+        ? await tx.execute(sql`
+            SELECT 1 FROM booking_consumptions
+            WHERE booking_id = ${legacyBookingId} AND org_id = ${orgId}
+            LIMIT 1
+          `)
+        : { rows: [{ legacyBookingMissing: true }] as any[] };
 
       if (alreadyConsumed.length === 0) {
         const items = await tx.select({
           id: bookingItems.id,
           serviceId: bookingItems.serviceId,
           quantity: bookingItems.quantity,
-        }).from(bookingItems).where(eq(bookingItems.bookingId, id));
+        }).from(bookingItems).where(eq(bookingItems.bookingId, legacyBookingId!));
 
         for (const item of items) {
           if (!item.serviceId) continue;
@@ -1933,7 +1980,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
 
             await tx.insert(bookingConsumptions).values({
               orgId,
-              bookingId:     id,
+              bookingId:     legacyBookingId!,
               bookingItemId: item.id,
               supplyId:      recipe.supplyId,
               quantity:      String(totalQty),
@@ -1976,6 +2023,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
 
   if (!statusTx) return c.json({ error: "الحجز غير موجود" }, 404);
   const { fromStatus, updated } = statusTx;
+  const legacyBookingId = updated.bookingRef ?? id;
 
   // Booking event — status change (enriched with workflow context for timeline)
   db.insert(bookingTimelineEvents).values({
@@ -2026,7 +2074,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
     try {
       await autoJournal.bookingConfirmed({
         orgId,
-        bookingId: id,
+        bookingId: legacyBookingId,
         bookingNumber: updated.bookingNumber,
         amount: Number(updated.totalAmount),
       });
@@ -2035,7 +2083,7 @@ bookingsRouter.patch("/:id/status", async (c) => {
     try {
       await autoJournal.bookingCancelled({
         orgId,
-        bookingId: id,
+        bookingId: legacyBookingId,
         bookingNumber: updated.bookingNumber,
         amount: Number(updated.totalAmount),
       });
@@ -2044,10 +2092,10 @@ bookingsRouter.patch("/:id/status", async (c) => {
 
   // إرسال إشعار للعميل بحسب الحالة الجديدة (fire-and-forget)
   if (newStatus === "cancelled") {
-    fireBookingEvent("booking_cancelled",  { orgId, bookingId: id });
-    fireBookingEvent("owner_booking_cancelled", { orgId, bookingId: id });
+    fireBookingEvent("booking_cancelled",  { orgId, bookingId: legacyBookingId });
+    fireBookingEvent("owner_booking_cancelled", { orgId, bookingId: legacyBookingId });
   } else if (newStatus === "completed") {
-    fireBookingEvent("booking_completed", { orgId, bookingId: id });
+    fireBookingEvent("booking_completed", { orgId, bookingId: legacyBookingId });
   }
 
   // Monitoring: log status transitions
@@ -2372,7 +2420,7 @@ const recordPaymentSchema = z.object({
 bookingsRouter.post("/:id/payments", async (c) => {
   const orgId = getOrgId(c);
   const userId = getUserId(c);
-  const bookingId = c.req.param("id");
+  const requestedBookingId = c.req.param("id");
   const body = recordPaymentSchema.parse(await c.req.json());
   const idempotencyKey = c.req.header("Idempotency-Key")?.trim() || null;
   const paymentAmount = parseMoney(body.amount);
@@ -2381,32 +2429,60 @@ bookingsRouter.post("/:id/payments", async (c) => {
   // All 4 operations inside a single transaction — eliminates TOCTOU race (C1)
   let payment: typeof payments.$inferSelect;
   let replayed = false;
+  let legacyBookingId = requestedBookingId;
   try {
-    ({ payment, replayed } = await db.transaction(async (tx) => {
+    ({ payment, replayed, legacyBookingId } = await db.transaction(async (tx) => {
       const [booking] = await tx.select().from(bookings)
-        .where(and(eq(bookings.id, bookingId), eq(bookings.orgId, orgId)))
+        .where(and(eq(bookings.id, requestedBookingId), eq(bookings.orgId, orgId)))
         .for("update");
-      if (!booking) throw Object.assign(new Error("NOT_FOUND"), { status: 404 });
+
+      let legacyBooking = booking ?? null;
+      let canonicalBookingRecordId: string | null = null;
+
+      if (!legacyBooking) {
+        const [canonicalBooking] = await tx.select({
+          id: bookingRecords.id,
+          bookingRef: bookingRecords.bookingRef,
+        }).from(bookingRecords)
+          .where(and(eq(bookingRecords.id, requestedBookingId), eq(bookingRecords.orgId, orgId)))
+          .for("update");
+
+        if (!canonicalBooking?.bookingRef) throw Object.assign(new Error("NOT_FOUND"), { status: 404 });
+        canonicalBookingRecordId = canonicalBooking.id;
+        legacyBookingId = canonicalBooking.bookingRef;
+
+        const [resolvedLegacyBooking] = await tx.select().from(bookings)
+          .where(and(eq(bookings.id, legacyBookingId), eq(bookings.orgId, orgId)))
+          .for("update");
+        if (!resolvedLegacyBooking) throw Object.assign(new Error("NOT_FOUND"), { status: 404 });
+        legacyBooking = resolvedLegacyBooking;
+      } else {
+        legacyBookingId = legacyBooking.id;
+        const [canonicalBooking] = await tx.select({ id: bookingRecords.id }).from(bookingRecords)
+          .where(and(eq(bookingRecords.bookingRef, legacyBooking.id), eq(bookingRecords.orgId, orgId)))
+          .limit(1);
+        canonicalBookingRecordId = canonicalBooking?.id ?? null;
+      }
 
       if (idempotencyKey) {
         const [existingPayment] = await tx.select().from(payments)
           .where(and(
             eq(payments.orgId, orgId),
-            eq(payments.bookingId, bookingId),
+            eq(payments.bookingId, legacyBookingId),
             sql`${payments.gatewayResponse}->>'idempotencyKey' = ${idempotencyKey}`,
           ))
           .orderBy(desc(payments.createdAt))
           .limit(1);
 
         if (existingPayment) {
-          return { payment: existingPayment, replayed: true };
+          return { payment: existingPayment, replayed: true, legacyBookingId };
         }
       }
 
       const [p] = await tx.insert(payments).values({
         orgId,
-        bookingId,
-        customerId: booking.customerId,
+        bookingId: legacyBookingId,
+        customerId: legacyBooking.customerId,
         amount: paymentAmountString,
         method: body.method,
         status: body.status,
@@ -2419,9 +2495,20 @@ bookingsRouter.post("/:id/payments", async (c) => {
         paidAt: body.status === "completed" ? new Date() : null,
       }).returning();
 
+      if (canonicalBookingRecordId) {
+        await tx.insert(bookingPaymentLinks).values({
+          orgId,
+          bookingRecordId: canonicalBookingRecordId,
+          paymentId: p.id,
+          linkType: body.type,
+          amountApplied: paymentAmountString,
+          metadata: { legacyBookingId },
+        } as any);
+      }
+
       if (p.status === "completed") {
-        const currentPaid = parseMoney(booking.paidAmount);
-        const totalAmount = parseMoney(booking.totalAmount);
+        const currentPaid = parseMoney(legacyBooking.paidAmount);
+        const totalAmount = parseMoney(legacyBooking.totalAmount);
         const nextPaid = currentPaid.add(paymentAmount);
         const balanceDue = Decimal.max(new Decimal(0), totalAmount.sub(nextPaid)).toDecimalPlaces(2);
         await tx.update(bookings).set({
@@ -2429,11 +2516,19 @@ bookingsRouter.post("/:id/payments", async (c) => {
           balanceDue: balanceDue.toFixed(2),
           paymentStatus: balanceDue.lte(0) ? "paid" : "partially_paid",
           updatedAt: new Date(),
-        }).where(and(eq(bookings.id, bookingId), eq(bookings.orgId, orgId)));
+        }).where(and(eq(bookings.id, legacyBookingId), eq(bookings.orgId, orgId)));
+        if (canonicalBookingRecordId) {
+          await tx.update(bookingRecords).set({
+            paidAmount: nextPaid.toFixed(2),
+            balanceDue: balanceDue.toFixed(2),
+            paymentStatus: balanceDue.lte(0) ? "paid" : "partially_paid",
+            updatedAt: new Date(),
+          }).where(and(eq(bookingRecords.id, canonicalBookingRecordId), eq(bookingRecords.orgId, orgId)));
+        }
         await tx.update(customers).set({
           totalSpent: sql`COALESCE(${customers.totalSpent}, 0) + ${paymentAmountString}`,
           updatedAt: new Date(),
-        }).where(eq(customers.id, booking.customerId));
+        }).where(eq(customers.id, legacyBooking.customerId));
 
         const [org] = await tx.select({ settings: organizations.settings }).from(organizations).where(eq(organizations.id, orgId));
         if (isAccountingEnabled((org?.settings as any) ?? {})) {
@@ -2441,16 +2536,16 @@ bookingsRouter.post("/:id/payments", async (c) => {
           const vatAmount = 0;
 
           if (body.type === "deposit") {
-            await postDepositReceived({ orgId, date: new Date(), amount, description: `عربون حجز ${bookingId}`, sourceId: p.id, createdBy: userId ?? undefined, tx });
+            await postDepositReceived({ orgId, date: new Date(), amount, description: `عربون حجز ${legacyBookingId}`, sourceId: p.id, createdBy: userId ?? undefined, tx });
           } else if (body.type === "refund") {
-            await postRefund({ orgId, date: new Date(), amount, vatAmount, description: `استرداد حجز ${bookingId}`, sourceId: p.id, createdBy: userId ?? undefined, tx });
+            await postRefund({ orgId, date: new Date(), amount, vatAmount, description: `استرداد حجز ${legacyBookingId}`, sourceId: p.id, createdBy: userId ?? undefined, tx });
           } else {
-            await postCashSale({ orgId, date: new Date(), amount, vatAmount, description: `تحصيل دفعة حجز ${bookingId}`, sourceType: "booking", sourceId: p.id, createdBy: userId ?? undefined, tx });
+            await postCashSale({ orgId, date: new Date(), amount, vatAmount, description: `تحصيل دفعة حجز ${legacyBookingId}`, sourceType: "booking", sourceId: p.id, createdBy: userId ?? undefined, tx });
           }
         }
       }
 
-      return { payment: p, replayed: false };
+      return { payment: p, replayed: false, legacyBookingId };
     }));
   } catch (err: unknown) {
     if (err instanceof Error && (err as any).status === 404) {
@@ -2467,7 +2562,7 @@ bookingsRouter.post("/:id/payments", async (c) => {
   if (payment.status === "completed") {
     db.insert(bookingEvents).values({
       orgId,
-      bookingId,
+      bookingId: legacyBookingId,
       userId,
       eventType: "payment_received",
       metadata: { amount: body.amount, method: body.method, type: body.type, paymentId: payment.id },
@@ -2478,7 +2573,7 @@ bookingsRouter.post("/:id/payments", async (c) => {
       awardLoyaltyPoints({
         orgId,
         customerId: payment.customerId,
-        bookingId,
+        bookingId: legacyBookingId,
         bookingAmount: paymentAmount.toNumber(),
       }).catch(() => {});
     }
@@ -2486,7 +2581,7 @@ bookingsRouter.post("/:id/payments", async (c) => {
 
   // إرسال إشعار استلام الدفعة للعميل (fire-and-forget)
   if (payment.status === "completed") {
-    fireBookingEvent("payment_received", { orgId, bookingId, amount: paymentAmount.toNumber() });
+    fireBookingEvent("payment_received", { orgId, bookingId: legacyBookingId, amount: paymentAmount.toNumber() });
   }
 
   insertAuditLog({
@@ -2494,7 +2589,7 @@ bookingsRouter.post("/:id/payments", async (c) => {
     action: "payment_recorded",
     resource: "payment",
     resourceId: payment.id,
-    newValue: { bookingId, amount: body.amount, method: body.method, status: body.status },
+    newValue: { bookingId: legacyBookingId, requestedBookingId, amount: body.amount, method: body.method, status: body.status },
   });
 
   return c.json({ data: payment }, replayed ? 200 : 201);

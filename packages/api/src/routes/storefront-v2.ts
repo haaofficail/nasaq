@@ -35,6 +35,9 @@ import {
   messagesInbox,
   paymentSettings,
   customers,
+  bookings,
+  bookingItems,
+  bookingEvents,
   bookingRecords,
   bookingLines,
   bookingTimelineEvents,
@@ -439,7 +442,7 @@ const publicBookSchema = z.object({
   customLocation: z.string().optional(),
   notes:          z.string().optional(),
   questionAnswers: z.array(z.any()).default([]),
-  acceptedTerms:  z.boolean(),
+  acceptedTerms:  z.boolean().refine((value) => value === true, { message: "يجب قبول الشروط وسياسة الخصوصية" }),
   policyVersion:  z.string().optional(),
 }).refine(d => d.serviceId || (d.serviceIds && d.serviceIds.length > 0), {
   message: "يجب تحديد خدمة واحدة على الأقل",
@@ -515,12 +518,41 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
   const trackingToken  = crypto.randomUUID().replace(/-/g, "").substring(0, 32);
   const resolvedDate   = body.eventDate ? new Date(body.eventDate) : new Date();
   const bookingType    = (svcRows[0] as any).serviceType ?? "appointment";
+  const consentMetadata = {
+    acceptedTermsAt:   new Date().toISOString(),
+    acceptedPrivacyAt: new Date().toISOString(),
+    policyVersion:     body.policyVersion ?? "public-v2",
+    source:            "storefront",
+  };
 
-  const [newRecord] = await db
-    .insert(bookingRecords)
-    .values({
+  const { legacyBooking } = await db.transaction(async (tx) => {
+    const [legacyBooking] = await tx.insert(bookings).values({
       orgId,
       customerId:      customer.id,
+      bookingNumber,
+      status:          "pending",
+      paymentStatus:   "pending",
+      eventDate:       resolvedDate,
+      subtotal:        subtotal.toFixed(2),
+      discountAmount:  "0",
+      vatAmount:       vatAmount.toFixed(2),
+      totalAmount:     totalAmount.toFixed(2),
+      depositAmount:   depositAmount.toFixed(2),
+      paidAmount:      "0",
+      balanceDue:      totalAmount.toFixed(2),
+      trackingToken,
+      source:          "storefront",
+      customerNotes:   body.notes ?? null,
+      customLocation:  body.customLocation ?? null,
+      questionAnswers: body.questionAnswers,
+      consentMetadata,
+      isRecurring:     false,
+    } as any).returning();
+
+    const [newRecord] = await tx.insert(bookingRecords).values({
+      orgId,
+      customerId:      customer.id,
+      bookingRef:      legacyBooking.id,
       bookingNumber,
       bookingType:     bookingType === "appointment" || bookingType === "event" ? bookingType : "appointment",
       status:          "pending",
@@ -536,42 +568,68 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
       customerNotes:   body.notes ?? null,
       customLocation:  body.customLocation ?? null,
       questionAnswers: body.questionAnswers,
+      consentMetadata,
       source:          "storefront",
       trackingToken,
       isRecurring:     false,
-    } as any)
-    .returning();
+    } as any).returning();
 
-  // 7. Booking lines (one per service)
-  if (svcRows.length > 0) {
-    await db.insert(bookingLines).values(
-      svcRows.map((svc) => ({
-        bookingRecordId: newRecord.id,
-        serviceRefId:    svc.id,
-        lineType:        "service",
-        itemName:        svc.name,
-        quantity:        1,
-        unitPrice:       String(svc.basePrice ?? "0"),
-        totalPrice:      String(svc.basePrice ?? "0"),
-        vatInclusive:    true,
-      }))
-    );
-  }
+    if (svcRows.length > 0) {
+      await tx.insert(bookingItems).values(
+        svcRows.map((svc) => ({
+          bookingId:       legacyBooking.id,
+          serviceId:       svc.id,
+          serviceName:     svc.name,
+          serviceType:     (svc as any).serviceType ?? null,
+          durationMinutes: svc.durationMinutes ?? null,
+          vatInclusive:    true,
+          quantity:        1,
+          unitPrice:       String(svc.basePrice ?? "0"),
+          totalPrice:      String(svc.basePrice ?? "0"),
+          pricingBreakdown: [],
+        })) as any,
+      );
 
-  // 8. Timeline event
-  await db.insert(bookingTimelineEvents).values({
-    orgId,
-    bookingRecordId: newRecord.id,
-    userId:          null,
-    eventType:       "created",
-    fromStatus:      null,
-    toStatus:        "pending",
-    metadata:        { bookingNumber, source: "storefront" },
-  } as any);
+      await tx.insert(bookingLines).values(
+        svcRows.map((svc) => ({
+          bookingRecordId: newRecord.id,
+          serviceRefId:    svc.id,
+          lineType:        "service",
+          itemName:        svc.name,
+          quantity:        1,
+          unitPrice:       String(svc.basePrice ?? "0"),
+          totalPrice:      String(svc.basePrice ?? "0"),
+          vatInclusive:    true,
+        })),
+      );
+    }
+
+    await tx.insert(bookingEvents).values({
+      orgId,
+      bookingId:  legacyBooking.id,
+      userId:     null,
+      eventType:  "created",
+      fromStatus: null,
+      toStatus:   "pending",
+      metadata:   { bookingNumber, source: "storefront", canonicalBookingRecordId: newRecord.id },
+    } as any);
+
+    await tx.insert(bookingTimelineEvents).values({
+      orgId,
+      bookingRecordId: newRecord.id,
+      userId:          null,
+      eventType:       "created",
+      fromStatus:      null,
+      toStatus:        "pending",
+      metadata:        { bookingNumber, source: "storefront", legacyBookingId: legacyBooking.id },
+    } as any);
+
+    return { newRecord, legacyBooking };
+  });
 
   // 9. Notifications (fire-and-forget)
-  fireBookingEvent("booking_confirmed",  { orgId, bookingId: newRecord.id });
-  fireBookingEvent("owner_new_booking",  { orgId, bookingId: newRecord.id });
+  fireBookingEvent("booking_confirmed",  { orgId, bookingId: legacyBooking.id });
+  fireBookingEvent("owner_new_booking",  { orgId, bookingId: legacyBooking.id });
 
   return c.json({
     data: {
