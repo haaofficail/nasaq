@@ -5,8 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "dev:whatsapp-worker": "tsx watch src/workers/whatsapp-worker.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "start:whatsapp-worker": "node dist/workers/whatsapp-worker.js",
     "test": "vitest run",
     "test:watch": "vitest"
   },
