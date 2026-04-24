@@ -21,7 +21,18 @@ const WA_QUEUES = {
 
 const PLATFORM_STATE_TARGET_ID = "platform-whatsapp-state";
 const SESSIONS_DIR = process.env.WA_SESSIONS_DIR ?? "/var/www/nasaq/whatsapp-sessions";
+const BOSS_DATABASE_URL = process.env.DIRECT_DATABASE_URL ?? process.env.DATABASE_URL;
 const RESTORE_DELAY_MS = 500;
+const BAILEYS_LOGGER = {
+  level: "silent",
+  trace(){},
+  debug(){},
+  info(){},
+  warn(){},
+  error(){},
+  fatal(){},
+  child(){ return this; },
+} as any;
 
 type WaStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
 
@@ -66,14 +77,23 @@ const makeWASocket = (
     : (_makeWASocket as any).default ?? (_makeWASocket as any).makeWASocket
 ) as (...args: any[]) => any;
 
+function resolveSessionDir(orgId: string): string {
+  const baseDir = path.resolve(SESSIONS_DIR);
+  const resolved = path.resolve(baseDir, orgId);
+  if (!resolved.startsWith(`${baseDir}${path.sep}`)) {
+    throw new Error("Invalid WhatsApp session id");
+  }
+  return resolved;
+}
+
 function ensureDir(orgId: string): string {
-  const dir = path.join(SESSIONS_DIR, orgId);
+  const dir = resolveSessionDir(orgId);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
 function hasSavedSession(orgId: string): boolean {
-  return fs.existsSync(path.join(SESSIONS_DIR, orgId, "creds.json"));
+  return fs.existsSync(path.join(resolveSessionDir(orgId), "creds.json"));
 }
 
 function getRandomizedDelayMs(baseMs: number): number {
@@ -239,7 +259,7 @@ async function initSession(orgId: string, force = false): Promise<void> {
     version,
     auth: state,
     printQRInTerminal: false,
-    logger: { level: "silent", trace(){}, debug(){}, info(){}, warn(){}, error(){}, fatal(){}, child(){ return this; } } as any,
+    logger: BAILEYS_LOGGER,
   });
 
   await touch(orgId, { socket: sock });
@@ -277,7 +297,7 @@ async function initSession(orgId: string, force = false): Promise<void> {
       await touch(orgId, { socket: null, qrBase64: null });
 
       if (reason === DisconnectReason.loggedOut) {
-        fs.rmSync(path.join(SESSIONS_DIR, orgId), { recursive: true, force: true });
+        fs.rmSync(resolveSessionDir(orgId), { recursive: true, force: true });
         await touch(orgId, { status: "disconnected", phone: null, retryCount: 0 });
         return;
       }
@@ -350,7 +370,7 @@ async function logoutSession(orgId: string): Promise<void> {
     try { sess.socket.end(undefined); } catch {}
   }
 
-  fs.rmSync(path.join(SESSIONS_DIR, orgId), { recursive: true, force: true });
+  fs.rmSync(resolveSessionDir(orgId), { recursive: true, force: true });
   await touch(orgId, {
     socket: null,
     status: "disconnected",
@@ -406,7 +426,12 @@ try {
   process.exit(1);
 }
 
-const boss = new PgBoss(process.env.DIRECT_DATABASE_URL ?? process.env.DATABASE_URL!);
+if (!BOSS_DATABASE_URL) {
+  log.fatal("[wa-worker] DATABASE_URL is required");
+  process.exit(1);
+}
+
+const boss = new PgBoss(BOSS_DATABASE_URL);
 boss.on("error", (err) => log.error({ err }, "[wa-worker] pg-boss error"));
 
 await boss.start();

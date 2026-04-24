@@ -22,6 +22,7 @@ const WA_QUEUES = {
 
 const SESSIONS_DIR =
   process.env.WA_SESSIONS_DIR ?? "/var/www/nasaq/whatsapp-sessions";
+const BOSS_DATABASE_URL = process.env.DIRECT_DATABASE_URL ?? process.env.DATABASE_URL;
 
 const PLATFORM_STATE_TARGET_ID = "platform-whatsapp-state";
 const EMPTY_STATE: BaileysState = {
@@ -33,6 +34,15 @@ const EMPTY_STATE: BaileysState = {
 
 let bossPromise: Promise<PgBoss> | null = null;
 
+function resolveSessionDir(orgId: string): string {
+  const baseDir = path.resolve(SESSIONS_DIR);
+  const resolved = path.resolve(baseDir, orgId);
+  if (!resolved.startsWith(`${baseDir}${path.sep}`)) {
+    throw new Error("Invalid WhatsApp session id");
+  }
+  return resolved;
+}
+
 function isUuid(value: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
@@ -40,7 +50,8 @@ function isUuid(value: string): boolean {
 async function getBoss(): Promise<PgBoss> {
   if (!bossPromise) {
     bossPromise = (async () => {
-      const boss = new PgBoss(process.env.DIRECT_DATABASE_URL ?? process.env.DATABASE_URL!);
+      if (!BOSS_DATABASE_URL) throw new Error("DATABASE_URL is required for WhatsApp pg-boss producer");
+      const boss = new PgBoss(BOSS_DATABASE_URL);
       boss.on("error", (err) => log.error({ err }, "[wa-producer] pg-boss error"));
       await boss.start();
       await Promise.all(Object.values(WA_QUEUES).map((queue) => boss.createQueue(queue)));
@@ -152,7 +163,7 @@ export async function logoutBaileys(orgId: string): Promise<void> {
 }
 
 export function hasSavedSession(orgId: string): boolean {
-  return fs.existsSync(path.join(SESSIONS_DIR, orgId, "creds.json"));
+  return fs.existsSync(path.join(resolveSessionDir(orgId), "creds.json"));
 }
 
 export async function restoreAllBaileys(): Promise<void> {
