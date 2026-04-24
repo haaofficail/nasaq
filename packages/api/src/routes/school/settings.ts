@@ -741,7 +741,7 @@ router.get("/whatsapp-status", async (c) => {
 // GET /whatsapp/session — current status + QR if available
 router.get("/whatsapp/session", async (c) => {
   const orgId    = getOrgId(c);
-  const state    = getBaileysState(orgId);
+  const state    = await getBaileysState(orgId);
   const apiReady = isWhatsAppConfigured();
 
   return c.json({

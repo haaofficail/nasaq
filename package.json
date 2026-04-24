@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "pnpm --filter @nasaq/api dev & pnpm --filter @nasaq/dashboard dev",
     "dev:api": "pnpm --filter @nasaq/api dev",
+    "dev:wa-worker": "pnpm --filter @nasaq/api dev:whatsapp-worker",
     "dev:dashboard": "pnpm --filter @nasaq/dashboard dev",
     "db:generate": "pnpm --filter @nasaq/db generate",
     "db:migrate": "pnpm --filter @nasaq/db migrate",

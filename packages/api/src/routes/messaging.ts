@@ -29,7 +29,7 @@ messagingRouter.get("/status", async (c) => {
   const orgId = getOrgId(c);
   const waConfigured  = isWhatsAppConfigured();
   const smsConfigured = isSmsConfigured();
-  const baileysState  = getBaileysState(orgId);
+  const baileysState  = await getBaileysState(orgId);
 
   const connected =
     waConfigured ||
@@ -76,7 +76,7 @@ messagingRouter.post("/connect", async (c) => {
       let lastQr = "";
 
       while (Date.now() - start < TIMEOUT) {
-        const s = getBaileysState(orgId);
+        const s = await getBaileysState(orgId);
 
         if (s.status === "qr_ready" && s.qrBase64 && s.qrBase64 !== lastQr) {
           lastQr = s.qrBase64;
@@ -91,7 +91,7 @@ messagingRouter.post("/connect", async (c) => {
         await new Promise(r => setTimeout(r, POLL));
       }
 
-      if (getBaileysState(orgId).status !== "connected") {
+      if ((await getBaileysState(orgId)).status !== "connected") {
         send({ type: "error", message: "انتهت المهلة — حاول مرة أخرى" });
       }
 
@@ -112,10 +112,6 @@ messagingRouter.post("/connect", async (c) => {
 messagingRouter.post("/disconnect", async (c) => {
   const orgId = getOrgId(c);
   await logoutBaileys(orgId);
-  await pool.query(
-    `UPDATE whatsapp_sessions SET status = 'disconnected' WHERE org_id = $1`,
-    [orgId]
-  ).catch(() => {});
   return c.json({ success: true });
 });
 

@@ -854,7 +854,7 @@ const PLATFORM_WA_ID = "platform";
 /** GET /admin/whatsapp/status — current platform session state (polling) */
 adminRouter.get("/whatsapp/status", async (c) => {
   if (!isSuperAdmin(c)) return superAdminOnly(c);
-  const state = getBaileysState(PLATFORM_WA_ID);
+  const state = await getBaileysState(PLATFORM_WA_ID);
   return c.json({ data: state });
 });
 
@@ -878,7 +878,7 @@ adminRouter.post("/whatsapp/connect", async (c) => {
       let lastQr    = "";
 
       while (Date.now() - started < TIMEOUT) {
-        const s = getBaileysState(PLATFORM_WA_ID);
+        const s = await getBaileysState(PLATFORM_WA_ID);
 
         if (s.status === "qr_ready" && s.qrBase64 && s.qrBase64 !== lastQr) {
           lastQr = s.qrBase64;
@@ -894,7 +894,7 @@ adminRouter.post("/whatsapp/connect", async (c) => {
         await new Promise(r => setTimeout(r, POLL));
       }
 
-      if (getBaileysState(PLATFORM_WA_ID).status !== "connected") {
+      if ((await getBaileysState(PLATFORM_WA_ID)).status !== "connected") {
         send({ type: "error", message: "انتهت المهلة — حاول مرة أخرى" });
       }
 
@@ -2275,7 +2275,7 @@ adminRouter.get("/wa/status", async (c) => {
   let baileysPhone: string | null = null;
   try {
     const { getBaileysState } = await import("../lib/whatsappBaileys");
-    const state = getBaileysState("platform");
+    const state = await getBaileysState("platform");
     baileysConnected = state.status === "connected";
     baileysPhone = state.phone ?? null;
   } catch { /* baileys not installed */ }
@@ -2532,7 +2532,7 @@ adminRouter.get("/wa/qr/status", async (c) => {
   if (!isSuperAdmin(c)) return superAdminOnly(c);
   try {
     const { getBaileysState } = await import("../lib/whatsappBaileys");
-    const state = getBaileysState("platform");
+    const state = await getBaileysState("platform");
     return c.json({ data: state });
   } catch {
     return c.json({ data: { status: "disconnected", qrBase64: null, phone: null, updatedAt: new Date() } });

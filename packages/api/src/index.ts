@@ -13,7 +13,6 @@ import { platformAuditLog, platformConfig } from "@nasaq/db/schema";
 import { eq } from "drizzle-orm";
 import { log } from "./lib/logger";
 import { startScheduler } from "./jobs/scheduler";
-import { restoreAllBaileys } from "./lib/whatsappBaileys";
 import { readFile, access } from "fs/promises";
 import { join as pathJoin } from "path";
 
@@ -1430,14 +1429,6 @@ try {
 
 // Start pg-boss scheduler (creates pgboss schema on first run, resumes on restart)
 const boss = await startScheduler();
-
-// Restore saved WhatsApp Baileys sessions (platform + org) on startup
-try {
-  const { restoreAllBaileys } = await import("./lib/whatsappBaileys");
-  await restoreAllBaileys();
-} catch (err) {
-  log.warn({ err }, "[startup] restoreAllBaileys failed — continuing");
-}
 
 const port = parseInt(process.env.PORT || "3000");
 
