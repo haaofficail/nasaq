@@ -215,7 +215,7 @@ async function touch(orgId: string, patch: Partial<Session>): Promise<Session> {
 }
 
 function normalizeJid(phone: string): string {
-  return `${phone.replace(/\D/g, "")}@s.whatsapp.net`;
+  return `${phone.replace(/\+/g, "").replace(/\s/g, "")}@s.whatsapp.net`;
 }
 
 function isConnectionError(err: any): boolean {

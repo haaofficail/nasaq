@@ -16,7 +16,7 @@ export const WA_PLATFORM_STATE_TARGET_ID = "platform-whatsapp-state";
 export function resolveWaSessionDir(orgId: string): string {
   const baseDir = path.resolve(WA_SESSIONS_DIR);
   const resolved = path.resolve(baseDir, orgId);
-  if (!resolved.startsWith(`${baseDir}${path.sep}`)) {
+  if (resolved === baseDir || !resolved.startsWith(`${baseDir}${path.sep}`)) {
     throw new Error("Invalid WhatsApp session id");
   }
   return resolved;
