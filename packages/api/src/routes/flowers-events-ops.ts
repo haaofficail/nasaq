@@ -14,6 +14,7 @@ import {
   isFeOrderLocked,
   FE_STATUS_LABELS,
 } from "../lib/flowers-events-status-machine";
+import { decrementFlowerBatchQuantity } from "../lib/flower-batch-service";
 
 export const flowersEventsOpsRouter = new Hono();
 
@@ -187,12 +188,16 @@ flowersEventsOpsRouter.post("/reservations/:id/deduct", async (c) => {
 
     // Deduct from batch
     if (res.batch_id) {
-      await client.query(
-        `UPDATE flower_batches
-         SET quantity_remaining = quantity_remaining - $1
-         WHERE id = $2 AND org_id = $3 AND quantity_remaining >= $1`,
-        [res.quantity, res.batch_id, orgId]
-      );
+      const updatedCount = await decrementFlowerBatchQuantity(client, {
+        orgId,
+        batchId: res.batch_id,
+        quantity: Number(res.quantity),
+        requireSufficientStock: true,
+      });
+      if (updatedCount === 0) {
+        await client.query("ROLLBACK");
+        return c.json({ error: "المخزون غير كافٍ أو الدفعة غير موجودة" }, 422);
+      }
     }
 
     // Mark reservation as deducted
@@ -330,11 +335,11 @@ flowersEventsOpsRouter.post("/service-orders/:id/transition", async (c) => {
       [id]
     );
     for (const r of resRows) {
-      await pool.query(
-        `UPDATE flower_batches SET quantity_remaining = quantity_remaining - $1
-         WHERE id = $2 AND org_id = $3`,
-        [r.quantity, r.batch_id, orgId]
-      );
+      await decrementFlowerBatchQuantity(pool, {
+        orgId,
+        batchId: r.batch_id,
+        quantity: Number(r.quantity),
+      });
     }
   }
 

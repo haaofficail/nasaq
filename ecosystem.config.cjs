@@ -1,33 +1,8 @@
-// PM2 Ecosystem Config — نسق
+// PM2 Ecosystem Config — ترميز OS
 //
 // ─── الوضع الحالي ───────────────────────────────────────────────
-// nasaq-api: cluster mode (جميع الـ cores)، يضم API + jobs في نفس الـ process
-//
-// ─── الانتقال لـ Worker Separation ────────────────────────────
-// عند الجاهزية:
-//   1. في packages/api/src/index.ts: علّق سطر `await startScheduler()` ونهايته
-//   2. أضف كتلة nasaq-worker أدناه (محفوظة في التعليق)
-//   3. شغّل: pm2 delete nasaq-api && pm2 start ecosystem.config.cjs && pm2 save
-//
-// كتلة nasaq-worker (غير مفعّلة):
-// {
-//   name: "nasaq-worker",
-//   script: "./packages/api/src/worker.ts",
-//   interpreter: "node",
-//   interpreter_args: "--env-file .env --import ./packages/api/node_modules/tsx/dist/esm/index.cjs",
-//   exec_mode: "fork",
-//   instances: 1,
-//   max_memory_restart: "256M",
-//   env: { NODE_ENV: "production" },
-//   kill_timeout: 15000,
-//   autorestart: true,
-//   max_restarts: 5,
-//   restart_delay: 5000,
-//   error_file: "/var/log/nasaq/worker-error.log",
-//   out_file: "/var/log/nasaq/worker-out.log",
-//   merge_logs: true,
-//   log_date_format: "YYYY-MM-DD HH:mm:ss",
-// }
+// nasaq-api: API stateless نسبياً، لا يحمل Baileys sockets داخل عملية الويب.
+// nasaq-whatsapp-worker: عامل مستقل لاتصالات WhatsApp Baileys وطوابير pg-boss.
 module.exports = {
   apps: [
     // ── API Server ─────────────────────────────────────────────
@@ -39,8 +14,8 @@ module.exports = {
       interpreter: "node",
       interpreter_args: "--env-file .env --import ./packages/api/node_modules/tsx/dist/esm/index.cjs",
       exec_mode: "fork",
-      instances: 1,               // fork مطلوب لـ Baileys (singleton WhatsApp session per org)
-      max_memory_restart: "768M", // أكثر بسبب Baileys sessions في الذاكرة
+      instances: 1,
+      max_memory_restart: "512M",
       env: {
         NODE_ENV: "production",
         PORT: 3000,
@@ -53,6 +28,28 @@ module.exports = {
       restart_delay: 5000,   // 5s > وقت shutdown المتوقع — يمنع EADDRINUSE
       error_file: "/var/log/nasaq/api-error.log",
       out_file: "/var/log/nasaq/api-out.log",
+      merge_logs: true,
+      log_date_format: "YYYY-MM-DD HH:mm:ss",
+    },
+    // ── WhatsApp Worker ────────────────────────────────────────
+    // Singleton لأن Baileys session لكل منشأة يجب أن تبقى في عملية واحدة.
+    {
+      name: "nasaq-whatsapp-worker",
+      script: "./packages/api/src/workers/whatsapp-worker.ts",
+      interpreter: "node",
+      interpreter_args: "--env-file .env --import ./packages/api/node_modules/tsx/dist/esm/index.cjs",
+      exec_mode: "fork",
+      instances: 1,
+      max_memory_restart: "768M",
+      env: {
+        NODE_ENV: "production",
+      },
+      kill_timeout: 15000,
+      autorestart: true,
+      max_restarts: 10,
+      restart_delay: 5000,
+      error_file: "/var/log/nasaq/whatsapp-worker-error.log",
+      out_file: "/var/log/nasaq/whatsapp-worker-out.log",
       merge_logs: true,
       log_date_format: "YYYY-MM-DD HH:mm:ss",
     },

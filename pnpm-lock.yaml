@@ -56,6 +56,10 @@ importers:
       capacitor-thermal-printer:
         specifier: ^0.2.5
         version: 0.2.5(@capacitor/core@8.2.0)
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
 
   apps/dashboard:
     dependencies:
@@ -331,7 +335,11 @@ importers:
         specifier: ^3.1.0
         version: 3.2.4(@types/node@22.19.15)(jiti@1.21.7)(jsdom@26.1.0)(tsx@4.21.0)
 
-  packages/shared: {}
+  packages/shared:
+    devDependencies:
+      typescript:
+        specifier: ^5.7.0
+        version: 5.9.3
 
   packages/ui-v2:
     dependencies:

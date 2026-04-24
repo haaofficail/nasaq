@@ -14,11 +14,11 @@
     "db:studio": "pnpm --filter @nasaq/db studio",
     "db:seed": "pnpm --filter @nasaq/db seed",
     "db:seed:demo": "pnpm --filter @nasaq/db seed:full",
-    "release": "pnpm --filter @nasaq/dashboard build && pm2 restart nasaq-api",
+    "release": "pnpm --filter @nasaq/dashboard build && pm2 startOrReload ecosystem.config.cjs --update-env",
     "scan": "pnpm --filter @nasaq/api exec tsx ../../scripts/architecture/scan-violations.ts",
     "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r --if-present lint",
+    "typecheck": "pnpm -r --if-present typecheck",
     "cap:build": "pnpm --filter @nasaq/dashboard build && npx cap sync",
     "cap:android": "pnpm cap:build && npx cap open android",
     "cap:ios": "pnpm cap:build && npx cap open ios",
@@ -46,5 +46,8 @@
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
     "capacitor-thermal-printer": "^0.2.5"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0"
   }
 }

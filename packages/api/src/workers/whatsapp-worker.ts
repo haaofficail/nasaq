@@ -215,9 +215,21 @@ async function initSession(orgId: string, force = false): Promise<void> {
   });
 }
 
+async function requireConnectedSession(orgId: string, queue: QueueName): Promise<Session> {
+  const sess = get(orgId);
+  if (sess.status === "connected" && sess.socket) return sess;
+
+  if (hasSavedSession(orgId)) {
+    initSession(orgId).catch((err) =>
+      log.error({ err, orgId, queue }, "[wa-worker] reconnect before send failed"),
+    );
+  }
+
+  throw new Error(`WhatsApp session is not connected for ${queue}`);
+}
+
 async function sendText(job: SendTextJob): Promise<void> {
-  const sess = get(job.orgId);
-  if (sess.status !== "connected" || !sess.socket) return;
+  const sess = await requireConnectedSession(job.orgId, WA_QUEUE_NAMES.SEND_TEXT);
 
   try {
     await sess.socket.sendMessage(normalizeJid(job.phone), { text: job.message });
@@ -229,15 +241,13 @@ async function sendText(job: SendTextJob): Promise<void> {
       if (hasSavedSession(job.orgId)) {
         initSession(job.orgId).catch((reconnectErr) => log.error({ err: reconnectErr, orgId: job.orgId }, "[wa-worker] reconnect after send failed"));
       }
-      return;
     }
     throw err;
   }
 }
 
 async function sendImage(job: SendImageJob): Promise<void> {
-  const sess = get(job.orgId);
-  if (sess.status !== "connected" || !sess.socket) return;
+  const sess = await requireConnectedSession(job.orgId, WA_QUEUE_NAMES.SEND_IMAGE);
 
   try {
     await sess.socket.sendMessage(normalizeJid(job.phone), {
@@ -252,7 +262,6 @@ async function sendImage(job: SendImageJob): Promise<void> {
       if (hasSavedSession(job.orgId)) {
         initSession(job.orgId).catch((reconnectErr) => log.error({ err: reconnectErr, orgId: job.orgId }, "[wa-worker] reconnect after image failed"));
       }
-      return;
     }
     throw err;
   }
