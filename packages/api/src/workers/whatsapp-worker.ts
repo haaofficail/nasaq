@@ -204,7 +204,10 @@ async function initSession(orgId: string, force = false): Promise<void> {
         log.info({ orgId, retries, backoffMs }, "[wa-worker] reconnecting with backoff");
         setTimeout(() => {
           if (sessions.get(orgId)?.generation === gen) {
-            initSession(orgId).catch((err) => log.error({ err, orgId }, "[wa-worker] reconnect failed"));
+            initSession(orgId).catch(async (err) => {
+              await touch(orgId, { status: "disconnected", socket: null, qrBase64: null }).catch(() => {});
+              log.error({ err, orgId }, "[wa-worker] reconnect failed");
+            });
           }
         }, backoffMs);
       }
