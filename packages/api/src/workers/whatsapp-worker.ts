@@ -11,18 +11,19 @@ import fs from "fs";
 import path from "path";
 import { pool, directPool } from "@nasaq/db/client";
 import { log } from "../lib/logger";
+import {
+  isUuid,
+  resolveWaSessionDir,
+  WA_BOSS_DATABASE_URL,
+  WA_PLATFORM_STATE_TARGET_ID,
+  WA_QUEUE_NAMES,
+  WA_SESSIONS_DIR,
+  type WaStatus,
+} from "../lib/whatsappBaileys.shared";
 
-const WA_QUEUES = {
-  INIT: "wa-init-session",
-  SEND_TEXT: "wa-send-text",
-  SEND_IMAGE: "wa-send-image",
-  LOGOUT: "wa-logout",
-} as const;
-
-const PLATFORM_STATE_TARGET_ID = "platform-whatsapp-state";
-const SESSIONS_DIR = process.env.WA_SESSIONS_DIR ?? "/var/www/nasaq/whatsapp-sessions";
-const BOSS_DATABASE_URL = process.env.DIRECT_DATABASE_URL ?? process.env.DATABASE_URL;
 const RESTORE_DELAY_MS = 500;
+type QueueName = (typeof WA_QUEUE_NAMES)[keyof typeof WA_QUEUE_NAMES];
+
 const BAILEYS_LOGGER = {
   level: "silent",
   trace(){},
@@ -34,9 +35,6 @@ const BAILEYS_LOGGER = {
   child(){ return this; },
 } as any;
 
-type WaStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
-
-type QueueName = (typeof WA_QUEUES)[keyof typeof WA_QUEUES];
 
 interface Session {
   socket: any | null;
@@ -77,31 +75,18 @@ const makeWASocket = (
     : (_makeWASocket as any).default ?? (_makeWASocket as any).makeWASocket
 ) as (...args: any[]) => any;
 
-function resolveSessionDir(orgId: string): string {
-  const baseDir = path.resolve(SESSIONS_DIR);
-  const resolved = path.resolve(baseDir, orgId);
-  if (!resolved.startsWith(`${baseDir}${path.sep}`)) {
-    throw new Error("Invalid WhatsApp session id");
-  }
-  return resolved;
-}
-
 function ensureDir(orgId: string): string {
-  const dir = resolveSessionDir(orgId);
+  const dir = resolveWaSessionDir(orgId);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
 function hasSavedSession(orgId: string): boolean {
-  return fs.existsSync(path.join(resolveSessionDir(orgId), "creds.json"));
+  return fs.existsSync(path.join(resolveWaSessionDir(orgId), "creds.json"));
 }
 
 function getRandomizedDelayMs(baseMs: number): number {
   return baseMs + Math.floor(Math.random() * baseMs);
-}
-
-function isUuid(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 
 function get(orgId: string): Session {
@@ -134,7 +119,7 @@ async function persistPlatformState(sess: Session): Promise<void> {
         AND target_id = $1
       ORDER BY created_at DESC
       LIMIT 1`,
-    [PLATFORM_STATE_TARGET_ID],
+    [WA_PLATFORM_STATE_TARGET_ID],
   );
 
   if (existing.rows[0]?.id) {
@@ -151,7 +136,7 @@ async function persistPlatformState(sess: Session): Promise<void> {
               is_active = true
         WHERE id = $6`,
       [
-        PLATFORM_STATE_TARGET_ID,
+        WA_PLATFORM_STATE_TARGET_ID,
         "System WhatsApp platform state",
         "Internal state cache for platform Baileys worker",
         "system.whatsapp.platform-state",
@@ -180,7 +165,7 @@ async function persistPlatformState(sess: Session): Promise<void> {
       "Internal state cache for platform Baileys worker",
       "system.whatsapp.platform-state",
       JSON.stringify(payload),
-      PLATFORM_STATE_TARGET_ID,
+      WA_PLATFORM_STATE_TARGET_ID,
     ],
   );
 }
@@ -297,7 +282,7 @@ async function initSession(orgId: string, force = false): Promise<void> {
       await touch(orgId, { socket: null, qrBase64: null });
 
       if (reason === DisconnectReason.loggedOut) {
-        fs.rmSync(resolveSessionDir(orgId), { recursive: true, force: true });
+        fs.rmSync(resolveWaSessionDir(orgId), { recursive: true, force: true });
         await touch(orgId, { status: "disconnected", phone: null, retryCount: 0 });
         return;
       }
@@ -370,7 +355,7 @@ async function logoutSession(orgId: string): Promise<void> {
     try { sess.socket.end(undefined); } catch {}
   }
 
-  fs.rmSync(resolveSessionDir(orgId), { recursive: true, force: true });
+  fs.rmSync(resolveWaSessionDir(orgId), { recursive: true, force: true });
   await touch(orgId, {
     socket: null,
     status: "disconnected",
@@ -382,10 +367,10 @@ async function logoutSession(orgId: string): Promise<void> {
 }
 
 async function restoreAllBaileys(): Promise<void> {
-  if (!fs.existsSync(SESSIONS_DIR)) return;
-  const dirs = fs.readdirSync(SESSIONS_DIR).filter((dir) =>
-    fs.statSync(path.join(SESSIONS_DIR, dir)).isDirectory() &&
-    fs.existsSync(path.join(SESSIONS_DIR, dir, "creds.json")),
+  if (!fs.existsSync(WA_SESSIONS_DIR)) return;
+  const dirs = fs.readdirSync(WA_SESSIONS_DIR).filter((dir) =>
+    fs.statSync(path.join(WA_SESSIONS_DIR, dir)).isDirectory() &&
+    fs.existsSync(path.join(WA_SESSIONS_DIR, dir, "creds.json")),
   );
 
   for (const orgId of dirs) {
@@ -396,16 +381,16 @@ async function restoreAllBaileys(): Promise<void> {
 
 async function handleJob(queue: QueueName, data: unknown): Promise<void> {
   switch (queue) {
-    case WA_QUEUES.INIT:
+    case WA_QUEUE_NAMES.INIT:
       await initSession((data as InitJob).orgId, (data as InitJob).force ?? false);
       return;
-    case WA_QUEUES.SEND_TEXT:
+    case WA_QUEUE_NAMES.SEND_TEXT:
       await sendText(data as SendTextJob);
       return;
-    case WA_QUEUES.SEND_IMAGE:
+    case WA_QUEUE_NAMES.SEND_IMAGE:
       await sendImage(data as SendImageJob);
       return;
-    case WA_QUEUES.LOGOUT:
+    case WA_QUEUE_NAMES.LOGOUT:
       await logoutSession((data as LogoutJob).orgId);
       return;
   }
@@ -426,17 +411,17 @@ try {
   process.exit(1);
 }
 
-if (!BOSS_DATABASE_URL) {
+if (!WA_BOSS_DATABASE_URL) {
   log.fatal("[wa-worker] DATABASE_URL is required");
   process.exit(1);
 }
 
-const boss = new PgBoss(BOSS_DATABASE_URL);
+const boss = new PgBoss(WA_BOSS_DATABASE_URL);
 boss.on("error", (err) => log.error({ err }, "[wa-worker] pg-boss error"));
 
 await boss.start();
-await Promise.all(Object.values(WA_QUEUES).map((queue) => boss.createQueue(queue)));
-await Promise.all(Object.values(WA_QUEUES).map((queue) =>
+await Promise.all(Object.values(WA_QUEUE_NAMES).map((queue) => boss.createQueue(queue)));
+await Promise.all(Object.values(WA_QUEUE_NAMES).map((queue) =>
   boss.work(queue, async (jobs) => {
     for (const job of jobs) {
       await handleJob(queue, job.data);

@@ -3,8 +3,14 @@ import fs from "fs";
 import path from "path";
 import { pool } from "@nasaq/db/client";
 import { log } from "./logger";
-
-export type WaStatus = "disconnected" | "connecting" | "qr_ready" | "connected";
+import {
+  isUuid,
+  resolveWaSessionDir,
+  WA_BOSS_DATABASE_URL,
+  WA_PLATFORM_STATE_TARGET_ID,
+  WA_QUEUE_NAMES,
+  type WaStatus,
+} from "./whatsappBaileys.shared";
 
 export interface BaileysState {
   status: WaStatus;
@@ -13,18 +19,6 @@ export interface BaileysState {
   updatedAt: Date;
 }
 
-const WA_QUEUES = {
-  INIT: "wa-init-session",
-  SEND_TEXT: "wa-send-text",
-  SEND_IMAGE: "wa-send-image",
-  LOGOUT: "wa-logout",
-} as const;
-
-const SESSIONS_DIR =
-  process.env.WA_SESSIONS_DIR ?? "/var/www/nasaq/whatsapp-sessions";
-const BOSS_DATABASE_URL = process.env.DIRECT_DATABASE_URL ?? process.env.DATABASE_URL;
-
-const PLATFORM_STATE_TARGET_ID = "platform-whatsapp-state";
 const EMPTY_STATE: BaileysState = {
   status: "disconnected",
   qrBase64: null,
@@ -34,27 +28,14 @@ const EMPTY_STATE: BaileysState = {
 
 let bossPromise: Promise<PgBoss> | null = null;
 
-function resolveSessionDir(orgId: string): string {
-  const baseDir = path.resolve(SESSIONS_DIR);
-  const resolved = path.resolve(baseDir, orgId);
-  if (!resolved.startsWith(`${baseDir}${path.sep}`)) {
-    throw new Error("Invalid WhatsApp session id");
-  }
-  return resolved;
-}
-
-function isUuid(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
-
 async function getBoss(): Promise<PgBoss> {
   if (!bossPromise) {
     bossPromise = (async () => {
-      if (!BOSS_DATABASE_URL) throw new Error("DATABASE_URL is required for WhatsApp pg-boss producer");
-      const boss = new PgBoss(BOSS_DATABASE_URL);
+      if (!WA_BOSS_DATABASE_URL) throw new Error("DATABASE_URL is required for WhatsApp pg-boss producer");
+      const boss = new PgBoss(WA_BOSS_DATABASE_URL);
       boss.on("error", (err) => log.error({ err }, "[wa-producer] pg-boss error"));
       await boss.start();
-      await Promise.all(Object.values(WA_QUEUES).map((queue) => boss.createQueue(queue)));
+      await Promise.all(Object.values(WA_QUEUE_NAMES).map((queue) => boss.createQueue(queue)));
       return boss;
     })().catch((err) => {
       bossPromise = null;
@@ -64,7 +45,7 @@ async function getBoss(): Promise<PgBoss> {
   return bossPromise;
 }
 
-async function enqueue(queue: (typeof WA_QUEUES)[keyof typeof WA_QUEUES], payload: Record<string, unknown>): Promise<void> {
+async function enqueue(queue: (typeof WA_QUEUE_NAMES)[keyof typeof WA_QUEUE_NAMES], payload: Record<string, unknown>): Promise<void> {
   const boss = await getBoss();
   await boss.send(queue, payload);
 }
@@ -88,7 +69,7 @@ async function getPersistedPlatformState(): Promise<BaileysState> {
           AND target_id = $1
         ORDER BY created_at DESC
         LIMIT 1`,
-      [PLATFORM_STATE_TARGET_ID],
+      [WA_PLATFORM_STATE_TARGET_ID],
     );
 
     const state = result.rows[0]?.actions;
@@ -128,7 +109,7 @@ async function getPersistedOrgState(orgId: string): Promise<BaileysState> {
 }
 
 export async function initBaileys(orgId: string, force = false): Promise<void> {
-  await enqueue(WA_QUEUES.INIT, { orgId, force });
+  await enqueue(WA_QUEUE_NAMES.INIT, { orgId, force });
 }
 
 export async function getBaileysState(orgId: string): Promise<BaileysState> {
@@ -139,7 +120,7 @@ export async function getBaileysState(orgId: string): Promise<BaileysState> {
 }
 
 export async function sendViaBaileys(orgId: string, phone: string, message: string): Promise<boolean> {
-  await enqueue(WA_QUEUES.SEND_TEXT, { orgId, phone, message });
+  await enqueue(WA_QUEUE_NAMES.SEND_TEXT, { orgId, phone, message });
   return true;
 }
 
@@ -149,7 +130,7 @@ export async function sendImageViaBaileys(
   imageBuffer: Buffer,
   caption: string,
 ): Promise<boolean> {
-  await enqueue(WA_QUEUES.SEND_IMAGE, {
+  await enqueue(WA_QUEUE_NAMES.SEND_IMAGE, {
     orgId,
     phone,
     caption,
@@ -159,11 +140,11 @@ export async function sendImageViaBaileys(
 }
 
 export async function logoutBaileys(orgId: string): Promise<void> {
-  await enqueue(WA_QUEUES.LOGOUT, { orgId });
+  await enqueue(WA_QUEUE_NAMES.LOGOUT, { orgId });
 }
 
 export function hasSavedSession(orgId: string): boolean {
-  return fs.existsSync(path.join(resolveSessionDir(orgId), "creds.json"));
+  return fs.existsSync(path.join(resolveWaSessionDir(orgId), "creds.json"));
 }
 
 export async function restoreAllBaileys(): Promise<void> {
