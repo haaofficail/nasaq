@@ -24,7 +24,7 @@ import {
 const RESTORE_DELAY_MS = 500;
 type QueueName = (typeof WA_QUEUE_NAMES)[keyof typeof WA_QUEUE_NAMES];
 
-const BAILEYS_LOGGER = {
+const SILENT_BAILEYS_LOGGER = {
   level: "silent",
   trace(){},
   debug(){},
@@ -244,7 +244,7 @@ async function initSession(orgId: string, force = false): Promise<void> {
     version,
     auth: state,
     printQRInTerminal: false,
-    logger: BAILEYS_LOGGER,
+    logger: SILENT_BAILEYS_LOGGER,
   });
 
   await touch(orgId, { socket: sock });
@@ -412,7 +412,7 @@ try {
 }
 
 if (!WA_BOSS_DATABASE_URL) {
-  log.fatal("[wa-worker] DATABASE_URL is required");
+  log.fatal("[wa-worker] DIRECT_DATABASE_URL or DATABASE_URL is required");
   process.exit(1);
 }
 

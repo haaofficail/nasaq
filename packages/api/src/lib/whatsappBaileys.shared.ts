@@ -14,10 +14,11 @@ export const WA_BOSS_DATABASE_URL = process.env.DIRECT_DATABASE_URL ?? process.e
 export const WA_PLATFORM_STATE_TARGET_ID = "platform-whatsapp-state";
 
 export function resolveWaSessionDir(orgId: string): string {
+  const sessionKey = orgId.trim();
   const baseDir = path.resolve(WA_SESSIONS_DIR);
-  const resolved = path.resolve(baseDir, orgId);
-  if (resolved === baseDir || !resolved.startsWith(`${baseDir}${path.sep}`)) {
-    throw new Error("Invalid WhatsApp session id");
+  const resolved = path.resolve(baseDir, sessionKey);
+  if (!sessionKey || sessionKey === "." || sessionKey === ".." || resolved === baseDir || !resolved.startsWith(`${baseDir}${path.sep}`)) {
+    throw new Error("Unsafe WhatsApp session path");
   }
   return resolved;
 }
