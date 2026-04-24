@@ -46,6 +46,7 @@ import { z } from "zod";
 import { getOrgId, generateBookingNumber } from "../lib/helpers";
 import { buildMoyasarPaymentUrl, sarToHalala } from "../lib/moyasar";
 import { fireOrderEvent, fireBookingEvent } from "../lib/messaging-engine";
+import { FREE_BOOKING_LIMIT } from "../lib/constants";
 
 // ── Rate limiter (lightweight in-memory) ──────────────────────
 
@@ -461,6 +462,14 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
   if (!org) return c.json({ error: "المنشأة غير موجودة" }, 404);
   const orgId = org.id;
 
+  // Fix 8 — Free plan limit (reuse same logic as dashboard booking)
+  if (org.plan === "free" && (org.bookingUsed ?? 0) >= FREE_BOOKING_LIMIT) {
+    return c.json({
+      error: `لقد استخدمت جميع الحجوزات المجانية (${FREE_BOOKING_LIMIT} حجز). للمتابعة واستقبال حجوزات جديدة، قم بالترقية إلى إحدى الباقات.`,
+      code: "FREE_LIMIT_REACHED",
+    }, 403);
+  }
+
   // 2. Parse + validate body
   const raw = await c.req.json().catch(() => null);
   const parsed = publicBookSchema.safeParse(raw);
@@ -468,6 +477,14 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
     return c.json({ error: "بيانات الحجز غير مكتملة", details: parsed.error.flatten() }, 400);
   }
   const body = parsed.data;
+
+  // Fix 7 — selectedAddons not priced server-side; reject non-empty to avoid silent price mismatch
+  if (body.selectedAddons.length > 0) {
+    return c.json({
+      error: "الإضافات غير مدعومة حالياً في الحجز الإلكتروني — تواصل مع المنشأة مباشرةً لإضافتها",
+      code: "ADDONS_NOT_SUPPORTED",
+    }, 400);
+  }
 
   // Normalise service IDs
   const serviceIdList = body.serviceIds?.length
@@ -482,10 +499,25 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
   if (svcRows.length !== serviceIdList.length) {
     return c.json({ error: "إحدى الخدمات غير موجودة أو لا تنتمي لهذه المنشأة" }, 400);
   }
+
+  // Fix 2 — validate service visibility and bookability
+  const SCHEDULED_TYPES = new Set(["appointment", "field_service", "execution", "rental", "event_rental"]);
   for (const svc of svcRows) {
     if (svc.status !== "active") {
       return c.json({ error: `الخدمة "${svc.name}" غير متاحة حالياً` }, 400);
     }
+    if ((svc as any).isVisibleOnline === false) {
+      return c.json({ error: `الخدمة "${svc.name}" غير متاحة للحجز الإلكتروني` }, 400);
+    }
+    if ((svc as any).isBookable === false) {
+      return c.json({ error: `الخدمة "${svc.name}" غير قابلة للحجز` }, 400);
+    }
+  }
+
+  // Fix 3 — require eventDate for scheduled service types
+  const requiresScheduling = svcRows.some(s => SCHEDULED_TYPES.has((s as any).serviceType ?? ""));
+  if (requiresScheduling && !body.eventDate) {
+    return c.json({ error: "يجب تحديد تاريخ ووقت الحجز" }, 400);
   }
 
   // 4. Pricing (VAT-inclusive — Saudi default)
@@ -626,6 +658,13 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
 
     return { newRecord, legacyBooking };
   });
+
+  // Fix 8 — Increment bookingUsed counter for free-plan orgs (same pattern as dashboard booking)
+  if (org.plan === "free") {
+    await db.update(organizations)
+      .set({ bookingUsed: sql`coalesce(${organizations.bookingUsed}, 0) + 1` })
+      .where(eq(organizations.id, orgId));
+  }
 
   // 9. Notifications (fire-and-forget)
   fireBookingEvent("booking_confirmed",  { orgId, bookingId: legacyBooking.id });

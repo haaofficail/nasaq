@@ -25,24 +25,27 @@ const createServiceSchema = z.object({
   status: z.enum(["draft", "active", "paused", "archived"]).default("draft"),
   
   // Pricing
-  basePrice: z.coerce.string(),
+  basePrice: z.coerce.string()
+    .transform(s => s.trim().replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660)))
+    .refine(s => /^\d+(\.\d{1,4})?$/.test(s), { message: "السعر يجب أن يكون رقماً موجباً أو صفراً" }),
   currency: z.string().default("SAR"),
   vatInclusive: z.boolean().default(true),
-  
+
   // Capacity
   minCapacity: z.number().int().optional(),
   maxCapacity: z.number().int().optional(),
   capacityLabel: z.string().optional(),
-  
+
   // Duration
-  durationMinutes: z.number().int().optional(),
+  durationMinutes: z.number().int().min(1).optional(),
   setupMinutes: z.number().int().optional(),
   teardownMinutes: z.number().int().optional(),
   bufferMinutes: z.number().int().default(0),
   
   // Booking rules
   minAdvanceHours: z.number().int().optional(),
-  maxAdvanceeDays: z.number().int().optional(),
+  maxAdvanceDays:  z.number().int().optional(), // canonical spelling — normalised to maxAdvanceeDays before persist
+  maxAdvanceeDays: z.number().int().optional(), // legacy typo — kept for back-compat
   depositPercent: z.coerce.string().default("30"),
   
   // Cancellation
@@ -435,13 +438,15 @@ servicesRouter.post("/", async (c) => {
     } while (!(await isBarcodeUnique(orgId, barcode)) && attempts < 10);
   }
 
-  const { basePrice, ...bodyRest } = body;
+  // Fix 5 — normalise maxAdvanceDays (correct spelling) → maxAdvanceeDays (DB column)
+  const { basePrice, maxAdvanceDays: maxAdvanceDaysNorm, ...bodyRest } = body as any;
   const [created] = await db
     .insert(services)
     .values({
       orgId, ...bodyRest, slug, basePrice: String(basePrice), barcode,
       serviceType: resolvedServiceType as any,
       durationMinutes: resolvedDuration ?? null,
+      ...(maxAdvanceDaysNorm !== undefined && { maxAdvanceeDays: maxAdvanceDaysNorm }),
     })
     .returning();
 
@@ -463,10 +468,22 @@ servicesRouter.put("/:id", async (c) => {
     return c.json({ error: "لا يمكن حذف مدة الخدمة المجدولة — حدّد قيمة بالدقائق", code: "DURATION_REQUIRED" }, 422);
   }
 
+  // Fix 1 — تحقق من التبعيات قبل الأرشفة عبر PUT (نفس فحوصات DELETE)
+  if (body.status === "archived") {
+    const depError = await checkServiceArchiveDeps(orgId, id);
+    if (depError) return c.json({ error: depError }, 409);
+  }
+
   // Don't auto-regenerate slug on update — caller must provide explicit slug to change it
 
+  // Fix 5 — normalise maxAdvanceDays (correct spelling) → maxAdvanceeDays (DB column)
+  const { maxAdvanceDays: maxAdvanceDaysNorm, ...bodyForUpdate } = body as any;
+
   // publishedAt يُضبط مرة واحدة فقط عند أول نشر — لا يُعاد التعيين في كل حفظ
-  const updates: any = { ...body, updatedAt: new Date() };
+  const updates: any = { ...bodyForUpdate, updatedAt: new Date() };
+  if (maxAdvanceDaysNorm !== undefined) {
+    updates.maxAdvanceeDays = maxAdvanceDaysNorm;
+  }
   if (body.status === "active") {
     const [current] = await db.select({ publishedAt: services.publishedAt })
       .from(services)
@@ -487,15 +504,15 @@ servicesRouter.put("/:id", async (c) => {
 });
 
 // ============================================================
-// DELETE /services/:id
+// checkServiceArchiveDeps — shared helper for DELETE + PUT→archived
+// Returns an error string if the service has active dependencies,
+// or null when it is safe to archive.
 // ============================================================
 
-servicesRouter.delete("/:id", async (c) => {
-  const orgId = getOrgId(c);
-  const id = c.req.param("id");
+async function checkServiceArchiveDeps(orgId: string, id: string): Promise<string | null> {
   const { pool: rawPool } = await import("@nasaq/db/client");
 
-  // ── فحص 1: حجوزات نشطة (bookings) ──────────────────────────────────────────
+  // ── فحص 1: حجوزات نشطة (bookings) ─────────────────────────
   const [{ activeCount }] = await db
     .select({ activeCount: count() })
     .from(bookings)
@@ -507,14 +524,11 @@ servicesRouter.delete("/:id", async (c) => {
         WHERE bi.booking_id = ${bookings.id} AND bi.service_id = ${id}
       )`,
     ));
-
   if (Number(activeCount) > 0) {
-    return c.json({
-      error: `لا يمكن أرشفة الخدمة — يوجد ${activeCount} حجز نشط عليها. أكمل الحجوزات أو ألغِها أولاً`,
-    }, 409);
+    return `لا يمكن أرشفة الخدمة — يوجد ${activeCount} حجز نشط عليها. أكمل الحجوزات أو ألغِها أولاً`;
   }
 
-  // ── فحص 2: execution items (service_order_items) ────────────────────────────
+  // ── فحص 2: execution items (service_order_items) ────────────
   const { rows: soiRows } = await rawPool.query(
     `SELECT COUNT(*)::int AS cnt
      FROM service_order_items soi
@@ -523,12 +537,10 @@ servicesRouter.delete("/:id", async (c) => {
     [id, orgId],
   );
   if (soiRows[0]?.cnt > 0) {
-    return c.json({
-      error: "لا يمكن حذف هذه الخدمة لأنها مستخدمة في طلب — عدِّل الطلب أو أغلقه أولاً",
-    }, 409);
+    return "لا يمكن أرشفة هذه الخدمة لأنها مستخدمة في طلب — عدِّل الطلب أو أغلقه أولاً";
   }
 
-  // ── فحص 3: مشاريع ميدانية نشطة ─────────────────────────────────────────────
+  // ── فحص 3: مشاريع ميدانية نشطة ─────────────────────────────
   const { rows: soRows } = await rawPool.query(
     `SELECT COUNT(*)::int AS cnt
      FROM service_orders
@@ -537,12 +549,10 @@ servicesRouter.delete("/:id", async (c) => {
     [id, orgId],
   );
   if (soRows[0]?.cnt > 0) {
-    return c.json({
-      error: `لا يمكن حذف هذه الخدمة لأنها مستخدمة في ${soRows[0].cnt} طلب ميداني نشط`,
-    }, 409);
+    return `لا يمكن أرشفة هذه الخدمة لأنها مستخدمة في ${soRows[0].cnt} طلب ميداني نشط`;
   }
 
-  // ── فحص 4: مرتبط بقالب نشط ──────────────────────────────────────────────────
+  // ── فحص 4: مرتبط بقالب نشط ──────────────────────────────────
   const { rows: tplRows } = await rawPool.query(
     `SELECT COUNT(*)::int AS cnt
      FROM event_package_templates
@@ -551,10 +561,22 @@ servicesRouter.delete("/:id", async (c) => {
     [id, orgId],
   );
   if (tplRows[0]?.cnt > 0) {
-    return c.json({
-      error: "لا يمكن حذف هذه الخدمة لأنها مرتبطة بقالب نشط — أزل الرابط من إعدادات الخدمة أولاً",
-    }, 409);
+    return "لا يمكن أرشفة هذه الخدمة لأنها مرتبطة بقالب نشط — أزل الرابط من إعدادات الخدمة أولاً";
   }
+
+  return null; // safe to archive
+}
+
+// ============================================================
+// DELETE /services/:id
+// ============================================================
+
+servicesRouter.delete("/:id", async (c) => {
+  const orgId = getOrgId(c);
+  const id = c.req.param("id");
+
+  const depError = await checkServiceArchiveDeps(orgId, id);
+  if (depError) return c.json({ error: depError }, 409);
 
   const [updated] = await db
     .update(services)
@@ -880,6 +902,21 @@ servicesRouter.post("/:id/components", async (c) => {
 
   const body = createComponentSchema.parse(await c.req.json());
 
+  // Fix 6b — تحقق من انتماء الأصل والمنتج لنفس المنشأة
+  if (body.sourceType === "asset" && body.assetId) {
+    const [asset] = await db.select({ id: assets.id }).from(assets)
+      .where(and(eq(assets.id, body.assetId), eq(assets.orgId, orgId)));
+    if (!asset) return c.json({ error: "الأصل غير موجود في هذه المنشأة" }, 404);
+  }
+  if (body.sourceType === "inventory" && body.inventoryItemId) {
+    const { pool: rawPool } = await import("@nasaq/db/client");
+    const { rows: invRows } = await rawPool.query(
+      `SELECT id FROM inventory_products WHERE id = $1 AND org_id = $2 LIMIT 1`,
+      [body.inventoryItemId, orgId],
+    );
+    if (!invRows.length) return c.json({ error: "المنتج غير موجود في هذه المنشأة" }, 404);
+  }
+
   const [comp] = await db.insert(serviceComponents).values({
     orgId, serviceId,
     sourceType: body.sourceType,
@@ -1093,6 +1130,18 @@ servicesRouter.post("/:id/requirements", async (c) => {
   if (!svc) return c.json({ error: "الخدمة غير موجودة" }, 404);
 
   const body = requirementSchema.parse(await c.req.json());
+
+  // Fix 6a — تحقق من انتماء الموظف والأصل لنفس المنشأة
+  if (body.userId) {
+    const [member] = await db.select({ id: orgMembers.id }).from(orgMembers)
+      .where(and(eq(orgMembers.userId, body.userId), eq(orgMembers.orgId, orgId), eq(orgMembers.status, "active")));
+    if (!member) return c.json({ error: "الموظف غير موجود في هذه المنشأة" }, 404);
+  }
+  if (body.assetId) {
+    const [asset] = await db.select({ id: assets.id }).from(assets)
+      .where(and(eq(assets.id, body.assetId), eq(assets.orgId, orgId)));
+    if (!asset) return c.json({ error: "الأصل غير موجود في هذه المنشأة" }, 404);
+  }
 
   const [created] = await db.insert(serviceRequirements).values({
     orgId, serviceId,
