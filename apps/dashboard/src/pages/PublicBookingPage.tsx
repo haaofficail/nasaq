@@ -17,7 +17,6 @@ export function PublicBookingPage() {
 
   // Booking flow
   const [selectedService, setSelectedService] = useState<any>(null);
-  const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
   const [selectedTime, setSelectedTime] = useState("16:00");
   const [customLocation, setCustomLocation] = useState("");
@@ -63,16 +62,8 @@ export function PublicBookingPage() {
   const font = config?.fontFamily || "IBM Plex Sans Arabic";
   const logo = config?.logoUrl || org?.logo;
 
-  const toggleAddon = (id: string) =>
-    setSelectedAddons(prev => prev.includes(id) ? prev.filter(a => a !== id) : [...prev, id]);
-
-  const svcAddons: any[] = siteData?.addonsByService?.[selectedService?.id] || [];
   const svcPrice = parseFloat(selectedService?.basePrice || selectedService?.price || 0);
-  const addonsTotal = selectedAddons.reduce((s: number, addonId: string) => {
-    const a = svcAddons.find((x: any) => x.id === addonId);
-    return s + parseFloat(a?.price || 0);
-  }, 0);
-  const subtotal = svcPrice + addonsTotal;
+  const subtotal = svcPrice;
   const vat = subtotal * VAT_RATE;
   const total = subtotal + vat;
   // depositPercent مأخوذ من بيانات الخدمة (الـ API يُرجعه كرقم مثل 30 أو 50)
@@ -94,7 +85,7 @@ export function PublicBookingPage() {
         customerPhone: phone,
         serviceId: selectedService.id,
         eventDate,
-        selectedAddons,
+        selectedAddons: [],
         customLocation: customLocation || undefined,
         notes: notes || undefined,
         questionAnswers: answers,
@@ -140,7 +131,7 @@ export function PublicBookingPage() {
                 <p>لا توجد خدمات متاحة حالياً</p>
               </div>
             ) : services.map((svc: any) => (
-              <button key={svc.id} onClick={() => { setSelectedService(svc); setStep("details"); setSelectedAddons([]); setQuestionAnswers({}); setCustomLocation(""); setSelectedDate(""); }}
+              <button key={svc.id} onClick={() => { setSelectedService(svc); setStep("details"); setQuestionAnswers({}); setCustomLocation(""); setSelectedDate(""); }}
                 className="w-full bg-white rounded-2xl border border-[#eef2f6] p-5 text-right hover:border-[#eef2f6] hover:shadow-sm transition-all flex items-center gap-4">
                 {svc.imageUrl ? (
                   <img src={svc.imageUrl} className="w-20 h-20 rounded-xl object-cover shrink-0" alt={svc.name} />
@@ -196,39 +187,10 @@ export function PublicBookingPage() {
               </div>
             </div>
 
-            {svcAddons.length > 0 && (
-              <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-3">
-                <h3 className="font-bold text-gray-900">إضافات (اختياري)</h3>
-                {svcAddons.map((addon: any) => {
-                  const sel = selectedAddons.includes(addon.id);
-                  return (
-                    <button key={addon.id} onClick={() => toggleAddon(addon.id)}
-                      className={clsx("w-full flex items-center justify-between p-3.5 rounded-xl border text-right transition-all",
-                        sel ? "border-2 bg-blue-50" : "border-[#eef2f6] hover:border-[#eef2f6]"
-                      )} style={sel ? { borderColor: primaryColor } : {}}>
-                      <div className="flex items-center gap-3">
-                        <div className={clsx("w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
-                          sel ? "text-white" : "border-[#eef2f6]"
-                        )} style={sel ? { background: primaryColor, borderColor: primaryColor } : {}}>
-                          {sel && <Check className="w-3 h-3" />}
-                        </div>
-                        <span className="text-sm font-medium text-gray-900">{addon.name}</span>
-                      </div>
-                      <span className="text-sm font-bold" style={{ color: primaryColor }}>+{parseFloat(addon.price || 0).toLocaleString("en-US")} ر.س</span>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
             {/* Price summary */}
             <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-2 text-sm">
               <h3 className="font-bold text-gray-900 mb-3">ملخص السعر</h3>
               <div className="flex justify-between"><span className="text-gray-500">{selectedService.name}</span><span>{svcPrice.toLocaleString("en-US")} ر.س</span></div>
-              {selectedAddons.map((addonId: string) => {
-                const a = svcAddons.find((x: any) => x.id === addonId);
-                return a ? <div key={addonId} className="flex justify-between text-gray-400"><span>+ {a.name}</span><span>{parseFloat(a.price || 0).toLocaleString("en-US")} ر.س</span></div> : null;
-              })}
               <div className="flex justify-between text-gray-500 pt-2 border-t border-[#eef2f6]"><span>ضريبة القيمة المضافة (15%)</span><span>{Math.round(vat).toLocaleString("en-US")} ر.س</span></div>
               <div className="flex justify-between font-bold text-base text-gray-900 pt-2 border-t border-[#eef2f6]"><span>الإجمالي</span><span>{Math.round(total).toLocaleString("en-US")} ر.س</span></div>
               <div className="flex justify-between text-xs pt-1" style={{ color: primaryColor }}><span>العربون المطلوب ({Math.round(depositRatio * 100)}%)</span><span>{Math.round(deposit).toLocaleString("en-US")} ر.س</span></div>
