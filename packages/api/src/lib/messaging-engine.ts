@@ -67,7 +67,7 @@ async function _sendOrder(eventType: OrderEventType, payload: OrderEventPayload)
 
   // 1. إعدادات الرسائل
   const { rows: [settings] } = await pool.query<{ auto_send: boolean; channel: string }>(
-    `SELECT auto_send, channel FROM message_settings WHERE org_id = $1 LIMIT 1`,
+    `SELECT messaging_enabled AS auto_send, 'whatsapp' AS channel FROM message_settings WHERE org_id = $1 LIMIT 1`,
     [orgId],
   );
   if (!settings?.auto_send) return;
@@ -149,7 +149,7 @@ async function _send(eventType: BookingEventType, payload: BookingEventPayload):
     auto_send: boolean;
     channel: string;
   }>(
-    `SELECT auto_send, channel FROM message_settings WHERE org_id = $1 LIMIT 1`,
+    `SELECT messaging_enabled AS auto_send, 'whatsapp' AS channel FROM message_settings WHERE org_id = $1 LIMIT 1`,
     [orgId],
   );
 
