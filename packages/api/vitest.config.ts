@@ -9,6 +9,7 @@ export default defineConfig({
       "src/__tests__/pages-v2-*.test.ts",
       "src/__tests__/pagebuilder-*.test.ts",
       "src/__tests__/feature-flags-*.test.ts",
+      "src/__tests__/guardian-*.test.ts",
       "src/__tests__/services-phase1*.test.ts",
       "src/__tests__/v2/**/*.test.ts",
       "src/__tests__/canonical/**/*.test.ts",
