@@ -378,7 +378,7 @@ type ServiceType =
   | "product" | "product_shipping" | "food_order" | "package" | "add_on" | "project";
 
 // أنواع الخدمات التي تتطلب مدة زمنية محددة
-const TIMED_SERVICE_TYPES = new Set<ServiceType>(["appointment", "execution", "field_service"]);
+const TIMED_SERVICE_TYPES = new Set<ServiceType>(["appointment", "execution", "field_service", "project"]);
 
 // نوع الخدمة الافتراضي حسب نوع البيزنس
 const BUSINESS_DEFAULT_SERVICE_TYPE: Record<string, ServiceType> = {
