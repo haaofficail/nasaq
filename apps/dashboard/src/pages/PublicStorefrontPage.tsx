@@ -201,20 +201,26 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
 
   const today      = new Date().toISOString().split("T")[0];
   const slots      = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00"];
-  const rentalDays = hasRentalType && date && endDate
-    ? Math.max(1, Math.ceil(
-        (new Date(`${endDate}T${endTime || "12:00"}`).getTime() - new Date(`${date}T${time || "09:00"}`).getTime())
-        / (1000 * 60 * 60 * 24)
-      ))
+  const rentalEndMs   = hasRentalType && date && endDate
+    ? new Date(`${endDate}T${endTime || "12:00"}`).getTime() : null;
+  const rentalStartMs = hasRentalType && date
+    ? new Date(`${date}T${time || "09:00"}`).getTime() : null;
+  const rentalDateError: string | null =
+    hasRentalType && rentalStartMs != null && rentalEndMs != null && rentalEndMs <= rentalStartMs
+      ? "تاريخ نهاية الإيجار يجب أن يكون بعد تاريخ البداية"
+      : null;
+  const rentalDays = hasRentalType && rentalStartMs != null && rentalEndMs != null && rentalEndMs > rentalStartMs
+    ? Math.max(1, Math.ceil((rentalEndMs - rentalStartMs) / (1000 * 60 * 60 * 24)))
     : 1;
   const total      = cartServices.reduce((sum, s) => {
     const price = parseFloat(s.basePrice || String(s.price ?? 0));
     return sum + (RENTAL_SVC_TYPES_BS.has(s.serviceType ?? "") ? price * rentalDays : price);
   }, 0);
-  const canSubmit  = (!needsSchedule || (date && time)) && (!hasRentalType || endDate) && name.trim() && phone.trim() && agreed;
+  const canSubmit  = (!needsSchedule || (date && time)) && (!hasRentalType || endDate) && !rentalDateError && name.trim() && phone.trim() && agreed;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
+    if (rentalDateError) { setError(rentalDateError); return; }
     setError(""); setSub(true);
     try {
       const res = await storefrontApi.publicBook(slug, {
@@ -401,7 +407,12 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
                       <input type="date" min={date || today} value={endDate} onChange={e => setEndDate(e.target.value)}
                         style={{ ...inputStyle, borderColor: endDate ? primary : T.border, background: endDate ? hex2rgb(primary, 0.04) : T.surfaceSubtle }} />
                     </div>
-                    {rentalDays > 1 && date && endDate && (
+                    {rentalDateError && (
+                      <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 10, background: "#FFF1F2", border: "1px solid #FECDD3", fontSize: 13, fontWeight: 600, color: "#E11D48" }}>
+                        {rentalDateError}
+                      </div>
+                    )}
+                    {!rentalDateError && rentalDays > 1 && date && endDate && (
                       <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 10, background: hex2rgb(primary, 0.06), fontSize: 13, fontWeight: 700, color: primary }}>
                         مدة الإيجار: {rentalDays} أيام
                       </div>

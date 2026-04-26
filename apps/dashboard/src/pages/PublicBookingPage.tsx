@@ -67,11 +67,18 @@ export function PublicBookingPage() {
   const svcPrice = parseFloat(selectedService?.basePrice || selectedService?.price || 0);
   const RENTAL_SVC_TYPES_PBP = new Set(["rental", "event_rental"]);
   const isRental = RENTAL_SVC_TYPES_PBP.has(selectedService?.serviceType ?? "");
-  const rentalDays = isRental && selectedDate && selectedEndDate
-    ? Math.max(1, Math.ceil(
-        (new Date(`${selectedEndDate}T${selectedEndTime}`).getTime() - new Date(`${selectedDate}T${selectedTime}`).getTime())
-        / (1000 * 60 * 60 * 24)
-      ))
+  const rentalEndMs   = isRental && selectedDate && selectedEndDate
+    ? new Date(`${selectedEndDate}T${selectedEndTime}`).getTime()
+    : null;
+  const rentalStartMs = isRental && selectedDate
+    ? new Date(`${selectedDate}T${selectedTime}`).getTime()
+    : null;
+  const rentalDateError: string | null =
+    isRental && rentalStartMs != null && rentalEndMs != null && rentalEndMs <= rentalStartMs
+      ? "تاريخ النهاية يجب أن يكون بعد تاريخ البداية"
+      : null;
+  const rentalDays = isRental && rentalStartMs != null && rentalEndMs != null && rentalEndMs > rentalStartMs
+    ? Math.max(1, Math.ceil((rentalEndMs - rentalStartMs) / (1000 * 60 * 60 * 24)))
     : 1;
   const subtotal = isRental ? svcPrice * rentalDays : svcPrice;
   const vat = subtotal * VAT_RATE;
@@ -84,6 +91,7 @@ export function PublicBookingPage() {
 
   const handleSubmit = async () => {
     if (!selectedService || !selectedDate || !name || !phone) return;
+    if (rentalDateError) return;
     setSubmitting(true);
     try {
       const eventDate = new Date(`${selectedDate}T${selectedTime}`).toISOString();
@@ -217,7 +225,10 @@ export function PublicBookingPage() {
                       className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
                   </div>
                 </div>
-                {rentalDays > 1 && selectedEndDate && (
+                {rentalDateError && (
+                  <p className="text-xs text-red-500 font-medium">{rentalDateError}</p>
+                )}
+                {!rentalDateError && rentalDays > 1 && selectedEndDate && (
                   <p className="text-xs font-medium" style={{ color: primaryColor }}>مدة الإيجار: {rentalDays} أيام</p>
                 )}
               </div>
@@ -239,7 +250,7 @@ export function PublicBookingPage() {
               <div className="flex justify-between text-xs pt-1" style={{ color: primaryColor }}><span>العربون المطلوب ({Math.round(depositRatio * 100)}%)</span><span>{Math.round(deposit).toLocaleString("en-US")} ر.س</span></div>
             </div>
 
-            <button disabled={!selectedDate || (isRental && !selectedEndDate)} onClick={() => setStep(serviceQuestions.length > 0 ? "questions" : "contact")}
+            <button disabled={!selectedDate || (isRental && !selectedEndDate) || !!rentalDateError} onClick={() => setStep(serviceQuestions.length > 0 ? "questions" : "contact")}
               className="w-full py-4 rounded-xl text-white font-bold text-base disabled:opacity-50 transition-colors"
               style={{ background: primaryColor }}>
               {serviceQuestions.length > 0 ? "التالي — أسئلة الحجز" : "التالي — بيانات التواصل"}
