@@ -18,6 +18,8 @@ interface ServiceItem {
   status?: string; description?: string;
   pricingType?: string;
   offeringType?: string;   // "service" | "product" | "rental" | ... (from catalog schema)
+  serviceType?: string;
+  isBookable?: boolean;
 }
 interface Category { id: string; name: string; }
 interface FlowerPackageItem {
@@ -152,8 +154,12 @@ const T = {
 // Products (physical/digital) use sales language.
 // All other offering types (service, rental, room_booking, etc.) use booking language.
 const SALES_OFFERING_TYPES = new Set(["product", "digital_product"]);
+const SALES_SERVICE_TYPES = new Set(["product", "product_shipping", "food_order"]);
 function isSalesItem(item: ServiceItem) {
-  return SALES_OFFERING_TYPES.has(item.offeringType ?? "");
+  return SALES_OFFERING_TYPES.has(item.offeringType ?? "") || SALES_SERVICE_TYPES.has(item.serviceType ?? "");
+}
+function isBookableItem(item: ServiceItem) {
+  return item.isBookable !== false;
 }
 function cartLabel(cart: ServiceItem[]) {
   const hasSales   = cart.some(isSalesItem);
@@ -177,6 +183,8 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
   const primary = BRAND;
   const total   = cartServices.reduce((sum, s) => sum + parseFloat(s.basePrice || String(s.price ?? 0)), 0);
   const totalDuration = cartServices.reduce((sum, s) => sum + (s.duration ?? 0), 0);
+  const needsSchedule = cartServices.some(s => !isSalesItem(s));
+  const isOrderOnly = !needsSchedule;
 
   const [date, setDate]       = useState("");
   const [time, setTime]       = useState("");
@@ -189,7 +197,7 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
 
   const today      = new Date().toISOString().split("T")[0];
   const slots      = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00"];
-  const canSubmit  = date && time && name.trim() && phone.trim() && agreed;
+  const canSubmit  = (!needsSchedule || (date && time)) && name.trim() && phone.trim() && agreed;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
@@ -199,7 +207,7 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
         customerName:  name.trim(),
         customerPhone: phone.trim(),
         serviceIds:    cartServices.map(s => s.id),
-        eventDate:     new Date(`${date}T${time}`).toISOString(),
+        ...(needsSchedule && { eventDate: new Date(`${date}T${time}`).toISOString() }),
         selectedAddons: [],
         acceptedTerms: true,
       });
@@ -213,7 +221,9 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
   const waLink = org.phone
     ? `https://wa.me/${org.phone.replace(/\D/g,"")}?text=${encodeURIComponent(
         done
-          ? `مرحبا، تم حجز: ${serviceNames} بتاريخ ${date} الساعة ${time}`
+          ? needsSchedule
+            ? `مرحبا، تم حجز: ${serviceNames} بتاريخ ${date} الساعة ${time}`
+            : `مرحبا، تم طلب: ${serviceNames}`
           : `مرحبا، أريد الاستفسار عن: ${serviceNames}`
       )}`
     : null;
@@ -254,9 +264,9 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
             }}>
               {Icon.check}
             </div>
-            <p style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 900, color: T.t1 }}>تم الحجز بنجاح</p>
+            <p style={{ margin: "0 0 4px", fontSize: 20, fontWeight: 900, color: T.t1 }}>{isOrderOnly ? "تم الطلب بنجاح" : "تم الحجز بنجاح"}</p>
             {done.bookingNumber && (
-              <p style={{ margin: "0 0 18px", fontSize: 12, color: T.t3, fontWeight: 600 }}>رقم الحجز #{done.bookingNumber}</p>
+              <p style={{ margin: "0 0 18px", fontSize: 12, color: T.t3, fontWeight: 600 }}>{isOrderOnly ? "رقم الطلب" : "رقم الحجز"} #{done.bookingNumber}</p>
             )}
             {/* Services summary */}
             <div style={{ margin: "0 0 20px", borderRadius: 14, background: T.surfaceSubtle, border: `1px solid ${T.borderFaint}`, overflow: "hidden" }}>
@@ -269,7 +279,7 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
                 </div>
               ))}
               <div style={{ padding: "11px 16px", background: hex2rgb(primary, 0.06), display: "flex", justifyContent: "space-between" }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: T.t2 }}>{date} · {time}</span>
+                {needsSchedule && <span style={{ fontSize: 12, fontWeight: 700, color: T.t2 }}>{date} · {time}</span>}
                 {total > 0 && <span style={{ fontSize: 14, fontWeight: 900, color: primary }}>{total.toLocaleString("ar-SA")} ر.س</span>}
               </div>
             </div>
@@ -336,29 +346,33 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
               </div>
             </div>
 
-            {/* Date */}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>التاريخ</label>
-              <input type="date" min={today} value={date} onChange={e => setDate(e.target.value)}
-                style={{ ...inputStyle, borderColor: date ? primary : T.border, background: date ? hex2rgb(primary, 0.04) : T.surfaceSubtle }} />
-            </div>
+            {needsSchedule && (
+              <>
+                {/* Date */}
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>التاريخ</label>
+                  <input type="date" min={today} value={date} onChange={e => setDate(e.target.value)}
+                    style={{ ...inputStyle, borderColor: date ? primary : T.border, background: date ? hex2rgb(primary, 0.04) : T.surfaceSubtle }} />
+                </div>
 
-            {/* Time slots */}
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>الوقت</label>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 7 }}>
-                {slots.map(s => (
-                  <button key={s} onClick={() => setTime(s)} style={{
-                    padding: "9px 0", borderRadius: 10, fontSize: 12, fontWeight: 700,
-                    cursor: "pointer", fontFamily: "inherit", transition: "all .15s",
-                    border: `1.5px solid ${time === s ? primary : T.border}`,
-                    background: time === s ? primary : T.surfaceSubtle,
-                    color: time === s ? "white" : T.t2,
-                    boxShadow: time === s ? `0 2px 8px ${hex2rgb(primary, 0.25)}` : "none",
-                  }}>{s}</button>
-                ))}
-              </div>
-            </div>
+                {/* Time slots */}
+                <div style={{ marginBottom: 16 }}>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>الوقت</label>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 7 }}>
+                    {slots.map(s => (
+                      <button key={s} onClick={() => setTime(s)} style={{
+                        padding: "9px 0", borderRadius: 10, fontSize: 12, fontWeight: 700,
+                        cursor: "pointer", fontFamily: "inherit", transition: "all .15s",
+                        border: `1.5px solid ${time === s ? primary : T.border}`,
+                        background: time === s ? primary : T.surfaceSubtle,
+                        color: time === s ? "white" : T.t2,
+                        boxShadow: time === s ? `0 2px 8px ${hex2rgb(primary, 0.25)}` : "none",
+                      }}>{s}</button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
 
             {/* Name */}
             <div style={{ marginBottom: 12 }}>
@@ -825,8 +839,10 @@ export function PublicStorefrontPage() {
   })();
 
   const inCart     = (id: string) => cart.some(s => s.id === id);
-  const toggleCart = (svc: ServiceItem) =>
+  const toggleCart = (svc: ServiceItem) => {
+    if (!isBookableItem(svc)) return;
     setCart(prev => inCart(svc.id) ? prev.filter(s => s.id !== svc.id) : [...prev, svc]);
+  };
 
   useEffect(() => {
     if (!slug) return;
@@ -1120,6 +1136,7 @@ export function PublicStorefrontPage() {
                 const hasPrice = price > 0 && s.pricingType !== "free";
                 const isFree   = s.pricingType === "free";
                 const added    = inCart(s.id);
+                const selectable = isBookableItem(s);
                 return (
                   <div key={s.id} className="grid-card" style={{
                     background: "white",
@@ -1192,7 +1209,7 @@ export function PublicStorefrontPage() {
                           )}
                         </div>
 
-                        {showBook && (
+                        {showBook && selectable && (
                           <button className="book-pill" onClick={() => toggleCart(s)} style={{
                             width: 28, height: 28, borderRadius: 8, border: "none",
                             background: added ? "#0f172a" : orgAccent,
@@ -1228,6 +1245,7 @@ export function PublicStorefrontPage() {
                 const hasPrice = price > 0 && s.pricingType !== "free";
                 const isFree   = s.pricingType === "free";
                 const added    = inCart(s.id);
+                const selectable = isBookableItem(s);
                 return (
                   <div key={s.id} className="svc-row" style={{
                     background: "white",
@@ -1285,7 +1303,7 @@ export function PublicStorefrontPage() {
                     </div>
 
                     {/* Add button — honey outline style */}
-                    {showBook && (
+                    {showBook && selectable && (
                       <div style={{ display: "flex", alignItems: "center", padding: "0 14px 0 10px", flexShrink: 0 }}>
                         <button className="book-pill" onClick={() => toggleCart(s)} style={{
                           padding: "6px 14px",
