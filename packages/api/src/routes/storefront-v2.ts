@@ -451,6 +451,17 @@ const publicBookSchema = z.object({
 
 const VAT_RATE = 0.15;
 
+// Rental types cannot be booked through the public storefront — no eventEndDate field in publicBookSchema
+const PUBLIC_RENTAL_SERVICE_TYPES = new Set(["rental", "event_rental"]);
+
+function resolvePublicBookingType(serviceTypes: string[]): string {
+  const IMMEDIATE = new Set(["product", "product_shipping", "food_order", "package", "add_on"]);
+  if (serviceTypes.every(t => IMMEDIATE.has(t))) return serviceTypes[0] ?? "appointment";
+  if (serviceTypes.some(t => t === "event_rental" || t === "execution")) return "event";
+  if (serviceTypes.some(t => t === "rental")) return "stay";
+  return "appointment";
+}
+
 storefrontV2Router.post("/:orgSlug/book", async (c) => {
   const orgSlug = c.req.param("orgSlug");
 
@@ -520,6 +531,15 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
     return c.json({ error: "يجب تحديد تاريخ ووقت الحجز" }, 400);
   }
 
+  // Stage 3 — reject rental/event_rental: publicBookSchema has no eventEndDate field
+  const serviceTypes = svcRows.map(s => (s as any).serviceType ?? "");
+  if (serviceTypes.some(t => PUBLIC_RENTAL_SERVICE_TYPES.has(t))) {
+    return c.json({
+      error: "خدمات التأجير تتطلب تحديد تاريخ بداية ونهاية. يرجى التواصل مع المنشأة لإتمام الحجز حالياً.",
+      code: "PUBLIC_RENTAL_BOOKING_REQUIRES_END_DATE",
+    }, 400);
+  }
+
   // 4. Pricing (VAT-inclusive — Saudi default)
   const subtotal = svcRows.reduce((sum, s) => sum + parseFloat(String(s.basePrice ?? "0")), 0);
   const vatAmount = parseFloat((subtotal * VAT_RATE).toFixed(2));
@@ -549,7 +569,7 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
   const bookingNumber  = generateBookingNumber("NSQ");
   const trackingToken  = crypto.randomUUID().replace(/-/g, "").substring(0, 32);
   const resolvedDate   = body.eventDate ? new Date(body.eventDate) : new Date();
-  const bookingType    = (svcRows[0] as any).serviceType ?? "appointment";
+  const bookingType    = resolvePublicBookingType(serviceTypes);
   const consentMetadata = {
     acceptedTermsAt:   new Date().toISOString(),
     acceptedPrivacyAt: new Date().toISOString(),
@@ -586,7 +606,7 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
       customerId:      customer.id,
       bookingRef:      legacyBooking.id,
       bookingNumber,
-      bookingType:     bookingType === "appointment" || bookingType === "event" ? bookingType : "appointment",
+      bookingType:     bookingType,
       status:          "pending",
       paymentStatus:   "pending",
       startsAt:        resolvedDate,
