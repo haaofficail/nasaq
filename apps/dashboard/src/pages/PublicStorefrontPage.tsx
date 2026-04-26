@@ -176,18 +176,22 @@ function activeListLabel(items: ServiceItem[]) {
 }
 
 // ── Booking Sheet — supports single or multiple services ─────────────
+const RENTAL_SVC_TYPES_BS = new Set(["rental", "event_rental"]);
+
 function BookingSheet({ services: cartServices, org, slug, onClose }: {
   services: ServiceItem[]; org: OrgData; slug: string; onClose: () => void;
 }) {
   // Public pages always use platform BRAND — org color never overrides buttons/structure
   const primary = BRAND;
-  const total   = cartServices.reduce((sum, s) => sum + parseFloat(s.basePrice || String(s.price ?? 0)), 0);
   const totalDuration = cartServices.reduce((sum, s) => sum + (s.duration ?? 0), 0);
   const needsSchedule = cartServices.some(s => !isSalesItem(s));
-  const isOrderOnly = !needsSchedule;
+  const isOrderOnly   = !needsSchedule;
+  const hasRentalType = cartServices.some(s => RENTAL_SVC_TYPES_BS.has(s.serviceType ?? ""));
 
   const [date, setDate]       = useState("");
   const [time, setTime]       = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [endTime, setEndTime] = useState("12:00");
   const [name, setName]       = useState("");
   const [phone, setPhone]     = useState("");
   const [agreed, setAgreed]   = useState(false);
@@ -197,10 +201,26 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
 
   const today      = new Date().toISOString().split("T")[0];
   const slots      = ["09:00","10:00","11:00","12:00","13:00","14:00","15:00","16:00","17:00","18:00","19:00","20:00"];
-  const canSubmit  = (!needsSchedule || (date && time)) && name.trim() && phone.trim() && agreed;
+  const rentalEndMs   = hasRentalType && date && endDate
+    ? new Date(`${endDate}T${endTime || "12:00"}`).getTime() : null;
+  const rentalStartMs = hasRentalType && date
+    ? new Date(`${date}T${time || "09:00"}`).getTime() : null;
+  const rentalDateError: string | null =
+    hasRentalType && rentalStartMs != null && rentalEndMs != null && rentalEndMs <= rentalStartMs
+      ? "تاريخ نهاية الإيجار يجب أن يكون بعد تاريخ البداية"
+      : null;
+  const rentalDays = hasRentalType && rentalStartMs != null && rentalEndMs != null && rentalEndMs > rentalStartMs
+    ? Math.max(1, Math.ceil((rentalEndMs - rentalStartMs) / (1000 * 60 * 60 * 24)))
+    : 1;
+  const total      = cartServices.reduce((sum, s) => {
+    const price = parseFloat(s.basePrice || String(s.price ?? 0));
+    return sum + (RENTAL_SVC_TYPES_BS.has(s.serviceType ?? "") ? price * rentalDays : price);
+  }, 0);
+  const canSubmit  = (!needsSchedule || (date && time)) && (!hasRentalType || endDate) && !rentalDateError && name.trim() && phone.trim() && agreed;
 
   const handleSubmit = async () => {
     if (!canSubmit) return;
+    if (rentalDateError) { setError(rentalDateError); return; }
     setError(""); setSub(true);
     try {
       const res = await storefrontApi.publicBook(slug, {
@@ -208,6 +228,7 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
         customerPhone: phone.trim(),
         serviceIds:    cartServices.map(s => s.id),
         ...(needsSchedule && { eventDate: new Date(`${date}T${time}`).toISOString() }),
+        ...(hasRentalType && endDate ? { eventEndDate: new Date(`${endDate}T${endTime}`).toISOString() } : {}),
         selectedAddons: [],
         acceptedTerms: true,
       });
@@ -222,7 +243,9 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
     ? `https://wa.me/${org.phone.replace(/\D/g,"")}?text=${encodeURIComponent(
         done
           ? needsSchedule
-            ? `مرحبا، تم حجز: ${serviceNames} بتاريخ ${date} الساعة ${time}`
+            ? hasRentalType && endDate
+              ? `مرحبا، تم حجز: ${serviceNames} من ${date} إلى ${endDate}`
+              : `مرحبا، تم حجز: ${serviceNames} بتاريخ ${date} الساعة ${time}`
             : `مرحبا، تم طلب: ${serviceNames}`
           : `مرحبا، أريد الاستفسار عن: ${serviceNames}`
       )}`
@@ -279,7 +302,11 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
                 </div>
               ))}
               <div style={{ padding: "11px 16px", background: hex2rgb(primary, 0.06), display: "flex", justifyContent: "space-between" }}>
-                {needsSchedule && <span style={{ fontSize: 12, fontWeight: 700, color: T.t2 }}>{date} · {time}</span>}
+                {needsSchedule && (
+                  <span style={{ fontSize: 12, fontWeight: 700, color: T.t2 }}>
+                    {hasRentalType && endDate ? `${date} ← ${endDate}` : `${date} · ${time}`}
+                  </span>
+                )}
                 {total > 0 && <span style={{ fontSize: 14, fontWeight: 900, color: primary }}>{total.toLocaleString("ar-SA")} ر.س</span>}
               </div>
             </div>
@@ -350,7 +377,7 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
               <>
                 {/* Date */}
                 <div style={{ marginBottom: 16 }}>
-                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>التاريخ</label>
+                  <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>تاريخ البداية</label>
                   <input type="date" min={today} value={date} onChange={e => setDate(e.target.value)}
                     style={{ ...inputStyle, borderColor: date ? primary : T.border, background: date ? hex2rgb(primary, 0.04) : T.surfaceSubtle }} />
                 </div>
@@ -371,6 +398,27 @@ function BookingSheet({ services: cartServices, org, slug, onClose }: {
                     ))}
                   </div>
                 </div>
+
+                {/* Rental end date (only for rental/event_rental services) */}
+                {hasRentalType && (
+                  <>
+                    <div style={{ marginBottom: 16 }}>
+                      <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: T.t2, marginBottom: 7 }}>تاريخ النهاية *</label>
+                      <input type="date" min={date || today} value={endDate} onChange={e => setEndDate(e.target.value)}
+                        style={{ ...inputStyle, borderColor: endDate ? primary : T.border, background: endDate ? hex2rgb(primary, 0.04) : T.surfaceSubtle }} />
+                    </div>
+                    {rentalDateError && (
+                      <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 10, background: "#FFF1F2", border: "1px solid #FECDD3", fontSize: 13, fontWeight: 600, color: "#E11D48" }}>
+                        {rentalDateError}
+                      </div>
+                    )}
+                    {!rentalDateError && rentalDays > 1 && date && endDate && (
+                      <div style={{ marginBottom: 16, padding: "10px 14px", borderRadius: 10, background: hex2rgb(primary, 0.06), fontSize: 13, fontWeight: 700, color: primary }}>
+                        مدة الإيجار: {rentalDays} أيام
+                      </div>
+                    )}
+                  </>
+                )}
               </>
             )}
 

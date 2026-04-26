@@ -293,4 +293,97 @@ describe("Stage 3 — Public Rental Booking Guard", () => {
     );
     expect(src).toMatch(/return\s+["']appointment["']/);
   });
+
+  // ── Stage 3 full-support contracts ───────────────────────────
+
+  it("source: eventEndDate added to publicBookSchema", () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, "../routes/storefront-v2.ts"), "utf8"
+    );
+    expect(src).toMatch(/eventEndDate\s*:\s*z\.string\(\)\.datetime\(\)/);
+  });
+
+  it("source: calcRentalDays helper is defined", () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, "../routes/storefront-v2.ts"), "utf8"
+    );
+    expect(src).toMatch(/function calcRentalDays/);
+  });
+
+  it("source: rental pricing uses basePrice * rentalDays", () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, "../routes/storefront-v2.ts"), "utf8"
+    );
+    expect(src).toMatch(/basePrice\s*\*\s*rentalDays/);
+  });
+
+  it("source: endsAt is set from resolvedEndDate in bookingRecords insert", () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, "../routes/storefront-v2.ts"), "utf8"
+    );
+    expect(src).toMatch(/endsAt\s*:\s*resolvedEndDate/);
+  });
+
+  it("source: eventEndDate is set from resolvedEndDate in legacy booking insert", () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, "../routes/storefront-v2.ts"), "utf8"
+    );
+    expect(src).toMatch(/eventEndDate\s*:\s*resolvedEndDate/);
+  });
+
+  it("source: pricingBreakdown contains rental_duration type", () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, "../routes/storefront-v2.ts"), "utf8"
+    );
+    expect(src).toContain("rental_duration");
+  });
+
+  // ── HTTP tests for new guard behavior ────────────────────────
+
+  it("rental with valid start+end → NOT blocked by rental guard", async () => {
+    seedBookingScenario("rental");
+    const start = new Date(Date.now() + 86400000);
+    const end   = new Date(Date.now() + 86400000 * 4); // 3 days later
+    const res = await bookReq({
+      ...VALID_BODY,
+      eventDate:    start.toISOString(),
+      eventEndDate: end.toISOString(),
+    });
+    const text = await res.text();
+    expect(text).not.toContain("PUBLIC_RENTAL_BOOKING_REQUIRES_END_DATE");
+  });
+
+  it("rental with eventEndDate <= eventDate → 400 PUBLIC_RENTAL_BOOKING_REQUIRES_END_DATE", async () => {
+    seedBookingScenario("rental");
+    const start = new Date(Date.now() + 86400000 * 3);
+    const end   = new Date(Date.now() + 86400000);     // end is BEFORE start
+    const res = await bookReq({
+      ...VALID_BODY,
+      eventDate:    start.toISOString(),
+      eventEndDate: end.toISOString(),
+    });
+    expect(res.status).toBe(400);
+    const json = await res.json() as { code?: string };
+    expect(json.code).toBe("PUBLIC_RENTAL_BOOKING_REQUIRES_END_DATE");
+  });
+
+  it("event_rental with valid start+end → NOT blocked by rental guard", async () => {
+    seedBookingScenario("event_rental");
+    const start = new Date(Date.now() + 86400000);
+    const end   = new Date(Date.now() + 86400000 * 3);
+    const res = await bookReq({
+      ...VALID_BODY,
+      eventDate:    start.toISOString(),
+      eventEndDate: end.toISOString(),
+    });
+    const text = await res.text();
+    expect(text).not.toContain("PUBLIC_RENTAL_BOOKING_REQUIRES_END_DATE");
+  });
+
+  it("source: calcRentalDays uses Math.max(1, Math.ceil(...))", () => {
+    const src = fs.readFileSync(
+      path.resolve(__dirname, "../routes/storefront-v2.ts"), "utf8"
+    );
+    expect(src).toMatch(/Math\.max\(1,\s*Math\.ceil/);
+  });
 });
