@@ -439,6 +439,7 @@ const publicBookSchema = z.object({
   serviceId:      z.string().uuid().optional(),
   serviceIds:     z.array(z.string().uuid()).optional(),
   eventDate:      z.string().datetime().optional(),
+  eventEndDate:   z.string().datetime().optional(),
   selectedAddons: z.array(z.any()).default([]),
   customLocation: z.string().optional(),
   notes:          z.string().optional(),
@@ -460,6 +461,10 @@ function resolvePublicBookingType(serviceTypes: string[]): string {
   if (serviceTypes.some(t => t === "event_rental" || t === "execution")) return "event";
   if (serviceTypes.some(t => t === "rental")) return "stay";
   return "appointment";
+}
+
+function calcRentalDays(start: Date, end: Date): number {
+  return Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)));
 }
 
 storefrontV2Router.post("/:orgSlug/book", async (c) => {
@@ -525,26 +530,51 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
     }
   }
 
+  // Stage 3 — extract serviceTypes for guard + bookingType resolution
+  const serviceTypes  = svcRows.map(s => (s as any).serviceType ?? "");
+  const hasRentalType = serviceTypes.some(t => PUBLIC_RENTAL_SERVICE_TYPES.has(t));
+
   // Fix 3 — require eventDate for scheduled service types
   const requiresScheduling = svcRows.some(s => SCHEDULED_TYPES.has((s as any).serviceType ?? ""));
   if (requiresScheduling && !body.eventDate) {
     return c.json({ error: "يجب تحديد تاريخ ووقت الحجز" }, 400);
   }
 
-  // Stage 3 — reject rental/event_rental: publicBookSchema has no eventEndDate field
-  const serviceTypes = svcRows.map(s => (s as any).serviceType ?? "");
-  if (serviceTypes.some(t => PUBLIC_RENTAL_SERVICE_TYPES.has(t))) {
-    return c.json({
-      error: "خدمات التأجير تتطلب تحديد تاريخ بداية ونهاية. يرجى التواصل مع المنشأة لإتمام الحجز حالياً.",
-      code: "PUBLIC_RENTAL_BOOKING_REQUIRES_END_DATE",
-    }, 400);
+  // Stage 3 — rental/event_rental require both eventDate and eventEndDate; endDate must be after startDate
+  if (hasRentalType) {
+    if (!body.eventDate || !body.eventEndDate) {
+      return c.json({
+        error: "خدمات التأجير تتطلب تحديد تاريخ بداية ونهاية.",
+        code: "PUBLIC_RENTAL_BOOKING_REQUIRES_END_DATE",
+      }, 400);
+    }
+    if (new Date(body.eventEndDate).getTime() <= new Date(body.eventDate).getTime()) {
+      return c.json({
+        error: "تاريخ نهاية الإيجار يجب أن يكون بعد تاريخ البداية.",
+        code: "PUBLIC_RENTAL_BOOKING_REQUIRES_END_DATE",
+      }, 400);
+    }
   }
 
-  // 4. Pricing (VAT-inclusive — Saudi default)
-  const subtotal = svcRows.reduce((sum, s) => sum + parseFloat(String(s.basePrice ?? "0")), 0);
-  const vatAmount = parseFloat((subtotal * VAT_RATE).toFixed(2));
-  const totalAmount = parseFloat((subtotal + vatAmount).toFixed(2));
-  const depositAmount = parseFloat((totalAmount * 0.3).toFixed(2)); // 30% default deposit
+  // 4. Pricing — rental/event_rental lines multiplied by rental duration (days)
+  const resolvedDate    = body.eventDate ? new Date(body.eventDate) : new Date();
+  const resolvedEndDate = body.eventEndDate ? new Date(body.eventEndDate) : null;
+  const rentalDays      = hasRentalType && resolvedEndDate
+    ? calcRentalDays(resolvedDate, resolvedEndDate)
+    : 1;
+
+  const RENTAL_PRICING_TYPES = new Set(["rental", "event_rental"]);
+  const svcPricing = svcRows.map(svc => {
+    const basePrice   = parseFloat(String(svc.basePrice ?? "0"));
+    const isRentalSvc = RENTAL_PRICING_TYPES.has((svc as any).serviceType ?? "");
+    const lineTotal   = isRentalSvc ? basePrice * rentalDays : basePrice;
+    return { svc, basePrice, lineTotal, isRentalSvc };
+  });
+
+  const subtotal     = parseFloat(svcPricing.reduce((sum, { lineTotal }) => sum + lineTotal, 0).toFixed(2));
+  const vatAmount    = parseFloat((subtotal * VAT_RATE).toFixed(2));
+  const totalAmount  = parseFloat((subtotal + vatAmount).toFixed(2));
+  const depositAmount = parseFloat((totalAmount * 0.3).toFixed(2));
 
   // 5. Upsert customer by phone
   const phone = body.customerPhone.replace(/\s/g, "");
@@ -568,7 +598,6 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
   // 6. Create booking record
   const bookingNumber  = generateBookingNumber("NSQ");
   const trackingToken  = crypto.randomUUID().replace(/-/g, "").substring(0, 32);
-  const resolvedDate   = body.eventDate ? new Date(body.eventDate) : new Date();
   const bookingType    = resolvePublicBookingType(serviceTypes);
   const consentMetadata = {
     acceptedTermsAt:   new Date().toISOString(),
@@ -585,6 +614,7 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
       status:          "pending",
       paymentStatus:   "pending",
       eventDate:       resolvedDate,
+      eventEndDate:    resolvedEndDate ?? null,
       subtotal:        subtotal.toFixed(2),
       discountAmount:  "0",
       vatAmount:       vatAmount.toFixed(2),
@@ -610,6 +640,7 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
       status:          "pending",
       paymentStatus:   "pending",
       startsAt:        resolvedDate,
+      endsAt:          resolvedEndDate ?? null,
       subtotal:        subtotal.toFixed(2),
       discountAmount:  "0",
       vatAmount:       vatAmount.toFixed(2),
@@ -628,7 +659,7 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
 
     if (svcRows.length > 0) {
       await tx.insert(bookingItems).values(
-        svcRows.map((svc) => ({
+        svcPricing.map(({ svc, basePrice, lineTotal, isRentalSvc }) => ({
           bookingId:       legacyBooking.id,
           serviceId:       svc.id,
           serviceName:     svc.name,
@@ -636,22 +667,27 @@ storefrontV2Router.post("/:orgSlug/book", async (c) => {
           durationMinutes: svc.durationMinutes ?? null,
           vatInclusive:    true,
           quantity:        1,
-          unitPrice:       String(svc.basePrice ?? "0"),
-          totalPrice:      String(svc.basePrice ?? "0"),
-          pricingBreakdown: [],
+          unitPrice:       basePrice.toFixed(2),
+          totalPrice:      lineTotal.toFixed(2),
+          pricingBreakdown: isRentalSvc
+            ? [{ type: "rental_duration", days: rentalDays, unitPrice: basePrice, total: lineTotal }]
+            : [],
         })) as any,
       );
 
       await tx.insert(bookingLines).values(
-        svcRows.map((svc) => ({
+        svcPricing.map(({ svc, basePrice, lineTotal, isRentalSvc }) => ({
           bookingRecordId: newRecord.id,
           serviceRefId:    svc.id,
           lineType:        "service",
           itemName:        svc.name,
           quantity:        1,
-          unitPrice:       String(svc.basePrice ?? "0"),
-          totalPrice:      String(svc.basePrice ?? "0"),
+          unitPrice:       basePrice.toFixed(2),
+          totalPrice:      lineTotal.toFixed(2),
           vatInclusive:    true,
+          pricingBreakdown: isRentalSvc
+            ? [{ type: "rental_duration", days: rentalDays }]
+            : [],
         })),
       );
     }

@@ -24,6 +24,8 @@ export function PublicBookingPage() {
   const [phone, setPhone] = useState("");
   const [notes, setNotes] = useState("");
   const [questionAnswers, setQuestionAnswers] = useState<Record<string, string>>({});
+  const [selectedEndDate, setSelectedEndDate] = useState("");
+  const [selectedEndTime, setSelectedEndTime] = useState("12:00");
   const [step, setStep] = useState<"services" | "details" | "questions" | "contact" | "done">("services");
   const [submitting, setSubmitting] = useState(false);
   const [bookingResult, setBookingResult] = useState<any>(null);
@@ -63,7 +65,15 @@ export function PublicBookingPage() {
   const logo = config?.logoUrl || org?.logo;
 
   const svcPrice = parseFloat(selectedService?.basePrice || selectedService?.price || 0);
-  const subtotal = svcPrice;
+  const RENTAL_SVC_TYPES_PBP = new Set(["rental", "event_rental"]);
+  const isRental = RENTAL_SVC_TYPES_PBP.has(selectedService?.serviceType ?? "");
+  const rentalDays = isRental && selectedDate && selectedEndDate
+    ? Math.max(1, Math.ceil(
+        (new Date(`${selectedEndDate}T${selectedEndTime}`).getTime() - new Date(`${selectedDate}T${selectedTime}`).getTime())
+        / (1000 * 60 * 60 * 24)
+      ))
+    : 1;
+  const subtotal = isRental ? svcPrice * rentalDays : svcPrice;
   const vat = subtotal * VAT_RATE;
   const total = subtotal + vat;
   // depositPercent مأخوذ من بيانات الخدمة (الـ API يُرجعه كرقم مثل 30 أو 50)
@@ -85,6 +95,9 @@ export function PublicBookingPage() {
         customerPhone: phone,
         serviceId: selectedService.id,
         eventDate,
+        ...(isRental && selectedEndDate ? {
+          eventEndDate: new Date(`${selectedEndDate}T${selectedEndTime}`).toISOString(),
+        } : {}),
         selectedAddons: [],
         customLocation: customLocation || undefined,
         notes: notes || undefined,
@@ -131,7 +144,7 @@ export function PublicBookingPage() {
                 <p>لا توجد خدمات متاحة حالياً</p>
               </div>
             ) : services.map((svc: any) => (
-              <button key={svc.id} onClick={() => { setSelectedService(svc); setStep("details"); setQuestionAnswers({}); setCustomLocation(""); setSelectedDate(""); }}
+              <button key={svc.id} onClick={() => { setSelectedService(svc); setStep("details"); setQuestionAnswers({}); setCustomLocation(""); setSelectedDate(""); setSelectedEndDate(""); }}
                 className="w-full bg-white rounded-2xl border border-[#eef2f6] p-5 text-right hover:border-[#eef2f6] hover:shadow-sm transition-all flex items-center gap-4">
                 {svc.imageUrl ? (
                   <img src={svc.imageUrl} className="w-20 h-20 rounded-xl object-cover shrink-0" alt={svc.name} />
@@ -187,16 +200,46 @@ export function PublicBookingPage() {
               </div>
             </div>
 
+            {/* Rental end date/time (rental & event_rental only) */}
+            {isRental && (
+              <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-4">
+                <h3 className="font-bold text-gray-900">تاريخ ووقت الانتهاء</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">تاريخ النهاية *</label>
+                    <input type="date" value={selectedEndDate} onChange={e => setSelectedEndDate(e.target.value)} dir="ltr"
+                      min={selectedDate || new Date().toISOString().split("T")[0]}
+                      className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">وقت النهاية</label>
+                    <input type="time" value={selectedEndTime} onChange={e => setSelectedEndTime(e.target.value)} dir="ltr"
+                      className="w-full rounded-xl border border-[#eef2f6] px-3 py-2.5 text-sm outline-none focus:border-brand-400" />
+                  </div>
+                </div>
+                {rentalDays > 1 && selectedEndDate && (
+                  <p className="text-xs font-medium" style={{ color: primaryColor }}>مدة الإيجار: {rentalDays} أيام</p>
+                )}
+              </div>
+            )}
+
             {/* Price summary */}
             <div className="bg-white rounded-2xl border border-[#eef2f6] p-5 space-y-2 text-sm">
               <h3 className="font-bold text-gray-900 mb-3">ملخص السعر</h3>
-              <div className="flex justify-between"><span className="text-gray-500">{selectedService.name}</span><span>{svcPrice.toLocaleString("en-US")} ر.س</span></div>
+              {isRental && rentalDays > 1 ? (
+                <div className="flex justify-between">
+                  <span className="text-gray-500">{selectedService.name} × {rentalDays} أيام</span>
+                  <span>{Math.round(subtotal).toLocaleString("en-US")} ر.س</span>
+                </div>
+              ) : (
+                <div className="flex justify-between"><span className="text-gray-500">{selectedService.name}</span><span>{svcPrice.toLocaleString("en-US")} ر.س</span></div>
+              )}
               <div className="flex justify-between text-gray-500 pt-2 border-t border-[#eef2f6]"><span>ضريبة القيمة المضافة (15%)</span><span>{Math.round(vat).toLocaleString("en-US")} ر.س</span></div>
               <div className="flex justify-between font-bold text-base text-gray-900 pt-2 border-t border-[#eef2f6]"><span>الإجمالي</span><span>{Math.round(total).toLocaleString("en-US")} ر.س</span></div>
               <div className="flex justify-between text-xs pt-1" style={{ color: primaryColor }}><span>العربون المطلوب ({Math.round(depositRatio * 100)}%)</span><span>{Math.round(deposit).toLocaleString("en-US")} ر.س</span></div>
             </div>
 
-            <button disabled={!selectedDate} onClick={() => setStep(serviceQuestions.length > 0 ? "questions" : "contact")}
+            <button disabled={!selectedDate || (isRental && !selectedEndDate)} onClick={() => setStep(serviceQuestions.length > 0 ? "questions" : "contact")}
               className="w-full py-4 rounded-xl text-white font-bold text-base disabled:opacity-50 transition-colors"
               style={{ background: primaryColor }}>
               {serviceQuestions.length > 0 ? "التالي — أسئلة الحجز" : "التالي — بيانات التواصل"}
